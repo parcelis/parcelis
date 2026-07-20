@@ -75,6 +75,11 @@ Parcelis uses shadcn/ui-style primitives through `@parcelis/ui`. Add or extend
 shared components in `packages/ui/src/components`, then import them into apps
 instead of hand-styling repeated controls in page files.
 
+## Licensing
+
+Parcelis is licensed under the GNU Affero General Public License version 3. See
+[LICENSING.md](LICENSING.md) for details.
+
 ## Object storage
 
 Parcelis uses MinIO for local S3-compatible image storage. Docker Compose starts
