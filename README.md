@@ -6,14 +6,16 @@ Parcelis is an open-source property management platform for landlords, small ope
 
 <h3 align="center">
   🧩
-  <a href="https://github.com/parcelis/parcelis/discussions/categories/ideas">Feature request</a>
-  <span> · </span>
+  <a href="https://github.com/parcelis/parcelis/discussions/categories/ideas">Request a feature</a>
+  <span>&nbsp; &nbsp; &nbsp; · &nbsp; &nbsp; &nbsp;</span>
   🐞
   <a href="https://github.com/parcelis/parcelis/issues">Report a bug</a>
-  <span> · </span>
+  <span>&nbsp; &nbsp; &nbsp; · &nbsp; &nbsp; &nbsp;</span>
   👥💬
   <a href="https://github.com/parcelis/parcelis/discussions">Community Discussions</a>
 </h3>
+
+
 ## Apps
 
 - `apps/web`: Next.js App Router frontend.
