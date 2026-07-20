@@ -15,6 +15,9 @@ Parcelis is an open-source property management platform for landlords, small ope
   <a href="https://github.com/parcelis/parcelis/discussions">Community Discussions</a>
 </h3>
 
+## Currently under development. Will update once we have a basic MVP to pilot.
+
+
 
 ## Apps
 
