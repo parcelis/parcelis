@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://i.imgur.com/9fKiINL.png" alt="Parcelis Dark Banner" style="text-align:center;" />
 </p>
-Parcelis is an open-source property management platform for landlords, small operators, and local property teams.
+Parcelis (par-SELL-iss) is an open-source property management platform for landlords, small operators, and local property teams.
 
 
 <h3 align="center">
