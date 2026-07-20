@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Open-source property management platform for boutique operators.",
+  "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.28.2",
   "scripts": {
     "build": "turbo build",
