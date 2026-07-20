@@ -1,0 +1,31 @@
+{
+  "name": "@parcelis/docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../scripts/run-with-open-port.mjs PORT 3001 next dev --turbo --hostname 0.0.0.0 --port {PORT}",
+    "dev:fixed": "next dev --turbo --hostname 0.0.0.0 --port ${PORT:-3001}",
+    "build": "next build",
+    "start": "node ../../scripts/run-with-open-port.mjs PORT 3001 next start --port {PORT}",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@next/mdx": "^15.0.0",
+    "@parcelis/ui": "workspace:*",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@parcelis/config": "workspace:*",
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.2"
+  }
+}

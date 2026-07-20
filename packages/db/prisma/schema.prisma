@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyStatus {
+  active
+  maintenance
+  leasing
+  archived
+}
+
+enum LeaseStatus {
+  draft
+  active
+  notice
+  ended
+}
+
+enum MaintenanceTicketStatus {
+  open
+  in_progress
+  waiting_vendor
+  resolved
+}
+
+enum MaintenanceTicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+model Property {
+  id            String         @id @default(uuid())
+  name          String
+  line1         String
+  line2         String?
+  city          String
+  region        String
+  postalCode    String
+  unitCount     Int
+  occupiedUnits Int            @default(0)
+  status        PropertyStatus @default(active)
+  leases        Lease[]
+  maintenanceTickets MaintenanceTicket[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String?
+  leases    Lease[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Lease {
+  id               String      @id @default(uuid())
+  propertyId       String
+  tenantId         String
+  unitLabel        String
+  monthlyRentCents Int
+  amountOverdueCents Int       @default(0)
+  startsOn         DateTime
+  endsOn           DateTime
+  status           LeaseStatus @default(draft)
+  property         Property    @relation(fields: [propertyId], references: [id])
+  tenant           Tenant      @relation(fields: [tenantId], references: [id])
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([propertyId])
+  @@index([tenantId])
+}
+
+model MaintenanceTicket {
+  id          String                    @id @default(uuid())
+  propertyId  String
+  unitLabel   String?
+  title       String
+  description String?
+  status      MaintenanceTicketStatus   @default(open)
+  priority    MaintenanceTicketPriority @default(medium)
+  openedOn    DateTime                  @default(now())
+  dueOn       DateTime?
+  property    Property                  @relation(fields: [propertyId], references: [id])
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@index([propertyId])
+  @@index([status])
+}

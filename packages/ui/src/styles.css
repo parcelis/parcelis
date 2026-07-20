@@ -1,0 +1,28 @@
+:root {
+  /* Brand palette */
+  --parcelis-charcoal: 16 28 41;
+  --parcelis-slate: 23 38 53;
+  --parcelis-green: 111 166 64;
+  --parcelis-gray: 88 98 115;
+  --parcelis-porcelain: 247 248 246;
+  --parcelis-white: 255 255 255;
+  --parcelis-border: 220 225 220;
+  --parcelis-green-hover: 91 142 52;
+}
+
+.dark {
+  --parcelis-border: 53 70 74;
+  --parcelis-green-hover: 137 185 96;
+}
+
+.parcelis-wordmark-parcel {
+  color: rgb(var(--parcelis-charcoal));
+}
+
+.dark .parcelis-wordmark-parcel {
+  color: rgb(var(--parcelis-porcelain));
+}
+
+.parcelis-wordmark-is {
+  color: rgb(var(--parcelis-green));
+}

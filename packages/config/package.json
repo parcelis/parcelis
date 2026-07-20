@@ -1,0 +1,10 @@
+{
+  "name": "@parcelis/config",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./tsconfig/base": "./tsconfig.base.json",
+    "./prettier": "./prettier.config.cjs",
+    "./eslint": "./eslint.config.mjs"
+  }
+}

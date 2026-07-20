@@ -1,0 +1,114 @@
+name: parcelis
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: parcelis
+      POSTGRES_PASSWORD: parcelis
+      POSTGRES_DB: parcelis
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parcelis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - parcelis-dev
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-parcelis-images}
+      MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:-parcelis-assets}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - parcelis-dev
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-parcelis-images}
+      MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:-parcelis-assets}
+    volumes:
+      - ./infra/minio/assets:/assets:ro
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set parcelis http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_BUCKET;
+      /usr/bin/mc anonymous set none parcelis/$$MINIO_BUCKET;
+      /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_ASSETS_BUCKET;
+      /usr/bin/mc cp --recursive /assets/ parcelis/$$MINIO_ASSETS_BUCKET/;
+      /usr/bin/mc anonymous set download parcelis/$$MINIO_ASSETS_BUCKET;
+      "
+    networks:
+      - parcelis-dev
+
+  web:
+    image: node:22-alpine
+    working_dir: /repo
+    command: sh -c "corepack enable && pnpm install && pnpm --filter @parcelis/web dev"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_OBJECT_STORAGE_URL: http://localhost:${MINIO_API_PORT:-9000}
+      NEXT_PUBLIC_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-9000}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-light.png
+      NEXT_PUBLIC_DARK_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-9000}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-dark.png
+    volumes:
+      - .:/repo
+      - pnpm-store:/root/.local/share/pnpm/store
+    depends_on:
+      - api
+    networks:
+      - parcelis-dev
+
+  api:
+    image: node:22-alpine
+    working_dir: /repo
+    command: sh -c "corepack enable && pnpm install && pnpm --filter @parcelis/api dev"
+    ports:
+      - "${API_PORT:-4000}:4000"
+    environment:
+      DATABASE_URL: postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public
+      API_PORT: "4000"
+      OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_PORT:-9000}
+      OBJECT_STORAGE_REGION: us-east-1
+      OBJECT_STORAGE_BUCKET: ${MINIO_BUCKET:-parcelis-images}
+      OBJECT_STORAGE_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-parcelis-minio}
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
+    volumes:
+      - .:/repo
+      - pnpm-store:/root/.local/share/pnpm/store
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - parcelis-dev
+
+volumes:
+  postgres-data:
+  minio-data:
+  pnpm-store:
+
+networks:
+  parcelis-dev:
+    name: parcelis-dev
+    ipam:
+      config:
+        - subnet: 10.88.0.0/24

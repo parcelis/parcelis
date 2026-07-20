@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: rgb(var(--parcelis-porcelain));
+  --parcelis-sidebar-width: 16rem;
+}
+
+html.dark {
+  background: rgb(var(--parcelis-charcoal));
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: rgb(var(--parcelis-charcoal));
+  background:
+    linear-gradient(180deg, rgb(var(--parcelis-charcoal) / 0.04), rgb(var(--parcelis-porcelain) / 0) 320px),
+    rgb(var(--parcelis-porcelain));
+}
+
+.dark body {
+  color: rgb(var(--parcelis-porcelain));
+  background:
+    linear-gradient(180deg, rgb(var(--parcelis-green) / 0.08), rgb(var(--parcelis-charcoal) / 0) 340px),
+    rgb(var(--parcelis-charcoal));
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.dark .bg-white {
+  background-color: rgb(var(--parcelis-slate));
+}
+
+.dark .bg-white\/90 {
+  background-color: rgb(var(--parcelis-slate) / 0.9);
+}
+
+.dark .hover\:bg-white:hover {
+  background-color: rgb(var(--parcelis-slate));
+}
+
+.dark .hover\:bg-white\/60:hover {
+  background-color: rgb(var(--parcelis-slate) / 0.6);
+}
+
+.dark .text-parcelis-charcoal {
+  color: rgb(var(--parcelis-porcelain));
+}
+
+.dark .text-parcelis-gray {
+  color: rgb(var(--parcelis-porcelain) / 0.72);
+}
+
+.dark .bg-parcelis-charcoal {
+  background-color: rgb(var(--parcelis-charcoal));
+}
+
+.dark .bg-parcelis-porcelain {
+  background-color: rgb(var(--parcelis-charcoal));
+}
+
+.dark .bg-parcelis-porcelain\/45 {
+  background-color: rgb(var(--parcelis-charcoal) / 0.45);
+}
+
+.dark .hover\:bg-parcelis-porcelain:hover,
+.dark .hover\:bg-parcelis-porcelain\/60:hover {
+  background-color: rgb(var(--parcelis-charcoal) / 0.72);
+}
+
+.dark .bg-parcelis-green.text-parcelis-charcoal {
+  color: rgb(var(--parcelis-charcoal));
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgb(var(--parcelis-charcoal));
+  color: rgb(var(--parcelis-porcelain));
+}
+
+.dark input::placeholder {
+  color: rgb(var(--parcelis-porcelain) / 0.68);
+}

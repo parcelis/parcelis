@@ -1,0 +1,10 @@
+# Getting Started
+
+Parcelis is organized as a pnpm workspace. Install dependencies, start Postgres, generate the Prisma client, then run the development tasks.
+
+```bash
+pnpm install
+docker compose up postgres -d
+pnpm db:generate
+pnpm dev
+```
