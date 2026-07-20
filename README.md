@@ -1,6 +1,5 @@
-# Parcelis
-
-Parcelis is an open-source property management platform for boutique landlords, small operators, and local property teams.
+<img src="https://i.imgur.com/9fKiINL.png" alt="Parcelis Dark Banner" style="text-align:center;" />
+Parcelis is an open-source property management platform for landlords, small operators, and local property teams.
 
 ## Apps
 
