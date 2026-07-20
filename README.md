@@ -1,6 +1,19 @@
-<img src="https://i.imgur.com/9fKiINL.png" alt="Parcelis Dark Banner" style="text-align:center;" />
+<p align="center">
+  <img src="https://i.imgur.com/9fKiINL.png" alt="Parcelis Dark Banner" style="text-align:center;" />
+</p>
 Parcelis is an open-source property management platform for landlords, small operators, and local property teams.
 
+
+<h3 align="center">
+  🧩
+  <a href="https://github.com/parcelis/parcelis/discussions/categories/ideas">Feature request</a>
+  <span> · </span>
+  🐞
+  <a href="https://github.com/parcelis/parcelis/issues">Report a bug</a>
+  <span> · </span>
+  👥💬
+  <a href="https://github.com/parcelis/parcelis/discussions">Community Discussions</a>
+</h3>
 ## Apps
 
 - `apps/web`: Next.js App Router frontend.
