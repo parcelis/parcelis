@@ -4,3 +4,84 @@ body:
   - type: markdown
     attributes:
       value: Please provide a clear and concise title for your feature request
+
+  - type: textarea
+    attributes:
+      label: Feature Description
+      description: Describe the feature you are requesting in detail. Explain what problem it solves or what value it adds to the project.
+  - type: textarea
+    attributes:
+      label: Use Case
+      description: Provide a scenario or use case where this feature would be beneficial. Explain how users would interact with this feature and why it's important.
+  - type: markdown
+    attributes:
+      value: 🧩 Feature | Please provide a clear and concise title for your feature request.
+
+  - type: textarea
+    attributes:
+      label: Description
+      description: Describe the feature you are requesting in detail. Explain what problem it solves or what value it adds to the project.
+      placeholder: |
+        Budibase currently allows builders to copy an individual **Button** component with ease. However, when a button is part of a **Button Group**, the copy action applies only to the entire group. This makes it difficult to reuse or duplicate a single button configuration when working inside grouped layouts.
+
+        There are many cases where builders only need to copy **one** button—such as duplicating a specific action, preserving conditional logic, or reusing styling—without recreating the entire group or manually rebuilding the button. This enhancement proposes adding the ability to copy a **single button within a Button Group**, similar to how standalone buttons can already be copied.
+
+  - type: textarea
+    attributes:
+      label: Use Case
+      description: Provide a scenario or use case where this feature would be beneficial.
+      placeholder: |
+        As a user, I want to...
+
+  - type: textarea
+    attributes:
+      label: Current Pain Points
+      description: Describe the current hurdles or limitations that make this feature necessary.
+      placeholder: |
+        What are the current pain points that make this feature important?
+
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: Explain what the expected behavior or outcome of this feature should be.
+      placeholder: |
+        What is the expected behavior outcome for this request?
+
+  - type: textarea
+    attributes:
+      label: Why It Matters
+      description: Explain why this feature should be prioritized or why it adds meaningful value.
+      placeholder: |
+        Why do you believe this feature should be picked up?
+
+  - type: textarea
+    attributes:
+      label: Additional Notes
+      description: Add any additional context or information that might be relevant.
+      placeholder: |
+        Please provide any additional details.
+
+  - type: textarea
+    attributes:
+      label: Screenshots (optional)
+      description: Include screenshots or visual examples if helpful.
+      placeholder: |
+        Optional: include examples showing a Button Group with per‑button copy controls.
+
+  - type: checkboxes
+    attributes:
+      label: Contributor Interest
+      description: Would you like to work on this feature?
+      options:
+        - label: Yes, I'd like to help implement this feature
+        - label: No, I'm just suggesting the feature
+
+  - type: checkboxes
+    attributes:
+      label: Please check the boxes that apply to this feature request.
+      options:
+        - label: I have searched the existing feature requests to make sure this is not a duplicate.
+        - label: I have provided a detailed description of the requested feature.
+        - label: I have explained the use case or scenario for this feature.
+        - label: I have included any relevant technical details or design suggestions.
+
