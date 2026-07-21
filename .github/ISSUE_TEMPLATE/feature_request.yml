@@ -7,30 +7,35 @@ body:
       value: Please provide a clear and concise title for your feature request
   - type: textarea
     attributes:
-      label: 🧩 Feature Description
+      label: 📝 Description
       description: Describe the feature you are requesting in detail. Explain what problem it solves or what value it adds to the project.
   - type: textarea
     attributes:
-      label: Use Case
+      label: 💡 Use Case
       description: Provide a scenario or use case where this feature would be beneficial. Explain how users would interact with this feature and why it's important.
   - type: textarea
     attributes:
-      label: Proposed Solution
+      label: 🎯 Proposed Solution
       description: If you have an idea of how this feature could be implemented, describe it here. Include any technical details, UI/UX considerations, or design suggestions.
   - type: textarea
     attributes:
-      label: Alternatives (optional)
-      description: Are there any alternative ways to achieve the same goal? Describe other approaches that could be considered if this feature is not implemented.
+      label: 📸 Screenshots (optional)
+      description: Are there any examples you can provide that show the functionality you are requesting?
   - type: textarea
     attributes:
-      label: Additional Context
+      label: 📌 Additional Context
       description: Add any additional context or information that might be relevant to the feature request.
   - type: checkboxes
     attributes:
-      label: Please check the boxes that apply to this feature request.
+      label: ✅ Please check the boxes that apply to this feature request.
       options:
         - label: I have searched the existing feature requests to make sure this is not a duplicate.
         - label: I have provided a detailed description of the requested feature.
         - label: I have explained the use case or scenario for this feature.
         - label: I have included any relevant technical details or design suggestions.
-        - label: I understand that this is a suggestion and that there is no guarantee of implementation.
+  - type: checkboxes
+    attributes:
+      label: 🙋 Contributor Interest
+      options:
+        - label: I would like to help implement this feature.
+        - label: I am just suggestiong a feature.
