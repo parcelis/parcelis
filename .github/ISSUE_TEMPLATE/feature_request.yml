@@ -1,6 +1,6 @@
 name: 'Feature Request'
 description: Suggest a new idea or enhancement for this project
-labels: enhancement, needs-triaged
+labels: "enhancement, needs-triaged"
 body:
   - type: markdown
     attributes:
