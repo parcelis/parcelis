@@ -14,8 +14,19 @@ Parcelis (PAR-cell-iss) is an open-source property management platform for landl
   👥💬
   <a href="https://github.com/parcelis/parcelis/discussions">Community Discussions</a>
 </h3>
+<br /><br />
+<p align="center">
+<a href="https://discord.gg/4XYkWmVpWH"><img src="https://i.imgur.com/d7JM2wK.png" width="150px" /></a>
+<span>&nbsp; &nbsp; &nbsp;</span>
+<a href="https://parcelis.dev/"><img width="50" height="50" alt="image" src="https://github.com/user-attachments/assets/9f838f54-df0d-4f52-bfa8-8d21e8c99735" /></a>
 
-## Currently under development. Will update once we have a basic MVP to pilot.
+</p>
+<br />
+
+## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
+<br /><br />
+
+
 
 
 
