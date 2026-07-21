@@ -1,0 +1,57 @@
+name: 🐞 Bug Report
+labels: ['bug']
+type: bug
+description: Create a bug report to help us improve
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for reporting an issue.
+        Please fill in as much of the form below as you're able to. This will help us reproduce the issue and be able to resolve efficiently.
+  - type: textarea
+    attributes:
+      label: 📝 Issue Description - Describe the bug
+      description: Please provide a clear and concise description of the problem.
+  - type: textarea
+    attributes:
+      label: 🪜 Steps to Reproduce
+      description: Please provide step-by-step instructions to reproduce the issue. Include code snippets, error messages, and any other relevant information.
+  - type: textarea
+    attributes:
+      label: 🎯 Expected Behavior
+      description: Describe what you expected to happen.
+  - type: textarea
+    attributes:
+      label: 🔍 Current Behavior
+      description: Describe what is currently happening.
+  - type: textarea
+    attributes:
+      label: 📸 Screenshots (recommended)
+      description: If applicable, add screenshots to help explain the issue.
+  - type: dropdown
+    attributes:
+      label: 💻 Operating System
+      options: ["macOS","Linux", "Windows 10","Windows 11"]
+  - type: checkboxes
+    attributes:
+      label: Browser [e.g., Chrome, Firefox]
+      description: You may select more than one.
+      options:
+        - label: Google Chrome
+        - label: Mozilla Firefox
+        - label: Opera
+        - label: Microsoft Edge
+        - label: Safari
+  - type: input
+    attributes:
+      label: 🏷️ Version [e.g., 2.13.0]
+  - type: input
+    attributes:
+      label: 📦 Deployment Type [e.g., Docker, Kubernetes]
+  - type: checkboxes
+    attributes:
+      label: Please check the boxes that apply to this issue report.
+      options:
+        - label: I have searched the existing issues to make sure this is not a duplicate.
+        - label: I have provided steps to reproduce the issue.
+        - label: I have included relevant environment information.
+        - label: I have included any relevant screenshots.
