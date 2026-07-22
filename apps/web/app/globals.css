@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .parcelis-page-shell {
+    @apply mx-auto w-full max-w-[112rem] px-4 py-6 md:px-8 2xl:px-12;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

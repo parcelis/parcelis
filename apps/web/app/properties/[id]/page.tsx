@@ -88,7 +88,7 @@ export default function PropertyDetailPage() {
           </Button>
         </header>
 
-        <div className="mx-auto max-w-7xl px-4 py-6 md:px-8">
+        <div className="parcelis-page-shell">
           {propertyQuery.isLoading ? (
             <div className="flex min-h-[60vh] items-center justify-center gap-2 text-sm font-medium text-parcelis-gray">
               <Loader2 className="h-4 w-4 animate-spin" />

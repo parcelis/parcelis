@@ -2,32 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  Building2,
-  CalendarClock,
-  ChevronRight,
-  CircleDollarSign,
-  DoorOpen,
-  Filter,
-  Loader2,
-  Plus,
-  Search,
-  Wrench,
-} from "lucide-react";
+import { AlertTriangle, Building2, CalendarClock, ChevronRight, CircleDollarSign, DoorOpen, Filter, Loader2,  Plus, Search, Wrench,} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Checkbox,
-  FieldLabel,
-  Input,
-  Label,
-  ParcelisLogo,
-  Select,
-} from "@parcelis/ui";
+import { Button, Card, CardContent, CardHeader, Checkbox, FieldLabel, Input, Label, ParcelisLogo, Select,} from "@parcelis/ui";
 import type { CreatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../components/api-client";
 import { Sidebar } from "../../components/sidebar";
@@ -257,7 +234,7 @@ export default function PropertiesPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-4 py-6 md:px-8">
+        <div className="parcelis-page-shell">
           <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Properties</p>

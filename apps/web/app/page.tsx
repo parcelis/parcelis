@@ -2,16 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import {
-  Building2,
-  CalendarClock,
-  CircleDollarSign,
-  ClipboardCheck,
-  Loader2,
-  Plus,
-  Search,
-  Wrench,
-} from "lucide-react";
+import { Building2, CalendarClock, CircleDollarSign, ClipboardCheck, Loader2, Plus, Search, Wrench,} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
 import type { CreatePropertyInput } from "@parcelis/schemas";
@@ -118,7 +109,7 @@ export default function Page() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-4 py-6 md:px-8">
+        <div className="parcelis-page-shell">
           <section className="mb-6 grid gap-5 lg:grid-cols-[1.5fr_0.8fr]">
             <div className="rounded-lg bg-parcelis-charcoal p-6 text-white">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Parcelis command center</p>

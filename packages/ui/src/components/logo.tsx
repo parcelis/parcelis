@@ -3,13 +3,10 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 
-const defaultLogoSrc = "http://localhost:9000/parcelis-assets/brand/parcelis-light.png";
-const defaultDarkLogoSrc = "http://localhost:9000/parcelis-assets/brand/parcelis-dark.png";
-
 export function ParcelisLogo({
   className,
-  darkLogoSrc = defaultDarkLogoSrc,
-  logoSrc = defaultLogoSrc,
+  darkLogoSrc,
+  logoSrc,
   markOnly = false,
 }: {
   className?: string;
@@ -19,7 +16,7 @@ export function ParcelisLogo({
 }) {
   const [hasImageError, setHasImageError] = React.useState(false);
   const [isDarkMode, setIsDarkMode] = React.useState(false);
-  const imageSrc = isDarkMode ? darkLogoSrc : logoSrc;
+  const imageSrc = isDarkMode ? (darkLogoSrc ?? logoSrc) : (logoSrc ?? darkLogoSrc);
 
   React.useEffect(() => {
     const root = document.documentElement;
@@ -36,9 +33,7 @@ export function ParcelisLogo({
   return (
     <div className={cn("flex items-center gap-3", className)} aria-label="Parcelis">
       <div className="grid h-10 w-10 overflow-hidden rounded-md bg-parcelis-charcoal text-parcelis-green shadow-sm">
-        {hasImageError ? (
-          <span className="grid place-items-center font-serif text-xl font-bold tracking-normal">P</span>
-        ) : (
+        {imageSrc && !hasImageError ? (
           <img
             alt=""
             className="h-full w-full object-cover"
@@ -47,6 +42,8 @@ export function ParcelisLogo({
             src={imageSrc}
             width={80}
           />
+        ) : (
+          <span className="grid place-items-center font-serif text-xl font-bold tracking-normal">P</span>
         )}
       </div>
       {!markOnly ? (
@@ -54,10 +51,9 @@ export function ParcelisLogo({
           <div
             className="text-base leading-none"
             style={{
-              fontFamily: '"Avenir Next", "Montserrat", "Inter", sans-serif',
+              fontFamily: '"Inter", sans-serif',
               fontSize: "1.75rem",
               fontWeight: 600,
-              letterSpacing: "0.02em",
             }}
           >
             <span className="parcelis-wordmark-parcel">Parcel</span>
