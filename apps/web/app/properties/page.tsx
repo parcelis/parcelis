@@ -8,6 +8,7 @@ import { Button, Card, CardContent, CardHeader, Checkbox, FieldLabel, Input, Lab
 import type { CreatePropertyInput } from "@parcelis/schemas";
 import { AddPropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../../components/add-property-drawer";
 import { apiClient, queryKeys } from "../../components/api-client";
+import { useShortcut } from "../../components/shortcut-provider";
 import { Sidebar } from "../../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -108,6 +109,9 @@ export default function PropertiesPage() {
   const [appliedFilters, setAppliedFilters] = React.useState<PropertyFilters>(initialFilters);
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<string>>(() => new Set());
   const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  useShortcut("Mod+Shift+P", () => setIsFormOpen(true));
+  useShortcut("/", () => searchInputRef.current?.focus(), { enabled: !isFormOpen });
 
   const properties = propertiesQuery.data ?? [];
   const filteredProperties = properties.filter((property) => {
@@ -252,6 +256,7 @@ export default function PropertiesPage() {
                       className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 focus:border-transparent"
                       onChange={(event) => setSearch(event.target.value)}
                       placeholder="Search name, city, state, status"
+                      ref={searchInputRef}
                       value={search}
                     />
                   </label>

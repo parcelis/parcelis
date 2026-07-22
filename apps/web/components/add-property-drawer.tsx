@@ -25,6 +25,7 @@ import {
   Select,
 } from "@parcelis/ui";
 import { propertyTypeValues, type CreatePropertyInput, type PropertyType } from "@parcelis/schemas";
+import { useShortcut } from "./shortcut-provider";
 
 export type PropertyFormState = {
   name: string;
@@ -106,6 +107,9 @@ export function AddPropertyDrawer({
     .join(", ");
   const contactAddressLines = [form.contactAddressLine1, form.contactAddressLine2, contactCityLine].filter(Boolean);
   const contactAddress = contactAddressLines.join("\n");
+  useShortcut("Mod+Enter", () => submitPropertyInput(), {
+    enabled: open && canSubmit && !isPending,
+  });
 
   function updateField<Key extends keyof PropertyFormState>(field: Key, value: PropertyFormState[Key]) {
     onFormChange((current) => ({ ...current, [field]: value }));
@@ -113,6 +117,10 @@ export function AddPropertyDrawer({
 
   function submitProperty(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    submitPropertyInput();
+  }
+
+  function submitPropertyInput() {
     onSubmit({
       name: form.name,
       propertyType: form.propertyType,

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ShortcutProvider } from "../components/shortcut-provider";
 import { TrpcProvider } from "../components/trpc-provider";
 import { ThemeProvider } from "../components/theme-provider";
 import "@parcelis/ui/styles.css";
@@ -14,7 +15,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <TrpcProvider>{children}</TrpcProvider>
+          <ShortcutProvider>
+            <TrpcProvider>{children}</TrpcProvider>
+          </ShortcutProvider>
         </ThemeProvider>
       </body>
     </html>
