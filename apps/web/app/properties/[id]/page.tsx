@@ -13,8 +13,10 @@ import {
   Phone,
   Wrench,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
+import { propertyTypeValues, type PropertyType, type UpdatePropertyInput } from "@parcelis/schemas";
+import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../../../components/property-drawer";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { Sidebar } from "../../../components/sidebar";
 
@@ -44,13 +46,45 @@ function formatDate(date: Date | string) {
   }).format(new Date(date));
 }
 
+function parseContactAddress(contactAddress: string | null | undefined) {
+  const [line1 = "", line2 = "", cityRegionPostal = ""] = contactAddress?.split("\n") ?? [];
+  const [city = "", regionPostal = ""] = cityRegionPostal.split(", ");
+  const [region = "", ...postalCodeParts] = regionPostal.split(" ");
+
+  return {
+    contactAddressLine1: line1,
+    contactAddressLine2: line2,
+    contactCity: city,
+    contactRegion: region,
+    contactPostalCode: postalCodeParts.join(" "),
+  };
+}
+
+function getPropertyType(value: string): PropertyType {
+  return propertyTypeValues.includes(value as PropertyType) ? (value as PropertyType) : "Apartment";
+}
+
 export default function PropertyDetailPage() {
+  const queryClient = useQueryClient();
   const params = useParams<{ id: string }>();
   const propertyId = params.id;
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
   });
+  const updateProperty = useMutation({
+    mutationFn: (input: UpdatePropertyInput) => apiClient.properties.update.mutate(input),
+    onSuccess: async () => {
+      setIsEditDrawerOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+      ]);
+    },
+  });
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
+  const [editInitialForm, setEditInitialForm] = React.useState<PropertyFormState>(initialPropertyFormState);
+  const [editForm, setEditForm] = React.useState<PropertyFormState>(initialPropertyFormState);
 
   const property = propertyQuery.data;
   const leases = property?.leases ?? [];
@@ -79,9 +113,48 @@ export default function PropertyDetailPage() {
       ].filter(([, value]) => Boolean(value))
     : [];
 
+  function openEditDrawer() {
+    if (!property) {
+      return;
+    }
+
+    const contactAddress = parseContactAddress(property.contactAddress);
+    const nextForm: PropertyFormState = {
+      name: property.name,
+      line1: property.line1,
+      line2: property.line2 ?? "",
+      city: property.city,
+      region: property.region,
+      postalCode: property.postalCode,
+      propertyType: getPropertyType(property.propertyType),
+      contactName: property.contactName ?? "",
+      contactEmail: property.contactEmail ?? "",
+      contactPhone: property.contactPhone ?? "",
+      ...contactAddress,
+      unitCount: String(property.unitCount),
+    };
+
+    setEditInitialForm(nextForm);
+    setEditForm(nextForm);
+    setIsEditDrawerOpen(true);
+  }
+
   return (
     <main className="min-h-screen">
       <Sidebar active="properties" />
+      <PropertyDrawer
+        cancelDescription="Are you sure you'd like to cancel editing?"
+        drawerTitle="Edit Property"
+        error={updateProperty.error}
+        form={editForm}
+        initialFormState={editInitialForm}
+        isPending={updateProperty.isPending}
+        onFormChange={setEditForm}
+        onOpenChange={setIsEditDrawerOpen}
+        onSubmit={(input) => updateProperty.mutate({ ...input, id: propertyId })}
+        open={isEditDrawerOpen}
+        submitLabel="Save"
+      />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -136,7 +209,9 @@ export default function PropertyDetailPage() {
                       {property.line2 ? `, ${property.line2}` : ""}, {property.city}, {property.region} {property.postalCode}
                     </p>
                   </div>
-                  <Button variant="secondary">Edit property</Button>
+                  <Button onClick={openEditDrawer} variant="secondary">
+                    Edit property
+                  </Button>
                 </div>
               </section>
 

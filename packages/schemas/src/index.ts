@@ -34,6 +34,7 @@ export const propertySchema = z.object({
   contactEmail: z.string().email().optional(),
   contactPhone: z.string().optional(),
   contactAddress: z.string().optional(),
+  notes: z.string().optional(),
   unitCount: z.number().int().nonnegative(),
   occupiedUnits: z.number().int().nonnegative(),
   status: propertyStatusSchema,
@@ -66,8 +67,17 @@ export const createPropertyInputSchema = propertySchema.omit({
   status: true,
 });
 
+export const updatePropertyInputSchema = createPropertyInputSchema.extend({
+  id: z.string().uuid(),
+});
+
 export const propertyByIdInputSchema = z.object({
   id: z.string().uuid(),
+});
+
+export const propertyNotesInputSchema = z.object({
+  id: z.string().uuid(),
+  notes: z.string().optional(),
 });
 
 export type Address = z.infer<typeof addressSchema>;
@@ -76,3 +86,4 @@ export type PropertyType = z.infer<typeof propertyTypeSchema>;
 export type Tenant = z.infer<typeof tenantSchema>;
 export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;
+export type UpdatePropertyInput = z.infer<typeof updatePropertyInputSchema>;

@@ -11,7 +11,7 @@
     "db:seed": "node ../../scripts/prisma-with-env.mjs db seed",
     "db:studio": "node ../../scripts/prisma-with-env.mjs studio",
     "build": "tsc -p tsconfig.json",
-    "lint": "eslint .",
+    "lint": "eslint . --no-error-on-unmatched-pattern",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

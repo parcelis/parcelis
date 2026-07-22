@@ -48,6 +48,7 @@ model Property {
   contactEmail  String?
   contactPhone  String?
   contactAddress String?
+  notes         String?
   unitCount     Int
   occupiedUnits Int            @default(0)
   status        PropertyStatus @default(active)

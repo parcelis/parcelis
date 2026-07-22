@@ -6,7 +6,7 @@ import { Building2, CalendarClock, CircleDollarSign, ClipboardCheck, Loader2, Pl
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
 import type { CreatePropertyInput } from "@parcelis/schemas";
-import { AddPropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../components/add-property-drawer";
+import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../components/property-drawer";
 import { apiClient, queryKeys } from "../components/api-client";
 import { useShortcut } from "../components/shortcut-provider";
 import { Sidebar } from "../components/sidebar";
@@ -54,7 +54,7 @@ export default function Page() {
   return (
     <main className="min-h-screen">
       <Sidebar active="portfolio" />
-      <AddPropertyDrawer
+      <PropertyDrawer
         error={createProperty.error}
         form={form}
         isPending={createProperty.isPending}

@@ -13,7 +13,7 @@
     "dev:fixed": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "lint": "eslint .",
+    "lint": "eslint . --no-error-on-unmatched-pattern",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

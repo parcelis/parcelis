@@ -65,14 +65,18 @@ export const initialPropertyFormState: PropertyFormState = {
   unitCount: "",
 };
 
-type AddPropertyDrawerProps = {
+type PropertyDrawerProps = {
+  cancelDescription?: string;
+  drawerTitle?: string;
   error?: Error | null;
   form: PropertyFormState;
+  initialFormState?: PropertyFormState;
   isPending: boolean;
   onFormChange: React.Dispatch<React.SetStateAction<PropertyFormState>>;
   onOpenChange: (open: boolean) => void;
   onSubmit: (input: CreatePropertyInput) => void;
   open: boolean;
+  submitLabel?: string;
 };
 
 const steps = [
@@ -81,15 +85,19 @@ const steps = [
   { label: "Property Settings", icon: Settings, active: false },
 ];
 
-export function AddPropertyDrawer({
+export function PropertyDrawer({
+  cancelDescription = "Are you sure you'd like to cancel?",
+  drawerTitle = "Add Property",
   error,
   form,
+  initialFormState = initialPropertyFormState,
   isPending,
   onFormChange,
   onOpenChange,
   onSubmit,
   open,
-}: AddPropertyDrawerProps) {
+  submitLabel = "Next",
+}: PropertyDrawerProps) {
   const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
   const [isContactAddressPopoverOpen, setIsContactAddressPopoverOpen] = React.useState(false);
   const [isContactInfoOpen, setIsContactInfoOpen] = React.useState(false);
@@ -98,7 +106,7 @@ export function AddPropertyDrawer({
     form.name && form.line1 && form.city && form.region && form.postalCode && form.propertyType && form.unitCount,
   );
   const hasFormChanges = Object.entries(form).some(
-    ([field, value]) => value !== initialPropertyFormState[field as keyof PropertyFormState],
+    ([field, value]) => value !== initialFormState[field as keyof PropertyFormState],
   );
   const cityLine = [form.city, [form.region, form.postalCode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   const addressLines = [form.line1, form.line2, cityLine].filter(Boolean);
@@ -153,7 +161,7 @@ export function AddPropertyDrawer({
     setIsAddressPopoverOpen(false);
     setIsContactAddressPopoverOpen(false);
     setIsContactInfoOpen(false);
-    onFormChange(initialPropertyFormState);
+    onFormChange(initialFormState);
     onOpenChange(false);
   }
 
@@ -168,13 +176,13 @@ export function AddPropertyDrawer({
         }
       }}
     >
-      <DrawerContent className="max-w-[860px]">
-        <AlertDialog open={isDiscardDialogOpen} onOpenChange={setIsDiscardDialogOpen}>
+      <DrawerContent className="max-w-full sm:max-w-xl md:max-w-3xl lg:max-w-5xl">
+          <AlertDialog open={isDiscardDialogOpen} onOpenChange={setIsDiscardDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Your changes will not be saved.</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you'd like to cancel?
+                {cancelDescription}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -190,7 +198,7 @@ export function AddPropertyDrawer({
         <form className="flex min-h-0 flex-1 flex-col" onSubmit={submitProperty}>
           <DrawerHeader className="flex items-center gap-3">
             <DrawerClose />
-            <DrawerTitle>Add Property</DrawerTitle>
+            <DrawerTitle>{drawerTitle}</DrawerTitle>
           </DrawerHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -471,7 +479,7 @@ export function AddPropertyDrawer({
             </Button>
             <Button className="min-w-40" disabled={!canSubmit || isPending} type="submit">
               {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Next
+              {submitLabel}
             </Button>
           </DrawerFooter>
         </form>

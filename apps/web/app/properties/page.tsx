@@ -2,11 +2,48 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { AlertTriangle, Building2, CalendarClock, ChevronRight, CircleDollarSign, DoorOpen, Filter, Loader2,  Plus, Search, Wrench,} from "lucide-react";
+import {
+  AlertTriangle,
+  Archive,
+  Building2,
+  CalendarClock,
+  ChevronRight,
+  CircleDollarSign,
+  DoorOpen,
+  EllipsisVertical,
+  Filter,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  StickyNote,
+  Trash2,
+  Wrench,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, CardContent, CardHeader, Checkbox, FieldLabel, Input, Label, ParcelisLogo, Select,} from "@parcelis/ui";
-import type { CreatePropertyInput } from "@parcelis/schemas";
-import { AddPropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../../components/add-property-drawer";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Checkbox,
+  FieldLabel,
+  Input,
+  Label,
+  ParcelisLogo,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Select,
+} from "@parcelis/ui";
+import { propertyTypeValues, type CreatePropertyInput, type PropertyType, type UpdatePropertyInput } from "@parcelis/schemas";
+import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../../components/property-drawer";
 import { apiClient, queryKeys } from "../../components/api-client";
 import { useShortcut } from "../../components/shortcut-provider";
 import { Sidebar } from "../../components/sidebar";
@@ -88,6 +125,111 @@ function getUnitRows(property: PropertyListItem) {
   });
 }
 
+function parseContactAddress(contactAddress: string | null | undefined) {
+  const [line1 = "", line2 = "", cityRegionPostal = ""] = contactAddress?.split("\n") ?? [];
+  const [city = "", regionPostal = ""] = cityRegionPostal.split(", ");
+  const [region = "", ...postalCodeParts] = regionPostal.split(" ");
+
+  return {
+    contactAddressLine1: line1,
+    contactAddressLine2: line2,
+    contactCity: city,
+    contactRegion: region,
+    contactPostalCode: postalCodeParts.join(" "),
+  };
+}
+
+function getPropertyType(value: string): PropertyType {
+  return propertyTypeValues.includes(value as PropertyType) ? (value as PropertyType) : "Apartment";
+}
+
+function getPropertyFormState(property: PropertyListItem): PropertyFormState {
+  return {
+    name: property.name,
+    line1: property.line1,
+    line2: property.line2 ?? "",
+    city: property.city,
+    region: property.region,
+    postalCode: property.postalCode,
+    propertyType: getPropertyType(property.propertyType),
+    contactName: property.contactName ?? "",
+    contactEmail: property.contactEmail ?? "",
+    contactPhone: property.contactPhone ?? "",
+    ...parseContactAddress(property.contactAddress),
+    unitCount: String(property.unitCount),
+  };
+}
+
+function PropertyActionsMenu({
+  onArchive,
+  onDelete,
+  onEdit,
+  onNotes,
+  property,
+}: {
+  onArchive: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+  onNotes: () => void;
+  property: PropertyListItem;
+}) {
+  const [open, setOpen] = React.useState(false);
+
+  function runAction(action: () => void) {
+    setOpen(false);
+    action();
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          aria-label={`Open actions for ${property.name}`}
+          className="inline-grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-parcelis-porcelain hover:text-parcelis-charcoal"
+          type="button"
+        >
+          <EllipsisVertical className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="left-auto right-0 w-48 p-1 text-left">
+        <button
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-parcelis-charcoal hover:bg-parcelis-porcelain"
+          onClick={() => runAction(onEdit)}
+          type="button"
+        >
+          <Pencil className="h-4 w-4 text-parcelis-green" />
+          Edit
+        </button>
+        <button
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-parcelis-charcoal hover:bg-parcelis-porcelain"
+          onClick={() => runAction(onNotes)}
+          type="button"
+        >
+          <StickyNote className="h-4 w-4 text-parcelis-green" />
+          Add Notes
+        </button>
+        <button
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-parcelis-charcoal hover:bg-parcelis-porcelain disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={property.status === "archived"}
+          onClick={() => runAction(onArchive)}
+          type="button"
+        >
+          <Archive className="h-4 w-4 text-parcelis-green" />
+          Archive
+        </button>
+        <button
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+          onClick={() => runAction(onDelete)}
+          type="button"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function PropertiesPage() {
   const queryClient = useQueryClient();
   const propertiesQuery = useQuery({
@@ -102,18 +244,72 @@ export default function PropertiesPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
     },
   });
+  const updateProperty = useMutation({
+    mutationFn: (input: UpdatePropertyInput) => apiClient.properties.update.mutate(input),
+    onSuccess: async (_property, input) => {
+      setIsFormOpen(false);
+      setEditingPropertyId(null);
+      setEditInitialForm(initialPropertyFormState);
+      setForm(initialPropertyFormState);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(input.id) }),
+      ]);
+    },
+  });
+  const archiveProperty = useMutation({
+    mutationFn: (input: { id: string }) => apiClient.properties.archive.mutate(input),
+    onSuccess: async (_property, input) => {
+      setArchivePropertyId(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(input.id) }),
+      ]);
+    },
+  });
+  const deleteProperty = useMutation({
+    mutationFn: (input: { id: string }) => apiClient.properties.delete.mutate(input),
+    onSuccess: async (_property, input) => {
+      setDeletePropertyId(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(input.id) }),
+      ]);
+    },
+  });
+  const updatePropertyNotes = useMutation({
+    mutationFn: (input: { id: string; notes?: string }) => apiClient.properties.updateNotes.mutate(input),
+    onSuccess: async (_property, input) => {
+      setNotesPropertyId(null);
+      setNotesDraft("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(input.id) }),
+      ]);
+    },
+  });
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [draftFilters, setDraftFilters] = React.useState<PropertyFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = React.useState<PropertyFilters>(initialFilters);
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<string>>(() => new Set());
+  const [editingPropertyId, setEditingPropertyId] = React.useState<string | null>(null);
+  const [editInitialForm, setEditInitialForm] = React.useState<PropertyFormState>(initialPropertyFormState);
+  const [archivePropertyId, setArchivePropertyId] = React.useState<string | null>(null);
+  const [deletePropertyId, setDeletePropertyId] = React.useState<string | null>(null);
+  const [notesPropertyId, setNotesPropertyId] = React.useState<string | null>(null);
+  const [notesDraft, setNotesDraft] = React.useState("");
   const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   useShortcut("Mod+Shift+P", () => setIsFormOpen(true));
   useShortcut("/", () => searchInputRef.current?.focus(), { enabled: !isFormOpen });
 
   const properties = propertiesQuery.data ?? [];
+  const editingProperty = properties.find((property) => property.id === editingPropertyId) ?? null;
+  const archivePropertyTarget = properties.find((property) => property.id === archivePropertyId) ?? null;
+  const deletePropertyTarget = properties.find((property) => property.id === deletePropertyId) ?? null;
+  const notesPropertyTarget = properties.find((property) => property.id === notesPropertyId) ?? null;
   const filteredProperties = properties.filter((property) => {
     const query = search.toLowerCase();
     const matchesSearch = [property.name, property.city, property.region, property.propertyType, property.status].some((value) =>
@@ -128,7 +324,9 @@ export default function PropertiesPage() {
     const matchesUnits =
       !appliedFilters.minimumUnits || property.unitCount >= Number(appliedFilters.minimumUnits);
     const matchesMaintenance = !appliedFilters.hasOpenMaintenance || property.openMaintenanceTickets > 0;
-    const matchesArchived = !appliedFilters.archivedOnly || property.status === "archived";
+    const matchesArchived = appliedFilters.archivedOnly
+      ? property.status === "archived"
+      : appliedFilters.status === "archived" || property.status !== "archived";
 
     return (
       matchesSearch &&
@@ -183,18 +381,126 @@ export default function PropertiesPage() {
     });
   }
 
+  function openEditProperty(property: PropertyListItem) {
+    const nextForm = getPropertyFormState(property);
+    setEditInitialForm(nextForm);
+    setForm(nextForm);
+    setEditingPropertyId(property.id);
+    setIsFormOpen(true);
+  }
+
+  function closePropertyDrawer(open: boolean) {
+    setIsFormOpen(open);
+    if (!open) {
+      setEditingPropertyId(null);
+      setEditInitialForm(initialPropertyFormState);
+    }
+  }
+
+  function openNotes(property: PropertyListItem) {
+    setNotesPropertyId(property.id);
+    setNotesDraft(property.notes ?? "");
+  }
+
   return (
     <main className="min-h-screen">
       <Sidebar active="properties" />
-      <AddPropertyDrawer
-        error={createProperty.error}
+      <PropertyDrawer
+        cancelDescription={editingProperty ? "Are you sure you'd like to cancel editing?" : undefined}
+        drawerTitle={editingProperty ? "Edit Property" : "Add Property"}
+        error={editingProperty ? updateProperty.error : createProperty.error}
         form={form}
-        isPending={createProperty.isPending}
+        initialFormState={editingProperty ? editInitialForm : initialPropertyFormState}
+        isPending={editingProperty ? updateProperty.isPending : createProperty.isPending}
         onFormChange={setForm}
-        onOpenChange={setIsFormOpen}
-        onSubmit={(input) => createProperty.mutate(input)}
+        onOpenChange={closePropertyDrawer}
+        onSubmit={(input) => {
+          if (editingProperty) {
+            updateProperty.mutate({ ...input, id: editingProperty.id });
+          } else {
+            createProperty.mutate(input);
+          }
+        }}
         open={isFormOpen}
+        submitLabel={editingProperty ? "Save" : "Next"}
       />
+      <AlertDialog open={Boolean(archivePropertyTarget)} onOpenChange={(open) => !open && setArchivePropertyId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive property?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will hide {archivePropertyTarget?.name ?? "this property"} from the default properties view.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setArchivePropertyId(null)}>
+              Keep Active
+            </Button>
+            <Button
+              disabled={archiveProperty.isPending}
+              onClick={() => archivePropertyTarget && archiveProperty.mutate({ id: archivePropertyTarget.id })}
+              type="button"
+            >
+              {archiveProperty.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
+              Archive
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={Boolean(deletePropertyTarget)} onOpenChange={(open) => !open && setDeletePropertyId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete property?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes {deletePropertyTarget?.name ?? "this property"} and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setDeletePropertyId(null)}>
+              Keep Property
+            </Button>
+            <Button
+              disabled={deleteProperty.isPending}
+              onClick={() => deletePropertyTarget && deleteProperty.mutate({ id: deletePropertyTarget.id })}
+              type="button"
+            >
+              {deleteProperty.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={Boolean(notesPropertyTarget)} onOpenChange={(open) => !open && setNotesPropertyId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Property notes</AlertDialogTitle>
+            <AlertDialogDescription>
+              Add internal notes for {notesPropertyTarget?.name ?? "this property"}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <textarea
+            className="mt-4 min-h-32 w-full resize-y rounded-md border border-parcelis-border bg-white p-3 text-sm text-parcelis-charcoal outline-none transition focus:border-parcelis-green"
+            onChange={(event) => setNotesDraft(event.target.value)}
+            value={notesDraft}
+          />
+          <AlertDialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setNotesPropertyId(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={updatePropertyNotes.isPending}
+              onClick={() =>
+                notesPropertyTarget &&
+                updatePropertyNotes.mutate({ id: notesPropertyTarget.id, notes: notesDraft || undefined })
+              }
+              type="button"
+            >
+              {updatePropertyNotes.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <StickyNote className="h-4 w-4" />}
+              Save Notes
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -400,7 +706,7 @@ export default function PropertiesPage() {
               ) : filteredProperties.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">No properties match your search.</div>
               ) : (
-                <table className="w-full min-w-[1320px] border-collapse text-left text-sm">
+                <table className="w-full min-w-[1380px] border-collapse text-left text-sm">
                   <thead className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
                     <tr>
                       <th className="w-72 px-5 py-3 font-semibold">Property</th>
@@ -413,6 +719,7 @@ export default function PropertiesPage() {
                       <th className="w-40 px-5 py-3 font-semibold">90-Day Exp.</th>
                       <th className="w-32 px-5 py-3 font-semibold">Tickets</th>
                       <th className="px-5 py-3 font-semibold">Status</th>
+                      <th className="w-20 px-5 py-3 text-right font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -506,6 +813,15 @@ export default function PropertiesPage() {
                                 {formatStatus(property.status)}
                               </span>
                             </td>
+                            <td className="px-5 py-4 text-right">
+                              <PropertyActionsMenu
+                                onArchive={() => setArchivePropertyId(property.id)}
+                                onDelete={() => setDeletePropertyId(property.id)}
+                                onEdit={() => openEditProperty(property)}
+                                onNotes={() => openNotes(property)}
+                                property={property}
+                              />
+                            </td>
                           </tr>
                           {isExpanded
                             ? unitRows.map((unit) => (
@@ -550,6 +866,7 @@ export default function PropertiesPage() {
                                       {formatStatus(unit.status)}
                                     </span>
                                   </td>
+                                  <td className="px-5 py-3" />
                                 </tr>
                               ))
                             : null}

@@ -1,4 +1,9 @@
-import { createPropertyInputSchema, propertyByIdInputSchema } from "@parcelis/schemas";
+import {
+  createPropertyInputSchema,
+  propertyByIdInputSchema,
+  propertyNotesInputSchema,
+  updatePropertyInputSchema,
+} from "@parcelis/schemas";
 import { getPublicObjectStorageConfig } from "../modules/object-storage.config";
 import { publicProcedure, router } from "./trpc";
 
@@ -15,6 +20,7 @@ const propertySelect = {
   contactEmail: true,
   contactPhone: true,
   contactAddress: true,
+  notes: true,
   unitCount: true,
   occupiedUnits: true,
   status: true,
@@ -111,17 +117,67 @@ export const appRouter = router({
         data: {
           name: input.name,
           line1: input.address.line1,
-          line2: input.address.line2,
+          line2: input.address.line2 ?? null,
           city: input.address.city,
           region: input.address.region,
           postalCode: input.address.postalCode,
           propertyType: input.propertyType,
-          contactName: input.contactName,
-          contactEmail: input.contactEmail,
-          contactPhone: input.contactPhone,
-          contactAddress: input.contactAddress,
+          contactName: input.contactName ?? null,
+          contactEmail: input.contactEmail ?? null,
+          contactPhone: input.contactPhone ?? null,
+          contactAddress: input.contactAddress ?? null,
+          notes: input.notes === undefined ? undefined : input.notes ?? null,
           unitCount: input.unitCount,
         },
+      }),
+    ),
+    update: publicProcedure.input(updatePropertyInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.property.update({
+        where: { id: input.id },
+        select: propertySelect,
+        data: {
+          name: input.name,
+          line1: input.address.line1,
+          line2: input.address.line2 ?? null,
+          city: input.address.city,
+          region: input.address.region,
+          postalCode: input.address.postalCode,
+          propertyType: input.propertyType,
+          contactName: input.contactName ?? null,
+          contactEmail: input.contactEmail ?? null,
+          contactPhone: input.contactPhone ?? null,
+          contactAddress: input.contactAddress ?? null,
+          notes: input.notes ?? null,
+          unitCount: input.unitCount,
+        },
+      }),
+    ),
+    archive: publicProcedure.input(propertyByIdInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.property.update({
+        where: { id: input.id },
+        select: propertySelect,
+        data: { status: "archived" },
+      }),
+    ),
+    delete: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
+      const property = await ctx.prisma.property.findUniqueOrThrow({
+        where: { id: input.id },
+        select: propertySelect,
+      });
+
+      await ctx.prisma.$transaction([
+        ctx.prisma.maintenanceTicket.deleteMany({ where: { propertyId: input.id } }),
+        ctx.prisma.lease.deleteMany({ where: { propertyId: input.id } }),
+        ctx.prisma.property.delete({ where: { id: input.id } }),
+      ]);
+
+      return property;
+    }),
+    updateNotes: publicProcedure.input(propertyNotesInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.property.update({
+        where: { id: input.id },
+        select: propertySelect,
+        data: { notes: input.notes ?? null },
       }),
     ),
   }),
