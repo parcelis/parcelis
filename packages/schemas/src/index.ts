@@ -9,11 +9,31 @@ export const addressSchema = z.object({
 });
 
 export const propertyStatusSchema = z.enum(["active", "maintenance", "leasing", "archived"]);
+export const propertyTypeValues = [
+  "Apartment",
+  "Commercial",
+  "Condo",
+  "Duplex",
+  "HOA",
+  "House",
+  "Mixed-Use",
+  "Other",
+  "Parking",
+  "Self-storage",
+  "Manufactured Home",
+  "Trailer",
+] as const;
+export const propertyTypeSchema = z.enum(propertyTypeValues);
 
 export const propertySchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(2),
+  propertyType: propertyTypeSchema,
   address: addressSchema,
+  contactName: z.string().optional(),
+  contactEmail: z.string().email().optional(),
+  contactPhone: z.string().optional(),
+  contactAddress: z.string().optional(),
   unitCount: z.number().int().nonnegative(),
   occupiedUnits: z.number().int().nonnegative(),
   status: propertyStatusSchema,
@@ -52,6 +72,7 @@ export const propertyByIdInputSchema = z.object({
 
 export type Address = z.infer<typeof addressSchema>;
 export type Property = z.infer<typeof propertySchema>;
+export type PropertyType = z.infer<typeof propertyTypeSchema>;
 export type Tenant = z.infer<typeof tenantSchema>;
 export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;

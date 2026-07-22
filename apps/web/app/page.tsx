@@ -6,29 +6,12 @@ import { Building2, CalendarClock, CircleDollarSign, ClipboardCheck, Loader2, Pl
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
 import type { CreatePropertyInput } from "@parcelis/schemas";
+import { AddPropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../components/add-property-drawer";
 import { apiClient, queryKeys } from "../components/api-client";
 import { Sidebar } from "../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
-
-type PropertyFormState = {
-  name: string;
-  line1: string;
-  city: string;
-  region: string;
-  postalCode: string;
-  unitCount: string;
-};
-
-const initialFormState: PropertyFormState = {
-  name: "",
-  line1: "",
-  city: "",
-  region: "",
-  postalCode: "",
-  unitCount: "",
-};
 
 const tasks = [
   { label: "Renew lease for Unit 4B", due: "Today", icon: ClipboardCheck },
@@ -52,13 +35,13 @@ export default function Page() {
   const createProperty = useMutation({
     mutationFn: (input: CreatePropertyInput) => apiClient.properties.create.mutate(input),
     onSuccess: async () => {
-      setForm(initialFormState);
+      setForm(initialPropertyFormState);
       setIsFormOpen(false);
       await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
     },
   });
   const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [form, setForm] = React.useState<PropertyFormState>(initialFormState);
+  const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
 
   const properties = propertiesQuery.data ?? [];
   const totalUnits = properties.reduce((sum, property) => sum + property.unitCount, 0);
@@ -66,28 +49,18 @@ export default function Page() {
   const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
   const leasingCount = properties.filter((property) => property.status === "leasing").length;
 
-  function updateField(field: keyof PropertyFormState, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
-  }
-
-  function submitProperty(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    createProperty.mutate({
-      name: form.name,
-      address: {
-        line1: form.line1,
-        city: form.city,
-        region: form.region.toUpperCase(),
-        postalCode: form.postalCode,
-      },
-      unitCount: Number(form.unitCount),
-    });
-  }
-
   return (
     <main className="min-h-screen">
       <Sidebar active="portfolio" />
+      <AddPropertyDrawer
+        error={createProperty.error}
+        form={form}
+        isPending={createProperty.isPending}
+        onFormChange={setForm}
+        onOpenChange={setIsFormOpen}
+        onSubmit={(input) => createProperty.mutate(input)}
+        open={isFormOpen}
+      />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -102,7 +75,7 @@ export default function Page() {
             <Button variant="secondary" size="sm">
               Invite
             </Button>
-            <Button size="sm" onClick={() => setIsFormOpen((value) => !value)}>
+            <Button size="sm" onClick={() => setIsFormOpen(true)}>
               <Plus className="h-4 w-4" />
               Property
             </Button>
@@ -146,87 +119,6 @@ export default function Page() {
               </CardContent>
             </Card>
           </section>
-
-          {isFormOpen ? (
-            <Card className="mb-5">
-              <CardHeader>
-                <h2 className="font-semibold text-parcelis-charcoal">Add Property</h2>
-              </CardHeader>
-              <CardContent>
-                <form className="grid gap-4 md:grid-cols-6" onSubmit={submitProperty}>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-xs font-semibold uppercase text-parcelis-gray">Name</span>
-                    <input
-                      className="h-10 rounded-md border border-parcelis-border px-3 text-sm outline-none focus:border-parcelis-green"
-                      onChange={(event) => updateField("name", event.target.value)}
-                      required
-                      value={form.name}
-                    />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-xs font-semibold uppercase text-parcelis-gray">Street</span>
-                    <input
-                      className="h-10 rounded-md border border-parcelis-border px-3 text-sm outline-none focus:border-parcelis-green"
-                      onChange={(event) => updateField("line1", event.target.value)}
-                      required
-                      value={form.line1}
-                    />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-xs font-semibold uppercase text-parcelis-gray">City</span>
-                    <input
-                      className="h-10 rounded-md border border-parcelis-border px-3 text-sm outline-none focus:border-parcelis-green"
-                      onChange={(event) => updateField("city", event.target.value)}
-                      required
-                      value={form.city}
-                    />
-                  </label>
-                  <label className="grid gap-1 md:col-span-1">
-                    <span className="text-xs font-semibold uppercase text-parcelis-gray">State</span>
-                    <input
-                      className="h-10 rounded-md border border-parcelis-border px-3 text-sm uppercase outline-none focus:border-parcelis-green"
-                      maxLength={2}
-                      onChange={(event) => updateField("region", event.target.value)}
-                      required
-                      value={form.region}
-                    />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-xs font-semibold uppercase text-parcelis-gray">Postal Code</span>
-                    <input
-                      className="h-10 rounded-md border border-parcelis-border px-3 text-sm outline-none focus:border-parcelis-green"
-                      onChange={(event) => updateField("postalCode", event.target.value)}
-                      required
-                      value={form.postalCode}
-                    />
-                  </label>
-                  <label className="grid gap-1 md:col-span-1">
-                    <span className="text-xs font-semibold uppercase text-parcelis-gray">Units</span>
-                    <input
-                      className="h-10 rounded-md border border-parcelis-border px-3 text-sm outline-none focus:border-parcelis-green"
-                      min={1}
-                      onChange={(event) => updateField("unitCount", event.target.value)}
-                      required
-                      type="number"
-                      value={form.unitCount}
-                    />
-                  </label>
-                  <div className="flex items-end gap-2 md:col-span-2">
-                    <Button disabled={createProperty.isPending} type="submit">
-                      {createProperty.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      Save
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={() => setIsFormOpen(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                  {createProperty.error ? (
-                    <p className="text-sm font-medium text-red-700 md:col-span-6">{createProperty.error.message}</p>
-                  ) : null}
-                </form>
-              </CardContent>
-            </Card>
-          ) : null}
 
           <section className="grid gap-5 md:grid-cols-3">
             {[

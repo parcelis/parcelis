@@ -70,6 +70,14 @@ export default function PropertyDetailPage() {
   }).length;
   const openMaintenanceTickets = maintenanceTickets.filter((ticket) => ticket.status !== "resolved").length;
   const sampleVacantUnits = Math.max(unitCount - occupiedUnits, 0);
+  const contactItems = property
+    ? [
+        ["Contact Name", property.contactName],
+        ["Contact Email", property.contactEmail],
+        ["Contact Phone", property.contactPhone],
+        ["Contact Address", property.contactAddress],
+      ].filter(([, value]) => Boolean(value))
+    : [];
 
   return (
     <main className="min-h-screen">
@@ -117,6 +125,9 @@ export default function PropertyDetailPage() {
                       </div>
                       <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold text-parcelis-green">
                         {formatStatus(property.status)}
+                      </span>
+                      <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold text-white/80">
+                        {property.propertyType}
                       </span>
                     </div>
                     <h1 className="mt-5 text-3xl font-bold md:text-5xl">{property.name}</h1>
@@ -227,6 +238,25 @@ export default function PropertyDetailPage() {
                     )}
                   </CardContent>
                 </Card>
+
+                {contactItems.length > 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <h2 className="font-semibold text-parcelis-charcoal">Property Contact</h2>
+                    </CardHeader>
+                    <CardContent className="grid gap-3">
+                      {contactItems.map(([label, value]) => (
+                        <div
+                          className="flex items-start justify-between gap-4 border-b border-parcelis-border pb-3 last:border-0 last:pb-0"
+                          key={label}
+                        >
+                          <span className="text-sm font-medium text-parcelis-gray">{label}</span>
+                          <span className="whitespace-pre-line text-right text-sm font-semibold text-parcelis-charcoal">{value}</span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ) : null}
               </section>
 
               <section className="mt-5 grid gap-5 lg:grid-cols-2">

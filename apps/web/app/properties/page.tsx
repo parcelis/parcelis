@@ -6,20 +6,12 @@ import { AlertTriangle, Building2, CalendarClock, ChevronRight, CircleDollarSign
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader, Checkbox, FieldLabel, Input, Label, ParcelisLogo, Select,} from "@parcelis/ui";
 import type { CreatePropertyInput } from "@parcelis/schemas";
+import { AddPropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../../components/add-property-drawer";
 import { apiClient, queryKeys } from "../../components/api-client";
 import { Sidebar } from "../../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
-
-type PropertyFormState = {
-  name: string;
-  line1: string;
-  city: string;
-  region: string;
-  postalCode: string;
-  unitCount: string;
-};
 
 type PropertyFilters = {
   propertyId: string;
@@ -33,15 +25,6 @@ type PropertyFilters = {
 };
 
 type PropertyListItem = Awaited<ReturnType<typeof apiClient.properties.list.query>>[number];
-
-const initialFormState: PropertyFormState = {
-  name: "",
-  line1: "",
-  city: "",
-  region: "",
-  postalCode: "",
-  unitCount: "",
-};
 
 const initialFilters: PropertyFilters = {
   propertyId: "",
@@ -113,7 +96,7 @@ export default function PropertiesPage() {
   const createProperty = useMutation({
     mutationFn: (input: CreatePropertyInput) => apiClient.properties.create.mutate(input),
     onSuccess: async () => {
-      setForm(initialFormState);
+      setForm(initialPropertyFormState);
       setIsFormOpen(false);
       await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
     },
@@ -124,12 +107,12 @@ export default function PropertiesPage() {
   const [draftFilters, setDraftFilters] = React.useState<PropertyFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = React.useState<PropertyFilters>(initialFilters);
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<string>>(() => new Set());
-  const [form, setForm] = React.useState<PropertyFormState>(initialFormState);
+  const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
 
   const properties = propertiesQuery.data ?? [];
   const filteredProperties = properties.filter((property) => {
     const query = search.toLowerCase();
-    const matchesSearch = [property.name, property.city, property.region, property.status].some((value) =>
+    const matchesSearch = [property.name, property.city, property.region, property.propertyType, property.status].some((value) =>
       value.toLowerCase().includes(query),
     );
     const matchesProperty = !appliedFilters.propertyId || property.id === appliedFilters.propertyId;
@@ -169,10 +152,6 @@ export default function PropertiesPage() {
   const monthlyRentCents = properties.reduce((sum, property) => sum + property.monthlyRentCents, 0);
   const overdueCents = properties.reduce((sum, property) => sum + property.amountOverdueCents, 0);
 
-  function updateField(field: keyof PropertyFormState, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
-  }
-
   function updateFilter<Key extends keyof PropertyFilters>(field: Key, value: PropertyFilters[Key]) {
     setDraftFilters((current) => ({ ...current, [field]: value }));
   }
@@ -200,23 +179,18 @@ export default function PropertiesPage() {
     });
   }
 
-  function submitProperty(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    createProperty.mutate({
-      name: form.name,
-      address: {
-        line1: form.line1,
-        city: form.city,
-        region: form.region.toUpperCase(),
-        postalCode: form.postalCode,
-      },
-      unitCount: Number(form.unitCount),
-    });
-  }
-
   return (
     <main className="min-h-screen">
       <Sidebar active="properties" />
+      <AddPropertyDrawer
+        error={createProperty.error}
+        form={form}
+        isPending={createProperty.isPending}
+        onFormChange={setForm}
+        onOpenChange={setIsFormOpen}
+        onSubmit={(input) => createProperty.mutate(input)}
+        open={isFormOpen}
+      />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -227,7 +201,7 @@ export default function PropertiesPage() {
             <Button asChild variant="secondary" size="sm">
               <Link href="/">Portfolio</Link>
             </Button>
-            <Button size="sm" onClick={() => setIsFormOpen((value) => !value)}>
+            <Button size="sm" onClick={() => setIsFormOpen(true)}>
               <Plus className="h-4 w-4" />
               Property
             </Button>
@@ -266,50 +240,6 @@ export default function PropertiesPage() {
               </div>
             </div>
           </section>
-
-          {isFormOpen ? (
-            <Card className="mb-5">
-              <CardHeader>
-                <h2 className="font-semibold text-parcelis-charcoal">Add Property</h2>
-              </CardHeader>
-              <CardContent>
-                <form className="grid gap-4 md:grid-cols-6" onSubmit={submitProperty}>
-                  {[
-                    ["name", "Name", "md:col-span-2"],
-                    ["line1", "Street", "md:col-span-2"],
-                    ["city", "City", "md:col-span-2"],
-                    ["region", "State", "md:col-span-1"],
-                    ["postalCode", "Postal Code", "md:col-span-2"],
-                    ["unitCount", "Units", "md:col-span-1"],
-                  ].map(([field, label, span]) => (
-                    <Label className={span} key={field}>
-                      <FieldLabel>{label}</FieldLabel>
-                      <Input
-                        maxLength={field === "region" ? 2 : undefined}
-                        min={field === "unitCount" ? 1 : undefined}
-                        onChange={(event) => updateField(field as keyof PropertyFormState, event.target.value)}
-                        required
-                        type={field === "unitCount" ? "number" : "text"}
-                        value={form[field as keyof PropertyFormState]}
-                      />
-                    </Label>
-                  ))}
-                  <div className="flex items-end gap-2 md:col-span-2">
-                    <Button disabled={createProperty.isPending} type="submit">
-                      {createProperty.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      Save
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={() => setIsFormOpen(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                  {createProperty.error ? (
-                    <p className="text-sm font-medium text-red-700 md:col-span-6">{createProperty.error.message}</p>
-                  ) : null}
-                </form>
-              </CardContent>
-            </Card>
-          ) : null}
 
           <Card>
             <CardHeader>
@@ -465,10 +395,11 @@ export default function PropertiesPage() {
               ) : filteredProperties.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">No properties match your search.</div>
               ) : (
-                <table className="w-full min-w-[1240px] border-collapse text-left text-sm">
+                <table className="w-full min-w-[1320px] border-collapse text-left text-sm">
                   <thead className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
                     <tr>
                       <th className="w-72 px-5 py-3 font-semibold">Property</th>
+                      <th className="w-36 px-5 py-3 font-semibold">Type</th>
                       <th className="w-56 px-5 py-3 font-semibold">Address</th>
                       <th className="px-5 py-3 font-semibold">Units</th>
                       <th className="px-5 py-3 font-semibold">Occupancy</th>
@@ -509,6 +440,11 @@ export default function PropertiesPage() {
                                   <span className="min-w-0 font-semibold leading-6 text-parcelis-charcoal">{property.name}</span>
                                 </Link>
                               </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
+                                {property.propertyType}
+                              </span>
                             </td>
                             <td className="max-w-56 whitespace-normal px-5 py-4 text-parcelis-gray">
                               {property.line1}, {property.city}, {property.region}
@@ -581,6 +517,7 @@ export default function PropertiesPage() {
                                       </div>
                                     </div>
                                   </td>
+                                  <td className="px-5 py-3 text-parcelis-gray">Unit</td>
                                   <td className="max-w-56 whitespace-normal px-5 py-3 text-parcelis-gray">{property.city}, {property.region}</td>
                                   <td className="px-5 py-3">1</td>
                                   <td className="px-5 py-3">{unit.isOccupied ? "100%" : "0%"}</td>

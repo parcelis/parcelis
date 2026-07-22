@@ -43,6 +43,11 @@ model Property {
   city          String
   region        String
   postalCode    String
+  propertyType  String         @default("Apartment")
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  contactAddress String?
   unitCount     Int
   occupiedUnits Int            @default(0)
   status        PropertyStatus @default(active)
