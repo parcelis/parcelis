@@ -8,7 +8,7 @@
     "dev:fixed": "next dev --turbo --hostname 0.0.0.0 --port ${PORT:-3001}",
     "build": "next build",
     "start": "node ../../scripts/run-with-open-port.mjs PORT 3001 next start --port {PORT}",
-    "lint": "eslint . --no-error-on-unmatched-pattern",
+    "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

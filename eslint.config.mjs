@@ -1,1 +1,1 @@
-export { default } from "@parcelis/config/eslint";
+export { reactNext as default } from "@parcelis/config/eslint";
