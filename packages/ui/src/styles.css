@@ -26,3 +26,68 @@
 .parcelis-wordmark-is {
   color: rgb(var(--parcelis-green));
 }
+
+@keyframes parcelis-drawer-enter {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes parcelis-drawer-exit {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes parcelis-drawer-overlay-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes parcelis-drawer-overlay-exit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.parcelis-drawer-opening {
+  animation: parcelis-drawer-enter 300ms ease-out;
+}
+
+.parcelis-drawer-closing {
+  animation: parcelis-drawer-exit 300ms ease-in forwards;
+}
+
+.parcelis-drawer-overlay-opening {
+  animation: parcelis-drawer-overlay-enter 300ms ease-out;
+}
+
+.parcelis-drawer-overlay-closing {
+  animation: parcelis-drawer-overlay-exit 300ms ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parcelis-drawer-opening,
+  .parcelis-drawer-closing,
+  .parcelis-drawer-overlay-opening,
+  .parcelis-drawer-overlay-closing {
+    animation: none;
+  }
+}

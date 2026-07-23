@@ -85,8 +85,19 @@ export function DrawerContent({
   className,
 }: React.HTMLAttributes<HTMLDivElement>) {
   const { onOpenChange, open } = useDrawer();
+  const [isPresent, setIsPresent] = React.useState(false);
 
-  if (!open) {
+  React.useEffect(() => {
+    if (open) {
+      setIsPresent(true);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setIsPresent(false), 300);
+    return () => window.clearTimeout(timeout);
+  }, [open]);
+
+  if (!isPresent) {
     return null;
   }
 
@@ -94,14 +105,19 @@ export function DrawerContent({
     <div className="fixed inset-0 z-50">
       <button
         aria-label="Close drawer"
-        className="absolute inset-0 h-full w-full cursor-default bg-black/20"
+        className={cn(
+          "absolute inset-0 h-full w-full cursor-default bg-black/20",
+          open ? "parcelis-drawer-overlay-opening" : "pointer-events-none parcelis-drawer-overlay-closing",
+        )}
         onClick={() => onOpenChange(false)}
         type="button"
       />
       <div
         aria-modal="true"
+        aria-hidden={!open}
         className={cn(
           "fixed inset-y-0 right-0 flex w-full max-w-6xl flex-col border-l border-parcelis-border bg-parcelis-porcelain shadow-xl dark:bg-parcelis-charcoal",
+          open ? "parcelis-drawer-opening" : "pointer-events-none parcelis-drawer-closing",
           className,
         )}
         role="dialog"
