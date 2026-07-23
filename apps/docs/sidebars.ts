@@ -12,6 +12,14 @@ const sidebars: SidebarsConfig = {
       items: [
         {
           type: "category",
+          label: "Getting Started",
+          items: [
+            "platform-user-guide/getting-started/first-steps",
+            "platform-user-guide/getting-started/portfolio-dashboard"
+          ]
+        },
+        {
+          type: "category",
           label: "Core Concepts",
           items: [
             "platform-user-guide/core-concepts/portfolio",
@@ -19,6 +27,16 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/core-concepts/unit",
             "platform-user-guide/core-concepts/lease",
             "platform-user-guide/core-concepts/maintenance-ticket"
+          ]
+        },
+        {
+          type: "category",
+          label: "App Functionality",
+          items: [
+            "platform-user-guide/app-functionality/add-a-property",
+            "platform-user-guide/app-functionality/property-directory",
+            "platform-user-guide/app-functionality/manage-a-property",
+            "platform-user-guide/app-functionality/property-details"
           ]
         },
         {
