@@ -40,6 +40,11 @@ const config: Config = {
     },
     navbar: {
       title: "Parcelis Docs",
+      logo: {
+        alt: "Parcelis",
+        src: "img/parcelis-dark.png",
+        srcDark: "img/parcelis-light.png"
+      },
       items: [
         {
           type: "docSidebar",
