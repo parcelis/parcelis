@@ -9,6 +9,8 @@ export const base = [
   {
     ignores: [
       "**/.next/**",
+      "**/.docusaurus/**",
+      "**/build/**",
       "**/coverage/**",
       "**/dist/**",
       "**/next-env.d.ts",

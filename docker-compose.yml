@@ -77,6 +77,16 @@ services:
     networks:
       - parcelis-dev
 
+  docs:
+    build:
+      context: .
+      dockerfile: apps/docs/Dockerfile
+      target: caddy
+    ports:
+      - "${DOCS_PORT:-3001}:80"
+    networks:
+      - parcelis-dev
+
   api:
     image: node:22-alpine
     working_dir: /repo

@@ -34,7 +34,7 @@ Parcelis (PAR-cell-iss) is an open-source property management platform for landl
 
 - `apps/web`: Next.js App Router frontend.
 - `apps/api`: NestJS backend exposing a tRPC router.
-- `apps/docs`: Next.js documentation site with MDX-ready structure.
+- `apps/docs`: Docusaurus documentation site for platform and contributor guides.
 
 ## Packages
 
@@ -82,7 +82,8 @@ docker compose up -d web api
 ```
 
 Open the web app at `http://localhost:3000`, the API at
-`http://localhost:4000`, and the MinIO console at `http://localhost:9001`.
+`http://localhost:4000`, the docs at `http://localhost:3001`, and the MinIO console at
+`http://localhost:9001`.
 The `minio-init` container runs once to create buckets and upload the light and
 dark Parcelis logos, then exits normally.
 
@@ -131,7 +132,7 @@ web app can use `NEXT_PUBLIC_OBJECT_STORAGE_URL` for public asset URLs.
 For Docker Compose, host ports are configured with `WEB_PORT`, `API_PORT`, `POSTGRES_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
 
 ```bash
-WEB_PORT=3010 API_PORT=4010 POSTGRES_PORT=5434 MINIO_API_PORT=9010 MINIO_CONSOLE_PORT=9011 docker compose up
+WEB_PORT=3010 API_PORT=4010 DOCS_PORT=3011 POSTGRES_PORT=5434 MINIO_API_PORT=9010 MINIO_CONSOLE_PORT=9011 docker compose up
 ```
 
 The Compose Postgres container listens on `5432` internally, but maps to host

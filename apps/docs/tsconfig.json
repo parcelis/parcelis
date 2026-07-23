@@ -1,26 +1,12 @@
 {
-  "extends": "@parcelis/config/tsconfig/base",
+  "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
-    "allowJs": true,
-    "jsx": "preserve",
-    "noEmit": true,
-    "declaration": false,
-    "declarationMap": false,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "incremental": true
+    "baseUrl": "."
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "**/*.mdx",
-    ".next/types/**/*.ts"
+    "**/*.mdx"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["build", "node_modules"]
 }

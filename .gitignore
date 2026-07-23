@@ -1,6 +1,8 @@
 node_modules
 .turbo
 .next
+apps/docs/.docusaurus
+apps/docs/build
 dist
 coverage
 .env
