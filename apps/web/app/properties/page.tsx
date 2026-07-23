@@ -33,12 +33,13 @@ import {
   CardContent,
   CardHeader,
   Checkbox,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Input,
   Label,
   ParcelisLogo,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   Select,
 } from "@parcelis/ui";
 import { propertyTypeValues, type CreatePropertyInput, type PropertyType, type UpdatePropertyInput } from "@parcelis/schemas";
@@ -172,16 +173,9 @@ function PropertyActionsMenu({
   onNotes: () => void;
   property: PropertyListItem;
 }) {
-  const [open, setOpen] = React.useState(false);
-
-  function runAction(action: () => void) {
-    setOpen(false);
-    action();
-  }
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
           aria-label={`Open actions for ${property.name}`}
           className="inline-grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-parcelis-porcelain hover:text-parcelis-charcoal"
@@ -189,43 +183,26 @@ function PropertyActionsMenu({
         >
           <EllipsisVertical className="h-4 w-4" />
         </button>
-      </PopoverTrigger>
-      <PopoverContent className="left-auto right-0 w-48 p-1 text-left">
-        <button
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-parcelis-charcoal hover:bg-parcelis-porcelain"
-          onClick={() => runAction(onEdit)}
-          type="button"
-        >
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onSelect={onEdit}>
           <Pencil className="h-4 w-4 text-parcelis-green" />
           Edit
-        </button>
-        <button
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-parcelis-charcoal hover:bg-parcelis-porcelain"
-          onClick={() => runAction(onNotes)}
-          type="button"
-        >
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onNotes}>
           <StickyNote className="h-4 w-4 text-parcelis-green" />
           Add Notes
-        </button>
-        <button
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-parcelis-charcoal hover:bg-parcelis-porcelain disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={property.status === "archived"}
-          onClick={() => runAction(onArchive)}
-          type="button"
-        >
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={property.status === "archived"} onSelect={onArchive}>
           <Archive className="h-4 w-4 text-parcelis-green" />
           Archive
-        </button>
-        <button
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-          onClick={() => runAction(onDelete)}
-          type="button"
-        >
+        </DropdownMenuItem>
+        <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
           <Trash2 className="h-4 w-4" />
           Delete
-        </button>
-      </PopoverContent>
-    </Popover>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -240,7 +217,9 @@ export default function PropertiesPage() {
     onSuccess: async () => {
       setForm(initialPropertyFormState);
       setIsFormOpen(false);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.properties.list,
+      });
     },
   });
   const updateProperty = useMutation({
@@ -252,7 +231,9 @@ export default function PropertiesPage() {
       setForm(initialPropertyFormState);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(input.id) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(input.id),
+        }),
       ]);
     },
   });
@@ -262,7 +243,9 @@ export default function PropertiesPage() {
       setArchivePropertyId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(input.id) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(input.id),
+        }),
       ]);
     },
   });
@@ -272,7 +255,9 @@ export default function PropertiesPage() {
       setDeletePropertyId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(input.id) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(input.id),
+        }),
       ]);
     },
   });
@@ -283,7 +268,9 @@ export default function PropertiesPage() {
       setNotesDraft("");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(input.id) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(input.id),
+        }),
       ]);
     },
   });
@@ -302,7 +289,9 @@ export default function PropertiesPage() {
   const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   useShortcut("Mod+Shift+P", () => setIsFormOpen(true));
-  useShortcut("/", () => searchInputRef.current?.focus(), { enabled: !isFormOpen });
+  useShortcut("/", () => searchInputRef.current?.focus(), {
+    enabled: !isFormOpen,
+  });
 
   const properties = propertiesQuery.data ?? [];
   const editingProperty = properties.find((property) => property.id === editingPropertyId) ?? null;
@@ -317,11 +306,9 @@ export default function PropertiesPage() {
     const matchesProperty = !appliedFilters.propertyId || property.id === appliedFilters.propertyId;
     const matchesCity = !appliedFilters.city || property.city === appliedFilters.city;
     const matchesRegion = !appliedFilters.region || property.region === appliedFilters.region;
-    const matchesPostalCode =
-      !appliedFilters.postalCode || property.postalCode.includes(appliedFilters.postalCode);
+    const matchesPostalCode = !appliedFilters.postalCode || property.postalCode.includes(appliedFilters.postalCode);
     const matchesStatus = appliedFilters.status === "all" || property.status === appliedFilters.status;
-    const matchesUnits =
-      !appliedFilters.minimumUnits || property.unitCount >= Number(appliedFilters.minimumUnits);
+    const matchesUnits = !appliedFilters.minimumUnits || property.unitCount >= Number(appliedFilters.minimumUnits);
     const matchesMaintenance = !appliedFilters.hasOpenMaintenance || property.openMaintenanceTickets > 0;
     const matchesArchived = appliedFilters.archivedOnly
       ? property.status === "archived"
@@ -427,9 +414,7 @@ export default function PropertiesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Archive property?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will hide {archivePropertyTarget?.name ?? "this property"} from the default properties view.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This will hide {archivePropertyTarget?.name ?? "this property"} from the default properties view.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button type="button" variant="secondary" onClick={() => setArchivePropertyId(null)}>
@@ -450,9 +435,7 @@ export default function PropertiesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete property?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes {deletePropertyTarget?.name ?? "this property"} and cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This permanently deletes {deletePropertyTarget?.name ?? "this property"} and cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button type="button" variant="secondary" onClick={() => setDeletePropertyId(null)}>
@@ -473,9 +456,7 @@ export default function PropertiesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Property notes</AlertDialogTitle>
-            <AlertDialogDescription>
-              Add internal notes for {notesPropertyTarget?.name ?? "this property"}.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Add internal notes for {notesPropertyTarget?.name ?? "this property"}.</AlertDialogDescription>
           </AlertDialogHeader>
           <textarea
             className="mt-4 min-h-32 w-full resize-y rounded-md border border-parcelis-border bg-white p-3 text-sm text-parcelis-charcoal outline-none transition focus:border-parcelis-green"
@@ -490,7 +471,10 @@ export default function PropertiesPage() {
               disabled={updatePropertyNotes.isPending}
               onClick={() =>
                 notesPropertyTarget &&
-                updatePropertyNotes.mutate({ id: notesPropertyTarget.id, notes: notesDraft || undefined })
+                updatePropertyNotes.mutate({
+                  id: notesPropertyTarget.id,
+                  notes: notesDraft || undefined,
+                })
               }
               type="button"
             >
@@ -574,7 +558,8 @@ export default function PropertiesPage() {
                     }}
                   >
                     <Filter className="h-4 w-4" />
-                    Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+                    Filters
+                    {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
                   </Button>
                 </div>
                 {isFilterOpen ? (
@@ -582,11 +567,7 @@ export default function PropertiesPage() {
                     <div className="grid gap-4 md:grid-cols-6">
                       <Label className="gap-2 md:col-span-6">
                         <span className="text-sm font-semibold text-parcelis-charcoal">Property</span>
-                        <Select
-                          className="h-11"
-                          onChange={(event) => updateFilter("propertyId", event.target.value)}
-                          value={draftFilters.propertyId}
-                        >
+                        <Select className="h-11" onChange={(event) => updateFilter("propertyId", event.target.value)} value={draftFilters.propertyId}>
                           <option value="">Select Property</option>
                           {properties.map((property) => (
                             <option key={property.id} value={property.id}>
@@ -614,11 +595,7 @@ export default function PropertiesPage() {
 
                       <Label className="gap-2 md:col-span-2">
                         <span className="text-sm font-semibold text-parcelis-charcoal">State</span>
-                        <Select
-                          className="h-11"
-                          onChange={(event) => updateFilter("region", event.target.value)}
-                          value={draftFilters.region}
-                        >
+                        <Select className="h-11" onChange={(event) => updateFilter("region", event.target.value)} value={draftFilters.region}>
                           <option value="">Select</option>
                           {uniqueRegions.map((region) => (
                             <option key={region} value={region}>
@@ -640,11 +617,7 @@ export default function PropertiesPage() {
 
                       <Label className="gap-2 md:col-span-3">
                         <span className="text-sm font-semibold text-parcelis-charcoal">Status</span>
-                        <Select
-                          className="h-11"
-                          onChange={(event) => updateFilter("status", event.target.value)}
-                          value={draftFilters.status}
-                        >
+                        <Select className="h-11" onChange={(event) => updateFilter("status", event.target.value)} value={draftFilters.status}>
                           <option value="all">All</option>
                           <option value="active">Active</option>
                           <option value="leasing">Leasing</option>
@@ -666,18 +639,12 @@ export default function PropertiesPage() {
                       </Label>
 
                       <label className="flex items-center gap-3 md:col-span-6">
-                        <Checkbox
-                          checked={draftFilters.hasOpenMaintenance}
-                          onChange={(event) => updateFilter("hasOpenMaintenance", event.target.checked)}
-                        />
+                        <Checkbox checked={draftFilters.hasOpenMaintenance} onChange={(event) => updateFilter("hasOpenMaintenance", event.target.checked)} />
                         <span className="text-sm font-semibold text-parcelis-charcoal">Has open maintenance requests</span>
                       </label>
 
                       <label className="flex items-center gap-3 md:col-span-6">
-                        <Checkbox
-                          checked={draftFilters.archivedOnly}
-                          onChange={(event) => updateFilter("archivedOnly", event.target.checked)}
-                        />
+                        <Checkbox checked={draftFilters.archivedOnly} onChange={(event) => updateFilter("archivedOnly", event.target.checked)} />
                         <span className="text-sm font-semibold text-parcelis-charcoal">View Archived Properties Only</span>
                       </label>
                     </div>
@@ -741,10 +708,7 @@ export default function PropertiesPage() {
                                 >
                                   <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                                 </button>
-                                <Link
-                                  className="grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3"
-                                  href={`/properties/${property.id}`}
-                                >
+                                <Link className="grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3" href={`/properties/${property.id}`}>
                                   <div className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-charcoal">
                                     <Building2 className="h-4 w-4" />
                                   </div>
@@ -766,9 +730,7 @@ export default function PropertiesPage() {
                                 {property.unitCount}
                               </span>
                             </td>
-                            <td className="px-5 py-4">
-                              {property.unitCount > 0 ? Math.round((property.occupiedUnits / property.unitCount) * 100) : 0}%
-                            </td>
+                            <td className="px-5 py-4">{property.unitCount > 0 ? Math.round((property.occupiedUnits / property.unitCount) * 100) : 0}%</td>
                             <td className="px-5 py-4">
                               <span className="inline-flex items-center gap-1 font-semibold text-parcelis-charcoal">
                                 <CircleDollarSign className="h-4 w-4 text-parcelis-green" />
@@ -788,9 +750,7 @@ export default function PropertiesPage() {
                             <td className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${
-                                  property.expiringLeases90Days > 0
-                                    ? "bg-parcelis-green/15 text-parcelis-charcoal"
-                                    : "bg-parcelis-porcelain text-parcelis-gray"
+                                  property.expiringLeases90Days > 0 ? "bg-parcelis-green/15 text-parcelis-charcoal" : "bg-parcelis-porcelain text-parcelis-gray"
                                 }`}
                               >
                                 <CalendarClock className="h-4 w-4" />
@@ -838,7 +798,9 @@ export default function PropertiesPage() {
                                     </div>
                                   </td>
                                   <td className="px-5 py-3 text-parcelis-gray">Unit</td>
-                                  <td className="max-w-56 whitespace-normal px-5 py-3 text-parcelis-gray">{property.city}, {property.region}</td>
+                                  <td className="max-w-56 whitespace-normal px-5 py-3 text-parcelis-gray">
+                                    {property.city}, {property.region}
+                                  </td>
                                   <td className="px-5 py-3">1</td>
                                   <td className="px-5 py-3">{unit.isOccupied ? "100%" : "0%"}</td>
                                   <td className="px-5 py-3">

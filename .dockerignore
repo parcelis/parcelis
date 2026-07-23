@@ -1,0 +1,8 @@
+**/node_modules
+**/.next
+**/.docusaurus
+**/build
+.git
+.turbo
+coverage
+*.log

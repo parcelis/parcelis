@@ -1,0 +1,100 @@
+:root {
+  --ifm-color-primary: #5f9639;
+  --ifm-color-primary-dark: #558733;
+  --ifm-color-primary-darker: #507f30;
+  --ifm-color-primary-darkest: #426828;
+  --ifm-color-primary-light: #6ba841;
+  --ifm-color-primary-lighter: #74af4a;
+  --ifm-color-primary-lightest: #8abe65;
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-font-color-base: #101c29;
+  --ifm-font-family-base: Inter, ui-sans-serif, system-ui, sans-serif;
+  --ifm-heading-font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --ifm-navbar-height: 4rem;
+  --ifm-navbar-shadow: none;
+  --ifm-toc-border-color: #dce1dc;
+  --ifm-code-font-size: 90%;
+}
+
+[data-theme="dark"] {
+  --ifm-background-color: #101c29;
+  --ifm-background-surface-color: #172635;
+  --ifm-font-color-base: #f7f8f6;
+  --ifm-color-content-secondary: #b3bbb7;
+  --ifm-toc-border-color: #35464a;
+}
+
+.navbar {
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+.navbar__title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.navbar__link {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.theme-doc-sidebar-container {
+  border-right: 1px solid var(--ifm-toc-border-color) !important;
+}
+
+.menu__link {
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.menu__link--active {
+  border-left: 2px solid var(--ifm-color-primary);
+  font-weight: 700;
+  padding-left: calc(var(--ifm-menu-link-padding-horizontal) - 2px);
+}
+
+.theme-doc-markdown {
+  max-width: 46rem;
+}
+
+.theme-doc-markdown h1 {
+  font-size: clamp(2.15rem, 4vw, 3rem);
+  line-height: 1.15;
+  margin-bottom: 1.25rem;
+}
+
+.theme-doc-markdown h2 {
+  border-top: 1px solid var(--ifm-toc-border-color);
+  margin-top: 3.5rem;
+  padding-top: 2rem;
+}
+
+.theme-doc-markdown h3 {
+  margin-top: 2rem;
+}
+
+.theme-doc-markdown p,
+.theme-doc-markdown li {
+  line-height: 1.75;
+}
+
+.theme-doc-markdown table {
+  min-width: 54rem;
+  width: 100%;
+}
+
+@media (max-width: 996px) {
+  .theme-doc-markdown table {
+    min-width: 44rem;
+  }
+}
+
+.table-of-contents {
+  font-size: 0.82rem;
+}
+
+.footer--dark {
+  --ifm-footer-background-color: #101c29;
+}

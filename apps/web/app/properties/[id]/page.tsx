@@ -14,7 +14,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
+import { Badge, Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
 import { propertyTypeValues, type PropertyType, type UpdatePropertyInput } from "@parcelis/schemas";
 import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../../../components/property-drawer";
 import { apiClient, queryKeys } from "../../../components/api-client";
@@ -208,10 +208,22 @@ export default function PropertyDetailPage() {
                       {property.line1}
                       {property.line2 ? `, ${property.line2}` : ""}, {property.city}, {property.region} {property.postalCode}
                     </p>
+                    {contactItems.length > 0 ? (
+                      <div className="mt-5 flex max-w-4xl flex-wrap gap-2">
+                        {contactItems.map(([label, value]) => (
+                          <div className="inline-flex max-w-full items-start gap-2 rounded-md bg-white/10 px-2.5 py-2 text-sm" key={label}>
+                            <Badge variant="marker">{label}</Badge>
+                            <span className="whitespace-pre-line break-words font-semibold text-white">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                  <Button onClick={openEditDrawer} variant="secondary">
-                    Edit property
-                  </Button>
+                  <div className="flex w-full flex-col gap-4 md:w-auto md:items-end">
+                    <Button onClick={openEditDrawer} variant="secondary">
+                      Edit property
+                    </Button>
+                  </div>
                 </div>
               </section>
 
@@ -314,24 +326,6 @@ export default function PropertyDetailPage() {
                   </CardContent>
                 </Card>
 
-                {contactItems.length > 0 ? (
-                  <Card>
-                    <CardHeader>
-                      <h2 className="font-semibold text-parcelis-charcoal">Property Contact</h2>
-                    </CardHeader>
-                    <CardContent className="grid gap-3">
-                      {contactItems.map(([label, value]) => (
-                        <div
-                          className="flex items-start justify-between gap-4 border-b border-parcelis-border pb-3 last:border-0 last:pb-0"
-                          key={label}
-                        >
-                          <span className="text-sm font-medium text-parcelis-gray">{label}</span>
-                          <span className="whitespace-pre-line text-right text-sm font-semibold text-parcelis-charcoal">{value}</span>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                ) : null}
               </section>
 
               <section className="mt-5 grid gap-5 lg:grid-cols-2">
