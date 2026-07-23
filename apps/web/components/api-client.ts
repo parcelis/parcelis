@@ -16,4 +16,7 @@ export const queryKeys = {
     list: ["properties", "list"] as const,
     byId: (id: string) => ["properties", "byId", id] as const,
   },
+  unitOptions: {
+    list: ["unitOptions", "list"] as const,
+  },
 };

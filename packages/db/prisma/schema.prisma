@@ -35,27 +35,90 @@ enum MaintenanceTicketPriority {
   urgent
 }
 
+enum UnitType {
+  residential
+  commercial
+}
+
 model Property {
-  id            String         @id @default(uuid())
-  name          String
-  line1         String
-  line2         String?
-  city          String
-  region        String
-  postalCode    String
-  propertyType  String         @default("Apartment")
-  contactName   String?
-  contactEmail  String?
-  contactPhone  String?
-  contactAddress String?
-  notes         String?
-  unitCount     Int
-  occupiedUnits Int            @default(0)
-  status        PropertyStatus @default(active)
-  leases        Lease[]
+  id                 String              @id @default(uuid())
+  name               String
+  line1              String
+  line2              String?
+  city               String
+  region             String
+  postalCode         String
+  propertyType       String              @default("Apartment")
+  contactName        String?
+  contactEmail       String?
+  contactPhone       String?
+  contactAddress     String?
+  notes              String?
+  unitCount          Int
+  occupiedUnits      Int                 @default(0)
+  status             PropertyStatus      @default(active)
+  units              Unit[]
+  leases             Lease[]
   maintenanceTickets MaintenanceTicket[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model Unit {
+  id              String            @id @default(uuid())
+  propertyId      String
+  name            String
+  marketRateCents Int
+  unitType        UnitType          @default(residential)
+  bedrooms        Int?
+  bathrooms       Decimal?          @db.Decimal(4, 1)
+  squareFeet      Int?
+  property        Property          @relation(fields: [propertyId], references: [id])
+  rentIncludes    UnitRentInclude[]
+  amenities       UnitAmenity[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([propertyId, name])
+  @@index([propertyId])
+}
+
+model RentIncludeOption {
+  id        String            @id @default(uuid())
+  label     String            @unique
+  sortOrder Int               @default(0)
+  units     UnitRentInclude[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model AmenityOption {
+  id        String        @id @default(uuid())
+  label     String        @unique
+  sortOrder Int           @default(0)
+  units     UnitAmenity[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model UnitRentInclude {
+  unitId   String
+  optionId String
+  unit     Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  option   RentIncludeOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([unitId, optionId])
+  @@index([optionId])
+}
+
+model UnitAmenity {
+  unitId   String
+  optionId String
+  unit     Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  option   AmenityOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([unitId, optionId])
+  @@index([optionId])
 }
 
 model Tenant {
@@ -70,19 +133,19 @@ model Tenant {
 }
 
 model Lease {
-  id               String      @id @default(uuid())
-  propertyId       String
-  tenantId         String
-  unitLabel        String
-  monthlyRentCents Int
-  amountOverdueCents Int       @default(0)
-  startsOn         DateTime
-  endsOn           DateTime
-  status           LeaseStatus @default(draft)
-  property         Property    @relation(fields: [propertyId], references: [id])
-  tenant           Tenant      @relation(fields: [tenantId], references: [id])
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id                 String      @id @default(uuid())
+  propertyId         String
+  tenantId           String
+  unitLabel          String
+  monthlyRentCents   Int
+  amountOverdueCents Int         @default(0)
+  startsOn           DateTime
+  endsOn             DateTime
+  status             LeaseStatus @default(draft)
+  property           Property    @relation(fields: [propertyId], references: [id])
+  tenant             Tenant      @relation(fields: [tenantId], references: [id])
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@index([propertyId])
   @@index([tenantId])

@@ -8,7 +8,12 @@ export const addressSchema = z.object({
   postalCode: z.string().min(5),
 });
 
-export const propertyStatusSchema = z.enum(["active", "maintenance", "leasing", "archived"]);
+export const propertyStatusSchema = z.enum([
+  "active",
+  "maintenance",
+  "leasing",
+  "archived",
+]);
 export const propertyTypeValues = [
   "Apartment",
   "Commercial",
@@ -24,6 +29,26 @@ export const propertyTypeValues = [
   "Trailer",
 ] as const;
 export const propertyTypeSchema = z.enum(propertyTypeValues);
+export const unitTypeValues = ["Residential", "Commercial"] as const;
+export const unitTypeSchema = z.enum(unitTypeValues);
+
+export const optionSchema = z.object({
+  id: z.string().uuid(),
+  label: z.string().min(1),
+  sortOrder: z.number().int().nonnegative(),
+});
+
+export const unitDetailsInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  marketRateCents: z.number().int().nonnegative(),
+  unitType: unitTypeSchema,
+  bedrooms: z.number().int().nonnegative().optional(),
+  bathrooms: z.number().nonnegative().optional(),
+  squareFeet: z.number().int().nonnegative().optional(),
+  rentIncludeOptionIds: z.array(z.string().uuid()).default([]),
+  amenityOptionIds: z.array(z.string().uuid()).default([]),
+});
 
 export const propertySchema = z.object({
   id: z.string().uuid(),
@@ -36,6 +61,7 @@ export const propertySchema = z.object({
   contactAddress: z.string().optional(),
   notes: z.string().optional(),
   unitCount: z.number().int().nonnegative(),
+  units: z.array(unitDetailsInputSchema).default([]),
   occupiedUnits: z.number().int().nonnegative(),
   status: propertyStatusSchema,
 });
@@ -83,6 +109,9 @@ export const propertyNotesInputSchema = z.object({
 export type Address = z.infer<typeof addressSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type PropertyType = z.infer<typeof propertyTypeSchema>;
+export type UnitType = z.infer<typeof unitTypeSchema>;
+export type Option = z.infer<typeof optionSchema>;
+export type UnitDetailsInput = z.infer<typeof unitDetailsInputSchema>;
 export type Tenant = z.infer<typeof tenantSchema>;
 export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;

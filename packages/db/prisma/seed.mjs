@@ -50,7 +50,175 @@ const properties = [
   },
 ];
 
+const rentIncludeOptions = ["Electricity", "Water", "Sewer", "Gas", "Internet"];
+const amenityOptions = [
+  "A/C",
+  "Off-Street Parking",
+  "On-Street Parking",
+  "Pool",
+  "Furnished",
+  "Balcony/Deck",
+  "Hardwood Floor",
+  "Tile Floor",
+  "Carpet",
+  "Pets Allowed",
+  "Wheelchair Access",
+];
+
+function getDemoUnitNames(property, leaseLabels) {
+  const names = [...new Set(leaseLabels.filter(Boolean))];
+  let index = 1;
+
+  while (names.length < property.unitCount) {
+    const nextName = String(index);
+    if (!names.includes(nextName)) {
+      names.push(nextName);
+    }
+    index += 1;
+  }
+
+  return names.slice(0, property.unitCount);
+}
+
+function getDemoUnitDetails(property, unitName, index, leaseRentCents) {
+  const isCommercial =
+    property.propertyType === "Commercial" ||
+    (property.propertyType === "Mixed-Use" && index % 5 === 0);
+  const bedroomCycle = [0, 1, 1, 2, 2, 3];
+  const bedrooms = isCommercial
+    ? null
+    : bedroomCycle[index % bedroomCycle.length];
+  const bathrooms = isCommercial
+    ? 1
+    : bedrooms === 0
+      ? 1
+      : bedrooms >= 3
+        ? 2
+        : 1.5;
+  const squareFeet = isCommercial
+    ? 950 + (index % 4) * 175
+    : 525 + (bedrooms ?? 0) * 225 + (index % 3) * 35;
+  const baseRentCents = isCommercial
+    ? 285000
+    : 145000 + (bedrooms ?? 0) * 35000 + (index % 4) * 7500;
+
+  return {
+    name: unitName,
+    marketRateCents: leaseRentCents ?? baseRentCents,
+    unitType: isCommercial ? "commercial" : "residential",
+    bedrooms,
+    bathrooms,
+    squareFeet,
+  };
+}
+
+async function seedUnitsForProperty(property) {
+  const leases = await prisma.lease.findMany({
+    where: { propertyId: property.id },
+    select: {
+      monthlyRentCents: true,
+      unitLabel: true,
+    },
+  });
+  const leaseRentByUnit = new Map(
+    leases.map((lease) => [lease.unitLabel, lease.monthlyRentCents]),
+  );
+  const unitNames = getDemoUnitNames(
+    property,
+    leases.map((lease) => lease.unitLabel),
+  );
+
+  await prisma.unit.deleteMany({
+    where: {
+      propertyId: property.id,
+      name: { notIn: unitNames },
+    },
+  });
+
+  for (const [index, unitName] of unitNames.entries()) {
+    const unitDetails = getDemoUnitDetails(
+      property,
+      unitName,
+      index,
+      leaseRentByUnit.get(unitName),
+    );
+    const unit = await prisma.unit.upsert({
+      where: {
+        propertyId_name: {
+          propertyId: property.id,
+          name: unitName,
+        },
+      },
+      update: unitDetails,
+      create: {
+        propertyId: property.id,
+        ...unitDetails,
+      },
+    });
+
+    const rentIncludeLabels = index % 3 === 0 ? ["Water", "Sewer"] : [];
+    const amenityLabels = [
+      index % 2 === 0 ? "A/C" : null,
+      index % 4 === 0 ? "Off-Street Parking" : null,
+      index % 6 === 0 ? "Balcony/Deck" : null,
+      index % 7 === 0 ? "Pets Allowed" : null,
+    ].filter(Boolean);
+    const [rentIncludes, amenities] = await Promise.all([
+      prisma.rentIncludeOption.findMany({
+        where: { label: { in: rentIncludeLabels } },
+        select: { id: true },
+      }),
+      prisma.amenityOption.findMany({
+        where: { label: { in: amenityLabels } },
+        select: { id: true },
+      }),
+    ]);
+
+    await Promise.all([
+      prisma.unitRentInclude.deleteMany({ where: { unitId: unit.id } }),
+      prisma.unitAmenity.deleteMany({ where: { unitId: unit.id } }),
+    ]);
+
+    await Promise.all([
+      rentIncludes.length
+        ? prisma.unitRentInclude.createMany({
+            data: rentIncludes.map((option) => ({
+              optionId: option.id,
+              unitId: unit.id,
+            })),
+            skipDuplicates: true,
+          })
+        : Promise.resolve(),
+      amenities.length
+        ? prisma.unitAmenity.createMany({
+            data: amenities.map((option) => ({
+              optionId: option.id,
+              unitId: unit.id,
+            })),
+            skipDuplicates: true,
+          })
+        : Promise.resolve(),
+    ]);
+  }
+}
+
 async function main() {
+  for (const [index, label] of rentIncludeOptions.entries()) {
+    await prisma.rentIncludeOption.upsert({
+      where: { label },
+      update: { sortOrder: (index + 1) * 10 },
+      create: { label, sortOrder: (index + 1) * 10 },
+    });
+  }
+
+  for (const [index, label] of amenityOptions.entries()) {
+    await prisma.amenityOption.upsert({
+      where: { label },
+      update: { sortOrder: (index + 1) * 10 },
+      create: { label, sortOrder: (index + 1) * 10 },
+    });
+  }
+
   for (const property of properties) {
     const existing = await prisma.property.findFirst({
       where: { name: property.name },
@@ -195,6 +363,12 @@ async function main() {
       status: "notice",
     },
   });
+
+  await Promise.all([
+    seedUnitsForProperty(hawthorne),
+    seedUnitsForProperty(mariner),
+    seedUnitsForProperty(juniper),
+  ]);
 
   const tickets = [
     {
