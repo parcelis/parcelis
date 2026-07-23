@@ -8,7 +8,6 @@ import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/u
 import type { CreatePropertyInput } from "@parcelis/schemas";
 import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../components/property-drawer";
 import { apiClient, queryKeys } from "../components/api-client";
-import { useShortcut } from "../components/shortcut-provider";
 import { Sidebar } from "../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -43,7 +42,6 @@ export default function Page() {
   });
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
-  useShortcut("Mod+Shift+P", () => setIsFormOpen(true));
 
   const properties = propertiesQuery.data ?? [];
   const totalUnits = properties.reduce((sum, property) => sum + property.unitCount, 0);

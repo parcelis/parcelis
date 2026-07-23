@@ -288,7 +288,6 @@ export default function PropertiesPage() {
   const [notesDraft, setNotesDraft] = React.useState("");
   const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
-  useShortcut("Mod+Shift+P", () => setIsFormOpen(true));
   useShortcut("/", () => searchInputRef.current?.focus(), {
     enabled: !isFormOpen,
   });

@@ -25,7 +25,7 @@ import {
   Select,
 } from "@parcelis/ui";
 import { propertyTypeValues, type CreatePropertyInput, type PropertyType } from "@parcelis/schemas";
-import { useShortcut } from "./shortcut-provider";
+import { useShortcut, type ShortcutKey } from "./shortcut-provider";
 
 export type PropertyFormState = {
   name: string;
@@ -77,6 +77,7 @@ type PropertyDrawerProps = {
   onSubmit: (input: CreatePropertyInput) => void;
   open: boolean;
   submitLabel?: string;
+  toggleShortcut?: ShortcutKey;
 };
 
 const steps = [
@@ -97,6 +98,7 @@ export function PropertyDrawer({
   onSubmit,
   open,
   submitLabel = "Next",
+  toggleShortcut = "Mod+Shift+P",
 }: PropertyDrawerProps) {
   const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
   const [isContactAddressPopoverOpen, setIsContactAddressPopoverOpen] = React.useState(false);
@@ -118,6 +120,19 @@ export function PropertyDrawer({
   useShortcut("Mod+Enter", () => submitPropertyInput(), {
     enabled: open && canSubmit && !isPending,
   });
+  useShortcut(
+    toggleShortcut,
+    () => {
+      if (open) {
+        closeAndReset();
+      } else {
+        onOpenChange(true);
+      }
+    },
+    {
+      enabled: !isDiscardDialogOpen,
+    },
+  );
 
   function updateField<Key extends keyof PropertyFormState>(field: Key, value: PropertyFormState[Key]) {
     onFormChange((current) => ({ ...current, [field]: value }));

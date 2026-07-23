@@ -4,6 +4,8 @@ import * as React from "react";
 import { HotkeysProvider, useHotkey, type RegisterableHotkey, type UseHotkeyOptions } from "@tanstack/react-hotkeys";
 import { useTheme } from "./theme-provider";
 
+export type ShortcutKey = RegisterableHotkey;
+
 export function ShortcutProvider({ children }: { children: React.ReactNode }) {
   return (
     <HotkeysProvider
