@@ -12,3 +12,128 @@ body {
 a {
   color: rgb(var(--parcelis-charcoal));
 }
+
+.docs-shell {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 40px 24px;
+}
+
+.docs-sidebar {
+  align-self: start;
+  position: sticky;
+  top: 24px;
+}
+
+.docs-sidebar nav {
+  display: grid;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.docs-sidebar a {
+  border-radius: 6px;
+  color: rgb(var(--parcelis-gray));
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 12px;
+  text-decoration: none;
+}
+
+.docs-sidebar a:hover {
+  background: white;
+  color: rgb(var(--parcelis-charcoal));
+}
+
+.docs-article {
+  background: white;
+  border: 1px solid rgb(var(--parcelis-border));
+  border-radius: 8px;
+  padding: 48px;
+}
+
+.docs-article h1 {
+  font-size: 44px;
+  line-height: 1.05;
+  margin: 0 0 18px;
+}
+
+.docs-article h2 {
+  border-top: 1px solid rgb(var(--parcelis-border));
+  font-size: 26px;
+  margin: 42px 0 14px;
+  padding-top: 32px;
+}
+
+.docs-article h3 {
+  font-size: 18px;
+  margin: 28px 0 10px;
+}
+
+.docs-article p,
+.docs-article li {
+  color: rgb(var(--parcelis-gray));
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.docs-article ul,
+.docs-article ol {
+  padding-left: 24px;
+}
+
+.docs-article code {
+  background: rgb(var(--parcelis-porcelain));
+  border: 1px solid rgb(var(--parcelis-border));
+  border-radius: 6px;
+  color: rgb(var(--parcelis-charcoal));
+  font-size: 0.92em;
+  padding: 2px 6px;
+}
+
+.docs-card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.docs-card-grid section {
+  border: 1px solid rgb(var(--parcelis-border));
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.docs-card-grid h3 {
+  margin-top: 0;
+}
+
+@media (max-width: 860px) {
+  .docs-shell {
+    grid-template-columns: 1fr;
+    padding: 24px 16px;
+  }
+
+  .docs-sidebar {
+    position: static;
+  }
+
+  .docs-sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 20px;
+  }
+
+  .docs-article {
+    padding: 28px 20px;
+  }
+
+  .docs-article h1 {
+    font-size: 34px;
+  }
+
+  .docs-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
