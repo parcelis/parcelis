@@ -288,6 +288,20 @@ async function main() {
       phone: "512-555-0135",
     },
   });
+  const fourthTenant = await prisma.tenant.upsert({
+    where: { email: "elena.morris@example.com" },
+    update: {
+      firstName: "Elena",
+      lastName: "Morris",
+      phone: "615-555-0176",
+    },
+    create: {
+      firstName: "Elena",
+      lastName: "Morris",
+      email: "elena.morris@example.com",
+      phone: "615-555-0176",
+    },
+  });
 
   await prisma.lease.upsert({
     where: { id: "11111111-1111-4111-8111-111111111111" },
@@ -310,6 +324,31 @@ async function main() {
       amountOverdueCents: 0,
       startsOn: new Date("2026-02-01"),
       endsOn: new Date("2027-01-31"),
+      status: "active",
+    },
+  });
+
+  await prisma.lease.upsert({
+    where: { id: "77777777-7777-4777-8777-777777777777" },
+    update: {
+      propertyId: hawthorne.id,
+      tenantId: fourthTenant.id,
+      unitLabel: "8A",
+      monthlyRentCents: 197500,
+      amountOverdueCents: 32500,
+      startsOn: new Date("2026-06-01"),
+      endsOn: new Date("2027-05-31"),
+      status: "active",
+    },
+    create: {
+      id: "77777777-7777-4777-8777-777777777777",
+      propertyId: hawthorne.id,
+      tenantId: fourthTenant.id,
+      unitLabel: "8A",
+      monthlyRentCents: 197500,
+      amountOverdueCents: 32500,
+      startsOn: new Date("2026-06-01"),
+      endsOn: new Date("2027-05-31"),
       status: "active",
     },
   });
