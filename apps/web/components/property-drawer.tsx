@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   AlignRight,
   Bath,
@@ -8,6 +9,7 @@ import {
   Building2,
   ChevronDown,
   DoorOpen,
+  ExternalLink,
   Home,
   Loader2,
   Plus,
@@ -139,6 +141,7 @@ type PropertyDrawerProps = {
   open: boolean;
   submitLabel?: string;
   toggleShortcut?: ShortcutKey;
+  unitHref?: (unit: UnitDetailsFormState) => string | null;
 };
 
 const steps = [
@@ -166,6 +169,7 @@ export function PropertyDrawer({
   open,
   submitLabel = "Create Property",
   toggleShortcut = "Mod+Shift+P",
+  unitHref,
 }: PropertyDrawerProps) {
   const initialUnitStates = React.useMemo(
     () => getInitialUnitFormStates(initialUnits),
@@ -937,6 +941,7 @@ export function PropertyDrawer({
                     <div className="mt-5 grid gap-5">
                       {units.map((unit) => {
                         const isExpanded = expandedUnitIds.has(unit.id);
+                        const href = unitHref?.(unit) ?? null;
 
                         return (
                           <div
@@ -1000,17 +1005,28 @@ export function PropertyDrawer({
                               </div>
 
                               <div className="flex items-start justify-end">
-                                <button
-                                  aria-label={`Remove ${unit.unitName || "unit"}`}
-                                  className="inline-grid h-9 w-9 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-                                  disabled={units.length === 1}
-                                  onClick={() =>
-                                    setUnitPendingRemovalId(unit.id)
-                                  }
-                                  type="button"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  {href ? (
+                                    <Link
+                                      aria-label={`Open ${unit.unitName || "unit"}`}
+                                      className="inline-grid h-9 w-9 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-parcelis-porcelain hover:text-parcelis-charcoal"
+                                      href={href}
+                                    >
+                                      <ExternalLink className="h-4 w-4" />
+                                    </Link>
+                                  ) : null}
+                                  <button
+                                    aria-label={`Remove ${unit.unitName || "unit"}`}
+                                    className="inline-grid h-9 w-9 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                    disabled={units.length === 1}
+                                    onClick={() =>
+                                      setUnitPendingRemovalId(unit.id)
+                                    }
+                                    type="button"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
 

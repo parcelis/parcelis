@@ -175,8 +175,12 @@ export const appRouter = router({
           units: {
             orderBy: { createdAt: "asc" },
             include: {
-              amenities: { select: { option: { select: { id: true } } } },
-              rentIncludes: { select: { option: { select: { id: true } } } },
+              amenities: {
+                select: { option: { select: { id: true, label: true } } },
+              },
+              rentIncludes: {
+                select: { option: { select: { id: true, label: true } } },
+              },
             },
           },
         },
@@ -209,8 +213,12 @@ export const appRouter = router({
             units: {
               orderBy: { createdAt: "asc" },
               include: {
-                amenities: { select: { option: { select: { id: true } } } },
-                rentIncludes: { select: { option: { select: { id: true } } } },
+                amenities: {
+                  select: { option: { select: { id: true, label: true } } },
+                },
+                rentIncludes: {
+                  select: { option: { select: { id: true, label: true } } },
+                },
               },
             },
           },

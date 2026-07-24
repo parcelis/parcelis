@@ -5,12 +5,15 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
+  Bath,
+  BedDouble,
   Building2,
   CircleDollarSign,
   DoorOpen,
   Loader2,
   Mail,
   Phone,
+  Ruler,
   Wrench,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -163,6 +166,9 @@ export default function PropertyDetailPage() {
         }
         open={isEditDrawerOpen}
         submitLabel="Save"
+        unitHref={(unit) =>
+          unit.id ? `/properties/${propertyId}/units/${unit.id}` : null
+        }
       />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
@@ -308,34 +314,69 @@ export default function PropertyDetailPage() {
                     </h2>
                   </CardHeader>
                   <CardContent className="grid gap-3 sm:grid-cols-2">
-                    {Array.from(
-                      { length: Math.min(unitCount, 8) },
-                      (_, index) => {
-                        const unitNumber = index + 1;
-                        const lease = leases[index];
-                        const isOccupied = unitNumber <= occupiedUnits;
-                        return (
-                          <div
-                            className="rounded-md border border-parcelis-border p-3"
-                            key={unitNumber}
-                          >
-                            <div className="flex items-center justify-between">
-                              <p className="font-semibold text-parcelis-charcoal">
-                                Unit {lease?.unitLabel ?? unitNumber}
-                              </p>
-                              <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
-                                {isOccupied ? "Occupied" : "Vacant"}
-                              </span>
-                            </div>
-                            <p className="mt-2 text-sm text-parcelis-gray">
-                              {lease
-                                ? `${lease.tenant.firstName} ${lease.tenant.lastName}`
-                                : "Ready for assignment"}
+                    {(property.units.length > 0
+                      ? property.units.slice(0, 8)
+                      : Array.from(
+                          { length: Math.min(unitCount, 8) },
+                          (_, index) => ({
+                            id: String(index + 1),
+                            name: String(index + 1),
+                            bedrooms: null,
+                            bathrooms: null,
+                            squareFeet: null,
+                            marketRateCents: 0,
+                          }),
+                        )
+                    ).map((unit, index) => {
+                      const lease =
+                        leases.find((item) => item.unitLabel === unit.name) ??
+                        leases[index];
+                      const isOccupied = Boolean(
+                        lease &&
+                        (lease.status === "active" ||
+                          lease.status === "notice"),
+                      );
+                      const href = property.units.some(
+                        (savedUnit) => savedUnit.id === unit.id,
+                      )
+                        ? `/properties/${property.id}/units/${unit.id}`
+                        : null;
+                      return (
+                        <Link
+                          className="block rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain/55"
+                          href={href ?? `/properties/${property.id}`}
+                          key={unit.id}
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-parcelis-charcoal">
+                              Unit {unit.name}
                             </p>
+                            <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
+                              {isOccupied ? "Occupied" : "Vacant"}
+                            </span>
                           </div>
-                        );
-                      },
-                    )}
+                          <p className="mt-2 text-sm text-parcelis-gray">
+                            {lease
+                              ? `${lease.tenant.firstName} ${lease.tenant.lastName}`
+                              : formatCurrency(unit.marketRateCents)}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-parcelis-gray">
+                            <span className="inline-flex items-center gap-1">
+                              <BedDouble className="h-3.5 w-3.5" />
+                              {unit.bedrooms ?? 0}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Bath className="h-3.5 w-3.5" />
+                              {unit.bathrooms ?? 0}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Ruler className="h-3.5 w-3.5" />
+                              {unit.squareFeet ?? 0} sf
+                            </span>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </CardContent>
                 </Card>
 
