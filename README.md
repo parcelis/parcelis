@@ -3,7 +3,6 @@
 </p>
 Parcelis (PAR-cell-iss) is an open-source property management platform for landlords, small operators, and local property teams.
 
-
 <h3 align="center">
   🧩
   <a href="https://github.com/parcelis/parcelis/discussions/categories/ideas">Request a feature</a>
@@ -28,6 +27,7 @@ Parcelis (PAR-cell-iss) is an open-source property management platform for landl
 [![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml)
 
 ## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
+
 <br /><br />
 
 ## Apps
@@ -103,6 +103,11 @@ want to erase local Parcelis data and start over.
 Parcelis uses shadcn/ui-style primitives through `@parcelis/ui`. Add or extend
 shared components in `packages/ui/src/components`, then import them into apps
 instead of hand-styling repeated controls in page files.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development expectations and the
+Conventional Commit format enforced for pull requests.
 
 ## Licensing
 

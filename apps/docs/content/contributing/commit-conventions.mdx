@@ -1,0 +1,43 @@
+---
+id: commit-conventions
+title: Commit Conventions
+---
+
+Parcelis uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) to make the project history readable and release automation possible.
+
+Write commit subjects in this form:
+
+```text
+type(optional-scope): short imperative description
+```
+
+Use one of these lowercase types:
+
+- `feat`: a new user-facing capability.
+- `fix`: a bug correction.
+- `docs`: documentation-only changes.
+- `refactor`: code restructuring without changing behavior.
+- `test`: test additions or corrections.
+- `perf`: a performance improvement.
+- `build`: build system or dependency changes.
+- `ci`: continuous-integration changes.
+- `chore`: maintenance that does not fit another type.
+- `revert`: reverses an earlier change.
+
+Scopes are optional. Use a concise monorepo area when it helps, such as `web`, `api`, `db`, `ui`, `docs`, or `infra`.
+
+```text
+feat(web): add property filters
+fix(api): reject duplicate unit names
+docs: explain production deployment
+```
+
+Use `!` before the colon or a `BREAKING CHANGE:` footer for a breaking change.
+
+```text
+feat(api)!: rename the properties endpoint
+```
+
+Pull requests validate every commit message in CI. When squash merging, use a Conventional Commit for the pull-request title because it becomes the final commit message.
+
+For the complete contributor policy, see the repository's [CONTRIBUTING.md](https://github.com/parcelis/parcelis/blob/main/CONTRIBUTING.md).

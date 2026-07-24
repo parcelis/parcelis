@@ -7,7 +7,7 @@ const sidebars: SidebarsConfig = {
       label: "Platform User Guide",
       link: {
         type: "doc",
-        id: "platform-user-guide"
+        id: "platform-user-guide",
       },
       items: [
         {
@@ -15,8 +15,8 @@ const sidebars: SidebarsConfig = {
           label: "Getting Started",
           items: [
             "platform-user-guide/getting-started/first-steps",
-            "platform-user-guide/getting-started/portfolio-dashboard"
-          ]
+            "platform-user-guide/getting-started/portfolio-dashboard",
+          ],
         },
         {
           type: "category",
@@ -26,8 +26,8 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/core-concepts/property",
             "platform-user-guide/core-concepts/unit",
             "platform-user-guide/core-concepts/lease",
-            "platform-user-guide/core-concepts/maintenance-ticket"
-          ]
+            "platform-user-guide/core-concepts/maintenance-ticket",
+          ],
         },
         {
           type: "category",
@@ -37,8 +37,8 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/app-functionality/property-directory",
             "platform-user-guide/app-functionality/manage-a-property",
             "platform-user-guide/app-functionality/unit-details",
-            "platform-user-guide/app-functionality/property-details"
-          ]
+            "platform-user-guide/app-functionality/property-details",
+          ],
         },
         {
           type: "category",
@@ -47,18 +47,18 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/navigation-and-preferences/sidebar",
             "platform-user-guide/navigation-and-preferences/collapse-navigation",
             "platform-user-guide/navigation-and-preferences/theme",
-            "platform-user-guide/navigation-and-preferences/keyboard-shortcuts"
-          ]
+            "platform-user-guide/navigation-and-preferences/keyboard-shortcuts",
+          ],
         },
-        "platform-user-guide/pricing"
-      ]
+        "platform-user-guide/pricing",
+      ],
     },
     {
       type: "category",
       label: "For contributors",
-      items: ["getting-started"]
-    }
-  ]
+      items: ["getting-started", "contributing/commit-conventions"],
+    },
+  ],
 };
 
 export default sidebars;
