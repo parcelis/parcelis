@@ -72,7 +72,12 @@
 ## Docs
 
 - Docusaurus docs live in `apps/docs/content`.
-- Update docs alongside user-facing workflow changes when behavior or setup changes, meaning when a commit happens.
+- Before finalizing a change, check whether it requires updates to any of the following:
+  - Docusaurus content in `apps/docs/content` for user-facing workflows, behavior, or setup.
+  - `DEPENDENCIES.md` when adding, removing, or materially changing a direct dependency or service.
+  - `CONTRIBUTING.md` when changing the contributor workflow, development setup, or contribution standards.
+  - `README.md` when changing the project overview, architecture, local setup, or primary workflows.
+- Make the applicable documentation updates in the same change. If none are needed, state that in the handoff or pull request summary.
 - Keep docs concise and task-oriented.
 
 ## Git
