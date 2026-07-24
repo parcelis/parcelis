@@ -151,7 +151,10 @@ export default function UnitDetailPage() {
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-48">
+                <DropdownMenuContent
+                  align="end"
+                  className="max-h-96 min-w-48 overflow-y-auto"
+                >
                   <DropdownMenuItem asChild>
                     <Link href={`/properties/${propertyId}`}>All Units</Link>
                   </DropdownMenuItem>

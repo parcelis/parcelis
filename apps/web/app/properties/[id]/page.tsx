@@ -313,11 +313,11 @@ export default function PropertyDetailPage() {
                       Units
                     </h2>
                   </CardHeader>
-                  <CardContent className="grid gap-3 sm:grid-cols-2">
+                  <CardContent className="grid max-h-[34rem] gap-3 overflow-y-auto pr-3 sm:grid-cols-2">
                     {(property.units.length > 0
-                      ? property.units.slice(0, 8)
+                      ? property.units
                       : Array.from(
-                          { length: Math.min(unitCount, 8) },
+                          { length: unitCount },
                           (_, index) => ({
                             id: String(index + 1),
                             name: String(index + 1),
@@ -386,7 +386,7 @@ export default function PropertyDetailPage() {
                       Leases
                     </h2>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="max-h-[34rem] space-y-3 overflow-y-auto pr-3">
                     {leases.length === 0 ? (
                       <p className="text-sm text-parcelis-gray">
                         No leases are attached to this property yet.
