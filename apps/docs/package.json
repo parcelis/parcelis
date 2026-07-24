@@ -16,8 +16,12 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "docusaurus-plugin-copy-page-button": "^0.8.4",
+    "docusaurus-plugin-openapi-docs": "^5.1.2",
+    "docusaurus-plugin-sass": "^0.2.6",
+    "docusaurus-theme-openapi-docs": "^5.1.2",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "sass": "^1.101.7"
   },
   "devDependencies": {
     "@docusaurus/plugin-content-docs": "3.10.2",

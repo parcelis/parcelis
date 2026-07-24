@@ -10,12 +10,12 @@ const config: Config = {
   onBrokenLinks: "throw",
   markdown: {
     hooks: {
-      onBrokenMarkdownLinks: "warn"
-    }
+      onBrokenMarkdownLinks: "warn",
+    },
   },
   i18n: {
     defaultLocale: "en",
-    locales: ["en"]
+    locales: ["en"],
   },
   presets: [
     [
@@ -24,57 +24,71 @@ const config: Config = {
         docs: {
           path: "content",
           routeBasePath: "/",
-          sidebarPath: "./sidebars.ts"
+          sidebarPath: "./sidebars.ts",
         },
         blog: false,
         theme: {
-          customCss: "./src/css/custom.css"
-        }
-      }
-    ]
+          customCss: "./src/css/custom.css",
+        },
+      },
+    ],
   ],
-  plugins: ["docusaurus-plugin-copy-page-button"],
+  plugins: [
+    "docusaurus-plugin-copy-page-button",
+    "docusaurus-plugin-sass",
+    [
+      "docusaurus-plugin-openapi-docs",
+      {
+        id: "openapi",
+        docsPluginId: "classic",
+        config: {},
+      },
+    ],
+  ],
+  themes: ["docusaurus-theme-openapi-docs"],
   themeConfig: {
     colorMode: {
       defaultMode: "light",
-      respectPrefersColorScheme: true
+      respectPrefersColorScheme: true,
     },
     navbar: {
       title: "Parcelis Docs",
       logo: {
         alt: "Parcelis",
         src: "img/parcelis-dark.png",
-        srcDark: "img/parcelis-light.png"
+        srcDark: "img/parcelis-light.png",
       },
       items: [
         {
           type: "docSidebar",
           sidebarId: "docsSidebar",
           position: "left",
-          label: "Documentation"
+          label: "Documentation",
         },
         {
           href: "https://github.com/parcelis/parcelis",
           label: "GitHub",
-          position: "right"
-        }
-      ]
+          position: "right",
+        },
+      ],
     },
     footer: {
       style: "dark",
       links: [
         {
           title: "Docs",
-          items: [{ label: "Platform User Guide", to: "/" }]
+          items: [{ label: "Platform User Guide", to: "/" }],
         },
         {
           title: "Project",
-          items: [{ label: "GitHub", href: "https://github.com/parcelis/parcelis" }]
-        }
+          items: [
+            { label: "GitHub", href: "https://github.com/parcelis/parcelis" },
+          ],
+        },
       ],
-      copyright: `Copyright ${new Date().getFullYear()} Parcelis. Licensed under AGPL-3.0.`
-    }
-  }
+      copyright: `Copyright ${new Date().getFullYear()} Parcelis. Licensed under AGPL-3.0.`,
+    },
+  },
 };
 
 export default config;
