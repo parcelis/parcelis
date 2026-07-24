@@ -99,6 +99,9 @@ importers:
       '@mdx-js/react':
         specifier: ^3.1.1
         version: 3.1.1(@types/react@18.3.31)(react@18.3.1)
+      docusaurus-plugin-copy-page-button:
+        specifier: ^0.8.4
+        version: 0.8.4(@docusaurus/core@3.10.2(@mdx-js/react@3.1.1(@types/react@18.3.31)(react@18.3.1))(postcss@8.5.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(react@18.3.1)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -3919,6 +3922,13 @@ packages:
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
+
+  docusaurus-plugin-copy-page-button@0.8.4:
+    resolution: {integrity: sha512-OBWmUEFIqR3BJ5giae6D518b69ZfZQ5HKrazrY2IPA6tDNX2F3m1ejeyE0oqcVcE7GVkE+K0+vJ5T+kIos8u1w==}
+    engines: {node: '>=18.0'}
+    peerDependencies:
+      '@docusaurus/core': ^3.0.0
+      react: ^18.0.0 || ^19.0.0
 
   dom-converter@0.2.0:
     resolution: {integrity: sha512-gd3ypIPfOMr9h5jIKq8E3sHOTCjeirnl0WK5ZdS1AW0Odt0b1PaWaHdJ4Qk4klv+YB9aJBS7mESXjFoDQPu6DA==}
@@ -12575,6 +12585,11 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
+
+  docusaurus-plugin-copy-page-button@0.8.4(@docusaurus/core@3.10.2(@mdx-js/react@3.1.1(@types/react@18.3.31)(react@18.3.1))(postcss@8.5.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(react@18.3.1):
+    dependencies:
+      '@docusaurus/core': 3.10.2(@mdx-js/react@3.1.1(@types/react@18.3.31)(react@18.3.1))(postcss@8.5.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+      react: 18.3.1
 
   dom-converter@0.2.0:
     dependencies:

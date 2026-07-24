@@ -33,6 +33,7 @@ const config: Config = {
       }
     ]
   ],
+  plugins: ["docusaurus-plugin-copy-page-button"],
   themeConfig: {
     colorMode: {
       defaultMode: "light",

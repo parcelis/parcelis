@@ -43,6 +43,10 @@ Parcelis (PAR-cell-iss) is an open-source property management platform for landl
 - `packages/db`: Prisma schema, migrations, and database client exports.
 - `packages/config`: shared TypeScript, ESLint, and Prettier configuration.
 
+## Technology
+
+Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEPENDENCIES.md) for the maintained technology inventory and each tool's role.
+
 ## Local development
 
 Install dependencies, start the Docker-backed services, and run the apps on your
