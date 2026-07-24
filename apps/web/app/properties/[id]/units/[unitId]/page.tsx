@@ -23,7 +23,7 @@ import {
   UserRound,
   Wrench,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Badge,
   Button,
@@ -36,7 +36,18 @@ import {
   DropdownMenuTrigger,
   ParcelisLogo,
 } from "@parcelis/ui";
+import type { UpdatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
+import {
+  PropertyDrawer,
+  initialPropertyFormState,
+  type PropertyFormState,
+  type UnitDetailsFormState,
+} from "../../../../../components/property-drawer";
+import {
+  getPropertyFormState,
+  getUnitFormStates,
+} from "../../../../../components/property-drawer-state";
 import { Sidebar } from "../../../../../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -82,6 +93,7 @@ function getInvoiceRows(startDate: Date | string, amountCents: number) {
 }
 
 export default function UnitDetailPage() {
+  const queryClient = useQueryClient();
   const params = useParams<{ id: string; unitId: string }>();
   const propertyId = params.id;
   const unitId = params.unitId;
@@ -89,6 +101,29 @@ export default function UnitDetailPage() {
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
   });
+  const updateProperty = useMutation({
+    mutationFn: (input: UpdatePropertyInput) =>
+      apiClient.properties.update.mutate(input),
+    onSuccess: async () => {
+      setIsEditDrawerOpen(false);
+      setEditInitialUnits([]);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(propertyId),
+        }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+      ]);
+    },
+  });
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
+  const [editInitialForm, setEditInitialForm] =
+    React.useState<PropertyFormState>(initialPropertyFormState);
+  const [editInitialUnits, setEditInitialUnits] = React.useState<
+    UnitDetailsFormState[]
+  >([]);
+  const [editForm, setEditForm] = React.useState<PropertyFormState>(
+    initialPropertyFormState,
+  );
 
   const property = propertyQuery.data;
   const unit = property?.units.find((item) => item.id === unitId) ?? null;
@@ -121,9 +156,45 @@ export default function UnitDetailPage() {
     ? getInvoiceRows(lease.startsOn, monthlyRentCents)
     : [];
 
+  function openEditUnitDrawer() {
+    if (!property) {
+      return;
+    }
+
+    const nextForm = getPropertyFormState(property);
+
+    setEditInitialForm(nextForm);
+    setEditInitialUnits(getUnitFormStates(property));
+    setEditForm(nextForm);
+    setIsEditDrawerOpen(true);
+  }
+
   return (
     <main className="min-h-screen">
       <Sidebar active="properties" />
+      <PropertyDrawer
+        cancelDescription="Are you sure you'd like to cancel editing?"
+        drawerTitle="Edit Property"
+        error={updateProperty.error}
+        form={editForm}
+        initialExpandedUnitId={unitId}
+        initialFormState={editInitialForm}
+        initialStep="unit"
+        initialUnits={editInitialUnits}
+        isPending={updateProperty.isPending}
+        onFormChange={setEditForm}
+        onOpenChange={setIsEditDrawerOpen}
+        onSubmit={(input) =>
+          updateProperty.mutate({ ...input, id: propertyId })
+        }
+        open={isEditDrawerOpen}
+        submitLabel="Save"
+        unitHref={(drawerUnit) =>
+          drawerUnit.id
+            ? `/properties/${propertyId}/units/${drawerUnit.id}`
+            : null
+        }
+      />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between gap-3 border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -184,7 +255,12 @@ export default function UnitDetailPage() {
               <Archive className="h-4 w-4" />
               <span className="hidden sm:inline">Archive</span>
             </Button>
-            <Button size="sm" variant="secondary">
+            <Button
+              disabled={!property}
+              onClick={openEditUnitDrawer}
+              size="sm"
+              variant="secondary"
+            >
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Edit Unit</span>
             </Button>
@@ -553,7 +629,6 @@ export default function UnitDetailPage() {
                   </CardContent>
                 </Card>
               </section>
-
             </>
           )}
         </div>

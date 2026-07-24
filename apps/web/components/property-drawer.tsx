@@ -132,6 +132,7 @@ type PropertyDrawerProps = {
   error?: Error | null;
   form: PropertyFormState;
   initialFormState?: PropertyFormState;
+  initialExpandedUnitId?: string;
   initialStep?: DrawerStep;
   initialUnits?: UnitDetailsFormState[];
   isPending: boolean;
@@ -160,6 +161,7 @@ export function PropertyDrawer({
   error,
   form,
   initialFormState = initialPropertyFormState,
+  initialExpandedUnitId,
   initialStep = "property",
   initialUnits,
   isPending,
@@ -190,6 +192,8 @@ export function PropertyDrawer({
   const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<string>>(
     () => new Set(),
   );
+  const drawerScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const unitCardRefs = React.useRef(new Map<string, HTMLDivElement>());
   const unitOptionsQuery = useQuery({
     queryKey: queryKeys.unitOptions.list,
     queryFn: () => apiClient.unitOptions.list.query(),
@@ -279,7 +283,9 @@ export function PropertyDrawer({
     if (open && !wasOpen) {
       setCurrentStep(initialStep);
       setUnits([...initialUnitStates]);
-      setExpandedUnitIds(new Set());
+      setExpandedUnitIds(
+        initialExpandedUnitId ? new Set([initialExpandedUnitId]) : new Set(),
+      );
       setIsAddressPopoverOpen(false);
       setIsContactAddressPopoverOpen(false);
       setIsContactInfoOpen(false);
@@ -300,7 +306,45 @@ export function PropertyDrawer({
     setIsContactInfoOpen(false);
     setIsDiscardDialogOpen(false);
     setUnitPendingRemovalId(null);
-  }, [initialStep, initialUnitStates, open]);
+  }, [initialExpandedUnitId, initialStep, initialUnitStates, open]);
+
+  React.useEffect(() => {
+    if (!open || currentStep !== "unit" || !initialExpandedUnitId) {
+      return;
+    }
+
+    setExpandedUnitIds((current) =>
+      new Set(current).add(initialExpandedUnitId),
+    );
+
+    const timeouts = [0, 80, 180, 320].map((delay) =>
+      window.setTimeout(() => {
+        const scrollContainer = drawerScrollRef.current;
+        const unitCard = unitCardRefs.current.get(initialExpandedUnitId);
+
+        if (!scrollContainer || !unitCard) {
+          return;
+        }
+
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const unitRect = unitCard.getBoundingClientRect();
+        const targetTop =
+          scrollContainer.scrollTop +
+          unitRect.top -
+          containerRect.top -
+          Math.max((containerRect.height - unitRect.height) / 2, 24);
+
+        scrollContainer.scrollTo({
+          top: Math.max(targetTop, 0),
+          behavior: delay === 0 ? "auto" : "smooth",
+        });
+      }, delay),
+    );
+
+    return () => {
+      timeouts.forEach((timeout) => window.clearTimeout(timeout));
+    };
+  }, [currentStep, initialExpandedUnitId, open]);
 
   function updateField<Key extends keyof PropertyFormState>(
     field: Key,
@@ -546,7 +590,7 @@ export function PropertyDrawer({
             <DrawerTitle>{drawerTitle}</DrawerTitle>
           </DrawerHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto" ref={drawerScrollRef}>
             <div className="px-4 py-5 md:px-6">
               <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)_8rem] md:items-center dark:bg-parcelis-slate">
                 <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
@@ -946,7 +990,15 @@ export function PropertyDrawer({
                         return (
                           <div
                             className="overflow-hidden rounded-md border border-parcelis-border bg-white dark:bg-parcelis-slate"
+                            id={`property-drawer-unit-${unit.id}`}
                             key={unit.id}
+                            ref={(node) => {
+                              if (node) {
+                                unitCardRefs.current.set(unit.id, node);
+                              } else {
+                                unitCardRefs.current.delete(unit.id);
+                              }
+                            }}
                           >
                             <div className="grid gap-4 border-b border-parcelis-border p-4 md:grid-cols-[minmax(0,1fr)_auto]">
                               <div className="grid gap-4 md:grid-cols-3">
