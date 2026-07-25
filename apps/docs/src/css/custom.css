@@ -56,37 +56,38 @@
 }
 
 .theme-doc-markdown {
-  max-width: 46rem;
+  max-width: none;
+  width: 100%;
 }
 
-.theme-doc-markdown h1 {
+html:not([class*="docs-doc-id-api-reference/"]) .theme-doc-markdown h1 {
   font-size: clamp(2.15rem, 4vw, 3rem);
   line-height: 1.15;
   margin-bottom: 1.25rem;
 }
 
-.theme-doc-markdown h2 {
+html:not([class*="docs-doc-id-api-reference/"]) .theme-doc-markdown h2 {
   border-top: 1px solid var(--ifm-toc-border-color);
   margin-top: 3.5rem;
   padding-top: 2rem;
 }
 
-.theme-doc-markdown h3 {
+html:not([class*="docs-doc-id-api-reference/"]) .theme-doc-markdown h3 {
   margin-top: 2rem;
 }
 
-.theme-doc-markdown p,
-.theme-doc-markdown li {
+html:not([class*="docs-doc-id-api-reference/"]) .theme-doc-markdown p,
+html:not([class*="docs-doc-id-api-reference/"]) .theme-doc-markdown li {
   line-height: 1.75;
 }
 
-.theme-doc-markdown table {
+html:not([class*="docs-doc-id-api-reference/"]) .theme-doc-markdown table {
   min-width: 54rem;
   width: 100%;
 }
 
 @media (max-width: 996px) {
-  .theme-doc-markdown table {
+  html:not([class*="docs-doc-id-api-reference/"]) .theme-doc-markdown table {
     min-width: 44rem;
   }
 }

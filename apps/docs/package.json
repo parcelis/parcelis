@@ -6,6 +6,7 @@
     "dev": "node ../../scripts/run-with-open-port.mjs PORT 3001 docusaurus start --host 0.0.0.0 --port {PORT}",
     "dev:fixed": "docusaurus start --host 0.0.0.0 --port ${PORT:-3001}",
     "build": "docusaurus build",
+    "generate:api": "docusaurus clean-api-docs all && docusaurus gen-api-docs all",
     "start": "node ../../scripts/run-with-open-port.mjs PORT 3001 docusaurus serve --host 0.0.0.0 --port {PORT}",
     "serve": "docusaurus serve --host 0.0.0.0 --port ${PORT:-3001}",
     "lint": "eslint .",

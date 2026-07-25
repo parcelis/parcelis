@@ -47,6 +47,15 @@ Parcelis (PAR-cell-iss) is an open-source property management platform for landl
 
 Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEPENDENCIES.md) for the maintained technology inventory and each tool's role.
 
+## API reference
+
+The API reference is generated from the tRPC router. Regenerate the OpenAPI specification and Docusaurus pages after changing API procedures or shared schemas:
+
+```bash
+pnpm --filter @parcelis/api generate:openapi
+pnpm --filter @parcelis/docs generate:api
+```
+
 ## Local development
 
 Install dependencies, start the Docker-backed services, and run the apps on your

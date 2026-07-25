@@ -1,0 +1,1 @@
+{"parameters":[{"name":"input","in":"query","required":true,"style":"deepObject","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"string"}},"required":["id"],"additionalProperties":false}}}}]}

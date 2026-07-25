@@ -146,6 +146,7 @@ function withOperatingMetrics<
 }
 
 export const appRouter = router({
+  /** Reports API health and the public object-storage configuration. */
   health: publicProcedure.query(() => ({
     status: "ok",
     service: "parcelis-api",
@@ -153,6 +154,7 @@ export const appRouter = router({
   })),
 
   properties: router({
+    /** Lists up to 50 properties with units, lease metrics, and maintenance metrics. */
     list: publicProcedure.query(async ({ ctx }) => {
       const properties = await ctx.prisma.property.findMany({
         include: {
@@ -195,6 +197,7 @@ export const appRouter = router({
         }),
       );
     }),
+    /** Returns one property with its units, leases, and maintenance tickets. */
     byId: publicProcedure
       .input(propertyByIdInputSchema)
       .query(async ({ ctx, input }) => {
@@ -231,6 +234,7 @@ export const appRouter = router({
             }
           : null;
       }),
+    /** Creates a property and its initial units. */
     create: publicProcedure
       .input(createPropertyInputSchema)
       .mutation(async ({ ctx, input }) => {
@@ -266,6 +270,7 @@ export const appRouter = router({
           return property;
         });
       }),
+    /** Updates a property and synchronizes its units. */
     update: publicProcedure
       .input(updatePropertyInputSchema)
       .mutation(async ({ ctx, input }) => {
@@ -331,6 +336,7 @@ export const appRouter = router({
 
         return property;
       }),
+    /** Marks a property as archived. */
     archive: publicProcedure
       .input(propertyByIdInputSchema)
       .mutation(({ ctx, input }) =>
@@ -340,6 +346,7 @@ export const appRouter = router({
           data: { status: "archived" },
         }),
       ),
+    /** Permanently deletes a property and its related operational records. */
     delete: publicProcedure
       .input(propertyByIdInputSchema)
       .mutation(async ({ ctx, input }) => {
@@ -359,6 +366,7 @@ export const appRouter = router({
 
         return property;
       }),
+    /** Updates the notes stored on a property. */
     updateNotes: publicProcedure
       .input(propertyNotesInputSchema)
       .mutation(({ ctx, input }) =>
@@ -370,6 +378,7 @@ export const appRouter = router({
       ),
   }),
   unitOptions: router({
+    /** Lists the available rent-inclusion and amenity options for units. */
     list: publicProcedure.query(async ({ ctx }) => {
       const [rentIncludes, amenities] = await Promise.all([
         ctx.prisma.rentIncludeOption.findMany({

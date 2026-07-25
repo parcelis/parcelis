@@ -1,4 +1,5 @@
 import type { SidebarsConfig } from "@docusaurus/plugin-content-docs";
+import apiSidebar from "./content/api-reference/sidebar";
 
 const sidebars: SidebarsConfig = {
   docsSidebar: [
@@ -57,6 +58,11 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "For contributors",
       items: ["getting-started", "contributing/commit-conventions"],
+    },
+    {
+      type: "category",
+      label: "API Reference",
+      items: apiSidebar,
     },
   ],
 };

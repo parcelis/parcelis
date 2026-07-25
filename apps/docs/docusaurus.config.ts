@@ -8,6 +8,11 @@ const config: Config = {
   organizationName: "parcelis",
   projectName: "parcelis",
   onBrokenLinks: "throw",
+  future: {
+    faster: {
+      swcJsLoader: true,
+    },
+  },
   markdown: {
     hooks: {
       onBrokenMarkdownLinks: "warn",
@@ -25,6 +30,7 @@ const config: Config = {
           path: "content",
           routeBasePath: "/",
           sidebarPath: "./sidebars.ts",
+          docItemComponent: "@theme/ApiItem",
         },
         blog: false,
         theme: {
@@ -41,12 +47,28 @@ const config: Config = {
       {
         id: "openapi",
         docsPluginId: "classic",
-        config: {},
+        config: {
+          parcelis: {
+            specPath: "../api/openapi/parcelis.openapi.json",
+            outputDir: "content/api-reference",
+            sidebarOptions: {
+              groupPathsBy: "tag",
+              categoryLinkSource: "tag",
+            },
+          },
+        },
       },
     ],
   ],
   themes: ["docusaurus-theme-openapi-docs"],
   themeConfig: {
+    api: {
+      schemaExpansion: {
+        enabled: true,
+        default: 1,
+        max: 4,
+      },
+    },
     colorMode: {
       defaultMode: "light",
       respectPrefersColorScheme: true,
@@ -64,6 +86,11 @@ const config: Config = {
           sidebarId: "docsSidebar",
           position: "left",
           label: "Documentation",
+        },
+        {
+          to: "/api-reference/parcelis-api",
+          label: "API Reference",
+          position: "left",
         },
         {
           href: "https://github.com/parcelis/parcelis",
