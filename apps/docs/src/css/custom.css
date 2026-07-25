@@ -96,6 +96,44 @@ html:not([class*="docs-doc-id-api-reference/"]) .theme-doc-markdown table {
   font-size: 0.82rem;
 }
 
+/*
 .footer--dark {
   --ifm-footer-background-color: #101c29;
+}
+*/
+
+.header-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.header-parcelis-link::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  mask: url("/img/parcelis.svg") center / contain no-repeat;
+  -webkit-mask: url("/img/parcelis.svg") center / contain no-repeat;
+}
+
+.header-discord-link::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  mask: url("/img/discord.svg") center / contain no-repeat;
+  -webkit-mask: url("/img/discord.svg") center / contain no-repeat;
+}
+
+.header-github-link::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  mask: url("/img/github.svg") center / contain no-repeat;
+  -webkit-mask: url("/img/github.svg") center / contain no-repeat;
 }

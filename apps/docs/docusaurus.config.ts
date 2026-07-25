@@ -95,10 +95,24 @@ const config: Config = {
         {
           href: "https://github.com/parcelis/parcelis",
           label: "GitHub",
+          className: "header-social-link header-github-link",
           position: "right",
         },
-      ],
+        {
+          href: "https://discord.gg/4XYkWmVpWH",
+          className: "header-social-link header-discord-link",
+          label: "Discord",
+          position: "right",
+        },
+        {
+          href: "https://parcelis.dev",
+          className: "header-social-link header-parcelis-link",
+          label: "Parcelis",
+          position: "right",
+        },
+            ],
     },
+    /*
     footer: {
       style: "dark",
       links: [
@@ -115,6 +129,7 @@ const config: Config = {
       ],
       copyright: `Copyright ${new Date().getFullYear()} Parcelis. Licensed under AGPL-3.0.`,
     },
+    */
   },
 };
 
