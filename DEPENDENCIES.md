@@ -54,6 +54,7 @@ When adding or removing a direct dependency, update the relevant package manifes
 | Commits        | [Commitlint](https://commitlint.js.org/)                                                    | Conventional Commit validation.                             |
 | CSS build      | [PostCSS](https://postcss.org/) and [Autoprefixer](https://github.com/postcss/autoprefixer) | CSS transformation and browser-prefixing.                   |
 | Containers     | [Docker Compose](https://docs.docker.com/compose/)                                          | Local multi-service development environment.                |
+| Database admin | [pgAdmin](https://www.pgadmin.org/)                                                          | Local PostgreSQL table browser and query tool.              |
 | Docs hosting   | [Caddy](https://caddyserver.com/)                                                           | Serves the static Docusaurus build in the docs container.   |
 | Object storage | [MinIO](https://min.io/)                                                                    | Local S3-compatible object storage.                         |
 

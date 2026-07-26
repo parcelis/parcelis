@@ -19,6 +19,22 @@ services:
     networks:
       - parcelis-dev
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@parcelis.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-parcelis}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - parcelis-dev
+
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
@@ -113,6 +129,7 @@ services:
 
 volumes:
   postgres-data:
+  pgadmin-data:
   minio-data:
   pnpm-store:
 

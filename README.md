@@ -64,7 +64,7 @@ machine with hot reload:
 ```bash
 pnpm install
 cp .env.example .env
-docker compose up postgres minio minio-init -d
+docker compose up postgres pgadmin minio minio-init -d
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
@@ -73,6 +73,9 @@ pnpm dev
 
 `pnpm dev` chooses the next open ports when the defaults are busy and prints the URLs it selected.
 Defaults are web `http://localhost:3000`, API `http://localhost:4000`, and docs `http://localhost:3001`.
+pgAdmin is available at `http://localhost:5050` with the default login
+`admin@parcelis.dev` / `parcelis`; the Parcelis database is preconfigured.
+When connecting to it for the first time, use the database password `parcelis`.
 If `DATABASE_URL` is not set, the API falls back to `postgresql://parcelis:parcelis@localhost:55432/parcelis?schema=public`.
 If a previous dev run is still watching files, stop it with `Ctrl+C` before
 starting another one.
@@ -83,20 +86,20 @@ expirations, and unit-level maintenance tickets.
 
 ## Run with Docker
 
-Docker Compose can run Postgres, MinIO, the API, and the web app together. This
+Docker Compose can run Postgres, pgAdmin, MinIO, the API, and the web app together. This
 is useful when you want the full Parcelis environment without starting Node
 processes on your host machine.
 
 ```bash
 cp .env.example .env
-docker compose up -d postgres minio minio-init
+docker compose up -d postgres pgadmin minio minio-init
 docker compose run --rm api sh -c "corepack enable && pnpm install && pnpm db:migrate && pnpm db:seed"
 docker compose up -d web api
 ```
 
 Open the web app at `http://localhost:3000`, the API at
-`http://localhost:4000`, the docs at `http://localhost:3001`, and the MinIO console at
-`http://localhost:9001`.
+`http://localhost:4000`, the docs at `http://localhost:3001`, pgAdmin at
+`http://localhost:5050`, and the MinIO console at `http://localhost:9001`.
 The `minio-init` container runs once to create buckets and upload the light and
 dark Parcelis logos, then exits normally.
 
@@ -147,10 +150,11 @@ The API reads S3-compatible settings from `OBJECT_STORAGE_*` env vars, while the
 web app can use `NEXT_PUBLIC_OBJECT_STORAGE_URL` for public asset URLs.
 `NEXT_PUBLIC_BRAND_LOGO_URL` points at the MinIO-hosted Parcelis logo.
 
-For Docker Compose, host ports are configured with `WEB_PORT`, `API_PORT`, `POSTGRES_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
+For Docker Compose, host ports are configured with `WEB_PORT`, `API_PORT`, `POSTGRES_PORT`,
+`PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
 
 ```bash
-WEB_PORT=3010 API_PORT=4010 DOCS_PORT=3011 POSTGRES_PORT=5434 MINIO_API_PORT=9010 MINIO_CONSOLE_PORT=9011 docker compose up
+WEB_PORT=3010 API_PORT=4010 DOCS_PORT=3011 POSTGRES_PORT=5434 PGADMIN_PORT=5050 MINIO_API_PORT=9010 MINIO_CONSOLE_PORT=9011 docker compose up
 ```
 
 The Compose Postgres container listens on `5432` internally, but maps to host

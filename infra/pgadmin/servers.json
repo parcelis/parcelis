@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Parcelis",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "parcelis",
+      "Username": "parcelis",
+      "SSLMode": "prefer"
+    }
+  }
+}
