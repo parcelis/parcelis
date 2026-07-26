@@ -11,3 +11,4 @@ export * from "./components/label";
 export * from "./components/logo";
 export * from "./components/popover";
 export * from "./components/select";
+export * from "./components/table";

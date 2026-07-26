@@ -41,6 +41,12 @@ import {
   Label,
   ParcelisLogo,
   Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@parcelis/ui";
 import type {
   CreatePropertyInput,
@@ -867,34 +873,52 @@ export default function PropertiesPage() {
                   No properties match your search.
                 </div>
               ) : (
-                <table className="w-full min-w-[1380px] border-collapse text-left text-sm">
-                  <thead className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
-                    <tr>
-                      <th className="w-72 px-5 py-3 font-semibold">Property</th>
-                      <th className="w-36 px-5 py-3 font-semibold">Type</th>
-                      <th className="w-56 px-5 py-3 font-semibold">Address</th>
-                      <th className="px-5 py-3 font-semibold">Units</th>
-                      <th className="px-5 py-3 font-semibold">Occupancy</th>
-                      <th className="px-5 py-3 font-semibold">Rent</th>
-                      <th className="px-5 py-3 font-semibold">Overdue</th>
-                      <th className="w-40 px-5 py-3 font-semibold">
+                <Table className="min-w-[1380px] border-collapse text-left">
+                  <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                    <TableRow className="border-0">
+                      <TableHead className="w-72 px-5 py-3 font-semibold">
+                        Property
+                      </TableHead>
+                      <TableHead className="w-36 px-5 py-3 font-semibold">
+                        Type
+                      </TableHead>
+                      <TableHead className="w-56 px-5 py-3 font-semibold">
+                        Address
+                      </TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">
+                        Units
+                      </TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">
+                        Occupancy
+                      </TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">
+                        Rent
+                      </TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">
+                        Overdue
+                      </TableHead>
+                      <TableHead className="w-40 px-5 py-3 font-semibold">
                         90-Day Exp.
-                      </th>
-                      <th className="w-32 px-5 py-3 font-semibold">Tickets</th>
-                      <th className="px-5 py-3 font-semibold">Status</th>
-                      <th className="w-20 px-5 py-3 text-right font-semibold">
+                      </TableHead>
+                      <TableHead className="w-32 px-5 py-3 font-semibold">
+                        Tickets
+                      </TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">
+                        Status
+                      </TableHead>
+                      <TableHead className="w-20 px-5 py-3 text-right font-semibold">
                         Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {filteredProperties.map((property) => {
                       const isExpanded = expandedPropertyIds.has(property.id);
                       const unitRows = getUnitRows(property);
                       return (
                         <React.Fragment key={property.id}>
-                          <tr className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">
-                            <td className="w-72 px-5 py-4">
+                          <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">
+                            <TableCell className="w-72 px-5 py-4">
                               <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3">
                                 <button
                                   aria-label={
@@ -929,23 +953,23 @@ export default function PropertiesPage() {
                                   </span>
                                 </Link>
                               </div>
-                            </td>
-                            <td className="px-5 py-4">
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
                               <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
                                 {property.propertyType}
                               </span>
-                            </td>
-                            <td className="max-w-56 whitespace-normal px-5 py-4 text-parcelis-gray">
+                            </TableCell>
+                            <TableCell className="max-w-56 whitespace-normal px-5 py-4 text-parcelis-gray">
                               {property.line1}, {property.city},{" "}
                               {property.region}
-                            </td>
-                            <td className="px-5 py-4">
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
                               <span className="inline-flex items-center gap-1">
                                 <DoorOpen className="h-4 w-4 text-parcelis-green" />
                                 {property.unitCount}
                               </span>
-                            </td>
-                            <td className="px-5 py-4">
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
                               {property.unitCount > 0
                                 ? Math.round(
                                     (property.occupiedUnits /
@@ -954,14 +978,14 @@ export default function PropertiesPage() {
                                   )
                                 : 0}
                               %
-                            </td>
-                            <td className="px-5 py-4">
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
                               <span className="inline-flex items-center gap-1 font-semibold text-parcelis-charcoal">
                                 <CircleDollarSign className="h-4 w-4 text-parcelis-green" />
                                 {formatCurrency(property.monthlyRentCents)}
                               </span>
-                            </td>
-                            <td className="px-5 py-4">
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 font-semibold ${
                                   property.amountOverdueCents > 0
@@ -974,8 +998,8 @@ export default function PropertiesPage() {
                                 ) : null}
                                 {formatCurrency(property.amountOverdueCents)}
                               </span>
-                            </td>
-                            <td className="px-5 py-4">
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${
                                   property.expiringLeases90Days > 0
@@ -988,8 +1012,8 @@ export default function PropertiesPage() {
                                   ? `${property.expiringLeases90Days} expiring`
                                   : "Clear"}
                               </span>
-                            </td>
-                            <td className="px-5 py-4">
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 font-semibold ${
                                   property.openMaintenanceTickets > 0
@@ -1000,13 +1024,13 @@ export default function PropertiesPage() {
                                 <Wrench className="h-4 w-4 text-parcelis-green" />
                                 {property.openMaintenanceTickets} open
                               </span>
-                            </td>
-                            <td className="px-5 py-4">
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
                               <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
                                 {formatStatus(property.status)}
                               </span>
-                            </td>
-                            <td className="px-5 py-4 text-right">
+                            </TableCell>
+                            <TableCell className="px-5 py-4 text-right">
                               <PropertyActionsMenu
                                 onArchive={() =>
                                   setArchivePropertyId(property.id)
@@ -1018,15 +1042,15 @@ export default function PropertiesPage() {
                                 onNotes={() => openNotes(property)}
                                 property={property}
                               />
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                           {isExpanded
                             ? unitRows.map((unit) => (
-                                <tr
+                                <TableRow
                                   className="border-t border-parcelis-border bg-parcelis-porcelain/45"
                                   key={`${property.id}-${unit.unitLabel}`}
                                 >
-                                  <td className="w-72 px-5 py-3">
+                                  <TableCell className="w-72 px-5 py-3">
                                     <div className="grid grid-cols-[2rem_2.25rem_minmax(0,1fr)] items-center gap-3">
                                       <span aria-hidden="true" />
                                       <div className="grid h-8 w-8 place-items-center rounded-md bg-white text-parcelis-charcoal">
@@ -1041,23 +1065,23 @@ export default function PropertiesPage() {
                                         </div>
                                       </div>
                                     </div>
-                                  </td>
-                                  <td className="px-5 py-3 text-parcelis-gray">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3 text-parcelis-gray">
                                     Unit
-                                  </td>
-                                  <td className="max-w-56 whitespace-normal px-5 py-3 text-parcelis-gray">
+                                  </TableCell>
+                                  <TableCell className="max-w-56 whitespace-normal px-5 py-3 text-parcelis-gray">
                                     {property.city}, {property.region}
-                                  </td>
-                                  <td className="px-5 py-3">1</td>
-                                  <td className="px-5 py-3">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3">1</TableCell>
+                                  <TableCell className="px-5 py-3">
                                     {unit.isOccupied ? "100%" : "0%"}
-                                  </td>
-                                  <td className="px-5 py-3">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3">
                                     <span className="font-semibold text-parcelis-charcoal">
                                       {formatCurrency(unit.monthlyRentCents)}
                                     </span>
-                                  </td>
-                                  <td className="px-5 py-3">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3">
                                     <span
                                       className={
                                         unit.amountOverdueCents > 0
@@ -1067,34 +1091,34 @@ export default function PropertiesPage() {
                                     >
                                       {formatCurrency(unit.amountOverdueCents)}
                                     </span>
-                                  </td>
-                                  <td className="px-5 py-3">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3">
                                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-gray">
                                       {unit.expiringLeases90Days
                                         ? "Expiring"
                                         : "Clear"}
                                     </span>
-                                  </td>
-                                  <td className="px-5 py-3">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3">
                                     <span className="inline-flex items-center gap-1 text-parcelis-gray">
                                       <Wrench className="h-4 w-4 text-parcelis-green" />
                                       {unit.openMaintenanceTickets} open
                                     </span>
-                                  </td>
-                                  <td className="px-5 py-3">
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3">
                                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
                                       {formatStatus(unit.status)}
                                     </span>
-                                  </td>
-                                  <td className="px-5 py-3" />
-                                </tr>
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3" />
+                                </TableRow>
                               ))
                             : null}
                         </React.Fragment>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
