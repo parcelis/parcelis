@@ -22,15 +22,15 @@ type DrawerProperty = {
     monthlyRentCents: number;
   }>;
   units: Array<{
-    id: string;
+    id: number;
     name: string;
     marketRateCents: number;
     unitType: string;
     bedrooms: number | null;
     bathrooms: number | null;
     squareFeet: number | null;
-    utilityTypeIds: string[];
-    amenityOptionIds: string[];
+    utilityTypeIds: number[];
+    amenityOptionIds: number[];
   }>;
 };
 

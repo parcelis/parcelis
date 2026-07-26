@@ -90,25 +90,23 @@ export const initialPropertyFormState: PropertyFormState = {
 
 type DrawerStep = "property" | "unit";
 type UnitType = "Residential" | "Commercial";
+type UnitId = number | string;
 
 export type UnitDetailsFormState = {
-  id: string;
+  id: UnitId;
   unitName: string;
   marketRate: string;
   unitType: UnitType;
   bedrooms: string;
   bathrooms: string;
   squareFeet: string;
-  utilities: string[];
-  amenities: string[];
+  utilities: number[];
+  amenities: number[];
 };
 
 function createUnitDetailsFormState(index = 0): UnitDetailsFormState {
   return {
-    id:
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${index}`,
+    id: `new-${Date.now()}-${index}`,
     unitName: `Unit ${index + 1}`,
     marketRate: "",
     unitType: "Residential",
@@ -132,7 +130,7 @@ type PropertyDrawerProps = {
   error?: Error | null;
   form: PropertyFormState;
   initialFormState?: PropertyFormState;
-  initialExpandedUnitId?: string;
+  initialExpandedUnitId?: UnitId;
   initialStep?: DrawerStep;
   initialUnits?: UnitDetailsFormState[];
   isPending: boolean;
@@ -184,16 +182,16 @@ export function PropertyDrawer({
   const [isContactInfoOpen, setIsContactInfoOpen] = React.useState(false);
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = React.useState(false);
   const [unitPendingRemovalId, setUnitPendingRemovalId] = React.useState<
-    string | null
+    UnitId | null
   >(null);
   const [units, setUnits] = React.useState<UnitDetailsFormState[]>(() => [
     ...initialUnitStates,
   ]);
-  const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<string>>(
+  const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<UnitId>>(
     () => new Set(),
   );
   const drawerScrollRef = React.useRef<HTMLDivElement | null>(null);
-  const unitCardRefs = React.useRef(new Map<string, HTMLDivElement>());
+  const unitCardRefs = React.useRef(new Map<UnitId, HTMLDivElement>());
   const unitOptionsQuery = useQuery({
     queryKey: queryKeys.unitOptions.list,
     queryFn: () => apiClient.unitOptions.list.query(),
@@ -354,7 +352,7 @@ export function PropertyDrawer({
   }
 
   function updateUnitField<Key extends keyof UnitDetailsFormState>(
-    unitId: string,
+    unitId: UnitId,
     field: Key,
     value: UnitDetailsFormState[Key],
   ) {
@@ -366,9 +364,9 @@ export function PropertyDrawer({
   }
 
   function updateUnitOption(
-    unitId: string,
+    unitId: UnitId,
     field: "utilities" | "amenities",
-    optionId: string,
+    optionId: number,
     checked: boolean,
   ) {
     setUnits((current) =>
@@ -393,7 +391,7 @@ export function PropertyDrawer({
     });
   }
 
-  function removeUnit(unitId: string) {
+  function removeUnit(unitId: UnitId) {
     setUnits((current) =>
       current.length > 1
         ? current.filter((unit) => unit.id !== unitId)
@@ -415,7 +413,7 @@ export function PropertyDrawer({
     setUnitPendingRemovalId(null);
   }
 
-  function toggleUnit(unitId: string) {
+  function toggleUnit(unitId: UnitId) {
     setExpandedUnitIds((current) => {
       const next = new Set(current);
       if (next.has(unitId)) {
@@ -439,10 +437,8 @@ export function PropertyDrawer({
     return Math.round(Number(value) * 100);
   }
 
-  function isUuid(value: string) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      value,
-    );
+  function isPersistedUnitId(value: UnitId): value is number {
+    return typeof value === "number";
   }
 
   function submitProperty(event: React.FormEvent<HTMLFormElement>) {
@@ -478,7 +474,7 @@ export function PropertyDrawer({
       },
       unitCount: Number(form.unitCount),
       units: units.map((unit) => ({
-        id: isUuid(unit.id) ? unit.id : undefined,
+        id: isPersistedUnitId(unit.id) ? unit.id : undefined,
         name: unit.unitName,
         marketRateCents: parseMarketRateCents(unit.marketRate),
         unitType: unit.unitType,

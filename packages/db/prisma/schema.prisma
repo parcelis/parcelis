@@ -41,7 +41,7 @@ enum UnitType {
 }
 
 model Property {
-  id                 String              @id @default(uuid())
+  id                 Int                 @id @default(autoincrement())
   name               String
   line1              String
   line2              String?
@@ -65,8 +65,8 @@ model Property {
 }
 
 model Unit {
-  id              String            @id @default(uuid())
-  propertyId      String
+  id              Int               @id @default(autoincrement())
+  propertyId      Int
   name            String
   marketRateCents Int
   unitType        UnitType          @default(residential)
@@ -84,7 +84,7 @@ model Unit {
 }
 
 model UtilityType {
-  id        String        @id @default(uuid())
+  id        Int           @id @default(autoincrement())
   label     String        @unique
   sortOrder Int           @default(0)
   units     UnitUtility[]
@@ -93,7 +93,7 @@ model UtilityType {
 }
 
 model AmenityOption {
-  id        String        @id @default(uuid())
+  id        Int           @id @default(autoincrement())
   label     String        @unique
   sortOrder Int           @default(0)
   units     UnitAmenity[]
@@ -102,8 +102,8 @@ model AmenityOption {
 }
 
 model UnitUtility {
-  unitId   String
-  optionId String
+  unitId   Int
+  optionId Int
   unit     Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
   option   UtilityType @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
@@ -112,8 +112,8 @@ model UnitUtility {
 }
 
 model UnitAmenity {
-  unitId   String
-  optionId String
+  unitId   Int
+  optionId Int
   unit     Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
   option   AmenityOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
@@ -122,7 +122,7 @@ model UnitAmenity {
 }
 
 model Tenant {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
   firstName String
   lastName  String
   email     String   @unique
@@ -133,9 +133,9 @@ model Tenant {
 }
 
 model Lease {
-  id                 String      @id @default(uuid())
-  propertyId         String
-  tenantId           String
+  id                 Int         @id @default(autoincrement())
+  propertyId         Int
+  tenantId           Int
   unitLabel          String
   monthlyRentCents   Int
   amountOverdueCents Int         @default(0)
@@ -152,8 +152,8 @@ model Lease {
 }
 
 model MaintenanceTicket {
-  id          String                    @id @default(uuid())
-  propertyId  String
+  id          Int                       @id @default(autoincrement())
+  propertyId  Int
   unitLabel   String?
   title       String
   description String?

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const idSchema = z.coerce.number().int().positive();
+
 export const addressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().optional(),
@@ -33,7 +35,7 @@ export const unitTypeValues = ["Residential", "Commercial"] as const;
 export const unitTypeSchema = z.enum(unitTypeValues);
 
 export const optionSchema = z.object({
-  id: z.string().uuid(),
+  id: idSchema,
   label: z.string().min(1),
   sortOrder: z.number().int().nonnegative(),
 });
@@ -41,35 +43,35 @@ export const optionSchema = z.object({
 export const updateAmenityInputSchema = optionSchema;
 
 export const unitDetailsInputSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: idSchema.optional(),
   name: z.string().min(1),
   marketRateCents: z.number().int().nonnegative(),
   unitType: unitTypeSchema,
   bedrooms: z.number().int().nonnegative().optional(),
   bathrooms: z.number().nonnegative().optional(),
   squareFeet: z.number().int().nonnegative().optional(),
-  utilityTypeIds: z.array(z.string().uuid()).default([]),
-  amenityOptionIds: z.array(z.string().uuid()).default([]),
+  utilityTypeIds: z.array(idSchema).default([]),
+  amenityOptionIds: z.array(idSchema).default([]),
 });
 
 export const createUnitInputSchema = unitDetailsInputSchema.omit({ id: true }).extend({
-  propertyId: z.string().uuid(),
+  propertyId: idSchema,
 });
 
 export const updateUnitInputSchema = unitDetailsInputSchema.extend({
-  id: z.string().uuid(),
+  id: idSchema,
 });
 
 export const unitByIdInputSchema = z.object({
-  id: z.string().uuid(),
+  id: idSchema,
 });
 
 export const listUnitsInputSchema = z.object({
-  propertyId: z.string().uuid().optional(),
+  propertyId: idSchema.optional(),
 });
 
 export const propertySchema = z.object({
-  id: z.string().uuid(),
+  id: idSchema,
   name: z.string().min(2),
   propertyType: propertyTypeSchema,
   address: addressSchema,
@@ -85,7 +87,7 @@ export const propertySchema = z.object({
 });
 
 export const tenantSchema = z.object({
-  id: z.string().uuid(),
+  id: idSchema,
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   email: z.string().email(),
@@ -95,9 +97,9 @@ export const tenantSchema = z.object({
 export const leaseStatusSchema = z.enum(["draft", "active", "notice", "ended"]);
 
 export const leaseSchema = z.object({
-  id: z.string().uuid(),
-  propertyId: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  id: idSchema,
+  propertyId: idSchema,
+  tenantId: idSchema,
   unitLabel: z.string().min(1),
   monthlyRentCents: z.number().int().positive(),
   startsOn: z.coerce.date(),
@@ -112,20 +114,20 @@ export const createPropertyInputSchema = propertySchema.omit({
 });
 
 export const updatePropertyInputSchema = createPropertyInputSchema.extend({
-  id: z.string().uuid(),
+  id: idSchema,
 });
 
 export const propertyByIdInputSchema = z.object({
-  id: z.string().uuid(),
+  id: idSchema,
 });
 
 export const propertyNotesInputSchema = z.object({
-  id: z.string().uuid(),
+  id: idSchema,
   notes: z.string().optional(),
 });
 
 export const propertyStatusInputSchema = z.object({
-  id: z.string().uuid(),
+  id: idSchema,
 });
 
 export type Address = z.infer<typeof addressSchema>;

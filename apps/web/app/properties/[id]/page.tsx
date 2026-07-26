@@ -68,7 +68,7 @@ function formatDate(date: Date | string) {
 export default function PropertyDetailPage() {
   const queryClient = useQueryClient();
   const params = useParams<{ id: string }>();
-  const propertyId = params.id;
+  const propertyId = Number(params.id);
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),

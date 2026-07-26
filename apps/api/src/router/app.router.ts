@@ -44,7 +44,7 @@ function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
   return unitType === "Commercial" ? UnitType.commercial : UnitType.residential;
 }
 
-function getUnitCreateData(propertyId: string, unitDetails: UnitDetailsInput) {
+function getUnitCreateData(propertyId: number, unitDetails: UnitDetailsInput) {
   return {
     propertyId,
     name: unitDetails.name,
@@ -90,8 +90,8 @@ function getUnitUpdateData(unitDetails: UnitDetailsInput) {
 function serializeUnit<
   T extends {
     bathrooms: unknown;
-    amenities: Array<{ option: { id: string } }>;
-    utilities: Array<{ option: { id: string } }>;
+    amenities: Array<{ option: { id: number } }>;
+    utilities: Array<{ option: { id: number } }>;
   },
 >(unit: T) {
   return {
@@ -308,7 +308,7 @@ export const appRouter = router({
           const existingUnitIds = new Set(existingUnits.map((unit) => unit.id));
           const submittedExistingUnitIds = input.units
             .map((unit) => unit.id)
-            .filter((unitId): unitId is string =>
+            .filter((unitId): unitId is number =>
               Boolean(unitId && existingUnitIds.has(unitId)),
             );
 

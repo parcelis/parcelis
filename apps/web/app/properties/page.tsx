@@ -233,7 +233,7 @@ export default function PropertiesPage() {
     },
   });
   const archiveProperty = useMutation({
-    mutationFn: (input: { id: string }) =>
+    mutationFn: (input: { id: number }) =>
       apiClient.properties.archive.mutate(input),
     onSuccess: async (_property, input) => {
       setArchivePropertyId(null);
@@ -246,7 +246,7 @@ export default function PropertiesPage() {
     },
   });
   const deleteProperty = useMutation({
-    mutationFn: (input: { id: string }) =>
+    mutationFn: (input: { id: number }) =>
       apiClient.properties.delete.mutate(input),
     onSuccess: async (_property, input) => {
       setDeletePropertyId(null);
@@ -259,7 +259,7 @@ export default function PropertiesPage() {
     },
   });
   const updatePropertyNotes = useMutation({
-    mutationFn: (input: { id: string; notes?: string }) =>
+    mutationFn: (input: { id: number; notes?: string }) =>
       apiClient.properties.updateNotes.mutate(input),
     onSuccess: async (_property, input) => {
       setNotesPropertyId(null);
@@ -280,10 +280,10 @@ export default function PropertiesPage() {
   const [appliedFilters, setAppliedFilters] =
     React.useState<PropertyFilters>(initialFilters);
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<
-    Set<string>
+    Set<number>
   >(() => new Set());
   const [editingPropertyId, setEditingPropertyId] = React.useState<
-    string | null
+    number | null
   >(null);
   const [editInitialForm, setEditInitialForm] =
     React.useState<PropertyFormState>(initialPropertyFormState);
@@ -291,12 +291,12 @@ export default function PropertiesPage() {
     UnitDetailsFormState[]
   >([]);
   const [archivePropertyId, setArchivePropertyId] = React.useState<
-    string | null
+    number | null
   >(null);
-  const [deletePropertyId, setDeletePropertyId] = React.useState<string | null>(
+  const [deletePropertyId, setDeletePropertyId] = React.useState<number | null>(
     null,
   );
-  const [notesPropertyId, setNotesPropertyId] = React.useState<string | null>(
+  const [notesPropertyId, setNotesPropertyId] = React.useState<number | null>(
     null,
   );
   const [notesDraft, setNotesDraft] = React.useState("");
@@ -327,7 +327,8 @@ export default function PropertiesPage() {
       property.status,
     ].some((value) => value.toLowerCase().includes(query));
     const matchesProperty =
-      !appliedFilters.propertyId || property.id === appliedFilters.propertyId;
+      !appliedFilters.propertyId ||
+      property.id === Number(appliedFilters.propertyId);
     const matchesCity =
       !appliedFilters.city || property.city === appliedFilters.city;
     const matchesRegion =
@@ -410,7 +411,7 @@ export default function PropertiesPage() {
     setIsFilterOpen(false);
   }
 
-  function togglePropertyUnits(propertyId: string) {
+  function togglePropertyUnits(propertyId: number) {
     setExpandedPropertyIds((current) => {
       const next = new Set(current);
       if (next.has(propertyId)) {

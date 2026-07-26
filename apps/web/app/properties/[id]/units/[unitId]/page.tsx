@@ -95,8 +95,8 @@ function getInvoiceRows(startDate: Date | string, amountCents: number) {
 export default function UnitDetailPage() {
   const queryClient = useQueryClient();
   const params = useParams<{ id: string; unitId: string }>();
-  const propertyId = params.id;
-  const unitId = params.unitId;
+  const propertyId = Number(params.id);
+  const unitId = Number(params.unitId);
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),

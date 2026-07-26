@@ -202,6 +202,16 @@ async function seedUnitsForProperty(property) {
   }
 }
 
+async function upsertLease(data) {
+  const existing = await prisma.lease.findFirst({
+    where: { propertyId: data.propertyId, unitLabel: data.unitLabel },
+  });
+
+  return existing
+    ? prisma.lease.update({ where: { id: existing.id }, data })
+    : prisma.lease.create({ data });
+}
+
 async function main() {
   for (const [index, label] of utilityTypes.entries()) {
     await prisma.utilityType.upsert({
@@ -303,9 +313,8 @@ async function main() {
     },
   });
 
-  await prisma.lease.upsert({
-    where: { id: "11111111-1111-4111-8111-111111111111" },
-    update: {
+  await Promise.all([
+    upsertLease({
       propertyId: hawthorne.id,
       tenantId: tenant.id,
       unitLabel: "4B",
@@ -314,23 +323,8 @@ async function main() {
       startsOn: new Date("2026-02-01"),
       endsOn: new Date("2027-01-31"),
       status: "active",
-    },
-    create: {
-      id: "11111111-1111-4111-8111-111111111111",
-      propertyId: hawthorne.id,
-      tenantId: tenant.id,
-      unitLabel: "4B",
-      monthlyRentCents: 184500,
-      amountOverdueCents: 0,
-      startsOn: new Date("2026-02-01"),
-      endsOn: new Date("2027-01-31"),
-      status: "active",
-    },
-  });
-
-  await prisma.lease.upsert({
-    where: { id: "77777777-7777-4777-8777-777777777777" },
-    update: {
+    }),
+    upsertLease({
       propertyId: hawthorne.id,
       tenantId: fourthTenant.id,
       unitLabel: "8A",
@@ -339,23 +333,8 @@ async function main() {
       startsOn: new Date("2026-06-01"),
       endsOn: new Date("2027-05-31"),
       status: "active",
-    },
-    create: {
-      id: "77777777-7777-4777-8777-777777777777",
-      propertyId: hawthorne.id,
-      tenantId: fourthTenant.id,
-      unitLabel: "8A",
-      monthlyRentCents: 197500,
-      amountOverdueCents: 32500,
-      startsOn: new Date("2026-06-01"),
-      endsOn: new Date("2027-05-31"),
-      status: "active",
-    },
-  });
-
-  await prisma.lease.upsert({
-    where: { id: "22222222-2222-4222-8222-222222222222" },
-    update: {
+    }),
+    upsertLease({
       propertyId: mariner.id,
       tenantId: secondTenant.id,
       unitLabel: "2A",
@@ -364,23 +343,8 @@ async function main() {
       startsOn: new Date("2025-10-01"),
       endsOn: new Date("2026-09-15"),
       status: "active",
-    },
-    create: {
-      id: "22222222-2222-4222-8222-222222222222",
-      propertyId: mariner.id,
-      tenantId: secondTenant.id,
-      unitLabel: "2A",
-      monthlyRentCents: 216000,
-      amountOverdueCents: 82500,
-      startsOn: new Date("2025-10-01"),
-      endsOn: new Date("2026-09-15"),
-      status: "active",
-    },
-  });
-
-  await prisma.lease.upsert({
-    where: { id: "33333333-3333-4333-8333-333333333333" },
-    update: {
+    }),
+    upsertLease({
       propertyId: juniper.id,
       tenantId: thirdTenant.id,
       unitLabel: "7C",
@@ -389,19 +353,8 @@ async function main() {
       startsOn: new Date("2025-09-01"),
       endsOn: new Date("2026-08-20"),
       status: "notice",
-    },
-    create: {
-      id: "33333333-3333-4333-8333-333333333333",
-      propertyId: juniper.id,
-      tenantId: thirdTenant.id,
-      unitLabel: "7C",
-      monthlyRentCents: 239500,
-      amountOverdueCents: 125000,
-      startsOn: new Date("2025-09-01"),
-      endsOn: new Date("2026-08-20"),
-      status: "notice",
-    },
-  });
+    }),
+  ]);
 
   await Promise.all([
     seedUnitsForProperty(hawthorne),
@@ -411,7 +364,6 @@ async function main() {
 
   const tickets = [
     {
-      id: "44444444-4444-4444-8444-444444444444",
       propertyId: hawthorne.id,
       unitLabel: null,
       title: "Replace lobby entry sensor",
@@ -422,7 +374,6 @@ async function main() {
       dueOn: new Date("2026-07-24"),
     },
     {
-      id: "55555555-5555-4555-8555-555555555555",
       propertyId: mariner.id,
       unitLabel: "2A",
       title: "Unit 2A water heater inspection",
@@ -433,7 +384,6 @@ async function main() {
       dueOn: new Date("2026-07-21"),
     },
     {
-      id: "66666666-6666-4666-8666-666666666666",
       propertyId: juniper.id,
       unitLabel: null,
       title: "Common area lighting replacement",
@@ -446,11 +396,18 @@ async function main() {
   ];
 
   for (const ticket of tickets) {
-    await prisma.maintenanceTicket.upsert({
-      where: { id: ticket.id },
-      update: ticket,
-      create: ticket,
+    const existing = await prisma.maintenanceTicket.findFirst({
+      where: { propertyId: ticket.propertyId, title: ticket.title },
     });
+
+    if (existing) {
+      await prisma.maintenanceTicket.update({
+        where: { id: existing.id },
+        data: ticket,
+      });
+    } else {
+      await prisma.maintenanceTicket.create({ data: ticket });
+    }
   }
 }
 
