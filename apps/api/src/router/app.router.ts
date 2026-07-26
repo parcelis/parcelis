@@ -1,8 +1,14 @@
 import {
   createPropertyInputSchema,
+  createUnitInputSchema,
   propertyByIdInputSchema,
   propertyNotesInputSchema,
+  propertyStatusInputSchema,
+  listUnitsInputSchema,
   type UnitDetailsInput,
+  unitByIdInputSchema,
+  updateUnitInputSchema,
+  updateAmenityInputSchema,
   updatePropertyInputSchema,
 } from "@parcelis/schemas";
 import { UnitType } from "@parcelis/db";
@@ -346,6 +352,26 @@ export const appRouter = router({
           data: { status: "archived" },
         }),
       ),
+    /** Marks a property as inactive. */
+    inactivate: publicProcedure
+      .input(propertyStatusInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.property.update({
+          where: { id: input.id },
+          select: propertySelect,
+          data: { status: "archived" },
+        }),
+      ),
+    /** Restores an inactive property to active status. */
+    reactivate: publicProcedure
+      .input(propertyStatusInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.property.update({
+          where: { id: input.id },
+          select: propertySelect,
+          data: { status: "active" },
+        }),
+      ),
     /** Permanently deletes a property and its related operational records. */
     delete: publicProcedure
       .input(propertyByIdInputSchema)
@@ -393,6 +419,128 @@ export const appRouter = router({
 
       return { rentIncludes, amenities };
     }),
+  }),
+  amenities: router({
+    /** Lists the available amenity options. */
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.amenityOption.findMany({
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: { id: true, label: true, sortOrder: true },
+      }),
+    ),
+    /** Updates an amenity option. */
+    update: publicProcedure
+      .input(updateAmenityInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.amenityOption.update({
+          where: { id: input.id },
+          data: { label: input.label, sortOrder: input.sortOrder },
+          select: { id: true, label: true, sortOrder: true },
+        }),
+      ),
+  }),
+  units: router({
+    /** Lists units, optionally filtered to a property. */
+    list: publicProcedure
+      .input(listUnitsInputSchema)
+      .query(async ({ ctx, input }) => {
+        const units = await ctx.prisma.unit.findMany({
+          where: input.propertyId ? { propertyId: input.propertyId } : undefined,
+          orderBy: [{ propertyId: "asc" }, { createdAt: "asc" }],
+          include: {
+            amenities: {
+              select: { option: { select: { id: true, label: true } } },
+            },
+            rentIncludes: {
+              select: { option: { select: { id: true, label: true } } },
+            },
+          },
+        });
+
+        return units.map(serializeUnit);
+      }),
+    /** Returns a unit by its ID. */
+    byId: publicProcedure
+      .input(unitByIdInputSchema)
+      .query(async ({ ctx, input }) => {
+        const unit = await ctx.prisma.unit.findUnique({
+          where: { id: input.id },
+          include: {
+            amenities: {
+              select: { option: { select: { id: true, label: true } } },
+            },
+            rentIncludes: {
+              select: { option: { select: { id: true, label: true } } },
+            },
+          },
+        });
+
+        return unit ? serializeUnit(unit) : null;
+      }),
+    /** Creates a unit for a property. */
+    create: publicProcedure
+      .input(createUnitInputSchema)
+      .mutation(({ ctx, input }) => {
+        const { propertyId, ...unitDetails } = input;
+
+        return ctx.prisma.unit
+          .create({
+            data: getUnitCreateData(propertyId, unitDetails),
+            include: {
+              amenities: {
+                select: { option: { select: { id: true, label: true } } },
+              },
+              rentIncludes: {
+                select: { option: { select: { id: true, label: true } } },
+              },
+            },
+          })
+          .then(serializeUnit);
+      }),
+    /** Updates a unit by its ID. */
+    update: publicProcedure
+      .input(updateUnitInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const unit = await ctx.prisma.$transaction(async (tx) => {
+          await tx.unitRentInclude.deleteMany({ where: { unitId: input.id } });
+          await tx.unitAmenity.deleteMany({ where: { unitId: input.id } });
+
+          return tx.unit.update({
+            where: { id: input.id },
+            data: getUnitUpdateData(input),
+            include: {
+              amenities: {
+                select: { option: { select: { id: true, label: true } } },
+              },
+              rentIncludes: {
+                select: { option: { select: { id: true, label: true } } },
+              },
+            },
+          });
+        });
+
+        return serializeUnit(unit);
+      }),
+    /** Deletes a unit by its ID. */
+    delete: publicProcedure
+      .input(unitByIdInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const unit = await ctx.prisma.unit.findUniqueOrThrow({
+          where: { id: input.id },
+          include: {
+            amenities: {
+              select: { option: { select: { id: true, label: true } } },
+            },
+            rentIncludes: {
+              select: { option: { select: { id: true, label: true } } },
+            },
+          },
+        });
+
+        await ctx.prisma.unit.delete({ where: { id: input.id } });
+
+        return serializeUnit(unit);
+      }),
   }),
 });
 

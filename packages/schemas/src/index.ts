@@ -38,6 +38,8 @@ export const optionSchema = z.object({
   sortOrder: z.number().int().nonnegative(),
 });
 
+export const updateAmenityInputSchema = optionSchema;
+
 export const unitDetailsInputSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1),
@@ -48,6 +50,22 @@ export const unitDetailsInputSchema = z.object({
   squareFeet: z.number().int().nonnegative().optional(),
   rentIncludeOptionIds: z.array(z.string().uuid()).default([]),
   amenityOptionIds: z.array(z.string().uuid()).default([]),
+});
+
+export const createUnitInputSchema = unitDetailsInputSchema.omit({ id: true }).extend({
+  propertyId: z.string().uuid(),
+});
+
+export const updateUnitInputSchema = unitDetailsInputSchema.extend({
+  id: z.string().uuid(),
+});
+
+export const unitByIdInputSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const listUnitsInputSchema = z.object({
+  propertyId: z.string().uuid().optional(),
 });
 
 export const propertySchema = z.object({
@@ -106,12 +124,18 @@ export const propertyNotesInputSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const propertyStatusInputSchema = z.object({
+  id: z.string().uuid(),
+});
+
 export type Address = z.infer<typeof addressSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type PropertyType = z.infer<typeof propertyTypeSchema>;
 export type UnitType = z.infer<typeof unitTypeSchema>;
 export type Option = z.infer<typeof optionSchema>;
 export type UnitDetailsInput = z.infer<typeof unitDetailsInputSchema>;
+export type CreateUnitInput = z.infer<typeof createUnitInputSchema>;
+export type UpdateUnitInput = z.infer<typeof updateUnitInputSchema>;
 export type Tenant = z.infer<typeof tenantSchema>;
 export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;

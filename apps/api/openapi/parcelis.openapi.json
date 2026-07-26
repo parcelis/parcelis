@@ -1,2055 +1,1278 @@
 {
-  "openapi": "3.1.1",
-  "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+  "openapi": "3.1.0",
   "info": {
     "title": "Parcelis API",
     "version": "0.1.0"
   },
   "servers": [
     {
-      "url": "http://localhost:4000/api"
+      "url": "http://localhost:4000/api/v1"
     }
   ],
   "paths": {
     "/health": {
       "get": {
         "operationId": "health",
-        "description": "Reports API health and the public object-storage configuration.",
         "tags": [
           "System"
         ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string"
-                            },
-                            "service": {
-                              "type": "string"
-                            },
-                            "objectStorage": {
-                              "type": "object",
-                              "properties": {
-                                "bucket": {
-                                  "type": "string"
-                                },
-                                "endpoint": {
-                                  "type": "string"
-                                },
-                                "region": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "bucket",
-                                "endpoint",
-                                "region"
-                              ],
-                              "additionalProperties": false
-                            }
-                          },
-                          "required": [
-                            "status",
-                            "service",
-                            "objectStorage"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "result"
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Check API health"
-      }
-    },
-    "/properties/list": {
-      "get": {
-        "operationId": "properties.list",
-        "description": "Lists up to 50 properties with units, lease metrics, and maintenance metrics.",
-        "tags": [
-          "Properties"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "units": {
-                                "type": "array",
-                                "items": {
-                                  "allOf": [
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "rentIncludes": {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "option": {
-                                                "type": "object",
-                                                "properties": {
-                                                  "id": {
-                                                    "type": "string"
-                                                  },
-                                                  "label": {
-                                                    "type": "string"
-                                                  }
-                                                },
-                                                "required": [
-                                                  "id",
-                                                  "label"
-                                                ],
-                                                "additionalProperties": false
-                                              }
-                                            },
-                                            "required": [
-                                              "option"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "amenities": {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "option": {
-                                                "type": "object",
-                                                "properties": {
-                                                  "id": {
-                                                    "type": "string"
-                                                  },
-                                                  "label": {
-                                                    "type": "string"
-                                                  }
-                                                },
-                                                "required": [
-                                                  "id",
-                                                  "label"
-                                                ],
-                                                "additionalProperties": false
-                                              }
-                                            },
-                                            "required": [
-                                              "option"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        }
-                                      },
-                                      "required": [
-                                        "rentIncludes",
-                                        "amenities"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "id": {
-                                          "type": "string"
-                                        },
-                                        "name": {
-                                          "type": "string"
-                                        },
-                                        "unitType": {
-                                          "type": "string",
-                                          "enum": [
-                                            "residential",
-                                            "commercial"
-                                          ]
-                                        },
-                                        "marketRateCents": {
-                                          "type": "number"
-                                        },
-                                        "bedrooms": {
-                                          "type": [
-                                            "number",
-                                            "null"
-                                          ]
-                                        },
-                                        "bathrooms": {
-                                          "oneOf": [
-                                            {
-                                              "$ref": "#/components/schemas/Decimal"
-                                            },
-                                            {
-                                              "type": "null"
-                                            }
-                                          ]
-                                        },
-                                        "squareFeet": {
-                                          "type": [
-                                            "number",
-                                            "null"
-                                          ]
-                                        },
-                                        "createdAt": {
-                                          "type": "string",
-                                          "format": "date-time"
-                                        },
-                                        "updatedAt": {
-                                          "type": "string",
-                                          "format": "date-time"
-                                        },
-                                        "propertyId": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": [
-                                        "id",
-                                        "name",
-                                        "unitType",
-                                        "marketRateCents",
-                                        "bedrooms",
-                                        "bathrooms",
-                                        "squareFeet",
-                                        "createdAt",
-                                        "updatedAt",
-                                        "propertyId"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "bathrooms": {
-                                          "type": [
-                                            "number",
-                                            "null"
-                                          ]
-                                        },
-                                        "amenityOptionIds": {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        },
-                                        "rentIncludeOptionIds": {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      },
-                                      "required": [
-                                        "bathrooms",
-                                        "amenityOptionIds",
-                                        "rentIncludeOptionIds"
-                                      ],
-                                      "additionalProperties": false
-                                    }
-                                  ]
-                                }
-                              },
-                              "leases": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "status": {
-                                      "type": "string",
-                                      "enum": [
-                                        "active",
-                                        "notice",
-                                        "draft",
-                                        "ended"
-                                      ]
-                                    },
-                                    "unitLabel": {
-                                      "type": "string"
-                                    },
-                                    "monthlyRentCents": {
-                                      "type": "number"
-                                    },
-                                    "amountOverdueCents": {
-                                      "type": "number"
-                                    },
-                                    "endsOn": {
-                                      "type": "string",
-                                      "format": "date-time"
-                                    }
-                                  },
-                                  "required": [
-                                    "status",
-                                    "unitLabel",
-                                    "monthlyRentCents",
-                                    "amountOverdueCents",
-                                    "endsOn"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              },
-                              "maintenanceTickets": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "status": {
-                                      "type": "string",
-                                      "enum": [
-                                        "open",
-                                        "in_progress",
-                                        "waiting_vendor",
-                                        "resolved"
-                                      ]
-                                    },
-                                    "unitLabel": {
-                                      "type": [
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "priority": {
-                                      "type": "string",
-                                      "enum": [
-                                        "urgent",
-                                        "low",
-                                        "medium",
-                                        "high"
-                                      ]
-                                    }
-                                  },
-                                  "required": [
-                                    "status",
-                                    "unitLabel",
-                                    "priority"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              },
-                              "id": {
-                                "type": "string"
-                              },
-                              "propertyType": {
-                                "type": "string"
-                              },
-                              "status": {
-                                "type": "string",
-                                "enum": [
-                                  "active",
-                                  "maintenance",
-                                  "leasing",
-                                  "archived"
-                                ]
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "line1": {
-                                "type": "string"
-                              },
-                              "line2": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "city": {
-                                "type": "string"
-                              },
-                              "region": {
-                                "type": "string"
-                              },
-                              "postalCode": {
-                                "type": "string"
-                              },
-                              "contactName": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "contactEmail": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "contactPhone": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "contactAddress": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "notes": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "unitCount": {
-                                "type": "number"
-                              },
-                              "occupiedUnits": {
-                                "type": "number"
-                              },
-                              "createdAt": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "updatedAt": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "monthlyRentCents": {
-                                "type": "number"
-                              },
-                              "amountOverdueCents": {
-                                "type": "number"
-                              },
-                              "expiringLeases90Days": {
-                                "type": "number"
-                              },
-                              "openMaintenanceTickets": {
-                                "type": "number"
-                              },
-                              "urgentMaintenanceTickets": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "units",
-                              "leases",
-                              "maintenanceTickets",
-                              "id",
-                              "propertyType",
-                              "status",
-                              "name",
-                              "line1",
-                              "line2",
-                              "city",
-                              "region",
-                              "postalCode",
-                              "contactName",
-                              "contactEmail",
-                              "contactPhone",
-                              "contactAddress",
-                              "notes",
-                              "unitCount",
-                              "occupiedUnits",
-                              "createdAt",
-                              "updatedAt",
-                              "monthlyRentCents",
-                              "amountOverdueCents",
-                              "expiringLeases90Days",
-                              "openMaintenanceTickets",
-                              "urgentMaintenanceTickets"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "result"
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "List properties"
-      }
-    },
-    "/properties/byId": {
-      "get": {
-        "operationId": "properties.byId",
-        "description": "Returns one property with its units, leases, and maintenance tickets.",
-        "tags": [
-          "Properties"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "oneOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "units": {
-                                  "type": "array",
-                                  "items": {
-                                    "allOf": [
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "rentIncludes": {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "object",
-                                              "properties": {
-                                                "option": {
-                                                  "type": "object",
-                                                  "properties": {
-                                                    "id": {
-                                                      "type": "string"
-                                                    },
-                                                    "label": {
-                                                      "type": "string"
-                                                    }
-                                                  },
-                                                  "required": [
-                                                    "id",
-                                                    "label"
-                                                  ],
-                                                  "additionalProperties": false
-                                                }
-                                              },
-                                              "required": [
-                                                "option"
-                                              ],
-                                              "additionalProperties": false
-                                            }
-                                          },
-                                          "amenities": {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "object",
-                                              "properties": {
-                                                "option": {
-                                                  "type": "object",
-                                                  "properties": {
-                                                    "id": {
-                                                      "type": "string"
-                                                    },
-                                                    "label": {
-                                                      "type": "string"
-                                                    }
-                                                  },
-                                                  "required": [
-                                                    "id",
-                                                    "label"
-                                                  ],
-                                                  "additionalProperties": false
-                                                }
-                                              },
-                                              "required": [
-                                                "option"
-                                              ],
-                                              "additionalProperties": false
-                                            }
-                                          }
-                                        },
-                                        "required": [
-                                          "rentIncludes",
-                                          "amenities"
-                                        ],
-                                        "additionalProperties": false
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "id": {
-                                            "type": "string"
-                                          },
-                                          "name": {
-                                            "type": "string"
-                                          },
-                                          "unitType": {
-                                            "type": "string",
-                                            "enum": [
-                                              "residential",
-                                              "commercial"
-                                            ]
-                                          },
-                                          "marketRateCents": {
-                                            "type": "number"
-                                          },
-                                          "bedrooms": {
-                                            "type": [
-                                              "number",
-                                              "null"
-                                            ]
-                                          },
-                                          "bathrooms": {
-                                            "oneOf": [
-                                              {
-                                                "$ref": "#/components/schemas/Decimal"
-                                              },
-                                              {
-                                                "type": "null"
-                                              }
-                                            ]
-                                          },
-                                          "squareFeet": {
-                                            "type": [
-                                              "number",
-                                              "null"
-                                            ]
-                                          },
-                                          "createdAt": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                          },
-                                          "updatedAt": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                          },
-                                          "propertyId": {
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "id",
-                                          "name",
-                                          "unitType",
-                                          "marketRateCents",
-                                          "bedrooms",
-                                          "bathrooms",
-                                          "squareFeet",
-                                          "createdAt",
-                                          "updatedAt",
-                                          "propertyId"
-                                        ],
-                                        "additionalProperties": false
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "bathrooms": {
-                                            "type": [
-                                              "number",
-                                              "null"
-                                            ]
-                                          },
-                                          "amenityOptionIds": {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          },
-                                          "rentIncludeOptionIds": {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        },
-                                        "required": [
-                                          "bathrooms",
-                                          "amenityOptionIds",
-                                          "rentIncludeOptionIds"
-                                        ],
-                                        "additionalProperties": false
-                                      }
-                                    ]
-                                  }
-                                },
-                                "leases": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "tenant": {
-                                        "type": "object",
-                                        "properties": {
-                                          "id": {
-                                            "type": "string"
-                                          },
-                                          "email": {
-                                            "type": "string"
-                                          },
-                                          "createdAt": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                          },
-                                          "updatedAt": {
-                                            "type": "string",
-                                            "format": "date-time"
-                                          },
-                                          "firstName": {
-                                            "type": "string"
-                                          },
-                                          "lastName": {
-                                            "type": "string"
-                                          },
-                                          "phone": {
-                                            "type": [
-                                              "string",
-                                              "null"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "id",
-                                          "email",
-                                          "createdAt",
-                                          "updatedAt",
-                                          "firstName",
-                                          "lastName",
-                                          "phone"
-                                        ],
-                                        "additionalProperties": false
-                                      },
-                                      "id": {
-                                        "type": "string"
-                                      },
-                                      "status": {
-                                        "type": "string",
-                                        "enum": [
-                                          "active",
-                                          "notice",
-                                          "draft",
-                                          "ended"
-                                        ]
-                                      },
-                                      "createdAt": {
-                                        "type": "string",
-                                        "format": "date-time"
-                                      },
-                                      "updatedAt": {
-                                        "type": "string",
-                                        "format": "date-time"
-                                      },
-                                      "propertyId": {
-                                        "type": "string"
-                                      },
-                                      "tenantId": {
-                                        "type": "string"
-                                      },
-                                      "unitLabel": {
-                                        "type": "string"
-                                      },
-                                      "monthlyRentCents": {
-                                        "type": "number"
-                                      },
-                                      "amountOverdueCents": {
-                                        "type": "number"
-                                      },
-                                      "startsOn": {
-                                        "type": "string",
-                                        "format": "date-time"
-                                      },
-                                      "endsOn": {
-                                        "type": "string",
-                                        "format": "date-time"
-                                      }
-                                    },
-                                    "required": [
-                                      "tenant",
-                                      "id",
-                                      "status",
-                                      "createdAt",
-                                      "updatedAt",
-                                      "propertyId",
-                                      "tenantId",
-                                      "unitLabel",
-                                      "monthlyRentCents",
-                                      "amountOverdueCents",
-                                      "startsOn",
-                                      "endsOn"
-                                    ],
-                                    "additionalProperties": false
-                                  }
-                                },
-                                "maintenanceTickets": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "id": {
-                                        "type": "string"
-                                      },
-                                      "status": {
-                                        "type": "string",
-                                        "enum": [
-                                          "open",
-                                          "in_progress",
-                                          "waiting_vendor",
-                                          "resolved"
-                                        ]
-                                      },
-                                      "createdAt": {
-                                        "type": "string",
-                                        "format": "date-time"
-                                      },
-                                      "updatedAt": {
-                                        "type": "string",
-                                        "format": "date-time"
-                                      },
-                                      "propertyId": {
-                                        "type": "string"
-                                      },
-                                      "unitLabel": {
-                                        "type": [
-                                          "string",
-                                          "null"
-                                        ]
-                                      },
-                                      "title": {
-                                        "type": "string"
-                                      },
-                                      "description": {
-                                        "type": [
-                                          "string",
-                                          "null"
-                                        ]
-                                      },
-                                      "priority": {
-                                        "type": "string",
-                                        "enum": [
-                                          "urgent",
-                                          "low",
-                                          "medium",
-                                          "high"
-                                        ]
-                                      },
-                                      "openedOn": {
-                                        "type": "string",
-                                        "format": "date-time"
-                                      },
-                                      "dueOn": {
-                                        "oneOf": [
-                                          {
-                                            "type": "string",
-                                            "format": "date-time"
-                                          },
-                                          {
-                                            "type": "null"
-                                          }
-                                        ]
-                                      }
-                                    },
-                                    "required": [
-                                      "id",
-                                      "status",
-                                      "createdAt",
-                                      "updatedAt",
-                                      "propertyId",
-                                      "unitLabel",
-                                      "title",
-                                      "description",
-                                      "priority",
-                                      "openedOn",
-                                      "dueOn"
-                                    ],
-                                    "additionalProperties": false
-                                  }
-                                },
-                                "id": {
-                                  "type": "string"
-                                },
-                                "propertyType": {
-                                  "type": "string"
-                                },
-                                "status": {
-                                  "type": "string",
-                                  "enum": [
-                                    "active",
-                                    "maintenance",
-                                    "leasing",
-                                    "archived"
-                                  ]
-                                },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "line1": {
-                                  "type": "string"
-                                },
-                                "line2": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "city": {
-                                  "type": "string"
-                                },
-                                "region": {
-                                  "type": "string"
-                                },
-                                "postalCode": {
-                                  "type": "string"
-                                },
-                                "contactName": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "contactEmail": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "contactPhone": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "contactAddress": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "notes": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "unitCount": {
-                                  "type": "number"
-                                },
-                                "occupiedUnits": {
-                                  "type": "number"
-                                },
-                                "createdAt": {
-                                  "type": "string",
-                                  "format": "date-time"
-                                },
-                                "updatedAt": {
-                                  "type": "string",
-                                  "format": "date-time"
-                                }
-                              },
-                              "required": [
-                                "units",
-                                "leases",
-                                "maintenanceTickets",
-                                "id",
-                                "propertyType",
-                                "status",
-                                "name",
-                                "line1",
-                                "line2",
-                                "city",
-                                "region",
-                                "postalCode",
-                                "contactName",
-                                "contactEmail",
-                                "contactPhone",
-                                "contactAddress",
-                                "notes",
-                                "unitCount",
-                                "occupiedUnits",
-                                "createdAt",
-                                "updatedAt"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "result"
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "parameters": [
+        "security": [
           {
-            "name": "input",
-            "in": "query",
-            "required": true,
-            "style": "deepObject",
+            "Authorization": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "type": "string"
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
                     }
                   },
                   "required": [
-                    "id"
+                    "data"
                   ],
                   "additionalProperties": false
                 }
               }
             }
-          }
-        ],
-        "summary": "Get a property"
-      }
-    },
-    "/properties/create": {
-      "post": {
-        "operationId": "properties.create",
-        "description": "Creates a property and its initial units.",
-        "tags": [
-          "Properties"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
+          },
+          "400": {
+            "description": "Invalid input data",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "propertyType": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "active",
-                                "maintenance",
-                                "leasing",
-                                "archived"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "line1": {
-                              "type": "string"
-                            },
-                            "line2": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "city": {
-                              "type": "string"
-                            },
-                            "region": {
-                              "type": "string"
-                            },
-                            "postalCode": {
-                              "type": "string"
-                            },
-                            "contactName": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactEmail": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactPhone": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactAddress": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "notes": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "unitCount": {
-                              "type": "number"
-                            },
-                            "occupiedUnits": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "propertyType",
-                            "status",
-                            "name",
-                            "line1",
-                            "line2",
-                            "city",
-                            "region",
-                            "postalCode",
-                            "contactName",
-                            "contactEmail",
-                            "contactPhone",
-                            "contactAddress",
-                            "notes",
-                            "unitCount",
-                            "occupiedUnits"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "result"
-                  ]
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
                 }
               }
             }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "propertyType": {
-                    "type": "string",
-                    "enum": [
-                      "Apartment",
-                      "Commercial",
-                      "Condo",
-                      "Duplex",
-                      "HOA",
-                      "House",
-                      "Mixed-Use",
-                      "Other",
-                      "Parking",
-                      "Self-storage",
-                      "Manufactured Home",
-                      "Trailer"
-                    ]
-                  },
-                  "address": {
-                    "type": "object",
-                    "properties": {
-                      "line1": {
-                        "type": "string"
-                      },
-                      "city": {
-                        "type": "string"
-                      },
-                      "region": {
-                        "type": "string"
-                      },
-                      "postalCode": {
-                        "type": "string"
-                      },
-                      "line2": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "line1",
-                      "city",
-                      "region",
-                      "postalCode"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "unitCount": {
-                    "type": "number"
-                  },
-                  "contactName": {
-                    "type": "string"
-                  },
-                  "contactEmail": {
-                    "type": "string"
-                  },
-                  "contactPhone": {
-                    "type": "string"
-                  },
-                  "contactAddress": {
-                    "type": "string"
-                  },
-                  "notes": {
-                    "type": "string"
-                  },
-                  "units": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "marketRateCents": {
-                          "type": "number"
-                        },
-                        "unitType": {
-                          "type": "string",
-                          "enum": [
-                            "Commercial",
-                            "Residential"
-                          ]
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "bedrooms": {
-                          "type": "number"
-                        },
-                        "bathrooms": {
-                          "type": "number"
-                        },
-                        "squareFeet": {
-                          "type": "number"
-                        },
-                        "rentIncludeOptionIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "amenityOptionIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "marketRateCents",
-                        "unitType"
-                      ],
-                      "additionalProperties": false
-                    }
-                  }
-                },
-                "required": [
-                  "propertyType",
-                  "address",
-                  "name",
-                  "unitCount"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "summary": "Create a property"
-      }
-    },
-    "/properties/update": {
-      "post": {
-        "operationId": "properties.update",
-        "description": "Updates a property and synchronizes its units.",
-        "tags": [
-          "Properties"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
+          "401": {
+            "description": "Authorization not provided",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "propertyType": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "active",
-                                "maintenance",
-                                "leasing",
-                                "archived"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "line1": {
-                              "type": "string"
-                            },
-                            "line2": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "city": {
-                              "type": "string"
-                            },
-                            "region": {
-                              "type": "string"
-                            },
-                            "postalCode": {
-                              "type": "string"
-                            },
-                            "contactName": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactEmail": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactPhone": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactAddress": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "notes": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "unitCount": {
-                              "type": "number"
-                            },
-                            "occupiedUnits": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "propertyType",
-                            "status",
-                            "name",
-                            "line1",
-                            "line2",
-                            "city",
-                            "region",
-                            "postalCode",
-                            "contactName",
-                            "contactEmail",
-                            "contactPhone",
-                            "contactAddress",
-                            "notes",
-                            "unitCount",
-                            "occupiedUnits"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "result"
-                  ]
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
                 }
               }
             }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "propertyType": {
-                    "type": "string",
-                    "enum": [
-                      "Apartment",
-                      "Commercial",
-                      "Condo",
-                      "Duplex",
-                      "HOA",
-                      "House",
-                      "Mixed-Use",
-                      "Other",
-                      "Parking",
-                      "Self-storage",
-                      "Manufactured Home",
-                      "Trailer"
-                    ]
-                  },
-                  "address": {
-                    "type": "object",
-                    "properties": {
-                      "line1": {
-                        "type": "string"
-                      },
-                      "city": {
-                        "type": "string"
-                      },
-                      "region": {
-                        "type": "string"
-                      },
-                      "postalCode": {
-                        "type": "string"
-                      },
-                      "line2": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "line1",
-                      "city",
-                      "region",
-                      "postalCode"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "unitCount": {
-                    "type": "number"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
-                  "contactName": {
-                    "type": "string"
-                  },
-                  "contactEmail": {
-                    "type": "string"
-                  },
-                  "contactPhone": {
-                    "type": "string"
-                  },
-                  "contactAddress": {
-                    "type": "string"
-                  },
-                  "notes": {
-                    "type": "string"
-                  },
-                  "units": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "marketRateCents": {
-                          "type": "number"
-                        },
-                        "unitType": {
-                          "type": "string",
-                          "enum": [
-                            "Commercial",
-                            "Residential"
-                          ]
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "bedrooms": {
-                          "type": "number"
-                        },
-                        "bathrooms": {
-                          "type": "number"
-                        },
-                        "squareFeet": {
-                          "type": "number"
-                        },
-                        "rentIncludeOptionIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "amenityOptionIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "marketRateCents",
-                        "unitType"
-                      ],
-                      "additionalProperties": false
-                    }
-                  }
-                },
-                "required": [
-                  "propertyType",
-                  "address",
-                  "name",
-                  "unitCount",
-                  "id"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "summary": "Update a property"
-      }
-    },
-    "/properties/archive": {
-      "post": {
-        "operationId": "properties.archive",
-        "description": "Marks a property as archived.",
-        "tags": [
-          "Properties"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
+          "403": {
+            "description": "Insufficient access",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "propertyType": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "active",
-                                "maintenance",
-                                "leasing",
-                                "archived"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "line1": {
-                              "type": "string"
-                            },
-                            "line2": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "city": {
-                              "type": "string"
-                            },
-                            "region": {
-                              "type": "string"
-                            },
-                            "postalCode": {
-                              "type": "string"
-                            },
-                            "contactName": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactEmail": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactPhone": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactAddress": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "notes": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "unitCount": {
-                              "type": "number"
-                            },
-                            "occupiedUnits": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "propertyType",
-                            "status",
-                            "name",
-                            "line1",
-                            "line2",
-                            "city",
-                            "region",
-                            "postalCode",
-                            "contactName",
-                            "contactEmail",
-                            "contactPhone",
-                            "contactAddress",
-                            "notes",
-                            "unitCount",
-                            "occupiedUnits"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "result"
-                  ]
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
                 }
               }
             }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "summary": "Archive a property"
-      }
-    },
-    "/properties/delete": {
-      "post": {
-        "operationId": "properties.delete",
-        "description": "Permanently deletes a property and its related operational records.",
-        "tags": [
-          "Properties"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "propertyType": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "active",
-                                "maintenance",
-                                "leasing",
-                                "archived"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "line1": {
-                              "type": "string"
-                            },
-                            "line2": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "city": {
-                              "type": "string"
-                            },
-                            "region": {
-                              "type": "string"
-                            },
-                            "postalCode": {
-                              "type": "string"
-                            },
-                            "contactName": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactEmail": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactPhone": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactAddress": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "notes": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "unitCount": {
-                              "type": "number"
-                            },
-                            "occupiedUnits": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "propertyType",
-                            "status",
-                            "name",
-                            "line1",
-                            "line2",
-                            "city",
-                            "region",
-                            "postalCode",
-                            "contactName",
-                            "contactEmail",
-                            "contactPhone",
-                            "contactAddress",
-                            "notes",
-                            "unitCount",
-                            "occupiedUnits"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "result"
-                  ]
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
                 }
               }
             }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "summary": "Delete a property"
-      }
-    },
-    "/properties/updateNotes": {
-      "post": {
-        "operationId": "properties.updateNotes",
-        "description": "Updates the notes stored on a property.",
-        "tags": [
-          "Properties"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "propertyType": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "active",
-                                "maintenance",
-                                "leasing",
-                                "archived"
-                              ]
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "line1": {
-                              "type": "string"
-                            },
-                            "line2": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "city": {
-                              "type": "string"
-                            },
-                            "region": {
-                              "type": "string"
-                            },
-                            "postalCode": {
-                              "type": "string"
-                            },
-                            "contactName": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactEmail": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactPhone": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "contactAddress": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "notes": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            },
-                            "unitCount": {
-                              "type": "number"
-                            },
-                            "occupiedUnits": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "propertyType",
-                            "status",
-                            "name",
-                            "line1",
-                            "line2",
-                            "city",
-                            "region",
-                            "postalCode",
-                            "contactName",
-                            "contactEmail",
-                            "contactPhone",
-                            "contactAddress",
-                            "notes",
-                            "unitCount",
-                            "occupiedUnits"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "result"
-                  ]
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
                 }
               }
             }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
           }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "notes": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "summary": "Update property notes"
+        }
       }
     },
-    "/unitOptions/list": {
+    "/properties": {
       "get": {
-        "operationId": "unitOptions.list",
-        "description": "Lists the available rent-inclusion and amenity options for units.",
+        "operationId": "properties-list",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {}
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "properties-create",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "propertyType": {
+                    "type": "string",
+                    "enum": [
+                      "Apartment",
+                      "Commercial",
+                      "Condo",
+                      "Duplex",
+                      "HOA",
+                      "House",
+                      "Mixed-Use",
+                      "Other",
+                      "Parking",
+                      "Self-storage",
+                      "Manufactured Home",
+                      "Trailer"
+                    ]
+                  },
+                  "address": {
+                    "type": "object",
+                    "properties": {
+                      "line1": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "line2": {
+                        "type": "string"
+                      },
+                      "city": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "region": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 2
+                      },
+                      "postalCode": {
+                        "type": "string",
+                        "minLength": 5
+                      }
+                    },
+                    "required": [
+                      "line1",
+                      "city",
+                      "region",
+                      "postalCode"
+                    ]
+                  },
+                  "contactName": {
+                    "type": "string"
+                  },
+                  "contactEmail": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "contactPhone": {
+                    "type": "string"
+                  },
+                  "contactAddress": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "unitCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "units": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "marketRateCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "unitType": {
+                          "type": "string",
+                          "enum": [
+                            "Residential",
+                            "Commercial"
+                          ]
+                        },
+                        "bedrooms": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "bathrooms": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "squareFeet": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "rentIncludeOptionIds": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "amenityOptionIds": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "marketRateCents",
+                        "unitType"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "propertyType",
+                  "address",
+                  "unitCount"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/properties/{id}": {
+      "get": {
+        "operationId": "properties-byId",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": {}
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "properties-update",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "propertyType": {
+                    "type": "string",
+                    "enum": [
+                      "Apartment",
+                      "Commercial",
+                      "Condo",
+                      "Duplex",
+                      "HOA",
+                      "House",
+                      "Mixed-Use",
+                      "Other",
+                      "Parking",
+                      "Self-storage",
+                      "Manufactured Home",
+                      "Trailer"
+                    ]
+                  },
+                  "address": {
+                    "type": "object",
+                    "properties": {
+                      "line1": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "line2": {
+                        "type": "string"
+                      },
+                      "city": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "region": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 2
+                      },
+                      "postalCode": {
+                        "type": "string",
+                        "minLength": 5
+                      }
+                    },
+                    "required": [
+                      "line1",
+                      "city",
+                      "region",
+                      "postalCode"
+                    ]
+                  },
+                  "contactName": {
+                    "type": "string"
+                  },
+                  "contactEmail": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "contactPhone": {
+                    "type": "string"
+                  },
+                  "contactAddress": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "unitCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "units": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "marketRateCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "unitType": {
+                          "type": "string",
+                          "enum": [
+                            "Residential",
+                            "Commercial"
+                          ]
+                        },
+                        "bedrooms": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "bathrooms": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "squareFeet": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "rentIncludeOptionIds": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "amenityOptionIds": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "marketRateCents",
+                        "unitType"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "propertyType",
+                  "address",
+                  "unitCount"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "properties-delete",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/properties/{id}/archive": {
+      "patch": {
+        "operationId": "properties-archive",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/properties/{id}/inactive": {
+      "post": {
+        "operationId": "properties-inactivate",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/properties/{id}/reactivate": {
+      "post": {
+        "operationId": "properties-reactivate",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/properties/{id}/notes": {
+      "patch": {
+        "operationId": "properties-updateNotes",
+        "tags": [
+          "Properties"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unit-options": {
+      "get": {
+        "operationId": "unitOptions-list",
         "tags": [
           "Unit options"
         ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -2058,618 +1281,1121 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "result": {
+                    "data": {
                       "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "rentIncludes": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "label": {
-                                    "type": "string"
-                                  },
-                                  "sortOrder": {
-                                    "type": "number"
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "label",
-                                  "sortOrder"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "amenities": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "label": {
-                                    "type": "string"
-                                  },
-                                  "sortOrder": {
-                                    "type": "number"
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "label",
-                                  "sortOrder"
-                                ],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": [
-                            "rentIncludes",
-                            "amenities"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
+                      "properties": {},
+                      "additionalProperties": {}
                     }
                   },
                   "required": [
-                    "result"
-                  ]
+                    "data"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/amenities": {
+      "get": {
+        "operationId": "amenities-list",
+        "tags": [
+          "Amenities"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {}
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/amenities/{id}": {
+      "put": {
+        "operationId": "amenities-update",
+        "tags": [
+          "Amenities"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "label",
+                  "sortOrder"
+                ]
+              }
+            }
           }
         },
-        "summary": "List unit options"
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/units": {
+      "get": {
+        "operationId": "units-list",
+        "tags": [
+          "Units"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "propertyId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {}
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "units-create",
+        "tags": [
+          "Units"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "marketRateCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "unitType": {
+                    "type": "string",
+                    "enum": [
+                      "Residential",
+                      "Commercial"
+                    ]
+                  },
+                  "bedrooms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "bathrooms": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "squareFeet": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "rentIncludeOptionIds": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "amenityOptionIds": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "propertyId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "name",
+                  "marketRateCents",
+                  "unitType",
+                  "propertyId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/units/{id}": {
+      "get": {
+        "operationId": "units-byId",
+        "tags": [
+          "Units"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": {}
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "units-update",
+        "tags": [
+          "Units"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "marketRateCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "unitType": {
+                    "type": "string",
+                    "enum": [
+                      "Residential",
+                      "Commercial"
+                    ]
+                  },
+                  "bedrooms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "bathrooms": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "squareFeet": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "rentIncludeOptionIds": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "amenityOptionIds": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "marketRateCents",
+                  "unitType"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "units-delete",
+        "tags": [
+          "Units"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
   "components": {
     "schemas": {
-      "Decimal": {
-        "type": "object",
-        "properties": {
-          "d": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          "e": {
-            "type": "number"
-          },
-          "s": {
-            "type": "number"
-          },
-          "absoluteValue": {
-            "type": "object"
-          },
-          "abs": {
-            "type": "object"
-          },
-          "ceil": {
-            "type": "object"
-          },
-          "clampedTo": {
-            "type": "object"
-          },
-          "clamp": {
-            "type": "object"
-          },
-          "comparedTo": {
-            "type": "object"
-          },
-          "cmp": {
-            "type": "object"
-          },
-          "cosine": {
-            "type": "object"
-          },
-          "cos": {
-            "type": "object"
-          },
-          "cubeRoot": {
-            "type": "object"
-          },
-          "cbrt": {
-            "type": "object"
-          },
-          "decimalPlaces": {
-            "type": "object"
-          },
-          "dp": {
-            "type": "object"
-          },
-          "dividedBy": {
-            "type": "object"
-          },
-          "div": {
-            "type": "object"
-          },
-          "dividedToIntegerBy": {
-            "type": "object"
-          },
-          "divToInt": {
-            "type": "object"
-          },
-          "equals": {
-            "type": "object"
-          },
-          "eq": {
-            "type": "object"
-          },
-          "floor": {
-            "type": "object"
-          },
-          "greaterThan": {
-            "type": "object"
-          },
-          "gt": {
-            "type": "object"
-          },
-          "greaterThanOrEqualTo": {
-            "type": "object"
-          },
-          "gte": {
-            "type": "object"
-          },
-          "hyperbolicCosine": {
-            "type": "object"
-          },
-          "cosh": {
-            "type": "object"
-          },
-          "hyperbolicSine": {
-            "type": "object"
-          },
-          "sinh": {
-            "type": "object"
-          },
-          "hyperbolicTangent": {
-            "type": "object"
-          },
-          "tanh": {
-            "type": "object"
-          },
-          "inverseCosine": {
-            "type": "object"
-          },
-          "acos": {
-            "type": "object"
-          },
-          "inverseHyperbolicCosine": {
-            "type": "object"
-          },
-          "acosh": {
-            "type": "object"
-          },
-          "inverseHyperbolicSine": {
-            "type": "object"
-          },
-          "asinh": {
-            "type": "object"
-          },
-          "inverseHyperbolicTangent": {
-            "type": "object"
-          },
-          "atanh": {
-            "type": "object"
-          },
-          "inverseSine": {
-            "type": "object"
-          },
-          "asin": {
-            "type": "object"
-          },
-          "inverseTangent": {
-            "type": "object"
-          },
-          "atan": {
-            "type": "object"
-          },
-          "isFinite": {
-            "type": "object"
-          },
-          "isInteger": {
-            "type": "object"
-          },
-          "isInt": {
-            "type": "object"
-          },
-          "isNaN": {
-            "type": "object"
-          },
-          "isNegative": {
-            "type": "object"
-          },
-          "isNeg": {
-            "type": "object"
-          },
-          "isPositive": {
-            "type": "object"
-          },
-          "isPos": {
-            "type": "object"
-          },
-          "isZero": {
-            "type": "object"
-          },
-          "lessThan": {
-            "type": "object"
-          },
-          "lt": {
-            "type": "object"
-          },
-          "lessThanOrEqualTo": {
-            "type": "object"
-          },
-          "lte": {
-            "type": "object"
-          },
-          "logarithm": {
-            "type": "object"
-          },
-          "log": {
-            "type": "object"
-          },
-          "minus": {
-            "type": "object"
-          },
-          "sub": {
-            "type": "object"
-          },
-          "modulo": {
-            "type": "object"
-          },
-          "mod": {
-            "type": "object"
-          },
-          "naturalExponential": {
-            "type": "object"
-          },
-          "exp": {
-            "type": "object"
-          },
-          "naturalLogarithm": {
-            "type": "object"
-          },
-          "ln": {
-            "type": "object"
-          },
-          "negated": {
-            "type": "object"
-          },
-          "neg": {
-            "type": "object"
-          },
-          "plus": {
-            "type": "object"
-          },
-          "add": {
-            "type": "object"
-          },
-          "precision": {
-            "type": "object"
-          },
-          "sd": {
-            "type": "object"
-          },
-          "round": {
-            "type": "object"
-          },
-          "sine": {
-            "type": "object"
-          },
-          "sin": {
-            "type": "object"
-          },
-          "squareRoot": {
-            "type": "object"
-          },
-          "sqrt": {
-            "type": "object"
-          },
-          "tangent": {
-            "type": "object"
-          },
-          "tan": {
-            "type": "object"
-          },
-          "times": {
-            "type": "object"
-          },
-          "mul": {
-            "type": "object"
-          },
-          "toBinary": {
-            "type": "object"
-          },
-          "toDecimalPlaces": {
-            "type": "object"
-          },
-          "toDP": {
-            "type": "object"
-          },
-          "toExponential": {
-            "type": "object"
-          },
-          "toFixed": {
-            "type": "object"
-          },
-          "toFraction": {
-            "type": "object"
-          },
-          "toHexadecimal": {
-            "type": "object"
-          },
-          "toHex": {
-            "type": "object"
-          },
-          "toJSON": {
-            "type": "object"
-          },
-          "toNearest": {
-            "type": "object"
-          },
-          "toNumber": {
-            "type": "object"
-          },
-          "toOctal": {
-            "type": "object"
-          },
-          "toPower": {
-            "type": "object"
-          },
-          "pow": {
-            "type": "object"
-          },
-          "toPrecision": {
-            "type": "object"
-          },
-          "toSignificantDigits": {
-            "type": "object"
-          },
-          "toSD": {
-            "type": "object"
-          },
-          "toString": {
-            "type": "object"
-          },
-          "truncated": {
-            "type": "object"
-          },
-          "trunc": {
-            "type": "object"
-          },
-          "valueOf": {
-            "type": "object"
-          }
+      "error.BAD_REQUEST": {
+        "title": "Invalid input data error (400)",
+        "description": "The error information",
+        "example": {
+          "code": "BAD_REQUEST",
+          "message": "Invalid input data",
+          "issues": []
         },
-        "required": [
-          "d",
-          "e",
-          "s",
-          "absoluteValue",
-          "abs",
-          "ceil",
-          "clampedTo",
-          "clamp",
-          "comparedTo",
-          "cmp",
-          "cosine",
-          "cos",
-          "cubeRoot",
-          "cbrt",
-          "decimalPlaces",
-          "dp",
-          "dividedBy",
-          "div",
-          "dividedToIntegerBy",
-          "divToInt",
-          "equals",
-          "eq",
-          "floor",
-          "greaterThan",
-          "gt",
-          "greaterThanOrEqualTo",
-          "gte",
-          "hyperbolicCosine",
-          "cosh",
-          "hyperbolicSine",
-          "sinh",
-          "hyperbolicTangent",
-          "tanh",
-          "inverseCosine",
-          "acos",
-          "inverseHyperbolicCosine",
-          "acosh",
-          "inverseHyperbolicSine",
-          "asinh",
-          "inverseHyperbolicTangent",
-          "atanh",
-          "inverseSine",
-          "asin",
-          "inverseTangent",
-          "atan",
-          "isFinite",
-          "isInteger",
-          "isInt",
-          "isNaN",
-          "isNegative",
-          "isNeg",
-          "isPositive",
-          "isPos",
-          "isZero",
-          "lessThan",
-          "lt",
-          "lessThanOrEqualTo",
-          "lte",
-          "logarithm",
-          "log",
-          "minus",
-          "sub",
-          "modulo",
-          "mod",
-          "naturalExponential",
-          "exp",
-          "naturalLogarithm",
-          "ln",
-          "negated",
-          "neg",
-          "plus",
-          "add",
-          "precision",
-          "sd",
-          "round",
-          "sine",
-          "sin",
-          "squareRoot",
-          "sqrt",
-          "tangent",
-          "tan",
-          "times",
-          "mul",
-          "toBinary",
-          "toDecimalPlaces",
-          "toDP",
-          "toExponential",
-          "toFixed",
-          "toFraction",
-          "toHexadecimal",
-          "toHex",
-          "toJSON",
-          "toNearest",
-          "toNumber",
-          "toOctal",
-          "toPower",
-          "pow",
-          "toPrecision",
-          "toSignificantDigits",
-          "toSD",
-          "toString",
-          "truncated",
-          "trunc",
-          "valueOf"
-        ],
-        "additionalProperties": false
-      },
-      "DefaultErrorShape": {
         "type": "object",
         "properties": {
           "message": {
+            "description": "The error message",
+            "example": "Invalid input data",
             "type": "string"
           },
           "code": {
-            "type": "number",
-            "enum": [
-              -32700,
-              -32600,
-              -32603,
-              -32001,
-              -32002,
-              -32003,
-              -32004,
-              -32005,
-              -32008,
-              -32009,
-              -32012,
-              -32013,
-              -32015,
-              -32022,
-              -32028,
-              -32029,
-              -32099
-            ]
+            "description": "The error code",
+            "example": "BAD_REQUEST",
+            "type": "string"
           },
-          "data": {
-            "$ref": "#/components/schemas/DefaultErrorData"
+          "issues": {
+            "description": "An array of issues that were responsible for the error",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
           "message",
-          "code",
-          "data"
+          "code"
         ],
         "additionalProperties": false
       },
-      "DefaultErrorData": {
+      "error.UNAUTHORIZED": {
+        "title": "Authorization not provided error (401)",
+        "description": "The error information",
+        "example": {
+          "code": "UNAUTHORIZED",
+          "message": "Authorization not provided",
+          "issues": []
+        },
         "type": "object",
         "properties": {
+          "message": {
+            "description": "The error message",
+            "example": "Authorization not provided",
+            "type": "string"
+          },
           "code": {
-            "type": "string",
-            "enum": [
-              "PARSE_ERROR",
-              "BAD_REQUEST",
-              "INTERNAL_SERVER_ERROR",
-              "NOT_IMPLEMENTED",
-              "BAD_GATEWAY",
-              "SERVICE_UNAVAILABLE",
-              "GATEWAY_TIMEOUT",
-              "UNAUTHORIZED",
-              "PAYMENT_REQUIRED",
-              "FORBIDDEN",
-              "NOT_FOUND",
-              "METHOD_NOT_SUPPORTED",
-              "TIMEOUT",
-              "CONFLICT",
-              "PRECONDITION_FAILED",
-              "PAYLOAD_TOO_LARGE",
-              "UNSUPPORTED_MEDIA_TYPE",
-              "UNPROCESSABLE_CONTENT",
-              "PRECONDITION_REQUIRED",
-              "TOO_MANY_REQUESTS",
-              "CLIENT_CLOSED_REQUEST"
-            ]
-          },
-          "httpStatus": {
-            "type": "number"
-          },
-          "path": {
+            "description": "The error code",
+            "example": "UNAUTHORIZED",
             "type": "string"
           },
-          "stack": {
-            "type": "string"
+          "issues": {
+            "description": "An array of issues that were responsible for the error",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
-          "code",
-          "httpStatus"
+          "message",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "error.FORBIDDEN": {
+        "title": "Insufficient access error (403)",
+        "description": "The error information",
+        "example": {
+          "code": "FORBIDDEN",
+          "message": "Insufficient access",
+          "issues": []
+        },
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message",
+            "example": "Insufficient access",
+            "type": "string"
+          },
+          "code": {
+            "description": "The error code",
+            "example": "FORBIDDEN",
+            "type": "string"
+          },
+          "issues": {
+            "description": "An array of issues that were responsible for the error",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "message",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "error.NOT_FOUND": {
+        "title": "Not found error (404)",
+        "description": "The error information",
+        "example": {
+          "code": "NOT_FOUND",
+          "message": "Not found",
+          "issues": []
+        },
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message",
+            "example": "Not found",
+            "type": "string"
+          },
+          "code": {
+            "description": "The error code",
+            "example": "NOT_FOUND",
+            "type": "string"
+          },
+          "issues": {
+            "description": "An array of issues that were responsible for the error",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "message",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "error.INTERNAL_SERVER_ERROR": {
+        "title": "Internal server error error (500)",
+        "description": "The error information",
+        "example": {
+          "code": "INTERNAL_SERVER_ERROR",
+          "message": "Internal server error",
+          "issues": []
+        },
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "The error message",
+            "example": "Internal server error",
+            "type": "string"
+          },
+          "code": {
+            "description": "The error code",
+            "example": "INTERNAL_SERVER_ERROR",
+            "type": "string"
+          },
+          "issues": {
+            "description": "An array of issues that were responsible for the error",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "message",
+          "code"
         ],
         "additionalProperties": false
       }
     },
-    "responses": {
-      "Error": {
-        "description": "Error response",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "$ref": "#/components/schemas/DefaultErrorShape"
-                }
-              },
-              "required": [
-                "error"
-              ]
-            }
-          }
-        }
+    "securitySchemes": {
+      "Authorization": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }
