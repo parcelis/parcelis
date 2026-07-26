@@ -29,7 +29,7 @@ type DrawerProperty = {
     bedrooms: number | null;
     bathrooms: number | null;
     squareFeet: number | null;
-    rentIncludeOptionIds: string[];
+    utilityTypeIds: string[];
     amenityOptionIds: string[];
   }>;
 };
@@ -101,7 +101,7 @@ export function getUnitFormStates(
         unit.squareFeet === null || unit.squareFeet === undefined
           ? ""
           : String(unit.squareFeet),
-      rentIncludes: unit.rentIncludeOptionIds,
+      utilities: unit.utilityTypeIds,
       amenities: unit.amenityOptionIds,
     }));
   }
@@ -124,7 +124,7 @@ export function getUnitFormStates(
       bedrooms: "",
       bathrooms: "",
       squareFeet: "",
-      rentIncludes: [],
+      utilities: [],
       amenities: [],
     };
   });

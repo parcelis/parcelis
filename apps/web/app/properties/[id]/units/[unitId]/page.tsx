@@ -142,8 +142,8 @@ export default function UnitDetailPage() {
   const openTickets = unitTickets.filter(
     (ticket) => ticket.status !== "resolved",
   );
-  const rentIncludes =
-    unit?.rentIncludes.map((item) => item.option.label).filter(Boolean) ?? [];
+  const utilities =
+    unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
   const amenities =
     unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
   const monthlyRentCents =
@@ -573,7 +573,7 @@ export default function UnitDetailPage() {
                       </div>
                     ))}
                     <div className="grid gap-2 pt-2">
-                      {[rentIncludes, amenities].map((items, index) => (
+                      {[utilities, amenities].map((items, index) => (
                         <div className="flex flex-wrap gap-2" key={index}>
                           {(items.length > 0 ? items : ["None"]).map((item) => (
                             <span

@@ -48,7 +48,7 @@ export const unitDetailsInputSchema = z.object({
   bedrooms: z.number().int().nonnegative().optional(),
   bathrooms: z.number().nonnegative().optional(),
   squareFeet: z.number().int().nonnegative().optional(),
-  rentIncludeOptionIds: z.array(z.string().uuid()).default([]),
+  utilityTypeIds: z.array(z.string().uuid()).default([]),
   amenityOptionIds: z.array(z.string().uuid()).default([]),
 });
 

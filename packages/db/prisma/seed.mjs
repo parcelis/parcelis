@@ -50,7 +50,7 @@ const properties = [
   },
 ];
 
-const rentIncludeOptions = ["Electricity", "Water", "Sewer", "Gas", "Internet"];
+const utilityTypes = ["Electricity", "Water", "Sewer", "Gas", "Internet"];
 const amenityOptions = [
   "A/C",
   "Off-Street Parking",
@@ -156,16 +156,16 @@ async function seedUnitsForProperty(property) {
       },
     });
 
-    const rentIncludeLabels = index % 3 === 0 ? ["Water", "Sewer"] : [];
+    const utilityLabels = index % 3 === 0 ? ["Water", "Sewer"] : [];
     const amenityLabels = [
       index % 2 === 0 ? "A/C" : null,
       index % 4 === 0 ? "Off-Street Parking" : null,
       index % 6 === 0 ? "Balcony/Deck" : null,
       index % 7 === 0 ? "Pets Allowed" : null,
     ].filter(Boolean);
-    const [rentIncludes, amenities] = await Promise.all([
-      prisma.rentIncludeOption.findMany({
-        where: { label: { in: rentIncludeLabels } },
+    const [utilities, amenities] = await Promise.all([
+      prisma.utilityType.findMany({
+        where: { label: { in: utilityLabels } },
         select: { id: true },
       }),
       prisma.amenityOption.findMany({
@@ -175,14 +175,14 @@ async function seedUnitsForProperty(property) {
     ]);
 
     await Promise.all([
-      prisma.unitRentInclude.deleteMany({ where: { unitId: unit.id } }),
+      prisma.unitUtility.deleteMany({ where: { unitId: unit.id } }),
       prisma.unitAmenity.deleteMany({ where: { unitId: unit.id } }),
     ]);
 
     await Promise.all([
-      rentIncludes.length
-        ? prisma.unitRentInclude.createMany({
-            data: rentIncludes.map((option) => ({
+      utilities.length
+        ? prisma.unitUtility.createMany({
+            data: utilities.map((option) => ({
               optionId: option.id,
               unitId: unit.id,
             })),
@@ -203,8 +203,8 @@ async function seedUnitsForProperty(property) {
 }
 
 async function main() {
-  for (const [index, label] of rentIncludeOptions.entries()) {
-    await prisma.rentIncludeOption.upsert({
+  for (const [index, label] of utilityTypes.entries()) {
+    await prisma.utilityType.upsert({
       where: { label },
       update: { sortOrder: (index + 1) * 10 },
       create: { label, sortOrder: (index + 1) * 10 },

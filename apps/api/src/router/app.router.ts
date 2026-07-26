@@ -53,8 +53,8 @@ function getUnitCreateData(propertyId: string, unitDetails: UnitDetailsInput) {
     bedrooms: unitDetails.bedrooms,
     bathrooms: unitDetails.bathrooms,
     squareFeet: unitDetails.squareFeet,
-    rentIncludes: {
-      create: unitDetails.rentIncludeOptionIds.map((optionId) => ({
+    utilities: {
+      create: unitDetails.utilityTypeIds.map((optionId) => ({
         option: { connect: { id: optionId } },
       })),
     },
@@ -74,8 +74,8 @@ function getUnitUpdateData(unitDetails: UnitDetailsInput) {
     bedrooms: unitDetails.bedrooms,
     bathrooms: unitDetails.bathrooms,
     squareFeet: unitDetails.squareFeet,
-    rentIncludes: {
-      create: unitDetails.rentIncludeOptionIds.map((optionId) => ({
+    utilities: {
+      create: unitDetails.utilityTypeIds.map((optionId) => ({
         option: { connect: { id: optionId } },
       })),
     },
@@ -91,15 +91,15 @@ function serializeUnit<
   T extends {
     bathrooms: unknown;
     amenities: Array<{ option: { id: string } }>;
-    rentIncludes: Array<{ option: { id: string } }>;
+    utilities: Array<{ option: { id: string } }>;
   },
 >(unit: T) {
   return {
     ...unit,
     bathrooms: unit.bathrooms === null ? null : Number(unit.bathrooms),
     amenityOptionIds: unit.amenities.map((amenity) => amenity.option.id),
-    rentIncludeOptionIds: unit.rentIncludes.map(
-      (rentInclude) => rentInclude.option.id,
+    utilityTypeIds: unit.utilities.map(
+      (utility) => utility.option.id,
     ),
   };
 }
@@ -186,7 +186,7 @@ export const appRouter = router({
               amenities: {
                 select: { option: { select: { id: true, label: true } } },
               },
-              rentIncludes: {
+              utilities: {
                 select: { option: { select: { id: true, label: true } } },
               },
             },
@@ -225,7 +225,7 @@ export const appRouter = router({
                 amenities: {
                   select: { option: { select: { id: true, label: true } } },
                 },
-                rentIncludes: {
+                utilities: {
                   select: { option: { select: { id: true, label: true } } },
                 },
               },
@@ -322,7 +322,7 @@ export const appRouter = router({
           await Promise.all(
             input.units.map(async (unit) => {
               if (unit.id && existingUnitIds.has(unit.id)) {
-                await tx.unitRentInclude.deleteMany({
+                await tx.unitUtility.deleteMany({
                   where: { unitId: unit.id },
                 });
                 await tx.unitAmenity.deleteMany({ where: { unitId: unit.id } });
@@ -404,10 +404,10 @@ export const appRouter = router({
       ),
   }),
   unitOptions: router({
-    /** Lists the available rent-inclusion and amenity options for units. */
+    /** Lists the available utility and amenity options for units. */
     list: publicProcedure.query(async ({ ctx }) => {
-      const [rentIncludes, amenities] = await Promise.all([
-        ctx.prisma.rentIncludeOption.findMany({
+      const [utilities, amenities] = await Promise.all([
+        ctx.prisma.utilityType.findMany({
           orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
           select: { id: true, label: true, sortOrder: true },
         }),
@@ -417,7 +417,7 @@ export const appRouter = router({
         }),
       ]);
 
-      return { rentIncludes, amenities };
+      return { utilities, amenities };
     }),
   }),
   amenities: router({
@@ -451,7 +451,7 @@ export const appRouter = router({
             amenities: {
               select: { option: { select: { id: true, label: true } } },
             },
-            rentIncludes: {
+            utilities: {
               select: { option: { select: { id: true, label: true } } },
             },
           },
@@ -469,7 +469,7 @@ export const appRouter = router({
             amenities: {
               select: { option: { select: { id: true, label: true } } },
             },
-            rentIncludes: {
+            utilities: {
               select: { option: { select: { id: true, label: true } } },
             },
           },
@@ -490,7 +490,7 @@ export const appRouter = router({
               amenities: {
                 select: { option: { select: { id: true, label: true } } },
               },
-              rentIncludes: {
+              utilities: {
                 select: { option: { select: { id: true, label: true } } },
               },
             },
@@ -502,7 +502,7 @@ export const appRouter = router({
       .input(updateUnitInputSchema)
       .mutation(async ({ ctx, input }) => {
         const unit = await ctx.prisma.$transaction(async (tx) => {
-          await tx.unitRentInclude.deleteMany({ where: { unitId: input.id } });
+          await tx.unitUtility.deleteMany({ where: { unitId: input.id } });
           await tx.unitAmenity.deleteMany({ where: { unitId: input.id } });
 
           return tx.unit.update({
@@ -512,7 +512,7 @@ export const appRouter = router({
               amenities: {
                 select: { option: { select: { id: true, label: true } } },
               },
-              rentIncludes: {
+              utilities: {
                 select: { option: { select: { id: true, label: true } } },
               },
             },
@@ -531,7 +531,7 @@ export const appRouter = router({
             amenities: {
               select: { option: { select: { id: true, label: true } } },
             },
-            rentIncludes: {
+            utilities: {
               select: { option: { select: { id: true, label: true } } },
             },
           },

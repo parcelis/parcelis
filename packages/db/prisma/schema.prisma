@@ -74,7 +74,7 @@ model Unit {
   bathrooms       Decimal?          @db.Decimal(4, 1)
   squareFeet      Int?
   property        Property          @relation(fields: [propertyId], references: [id])
-  rentIncludes    UnitRentInclude[]
+  utilities       UnitUtility[]
   amenities       UnitAmenity[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -83,13 +83,13 @@ model Unit {
   @@index([propertyId])
 }
 
-model RentIncludeOption {
-  id        String            @id @default(uuid())
-  label     String            @unique
-  sortOrder Int               @default(0)
-  units     UnitRentInclude[]
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+model UtilityType {
+  id        String        @id @default(uuid())
+  label     String        @unique
+  sortOrder Int           @default(0)
+  units     UnitUtility[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 model AmenityOption {
@@ -101,11 +101,11 @@ model AmenityOption {
   updatedAt DateTime      @updatedAt
 }
 
-model UnitRentInclude {
+model UnitUtility {
   unitId   String
   optionId String
-  unit     Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  option   RentIncludeOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  unit     Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  option   UtilityType @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@id([unitId, optionId])
   @@index([optionId])

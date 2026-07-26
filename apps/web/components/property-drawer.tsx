@@ -99,7 +99,7 @@ export type UnitDetailsFormState = {
   bedrooms: string;
   bathrooms: string;
   squareFeet: string;
-  rentIncludes: string[];
+  utilities: string[];
   amenities: string[];
 };
 
@@ -115,7 +115,7 @@ function createUnitDetailsFormState(index = 0): UnitDetailsFormState {
     bedrooms: "",
     bathrooms: "",
     squareFeet: "",
-    rentIncludes: [],
+    utilities: [],
     amenities: [],
   };
 }
@@ -255,7 +255,7 @@ export function PropertyDrawer({
     contactCityLine,
   ].filter(Boolean);
   const contactAddress = contactAddressLines.join("\n");
-  const rentIncludeOptions = unitOptionsQuery.data?.rentIncludes ?? [];
+  const utilityTypes = unitOptionsQuery.data?.utilities ?? [];
   const amenityOptions = unitOptionsQuery.data?.amenities ?? [];
   const unitPendingRemoval =
     units.find((unit) => unit.id === unitPendingRemovalId) ?? null;
@@ -367,7 +367,7 @@ export function PropertyDrawer({
 
   function updateUnitOption(
     unitId: string,
-    field: "rentIncludes" | "amenities",
+    field: "utilities" | "amenities",
     optionId: string,
     checked: boolean,
   ) {
@@ -485,7 +485,7 @@ export function PropertyDrawer({
         bedrooms: parseOptionalInteger(unit.bedrooms),
         bathrooms: parseOptionalNumber(unit.bathrooms),
         squareFeet: parseOptionalInteger(unit.squareFeet),
-        rentIncludeOptionIds: unit.rentIncludes,
+        utilityTypeIds: unit.utilities,
         amenityOptionIds: unit.amenities,
       })),
     });
@@ -1161,21 +1161,21 @@ export function PropertyDrawer({
 
                                   <div className="grid gap-5">
                                     <section>
-                                      <FieldLabel>Rent Includes</FieldLabel>
+                                      <FieldLabel>Utilities Included</FieldLabel>
                                       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-3">
-                                        {rentIncludeOptions.map((option) => (
+                                        {utilityTypes.map((option) => (
                                           <label
                                             className="flex items-center gap-3 text-sm font-medium text-parcelis-charcoal"
                                             key={option.id}
                                           >
                                             <Checkbox
-                                              checked={unit.rentIncludes.includes(
+                                              checked={unit.utilities.includes(
                                                 option.id,
                                               )}
                                               onCheckedChange={(checked) =>
                                                 updateUnitOption(
                                                   unit.id,
-                                                  "rentIncludes",
+                                                  "utilities",
                                                   option.id,
                                                   checked === true,
                                                 )
