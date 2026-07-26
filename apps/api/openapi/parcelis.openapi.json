@@ -326,7 +326,7 @@
                             "maximum": 9007199254740991
                           }
                         },
-                        "amenityOptionIds": {
+                        "amenityTypeIds": {
                           "default": [],
                           "type": "array",
                           "items": {
@@ -676,7 +676,7 @@
                             "maximum": 9007199254740991
                           }
                         },
-                        "amenityOptionIds": {
+                        "amenityTypeIds": {
                           "default": [],
                           "type": "array",
                           "items": {
@@ -1716,7 +1716,7 @@
                       "maximum": 9007199254740991
                     }
                   },
-                  "amenityOptionIds": {
+                  "amenityTypeIds": {
                     "default": [],
                     "type": "array",
                     "items": {
@@ -1978,7 +1978,7 @@
                       "maximum": 9007199254740991
                     }
                   },
-                  "amenityOptionIds": {
+                  "amenityTypeIds": {
                     "default": [],
                     "type": "array",
                     "items": {

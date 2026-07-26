@@ -51,7 +51,7 @@ const properties = [
 ];
 
 const utilityTypes = ["Electricity", "Water", "Sewer", "Gas", "Internet"];
-const amenityOptions = [
+const amenityTypes = [
   "A/C",
   "Off-Street Parking",
   "On-Street Parking",
@@ -168,7 +168,7 @@ async function seedUnitsForProperty(property) {
         where: { label: { in: utilityLabels } },
         select: { id: true },
       }),
-      prisma.amenityOption.findMany({
+      prisma.amenityType.findMany({
         where: { label: { in: amenityLabels } },
         select: { id: true },
       }),
@@ -221,8 +221,8 @@ async function main() {
     });
   }
 
-  for (const [index, label] of amenityOptions.entries()) {
-    await prisma.amenityOption.upsert({
+  for (const [index, label] of amenityTypes.entries()) {
+    await prisma.amenityType.upsert({
       where: { label },
       update: { sortOrder: (index + 1) * 10 },
       create: { label, sortOrder: (index + 1) * 10 },

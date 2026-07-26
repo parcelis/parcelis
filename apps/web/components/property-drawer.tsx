@@ -254,7 +254,7 @@ export function PropertyDrawer({
   ].filter(Boolean);
   const contactAddress = contactAddressLines.join("\n");
   const utilityTypes = unitOptionsQuery.data?.utilities ?? [];
-  const amenityOptions = unitOptionsQuery.data?.amenities ?? [];
+  const amenityTypes = unitOptionsQuery.data?.amenityTypes ?? [];
   const unitPendingRemoval =
     units.find((unit) => unit.id === unitPendingRemovalId) ?? null;
   useShortcut("Mod+Enter", () => runPrimaryAction(), {
@@ -482,7 +482,7 @@ export function PropertyDrawer({
         bathrooms: parseOptionalNumber(unit.bathrooms),
         squareFeet: parseOptionalInteger(unit.squareFeet),
         utilityTypeIds: unit.utilities,
-        amenityOptionIds: unit.amenities,
+        amenityTypeIds: unit.amenities,
       })),
     });
   }
@@ -1186,7 +1186,7 @@ export function PropertyDrawer({
                                     <section>
                                       <FieldLabel>Amenities</FieldLabel>
                                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                        {amenityOptions.map((option) => (
+                                        {amenityTypes.map((option) => (
                                           <label
                                             className="flex items-center gap-3 text-sm font-medium text-parcelis-charcoal"
                                             key={option.id}

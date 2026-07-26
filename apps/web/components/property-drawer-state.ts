@@ -30,7 +30,7 @@ type DrawerProperty = {
     bathrooms: number | null;
     squareFeet: number | null;
     utilityTypeIds: number[];
-    amenityOptionIds: number[];
+    amenityTypeIds: number[];
   }>;
 };
 
@@ -102,7 +102,7 @@ export function getUnitFormStates(
           ? ""
           : String(unit.squareFeet),
       utilities: unit.utilityTypeIds,
-      amenities: unit.amenityOptionIds,
+      amenities: unit.amenityTypeIds,
     }));
   }
 

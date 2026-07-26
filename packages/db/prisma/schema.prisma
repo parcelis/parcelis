@@ -92,7 +92,7 @@ model UtilityType {
   updatedAt DateTime      @updatedAt
 }
 
-model AmenityOption {
+model AmenityType {
   id        Int           @id @default(autoincrement())
   label     String        @unique
   sortOrder Int           @default(0)
@@ -115,7 +115,7 @@ model UnitAmenity {
   unitId   Int
   optionId Int
   unit     Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  option   AmenityOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  option   AmenityType @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@id([unitId, optionId])
   @@index([optionId])

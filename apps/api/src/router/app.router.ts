@@ -59,7 +59,7 @@ function getUnitCreateData(propertyId: number, unitDetails: UnitDetailsInput) {
       })),
     },
     amenities: {
-      create: unitDetails.amenityOptionIds.map((optionId) => ({
+      create: unitDetails.amenityTypeIds.map((optionId) => ({
         option: { connect: { id: optionId } },
       })),
     },
@@ -80,7 +80,7 @@ function getUnitUpdateData(unitDetails: UnitDetailsInput) {
       })),
     },
     amenities: {
-      create: unitDetails.amenityOptionIds.map((optionId) => ({
+      create: unitDetails.amenityTypeIds.map((optionId) => ({
         option: { connect: { id: optionId } },
       })),
     },
@@ -97,7 +97,7 @@ function serializeUnit<
   return {
     ...unit,
     bathrooms: unit.bathrooms === null ? null : Number(unit.bathrooms),
-    amenityOptionIds: unit.amenities.map((amenity) => amenity.option.id),
+    amenityTypeIds: unit.amenities.map((amenity) => amenity.option.id),
     utilityTypeIds: unit.utilities.map(
       (utility) => utility.option.id,
     ),
@@ -406,24 +406,24 @@ export const appRouter = router({
   unitOptions: router({
     /** Lists the available utility and amenity options for units. */
     list: publicProcedure.query(async ({ ctx }) => {
-      const [utilities, amenities] = await Promise.all([
+      const [utilities, amenityTypes] = await Promise.all([
         ctx.prisma.utilityType.findMany({
           orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
           select: { id: true, label: true, sortOrder: true },
         }),
-        ctx.prisma.amenityOption.findMany({
+        ctx.prisma.amenityType.findMany({
           orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
           select: { id: true, label: true, sortOrder: true },
         }),
       ]);
 
-      return { utilities, amenities };
+      return { utilities, amenityTypes };
     }),
   }),
   amenities: router({
     /** Lists the available amenity options. */
     list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.amenityOption.findMany({
+        ctx.prisma.amenityType.findMany({
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
       }),
@@ -432,7 +432,7 @@ export const appRouter = router({
     update: publicProcedure
       .input(updateAmenityInputSchema)
       .mutation(({ ctx, input }) =>
-        ctx.prisma.amenityOption.update({
+        ctx.prisma.amenityType.update({
           where: { id: input.id },
           data: { label: input.label, sortOrder: input.sortOrder },
           select: { id: true, label: true, sortOrder: true },

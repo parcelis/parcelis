@@ -51,7 +51,7 @@ export const unitDetailsInputSchema = z.object({
   bathrooms: z.number().nonnegative().optional(),
   squareFeet: z.number().int().nonnegative().optional(),
   utilityTypeIds: z.array(idSchema).default([]),
-  amenityOptionIds: z.array(idSchema).default([]),
+  amenityTypeIds: z.array(idSchema).default([]),
 });
 
 export const createUnitInputSchema = unitDetailsInputSchema.omit({ id: true }).extend({
