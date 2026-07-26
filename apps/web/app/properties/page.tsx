@@ -11,6 +11,7 @@ import {
   CircleDollarSign,
   DoorOpen,
   EllipsisVertical,
+  Eye,
   Filter,
   Loader2,
   Pencil,
@@ -60,6 +61,8 @@ import {
 } from "../../components/property-drawer";
 import {
   getPropertyFormState,
+  getPropertyType,
+  getUnitType,
   getUnitFormStates,
 } from "../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../components/api-client";
@@ -141,6 +144,7 @@ function getUnitRows(property: PropertyListItem) {
     );
 
     return {
+      id: property.units.find((unit) => unit.name === unitLabel)?.id,
       unitLabel,
       isOccupied: index < property.occupiedUnits,
       monthlyRentCents: activeLease?.monthlyRentCents ?? 0,
@@ -151,6 +155,8 @@ function getUnitRows(property: PropertyListItem) {
     };
   });
 }
+
+type UnitRow = ReturnType<typeof getUnitRows>[number];
 
 function PropertyActionsMenu({
   onArchive,
@@ -177,6 +183,12 @@ function PropertyActionsMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem asChild>
+          <Link href={`/properties/${property.id}`}>
+            <Eye className="h-4 w-4 text-parcelis-green" />
+            View
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onEdit}>
           <Pencil className="h-4 w-4 text-parcelis-green" />
           Edit
@@ -194,6 +206,73 @@ function PropertyActionsMenu({
         </DropdownMenuItem>
         <DropdownMenuItem
           className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
+          onSelect={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function UnitActionsMenu({
+  onDelete,
+  onEdit,
+  onNotes,
+  property,
+  unit,
+}: {
+  onDelete: () => void;
+  onEdit: () => void;
+  onNotes: () => void;
+  property: PropertyListItem;
+  unit: UnitRow;
+}) {
+  const unitHref = unit.id
+    ? `/properties/${property.id}/units/${unit.id}`
+    : null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label={`Open actions for unit ${unit.unitLabel}`}
+          className="inline-grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-white hover:text-parcelis-charcoal"
+          type="button"
+        >
+          <EllipsisVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        {unitHref ? (
+          <DropdownMenuItem asChild>
+            <Link href={unitHref}>
+              <Eye className="h-4 w-4 text-parcelis-green" />
+              View
+            </Link>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem disabled>
+            <Eye className="h-4 w-4 text-parcelis-green" />
+            View
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem disabled={!unit.id} onSelect={onEdit}>
+          <Pencil className="h-4 w-4 text-parcelis-green" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onNotes}>
+          <StickyNote className="h-4 w-4 text-parcelis-green" />
+          Add Notes
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <Archive className="h-4 w-4 text-parcelis-green" />
+          Archive
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
+          disabled={!unit.id}
           onSelect={onDelete}
         >
           <Trash2 className="h-4 w-4" />
@@ -278,6 +357,19 @@ export default function PropertiesPage() {
       ]);
     },
   });
+  const deleteUnit = useMutation({
+    mutationFn: (input: UpdatePropertyInput) =>
+      apiClient.properties.update.mutate(input),
+    onSuccess: async (_property, input) => {
+      setDeleteUnitTarget(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(input.id),
+        }),
+      ]);
+    },
+  });
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -291,6 +383,9 @@ export default function PropertiesPage() {
   const [editingPropertyId, setEditingPropertyId] = React.useState<
     number | null
   >(null);
+  const [editingUnitId, setEditingUnitId] = React.useState<
+    number | undefined
+  >();
   const [editInitialForm, setEditInitialForm] =
     React.useState<PropertyFormState>(initialPropertyFormState);
   const [editInitialUnits, setEditInitialUnits] = React.useState<
@@ -302,6 +397,11 @@ export default function PropertiesPage() {
   const [deletePropertyId, setDeletePropertyId] = React.useState<number | null>(
     null,
   );
+  const [deleteUnitTarget, setDeleteUnitTarget] = React.useState<{
+    propertyId: number;
+    unitId: number;
+    unitLabel: string;
+  } | null>(null);
   const [notesPropertyId, setNotesPropertyId] = React.useState<number | null>(
     null,
   );
@@ -323,6 +423,10 @@ export default function PropertiesPage() {
     properties.find((property) => property.id === deletePropertyId) ?? null;
   const notesPropertyTarget =
     properties.find((property) => property.id === notesPropertyId) ?? null;
+  const deleteUnitProperty =
+    properties.find(
+      (property) => property.id === deleteUnitTarget?.propertyId,
+    ) ?? null;
   const filteredProperties = properties.filter((property) => {
     const query = search.toLowerCase();
     const matchesSearch = [
@@ -429,12 +533,13 @@ export default function PropertiesPage() {
     });
   }
 
-  function openEditProperty(property: PropertyListItem) {
+  function openEditProperty(property: PropertyListItem, unitId?: number) {
     const nextForm = getPropertyFormState(property);
     setEditInitialForm(nextForm);
     setEditInitialUnits(getUnitFormStates(property));
     setForm(nextForm);
     setEditingPropertyId(property.id);
+    setEditingUnitId(unitId);
     setIsFormOpen(true);
   }
 
@@ -442,6 +547,7 @@ export default function PropertiesPage() {
     setIsFormOpen(open);
     if (!open) {
       setEditingPropertyId(null);
+      setEditingUnitId(undefined);
       setEditInitialForm(initialPropertyFormState);
       setEditInitialUnits([]);
     }
@@ -464,10 +570,12 @@ export default function PropertiesPage() {
         drawerTitle={editingProperty ? "Edit Property" : "Add Property"}
         error={editingProperty ? updateProperty.error : createProperty.error}
         form={form}
+        initialExpandedUnitId={editingUnitId}
         initialFormState={
           editingProperty ? editInitialForm : initialPropertyFormState
         }
         initialUnits={editingProperty ? editInitialUnits : undefined}
+        initialStep={editingUnitId ? "unit" : "property"}
         isPending={
           editingProperty ? updateProperty.isPending : createProperty.isPending
         }
@@ -483,6 +591,86 @@ export default function PropertiesPage() {
         open={isFormOpen}
         submitLabel={editingProperty ? "Save" : "Next"}
       />
+      <AlertDialog
+        open={Boolean(deleteUnitTarget)}
+        onOpenChange={(open) => !open && setDeleteUnitTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete unit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes Unit {deleteUnitTarget?.unitLabel ?? ""}
+              {deleteUnitProperty ? ` from ${deleteUnitProperty.name}` : ""} and
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setDeleteUnitTarget(null)}
+            >
+              Keep Unit
+            </Button>
+            <Button
+              disabled={
+                deleteUnit.isPending || !deleteUnitTarget || !deleteUnitProperty
+              }
+              onClick={() => {
+                if (!deleteUnitTarget || !deleteUnitProperty) {
+                  return;
+                }
+
+                deleteUnit.mutate({
+                  id: deleteUnitProperty.id,
+                  name: deleteUnitProperty.name,
+                  propertyType: getPropertyType(
+                    deleteUnitProperty.propertyType,
+                  ),
+                  address: {
+                    line1: deleteUnitProperty.line1,
+                    line2: deleteUnitProperty.line2 ?? undefined,
+                    city: deleteUnitProperty.city,
+                    region: deleteUnitProperty.region,
+                    postalCode: deleteUnitProperty.postalCode,
+                  },
+                  contactName: deleteUnitProperty.contactName ?? undefined,
+                  contactEmail: deleteUnitProperty.contactEmail ?? undefined,
+                  contactPhone: deleteUnitProperty.contactPhone ?? undefined,
+                  contactAddress:
+                    deleteUnitProperty.contactAddress ?? undefined,
+                  notes: deleteUnitProperty.notes ?? undefined,
+                  unitCount: deleteUnitProperty.unitCount - 1,
+                  units: deleteUnitProperty.units
+                    .filter((unit) => unit.id !== deleteUnitTarget.unitId)
+                    .map((unit) => ({
+                      id: unit.id,
+                      name: unit.name,
+                      marketRateCents: unit.marketRateCents,
+                      unitType: getUnitType(unit.unitType),
+                      bedrooms: unit.bedrooms ?? undefined,
+                      bathrooms:
+                        unit.bathrooms === null
+                          ? undefined
+                          : Number(unit.bathrooms),
+                      squareFeet: unit.squareFeet ?? undefined,
+                      utilityTypeIds: unit.utilityTypeIds,
+                      amenityTypeIds: unit.amenityTypeIds,
+                    })),
+                });
+              }}
+              type="button"
+            >
+              {deleteUnit.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog
         open={Boolean(archivePropertyTarget)}
         onOpenChange={(open) => !open && setArchivePropertyId(null)}
@@ -1110,7 +1298,27 @@ export default function PropertiesPage() {
                                       {formatStatus(unit.status)}
                                     </span>
                                   </TableCell>
-                                  <TableCell className="px-5 py-3" />
+                                  <TableCell className="px-5 py-3 text-right">
+                                    <UnitActionsMenu
+                                      onDelete={() => {
+                                        if (unit.id) {
+                                          setDeleteUnitTarget({
+                                            propertyId: property.id,
+                                            unitId: unit.id,
+                                            unitLabel: unit.unitLabel,
+                                          });
+                                        }
+                                      }}
+                                      onEdit={() => {
+                                        if (unit.id) {
+                                          openEditProperty(property, unit.id);
+                                        }
+                                      }}
+                                      onNotes={() => openNotes(property)}
+                                      property={property}
+                                      unit={unit}
+                                    />
+                                  </TableCell>
                                 </TableRow>
                               ))
                             : null}
