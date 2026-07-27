@@ -23,6 +23,8 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Dialog,
+  DialogContent,
   ParcelisLogo,
   Select,
 } from "@parcelis/ui";
@@ -38,6 +40,10 @@ import {
   getUnitFormStates,
 } from "../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../components/api-client";
+import {
+  deletePropertyImage,
+  uploadPropertyImage,
+} from "../../../components/property-image-upload";
 import { Sidebar } from "../../../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -75,11 +81,32 @@ export default function PropertyDetailPage() {
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
   });
   const updateProperty = useMutation({
-    mutationFn: (input: UpdatePropertyInput) =>
-      apiClient.properties.update.mutate(input),
+    mutationFn: async ({
+      imageFile,
+      input,
+    }: {
+      imageFile: File | null;
+      input: UpdatePropertyInput;
+    }) => {
+      const updatedProperty = await apiClient.properties.update.mutate(input);
+      if (imageFile) await uploadPropertyImage(updatedProperty.id, imageFile);
+      return updatedProperty;
+    },
     onSuccess: async () => {
       setIsEditDrawerOpen(false);
       setEditInitialUnits([]);
+      setPropertyImageFile(null);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(propertyId),
+        }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+      ]);
+    },
+  });
+  const deletePropertyImageMutation = useMutation({
+    mutationFn: deletePropertyImage,
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: queryKeys.properties.byId(propertyId),
@@ -97,6 +124,10 @@ export default function PropertyDetailPage() {
   const [editForm, setEditForm] = React.useState<PropertyFormState>(
     initialPropertyFormState,
   );
+  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(
+    null,
+  );
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = React.useState(false);
   const [unitStatusFilter, setUnitStatusFilter] = React.useState("all");
 
   const property = propertyQuery.data;
@@ -188,11 +219,19 @@ export default function PropertyDetailPage() {
         form={editForm}
         initialFormState={editInitialForm}
         initialUnits={editInitialUnits}
+        imageFile={propertyImageFile}
+        imageUrl={property?.imageUrl}
+        isImageDeletePending={deletePropertyImageMutation.isPending}
         isPending={updateProperty.isPending}
         onFormChange={setEditForm}
+        onImageChange={setPropertyImageFile}
+        onImageDelete={() => deletePropertyImageMutation.mutate(propertyId)}
         onOpenChange={setIsEditDrawerOpen}
-        onSubmit={(input) =>
-          updateProperty.mutate({ ...input, id: propertyId })
+        onSubmit={(input, imageFile) =>
+          updateProperty.mutate({
+            imageFile,
+            input: { ...input, id: propertyId },
+          })
         }
         open={isEditDrawerOpen}
         submitLabel="Save"
@@ -200,6 +239,20 @@ export default function PropertyDetailPage() {
           unit.id ? `/properties/${propertyId}/units/${unit.id}` : null
         }
       />
+      {property?.imageUrl ? (
+        <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>
+          <DialogContent
+            aria-label={`${property.name} property image`}
+            className="border-0 bg-transparent p-0 shadow-none"
+          >
+            <img
+              alt={`${property.name} property`}
+              className="max-h-[85vh] max-w-[90vw] rounded-md object-contain"
+              src={property.imageUrl}
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -280,10 +333,26 @@ export default function PropertyDetailPage() {
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex w-full flex-col gap-4 md:w-auto md:items-end">
+                  <div className="flex w-full flex-col gap-4 md:w-52 md:self-stretch md:items-end">
                     <Button onClick={openEditDrawer} variant="secondary">
                       Edit property
                     </Button>
+                    {property.imageUrl ? (
+                      <div className="flex flex-1 items-center md:w-full md:justify-end">
+                        <button
+                          aria-label={`View ${property.name} property image`}
+                          className="h-32 w-full overflow-hidden rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green"
+                          onClick={() => setIsImagePreviewOpen(true)}
+                          type="button"
+                        >
+                          <img
+                            alt={`${property.name} property`}
+                            className="h-full w-full object-cover transition duration-200 hover:scale-[1.02]"
+                            src={property.imageUrl}
+                          />
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </section>

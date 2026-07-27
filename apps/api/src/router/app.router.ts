@@ -3,6 +3,8 @@ import {
   createTagInputSchema,
   createUnitInputSchema,
   propertyByIdInputSchema,
+  propertyImageUploadCompleteInputSchema,
+  propertyImageUploadInputSchema,
   propertyNotesInputSchema,
   propertyStatusInputSchema,
   listUnitsInputSchema,
@@ -13,7 +15,12 @@ import {
   updatePropertyInputSchema,
 } from "@parcelis/schemas";
 import { LeaseStatus, UnitType } from "@parcelis/db";
-import { getPublicObjectStorageConfig } from "../modules/object-storage.config";
+import {
+  createPropertyImageDownloadUrl,
+  createPropertyImageUploadUrl,
+  deletePropertyImageObject,
+  getPublicObjectStorageConfig,
+} from "../modules/object-storage.config";
 import { publicProcedure, router } from "./trpc";
 
 const propertySelect = {
@@ -25,6 +32,7 @@ const propertySelect = {
   region: true,
   postalCode: true,
   propertyType: true,
+  imageObjectKey: true,
   tags: { select: { id: true, label: true, sortOrder: true } },
   contactName: true,
   contactEmail: true,
@@ -104,9 +112,7 @@ function serializeUnit<
     ...unit,
     bathrooms: unit.bathrooms === null ? null : Number(unit.bathrooms),
     amenityTypeIds: unit.amenities.map((amenity) => amenity.option.id),
-    utilityTypeIds: unit.utilities.map(
-      (utility) => utility.option.id,
-    ),
+    utilityTypeIds: unit.utilities.map((utility) => utility.option.id),
   };
 }
 
@@ -203,11 +209,16 @@ export const appRouter = router({
         take: 50,
       });
 
-      return properties.map((property) =>
-        withOperatingMetrics({
-          ...property,
-          units: property.units.map(serializeUnit),
-        }),
+      return Promise.all(
+        properties.map(async (property) => ({
+          ...withOperatingMetrics({
+            ...property,
+            units: property.units.map(serializeUnit),
+          }),
+          imageUrl: await createPropertyImageDownloadUrl(
+            property.imageObjectKey,
+          ),
+        })),
       );
     }),
     /** Returns one property with its units, leases, and maintenance tickets. */
@@ -246,8 +257,64 @@ export const appRouter = router({
               ...property,
               units: property.units.map(serializeUnit),
               unitStatuses,
+              imageUrl: await createPropertyImageDownloadUrl(
+                property.imageObjectKey,
+              ),
             }
           : null;
+      }),
+    /** Creates a short-lived URL for uploading a property image to MinIO. */
+    createImageUploadUrl: publicProcedure
+      .input(propertyImageUploadInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        await ctx.prisma.property.findUniqueOrThrow({
+          where: { id: input.id },
+        });
+        return createPropertyImageUploadUrl(input.contentType, input.id);
+      }),
+    /** Records a successfully uploaded image and removes the previous object. */
+    completeImageUpload: publicProcedure
+      .input(propertyImageUploadCompleteInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const currentProperty = await ctx.prisma.property.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { imageObjectKey: true },
+        });
+
+        const property = await ctx.prisma.property.update({
+          where: { id: input.id },
+          data: { imageObjectKey: input.objectKey },
+          select: propertySelect,
+        });
+
+        if (
+          currentProperty.imageObjectKey &&
+          currentProperty.imageObjectKey !== input.objectKey
+        ) {
+          await deletePropertyImageObject(currentProperty.imageObjectKey);
+        }
+
+        return property;
+      }),
+    /** Removes the current image reference and its MinIO object. */
+    deleteImage: publicProcedure
+      .input(propertyByIdInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const currentProperty = await ctx.prisma.property.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { imageObjectKey: true },
+        });
+        const property = await ctx.prisma.property.update({
+          where: { id: input.id },
+          data: { imageObjectKey: null },
+          select: propertySelect,
+        });
+
+        if (currentProperty.imageObjectKey) {
+          await deletePropertyImageObject(currentProperty.imageObjectKey);
+        }
+
+        return property;
       }),
     /** Creates a property and its initial units. */
     create: publicProcedure
@@ -450,7 +517,7 @@ export const appRouter = router({
   amenities: router({
     /** Lists the available amenity options. */
     list: publicProcedure.query(({ ctx }) =>
-        ctx.prisma.amenityType.findMany({
+      ctx.prisma.amenityType.findMany({
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
       }),
@@ -472,7 +539,9 @@ export const appRouter = router({
       .input(listUnitsInputSchema)
       .query(async ({ ctx, input }) => {
         const units = await ctx.prisma.unit.findMany({
-          where: input.propertyId ? { propertyId: input.propertyId } : undefined,
+          where: input.propertyId
+            ? { propertyId: input.propertyId }
+            : undefined,
           orderBy: [{ propertyId: "asc" }, { createdAt: "asc" }],
           include: {
             amenities: {

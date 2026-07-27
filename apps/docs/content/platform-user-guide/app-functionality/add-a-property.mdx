@@ -21,6 +21,7 @@ Use the property drawer when onboarding a new property.
 - Property contact phone.
 - Property contact address.
 - Tags.
+- A property image in JPG, PNG, or WebP format.
 
 ## Steps
 
@@ -31,9 +32,10 @@ Use the property drawer when onboarding a new property.
 5. Enter the number of units.
 6. Select existing tags or add a custom tag to organize the property.
 7. Expand **Property Contact Info** if contact details should be stored with the property.
-8. Select **Next** to open **Unit Details**.
-9. Review the first unit card, add additional units if needed, and complete required unit fields.
-10. Select **Create Property** to save the property.
+8. In the **Property Image** panel, to the left of the details form, select an image to upload. This is optional.
+9. Select **Next** to open **Unit Details**.
+10. Review the first unit card, add additional units if needed, and complete required unit fields.
+11. Select **Create Property** to save the property and upload the selected image.
 
 ## Notes
 
@@ -41,3 +43,4 @@ Use the property drawer when onboarding a new property.
 - Unit count must be at least 1 when entered through the property drawer.
 - Unit utilities and amenities come from Parcelis unit option records.
 - If you close the drawer after making changes, Parcelis asks you to confirm before discarding unsaved work.
+- Uploaded images are stored in MinIO under `properties/{propertyId}/images/{imageId}.{extension}`. Each property can have one current image; uploading a replacement updates the image used throughout Parcelis.

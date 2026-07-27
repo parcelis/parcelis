@@ -54,6 +54,24 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api-reference/properties-create-image-upload-url",
+          label: "properties-createImageUploadUrl",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api-reference/properties-complete-image-upload",
+          label: "properties-completeImageUpload",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api-reference/properties-delete-image",
+          label: "properties-deleteImage",
+          className: "api-method delete",
+        },
+        {
+          type: "doc",
           id: "api-reference/properties-archive",
           label: "properties-archive",
           className: "api-method patch",

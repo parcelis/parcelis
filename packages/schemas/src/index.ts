@@ -58,9 +58,11 @@ export const unitDetailsInputSchema = z.object({
   amenityTypeIds: z.array(idSchema).default([]),
 });
 
-export const createUnitInputSchema = unitDetailsInputSchema.omit({ id: true }).extend({
-  propertyId: idSchema,
-});
+export const createUnitInputSchema = unitDetailsInputSchema
+  .omit({ id: true })
+  .extend({
+    propertyId: idSchema,
+  });
 
 export const updateUnitInputSchema = unitDetailsInputSchema.extend({
   id: idSchema,
@@ -135,6 +137,27 @@ export const propertyStatusInputSchema = z.object({
   id: idSchema,
 });
 
+export const propertyImageUploadInputSchema = z.object({
+  id: idSchema,
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  fileName: z.string().trim().min(1).max(255),
+});
+
+export const propertyImageUploadCompleteInputSchema = z
+  .object({
+    id: idSchema,
+    objectKey: z
+      .string()
+      .regex(/^properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+  })
+  .refine(
+    ({ id, objectKey }) => objectKey.startsWith(`properties/${id}/images/`),
+    {
+      message: "The image must belong to the selected property.",
+      path: ["objectKey"],
+    },
+  );
+
 export type Address = z.infer<typeof addressSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type PropertyType = z.infer<typeof propertyTypeSchema>;
@@ -147,3 +170,9 @@ export type Tenant = z.infer<typeof tenantSchema>;
 export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;
 export type UpdatePropertyInput = z.infer<typeof updatePropertyInputSchema>;
+export type PropertyImageUploadInput = z.infer<
+  typeof propertyImageUploadInputSchema
+>;
+export type PropertyImageUploadCompleteInput = z.infer<
+  typeof propertyImageUploadCompleteInputSchema
+>;

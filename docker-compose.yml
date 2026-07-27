@@ -62,11 +62,13 @@ services:
       MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:-parcelis-assets}
     volumes:
       - ./infra/minio/assets:/assets:ro
+      - ./infra/minio/property-images:/property-images:ro
     entrypoint: >
       /bin/sh -c "
       until /usr/bin/mc alias set parcelis http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
       /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_BUCKET;
       /usr/bin/mc anonymous set none parcelis/$$MINIO_BUCKET;
+      /usr/bin/mc cors set parcelis/$$MINIO_BUCKET /property-images;
       /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_ASSETS_BUCKET;
       /usr/bin/mc cp --recursive /assets/ parcelis/$$MINIO_ASSETS_BUCKET/;
       /usr/bin/mc anonymous set download parcelis/$$MINIO_ASSETS_BUCKET;

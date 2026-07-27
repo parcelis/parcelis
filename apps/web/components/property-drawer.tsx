@@ -11,6 +11,7 @@ import {
   DoorOpen,
   ExternalLink,
   Home,
+  ImagePlus,
   Loader2,
   Plus,
   Ruler,
@@ -136,10 +137,15 @@ type PropertyDrawerProps = {
   initialExpandedUnitId?: UnitId;
   initialStep?: DrawerStep;
   initialUnits?: UnitDetailsFormState[];
+  imageFile?: File | null;
+  imageUrl?: string | null;
+  isImageDeletePending?: boolean;
   isPending: boolean;
   onFormChange: React.Dispatch<React.SetStateAction<PropertyFormState>>;
+  onImageChange?: (file: File | null) => void;
+  onImageDelete?: () => void;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (input: CreatePropertyInput) => void;
+  onSubmit: (input: CreatePropertyInput, imageFile: File | null) => void;
   open: boolean;
   submitLabel?: string;
   toggleShortcut?: ShortcutKey;
@@ -165,8 +171,13 @@ export function PropertyDrawer({
   initialExpandedUnitId,
   initialStep = "property",
   initialUnits,
+  imageFile = null,
+  imageUrl = null,
+  isImageDeletePending = false,
   isPending,
   onFormChange,
+  onImageChange,
+  onImageDelete,
   onOpenChange,
   onSubmit,
   open,
@@ -174,6 +185,8 @@ export function PropertyDrawer({
   toggleShortcut = "Mod+Shift+P",
   unitHref,
 }: PropertyDrawerProps) {
+  const imageInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = React.useState(imageUrl);
   const queryClient = useQueryClient();
   const initialUnitStates = React.useMemo(
     () => getInitialUnitFormStates(initialUnits),
@@ -187,9 +200,11 @@ export function PropertyDrawer({
   const [isTagPopoverOpen, setIsTagPopoverOpen] = React.useState(false);
   const [customTag, setCustomTag] = React.useState("");
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = React.useState(false);
-  const [unitPendingRemovalId, setUnitPendingRemovalId] = React.useState<
-    UnitId | null
+  const [imageValidationError, setImageValidationError] = React.useState<
+    string | null
   >(null);
+  const [unitPendingRemovalId, setUnitPendingRemovalId] =
+    React.useState<UnitId | null>(null);
   const [units, setUnits] = React.useState<UnitDetailsFormState[]>(() => [
     ...initialUnitStates,
   ]);
@@ -255,9 +270,10 @@ export function PropertyDrawer({
     });
   const canSubmit =
     currentStep === "property"
-      ? canContinueToUnitDetails
-      : canSubmitUnitDetails;
+      ? canContinueToUnitDetails && !imageValidationError
+      : canSubmitUnitDetails && !imageValidationError;
   const primaryActionLabel = currentStep === "property" ? "Next" : submitLabel;
+  const hasImageChange = Boolean(imageFile);
   const cityLine = [
     form.city,
     [form.region, form.postalCode].filter(Boolean).join(" "),
@@ -316,6 +332,7 @@ export function PropertyDrawer({
       setIsContactInfoOpen(false);
       setIsTagPopoverOpen(false);
       setIsDiscardDialogOpen(false);
+      setImageValidationError(null);
       setUnitPendingRemovalId(null);
       return;
     }
@@ -332,8 +349,20 @@ export function PropertyDrawer({
     setIsContactInfoOpen(false);
     setIsTagPopoverOpen(false);
     setIsDiscardDialogOpen(false);
+    setImageValidationError(null);
     setUnitPendingRemovalId(null);
   }, [initialExpandedUnitId, initialStep, initialUnitStates, open]);
+
+  React.useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl(imageUrl);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setImagePreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [imageFile, imageUrl]);
 
   React.useEffect(() => {
     if (!open || currentStep !== "unit" || !initialExpandedUnitId) {
@@ -514,38 +543,50 @@ export function PropertyDrawer({
   }
 
   function submitPropertyInput() {
-    onSubmit({
-      name: form.name,
-      propertyType: form.propertyType,
-      tagIds: propertyTagIds,
-      contactName: form.contactName || undefined,
-      contactEmail: form.contactEmail || undefined,
-      contactPhone: form.contactPhone || undefined,
-      contactAddress: contactAddress || undefined,
-      address: {
-        line1: form.line1,
-        line2: form.line2 || undefined,
-        city: form.city,
-        region: form.region.toUpperCase(),
-        postalCode: form.postalCode,
+    onSubmit(
+      {
+        name: form.name,
+        propertyType: form.propertyType,
+        tagIds: propertyTagIds,
+        contactName: form.contactName || undefined,
+        contactEmail: form.contactEmail || undefined,
+        contactPhone: form.contactPhone || undefined,
+        contactAddress: contactAddress || undefined,
+        address: {
+          line1: form.line1,
+          line2: form.line2 || undefined,
+          city: form.city,
+          region: form.region.toUpperCase(),
+          postalCode: form.postalCode,
+        },
+        unitCount: Number(form.unitCount),
+        units: units.map((unit) => ({
+          id: isPersistedUnitId(unit.id) ? unit.id : undefined,
+          name: unit.unitName,
+          marketRateCents: parseMarketRateCents(unit.marketRate),
+          unitType: unit.unitType,
+          bedrooms: parseOptionalInteger(unit.bedrooms),
+          bathrooms: parseOptionalNumber(unit.bathrooms),
+          squareFeet: parseOptionalInteger(unit.squareFeet),
+          utilityTypeIds: unit.utilities,
+          amenityTypeIds: unit.amenities,
+        })),
       },
-      unitCount: Number(form.unitCount),
-      units: units.map((unit) => ({
-        id: isPersistedUnitId(unit.id) ? unit.id : undefined,
-        name: unit.unitName,
-        marketRateCents: parseMarketRateCents(unit.marketRate),
-        unitType: unit.unitType,
-        bedrooms: parseOptionalInteger(unit.bedrooms),
-        bathrooms: parseOptionalNumber(unit.bathrooms),
-        squareFeet: parseOptionalInteger(unit.squareFeet),
-        utilityTypeIds: unit.utilities,
-        amenityTypeIds: unit.amenities,
-      })),
-    });
+      imageFile,
+    );
+  }
+
+  function removeImage() {
+    if (imageFile) {
+      onImageChange?.(null);
+      return;
+    }
+
+    onImageDelete?.();
   }
 
   function closeAndReset() {
-    if (hasFormChanges || hasUnitDetailsChanges) {
+    if (hasFormChanges || hasUnitDetailsChanges || hasImageChange) {
       setIsDiscardDialogOpen(true);
       return;
     }
@@ -563,6 +604,7 @@ export function PropertyDrawer({
     setCurrentStep(initialStep);
     setUnits([...initialUnitStates]);
     setExpandedUnitIds(new Set());
+    onImageChange?.(null);
     onFormChange(initialFormState);
     onOpenChange(false);
   }
@@ -677,43 +719,117 @@ export function PropertyDrawer({
               </div>
             </div>
 
-            <div className="grid gap-6 px-4 py-6 md:px-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
-              <aside className="overflow-hidden rounded-md border border-parcelis-border bg-white dark:bg-parcelis-slate lg:sticky lg:top-6 lg:self-start">
-                {steps.map((step, index) => {
-                  const Icon = step.icon;
-                  const isActive = step.step === currentStep;
-                  const className = `flex w-full items-center gap-3 border-parcelis-border px-4 py-4 text-left ${
-                    index > 0 ? "border-t" : ""
-                  } ${isActive ? "bg-parcelis-porcelain/70 text-parcelis-charcoal dark:bg-parcelis-charcoal/55" : "text-parcelis-gray"}`;
+            <div className="grid gap-10 px-4 py-6 md:px-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+              <div className="grid gap-6 lg:sticky lg:top-6 lg:self-start">
+                <aside className="overflow-hidden rounded-md border border-parcelis-border bg-white dark:bg-parcelis-slate">
+                  {steps.map((step, index) => {
+                    const Icon = step.icon;
+                    const isActive = step.step === currentStep;
+                    const className = `flex w-full items-center gap-3 border-parcelis-border px-4 py-4 text-left ${
+                      index > 0 ? "border-t" : ""
+                    } ${isActive ? "bg-parcelis-porcelain/70 text-parcelis-charcoal dark:bg-parcelis-charcoal/55" : "text-parcelis-gray"}`;
 
-                  if (!step.step) {
+                    if (!step.step) {
+                      return (
+                        <div className={className} key={step.label}>
+                          <Icon className="h-5 w-5 text-parcelis-gray" />
+                          <span className="text-sm font-semibold">
+                            {step.label}
+                          </span>
+                        </div>
+                      );
+                    }
+
                     return (
-                      <div className={className} key={step.label}>
-                        <Icon className="h-5 w-5 text-parcelis-gray" />
+                      <button
+                        className={`${className} transition hover:bg-parcelis-porcelain/70 hover:text-parcelis-charcoal`}
+                        key={step.label}
+                        onClick={() => setCurrentStep(step.step)}
+                        type="button"
+                      >
+                        <Icon
+                          className={`h-5 w-5 ${isActive ? "text-parcelis-green" : "text-parcelis-gray"}`}
+                        />
                         <span className="text-sm font-semibold">
                           {step.label}
                         </span>
-                      </div>
+                      </button>
                     );
-                  }
+                  })}
+                </aside>
 
-                  return (
-                    <button
-                      className={`${className} transition hover:bg-parcelis-porcelain/70 hover:text-parcelis-charcoal`}
-                      key={step.label}
-                      onClick={() => setCurrentStep(step.step)}
-                      type="button"
-                    >
-                      <Icon
-                        className={`h-5 w-5 ${isActive ? "text-parcelis-green" : "text-parcelis-gray"}`}
+                <section>
+                  <h3 className="text-sm font-semibold text-parcelis-charcoal">
+                    Property Image
+                  </h3>
+                  <input
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      if (file) {
+                        if (
+                          !["image/jpeg", "image/png", "image/webp"].includes(
+                            file.type,
+                          )
+                        ) {
+                          setImageValidationError(
+                            "Choose a JPG, PNG, or WebP image.",
+                          );
+                        } else {
+                          setImageValidationError(null);
+                          onImageChange?.(file);
+                        }
+                      }
+                      event.target.value = "";
+                    }}
+                    ref={imageInputRef}
+                    type="file"
+                  />
+                  <button
+                    className="mt-3 flex aspect-[4/3] w-full flex-col items-center justify-center overflow-hidden rounded-md border border-dashed border-parcelis-border bg-parcelis-porcelain/50 text-center transition hover:border-parcelis-green"
+                    onClick={() => imageInputRef.current?.click()}
+                    type="button"
+                  >
+                    {imagePreviewUrl ? (
+                      <img
+                        alt="Selected property"
+                        className="h-full w-full object-cover"
+                        src={imagePreviewUrl}
                       />
-                      <span className="text-sm font-semibold">
-                        {step.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </aside>
+                    ) : (
+                      <>
+                        <ImagePlus className="h-6 w-6 text-parcelis-green" />
+                        <span className="mt-3 text-sm font-semibold text-parcelis-charcoal">
+                          Upload image
+                        </span>
+                        <span className="mt-1 px-3 text-xs text-parcelis-gray">
+                          JPG, PNG, or WebP
+                        </span>
+                      </>
+                    )}
+                  </button>
+                  {imagePreviewUrl ? (
+                    <div className="mt-3 flex items-center justify-between gap-3 text-sm font-semibold">
+                      <button
+                        className="text-parcelis-charcoal hover:underline"
+                        onClick={() => imageInputRef.current?.click()}
+                        type="button"
+                      >
+                        Replace image
+                      </button>
+                      <button
+                        className="text-red-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={isImageDeletePending}
+                        onClick={removeImage}
+                        type="button"
+                      >
+                        Delete image
+                      </button>
+                    </div>
+                  ) : null}
+                </section>
+              </div>
 
               <section>
                 <div className="min-w-0">
@@ -1308,7 +1424,9 @@ export function PropertyDrawer({
 
                                   <div className="grid gap-5">
                                     <section>
-                                      <FieldLabel>Utilities Included</FieldLabel>
+                                      <FieldLabel>
+                                        Utilities Included
+                                      </FieldLabel>
                                       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-3">
                                         {utilityTypes.map((option) => (
                                           <label
@@ -1383,6 +1501,10 @@ export function PropertyDrawer({
                   {error ? (
                     <p className="mt-5 text-sm font-medium text-red-700">
                       {error.message}
+                    </p>
+                  ) : imageValidationError ? (
+                    <p className="mt-5 text-sm font-medium text-red-700">
+                      {imageValidationError}
                     </p>
                   ) : null}
                 </div>

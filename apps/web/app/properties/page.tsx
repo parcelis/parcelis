@@ -66,6 +66,10 @@ import {
   getUnitFormStates,
 } from "../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../components/api-client";
+import {
+  deletePropertyImage,
+  uploadPropertyImage,
+} from "../../components/property-image-upload";
 import { useShortcut } from "../../components/shortcut-provider";
 import { Sidebar } from "../../components/sidebar";
 
@@ -290,10 +294,20 @@ export default function PropertiesPage() {
     queryFn: () => apiClient.properties.list.query(),
   });
   const createProperty = useMutation({
-    mutationFn: (input: CreatePropertyInput) =>
-      apiClient.properties.create.mutate(input),
+    mutationFn: async ({
+      imageFile,
+      input,
+    }: {
+      imageFile: File | null;
+      input: CreatePropertyInput;
+    }) => {
+      const property = await apiClient.properties.create.mutate(input);
+      if (imageFile) await uploadPropertyImage(property.id, imageFile);
+      return property;
+    },
     onSuccess: async () => {
       setForm(initialPropertyFormState);
+      setPropertyImageFile(null);
       setIsFormOpen(false);
       await queryClient.invalidateQueries({
         queryKey: queryKeys.properties.list,
@@ -301,9 +315,18 @@ export default function PropertiesPage() {
     },
   });
   const updateProperty = useMutation({
-    mutationFn: (input: UpdatePropertyInput) =>
-      apiClient.properties.update.mutate(input),
-    onSuccess: async (_property, input) => {
+    mutationFn: async ({
+      imageFile,
+      input,
+    }: {
+      imageFile: File | null;
+      input: UpdatePropertyInput;
+    }) => {
+      const property = await apiClient.properties.update.mutate(input);
+      if (imageFile) await uploadPropertyImage(property.id, imageFile);
+      return property;
+    },
+    onSuccess: async (_property, { input }) => {
       setIsFormOpen(false);
       setEditingPropertyId(null);
       setEditInitialForm(initialPropertyFormState);
@@ -313,6 +336,17 @@ export default function PropertiesPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
         queryClient.invalidateQueries({
           queryKey: queryKeys.properties.byId(input.id),
+        }),
+      ]);
+    },
+  });
+  const deletePropertyImageMutation = useMutation({
+    mutationFn: deletePropertyImage,
+    onSuccess: async (_property, id) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(id),
         }),
       ]);
     },
@@ -386,6 +420,9 @@ export default function PropertiesPage() {
   const [editingUnitId, setEditingUnitId] = React.useState<
     number | undefined
   >();
+  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(
+    null,
+  );
   const [editInitialForm, setEditInitialForm] =
     React.useState<PropertyFormState>(initialPropertyFormState);
   const [editInitialUnits, setEditInitialUnits] = React.useState<
@@ -550,6 +587,7 @@ export default function PropertiesPage() {
       setEditingUnitId(undefined);
       setEditInitialForm(initialPropertyFormState);
       setEditInitialUnits([]);
+      setPropertyImageFile(null);
     }
   }
 
@@ -575,17 +613,29 @@ export default function PropertiesPage() {
           editingProperty ? editInitialForm : initialPropertyFormState
         }
         initialUnits={editingProperty ? editInitialUnits : undefined}
+        imageFile={propertyImageFile}
+        imageUrl={editingProperty?.imageUrl}
+        isImageDeletePending={deletePropertyImageMutation.isPending}
         initialStep={editingUnitId ? "unit" : "property"}
         isPending={
           editingProperty ? updateProperty.isPending : createProperty.isPending
         }
         onFormChange={setForm}
+        onImageChange={setPropertyImageFile}
+        onImageDelete={
+          editingProperty
+            ? () => deletePropertyImageMutation.mutate(editingProperty.id)
+            : undefined
+        }
         onOpenChange={closePropertyDrawer}
         onSubmit={(input) => {
           if (editingProperty) {
-            updateProperty.mutate({ ...input, id: editingProperty.id });
+            updateProperty.mutate({
+              imageFile: propertyImageFile,
+              input: { ...input, id: editingProperty.id },
+            });
           } else {
-            createProperty.mutate(input);
+            createProperty.mutate({ imageFile: propertyImageFile, input });
           }
         }}
         open={isFormOpen}

@@ -39,6 +39,10 @@ import {
 import type { UpdatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
 import {
+  deletePropertyImage,
+  uploadPropertyImage,
+} from "../../../../../components/property-image-upload";
+import {
   PropertyDrawer,
   initialPropertyFormState,
   type PropertyFormState,
@@ -80,7 +84,11 @@ function getInvoiceRows(startDate: Date | string, amountCents: number) {
   const start = new Date(startDate);
 
   return Array.from({ length: 3 }, (_, index) => {
-    const dueDate = new Date(start.getFullYear(), start.getMonth() + index + 1, 1);
+    const dueDate = new Date(
+      start.getFullYear(),
+      start.getMonth() + index + 1,
+      1,
+    );
 
     return {
       id: `INV-${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, "0")}`,
@@ -100,11 +108,32 @@ export default function UnitDetailPage() {
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
   });
   const updateProperty = useMutation({
-    mutationFn: (input: UpdatePropertyInput) =>
-      apiClient.properties.update.mutate(input),
+    mutationFn: async ({
+      imageFile,
+      input,
+    }: {
+      imageFile: File | null;
+      input: UpdatePropertyInput;
+    }) => {
+      const updatedProperty = await apiClient.properties.update.mutate(input);
+      if (imageFile) await uploadPropertyImage(updatedProperty.id, imageFile);
+      return updatedProperty;
+    },
     onSuccess: async () => {
       setIsEditDrawerOpen(false);
       setEditInitialUnits([]);
+      setPropertyImageFile(null);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(propertyId),
+        }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+      ]);
+    },
+  });
+  const deletePropertyImageMutation = useMutation({
+    mutationFn: deletePropertyImage,
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: queryKeys.properties.byId(propertyId),
@@ -121,6 +150,9 @@ export default function UnitDetailPage() {
   >([]);
   const [editForm, setEditForm] = React.useState<PropertyFormState>(
     initialPropertyFormState,
+  );
+  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(
+    null,
   );
 
   const property = propertyQuery.data;
@@ -179,11 +211,19 @@ export default function UnitDetailPage() {
         initialFormState={editInitialForm}
         initialStep="unit"
         initialUnits={editInitialUnits}
+        imageFile={propertyImageFile}
+        imageUrl={property?.imageUrl}
+        isImageDeletePending={deletePropertyImageMutation.isPending}
         isPending={updateProperty.isPending}
         onFormChange={setEditForm}
+        onImageChange={setPropertyImageFile}
+        onImageDelete={() => deletePropertyImageMutation.mutate(propertyId)}
         onOpenChange={setIsEditDrawerOpen}
-        onSubmit={(input) =>
-          updateProperty.mutate({ ...input, id: propertyId })
+        onSubmit={(input, imageFile) =>
+          updateProperty.mutate({
+            imageFile,
+            input: { ...input, id: propertyId },
+          })
         }
         open={isEditDrawerOpen}
         submitLabel="Save"

@@ -11,6 +11,12 @@ Use **Edit** to update property details, address, unit count, type, or contact i
 
 The property drawer also includes **Unit Details**. Use it to add, edit, or remove unit cards associated with the property. Existing units appear in the edit drawer when they are available.
 
+## Property Image
+
+Use the **Property Image** panel below the property drawer menu to upload, replace, or delete the property image. Parcelis accepts JPG, PNG, and WebP files. The current image appears in the panel, and the property landing page shows it beneath **Edit property** in the header.
+
+Images are kept in the private MinIO bucket using `properties/{propertyId}/images/{imageId}.{extension}`. Replacing or deleting an image also removes its previous object from MinIO. Parcelis supplies short-lived upload and display URLs, so the storage bucket does not need to be public.
+
 You can also open a unit page from the property's unit list and select **Edit Unit**. This opens the same property drawer with that unit expanded.
 
 ## Manage Tags
