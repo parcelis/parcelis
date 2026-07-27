@@ -80,9 +80,7 @@ function getInvoiceRows(startDate: Date | string, amountCents: number) {
   const start = new Date(startDate);
 
   return Array.from({ length: 3 }, (_, index) => {
-    const dueDate = new Date(start);
-    dueDate.setMonth(start.getMonth() + index + 1);
-    dueDate.setDate(1);
+    const dueDate = new Date(start.getFullYear(), start.getMonth() + index + 1, 1);
 
     return {
       id: `INV-${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, "0")}`,
