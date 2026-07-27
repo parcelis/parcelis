@@ -14,6 +14,7 @@ import {
   ImagePlus,
   Loader2,
   Plus,
+  Replace,
   Ruler,
   Settings,
   Trash2,
@@ -824,7 +825,7 @@ export function PropertyDrawer({
               </div>
             </div>
 
-            <div className="grid gap-10 px-4 py-6 md:px-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+            <div className="grid gap-10 px-4 py-6 md:px-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
               <div className="grid gap-6 lg:sticky lg:top-6 lg:self-start">
                 <aside className="overflow-hidden rounded-md border border-parcelis-border bg-white dark:bg-parcelis-slate">
                   {steps.map((step, index) => {
@@ -863,76 +864,80 @@ export function PropertyDrawer({
                   })}
                 </aside>
 
-                <section>
-                  <h3 className="text-sm font-semibold text-parcelis-charcoal">
+                <section className="w-full">
+                  <h3 className="text-xl font-bold text-parcelis-charcoal">
                     Property Image
                   </h3>
-                  <input
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0] ?? null;
-                      if (file) {
-                        if (
-                          !["image/jpeg", "image/png", "image/webp"].includes(
-                            file.type,
-                          )
-                        ) {
-                          setImageValidationError(
-                            "Choose a JPG, PNG, or WebP image.",
-                          );
-                        } else {
-                          setImageValidationError(null);
-                          onImageChange?.(file);
+                  <div className="mx-auto w-full max-w-xs">
+                    <input
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+                        if (file) {
+                          if (
+                            !["image/jpeg", "image/png", "image/webp"].includes(
+                              file.type,
+                            )
+                          ) {
+                            setImageValidationError(
+                              "Choose a JPG, PNG, or WebP image.",
+                            );
+                          } else {
+                            setImageValidationError(null);
+                            onImageChange?.(file);
+                          }
                         }
-                      }
-                      event.target.value = "";
-                    }}
-                    ref={imageInputRef}
-                    type="file"
-                  />
-                  <button
-                    className="mt-3 flex aspect-[4/3] w-full flex-col items-center justify-center overflow-hidden rounded-md border border-dashed border-parcelis-border bg-parcelis-porcelain/50 text-center transition hover:border-parcelis-green"
-                    onClick={() => imageInputRef.current?.click()}
-                    type="button"
-                  >
+                        event.target.value = "";
+                      }}
+                      ref={imageInputRef}
+                      type="file"
+                    />
+                    <button
+                      className="mt-3 flex aspect-[4/3] w-full flex-col items-center justify-center overflow-hidden rounded-md border border-dashed border-parcelis-border bg-parcelis-porcelain/50 text-center transition hover:border-parcelis-green"
+                      onClick={() => imageInputRef.current?.click()}
+                      type="button"
+                    >
+                      {imagePreviewUrl ? (
+                        <img
+                          alt="Selected property"
+                          className="h-full w-full object-cover"
+                          src={imagePreviewUrl}
+                        />
+                      ) : (
+                        <>
+                          <ImagePlus className="h-6 w-6 text-parcelis-green" />
+                          <span className="mt-3 text-sm font-semibold text-parcelis-charcoal">
+                            Upload image
+                          </span>
+                          <span className="mt-1 px-3 text-xs text-parcelis-gray">
+                            JPG, PNG, or WebP
+                          </span>
+                        </>
+                      )}
+                    </button>
                     {imagePreviewUrl ? (
-                      <img
-                        alt="Selected property"
-                        className="h-full w-full object-cover"
-                        src={imagePreviewUrl}
-                      />
-                    ) : (
-                      <>
-                        <ImagePlus className="h-6 w-6 text-parcelis-green" />
-                        <span className="mt-3 text-sm font-semibold text-parcelis-charcoal">
-                          Upload image
-                        </span>
-                        <span className="mt-1 px-3 text-xs text-parcelis-gray">
-                          JPG, PNG, or WebP
-                        </span>
-                      </>
-                    )}
-                  </button>
-                  {imagePreviewUrl ? (
-                    <div className="mt-3 flex items-center justify-between gap-3 text-sm font-semibold">
-                      <button
-                        className="text-parcelis-charcoal hover:underline"
-                        onClick={() => imageInputRef.current?.click()}
-                        type="button"
-                      >
-                        Replace image
-                      </button>
-                      <button
-                        className="text-red-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={isImageDeletePending}
-                        onClick={removeImage}
-                        type="button"
-                      >
-                        Delete image
-                      </button>
-                    </div>
-                  ) : null}
+                      <div className="mt-3 flex items-center justify-between gap-3 text-sm font-semibold">
+                        <button
+                          className="inline-flex items-center gap-1.5 text-parcelis-charcoal hover:underline"
+                          onClick={() => imageInputRef.current?.click()}
+                          type="button"
+                        >
+                          <Replace className="h-4 w-4" />
+                          Replace image
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-1.5 text-red-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={isImageDeletePending}
+                          onClick={removeImage}
+                          type="button"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete image
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 </section>
               </div>
 
