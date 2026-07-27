@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LeaseStatus } from "@parcelis/db";
 
 const idSchema = z.coerce.number().int().positive();
 
@@ -98,7 +99,7 @@ export const tenantSchema = z.object({
   phone: z.string().optional(),
 });
 
-export const leaseStatusSchema = z.enum(["draft", "active", "notice", "ended"]);
+export const leaseStatusSchema = z.enum(LeaseStatus);
 
 export const leaseSchema = z.object({
   id: idSchema,

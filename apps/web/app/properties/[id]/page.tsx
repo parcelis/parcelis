@@ -24,6 +24,7 @@ import {
   CardContent,
   CardHeader,
   ParcelisLogo,
+  Select,
 } from "@parcelis/ui";
 import type { UpdatePropertyInput } from "@parcelis/schemas";
 import {
@@ -96,6 +97,7 @@ export default function PropertyDetailPage() {
   const [editForm, setEditForm] = React.useState<PropertyFormState>(
     initialPropertyFormState,
   );
+  const [unitStatusFilter, setUnitStatusFilter] = React.useState("all");
 
   const property = propertyQuery.data;
   const leases = property?.leases ?? [];
@@ -134,6 +136,34 @@ export default function PropertyDetailPage() {
         ["Contact Address", property.contactAddress],
       ].filter(([, value]) => Boolean(value))
     : [];
+  const unitCards = property
+    ? (property.units.length > 0
+        ? property.units
+        : Array.from({ length: unitCount }, (_, index) => ({
+            id: String(index + 1),
+            name: String(index + 1),
+            bedrooms: null,
+            bathrooms: null,
+            squareFeet: null,
+            marketRateCents: 0,
+          }))
+      ).map((unit, index) => {
+        const lease =
+          leases.find((item) => item.unitLabel === unit.name) ?? leases[index];
+
+        return {
+          unit,
+          lease,
+          status: lease?.status ?? "vacant",
+          href: property.units.some((savedUnit) => savedUnit.id === unit.id)
+            ? `/properties/${property.id}/units/${unit.id}`
+            : null,
+        };
+      })
+    : [];
+  const filteredUnitCards = unitCards.filter(
+    ({ status }) => unitStatusFilter === "all" || status === unitStatusFilter,
+  );
 
   function openEditDrawer() {
     if (!property) {
@@ -313,39 +343,28 @@ export default function PropertyDetailPage() {
 
               <section className="mt-5 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex items-center justify-between gap-3">
                     <h2 className="font-semibold text-parcelis-charcoal">
                       Units
                     </h2>
+                    <Select
+                      aria-label="Filter units by status"
+                      className="w-36"
+                      onChange={(event) =>
+                        setUnitStatusFilter(event.target.value)
+                      }
+                      value={unitStatusFilter}
+                    >
+                      <option value="all">All statuses</option>
+                      {property.unitStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {formatStatus(status)}
+                        </option>
+                      ))}
+                    </Select>
                   </CardHeader>
                   <CardContent className="grid max-h-[34rem] gap-3 overflow-y-auto pr-3 sm:grid-cols-2">
-                    {(property.units.length > 0
-                      ? property.units
-                      : Array.from(
-                          { length: unitCount },
-                          (_, index) => ({
-                            id: String(index + 1),
-                            name: String(index + 1),
-                            bedrooms: null,
-                            bathrooms: null,
-                            squareFeet: null,
-                            marketRateCents: 0,
-                          }),
-                        )
-                    ).map((unit, index) => {
-                      const lease =
-                        leases.find((item) => item.unitLabel === unit.name) ??
-                        leases[index];
-                      const isOccupied = Boolean(
-                        lease &&
-                        (lease.status === "active" ||
-                          lease.status === "notice"),
-                      );
-                      const href = property.units.some(
-                        (savedUnit) => savedUnit.id === unit.id,
-                      )
-                        ? `/properties/${property.id}/units/${unit.id}`
-                        : null;
+                    {filteredUnitCards.map(({ href, lease, status, unit }) => {
                       return (
                         <Link
                           className="block rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain/55"
@@ -357,7 +376,7 @@ export default function PropertyDetailPage() {
                               Unit {unit.name}
                             </p>
                             <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
-                              {isOccupied ? "Occupied" : "Vacant"}
+                              {formatStatus(status)}
                             </span>
                           </div>
                           <p className="mt-2 text-sm text-parcelis-gray">
@@ -382,6 +401,11 @@ export default function PropertyDetailPage() {
                         </Link>
                       );
                     })}
+                    {filteredUnitCards.length === 0 ? (
+                      <p className="text-sm text-parcelis-gray sm:col-span-2">
+                        No units match this status.
+                      </p>
+                    ) : null}
                   </CardContent>
                 </Card>
 

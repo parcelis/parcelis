@@ -15,6 +15,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@parcelis/db": "workspace:*",
     "zod": "^4.2.1"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@ import {
   createPropertyInputSchema,
   createTagInputSchema,
   createUnitInputSchema,
+  leaseStatusSchema,
   propertyByIdInputSchema,
   propertyNotesInputSchema,
   propertyStatusInputSchema,
@@ -19,6 +20,16 @@ import { publicProcedure, router } from "./trpc";
 const objectSchema = z.object({}).passthrough();
 const dataObjectSchema = z.object({ data: objectSchema });
 const dataListSchema = z.object({ data: z.array(objectSchema) });
+const propertyByIdResponseSchema = z.object({
+  data: z
+    .object({
+      unitStatuses: z
+        .array(z.union([z.literal("vacant"), leaseStatusSchema]))
+        .describe("Unit status values available for filtering."),
+    })
+    .passthrough()
+    .nullable(),
+});
 
 export const publicRouter = router({
   health: publicProcedure
@@ -41,7 +52,7 @@ export const publicRouter = router({
     byId: publicProcedure
       .meta({ openapi: { method: "GET", path: "/properties/{id}", tags: ["Properties"] } })
       .input(propertyByIdInputSchema)
-      .output(z.object({ data: objectSchema.nullable() }))
+      .output(propertyByIdResponseSchema)
       .query(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).properties.byId(input),
       })),

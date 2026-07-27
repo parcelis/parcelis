@@ -12,7 +12,7 @@ import {
   updateAmenityInputSchema,
   updatePropertyInputSchema,
 } from "@parcelis/schemas";
-import { UnitType } from "@parcelis/db";
+import { LeaseStatus, UnitType } from "@parcelis/db";
 import { getPublicObjectStorageConfig } from "../modules/object-storage.config";
 import { publicProcedure, router } from "./trpc";
 
@@ -41,6 +41,10 @@ const openMaintenanceStatuses = new Set([
   "in_progress",
   "waiting_vendor",
 ]);
+const unitStatuses: Array<"vacant" | LeaseStatus> = [
+  "vacant",
+  ...Object.values(LeaseStatus),
+];
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
   return unitType === "Commercial" ? UnitType.commercial : UnitType.residential;
@@ -241,6 +245,7 @@ export const appRouter = router({
           ? {
               ...property,
               units: property.units.map(serializeUnit),
+              unitStatuses,
             }
           : null;
       }),

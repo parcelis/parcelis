@@ -464,7 +464,32 @@
                       "anyOf": [
                         {
                           "type": "object",
-                          "properties": {},
+                          "properties": {
+                            "unitStatuses": {
+                              "description": "Unit status values available for filtering.",
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "const": "vacant"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "draft",
+                                      "active",
+                                      "notice",
+                                      "ended"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "unitStatuses"
+                          ],
                           "additionalProperties": {}
                         },
                         {
