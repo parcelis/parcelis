@@ -298,9 +298,14 @@ export default function PropertyDetailPage() {
                       <p className="mt-2 text-3xl font-bold text-parcelis-charcoal">
                         {value as string}
                       </p>
-                      <p className="mt-1 text-sm text-parcelis-gray">
-                        {detail as string}
-                      </p>
+                      <div className="mt-1 flex items-center justify-between gap-3 text-sm">
+                        <p className="text-parcelis-gray">{detail as string}</p>
+                        {label === "Monthly Rent" ? (
+                          <p className="whitespace-nowrap font-semibold text-red-700">
+                            {formatCurrency(amountOverdueCents)} overdue
+                          </p>
+                        ) : null}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -383,7 +388,7 @@ export default function PropertyDetailPage() {
                 <Card>
                   <CardHeader>
                     <h2 className="font-semibold text-parcelis-charcoal">
-                      Leases
+                      Active
                     </h2>
                   </CardHeader>
                   <CardContent className="max-h-[34rem] space-y-3 overflow-y-auto pr-3">
