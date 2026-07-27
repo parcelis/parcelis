@@ -264,7 +264,7 @@ export default function PropertyDetailPage() {
             />
           </div>
           <Button asChild size="sm" variant="secondary">
-            <Link href="/">
+            <Link href="/properties">
               <ArrowLeft className="h-4 w-4" />
               Properties
             </Link>
