@@ -627,6 +627,7 @@ export default function PropertiesPage() {
                   propertyType: getPropertyType(
                     deleteUnitProperty.propertyType,
                   ),
+                  tagIds: deleteUnitProperty.tags.map((tag) => tag.id),
                   address: {
                     line1: deleteUnitProperty.line1,
                     line2: deleteUnitProperty.line2 ?? undefined,

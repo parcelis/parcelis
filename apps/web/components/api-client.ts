@@ -19,4 +19,7 @@ export const queryKeys = {
   unitOptions: {
     list: ["unitOptions", "list"] as const,
   },
+  tags: {
+    list: ["tags", "list"] as const,
+  },
 };

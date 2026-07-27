@@ -80,6 +80,24 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: "category",
+      label: "Tags",
+      items: [
+        {
+          type: "doc",
+          id: "api-reference/tags-list",
+          label: "tags-list",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api-reference/tags-create",
+          label: "tags-create",
+          className: "api-method post",
+        },
+      ],
+    },
+    {
+      type: "category",
       label: "Unit options",
       items: [
         {

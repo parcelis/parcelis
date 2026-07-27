@@ -41,6 +41,9 @@ export const optionSchema = z.object({
 });
 
 export const updateAmenityInputSchema = optionSchema;
+export const createTagInputSchema = z.object({
+  label: z.string().trim().min(1).max(50),
+});
 
 export const unitDetailsInputSchema = z.object({
   id: idSchema.optional(),
@@ -74,6 +77,7 @@ export const propertySchema = z.object({
   id: idSchema,
   name: z.string().min(2),
   propertyType: propertyTypeSchema,
+  tagIds: z.array(idSchema).max(20).default([]),
   address: addressSchema,
   contactName: z.string().optional(),
   contactEmail: z.string().email().optional(),

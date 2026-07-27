@@ -64,6 +64,20 @@ const amenityTypes = [
   "Pets Allowed",
   "Wheelchair Access",
 ];
+const propertyTags = [
+  "Commercial",
+  "HOA",
+  "Industrial",
+  "Manufactured Home",
+  "Office",
+  "Other",
+  "Parking",
+  "Residential",
+  "Retail",
+  "Senior Living",
+  "Storage",
+  "Student Housing",
+];
 
 function getDemoUnitNames(property, leaseLabels) {
   const names = [...new Set(leaseLabels.filter(Boolean))];
@@ -223,6 +237,14 @@ async function main() {
 
   for (const [index, label] of amenityTypes.entries()) {
     await prisma.amenityType.upsert({
+      where: { label },
+      update: { sortOrder: (index + 1) * 10 },
+      create: { label, sortOrder: (index + 1) * 10 },
+    });
+  }
+
+  for (const [index, label] of propertyTags.entries()) {
+    await prisma.tag.upsert({
       where: { label },
       update: { sortOrder: (index + 1) * 10 },
       create: { label, sortOrder: (index + 1) * 10 },

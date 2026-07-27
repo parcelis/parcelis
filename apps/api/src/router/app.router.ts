@@ -1,5 +1,6 @@
 import {
   createPropertyInputSchema,
+  createTagInputSchema,
   createUnitInputSchema,
   propertyByIdInputSchema,
   propertyNotesInputSchema,
@@ -24,6 +25,7 @@ const propertySelect = {
   region: true,
   postalCode: true,
   propertyType: true,
+  tags: { select: { id: true, label: true, sortOrder: true } },
   contactName: true,
   contactEmail: true,
   contactPhone: true,
@@ -164,6 +166,7 @@ export const appRouter = router({
     list: publicProcedure.query(async ({ ctx }) => {
       const properties = await ctx.prisma.property.findMany({
         include: {
+          tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
           leases: {
             select: {
               monthlyRentCents: true,
@@ -210,6 +213,7 @@ export const appRouter = router({
         const property = await ctx.prisma.property.findUnique({
           where: { id: input.id },
           include: {
+            tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
             leases: {
               orderBy: { startsOn: "desc" },
               include: {
@@ -255,6 +259,7 @@ export const appRouter = router({
               region: input.address.region,
               postalCode: input.address.postalCode,
               propertyType: input.propertyType,
+              tags: { connect: input.tagIds.map((id) => ({ id })) },
               contactName: input.contactName ?? null,
               contactEmail: input.contactEmail ?? null,
               contactPhone: input.contactPhone ?? null,
@@ -291,6 +296,7 @@ export const appRouter = router({
             region: input.address.region,
             postalCode: input.address.postalCode,
             propertyType: input.propertyType,
+            tags: { set: input.tagIds.map((id) => ({ id })) },
             contactName: input.contactName ?? null,
             contactEmail: input.contactEmail ?? null,
             contactPhone: input.contactPhone ?? null,
@@ -400,6 +406,22 @@ export const appRouter = router({
           where: { id: input.id },
           select: propertySelect,
           data: { notes: input.notes ?? null },
+        }),
+      ),
+  }),
+  tags: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.tag.findMany({
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: { id: true, label: true, sortOrder: true },
+      }),
+    ),
+    create: publicProcedure
+      .input(createTagInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.tag.create({
+          data: { label: input.label },
+          select: { id: true, label: true, sortOrder: true },
         }),
       ),
   }),

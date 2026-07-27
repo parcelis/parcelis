@@ -49,6 +49,7 @@ model Property {
   region             String
   postalCode         String
   propertyType       String              @default("Apartment")
+  tags               Tag[]
   contactName        String?
   contactEmail       String?
   contactPhone       String?
@@ -62,6 +63,15 @@ model Property {
   maintenanceTickets MaintenanceTicket[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+}
+
+model Tag {
+  id        Int        @id @default(autoincrement())
+  label     String     @unique
+  sortOrder Int        @default(0)
+  properties Property[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model Unit {

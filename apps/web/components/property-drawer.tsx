@@ -25,6 +25,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  Badge,
   Button,
   Checkbox,
   Drawer,
@@ -46,7 +47,7 @@ import {
   type CreatePropertyInput,
   type PropertyType,
 } from "@parcelis/schemas";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, queryKeys } from "./api-client";
 import { useShortcut, type ShortcutKey } from "./shortcut-provider";
 
@@ -67,6 +68,7 @@ export type PropertyFormState = {
   contactRegion: string;
   contactPostalCode: string;
   unitCount: string;
+  tagIds: number[];
 };
 
 export const initialPropertyFormState: PropertyFormState = {
@@ -86,6 +88,7 @@ export const initialPropertyFormState: PropertyFormState = {
   contactRegion: "",
   contactPostalCode: "",
   unitCount: "",
+  tagIds: [],
 };
 
 type DrawerStep = "property" | "unit";
@@ -171,6 +174,7 @@ export function PropertyDrawer({
   toggleShortcut = "Mod+Shift+P",
   unitHref,
 }: PropertyDrawerProps) {
+  const queryClient = useQueryClient();
   const initialUnitStates = React.useMemo(
     () => getInitialUnitFormStates(initialUnits),
     [initialUnits],
@@ -180,6 +184,8 @@ export function PropertyDrawer({
   const [isContactAddressPopoverOpen, setIsContactAddressPopoverOpen] =
     React.useState(false);
   const [isContactInfoOpen, setIsContactInfoOpen] = React.useState(false);
+  const [isTagPopoverOpen, setIsTagPopoverOpen] = React.useState(false);
+  const [customTag, setCustomTag] = React.useState("");
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = React.useState(false);
   const [unitPendingRemovalId, setUnitPendingRemovalId] = React.useState<
     UnitId | null
@@ -196,6 +202,21 @@ export function PropertyDrawer({
     queryKey: queryKeys.unitOptions.list,
     queryFn: () => apiClient.unitOptions.list.query(),
   });
+  const tagsQuery = useQuery({
+    queryKey: queryKeys.tags.list,
+    queryFn: () => apiClient.tags.list.query(),
+  });
+  const createTag = useMutation({
+    mutationFn: (label: string) => apiClient.tags.create.mutate({ label }),
+    onSuccess: async (tag) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.tags.list });
+      onFormChange((current) => ({
+        ...current,
+        tagIds: [...current.tagIds, tag.id],
+      }));
+      setCustomTag("");
+    },
+  });
   const canContinueToUnitDetails = Boolean(
     form.name &&
     form.line1 &&
@@ -208,10 +229,13 @@ export function PropertyDrawer({
   const canSubmitUnitDetails =
     units.length > 0 &&
     units.every((unit) => unit.unitName && unit.marketRate && unit.unitType);
-  const hasFormChanges = Object.entries(form).some(
-    ([field, value]) =>
-      value !== initialFormState[field as keyof PropertyFormState],
-  );
+  const hasFormChanges = Object.entries(form).some(([field, value]) => {
+    const initialValue = initialFormState[field as keyof PropertyFormState];
+    return Array.isArray(value) && Array.isArray(initialValue)
+      ? value.length !== initialValue.length ||
+          value.some((item, index) => item !== initialValue[index])
+      : value !== initialValue;
+  });
   const hasUnitDetailsChanges =
     units.length !== initialUnitStates.length ||
     units.some((unit, index) => {
@@ -255,6 +279,9 @@ export function PropertyDrawer({
   const contactAddress = contactAddressLines.join("\n");
   const utilityTypes = unitOptionsQuery.data?.utilities ?? [];
   const amenityTypes = unitOptionsQuery.data?.amenityTypes ?? [];
+  const propertyTagIds = form.tagIds ?? [];
+  const tags = tagsQuery.data ?? [];
+  const selectedTags = tags.filter((tag) => propertyTagIds.includes(tag.id));
   const unitPendingRemoval =
     units.find((unit) => unit.id === unitPendingRemovalId) ?? null;
   useShortcut("Mod+Enter", () => runPrimaryAction(), {
@@ -287,6 +314,7 @@ export function PropertyDrawer({
       setIsAddressPopoverOpen(false);
       setIsContactAddressPopoverOpen(false);
       setIsContactInfoOpen(false);
+      setIsTagPopoverOpen(false);
       setIsDiscardDialogOpen(false);
       setUnitPendingRemovalId(null);
       return;
@@ -302,6 +330,7 @@ export function PropertyDrawer({
     setIsAddressPopoverOpen(false);
     setIsContactAddressPopoverOpen(false);
     setIsContactInfoOpen(false);
+    setIsTagPopoverOpen(false);
     setIsDiscardDialogOpen(false);
     setUnitPendingRemovalId(null);
   }, [initialExpandedUnitId, initialStep, initialUnitStates, open]);
@@ -383,6 +412,33 @@ export function PropertyDrawer({
     );
   }
 
+  function toggleTag(tagId: number, checked: boolean) {
+    onFormChange((current) => ({
+      ...current,
+      tagIds: checked
+        ? [...(current.tagIds ?? []), tagId]
+        : (current.tagIds ?? []).filter(
+            (currentTagId) => currentTagId !== tagId,
+          ),
+    }));
+  }
+
+  function addCustomTag() {
+    const label = customTag.trim();
+    if (!label || createTag.isPending) {
+      return;
+    }
+    const existingTag = tags.find(
+      (tag) => tag.label.toLowerCase() === label.toLowerCase(),
+    );
+    if (existingTag) {
+      toggleTag(existingTag.id, true);
+      setCustomTag("");
+      return;
+    }
+    createTag.mutate(label);
+  }
+
   function addUnit() {
     setUnits((current) => {
       const nextUnit = createUnitDetailsFormState(current.length);
@@ -461,6 +517,7 @@ export function PropertyDrawer({
     onSubmit({
       name: form.name,
       propertyType: form.propertyType,
+      tagIds: propertyTagIds,
       contactName: form.contactName || undefined,
       contactEmail: form.contactEmail || undefined,
       contactPhone: form.contactPhone || undefined,
@@ -501,6 +558,7 @@ export function PropertyDrawer({
     setIsAddressPopoverOpen(false);
     setIsContactAddressPopoverOpen(false);
     setIsContactInfoOpen(false);
+    setIsTagPopoverOpen(false);
     setUnitPendingRemovalId(null);
     setCurrentStep(initialStep);
     setUnits([...initialUnitStates]);
@@ -816,6 +874,99 @@ export function PropertyDrawer({
                             value={form.unitCount}
                           />
                         </Label>
+
+                        <div className="grid gap-3 md:col-span-2">
+                          <FieldLabel>Tags</FieldLabel>
+                          <Popover
+                            open={isTagPopoverOpen}
+                            onOpenChange={setIsTagPopoverOpen}
+                          >
+                            <PopoverTrigger asChild>
+                              <button
+                                className="flex min-h-10 w-full items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 py-1.5 text-left text-sm transition hover:border-parcelis-gray focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green"
+                                type="button"
+                              >
+                                <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                                  {selectedTags.length > 0 ? (
+                                    selectedTags.map((tag) => (
+                                      <Badge key={tag.id} variant="secondary">
+                                        {tag.label}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="py-1 text-parcelis-gray">
+                                      Select tags
+                                    </span>
+                                  )}
+                                </span>
+                                <ChevronDown className="h-4 w-4 shrink-0 text-parcelis-gray" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              align="start"
+                              className="w-[min(calc(100vw-2rem),32rem)] p-3"
+                            >
+                              <div className="flex gap-2">
+                                <Input
+                                  aria-label="Add custom tag"
+                                  onChange={(event) =>
+                                    setCustomTag(event.target.value)
+                                  }
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      addCustomTag();
+                                    }
+                                  }}
+                                  placeholder="Add custom tag"
+                                  value={customTag}
+                                />
+                                <Button
+                                  aria-label="Add custom tag"
+                                  className="w-10 shrink-0 px-0"
+                                  disabled={createTag.isPending}
+                                  onClick={addCustomTag}
+                                  type="button"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="mt-3 grid max-h-52 gap-1 overflow-y-auto">
+                                {tagsQuery.isPending ? (
+                                  <p className="px-2 py-3 text-sm text-parcelis-gray">
+                                    Loading tags…
+                                  </p>
+                                ) : tagsQuery.isError ? (
+                                  <p className="px-2 py-3 text-sm text-parcelis-gray">
+                                    Tags could not be loaded. Restart the API
+                                    and try again.
+                                  </p>
+                                ) : tags.length === 0 ? (
+                                  <p className="px-2 py-3 text-sm text-parcelis-gray">
+                                    No tags are available.
+                                  </p>
+                                ) : (
+                                  tags.map((tag) => (
+                                    <label
+                                      className={`flex items-center gap-3 rounded px-2 py-2 text-sm font-medium text-parcelis-charcoal transition hover:bg-parcelis-porcelain ${propertyTagIds.includes(tag.id) ? "bg-parcelis-porcelain" : ""}`}
+                                      key={tag.id}
+                                    >
+                                      <Checkbox
+                                        checked={propertyTagIds.includes(
+                                          tag.id,
+                                        )}
+                                        onCheckedChange={(checked) =>
+                                          toggleTag(tag.id, checked === true)
+                                        }
+                                      />
+                                      <span>{tag.label}</span>
+                                    </label>
+                                  ))
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
 
                       <button

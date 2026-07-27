@@ -1,5 +1,6 @@
 import {
   createPropertyInputSchema,
+  createTagInputSchema,
   createUnitInputSchema,
   propertyByIdInputSchema,
   propertyNotesInputSchema,
@@ -100,6 +101,21 @@ export const publicRouter = router({
       .output(dataObjectSchema)
       .mutation(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).properties.updateNotes(input),
+      })),
+  }),
+  tags: router({
+    list: publicProcedure
+      .meta({ openapi: { method: "GET", path: "/tags", tags: ["Tags"] } })
+      .output(dataListSchema)
+      .query(async ({ ctx }) => ({
+        data: await appRouter.createCaller(ctx).tags.list(),
+      })),
+    create: publicProcedure
+      .meta({ openapi: { method: "POST", path: "/tags", tags: ["Tags"] } })
+      .input(createTagInputSchema)
+      .output(dataObjectSchema)
+      .mutation(async ({ ctx, input }) => ({
+        data: await appRouter.createCaller(ctx).tags.create(input),
       })),
   }),
   unitOptions: router({
