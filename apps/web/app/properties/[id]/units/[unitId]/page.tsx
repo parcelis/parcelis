@@ -182,6 +182,13 @@ export default function UnitDetailPage() {
   const collectedCents = lease
     ? Math.max(monthlyRentCents - overdueCents, 0)
     : 0;
+  const collectionRows = [
+    ["Collected", formatCurrency(collectedCents), "bg-parcelis-green"],
+    ["Outstanding", formatCurrency(overdueCents), "bg-red-500"],
+    ["Processing", "—", "bg-orange-500"],
+    ["Coming Due", "—", "bg-amber-400"],
+    ["Monthly rent", formatCurrency(monthlyRentCents), "bg-parcelis-charcoal"],
+  ];
   const invoiceRows = lease
     ? getInvoiceRows(lease.startsOn, monthlyRentCents)
     : [];
@@ -461,27 +468,17 @@ export default function UnitDetailPage() {
                         </div>
                       </div>
                       <div className="grid gap-3">
-                        {[
-                          ["Collected", collectedCents, "bg-parcelis-green"],
-                          ["Outstanding", overdueCents, "bg-red-500"],
-                          [
-                            "Monthly rent",
-                            monthlyRentCents,
-                            "bg-parcelis-charcoal",
-                          ],
-                        ].map(([label, value, color]) => (
+                        {collectionRows.map(([label, value, color]) => (
                           <div
                             className="flex items-center justify-between gap-4 text-sm"
-                            key={label as string}
+                            key={label}
                           >
                             <span className="inline-flex items-center gap-2 font-medium text-parcelis-charcoal">
-                              <span
-                                className={`h-3 w-3 rounded-sm ${color as string}`}
-                              />
-                              {label as string}
+                              <span className={`h-3 w-3 rounded-sm ${color}`} />
+                              {label}
                             </span>
                             <span className="font-semibold text-parcelis-charcoal">
-                              {formatCurrency(value as number)}
+                              {value}
                             </span>
                           </div>
                         ))}
