@@ -284,12 +284,16 @@ async function main() {
       firstName: "Maya",
       lastName: "Ellis",
       phone: "615-555-0148",
+      accountStatus: "activated",
+      insuranceStatus: "active",
     },
     create: {
       firstName: "Maya",
       lastName: "Ellis",
       email: "maya.ellis@example.com",
       phone: "615-555-0148",
+      accountStatus: "activated",
+      insuranceStatus: "active",
     },
   });
   const secondTenant = await prisma.tenant.upsert({
@@ -298,12 +302,16 @@ async function main() {
       firstName: "Calvin",
       lastName: "Brooks",
       phone: "843-555-0182",
+      accountStatus: "invitation_pending",
+      insuranceStatus: "not_on_file",
     },
     create: {
       firstName: "Calvin",
       lastName: "Brooks",
       email: "calvin.brooks@example.com",
       phone: "843-555-0182",
+      accountStatus: "invitation_pending",
+      insuranceStatus: "not_on_file",
     },
   });
   const thirdTenant = await prisma.tenant.upsert({
@@ -312,12 +320,16 @@ async function main() {
       firstName: "Nora",
       lastName: "Patel",
       phone: "512-555-0135",
+      accountStatus: "activated",
+      insuranceStatus: "expired",
     },
     create: {
       firstName: "Nora",
       lastName: "Patel",
       email: "nora.patel@example.com",
       phone: "512-555-0135",
+      accountStatus: "activated",
+      insuranceStatus: "expired",
     },
   });
   const fourthTenant = await prisma.tenant.upsert({
@@ -326,12 +338,55 @@ async function main() {
       firstName: "Elena",
       lastName: "Morris",
       phone: "615-555-0176",
+      accountStatus: "activated",
+      insuranceStatus: "active",
     },
     create: {
       firstName: "Elena",
       lastName: "Morris",
       email: "elena.morris@example.com",
       phone: "615-555-0176",
+      accountStatus: "activated",
+      insuranceStatus: "active",
+    },
+  });
+  const pastTenant = await prisma.tenant.upsert({
+    where: { email: "darius.wright@example.com" },
+    update: {
+      firstName: "Darius",
+      lastName: "Wright",
+      phone: "843-555-0151",
+      accountStatus: "activated",
+      insuranceStatus: "not_on_file",
+      archivedAt: null,
+    },
+    create: {
+      firstName: "Darius",
+      lastName: "Wright",
+      email: "darius.wright@example.com",
+      phone: "843-555-0151",
+      accountStatus: "activated",
+      insuranceStatus: "not_on_file",
+    },
+  });
+  const archivedTenant = await prisma.tenant.upsert({
+    where: { email: "simone.bell@example.com" },
+    update: {
+      firstName: "Simone",
+      lastName: "Bell",
+      phone: "615-555-0124",
+      accountStatus: "disabled",
+      insuranceStatus: "expired",
+      archivedAt: new Date("2026-01-15"),
+    },
+    create: {
+      firstName: "Simone",
+      lastName: "Bell",
+      email: "simone.bell@example.com",
+      phone: "615-555-0124",
+      accountStatus: "disabled",
+      insuranceStatus: "expired",
+      archivedAt: new Date("2026-01-15"),
     },
   });
 
@@ -375,6 +430,26 @@ async function main() {
       startsOn: new Date("2025-09-01"),
       endsOn: new Date("2026-08-20"),
       status: "notice",
+    }),
+    upsertLease({
+      propertyId: mariner.id,
+      tenantId: pastTenant.id,
+      unitLabel: "5C",
+      monthlyRentCents: 189500,
+      amountOverdueCents: 0,
+      startsOn: new Date("2024-03-01"),
+      endsOn: new Date("2025-02-28"),
+      status: "ended",
+    }),
+    upsertLease({
+      propertyId: hawthorne.id,
+      tenantId: archivedTenant.id,
+      unitLabel: "11D",
+      monthlyRentCents: 176500,
+      amountOverdueCents: 0,
+      startsOn: new Date("2023-06-01"),
+      endsOn: new Date("2024-05-31"),
+      status: "ended",
     }),
   ]);
 

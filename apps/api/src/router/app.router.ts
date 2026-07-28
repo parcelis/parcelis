@@ -481,6 +481,35 @@ export const appRouter = router({
         }),
       ),
   }),
+  tenants: router({
+    /** Lists tenants with their most recent lease first. */
+    list: publicProcedure.query(async ({ ctx }) => {
+      const tenants = await ctx.prisma.tenant.findMany({
+        include: {
+          leases: {
+            orderBy: { startsOn: "desc" },
+            include: {
+              property: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+        take: 100,
+      });
+
+      return tenants.map((tenant) => ({
+        ...tenant,
+        tenantStatus: tenant.archivedAt
+          ? "archived"
+          : tenant.leases.some(
+                (lease) =>
+                  lease.status === "active" || lease.status === "notice",
+              )
+            ? "active"
+            : "past",
+      }));
+    }),
+  }),
   tags: router({
     list: publicProcedure.query(({ ctx }) =>
       ctx.prisma.tag.findMany({

@@ -40,6 +40,18 @@ enum UnitType {
   commercial
 }
 
+enum TenantAccountStatus {
+  activated
+  invitation_pending
+  disabled
+}
+
+enum TenantInsuranceStatus {
+  active
+  expired
+  not_on_file
+}
+
 model Property {
   id                 Int                 @id @default(autoincrement())
   name               String
@@ -133,14 +145,17 @@ model UnitAmenity {
 }
 
 model Tenant {
-  id        Int      @id @default(autoincrement())
-  firstName String
-  lastName  String
-  email     String   @unique
-  phone     String?
-  leases    Lease[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              Int                   @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  email           String                @unique
+  phone           String?
+  accountStatus   TenantAccountStatus   @default(invitation_pending)
+  insuranceStatus TenantInsuranceStatus @default(not_on_file)
+  archivedAt      DateTime?
+  leases          Lease[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 }
 
 model Lease {
