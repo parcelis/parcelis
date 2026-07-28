@@ -749,7 +749,7 @@ export function PropertyDrawer({
                 Keep Editing
               </Button>
               <Button type="button" onClick={resetAndClose}>
-                Cancel
+                Discard
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
