@@ -416,18 +416,27 @@ export default function TenantDetailPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="lg:order-1">
+                <Card className="flex h-full flex-col lg:order-1">
                   <CardHeader>
                     <h2 className="font-semibold text-parcelis-charcoal">Contact Information</h2>
                   </CardHeader>
-                  <CardContent className="space-y-4 text-sm">
-                    <div>
-                      <p className="text-parcelis-gray">Name</p>
-                      <p className="font-semibold text-parcelis-charcoal">
-                        {tenant.firstName} {tenant.lastName}
-                      </p>
-                    </div>
-                    <div>
+                  <CardContent className="flex flex-1 flex-col text-sm">
+                    <div className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <p className="text-parcelis-gray">Name</p>
+                          <p className="font-semibold text-parcelis-charcoal">
+                            {tenant.firstName} {tenant.lastName}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-parcelis-gray">Phone</p>
+                          <p className="font-semibold text-parcelis-charcoal">
+                            {tenant.phone ?? "Not provided"}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
                       <p className="text-parcelis-gray">Email</p>
                       <a
                         className="font-semibold text-parcelis-charcoal hover:text-parcelis-green"
@@ -435,12 +444,15 @@ export default function TenantDetailPage() {
                       >
                         {tenant.email}
                       </a>
+                      </div>
+                      {tenant.archivedAt ? (
+                        <div>
+                          <p className="text-parcelis-gray">Archived</p>
+                          <p className="font-semibold text-parcelis-charcoal">{formatDate(tenant.archivedAt)}</p>
+                        </div>
+                      ) : null}
                     </div>
-                    <div>
-                      <p className="text-parcelis-gray">Phone</p>
-                      <p className="font-semibold text-parcelis-charcoal">{tenant.phone ?? "Not provided"}</p>
-                    </div>
-                    <div>
+                    <div className="mt-auto border-t border-parcelis-border pt-4">
                       <p className="text-parcelis-gray">Emergency Contact</p>
                       {emergencyContact ? (
                         <button
@@ -454,12 +466,6 @@ export default function TenantDetailPage() {
                         <p className="font-semibold text-parcelis-charcoal">Not provided</p>
                       )}
                     </div>
-                    {tenant.archivedAt ? (
-                      <div>
-                        <p className="text-parcelis-gray">Archived</p>
-                        <p className="font-semibold text-parcelis-charcoal">{formatDate(tenant.archivedAt)}</p>
-                      </div>
-                    ) : null}
                   </CardContent>
                 </Card>
               </section>
