@@ -7,11 +7,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BadgeCheck,
+  Building2,
   CalendarDays,
   CircleDollarSign,
+  Coins,
   Mail,
   Phone,
   Save,
+  ScrollText,
   ShieldCheck,
   UserRound,
   X,
@@ -321,7 +324,7 @@ export default function TenantDetailPage() {
 
               <section className="grid gap-5 md:grid-cols-3">
                 <MetricCard
-                  icon={CalendarDays}
+                  icon={Building2}
                   label="Current Lease"
                   value={currentLease ? currentLease.property.name : "None"}
                   detail={
@@ -351,7 +354,7 @@ export default function TenantDetailPage() {
                   detail={overdueCents > 0 ? `${formatCurrency(overdueCents)} overdue` : "No balance overdue"}
                 />
                 <MetricCard
-                  icon={BadgeCheck}
+                  icon={ScrollText}
                   label="Lease History"
                   value={String(tenant.leases.length)}
                   detail={`${tenant.leases.filter((lease) => lease.status === "ended").length} completed`}
@@ -371,32 +374,37 @@ export default function TenantDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-8 md:grid-cols-2 md:gap-16">
-                      <div className="space-y-6">
-                        <div>
-                          <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
-                          {currentInvoiceId ? (
-                            <Link
-                              className="mt-1 inline-block text-xl font-bold text-parcelis-green hover:underline"
-                              href={`/tenants/${tenant.id}/invoices/${currentInvoiceId}`}
-                            >
-                              {currentInvoiceId}
-                            </Link>
-                          ) : (
-                            <p className="mt-1 text-xl font-bold text-parcelis-charcoal">No Record found.</p>
-                          )}
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center text-parcelis-green sm:h-16 sm:w-16">
+                          <Coins className="h-5 w-5 sm:h-10 sm:w-10" />
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-parcelis-gray">Past Due Invoices</p>
-                          {overdueCents > 0 && pastDueInvoiceId ? (
-                            <Link
-                              className="mt-1 inline-block text-xl font-bold text-parcelis-green hover:underline"
-                              href={`/tenants/${tenant.id}/invoices/${pastDueInvoiceId}`}
-                            >
-                              {pastDueInvoiceId}
-                            </Link>
-                          ) : (
-                            <p className="mt-1 text-xl font-bold text-parcelis-charcoal">No Record found.</p>
-                          )}
+                        <div className="space-y-6">
+                          <div>
+                            <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
+                            {currentInvoiceId ? (
+                              <Link
+                                className="mt-1 inline-block text-xl font-bold text-parcelis-green hover:underline"
+                                href={`/tenants/${tenant.id}/invoices/${currentInvoiceId}`}
+                              >
+                                {currentInvoiceId}
+                              </Link>
+                            ) : (
+                              <p className="mt-1 text-xl font-bold text-parcelis-charcoal">No Record found.</p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-parcelis-gray">Past Due Invoices</p>
+                            {overdueCents > 0 && pastDueInvoiceId ? (
+                              <Link
+                                className="mt-1 inline-block text-xl font-bold text-parcelis-green hover:underline"
+                                href={`/tenants/${tenant.id}/invoices/${pastDueInvoiceId}`}
+                              >
+                                {pastDueInvoiceId}
+                              </Link>
+                            ) : (
+                              <p className="mt-1 text-xl font-bold text-parcelis-charcoal">No Record found.</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="space-y-6">
