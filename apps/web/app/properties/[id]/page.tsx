@@ -35,10 +35,7 @@ import {
   type PropertyFormState,
   type UnitDetailsFormState,
 } from "../../../components/property-drawer";
-import {
-  getPropertyFormState,
-  getUnitFormStates,
-} from "../../../components/property-drawer-state";
+import { getPropertyFormState, getUnitFormStates } from "../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import {
   deletePropertyImage,
@@ -118,15 +115,9 @@ export default function PropertyDetailPage() {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
   const [editInitialForm, setEditInitialForm] =
     React.useState<PropertyFormState>(initialPropertyFormState);
-  const [editInitialUnits, setEditInitialUnits] = React.useState<
-    UnitDetailsFormState[]
-  >([]);
-  const [editForm, setEditForm] = React.useState<PropertyFormState>(
-    initialPropertyFormState,
-  );
-  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(
-    null,
-  );
+  const [editInitialUnits, setEditInitialUnits] = React.useState<UnitDetailsFormState[]>([]);
+  const [editForm, setEditForm] = React.useState<PropertyFormState>(initialPropertyFormState);
+  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = React.useState(false);
   const [unitStatusFilter, setUnitStatusFilter] = React.useState("all");
 
@@ -138,22 +129,18 @@ export default function PropertyDetailPage() {
   );
   const occupiedUnits = property?.occupiedUnits ?? 0;
   const unitCount = property?.unitCount ?? 0;
-  const occupancyRate =
-    unitCount > 0 ? Math.round((occupiedUnits / unitCount) * 100) : 0;
-  const monthlyRentCents = activeLeases.reduce(
-    (sum, lease) => sum + lease.monthlyRentCents,
-    0,
-  );
-  const amountOverdueCents = activeLeases.reduce(
-    (sum, lease) => sum + lease.amountOverdueCents,
-    0,
-  );
+  const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits / unitCount) * 100) : 0;
+  const monthlyRentCents = activeLeases.reduce((sum, lease) => sum + lease.monthlyRentCents, 0);
+  const amountOverdueCents = activeLeases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0);
   const expiringLeases90Days = activeLeases.filter((lease) => {
     const now = new Date();
     const expiresBefore = new Date(now);
     expiresBefore.setDate(expiresBefore.getDate() + 90);
-    const endsOn = new Date(lease.endsOn);
-    return endsOn >= now && endsOn <= expiresBefore;
+    return (
+      lease.endsOn !== null &&
+      new Date(lease.endsOn) >= now &&
+      new Date(lease.endsOn) <= expiresBefore
+    );
   }).length;
   const openMaintenanceTickets = maintenanceTickets.filter(
     (ticket) => ticket.status !== "resolved",
@@ -179,8 +166,7 @@ export default function PropertyDetailPage() {
             marketRateCents: 0,
           }))
       ).map((unit, index) => {
-        const lease =
-          leases.find((item) => item.unitLabel === unit.name) ?? leases[index];
+        const lease = leases.find((item) => item.unitLabel === unit.name) ?? leases[index];
 
         return {
           unit,
@@ -235,9 +221,7 @@ export default function PropertyDetailPage() {
         }
         open={isEditDrawerOpen}
         submitLabel="Save"
-        unitHref={(unit) =>
-          unit.id ? `/properties/${propertyId}/units/${unit.id}` : null
-        }
+        unitHref={(unit) => (unit.id ? `/properties/${propertyId}/units/${unit.id}` : null)}
       />
       {property?.imageUrl ? (
         <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>
@@ -257,11 +241,7 @@ export default function PropertyDetailPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="lg:hidden">
-            <ParcelisLogo
-              darkLogoSrc={darkBrandLogoUrl}
-              logoSrc={brandLogoUrl}
-              markOnly
-            />
+            <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
           </div>
           <Button asChild size="sm" variant="secondary">
             <Link href="/properties">
@@ -280,17 +260,13 @@ export default function PropertyDetailPage() {
           ) : propertyQuery.error ? (
             <Card>
               <CardContent>
-                <p className="text-sm font-medium text-red-700">
-                  {propertyQuery.error.message}
-                </p>
+                <p className="text-sm font-medium text-red-700">{propertyQuery.error.message}</p>
               </CardContent>
             </Card>
           ) : !property ? (
             <Card>
               <CardContent>
-                <p className="text-sm text-parcelis-gray">
-                  Property not found.
-                </p>
+                <p className="text-sm text-parcelis-gray">Property not found.</p>
               </CardContent>
             </Card>
           ) : (
@@ -309,13 +285,11 @@ export default function PropertyDetailPage() {
                         {property.propertyType}
                       </span>
                     </div>
-                    <h1 className="mt-5 text-3xl font-bold md:text-5xl">
-                      {property.name}
-                    </h1>
+                    <h1 className="mt-5 text-3xl font-bold md:text-5xl">{property.name}</h1>
                     <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
                       {property.line1}
-                      {property.line2 ? `, ${property.line2}` : ""},{" "}
-                      {property.city}, {property.region} {property.postalCode}
+                      {property.line2 ? `, ${property.line2}` : ""}, {property.city},{" "}
+                      {property.region} {property.postalCode}
                     </p>
                     {contactItems.length > 0 ? (
                       <div className="mt-5 flex max-w-4xl flex-wrap gap-2">
@@ -359,18 +333,8 @@ export default function PropertyDetailPage() {
 
               <section className="grid gap-5 md:grid-cols-4">
                 {[
-                  [
-                    "Units",
-                    String(unitCount),
-                    `${occupiedUnits} occupied`,
-                    DoorOpen,
-                  ],
-                  [
-                    "Occupancy",
-                    `${occupancyRate}%`,
-                    `${sampleVacantUnits} vacant`,
-                    Building2,
-                  ],
+                  ["Units", String(unitCount), `${occupiedUnits} occupied`, DoorOpen],
+                  ["Occupancy", `${occupancyRate}%`, `${sampleVacantUnits} vacant`, Building2],
                   [
                     "Monthly Rent",
                     formatCurrency(monthlyRentCents),
@@ -387,9 +351,7 @@ export default function PropertyDetailPage() {
                   <Card key={label as string}>
                     <CardContent>
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-parcelis-gray">
-                          {label as string}
-                        </p>
+                        <p className="text-sm font-medium text-parcelis-gray">{label as string}</p>
                         {React.createElement(Icon as typeof DoorOpen, {
                           className: "h-4 w-4 text-parcelis-green",
                         })}
@@ -413,15 +375,11 @@ export default function PropertyDetailPage() {
               <section className="mt-5 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
                 <Card>
                   <CardHeader className="flex items-center justify-between gap-3">
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Units
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Units</h2>
                     <Select
                       aria-label="Filter units by status"
                       className="w-36"
-                      onChange={(event) =>
-                        setUnitStatusFilter(event.target.value)
-                      }
+                      onChange={(event) => setUnitStatusFilter(event.target.value)}
                       value={unitStatusFilter}
                     >
                       <option value="all">All statuses</option>
@@ -441,9 +399,7 @@ export default function PropertyDetailPage() {
                           key={unit.id}
                         >
                           <div className="flex items-center justify-between">
-                            <p className="font-semibold text-parcelis-charcoal">
-                              Unit {unit.name}
-                            </p>
+                            <p className="font-semibold text-parcelis-charcoal">Unit {unit.name}</p>
                             <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
                               {formatStatus(status)}
                             </span>
@@ -480,9 +436,7 @@ export default function PropertyDetailPage() {
 
                 <Card>
                   <CardHeader>
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Active
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Active</h2>
                   </CardHeader>
                   <CardContent className="max-h-[34rem] space-y-3 overflow-y-auto pr-3">
                     {leases.length === 0 ? (
@@ -498,12 +452,12 @@ export default function PropertyDetailPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="font-semibold text-parcelis-charcoal">
-                                Unit {lease.unitLabel} ·{" "}
-                                {lease.tenant.firstName} {lease.tenant.lastName}
+                                Unit {lease.unitLabel} · {lease.tenant.firstName}{" "}
+                                {lease.tenant.lastName}
                               </p>
                               <p className="mt-1 text-sm text-parcelis-gray">
                                 {formatDate(lease.startsOn)} to{" "}
-                                {formatDate(lease.endsOn)}
+                                {lease.endsOn ? formatDate(lease.endsOn) : "Month-to-Month"}
                               </p>
                             </div>
                             <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
@@ -517,8 +471,7 @@ export default function PropertyDetailPage() {
                             </span>
                             {lease.amountOverdueCents > 0 ? (
                               <span className="inline-flex items-center gap-1 font-semibold text-red-700">
-                                Overdue{" "}
-                                {formatCurrency(lease.amountOverdueCents)}
+                                Overdue {formatCurrency(lease.amountOverdueCents)}
                               </span>
                             ) : null}
                             {lease.tenant.email ? (
@@ -544,15 +497,12 @@ export default function PropertyDetailPage() {
               <section className="mt-5 grid gap-5 lg:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Maintenance
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Maintenance</h2>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {maintenanceTickets.length === 0 ? (
                       <p className="text-sm text-parcelis-gray">
-                        No maintenance tickets are attached to this property
-                        yet.
+                        No maintenance tickets are attached to this property yet.
                       </p>
                     ) : (
                       maintenanceTickets.map((ticket) => (
@@ -566,11 +516,8 @@ export default function PropertyDetailPage() {
                               {ticket.title}
                             </p>
                             <p className="text-xs text-parcelis-gray">
-                              {formatStatus(ticket.status)} ·{" "}
-                              {formatStatus(ticket.priority)}
-                              {ticket.dueOn
-                                ? ` · Due ${formatDate(ticket.dueOn)}`
-                                : ""}
+                              {formatStatus(ticket.status)} · {formatStatus(ticket.priority)}
+                              {ticket.dueOn ? ` · Due ${formatDate(ticket.dueOn)}` : ""}
                             </p>
                           </div>
                         </div>
@@ -581,45 +528,29 @@ export default function PropertyDetailPage() {
 
                 <Card>
                   <CardHeader>
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Financials
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Financials</h2>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-3">
                       {[
-                        [
-                          "Gross scheduled rent",
-                          formatCurrency(monthlyRentCents),
-                        ],
+                        ["Gross scheduled rent", formatCurrency(monthlyRentCents)],
                         ["Overdue balance", formatCurrency(amountOverdueCents)],
-                        [
-                          "Leases expiring in 90 days",
-                          String(expiringLeases90Days),
-                        ],
+                        ["Leases expiring in 90 days", String(expiringLeases90Days)],
                         [
                           "Estimated vacancy loss",
-                          formatCurrency(
-                            Math.max(unitCount - occupiedUnits, 0) * 175000,
-                          ),
+                          formatCurrency(Math.max(unitCount - occupiedUnits, 0) * 175000),
                         ],
                         [
                           "Owner distribution",
-                          formatCurrency(
-                            Math.max(monthlyRentCents - 126000, 0),
-                          ),
+                          formatCurrency(Math.max(monthlyRentCents - 126000, 0)),
                         ],
                       ].map(([label, value]) => (
                         <div
                           className="flex items-center justify-between rounded-md border border-parcelis-border p-3"
                           key={label}
                         >
-                          <span className="text-sm text-parcelis-gray">
-                            {label}
-                          </span>
-                          <span className="font-semibold text-parcelis-charcoal">
-                            {value}
-                          </span>
+                          <span className="text-sm text-parcelis-gray">{label}</span>
+                          <span className="font-semibold text-parcelis-charcoal">{value}</span>
                         </div>
                       ))}
                     </div>

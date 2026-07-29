@@ -49,10 +49,7 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import type {
-  CreatePropertyInput,
-  UpdatePropertyInput,
-} from "@parcelis/schemas";
+import type { CreatePropertyInput, UpdatePropertyInput } from "@parcelis/schemas";
 import {
   PropertyDrawer,
   initialPropertyFormState,
@@ -66,10 +63,7 @@ import {
   getUnitFormStates,
 } from "../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../components/api-client";
-import {
-  deletePropertyImage,
-  uploadPropertyImage,
-} from "../../components/property-image-upload";
+import { deletePropertyImage, uploadPropertyImage } from "../../components/property-image-upload";
 import { useShortcut } from "../../components/shortcut-provider";
 import { Sidebar } from "../../components/sidebar";
 
@@ -87,9 +81,7 @@ type PropertyFilters = {
   archivedOnly: boolean;
 };
 
-type PropertyListItem = Awaited<
-  ReturnType<typeof apiClient.properties.list.query>
->[number];
+type PropertyListItem = Awaited<ReturnType<typeof apiClient.properties.list.query>>[number];
 
 const initialFilters: PropertyFilters = {
   propertyId: "",
@@ -119,9 +111,7 @@ function formatCurrency(cents: number) {
 
 function getUnitRows(property: PropertyListItem) {
   const openTicketStatuses = new Set(["open", "in_progress", "waiting_vendor"]);
-  const leaseByUnit = new Map(
-    property.leases.map((lease) => [lease.unitLabel, lease]),
-  );
+  const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
   const ticketCountsByUnit = new Map<string, number>();
   const now = new Date();
   const expiresBefore = new Date(now);
@@ -131,10 +121,7 @@ function getUnitRows(property: PropertyListItem) {
     if (!ticket.unitLabel || !openTicketStatuses.has(ticket.status)) {
       continue;
     }
-    ticketCountsByUnit.set(
-      ticket.unitLabel,
-      (ticketCountsByUnit.get(ticket.unitLabel) ?? 0) + 1,
-    );
+    ticketCountsByUnit.set(ticket.unitLabel, (ticketCountsByUnit.get(ticket.unitLabel) ?? 0) + 1);
   }
 
   return Array.from({ length: property.unitCount }, (_, index) => {
@@ -142,10 +129,11 @@ function getUnitRows(property: PropertyListItem) {
     const lease = property.leases[index];
     const unitLabel = lease?.unitLabel ?? fallbackLabel;
     const activeLease = leaseByUnit.get(unitLabel);
-    const endsOn = activeLease ? new Date(activeLease.endsOn) : null;
-    const isExpiring = Boolean(
-      endsOn && endsOn >= now && endsOn <= expiresBefore,
-    );
+    const endsOn =
+      activeLease?.endsOn !== null && activeLease?.endsOn !== undefined
+        ? new Date(activeLease.endsOn)
+        : null;
+    const isExpiring = Boolean(endsOn && endsOn >= now && endsOn <= expiresBefore);
 
     return {
       id: property.units.find((unit) => unit.name === unitLabel)?.id,
@@ -201,10 +189,7 @@ function PropertyActionsMenu({
           <StickyNote className="h-4 w-4 text-parcelis-green" />
           Add Notes
         </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={property.status === "archived"}
-          onSelect={onArchive}
-        >
+        <DropdownMenuItem disabled={property.status === "archived"} onSelect={onArchive}>
           <Archive className="h-4 w-4 text-parcelis-green" />
           Archive
         </DropdownMenuItem>
@@ -233,9 +218,7 @@ function UnitActionsMenu({
   property: PropertyListItem;
   unit: UnitRow;
 }) {
-  const unitHref = unit.id
-    ? `/properties/${property.id}/units/${unit.id}`
-    : null;
+  const unitHref = unit.id ? `/properties/${property.id}/units/${unit.id}` : null;
 
   return (
     <DropdownMenu>
@@ -352,8 +335,7 @@ export default function PropertiesPage() {
     },
   });
   const archiveProperty = useMutation({
-    mutationFn: (input: { id: number }) =>
-      apiClient.properties.archive.mutate(input),
+    mutationFn: (input: { id: number }) => apiClient.properties.archive.mutate(input),
     onSuccess: async (_property, input) => {
       setArchivePropertyId(null);
       await Promise.all([
@@ -365,8 +347,7 @@ export default function PropertiesPage() {
     },
   });
   const deleteProperty = useMutation({
-    mutationFn: (input: { id: number }) =>
-      apiClient.properties.delete.mutate(input),
+    mutationFn: (input: { id: number }) => apiClient.properties.delete.mutate(input),
     onSuccess: async (_property, input) => {
       setDeletePropertyId(null);
       await Promise.all([
@@ -392,8 +373,7 @@ export default function PropertiesPage() {
     },
   });
   const deleteUnit = useMutation({
-    mutationFn: (input: UpdatePropertyInput) =>
-      apiClient.properties.update.mutate(input),
+    mutationFn: (input: UpdatePropertyInput) => apiClient.properties.update.mutate(input),
     onSuccess: async (_property, input) => {
       setDeleteUnitTarget(null);
       await Promise.all([
@@ -407,53 +387,34 @@ export default function PropertiesPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
-  const [draftFilters, setDraftFilters] =
-    React.useState<PropertyFilters>(initialFilters);
-  const [appliedFilters, setAppliedFilters] =
-    React.useState<PropertyFilters>(initialFilters);
-  const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<
-    Set<number>
-  >(() => new Set());
-  const [editingPropertyId, setEditingPropertyId] = React.useState<
-    number | null
-  >(null);
-  const [editingUnitId, setEditingUnitId] = React.useState<
-    number | undefined
-  >();
-  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(
-    null,
+  const [draftFilters, setDraftFilters] = React.useState<PropertyFilters>(initialFilters);
+  const [appliedFilters, setAppliedFilters] = React.useState<PropertyFilters>(initialFilters);
+  const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(
+    () => new Set(),
   );
+  const [editingPropertyId, setEditingPropertyId] = React.useState<number | null>(null);
+  const [editingUnitId, setEditingUnitId] = React.useState<number | undefined>();
+  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
   const [editInitialForm, setEditInitialForm] =
     React.useState<PropertyFormState>(initialPropertyFormState);
-  const [editInitialUnits, setEditInitialUnits] = React.useState<
-    UnitDetailsFormState[]
-  >([]);
-  const [archivePropertyId, setArchivePropertyId] = React.useState<
-    number | null
-  >(null);
-  const [deletePropertyId, setDeletePropertyId] = React.useState<number | null>(
-    null,
-  );
+  const [editInitialUnits, setEditInitialUnits] = React.useState<UnitDetailsFormState[]>([]);
+  const [archivePropertyId, setArchivePropertyId] = React.useState<number | null>(null);
+  const [deletePropertyId, setDeletePropertyId] = React.useState<number | null>(null);
   const [deleteUnitTarget, setDeleteUnitTarget] = React.useState<{
     propertyId: number;
     unitId: number;
     unitLabel: string;
   } | null>(null);
-  const [notesPropertyId, setNotesPropertyId] = React.useState<number | null>(
-    null,
-  );
+  const [notesPropertyId, setNotesPropertyId] = React.useState<number | null>(null);
   const [notesDraft, setNotesDraft] = React.useState("");
-  const [form, setForm] = React.useState<PropertyFormState>(
-    initialPropertyFormState,
-  );
+  const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   useShortcut("/", () => searchInputRef.current?.focus(), {
     enabled: !isFormOpen,
   });
 
   const properties = propertiesQuery.data ?? [];
-  const editingProperty =
-    properties.find((property) => property.id === editingPropertyId) ?? null;
+  const editingProperty = properties.find((property) => property.id === editingPropertyId) ?? null;
   const archivePropertyTarget =
     properties.find((property) => property.id === archivePropertyId) ?? null;
   const deletePropertyTarget =
@@ -461,9 +422,7 @@ export default function PropertiesPage() {
   const notesPropertyTarget =
     properties.find((property) => property.id === notesPropertyId) ?? null;
   const deleteUnitProperty =
-    properties.find(
-      (property) => property.id === deleteUnitTarget?.propertyId,
-    ) ?? null;
+    properties.find((property) => property.id === deleteUnitTarget?.propertyId) ?? null;
   const filteredProperties = properties.filter((property) => {
     const query = search.toLowerCase();
     const matchesSearch = [
@@ -474,21 +433,15 @@ export default function PropertiesPage() {
       property.status,
     ].some((value) => value.toLowerCase().includes(query));
     const matchesProperty =
-      !appliedFilters.propertyId ||
-      property.id === Number(appliedFilters.propertyId);
-    const matchesCity =
-      !appliedFilters.city || property.city === appliedFilters.city;
-    const matchesRegion =
-      !appliedFilters.region || property.region === appliedFilters.region;
+      !appliedFilters.propertyId || property.id === Number(appliedFilters.propertyId);
+    const matchesCity = !appliedFilters.city || property.city === appliedFilters.city;
+    const matchesRegion = !appliedFilters.region || property.region === appliedFilters.region;
     const matchesPostalCode =
-      !appliedFilters.postalCode ||
-      property.postalCode.includes(appliedFilters.postalCode);
+      !appliedFilters.postalCode || property.postalCode.includes(appliedFilters.postalCode);
     const matchesStatus =
-      appliedFilters.status === "all" ||
-      property.status === appliedFilters.status;
+      appliedFilters.status === "all" || property.status === appliedFilters.status;
     const matchesUnits =
-      !appliedFilters.minimumUnits ||
-      property.unitCount >= Number(appliedFilters.minimumUnits);
+      !appliedFilters.minimumUnits || property.unitCount >= Number(appliedFilters.minimumUnits);
     const matchesMaintenance =
       !appliedFilters.hasOpenMaintenance || property.openMaintenanceTickets > 0;
     const matchesArchived = appliedFilters.archivedOnly
@@ -507,38 +460,19 @@ export default function PropertiesPage() {
       matchesArchived
     );
   });
-  const uniqueCities = Array.from(
-    new Set(properties.map((property) => property.city)),
-  ).sort();
-  const uniqueRegions = Array.from(
-    new Set(properties.map((property) => property.region)),
-  ).sort();
-  const activeFilterCount = Object.entries(appliedFilters).filter(
-    ([key, value]) => {
-      if (key === "status") {
-        return value !== "all";
-      }
-      return Boolean(value);
-    },
-  ).length;
-  const totalUnits = properties.reduce(
-    (sum, property) => sum + property.unitCount,
-    0,
-  );
-  const occupiedUnits = properties.reduce(
-    (sum, property) => sum + property.occupiedUnits,
-    0,
-  );
-  const occupancyRate =
-    totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
-  const monthlyRentCents = properties.reduce(
-    (sum, property) => sum + property.monthlyRentCents,
-    0,
-  );
-  const overdueCents = properties.reduce(
-    (sum, property) => sum + property.amountOverdueCents,
-    0,
-  );
+  const uniqueCities = Array.from(new Set(properties.map((property) => property.city))).sort();
+  const uniqueRegions = Array.from(new Set(properties.map((property) => property.region))).sort();
+  const activeFilterCount = Object.entries(appliedFilters).filter(([key, value]) => {
+    if (key === "status") {
+      return value !== "all";
+    }
+    return Boolean(value);
+  }).length;
+  const totalUnits = properties.reduce((sum, property) => sum + property.unitCount, 0);
+  const occupiedUnits = properties.reduce((sum, property) => sum + property.occupiedUnits, 0);
+  const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
+  const monthlyRentCents = properties.reduce((sum, property) => sum + property.monthlyRentCents, 0);
+  const overdueCents = properties.reduce((sum, property) => sum + property.amountOverdueCents, 0);
 
   function updateFilter<Key extends keyof PropertyFilters>(
     field: Key,
@@ -601,31 +535,23 @@ export default function PropertiesPage() {
       <Sidebar active="properties" />
       <PropertyDrawer
         cancelDescription={
-          editingProperty
-            ? "Are you sure you'd like to cancel editing?"
-            : undefined
+          editingProperty ? "Are you sure you'd like to cancel editing?" : undefined
         }
         drawerTitle={editingProperty ? "Edit Property" : "Add Property"}
         error={editingProperty ? updateProperty.error : createProperty.error}
         form={form}
         initialExpandedUnitId={editingUnitId}
-        initialFormState={
-          editingProperty ? editInitialForm : initialPropertyFormState
-        }
+        initialFormState={editingProperty ? editInitialForm : initialPropertyFormState}
         initialUnits={editingProperty ? editInitialUnits : undefined}
         imageFile={propertyImageFile}
         imageUrl={editingProperty?.imageUrl}
         isImageDeletePending={deletePropertyImageMutation.isPending}
         initialStep={editingUnitId ? "unit" : "property"}
-        isPending={
-          editingProperty ? updateProperty.isPending : createProperty.isPending
-        }
+        isPending={editingProperty ? updateProperty.isPending : createProperty.isPending}
         onFormChange={setForm}
         onImageChange={setPropertyImageFile}
         onImageDelete={
-          editingProperty
-            ? () => deletePropertyImageMutation.mutate(editingProperty.id)
-            : undefined
+          editingProperty ? () => deletePropertyImageMutation.mutate(editingProperty.id) : undefined
         }
         onOpenChange={closePropertyDrawer}
         onSubmit={(input) => {
@@ -650,22 +576,15 @@ export default function PropertiesPage() {
             <AlertDialogTitle>Delete unit?</AlertDialogTitle>
             <AlertDialogDescription>
               This permanently deletes Unit {deleteUnitTarget?.unitLabel ?? ""}
-              {deleteUnitProperty ? ` from ${deleteUnitProperty.name}` : ""} and
-              cannot be undone.
+              {deleteUnitProperty ? ` from ${deleteUnitProperty.name}` : ""} and cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setDeleteUnitTarget(null)}
-            >
+            <Button type="button" variant="secondary" onClick={() => setDeleteUnitTarget(null)}>
               Keep Unit
             </Button>
             <Button
-              disabled={
-                deleteUnit.isPending || !deleteUnitTarget || !deleteUnitProperty
-              }
+              disabled={deleteUnit.isPending || !deleteUnitTarget || !deleteUnitProperty}
               onClick={() => {
                 if (!deleteUnitTarget || !deleteUnitProperty) {
                   return;
@@ -674,9 +593,7 @@ export default function PropertiesPage() {
                 deleteUnit.mutate({
                   id: deleteUnitProperty.id,
                   name: deleteUnitProperty.name,
-                  propertyType: getPropertyType(
-                    deleteUnitProperty.propertyType,
-                  ),
+                  propertyType: getPropertyType(deleteUnitProperty.propertyType),
                   tagIds: deleteUnitProperty.tags.map((tag) => tag.id),
                   address: {
                     line1: deleteUnitProperty.line1,
@@ -688,8 +605,7 @@ export default function PropertiesPage() {
                   contactName: deleteUnitProperty.contactName ?? undefined,
                   contactEmail: deleteUnitProperty.contactEmail ?? undefined,
                   contactPhone: deleteUnitProperty.contactPhone ?? undefined,
-                  contactAddress:
-                    deleteUnitProperty.contactAddress ?? undefined,
+                  contactAddress: deleteUnitProperty.contactAddress ?? undefined,
                   notes: deleteUnitProperty.notes ?? undefined,
                   unitCount: deleteUnitProperty.unitCount - 1,
                   units: deleteUnitProperty.units
@@ -700,10 +616,7 @@ export default function PropertiesPage() {
                       marketRateCents: unit.marketRateCents,
                       unitType: getUnitType(unit.unitType),
                       bedrooms: unit.bedrooms ?? undefined,
-                      bathrooms:
-                        unit.bathrooms === null
-                          ? undefined
-                          : Number(unit.bathrooms),
+                      bathrooms: unit.bathrooms === null ? undefined : Number(unit.bathrooms),
                       squareFeet: unit.squareFeet ?? undefined,
                       utilityTypeIds: unit.utilityTypeIds,
                       amenityTypeIds: unit.amenityTypeIds,
@@ -730,23 +643,18 @@ export default function PropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Archive property?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will hide {archivePropertyTarget?.name ?? "this property"}{" "}
-              from the default properties view.
+              This will hide {archivePropertyTarget?.name ?? "this property"} from the default
+              properties view.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setArchivePropertyId(null)}
-            >
+            <Button type="button" variant="secondary" onClick={() => setArchivePropertyId(null)}>
               Keep Active
             </Button>
             <Button
               disabled={archiveProperty.isPending}
               onClick={() =>
-                archivePropertyTarget &&
-                archiveProperty.mutate({ id: archivePropertyTarget.id })
+                archivePropertyTarget && archiveProperty.mutate({ id: archivePropertyTarget.id })
               }
               type="button"
             >
@@ -768,24 +676,18 @@ export default function PropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete property?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes{" "}
-              {deletePropertyTarget?.name ?? "this property"} and cannot be
+              This permanently deletes {deletePropertyTarget?.name ?? "this property"} and cannot be
               undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setDeletePropertyId(null)}
-            >
+            <Button type="button" variant="secondary" onClick={() => setDeletePropertyId(null)}>
               Keep Property
             </Button>
             <Button
               disabled={deleteProperty.isPending}
               onClick={() =>
-                deletePropertyTarget &&
-                deleteProperty.mutate({ id: deletePropertyTarget.id })
+                deletePropertyTarget && deleteProperty.mutate({ id: deletePropertyTarget.id })
               }
               type="button"
             >
@@ -807,8 +709,7 @@ export default function PropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Property notes</AlertDialogTitle>
             <AlertDialogDescription>
-              Add internal notes for{" "}
-              {notesPropertyTarget?.name ?? "this property"}.
+              Add internal notes for {notesPropertyTarget?.name ?? "this property"}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <textarea
@@ -817,11 +718,7 @@ export default function PropertiesPage() {
             value={notesDraft}
           />
           <AlertDialogFooter>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setNotesPropertyId(null)}
-            >
+            <Button type="button" variant="secondary" onClick={() => setNotesPropertyId(null)}>
               Cancel
             </Button>
             <Button
@@ -849,11 +746,7 @@ export default function PropertiesPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="lg:hidden">
-            <ParcelisLogo
-              darkLogoSrc={darkBrandLogoUrl}
-              logoSrc={brandLogoUrl}
-              markOnly
-            />
+            <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
           </div>
           <div className="ml-auto flex items-center gap-2">
             <Button asChild variant="secondary" size="sm">
@@ -872,31 +765,23 @@ export default function PropertiesPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">
                 Properties
               </p>
-              <h1 className="mt-5 text-3xl font-bold md:text-5xl">
-                Portfolio directory
-              </h1>
+              <h1 className="mt-5 text-3xl font-bold md:text-5xl">Portfolio directory</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                Browse every property, review occupancy, and open detail records
-                for units, leases, maintenance, and financials.
+                Browse every property, review occupancy, and open detail records for units, leases,
+                maintenance, and financials.
               </p>
             </div>
             <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-5 md:min-w-[700px]">
               <div className="rounded-md bg-white/10 p-3">
-                <div className="text-2xl font-bold text-white">
-                  {properties.length}
-                </div>
+                <div className="text-2xl font-bold text-white">{properties.length}</div>
                 Properties
               </div>
               <div className="rounded-md bg-white/10 p-3">
-                <div className="text-2xl font-bold text-white">
-                  {totalUnits}
-                </div>
+                <div className="text-2xl font-bold text-white">{totalUnits}</div>
                 Units
               </div>
               <div className="rounded-md bg-white/10 p-3">
-                <div className="text-2xl font-bold text-white">
-                  {occupancyRate}%
-                </div>
+                <div className="text-2xl font-bold text-white">{occupancyRate}%</div>
                 Occupancy
               </div>
               <div className="rounded-md bg-white/10 p-3">
@@ -906,9 +791,7 @@ export default function PropertiesPage() {
                 Rent Roll
               </div>
               <div className="rounded-md bg-white/10 p-3">
-                <div className="text-2xl font-bold text-white">
-                  {formatCurrency(overdueCents)}
-                </div>
+                <div className="text-2xl font-bold text-white">{formatCurrency(overdueCents)}</div>
                 Overdue
               </div>
             </div>
@@ -917,9 +800,7 @@ export default function PropertiesPage() {
           <Card>
             <CardHeader>
               <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <h2 className="font-semibold text-parcelis-charcoal">
-                  All Properties
-                </h2>
+                <h2 className="font-semibold text-parcelis-charcoal">All Properties</h2>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <label className="flex h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray md:min-w-80">
                     <Search className="h-4 w-4" />
@@ -953,9 +834,7 @@ export default function PropertiesPage() {
                         </span>
                         <Select
                           className="h-11"
-                          onChange={(event) =>
-                            updateFilter("propertyId", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("propertyId", event.target.value)}
                           value={draftFilters.propertyId}
                         >
                           <option value="">Select Property</option>
@@ -968,15 +847,11 @@ export default function PropertiesPage() {
                       </Label>
 
                       <Label className="gap-2 md:col-span-2">
-                        <span className="text-sm font-semibold text-parcelis-charcoal">
-                          City
-                        </span>
+                        <span className="text-sm font-semibold text-parcelis-charcoal">City</span>
                         <Input
                           className="h-11"
                           list="property-cities"
-                          onChange={(event) =>
-                            updateFilter("city", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("city", event.target.value)}
                           placeholder="Select"
                           value={draftFilters.city}
                         />
@@ -988,14 +863,10 @@ export default function PropertiesPage() {
                       </Label>
 
                       <Label className="gap-2 md:col-span-2">
-                        <span className="text-sm font-semibold text-parcelis-charcoal">
-                          State
-                        </span>
+                        <span className="text-sm font-semibold text-parcelis-charcoal">State</span>
                         <Select
                           className="h-11"
-                          onChange={(event) =>
-                            updateFilter("region", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("region", event.target.value)}
                           value={draftFilters.region}
                         >
                           <option value="">Select</option>
@@ -1008,28 +879,20 @@ export default function PropertiesPage() {
                       </Label>
 
                       <Label className="gap-2 md:col-span-2">
-                        <span className="text-sm font-semibold text-parcelis-charcoal">
-                          Zip
-                        </span>
+                        <span className="text-sm font-semibold text-parcelis-charcoal">Zip</span>
                         <Input
                           className="h-11"
-                          onChange={(event) =>
-                            updateFilter("postalCode", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("postalCode", event.target.value)}
                           placeholder="0"
                           value={draftFilters.postalCode}
                         />
                       </Label>
 
                       <Label className="gap-2 md:col-span-3">
-                        <span className="text-sm font-semibold text-parcelis-charcoal">
-                          Status
-                        </span>
+                        <span className="text-sm font-semibold text-parcelis-charcoal">Status</span>
                         <Select
                           className="h-11"
-                          onChange={(event) =>
-                            updateFilter("status", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("status", event.target.value)}
                           value={draftFilters.status}
                         >
                           <option value="all">All</option>
@@ -1047,9 +910,7 @@ export default function PropertiesPage() {
                         <Input
                           className="h-11"
                           min={0}
-                          onChange={(event) =>
-                            updateFilter("minimumUnits", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("minimumUnits", event.target.value)}
                           placeholder="0"
                           type="number"
                           value={draftFilters.minimumUnits}
@@ -1115,36 +976,16 @@ export default function PropertiesPage() {
                 <Table className="min-w-[1380px] border-collapse text-left">
                   <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
                     <TableRow className="border-0">
-                      <TableHead className="w-72 px-5 py-3 font-semibold">
-                        Property
-                      </TableHead>
-                      <TableHead className="w-36 px-5 py-3 font-semibold">
-                        Type
-                      </TableHead>
-                      <TableHead className="w-56 px-5 py-3 font-semibold">
-                        Address
-                      </TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">
-                        Units
-                      </TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">
-                        Occupancy
-                      </TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">
-                        Rent
-                      </TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">
-                        Overdue
-                      </TableHead>
-                      <TableHead className="w-40 px-5 py-3 font-semibold">
-                        90-Day Exp.
-                      </TableHead>
-                      <TableHead className="w-32 px-5 py-3 font-semibold">
-                        Tickets
-                      </TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">
-                        Status
-                      </TableHead>
+                      <TableHead className="w-72 px-5 py-3 font-semibold">Property</TableHead>
+                      <TableHead className="w-36 px-5 py-3 font-semibold">Type</TableHead>
+                      <TableHead className="w-56 px-5 py-3 font-semibold">Address</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Units</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Occupancy</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Rent</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Overdue</TableHead>
+                      <TableHead className="w-40 px-5 py-3 font-semibold">90-Day Exp.</TableHead>
+                      <TableHead className="w-32 px-5 py-3 font-semibold">Tickets</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Status</TableHead>
                       <TableHead className="w-20 px-5 py-3 text-right font-semibold">
                         Actions
                       </TableHead>
@@ -1171,9 +1012,7 @@ export default function PropertiesPage() {
                                       : "cursor-not-allowed opacity-40"
                                   }`}
                                   disabled={property.unitCount <= 1}
-                                  onClick={() =>
-                                    togglePropertyUnits(property.id)
-                                  }
+                                  onClick={() => togglePropertyUnits(property.id)}
                                   type="button"
                                 >
                                   <ChevronRight
@@ -1199,8 +1038,7 @@ export default function PropertiesPage() {
                               </span>
                             </TableCell>
                             <TableCell className="max-w-56 whitespace-normal px-5 py-4 text-parcelis-gray">
-                              {property.line1}, {property.city},{" "}
-                              {property.region}
+                              {property.line1}, {property.city}, {property.region}
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span className="inline-flex items-center gap-1">
@@ -1210,11 +1048,7 @@ export default function PropertiesPage() {
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               {property.unitCount > 0
-                                ? Math.round(
-                                    (property.occupiedUnits /
-                                      property.unitCount) *
-                                      100,
-                                  )
+                                ? Math.round((property.occupiedUnits / property.unitCount) * 100)
                                 : 0}
                               %
                             </TableCell>
@@ -1271,12 +1105,8 @@ export default function PropertiesPage() {
                             </TableCell>
                             <TableCell className="px-5 py-4 text-right">
                               <PropertyActionsMenu
-                                onArchive={() =>
-                                  setArchivePropertyId(property.id)
-                                }
-                                onDelete={() =>
-                                  setDeletePropertyId(property.id)
-                                }
+                                onArchive={() => setArchivePropertyId(property.id)}
+                                onDelete={() => setDeletePropertyId(property.id)}
                                 onEdit={() => openEditProperty(property)}
                                 onNotes={() => openNotes(property)}
                                 property={property}
@@ -1333,9 +1163,7 @@ export default function PropertiesPage() {
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-gray">
-                                      {unit.expiringLeases90Days
-                                        ? "Expiring"
-                                        : "Clear"}
+                                      {unit.expiringLeases90Days ? "Expiring" : "Clear"}
                                     </span>
                                   </TableCell>
                                   <TableCell className="px-5 py-3">

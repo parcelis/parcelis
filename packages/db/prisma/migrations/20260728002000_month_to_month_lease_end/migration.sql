@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Lease" ALTER COLUMN "endsOn" DROP NOT NULL;

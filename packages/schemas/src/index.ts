@@ -11,12 +11,7 @@ export const addressSchema = z.object({
   postalCode: z.string().min(5),
 });
 
-export const propertyStatusSchema = z.enum([
-  "active",
-  "maintenance",
-  "leasing",
-  "archived",
-]);
+export const propertyStatusSchema = z.enum(["active", "maintenance", "leasing", "archived"]);
 export const propertyTypeValues = [
   "Apartment",
   "Commercial",
@@ -58,11 +53,9 @@ export const unitDetailsInputSchema = z.object({
   amenityTypeIds: z.array(idSchema).default([]),
 });
 
-export const createUnitInputSchema = unitDetailsInputSchema
-  .omit({ id: true })
-  .extend({
-    propertyId: idSchema,
-  });
+export const createUnitInputSchema = unitDetailsInputSchema.omit({ id: true }).extend({
+  propertyId: idSchema,
+});
 
 export const updateUnitInputSchema = unitDetailsInputSchema.extend({
   id: idSchema,
@@ -110,7 +103,7 @@ export const leaseSchema = z.object({
   unitLabel: z.string().min(1),
   monthlyRentCents: z.number().int().positive(),
   startsOn: z.coerce.date(),
-  endsOn: z.coerce.date(),
+  endsOn: z.coerce.date().nullable(),
   status: leaseStatusSchema,
 });
 
@@ -126,6 +119,29 @@ export const updatePropertyInputSchema = createPropertyInputSchema.extend({
 
 export const propertyByIdInputSchema = z.object({
   id: idSchema,
+});
+
+export const tenantByIdInputSchema = z.object({
+  id: idSchema,
+});
+
+export const updateTenantInputSchema = z.object({
+  id: idSchema,
+  firstName: z.string().trim().min(1),
+  lastName: z.string().trim().min(1),
+  email: z.string().trim().email(),
+  phone: z.string().trim().optional(),
+  accountStatus: z.enum(["activated", "invitation_pending", "disabled"]),
+  insuranceStatus: z.enum(["active", "expired", "not_on_file"]),
+});
+
+export const createTenantInputSchema = updateTenantInputSchema.omit({
+  id: true,
+});
+
+export const tenantNotesInputSchema = z.object({
+  id: idSchema,
+  notes: z.string().trim().max(5000).optional(),
 });
 
 export const propertyNotesInputSchema = z.object({
@@ -146,17 +162,12 @@ export const propertyImageUploadInputSchema = z.object({
 export const propertyImageUploadCompleteInputSchema = z
   .object({
     id: idSchema,
-    objectKey: z
-      .string()
-      .regex(/^properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+    objectKey: z.string().regex(/^properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
   })
-  .refine(
-    ({ id, objectKey }) => objectKey.startsWith(`properties/${id}/images/`),
-    {
-      message: "The image must belong to the selected property.",
-      path: ["objectKey"],
-    },
-  );
+  .refine(({ id, objectKey }) => objectKey.startsWith(`properties/${id}/images/`), {
+    message: "The image must belong to the selected property.",
+    path: ["objectKey"],
+  });
 
 export type Address = z.infer<typeof addressSchema>;
 export type Property = z.infer<typeof propertySchema>;
@@ -170,9 +181,7 @@ export type Tenant = z.infer<typeof tenantSchema>;
 export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;
 export type UpdatePropertyInput = z.infer<typeof updatePropertyInputSchema>;
-export type PropertyImageUploadInput = z.infer<
-  typeof propertyImageUploadInputSchema
->;
+export type PropertyImageUploadInput = z.infer<typeof propertyImageUploadInputSchema>;
 export type PropertyImageUploadCompleteInput = z.infer<
   typeof propertyImageUploadCompleteInputSchema
 >;

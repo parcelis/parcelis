@@ -1,23 +1,48 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import {
   BadgeCheck,
+  Archive,
   CalendarCheck2,
+  EllipsisVertical,
+  Eye,
   Filter,
   Mail,
+  Pencil,
   Phone,
+  Plus,
   Search,
   ShieldCheck,
+  StickyNote,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import {
   Button,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Card,
   CardContent,
   CardHeader,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  Dialog,
+  DialogContent,
   Input,
   Label,
   ParcelisLogo,
@@ -46,6 +71,92 @@ const initialFilters: TenantFilters = {
   insuranceStatus: "all",
   tenantStatus: "all",
 };
+
+type TenantListItem = Awaited<ReturnType<typeof apiClient.tenants.list.query>>[number];
+
+type TenantForm = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  accountStatus: "activated" | "invitation_pending" | "disabled";
+  insuranceStatus: "active" | "expired" | "not_on_file";
+};
+
+const initialTenantForm: TenantForm = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  accountStatus: "invitation_pending",
+  insuranceStatus: "not_on_file",
+};
+
+function TenantActionsMenu({
+  onArchive,
+  onDelete,
+  onEdit,
+  onNotes,
+  onReactivate,
+  tenant,
+}: {
+  onArchive: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+  onNotes: () => void;
+  onReactivate: () => void;
+  tenant: TenantListItem;
+}) {
+  const isArchived = tenant.tenantStatus === "archived";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label={`Open actions for ${tenant.firstName} ${tenant.lastName}`}
+          className="inline-grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-parcelis-porcelain hover:text-parcelis-charcoal"
+          type="button"
+        >
+          <EllipsisVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem asChild>
+          <Link href={`/tenants/${tenant.id}`}>
+            <Eye className="h-4 w-4 text-parcelis-green" />
+            View
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onEdit}>
+          <Pencil className="h-4 w-4 text-parcelis-green" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onNotes}>
+          <StickyNote className="h-4 w-4 text-parcelis-green" />
+          Add Notes
+        </DropdownMenuItem>
+        {isArchived ? (
+          <DropdownMenuItem onSelect={onReactivate}>
+            <Archive className="h-4 w-4 text-parcelis-green" />
+            Restore
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onSelect={onArchive}>
+            <Archive className="h-4 w-4 text-parcelis-green" />
+            Archive
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
+          onSelect={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function formatDate(date: Date | string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -77,26 +188,87 @@ function getStatusTone(status?: string | null) {
 }
 
 export default function TenantsPage() {
+  const queryClient = useQueryClient();
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants.list,
     queryFn: () => apiClient.tenants.list.query(),
   });
   const [search, setSearch] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
-  const [draftFilters, setDraftFilters] =
-    React.useState<TenantFilters>(initialFilters);
-  const [appliedFilters, setAppliedFilters] =
-    React.useState<TenantFilters>(initialFilters);
+  const [draftFilters, setDraftFilters] = React.useState<TenantFilters>(initialFilters);
+  const [appliedFilters, setAppliedFilters] = React.useState<TenantFilters>(initialFilters);
+  const [archiveTenant, setArchiveTenant] = React.useState<TenantListItem | null>(null);
+  const [deleteTenant, setDeleteTenant] = React.useState<TenantListItem | null>(null);
+  const [editTenant, setEditTenant] = React.useState<TenantListItem | null>(null);
+  const [isTenantDrawerOpen, setIsTenantDrawerOpen] = React.useState(false);
+  const [notesTenant, setNotesTenant] = React.useState<TenantListItem | null>(null);
+  const [editForm, setEditForm] = React.useState<TenantForm | null>(null);
+  const [notesDraft, setNotesDraft] = React.useState("");
+  const archiveMutation = useMutation({
+    mutationFn: (id: number) => apiClient.tenants.archive.mutate({ id }),
+    onSuccess: async (_tenant, id) => {
+      setArchiveTenant(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(id) }),
+      ]);
+    },
+  });
+  const reactivateMutation = useMutation({
+    mutationFn: (id: number) => apiClient.tenants.reactivate.mutate({ id }),
+    onSuccess: async (_tenant, id) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(id) }),
+      ]);
+    },
+  });
+  const createTenantMutation = useMutation({
+    mutationFn: (input: TenantForm) => apiClient.tenants.create.mutate(input),
+    onSuccess: async () => {
+      setIsTenantDrawerOpen(false);
+      setEditForm(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
+    },
+  });
+  const updateTenantMutation = useMutation({
+    mutationFn: (input: TenantForm & { id: number }) => apiClient.tenants.update.mutate(input),
+    onSuccess: async (_tenant, input) => {
+      setEditTenant(null);
+      setEditForm(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.tenants.byId(input.id),
+        }),
+      ]);
+    },
+  });
+  const updateNotesMutation = useMutation({
+    mutationFn: (input: { id: number; notes?: string }) =>
+      apiClient.tenants.updateNotes.mutate(input),
+    onSuccess: async (_tenant, input) => {
+      setNotesTenant(null);
+      setNotesDraft("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.tenants.byId(input.id),
+        }),
+      ]);
+    },
+  });
+  const deleteTenantMutation = useMutation({
+    mutationFn: (id: number) => apiClient.tenants.delete.mutate({ id }),
+    onSuccess: async () => {
+      setDeleteTenant(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
+    },
+  });
   const tenants = tenantsQuery.data ?? [];
-  const activeTenants = tenants.filter(
-    (tenant) => tenant.tenantStatus === "active",
-  );
-  const pastTenants = tenants.filter(
-    (tenant) => tenant.tenantStatus === "past",
-  );
-  const archivedTenants = tenants.filter(
-    (tenant) => tenant.tenantStatus === "archived",
-  );
+  const activeTenants = tenants.filter((tenant) => tenant.tenantStatus === "active");
+  const pastTenants = tenants.filter((tenant) => tenant.tenantStatus === "past");
+  const archivedTenants = tenants.filter((tenant) => tenant.tenantStatus === "archived");
   const filteredTenants = tenants.filter((tenant) => {
     const activeLease = tenant.leases.find(
       (lease) => lease.status === "active" || lease.status === "notice",
@@ -118,24 +290,13 @@ export default function TenantsPage() {
       appliedFilters.insuranceStatus === "all" ||
       tenant.insuranceStatus === appliedFilters.insuranceStatus;
     const matchesTenantStatus =
-      appliedFilters.tenantStatus === "all" ||
-      tenant.tenantStatus === appliedFilters.tenantStatus;
+      appliedFilters.tenantStatus === "all" || tenant.tenantStatus === appliedFilters.tenantStatus;
 
-    return (
-      matchesSearch &&
-      matchesAccountStatus &&
-      matchesInsuranceStatus &&
-      matchesTenantStatus
-    );
+    return matchesSearch && matchesAccountStatus && matchesInsuranceStatus && matchesTenantStatus;
   });
-  const activeFilterCount = Object.values(appliedFilters).filter(
-    (value) => value !== "all",
-  ).length;
+  const activeFilterCount = Object.values(appliedFilters).filter((value) => value !== "all").length;
 
-  function updateFilter<Key extends keyof TenantFilters>(
-    key: Key,
-    value: TenantFilters[Key],
-  ) {
+  function updateFilter<Key extends keyof TenantFilters>(key: Key, value: TenantFilters[Key]) {
     setDraftFilters((filters) => ({ ...filters, [key]: value }));
   }
 
@@ -150,21 +311,290 @@ export default function TenantsPage() {
     setIsFilterOpen(false);
   }
 
+  function openEdit(tenant: TenantListItem) {
+    setEditTenant(tenant);
+    setEditForm({
+      firstName: tenant.firstName,
+      lastName: tenant.lastName,
+      email: tenant.email,
+      phone: tenant.phone ?? "",
+      accountStatus: tenant.accountStatus,
+      insuranceStatus: tenant.insuranceStatus,
+    });
+    setIsTenantDrawerOpen(true);
+  }
+
+  function openCreate() {
+    setEditTenant(null);
+    setEditForm(initialTenantForm);
+    setIsTenantDrawerOpen(true);
+  }
+
+  function openNotes(tenant: TenantListItem) {
+    setNotesTenant(tenant);
+    setNotesDraft(tenant.notes ?? "");
+  }
+
   return (
     <main className="min-h-screen">
       <Sidebar active="tenants" />
+      <AlertDialog
+        onOpenChange={(open) => !open && setArchiveTenant(null)}
+        open={Boolean(archiveTenant)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive tenant?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark {archiveTenant?.firstName} {archiveTenant?.lastName} as archived while
+              preserving their lease history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button onClick={() => setArchiveTenant(null)} type="button" variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={archiveMutation.isPending}
+              onClick={() => archiveTenant && archiveMutation.mutate(archiveTenant.id)}
+              type="button"
+            >
+              Archive
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        onOpenChange={(open) => !open && setDeleteTenant(null)}
+        open={Boolean(deleteTenant)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete tenant?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes {deleteTenant?.firstName} {deleteTenant?.lastName} and their
+              lease history. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button onClick={() => setDeleteTenant(null)} type="button" variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-700 hover:bg-red-800"
+              disabled={deleteTenantMutation.isPending}
+              onClick={() => deleteTenant && deleteTenantMutation.mutate(deleteTenant.id)}
+              type="button"
+            >
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Drawer
+        onOpenChange={(open) => {
+          setIsTenantDrawerOpen(open);
+          if (!open) {
+            setEditTenant(null);
+            setEditForm(null);
+          }
+        }}
+        open={isTenantDrawerOpen}
+      >
+        <DrawerContent className="max-w-2xl">
+          <DrawerHeader className="flex items-center justify-between">
+            <DrawerTitle>{editTenant ? "Edit Tenant" : "Add Tenant"}</DrawerTitle>
+            <DrawerClose />
+          </DrawerHeader>
+          {editForm ? (
+            <form
+              className="flex min-h-0 flex-1 flex-col"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (editTenant) {
+                  updateTenantMutation.mutate({
+                    id: editTenant.id,
+                    ...editForm,
+                  });
+                } else {
+                  createTenantMutation.mutate(editForm);
+                }
+              }}
+            >
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Label>
+                    First Name
+                    <Input
+                      className="mt-1"
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          firstName: event.target.value,
+                        })
+                      }
+                      required
+                      value={editForm.firstName}
+                    />
+                  </Label>
+                  <Label>
+                    Last Name
+                    <Input
+                      className="mt-1"
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          lastName: event.target.value,
+                        })
+                      }
+                      required
+                      value={editForm.lastName}
+                    />
+                  </Label>
+                  <Label className="sm:col-span-2">
+                    Email
+                    <Input
+                      className="mt-1"
+                      onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
+                      required
+                      type="email"
+                      value={editForm.email}
+                    />
+                  </Label>
+                  <Label className="sm:col-span-2">
+                    Phone
+                    <Input
+                      className="mt-1"
+                      onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })}
+                      value={editForm.phone}
+                    />
+                  </Label>
+                  <Label>
+                    Account Status
+                    <Select
+                      className="mt-1"
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          accountStatus: event.target.value as TenantForm["accountStatus"],
+                        })
+                      }
+                      value={editForm.accountStatus}
+                    >
+                      <option value="activated">Activated</option>
+                      <option value="invitation_pending">Invitation Pending</option>
+                      <option value="disabled">Disabled</option>
+                    </Select>
+                  </Label>
+                  <Label>
+                    Insurance Status
+                    <Select
+                      className="mt-1"
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          insuranceStatus: event.target.value as TenantForm["insuranceStatus"],
+                        })
+                      }
+                      value={editForm.insuranceStatus}
+                    >
+                      <option value="active">Active</option>
+                      <option value="expired">Expired</option>
+                      <option value="not_on_file">Not on File</option>
+                    </Select>
+                  </Label>
+                </div>
+                {createTenantMutation.error || updateTenantMutation.error ? (
+                  <p className="mt-4 text-sm font-medium text-red-700">
+                    {(createTenantMutation.error ?? updateTenantMutation.error)?.message}
+                  </p>
+                ) : null}
+              </div>
+              <DrawerFooter className="flex justify-end gap-2">
+                <Button
+                  onClick={() => setIsTenantDrawerOpen(false)}
+                  type="button"
+                  variant="secondary"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  disabled={createTenantMutation.isPending || updateTenantMutation.isPending}
+                  type="submit"
+                >
+                  {editTenant ? "Save" : "Add Tenant"}
+                </Button>
+              </DrawerFooter>
+            </form>
+          ) : null}
+        </DrawerContent>
+      </Drawer>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setNotesTenant(null);
+            setNotesDraft("");
+          }
+        }}
+        open={Boolean(notesTenant)}
+      >
+        <DialogContent className="w-full max-w-xl p-6">
+          <h2 className="text-lg font-semibold text-parcelis-charcoal">Tenant Notes</h2>
+          <form
+            className="mt-5 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (notesTenant) {
+                updateNotesMutation.mutate({
+                  id: notesTenant.id,
+                  notes: notesDraft || undefined,
+                });
+              }
+            }}
+          >
+            <textarea
+              className="min-h-36 w-full rounded-md border border-parcelis-border p-3 text-sm text-parcelis-charcoal outline-none focus:border-parcelis-green"
+              onChange={(event) => setNotesDraft(event.target.value)}
+              placeholder="Add internal notes about this tenant"
+              value={notesDraft}
+            />
+            {updateNotesMutation.error ? (
+              <p className="text-sm font-medium text-red-700">
+                {updateNotesMutation.error.message}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => {
+                  setNotesTenant(null);
+                  setNotesDraft("");
+                }}
+                type="button"
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button disabled={updateNotesMutation.isPending} type="submit">
+                Save Notes
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="lg:hidden">
-            <ParcelisLogo
-              darkLogoSrc={darkBrandLogoUrl}
-              logoSrc={brandLogoUrl}
-              markOnly
-            />
+            <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
           </div>
-          <Button asChild className="ml-auto" size="sm" variant="secondary">
-            <Link href="/">Portfolio</Link>
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/">Portfolio</Link>
+            </Button>
+            <Button onClick={openCreate} size="sm">
+              <Plus className="h-4 w-4" />
+              Tenant
+            </Button>
+          </div>
         </header>
 
         <div className="parcelis-page-shell">
@@ -173,12 +603,10 @@ export default function TenantsPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">
                 Tenants
               </p>
-              <h1 className="mt-5 text-3xl font-bold md:text-5xl">
-                Tenant directory
-              </h1>
+              <h1 className="mt-5 text-3xl font-bold md:text-5xl">Tenant directory</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                Review resident contact details, account status, insurance, and
-                current lease standing.
+                Review resident contact details, account status, insurance, and current lease
+                standing.
               </p>
             </div>
             <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
@@ -192,9 +620,7 @@ export default function TenantsPage() {
           <Card>
             <CardHeader>
               <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <h2 className="font-semibold text-parcelis-charcoal">
-                  All Tenants
-                </h2>
+                <h2 className="font-semibold text-parcelis-charcoal">All Tenants</h2>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <label className="flex h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray md:min-w-80">
                     <Search className="h-4 w-4" />
@@ -224,9 +650,7 @@ export default function TenantsPage() {
                       <Label className="gap-2">
                         <span>Tenant Status</span>
                         <Select
-                          onChange={(event) =>
-                            updateFilter("tenantStatus", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("tenantStatus", event.target.value)}
                           value={draftFilters.tenantStatus}
                         >
                           <option value="all">All statuses</option>
@@ -238,25 +662,19 @@ export default function TenantsPage() {
                       <Label className="gap-2">
                         <span>Account Status</span>
                         <Select
-                          onChange={(event) =>
-                            updateFilter("accountStatus", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("accountStatus", event.target.value)}
                           value={draftFilters.accountStatus}
                         >
                           <option value="all">All statuses</option>
                           <option value="activated">Activated</option>
-                          <option value="invitation_pending">
-                            Invitation Pending
-                          </option>
+                          <option value="invitation_pending">Invitation Pending</option>
                           <option value="disabled">Disabled</option>
                         </Select>
                       </Label>
                       <Label className="gap-2">
                         <span>Insurance Status</span>
                         <Select
-                          onChange={(event) =>
-                            updateFilter("insuranceStatus", event.target.value)
-                          }
+                          onChange={(event) => updateFilter("insuranceStatus", event.target.value)}
                           value={draftFilters.insuranceStatus}
                         >
                           <option value="all">All statuses</option>
@@ -284,52 +702,37 @@ export default function TenantsPage() {
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
               {tenantsQuery.isLoading ? (
-                <div className="min-h-48 p-5 text-sm text-parcelis-gray">
-                  Loading tenants…
-                </div>
+                <div className="min-h-48 p-5 text-sm text-parcelis-gray">Loading tenants…</div>
               ) : tenantsQuery.error ? (
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">
                   {tenantsQuery.error.message}
                 </div>
               ) : filteredTenants.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">
-                  {tenants.length === 0
-                    ? "No tenants yet."
-                    : "No tenants match your search."}
+                  {tenants.length === 0 ? "No tenants yet." : "No tenants match your search."}
                 </div>
               ) : (
-                <Table className="min-w-[1180px] border-collapse text-left">
+                <Table className="min-w-[1240px] border-collapse text-left">
                   <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
                     <TableRow className="border-0">
-                      <TableHead className="w-64 px-5 py-3 font-semibold">
-                        Tenant
-                      </TableHead>
-                      <TableHead className="w-72 px-5 py-3 font-semibold">
-                        Contact
-                      </TableHead>
-                      <TableHead className="w-52 px-5 py-3 font-semibold">
-                        Current Lease
-                      </TableHead>
-                      <TableHead className="w-40 px-5 py-3 font-semibold">
-                        Account Status
-                      </TableHead>
+                      <TableHead className="w-64 px-5 py-3 font-semibold">Tenant</TableHead>
+                      <TableHead className="w-72 px-5 py-3 font-semibold">Contact</TableHead>
+                      <TableHead className="w-52 px-5 py-3 font-semibold">Current Lease</TableHead>
+                      <TableHead className="w-40 px-5 py-3 font-semibold">Account Status</TableHead>
                       <TableHead className="w-40 px-5 py-3 font-semibold">
                         Insurance Status
                       </TableHead>
-                      <TableHead className="w-32 px-5 py-3 font-semibold">
-                        Tenant Status
-                      </TableHead>
-                      <TableHead className="w-36 px-5 py-3 font-semibold">
-                        Lease Ends
+                      <TableHead className="w-32 px-5 py-3 font-semibold">Tenant Status</TableHead>
+                      <TableHead className="w-36 px-5 py-3 font-semibold">Lease Ends</TableHead>
+                      <TableHead className="w-20 px-5 py-3 text-right font-semibold">
+                        Actions
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredTenants.map((tenant) => {
                       const activeLease = tenant.leases.find(
-                        (lease) =>
-                          lease.status === "active" ||
-                          lease.status === "notice",
+                        (lease) => lease.status === "active" || lease.status === "notice",
                       );
                       return (
                         <TableRow
@@ -341,9 +744,12 @@ export default function TenantsPage() {
                               <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
                                 <UserRound className="h-4 w-4" />
                               </div>
-                              <span className="font-semibold text-parcelis-charcoal">
+                              <Link
+                                className="font-semibold text-parcelis-charcoal hover:text-parcelis-green"
+                                href={`/tenants/${tenant.id}`}
+                              >
                                 {tenant.firstName} {tenant.lastName}
-                              </span>
+                              </Link>
                             </div>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
@@ -401,7 +807,21 @@ export default function TenantsPage() {
                             </span>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {activeLease ? formatDate(activeLease.endsOn) : "—"}
+                            {activeLease?.endsOn
+                              ? formatDate(activeLease.endsOn)
+                              : activeLease
+                                ? "Month-to-Month"
+                                : "—"}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-right">
+                            <TenantActionsMenu
+                              onArchive={() => setArchiveTenant(tenant)}
+                              onDelete={() => setDeleteTenant(tenant)}
+                              onEdit={() => openEdit(tenant)}
+                              onNotes={() => openNotes(tenant)}
+                              onReactivate={() => reactivateMutation.mutate(tenant.id)}
+                              tenant={tenant}
+                            />
                           </TableCell>
                         </TableRow>
                       );

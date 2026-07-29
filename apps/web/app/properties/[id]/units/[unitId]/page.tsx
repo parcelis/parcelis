@@ -84,11 +84,7 @@ function getInvoiceRows(startDate: Date | string, amountCents: number) {
   const start = new Date(startDate);
 
   return Array.from({ length: 3 }, (_, index) => {
-    const dueDate = new Date(
-      start.getFullYear(),
-      start.getMonth() + index + 1,
-      1,
-    );
+    const dueDate = new Date(start.getFullYear(), start.getMonth() + index + 1, 1);
 
     return {
       id: `INV-${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, "0")}`,
@@ -145,15 +141,9 @@ export default function UnitDetailPage() {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
   const [editInitialForm, setEditInitialForm] =
     React.useState<PropertyFormState>(initialPropertyFormState);
-  const [editInitialUnits, setEditInitialUnits] = React.useState<
-    UnitDetailsFormState[]
-  >([]);
-  const [editForm, setEditForm] = React.useState<PropertyFormState>(
-    initialPropertyFormState,
-  );
-  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(
-    null,
-  );
+  const [editInitialUnits, setEditInitialUnits] = React.useState<UnitDetailsFormState[]>([]);
+  const [editForm, setEditForm] = React.useState<PropertyFormState>(initialPropertyFormState);
+  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
 
   const property = propertyQuery.data;
   const unit = property?.units.find((item) => item.id === unitId) ?? null;
@@ -166,22 +156,13 @@ export default function UnitDetailPage() {
     ) ?? null;
   const tenant = lease?.tenant ?? null;
   const unitTickets =
-    property?.maintenanceTickets.filter(
-      (ticket) => unit && ticket.unitLabel === unit.name,
-    ) ?? [];
-  const openTickets = unitTickets.filter(
-    (ticket) => ticket.status !== "resolved",
-  );
-  const utilities =
-    unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
-  const amenities =
-    unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
-  const monthlyRentCents =
-    lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0;
+    property?.maintenanceTickets.filter((ticket) => unit && ticket.unitLabel === unit.name) ?? [];
+  const openTickets = unitTickets.filter((ticket) => ticket.status !== "resolved");
+  const utilities = unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
+  const amenities = unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
+  const monthlyRentCents = lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0;
   const overdueCents = lease?.amountOverdueCents ?? 0;
-  const collectedCents = lease
-    ? Math.max(monthlyRentCents - overdueCents, 0)
-    : 0;
+  const collectedCents = lease ? Math.max(monthlyRentCents - overdueCents, 0) : 0;
   const collectionRows = [
     ["Collected", formatCurrency(collectedCents), "bg-parcelis-green"],
     ["Outstanding", formatCurrency(overdueCents), "bg-red-500"],
@@ -189,9 +170,7 @@ export default function UnitDetailPage() {
     ["Coming Due", "—", "bg-amber-400"],
     ["Monthly rent", formatCurrency(monthlyRentCents), "bg-parcelis-charcoal"],
   ];
-  const invoiceRows = lease
-    ? getInvoiceRows(lease.startsOn, monthlyRentCents)
-    : [];
+  const invoiceRows = lease ? getInvoiceRows(lease.startsOn, monthlyRentCents) : [];
 
   function openEditUnitDrawer() {
     if (!property) {
@@ -235,9 +214,7 @@ export default function UnitDetailPage() {
         open={isEditDrawerOpen}
         submitLabel="Save"
         unitHref={(drawerUnit) =>
-          drawerUnit.id
-            ? `/properties/${propertyId}/units/${drawerUnit.id}`
-            : null
+          drawerUnit.id ? `/properties/${propertyId}/units/${drawerUnit.id}` : null
         }
       />
 
@@ -245,11 +222,7 @@ export default function UnitDetailPage() {
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between gap-3 border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
             <div className="lg:hidden">
-              <ParcelisLogo
-                darkLogoSrc={darkBrandLogoUrl}
-                logoSrc={brandLogoUrl}
-                markOnly
-              />
+              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
             <Button asChild size="sm" variant="secondary">
               <Link href={`/properties/${propertyId}`}>
@@ -267,10 +240,7 @@ export default function UnitDetailPage() {
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="max-h-96 min-w-48 overflow-y-auto"
-                >
+                <DropdownMenuContent align="end" className="max-h-96 min-w-48 overflow-y-auto">
                   <DropdownMenuItem asChild>
                     <Link href={`/properties/${propertyId}`}>All Units</Link>
                   </DropdownMenuItem>
@@ -300,12 +270,7 @@ export default function UnitDetailPage() {
               <Archive className="h-4 w-4" />
               <span className="hidden sm:inline">Archive</span>
             </Button>
-            <Button
-              disabled={!property}
-              onClick={openEditUnitDrawer}
-              size="sm"
-              variant="secondary"
-            >
+            <Button disabled={!property} onClick={openEditUnitDrawer} size="sm" variant="secondary">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Edit Unit</span>
             </Button>
@@ -325,9 +290,7 @@ export default function UnitDetailPage() {
           ) : propertyQuery.error ? (
             <Card>
               <CardContent>
-                <p className="text-sm font-medium text-red-700">
-                  {propertyQuery.error.message}
-                </p>
+                <p className="text-sm font-medium text-red-700">{propertyQuery.error.message}</p>
               </CardContent>
             </Card>
           ) : !property || !unit ? (
@@ -345,20 +308,16 @@ export default function UnitDetailPage() {
                       <span className="grid h-11 w-11 place-items-center rounded-md bg-white/10 text-parcelis-green">
                         <DoorOpen className="h-5 w-5" />
                       </span>
-                      <Badge variant="marker">
-                        {lease ? "Occupied" : "Vacant"}
-                      </Badge>
+                      <Badge variant="marker">{lease ? "Occupied" : "Vacant"}</Badge>
                       <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold text-white/80">
                         {formatStatus(unit.unitType)}
                       </span>
                     </div>
-                    <h1 className="mt-5 text-3xl font-bold md:text-5xl">
-                      Unit {unit.name}
-                    </h1>
+                    <h1 className="mt-5 text-3xl font-bold md:text-5xl">Unit {unit.name}</h1>
                     <p className="mt-3 max-w-3xl text-sm leading-6 text-white/75">
                       {property.name} · {property.line1}
-                      {property.line2 ? `, ${property.line2}` : ""},{" "}
-                      {property.city}, {property.region} {property.postalCode}
+                      {property.line2 ? `, ${property.line2}` : ""}, {property.city},{" "}
+                      {property.region} {property.postalCode}
                     </p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2 lg:min-w-80">
@@ -366,25 +325,16 @@ export default function UnitDetailPage() {
                       [BedDouble, "Beds", unit.bedrooms ?? 0],
                       [Bath, "Baths", unit.bathrooms ?? 0],
                       [Ruler, "Square feet", unit.squareFeet ?? 0],
-                      [
-                        CircleDollarSign,
-                        "Market rent",
-                        formatCurrency(unit.marketRateCents),
-                      ],
+                      [CircleDollarSign, "Market rent", formatCurrency(unit.marketRateCents)],
                     ].map(([Icon, label, value]) => (
-                      <div
-                        className="rounded-md bg-white/10 p-2.5"
-                        key={label as string}
-                      >
+                      <div className="rounded-md bg-white/10 p-2.5" key={label as string}>
                         {React.createElement(Icon as typeof BedDouble, {
                           className: "h-3.5 w-3.5 text-parcelis-green",
                         })}
                         <p className="mt-1.5 text-[0.6875rem] font-semibold uppercase text-white/55">
                           {label as string}
                         </p>
-                        <p className="mt-0.5 text-base font-bold text-white">
-                          {String(value)}
-                        </p>
+                        <p className="mt-0.5 text-base font-bold text-white">{String(value)}</p>
                       </div>
                     ))}
                   </div>
@@ -394,9 +344,7 @@ export default function UnitDetailPage() {
               <section className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
                 <Card>
                   <CardHeader className="flex items-center justify-between gap-3 sm:flex-row">
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Lease
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Lease</h2>
                     <Button size="sm" variant="secondary">
                       <Plus className="h-4 w-4" />
                       New Lease
@@ -412,7 +360,7 @@ export default function UnitDetailPage() {
                             </p>
                             <p className="mt-1 text-sm text-parcelis-gray">
                               {formatDate(lease.startsOn)} to{" "}
-                              {formatDate(lease.endsOn)}
+                              {lease.endsOn ? formatDate(lease.endsOn) : "Month-to-Month"}
                             </p>
                           </div>
                           <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
@@ -436,7 +384,7 @@ export default function UnitDetailPage() {
                               End
                             </p>
                             <p className="mt-1 font-semibold text-parcelis-charcoal">
-                              {formatDate(lease.endsOn)}
+                              {lease.endsOn ? formatDate(lease.endsOn) : "Month-to-Month"}
                             </p>
                           </div>
                         </div>
@@ -451,9 +399,7 @@ export default function UnitDetailPage() {
 
                 <Card>
                   <CardHeader>
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Collection
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Collection</h2>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-6 md:grid-cols-[11rem_minmax(0,1fr)] md:items-center">
@@ -477,9 +423,7 @@ export default function UnitDetailPage() {
                               <span className={`h-3 w-3 rounded-sm ${color}`} />
                               {label}
                             </span>
-                            <span className="font-semibold text-parcelis-charcoal">
-                              {value}
-                            </span>
+                            <span className="font-semibold text-parcelis-charcoal">{value}</span>
                           </div>
                         ))}
                       </div>
@@ -491,9 +435,7 @@ export default function UnitDetailPage() {
               <section className="mt-5 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
                 <Card>
                   <CardHeader>
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Tenant
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Tenant</h2>
                   </CardHeader>
                   <CardContent>
                     {tenant ? (
@@ -507,9 +449,7 @@ export default function UnitDetailPage() {
                             <p className="font-semibold text-parcelis-charcoal">
                               {tenant.firstName} {tenant.lastName}
                             </p>
-                            <p className="text-sm text-parcelis-gray">
-                              Primary tenant
-                            </p>
+                            <p className="text-sm text-parcelis-gray">Primary tenant</p>
                           </div>
                         </div>
                         <div className="grid gap-2 text-sm text-parcelis-gray">
@@ -536,9 +476,7 @@ export default function UnitDetailPage() {
 
                 <Card>
                   <CardHeader className="flex items-center justify-between gap-3 sm:flex-row">
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Upcoming Invoices
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Upcoming Invoices</h2>
                     <Button size="sm" variant="ghost">
                       View All
                     </Button>
@@ -581,9 +519,7 @@ export default function UnitDetailPage() {
               <section className="mt-5 grid gap-5 lg:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Unit Details
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Unit Details</h2>
                   </CardHeader>
                   <CardContent className="grid gap-3">
                     {[
@@ -646,11 +582,8 @@ export default function UnitDetailPage() {
                               {ticket.title}
                             </p>
                             <p className="text-xs text-parcelis-gray">
-                              {formatStatus(ticket.status)} ·{" "}
-                              {formatStatus(ticket.priority)}
-                              {ticket.dueOn
-                                ? ` · Due ${formatDate(ticket.dueOn)}`
-                                : ""}
+                              {formatStatus(ticket.status)} · {formatStatus(ticket.priority)}
+                              {ticket.dueOn ? ` · Due ${formatDate(ticket.dueOn)}` : ""}
                             </p>
                           </div>
                         </div>
