@@ -726,7 +726,7 @@ export function PropertyDrawer({
         }
       }}
     >
-      <DrawerContent className="max-w-full sm:max-w-xl md:max-w-3xl lg:max-w-5xl">
+      <DrawerContent size="lg">
         <AlertDialog
           open={isDiscardDialogOpen}
           onOpenChange={setIsDiscardDialogOpen}

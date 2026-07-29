@@ -398,7 +398,7 @@ export default function TenantsPage() {
         }}
         open={isTenantDrawerOpen}
       >
-        <DrawerContent className="max-w-2xl">
+        <DrawerContent size="md">
           <DrawerHeader className="flex items-center justify-between">
             <DrawerTitle>{editTenant ? "Edit Tenant" : "Add Tenant"}</DrawerTitle>
             <DrawerClose />

@@ -168,7 +168,7 @@ export default function TenantDetailPage() {
         </Dialog>
       ) : null}
       <Drawer onOpenChange={setIsEmergencyContactDrawerOpen} open={isEmergencyContactDrawerOpen}>
-        <DrawerContent className="max-w-full sm:max-w-xl md:max-w-3xl lg:max-w-5xl">
+        <DrawerContent size="sm">
           <form
             className="flex min-h-0 flex-1 flex-col"
             onSubmit={(event) => {
@@ -363,7 +363,7 @@ export default function TenantDetailPage() {
                   <CardHeader className="flex items-center justify-between gap-3 sm:flex-row">
                     <h2 className="font-semibold text-parcelis-charcoal">Collection</h2>
                     <Link
-                      className="text-sm font-medium text-sky-600 hover:underline"
+                      className="text-sm font-medium text-parcelis-green hover:underline"
                       href={`/tenants/${tenant.id}/invoices`}
                     >
                       View All Invoices
@@ -376,7 +376,7 @@ export default function TenantDetailPage() {
                           <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
                           {currentInvoiceId ? (
                             <Link
-                              className="mt-1 inline-block text-xl font-bold text-sky-600 hover:underline"
+                              className="mt-1 inline-block text-xl font-bold text-parcelis-green hover:underline"
                               href={`/tenants/${tenant.id}/invoices/${currentInvoiceId}`}
                             >
                               {currentInvoiceId}
@@ -389,7 +389,7 @@ export default function TenantDetailPage() {
                           <p className="text-sm font-medium text-parcelis-gray">Past Due Invoices</p>
                           {overdueCents > 0 && pastDueInvoiceId ? (
                             <Link
-                              className="mt-1 inline-block text-xl font-bold text-sky-600 hover:underline"
+                              className="mt-1 inline-block text-xl font-bold text-parcelis-green hover:underline"
                               href={`/tenants/${tenant.id}/invoices/${pastDueInvoiceId}`}
                             >
                               {pastDueInvoiceId}
@@ -436,7 +436,7 @@ export default function TenantDetailPage() {
                       <p className="text-parcelis-gray">Emergency Contact</p>
                       {emergencyContact ? (
                         <button
-                          className="font-semibold text-sky-600 hover:underline"
+                          className="font-semibold text-parcelis-green hover:underline"
                           onClick={() => setIsEmergencyContactOpen(true)}
                           type="button"
                         >

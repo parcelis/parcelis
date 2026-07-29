@@ -10,6 +10,14 @@ type DrawerContextValue = {
   onOpenChange: (open: boolean) => void;
 };
 
+type DrawerSize = "sm" | "md" | "lg";
+
+const drawerSizeClasses: Record<DrawerSize, string> = {
+  sm: "max-w-full sm:max-w-md",
+  md: "max-w-2xl",
+  lg: "max-w-full sm:max-w-xl md:max-w-3xl lg:max-w-5xl",
+};
+
 const DrawerContext = React.createContext<DrawerContextValue | null>(null);
 
 function useDrawer() {
@@ -83,7 +91,8 @@ export function DrawerTrigger({
 export function DrawerContent({
   children,
   className,
-}: React.HTMLAttributes<HTMLDivElement>) {
+  size = "md",
+}: React.HTMLAttributes<HTMLDivElement> & { size?: DrawerSize }) {
   const { onOpenChange, open } = useDrawer();
   const [isPresent, setIsPresent] = React.useState(false);
 
@@ -116,7 +125,8 @@ export function DrawerContent({
         aria-modal="true"
         aria-hidden={!open}
         className={cn(
-          "fixed inset-y-0 right-0 flex w-full max-w-6xl flex-col border-l border-parcelis-border bg-parcelis-porcelain shadow-xl dark:bg-parcelis-charcoal",
+          "fixed inset-y-0 right-0 flex w-full flex-col border-l border-parcelis-border bg-parcelis-porcelain shadow-xl dark:bg-parcelis-charcoal",
+          drawerSizeClasses[size],
           open ? "parcelis-drawer-opening" : "pointer-events-none parcelis-drawer-closing",
           className,
         )}
