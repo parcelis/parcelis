@@ -342,7 +342,7 @@ function MetricCard({
           <Icon className="h-4 w-4 text-parcelis-green" />
         </div>
         <p className="mt-2 truncate text-2xl font-bold text-parcelis-charcoal">{value}</p>
-        <p className="mt-1 text-sm text-parcelis-gray">{detail}</p>
+        <div className="mt-1 text-sm text-parcelis-gray">{detail}</div>
       </CardContent>
     </Card>
   );
