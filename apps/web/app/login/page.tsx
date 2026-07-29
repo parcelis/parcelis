@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Eye, EyeOff, Github, LockKeyhole, LockOpen, Mail, UsersRound, Layers3 } from "lucide-react";
+import { Eye, EyeOff, Github, LockKeyhole, LockOpen, Mail, Moon, Sun, UsersRound, Layers3 } from "lucide-react";
 import * as React from "react";
 import { Button, Input } from "@parcelis/ui";
+import { useTheme } from "../../components/theme-provider";
 
 const benefits = [
   { icon: LockOpen, title: "Open Source", description: "Built transparently. Owned by the community." },
@@ -22,20 +23,36 @@ const benefits = [
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
+  const { resolvedMode, setMode } = useTheme();
 
   return (
-    <main className="relative min-h-[100svh] overflow-hidden bg-[#071b2f] text-white">
-      <div className="absolute inset-0 bg-[url('/brand/parcelis-background.svg')] bg-cover bg-center" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#041220]/80 via-[#041220]/55 to-[#041220]/30" />
+    <main className="relative min-h-[100svh] overflow-hidden bg-parcelis-porcelain text-parcelis-charcoal dark:bg-[#071b2f] dark:text-white">
+      <div className="absolute inset-0 bg-[url('/brand/parcelis-light-background.svg')] bg-cover bg-center dark:bg-[url('/brand/parcelis-dark-background.svg')]" />
+      <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/55 to-white/30 dark:from-[#041220]/80 dark:via-[#041220]/55 dark:to-[#041220]/30" />
       <div className="relative mx-auto flex min-h-[100svh] w-full max-w-[100rem] flex-col px-6 py-10 sm:px-10 lg:px-12">
-        <header className="shrink-0">
+        <header className="flex shrink-0 items-center justify-between">
           <Image
             alt="Parcelis"
-            className="h-auto w-56"
+            className="h-auto w-56 dark:hidden"
+            height={159}
+            src="/brand/parcelis-light-banner.png"
+            width={488}
+          />
+          <Image
+            alt="Parcelis"
+            className="hidden h-auto w-56 dark:block"
             height={159}
             src="/brand/parcelis-dark-banner.png"
             width={488}
           />
+          <button
+            className="grid h-10 w-10 place-items-center rounded-md border border-parcelis-charcoal/20 bg-white/50 text-parcelis-charcoal transition hover:bg-white/80 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            type="button"
+            aria-label={resolvedMode === "dark" ? "Use light theme" : "Use dark theme"}
+            onClick={() => setMode(resolvedMode === "dark" ? "light" : "dark")}
+          >
+            {resolvedMode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
         </header>
 
         <div className="flex flex-1 items-center justify-between gap-8 lg:gap-[7vw]">
@@ -49,7 +66,7 @@ export default function LoginPage() {
                 property management.
               </span>
             </h1>
-            <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/95">
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-parcelis-charcoal/90 dark:text-white/95">
               Parcelis is the modern, open-source platform for property management.
             </p>
             <ul className="mt-14 grid list-none gap-6 p-0">
@@ -58,7 +75,7 @@ export default function LoginPage() {
                   <Icon aria-hidden="true" className="h-8 w-8 stroke-parcelis-green stroke-[1.6]" />
                   <div>
                     <h2 className="m-0 text-base font-semibold">{title}</h2>
-                    <p className="mt-1 text-sm leading-relaxed text-white/80">{description}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-parcelis-gray dark:text-white/80">{description}</p>
                   </div>
                 </li>
               ))}
@@ -66,14 +83,21 @@ export default function LoginPage() {
           </section>
 
           <section
-            className="w-full max-w-[33rem] flex-[0_1_33rem] rounded-xl border border-white/55 bg-white/[.98] p-8 text-parcelis-charcoal shadow-2xl sm:p-10 lg:p-14"
+            className="w-full max-w-[33rem] flex-[0_1_33rem] rounded-xl border border-white/55 bg-white/[.98] p-8 text-parcelis-charcoal shadow-2xl dark:border-parcelis-border dark:bg-parcelis-slate dark:text-parcelis-porcelain sm:p-10 lg:p-14"
             aria-labelledby="sign-in-title"
           >
             <Image
               alt="Parcelis"
-              className="mx-auto mb-10 h-auto w-full max-w-[15.25rem]"
+              className="mx-auto mb-10 h-auto w-full max-w-[15.25rem] dark:hidden"
               height={159}
               src="/brand/parcelis-light-banner.png"
+              width={488}
+            />
+            <Image
+              alt="Parcelis"
+              className="mx-auto mb-10 hidden h-auto w-full max-w-[15.25rem] dark:block"
+              height={159}
+              src="/brand/parcelis-dark-banner.png"
               width={488}
             />
             <div className="text-center">
@@ -149,7 +173,7 @@ export default function LoginPage() {
             </p>
           </section>
         </div>
-        <footer className="mt-8 w-full max-w-[33rem] self-end text-center text-xs text-white/70">
+        <footer className="mt-8 w-full max-w-[33rem] self-end text-center text-xs text-parcelis-gray dark:text-white/70">
           © 2026 <span className="text-parcelis-green">Parcelis.</span> Open source. Open future.
         </footer>
       </div>
