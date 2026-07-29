@@ -1,98 +1,47 @@
 "use client";
 
-import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import * as React from "react";
 import { cn } from "../lib/utils";
 
-type DialogContextValue = {
-  onOpenChange: (open: boolean) => void;
-};
+export const Dialog = DialogPrimitive.Root;
+export const DialogTrigger = DialogPrimitive.Trigger;
+export const DialogClose = DialogPrimitive.Close;
+export const DialogPortal = DialogPrimitive.Portal;
 
-const DialogContext = React.createContext<DialogContextValue | null>(null);
+export const DialogOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    className={cn("fixed inset-0 z-50 bg-black/80", className)}
+    ref={ref}
+    {...props}
+  />
+));
+DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-function useDialog() {
-  const context = React.useContext(DialogContext);
-  if (!context) {
-    throw new Error("Dialog components must be used within Dialog");
-  }
-
-  return context;
-}
-
-export function Dialog({
-  children,
-  onOpenChange,
-  open,
-}: {
-  children: React.ReactNode;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-}) {
-  React.useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onOpenChange(false);
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onOpenChange, open]);
-
-  if (!open) {
-    return null;
-  }
-
-  return (
-    <DialogContext.Provider value={{ onOpenChange }}>
+export const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ children, className, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content
+      className={cn(
+        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg bg-white p-6 shadow-xl duration-200 dark:bg-parcelis-slate",
+        className,
+      )}
+      ref={ref}
+      {...props}
+    >
       {children}
-    </DialogContext.Provider>
-  );
-}
-
-export function DialogContent({
-  children,
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const { onOpenChange } = useDialog();
-
-  return (
-    <div className="fixed inset-0 z-[60] grid place-items-center p-4">
-      <button
-        aria-label="Close dialog"
-        className="absolute inset-0 bg-black/80"
-        onClick={() => onOpenChange(false)}
-        type="button"
-      />
-      <div
-        aria-modal="true"
-        className={cn(
-          "relative z-10 max-h-full max-w-full rounded-lg bg-white p-4 shadow-xl dark:bg-parcelis-slate",
-          className,
-        )}
-        role="dialog"
-        {...props}
-      >
-        <button
-          aria-label="Close dialog"
-          className="absolute right-3 top-3 inline-grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white transition hover:bg-black/75"
-          onClick={() => onOpenChange(false)}
-          type="button"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        {children}
-      </div>
-    </div>
-  );
-}
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm text-parcelis-gray opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-parcelis-green disabled:pointer-events-none">
+        <X className="h-4 w-4" />
+        <span className="sr-only">Close</span>
+      </DialogPrimitive.Close>
+    </DialogPrimitive.Content>
+  </DialogPortal>
+));
+DialogContent.displayName = DialogPrimitive.Content.displayName;

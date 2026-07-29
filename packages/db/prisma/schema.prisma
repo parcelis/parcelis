@@ -154,9 +154,24 @@ model Tenant {
   insuranceStatus TenantInsuranceStatus @default(not_on_file)
   archivedAt      DateTime?
   notes           String?
+  emergencyContacts EmergencyContact[]
   leases          Lease[]
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
+}
+
+model EmergencyContact {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  firstName String
+  lastName  String?
+  phone     String?
+  isPrimary Boolean  @default(false)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model Lease {

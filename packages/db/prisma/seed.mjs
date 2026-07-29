@@ -314,6 +314,17 @@ async function main() {
       insuranceStatus: "not_on_file",
     },
   });
+  await prisma.emergencyContact.deleteMany({ where: { tenantId: secondTenant.id } });
+  await prisma.emergencyContact.create({
+    data: {
+      tenantId: secondTenant.id,
+      firstName: "Denise",
+      lastName: "Brooks",
+      phone: "843-555-0167",
+      isPrimary: true,
+    },
+  });
+
   const thirdTenant = await prisma.tenant.upsert({
     where: { email: "nora.patel@example.com" },
     update: {

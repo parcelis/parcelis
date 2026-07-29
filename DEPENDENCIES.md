@@ -38,7 +38,7 @@ When adding or removing a direct dependency, update the relevant package manifes
 | Data       | [PostgreSQL](https://www.postgresql.org/)                                                              | Primary relational database.                                 |
 | Validation | `@parcelis/db`                                                                                         | Supplies database enum values to shared validation schemas.  |
 | Validation | [Zod](https://zod.dev/)                                                                                | Shared API input schemas and TypeScript types.               |
-| UI         | [Radix UI](https://www.radix-ui.com/)                                                                  | Accessible checkbox, dropdown, popover, and slot primitives. |
+| UI         | [Radix UI](https://www.radix-ui.com/)                                                                  | Accessible checkbox, dialog, dropdown, popover, and slot primitives. |
 | UI         | [class-variance-authority](https://cva.style/)                                                         | Component variant definitions.                               |
 | UI         | [clsx](https://github.com/lukeed/clsx) and [tailwind-merge](https://github.com/dcastil/tailwind-merge) | Conditional and conflict-safe Tailwind class composition.    |
 | UI         | [Tailwind CSS](https://tailwindcss.com/)                                                               | Utility-first styling.                                       |

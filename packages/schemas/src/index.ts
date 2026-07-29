@@ -125,12 +125,22 @@ export const tenantByIdInputSchema = z.object({
   id: idSchema,
 });
 
+export const updateEmergencyContactInputSchema = z.object({
+  id: idSchema,
+  firstName: z.string().trim().min(1),
+  lastName: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+});
+
 export const updateTenantInputSchema = z.object({
   id: idSchema,
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
   email: z.string().trim().email(),
   phone: z.string().trim().optional(),
+  emergencyContactFirstName: z.string().trim().optional(),
+  emergencyContactLastName: z.string().trim().optional(),
+  emergencyContactPhone: z.string().trim().optional(),
   accountStatus: z.enum(["activated", "invitation_pending", "disabled"]),
   insuranceStatus: z.enum(["active", "expired", "not_on_file"]),
 });
@@ -182,6 +192,4 @@ export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;
 export type UpdatePropertyInput = z.infer<typeof updatePropertyInputSchema>;
 export type PropertyImageUploadInput = z.infer<typeof propertyImageUploadInputSchema>;
-export type PropertyImageUploadCompleteInput = z.infer<
-  typeof propertyImageUploadCompleteInputSchema
->;
+export type PropertyImageUploadCompleteInput = z.infer<typeof propertyImageUploadCompleteInputSchema>;

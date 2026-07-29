@@ -10,6 +10,7 @@ import {
   propertyStatusInputSchema,
   tenantByIdInputSchema,
   tenantNotesInputSchema,
+  updateEmergencyContactInputSchema,
   updateTenantInputSchema,
   listUnitsInputSchema,
   type UnitDetailsInput,
@@ -132,9 +133,7 @@ function withOperatingMetrics<
   const now = new Date();
   const expiresBefore = new Date(now);
   expiresBefore.setDate(expiresBefore.getDate() + 90);
-  const activeLeases = property.leases.filter(
-    (lease) => lease.status === "active" || lease.status === "notice",
-  );
+  const activeLeases = property.leases.filter((lease) => lease.status === "active" || lease.status === "notice");
   const openMaintenanceTickets = property.maintenanceTickets.filter((ticket) =>
     openMaintenanceStatuses.has(ticket.status),
   ).length;
@@ -154,17 +153,31 @@ function withOperatingMetrics<
   };
 }
 
-function getTenantStatus(tenant: {
-  archivedAt: Date | null;
-  leases: Array<{ status: LeaseStatus }>;
-}) {
+function getTenantStatus(tenant: { archivedAt: Date | null; leases: Array<{ status: LeaseStatus }> }) {
   if (tenant.archivedAt) {
     return "archived";
   }
 
-  return tenant.leases.some((lease) => lease.status === "active" || lease.status === "notice")
-    ? "active"
-    : "past";
+  return tenant.leases.some((lease) => lease.status === "active" || lease.status === "notice") ? "active" : "past";
+}
+
+function getEmergencyContact(input: {
+  emergencyContactFirstName?: string;
+  emergencyContactLastName?: string;
+  emergencyContactPhone?: string;
+}) {
+  const firstName = input.emergencyContactFirstName?.trim();
+  const lastName = input.emergencyContactLastName?.trim();
+  const phone = input.emergencyContactPhone?.trim();
+
+  if (!firstName && !lastName && !phone) return null;
+
+  return {
+    firstName: firstName || "Emergency",
+    lastName: lastName || "contact",
+    phone: phone || null,
+    isPrimary: true,
+  };
 }
 
 export const appRouter = router({
@@ -262,14 +275,12 @@ export const appRouter = router({
         : null;
     }),
     /** Creates a short-lived URL for uploading a property image to MinIO. */
-    createImageUploadUrl: publicProcedure
-      .input(propertyImageUploadInputSchema)
-      .mutation(async ({ ctx, input }) => {
-        await ctx.prisma.property.findUniqueOrThrow({
-          where: { id: input.id },
-        });
-        return createPropertyImageUploadUrl(input.contentType, input.id);
-      }),
+    createImageUploadUrl: publicProcedure.input(propertyImageUploadInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.property.findUniqueOrThrow({
+        where: { id: input.id },
+      });
+      return createPropertyImageUploadUrl(input.contentType, input.id);
+    }),
     /** Records a successfully uploaded image and removes the previous object. */
     completeImageUpload: publicProcedure
       .input(propertyImageUploadCompleteInputSchema)
@@ -462,6 +473,9 @@ export const appRouter = router({
     list: publicProcedure.query(async ({ ctx }) => {
       const tenants = await ctx.prisma.tenant.findMany({
         include: {
+          emergencyContacts: {
+            orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+          },
           leases: {
             orderBy: { startsOn: "desc" },
             include: {
@@ -483,6 +497,9 @@ export const appRouter = router({
       const tenant = await ctx.prisma.tenant.findUnique({
         where: { id: input.id },
         include: {
+          emergencyContacts: {
+            orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+          },
           leases: {
             orderBy: { startsOn: "desc" },
             include: {
@@ -511,32 +528,54 @@ export const appRouter = router({
       }),
     ),
     /** Updates tenant contact and account details. */
-    create: publicProcedure.input(createTenantInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.tenant.create({
+    create: publicProcedure.input(createTenantInputSchema).mutation(({ ctx, input }) => {
+      const emergencyContact = getEmergencyContact(input);
+
+      return ctx.prisma.tenant.create({
         data: {
           firstName: input.firstName,
           lastName: input.lastName,
           email: input.email,
           phone: input.phone || null,
+          emergencyContacts: emergencyContact ? { create: emergencyContact } : undefined,
           accountStatus: input.accountStatus,
           insuranceStatus: input.insuranceStatus,
         },
-      }),
-    ),
+      });
+    }),
     /** Updates tenant contact and account details. */
-    update: publicProcedure.input(updateTenantInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.tenant.update({
+    update: publicProcedure.input(updateTenantInputSchema).mutation(({ ctx, input }) => {
+      const emergencyContact = getEmergencyContact(input);
+
+      return ctx.prisma.tenant.update({
         where: { id: input.id },
         data: {
           firstName: input.firstName,
           lastName: input.lastName,
           email: input.email,
           phone: input.phone || null,
+          emergencyContacts: {
+            deleteMany: {},
+            ...(emergencyContact ? { create: emergencyContact } : {}),
+          },
           accountStatus: input.accountStatus,
           insuranceStatus: input.insuranceStatus,
         },
-      }),
-    ),
+      });
+    }),
+    /** Updates an emergency contact linked to a tenant. */
+    updateEmergencyContact: publicProcedure
+      .input(updateEmergencyContactInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.emergencyContact.update({
+          where: { id: input.id },
+          data: {
+            firstName: input.firstName,
+            lastName: input.lastName || null,
+            phone: input.phone || null,
+          },
+        }),
+      ),
     /** Updates the internal notes attached to a tenant. */
     updateNotes: publicProcedure.input(tenantNotesInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.tenant.update({

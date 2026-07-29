@@ -79,6 +79,9 @@ type TenantForm = {
   lastName: string;
   email: string;
   phone: string;
+  emergencyContactFirstName: string;
+  emergencyContactLastName: string;
+  emergencyContactPhone: string;
   accountStatus: "activated" | "invitation_pending" | "disabled";
   insuranceStatus: "active" | "expired" | "not_on_file";
 };
@@ -88,6 +91,9 @@ const initialTenantForm: TenantForm = {
   lastName: "",
   email: "",
   phone: "",
+  emergencyContactFirstName: "",
+  emergencyContactLastName: "",
+  emergencyContactPhone: "",
   accountStatus: "invitation_pending",
   insuranceStatus: "not_on_file",
 };
@@ -146,10 +152,7 @@ function TenantActionsMenu({
             Archive
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem
-          className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
-          onSelect={onDelete}
-        >
+        <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
           <Trash2 className="h-4 w-4" />
           Delete
         </DropdownMenuItem>
@@ -245,8 +248,7 @@ export default function TenantsPage() {
     },
   });
   const updateNotesMutation = useMutation({
-    mutationFn: (input: { id: number; notes?: string }) =>
-      apiClient.tenants.updateNotes.mutate(input),
+    mutationFn: (input: { id: number; notes?: string }) => apiClient.tenants.updateNotes.mutate(input),
     onSuccess: async (_tenant, input) => {
       setNotesTenant(null);
       setNotesDraft("");
@@ -270,9 +272,7 @@ export default function TenantsPage() {
   const pastTenants = tenants.filter((tenant) => tenant.tenantStatus === "past");
   const archivedTenants = tenants.filter((tenant) => tenant.tenantStatus === "archived");
   const filteredTenants = tenants.filter((tenant) => {
-    const activeLease = tenant.leases.find(
-      (lease) => lease.status === "active" || lease.status === "notice",
-    );
+    const activeLease = tenant.leases.find((lease) => lease.status === "active" || lease.status === "notice");
     const query = search.toLowerCase();
 
     const matchesSearch = [
@@ -284,11 +284,9 @@ export default function TenantsPage() {
       activeLease?.unitLabel,
     ].some((value) => value?.toLowerCase().includes(query));
     const matchesAccountStatus =
-      appliedFilters.accountStatus === "all" ||
-      tenant.accountStatus === appliedFilters.accountStatus;
+      appliedFilters.accountStatus === "all" || tenant.accountStatus === appliedFilters.accountStatus;
     const matchesInsuranceStatus =
-      appliedFilters.insuranceStatus === "all" ||
-      tenant.insuranceStatus === appliedFilters.insuranceStatus;
+      appliedFilters.insuranceStatus === "all" || tenant.insuranceStatus === appliedFilters.insuranceStatus;
     const matchesTenantStatus =
       appliedFilters.tenantStatus === "all" || tenant.tenantStatus === appliedFilters.tenantStatus;
 
@@ -312,12 +310,17 @@ export default function TenantsPage() {
   }
 
   function openEdit(tenant: TenantListItem) {
+    const emergencyContact = tenant.emergencyContacts?.[0];
+
     setEditTenant(tenant);
     setEditForm({
       firstName: tenant.firstName,
       lastName: tenant.lastName,
       email: tenant.email,
       phone: tenant.phone ?? "",
+      emergencyContactFirstName: emergencyContact?.firstName ?? "",
+      emergencyContactLastName: emergencyContact?.lastName ?? "",
+      emergencyContactPhone: emergencyContact?.phone ?? "",
       accountStatus: tenant.accountStatus,
       insuranceStatus: tenant.insuranceStatus,
     });
@@ -338,16 +341,13 @@ export default function TenantsPage() {
   return (
     <main className="min-h-screen">
       <Sidebar active="tenants" />
-      <AlertDialog
-        onOpenChange={(open) => !open && setArchiveTenant(null)}
-        open={Boolean(archiveTenant)}
-      >
+      <AlertDialog onOpenChange={(open) => !open && setArchiveTenant(null)} open={Boolean(archiveTenant)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Archive tenant?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will mark {archiveTenant?.firstName} {archiveTenant?.lastName} as archived while
-              preserving their lease history.
+              This will mark {archiveTenant?.firstName} {archiveTenant?.lastName} as archived while preserving their
+              lease history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -364,16 +364,13 @@ export default function TenantsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog
-        onOpenChange={(open) => !open && setDeleteTenant(null)}
-        open={Boolean(deleteTenant)}
-      >
+      <AlertDialog onOpenChange={(open) => !open && setDeleteTenant(null)} open={Boolean(deleteTenant)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete tenant?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes {deleteTenant?.firstName} {deleteTenant?.lastName} and their
-              lease history. This cannot be undone.
+              This permanently deletes {deleteTenant?.firstName} {deleteTenant?.lastName} and their lease history. This
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -470,6 +467,35 @@ export default function TenantsPage() {
                     />
                   </Label>
                   <Label>
+                    Emergency Contact First Name
+                    <Input
+                      className="mt-1"
+                      onChange={(event) =>
+                        setEditForm({ ...editForm, emergencyContactFirstName: event.target.value })
+                      }
+                      value={editForm.emergencyContactFirstName}
+                    />
+                  </Label>
+                  <Label>
+                    Emergency Contact Last Name
+                    <Input
+                      className="mt-1"
+                      onChange={(event) =>
+                        setEditForm({ ...editForm, emergencyContactLastName: event.target.value })
+                      }
+                      value={editForm.emergencyContactLastName}
+                    />
+                  </Label>
+                  <Label>
+                    Emergency Contact Phone
+                    <Input
+                      className="mt-1"
+                      onChange={(event) => setEditForm({ ...editForm, emergencyContactPhone: event.target.value })}
+                      type="tel"
+                      value={editForm.emergencyContactPhone}
+                    />
+                  </Label>
+                  <Label>
                     Account Status
                     <Select
                       className="mt-1"
@@ -511,17 +537,10 @@ export default function TenantsPage() {
                 ) : null}
               </div>
               <DrawerFooter className="flex justify-end gap-2">
-                <Button
-                  onClick={() => setIsTenantDrawerOpen(false)}
-                  type="button"
-                  variant="secondary"
-                >
+                <Button onClick={() => setIsTenantDrawerOpen(false)} type="button" variant="secondary">
                   Cancel
                 </Button>
-                <Button
-                  disabled={createTenantMutation.isPending || updateTenantMutation.isPending}
-                  type="submit"
-                >
+                <Button disabled={createTenantMutation.isPending || updateTenantMutation.isPending} type="submit">
                   {editTenant ? "Save" : "Add Tenant"}
                 </Button>
               </DrawerFooter>
@@ -559,9 +578,7 @@ export default function TenantsPage() {
               value={notesDraft}
             />
             {updateNotesMutation.error ? (
-              <p className="text-sm font-medium text-red-700">
-                {updateNotesMutation.error.message}
-              </p>
+              <p className="text-sm font-medium text-red-700">{updateNotesMutation.error.message}</p>
             ) : null}
             <div className="flex justify-end gap-2">
               <Button
@@ -600,13 +617,10 @@ export default function TenantsPage() {
         <div className="parcelis-page-shell">
           <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">
-                Tenants
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Tenants</p>
               <h1 className="mt-5 text-3xl font-bold md:text-5xl">Tenant directory</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                Review resident contact details, account status, insurance, and current lease
-                standing.
+                Review resident contact details, account status, insurance, and current lease standing.
               </p>
             </div>
             <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
@@ -704,9 +718,7 @@ export default function TenantsPage() {
               {tenantsQuery.isLoading ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">Loading tenants…</div>
               ) : tenantsQuery.error ? (
-                <div className="min-h-48 p-5 text-sm font-medium text-red-700">
-                  {tenantsQuery.error.message}
-                </div>
+                <div className="min-h-48 p-5 text-sm font-medium text-red-700">{tenantsQuery.error.message}</div>
               ) : filteredTenants.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">
                   {tenants.length === 0 ? "No tenants yet." : "No tenants match your search."}
@@ -719,14 +731,10 @@ export default function TenantsPage() {
                       <TableHead className="w-72 px-5 py-3 font-semibold">Contact</TableHead>
                       <TableHead className="w-52 px-5 py-3 font-semibold">Current Lease</TableHead>
                       <TableHead className="w-40 px-5 py-3 font-semibold">Account Status</TableHead>
-                      <TableHead className="w-40 px-5 py-3 font-semibold">
-                        Insurance Status
-                      </TableHead>
+                      <TableHead className="w-40 px-5 py-3 font-semibold">Insurance Status</TableHead>
                       <TableHead className="w-32 px-5 py-3 font-semibold">Tenant Status</TableHead>
                       <TableHead className="w-36 px-5 py-3 font-semibold">Lease Ends</TableHead>
-                      <TableHead className="w-20 px-5 py-3 text-right font-semibold">
-                        Actions
-                      </TableHead>
+                      <TableHead className="w-20 px-5 py-3 text-right font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -773,9 +781,7 @@ export default function TenantsPage() {
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             {activeLease ? (
                               <>
-                                <p className="font-medium text-parcelis-charcoal">
-                                  {activeLease.property.name}
-                                </p>
+                                <p className="font-medium text-parcelis-charcoal">{activeLease.property.name}</p>
                                 <p>Unit {activeLease.unitLabel}</p>
                               </>
                             ) : (
