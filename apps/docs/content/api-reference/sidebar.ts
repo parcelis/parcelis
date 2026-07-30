@@ -98,6 +98,30 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: "category",
+      label: "Tenants",
+      items: [
+        {
+          type: "doc",
+          id: "api-reference/tenants-create-image-upload-url",
+          label: "tenants-createImageUploadUrl",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api-reference/tenants-complete-image-upload",
+          label: "tenants-completeImageUpload",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api-reference/tenants-delete-image",
+          label: "tenants-deleteImage",
+          className: "api-method delete",
+        },
+      ],
+    },
+    {
+      type: "category",
       label: "Tags",
       items: [
         {

@@ -149,6 +149,13 @@ MINIO_ROOT_PASSWORD=parcelis-minio-secret
 The API reads S3-compatible settings from `OBJECT_STORAGE_*` env vars, while the
 web app can use `NEXT_PUBLIC_OBJECT_STORAGE_URL` for public asset URLs.
 `NEXT_PUBLIC_BRAND_LOGO_URL` points at the MinIO-hosted Parcelis logo.
+The responsive navigation and login banners are bundled with the web app as
+`/brand/parcelis-light-banner.png` and `/brand/parcelis-dark-banner.png`.
+
+Property images are stored under
+`properties/{propertyId}/images/{imageId}.{extension}`. Tenant images use
+`tenants/{tenantId}/images/{imageId}.{extension}`. Both use the private
+`parcelis-images` bucket and short-lived signed URLs.
 
 For Docker Compose, host ports are configured with `WEB_PORT`, `API_PORT`, `POSTGRES_PORT`,
 `PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:

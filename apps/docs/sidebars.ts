@@ -26,6 +26,7 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/core-concepts/portfolio",
             "platform-user-guide/core-concepts/property",
             "platform-user-guide/core-concepts/unit",
+            "platform-user-guide/core-concepts/tenant",
             "platform-user-guide/core-concepts/lease",
             "platform-user-guide/core-concepts/maintenance-ticket",
           ],
@@ -39,6 +40,10 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/app-functionality/manage-a-property",
             "platform-user-guide/app-functionality/unit-details",
             "platform-user-guide/app-functionality/property-details",
+            "platform-user-guide/app-functionality/add-a-tenant",
+            "platform-user-guide/app-functionality/tenant-directory",
+            "platform-user-guide/app-functionality/manage-a-tenant",
+            "platform-user-guide/app-functionality/tenant-details",
           ],
         },
         {

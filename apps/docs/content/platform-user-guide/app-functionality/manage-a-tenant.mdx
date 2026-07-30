@@ -1,0 +1,50 @@
+---
+id: manage-a-tenant
+title: Manage a Tenant
+---
+
+Manage a tenant from the directory row actions or the tenant detail page.
+
+## Edit a Tenant
+
+Select **Edit** from the tenant row menu or **Edit tenant** in the tenant detail header. The drawer uses two
+sections:
+
+1. **Tenant Details** contains the tenant's name, email, phone, account status, insurance status, and image.
+2. **Emergency Contact** contains the primary emergency contact's name and phone number.
+
+Select **Next** to move from Tenant Details to Emergency Contact, then select **Save** to apply the changes.
+
+## Tenant Image
+
+Use the **Tenant Image** panel to add, replace, or delete the image. Parcelis accepts JPG, PNG, and WebP files.
+Replacing an image removes the previous image object after the replacement is recorded.
+
+The tenant detail page displays the image once as a circular avatar. Select the avatar to open the full image in a
+centered preview.
+
+Images are stored in the private MinIO bucket under
+`tenants/{tenantId}/images/{imageId}.{extension}` and displayed through short-lived URLs.
+
+## Emergency Contact
+
+The tenant detail page shows the primary emergency contact in the Contact Information card. Select the contact's
+name to review their information, then select **Edit Contact** to update it.
+
+You can also update the emergency contact from the tenant drawer.
+
+## Add Notes
+
+Select **Add Notes** from the tenant row menu to store internal operating context. Tenant notes can contain up to
+5,000 characters.
+
+## Archive and Restore
+
+Select **Archive** to remove a tenant from the normal active workflow while preserving the record and lease
+history. Filter the directory for Archived tenants and select **Restore** to return an archived tenant to their
+lease-derived Active or Past status.
+
+## Delete a Tenant
+
+Select **Delete** only when the tenant should be permanently removed. Parcelis asks for confirmation and deletes
+the tenant record and associated lease history. This action cannot be undone.

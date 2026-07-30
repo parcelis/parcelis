@@ -1,0 +1,44 @@
+---
+id: add-a-tenant
+title: Add a Tenant
+---
+
+Use the tenant drawer to add a tenant and their primary emergency contact.
+
+## Required Fields
+
+- First name.
+- Last name.
+- Email address.
+- Account status.
+- Insurance status.
+
+## Optional Fields
+
+- Phone number.
+- Emergency contact first name, last name, and phone number.
+- A tenant image in JPG, PNG, or WebP format.
+
+## Steps
+
+1. Open **Tenants** from the sidebar.
+2. Select **Tenant** in the page header.
+3. Complete **Tenant Details**.
+4. In the **Tenant Image** panel, select an image if one should be added.
+5. Select **Next** to open **Emergency Contact**.
+6. Add the emergency contact information when available.
+7. Select **Add Tenant**.
+
+Parcelis creates the tenant first and then uploads the selected image.
+
+## Status Fields
+
+Account status can be **Activated**, **Invitation Pending**, or **Disabled**. Insurance status can be **Active**,
+**Expired**, or **Not on File**. The tenant's Active or Past status is derived from lease records and cannot be
+selected in the drawer.
+
+## Image Storage
+
+Tenant images are stored in the private MinIO image bucket under
+`tenants/{tenantId}/images/{imageId}.{extension}`. Parcelis uses short-lived upload and display URLs, so the image
+bucket does not need to be public.
