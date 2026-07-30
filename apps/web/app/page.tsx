@@ -127,10 +127,10 @@ export default function Page() {
             Search properties, tenants, leases
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="secondary" size="sm">
+            <Button className="min-w-40" variant="secondary">
               Invite
             </Button>
-            <Button size="sm" onClick={() => setIsFormOpen(true)}>
+            <Button className="min-w-40" onClick={() => setIsFormOpen(true)}>
               <Plus className="h-4 w-4" />
               Property
             </Button>

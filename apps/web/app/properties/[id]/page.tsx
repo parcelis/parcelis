@@ -224,14 +224,14 @@ export default function PropertyDetailPage() {
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
-            <Button asChild size="sm" variant="secondary">
+            <Button asChild className="min-w-40" variant="secondary">
               <Link href="/properties">
                 <ArrowLeft className="h-4 w-4" />
                 Properties
               </Link>
             </Button>
           </div>
-          <Button disabled={!property} onClick={openEditDrawer} size="sm">
+          <Button className="min-w-40" disabled={!property} onClick={openEditDrawer}>
             Edit property
           </Button>
         </header>

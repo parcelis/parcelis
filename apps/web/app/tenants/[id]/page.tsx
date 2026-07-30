@@ -596,14 +596,14 @@ export default function TenantDetailPage() {
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
-            <Button asChild size="sm" variant="secondary">
+            <Button asChild className="min-w-40" variant="secondary">
               <Link href="/tenants">
                 <ArrowLeft className="h-4 w-4" />
                 Tenants
               </Link>
             </Button>
           </div>
-          <Button disabled={!tenant} onClick={openTenantDrawer} size="sm">
+          <Button className="min-w-40" disabled={!tenant} onClick={openTenantDrawer}>
             Edit tenant
           </Button>
         </header>

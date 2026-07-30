@@ -613,11 +613,11 @@ export default function TenantsPage() {
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
-            <Button asChild size="sm" variant="secondary">
+            <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button onClick={openCreate} size="sm">
+          <Button className="min-w-40" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Tenant
           </Button>

@@ -749,11 +749,11 @@ export default function PropertiesPage() {
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
-            <Button asChild variant="secondary" size="sm">
+            <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button size="sm" onClick={() => setIsFormOpen(true)}>
+          <Button className="min-w-40" onClick={() => setIsFormOpen(true)}>
             <Plus className="h-4 w-4" />
             Property
           </Button>

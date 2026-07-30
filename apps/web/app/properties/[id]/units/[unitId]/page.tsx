@@ -224,7 +224,7 @@ export default function UnitDetailPage() {
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
-            <Button asChild size="sm" variant="secondary">
+            <Button asChild className="min-w-40" variant="secondary">
               <Link href={`/properties/${propertyId}`}>
                 <ArrowLeft className="h-4 w-4" />
                 Property

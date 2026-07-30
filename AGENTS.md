@@ -58,6 +58,13 @@
 - Add reusable UI primitives in `packages/ui/src/components`.
 - Use Tailwind utility classes and existing Parcelis design tokens from the UI package.
 - Use `lucide-react` icons for interface actions when an icon is appropriate.
+- Use the default `Button` size with `className="min-w-40"` for standard page-header actions,
+  back-navigation buttons, and drawer-footer actions. Match the Edit Property drawer buttons for
+  height, padding, and minimum width.
+- Reserve `size="sm"` and compact widths for dense table actions, icon-only controls, and
+  multi-action toolbars where standard buttons would cause overflow.
+- In drawer footers, place Cancel on the left and the primary action on the right. Use
+  `ChevronRight` after the label for every Next button.
 - Keep operational screens dense, scannable, and task-focused rather than marketing-oriented.
 
 ## API and Data
