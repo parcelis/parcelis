@@ -18,6 +18,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { ParcelisLogo } from "@parcelis/ui";
+import { useShortcut } from "./shortcut-provider";
 import { useTheme, type ThemeMode } from "./theme-provider";
 
 const navItems = [
@@ -64,6 +65,8 @@ export function Sidebar({ active }: SidebarProps) {
     const nextMode: ThemeMode = mode === "light" ? "dark" : mode === "dark" ? "system" : "light";
     setMode(nextMode);
   }
+
+  useShortcut("Mod+B", toggleSidebar);
 
   const ThemeIcon = mode === "light" ? Sun : mode === "dark" ? Moon : Monitor;
 
