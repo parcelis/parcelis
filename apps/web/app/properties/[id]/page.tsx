@@ -12,6 +12,7 @@ import {
   DoorOpen,
   Loader2,
   Mail,
+  PenLine,
   Phone,
   Ruler,
   Wrench,
@@ -232,6 +233,7 @@ export default function PropertyDetailPage() {
             </Button>
           </div>
           <Button className="min-w-40" disabled={!property} onClick={openEditDrawer}>
+            <PenLine className="h-4 w-4" />
             Edit property
           </Button>
         </header>

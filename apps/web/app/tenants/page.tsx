@@ -35,12 +35,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
   Dialog,
   DialogContent,
   Input,
@@ -56,6 +50,8 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../components/api-client";
 import { Sidebar } from "../../components/sidebar";
+import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../components/tenant-drawer";
+import { deleteTenantImage, uploadTenantImage } from "../../components/tenant-image-upload";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -73,30 +69,6 @@ const initialFilters: TenantFilters = {
 };
 
 type TenantListItem = Awaited<ReturnType<typeof apiClient.tenants.list.query>>[number];
-
-type TenantForm = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  emergencyContactFirstName: string;
-  emergencyContactLastName: string;
-  emergencyContactPhone: string;
-  accountStatus: "activated" | "invitation_pending" | "disabled";
-  insuranceStatus: "active" | "expired" | "not_on_file";
-};
-
-const initialTenantForm: TenantForm = {
-  firstName: "",
-  lastName: "",
-  email: "",
-  phone: "",
-  emergencyContactFirstName: "",
-  emergencyContactLastName: "",
-  emergencyContactPhone: "",
-  accountStatus: "invitation_pending",
-  insuranceStatus: "not_on_file",
-};
 
 function TenantActionsMenu({
   onArchive,
@@ -205,7 +177,8 @@ export default function TenantsPage() {
   const [editTenant, setEditTenant] = React.useState<TenantListItem | null>(null);
   const [isTenantDrawerOpen, setIsTenantDrawerOpen] = React.useState(false);
   const [notesTenant, setNotesTenant] = React.useState<TenantListItem | null>(null);
-  const [editForm, setEditForm] = React.useState<TenantForm | null>(null);
+  const [editForm, setEditForm] = React.useState<TenantFormState>(initialTenantFormState);
+  const [tenantImageFile, setTenantImageFile] = React.useState<File | null>(null);
   const [notesDraft, setNotesDraft] = React.useState("");
   const archiveMutation = useMutation({
     mutationFn: (id: number) => apiClient.tenants.archive.mutate({ id }),
@@ -227,23 +200,42 @@ export default function TenantsPage() {
     },
   });
   const createTenantMutation = useMutation({
-    mutationFn: (input: TenantForm) => apiClient.tenants.create.mutate(input),
+    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: TenantFormState }) => {
+      const tenant = await apiClient.tenants.create.mutate(input);
+      if (imageFile) await uploadTenantImage(tenant.id, imageFile);
+      return tenant;
+    },
     onSuccess: async () => {
       setIsTenantDrawerOpen(false);
-      setEditForm(null);
+      setEditForm(initialTenantFormState);
+      setTenantImageFile(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
     },
   });
   const updateTenantMutation = useMutation({
-    mutationFn: (input: TenantForm & { id: number }) => apiClient.tenants.update.mutate(input),
-    onSuccess: async (_tenant, input) => {
+    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: TenantFormState & { id: number } }) => {
+      const tenant = await apiClient.tenants.update.mutate(input);
+      if (imageFile) await uploadTenantImage(input.id, imageFile);
+      return tenant;
+    },
+    onSuccess: async (_tenant, variables) => {
       setEditTenant(null);
-      setEditForm(null);
+      setEditForm(initialTenantFormState);
+      setTenantImageFile(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
         queryClient.invalidateQueries({
-          queryKey: queryKeys.tenants.byId(input.id),
+          queryKey: queryKeys.tenants.byId(variables.input.id),
         }),
+      ]);
+    },
+  });
+  const deleteTenantImageMutation = useMutation({
+    mutationFn: deleteTenantImage,
+    onSuccess: async (_tenant, id) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(id) }),
       ]);
     },
   });
@@ -324,12 +316,14 @@ export default function TenantsPage() {
       accountStatus: tenant.accountStatus,
       insuranceStatus: tenant.insuranceStatus,
     });
+    setTenantImageFile(null);
     setIsTenantDrawerOpen(true);
   }
 
   function openCreate() {
     setEditTenant(null);
-    setEditForm(initialTenantForm);
+    setEditForm(initialTenantFormState);
+    setTenantImageFile(null);
     setIsTenantDrawerOpen(true);
   }
 
@@ -388,175 +382,37 @@ export default function TenantsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Drawer
+      <TenantDrawer
+        drawerTitle={editTenant ? "Edit Tenant" : "Add Tenant"}
+        error={createTenantMutation.error ?? updateTenantMutation.error}
+        form={editForm}
+        imageFile={tenantImageFile}
+        imageUrl={editTenant?.imageUrl}
+        isImageDeletePending={deleteTenantImageMutation.isPending}
+        isPending={createTenantMutation.isPending || updateTenantMutation.isPending}
+        onFormChange={setEditForm}
+        onImageChange={setTenantImageFile}
+        onImageDelete={editTenant ? () => deleteTenantImageMutation.mutate(editTenant.id) : undefined}
         onOpenChange={(open) => {
           setIsTenantDrawerOpen(open);
           if (!open) {
             setEditTenant(null);
-            setEditForm(null);
+            setEditForm(initialTenantFormState);
+          }
+        }}
+        onSubmit={(form, imageFile) => {
+          if (editTenant) {
+            updateTenantMutation.mutate({
+              imageFile,
+              input: { id: editTenant.id, ...form },
+            });
+          } else {
+            createTenantMutation.mutate({ imageFile, input: form });
           }
         }}
         open={isTenantDrawerOpen}
-      >
-        <DrawerContent size="md">
-          <DrawerHeader className="flex items-center justify-between">
-            <DrawerTitle>{editTenant ? "Edit Tenant" : "Add Tenant"}</DrawerTitle>
-            <DrawerClose />
-          </DrawerHeader>
-          {editForm ? (
-            <form
-              className="flex min-h-0 flex-1 flex-col"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (editTenant) {
-                  updateTenantMutation.mutate({
-                    id: editTenant.id,
-                    ...editForm,
-                  });
-                } else {
-                  createTenantMutation.mutate(editForm);
-                }
-              }}
-            >
-              <div className="flex-1 overflow-y-auto p-6">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Label>
-                    First Name
-                    <Input
-                      className="mt-1"
-                      onChange={(event) =>
-                        setEditForm({
-                          ...editForm,
-                          firstName: event.target.value,
-                        })
-                      }
-                      required
-                      value={editForm.firstName}
-                    />
-                  </Label>
-                  <Label>
-                    Last Name
-                    <Input
-                      className="mt-1"
-                      onChange={(event) =>
-                        setEditForm({
-                          ...editForm,
-                          lastName: event.target.value,
-                        })
-                      }
-                      required
-                      value={editForm.lastName}
-                    />
-                  </Label>
-                  <Label className="sm:col-span-2">
-                    Email
-                    <Input
-                      className="mt-1"
-                      onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
-                      required
-                      type="email"
-                      value={editForm.email}
-                    />
-                  </Label>
-                  <Label className="sm:col-span-2">
-                    Phone
-                    <Input
-                      className="mt-1"
-                      onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })}
-                      value={editForm.phone}
-                    />
-                  </Label>
-                  <Label>
-                    Emergency Contact First Name
-                    <Input
-                      className="mt-1"
-                      onChange={(event) =>
-                        setEditForm({ ...editForm, emergencyContactFirstName: event.target.value })
-                      }
-                      value={editForm.emergencyContactFirstName}
-                    />
-                  </Label>
-                  <Label>
-                    Emergency Contact Last Name
-                    <Input
-                      className="mt-1"
-                      onChange={(event) =>
-                        setEditForm({ ...editForm, emergencyContactLastName: event.target.value })
-                      }
-                      value={editForm.emergencyContactLastName}
-                    />
-                  </Label>
-                  <Label>
-                    Emergency Contact Phone
-                    <Input
-                      className="mt-1"
-                      onChange={(event) => setEditForm({ ...editForm, emergencyContactPhone: event.target.value })}
-                      type="tel"
-                      value={editForm.emergencyContactPhone}
-                    />
-                  </Label>
-                  <Label>
-                    Account Status
-                    <Select
-                      className="mt-1"
-                      onChange={(event) =>
-                        setEditForm({
-                          ...editForm,
-                          accountStatus: event.target.value as TenantForm["accountStatus"],
-                        })
-                      }
-                      value={editForm.accountStatus}
-                    >
-                      <option value="activated">Activated</option>
-                      <option value="invitation_pending">Invitation Pending</option>
-                      <option value="disabled">Disabled</option>
-                    </Select>
-                  </Label>
-                  <Label>
-                    Insurance Status
-                    <Select
-                      className="mt-1"
-                      onChange={(event) =>
-                        setEditForm({
-                          ...editForm,
-                          insuranceStatus: event.target.value as TenantForm["insuranceStatus"],
-                        })
-                      }
-                      value={editForm.insuranceStatus}
-                    >
-                      <option value="active">Active</option>
-                      <option value="expired">Expired</option>
-                      <option value="not_on_file">Not on File</option>
-                    </Select>
-                  </Label>
-                </div>
-                {createTenantMutation.error || updateTenantMutation.error ? (
-                  <p className="mt-4 text-sm font-medium text-red-700">
-                    {(createTenantMutation.error ?? updateTenantMutation.error)?.message}
-                  </p>
-                ) : null}
-              </div>
-              <DrawerFooter className="flex items-center justify-between gap-3">
-                <Button
-                  className="min-w-40"
-                  onClick={() => setIsTenantDrawerOpen(false)}
-                  type="button"
-                  variant="secondary"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="min-w-40"
-                  disabled={createTenantMutation.isPending || updateTenantMutation.isPending}
-                  type="submit"
-                >
-                  {editTenant ? "Save" : "Add Tenant"}
-                </Button>
-              </DrawerFooter>
-            </form>
-          ) : null}
-        </DrawerContent>
-      </Drawer>
+        submitLabel={editTenant ? "Save" : "Add Tenant"}
+      />
       <Dialog
         onOpenChange={(open) => {
           if (!open) {
