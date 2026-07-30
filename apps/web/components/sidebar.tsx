@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Banknote,
@@ -69,7 +70,28 @@ export function Sidebar({ active }: SidebarProps) {
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-[var(--parcelis-sidebar-width)] border-r border-parcelis-border bg-white px-4 py-6 transition-[width] duration-200 lg:flex lg:flex-col">
       <div className="flex items-center justify-between gap-2">
-        <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly={isCollapsed} />
+        {isCollapsed ? (
+          <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
+        ) : (
+          <Link aria-label="Parcelis portfolio" className="min-w-0" href="/">
+            <Image
+              alt="Parcelis"
+              className="h-auto w-40 dark:hidden"
+              height={159}
+              priority
+              src="/brand/parcelis-light-banner.png"
+              width={488}
+            />
+            <Image
+              alt="Parcelis"
+              className="hidden h-auto w-40 dark:block"
+              height={159}
+              priority
+              src="/brand/parcelis-dark-banner.png"
+              width={488}
+            />
+          </Link>
+        )}
         <button
           aria-label={isCollapsed ? "Expand navigation" : "Collapse navigation"}
           className="grid h-9 w-9 place-items-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
@@ -125,7 +147,9 @@ export function Sidebar({ active }: SidebarProps) {
                   <button
                     aria-pressed={mode === themeMode}
                     className={`grid h-8 place-items-center rounded text-xs font-semibold ${
-                      mode === themeMode ? "bg-white text-parcelis-charcoal shadow-sm" : "text-parcelis-gray hover:bg-white/60"
+                      mode === themeMode
+                        ? "bg-white text-parcelis-charcoal shadow-sm"
+                        : "text-parcelis-gray hover:bg-white/60"
                     }`}
                     key={themeMode}
                     onClick={() => setMode(themeMode)}
