@@ -745,18 +745,18 @@ export default function PropertiesPage() {
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
-          <div className="lg:hidden">
-            <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-          </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <div className="lg:hidden">
+              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
+            </div>
             <Button asChild variant="secondary" size="sm">
               <Link href="/">Portfolio</Link>
             </Button>
-            <Button size="sm" onClick={() => setIsFormOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Property
-            </Button>
           </div>
+          <Button size="sm" onClick={() => setIsFormOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Property
+          </Button>
         </header>
 
         <div className="parcelis-page-shell">

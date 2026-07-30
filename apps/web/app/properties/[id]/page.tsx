@@ -37,10 +37,7 @@ import {
 } from "../../../components/property-drawer";
 import { getPropertyFormState, getUnitFormStates } from "../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../components/api-client";
-import {
-  deletePropertyImage,
-  uploadPropertyImage,
-} from "../../../components/property-image-upload";
+import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
 import { Sidebar } from "../../../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -78,13 +75,7 @@ export default function PropertyDetailPage() {
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
   });
   const updateProperty = useMutation({
-    mutationFn: async ({
-      imageFile,
-      input,
-    }: {
-      imageFile: File | null;
-      input: UpdatePropertyInput;
-    }) => {
+    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: UpdatePropertyInput }) => {
       const updatedProperty = await apiClient.properties.update.mutate(input);
       if (imageFile) await uploadPropertyImage(updatedProperty.id, imageFile);
       return updatedProperty;
@@ -113,8 +104,7 @@ export default function PropertyDetailPage() {
     },
   });
   const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
-  const [editInitialForm, setEditInitialForm] =
-    React.useState<PropertyFormState>(initialPropertyFormState);
+  const [editInitialForm, setEditInitialForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [editInitialUnits, setEditInitialUnits] = React.useState<UnitDetailsFormState[]>([]);
   const [editForm, setEditForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
@@ -124,9 +114,7 @@ export default function PropertyDetailPage() {
   const property = propertyQuery.data;
   const leases = property?.leases ?? [];
   const maintenanceTickets = property?.maintenanceTickets ?? [];
-  const activeLeases = leases.filter(
-    (lease) => lease.status === "active" || lease.status === "notice",
-  );
+  const activeLeases = leases.filter((lease) => lease.status === "active" || lease.status === "notice");
   const occupiedUnits = property?.occupiedUnits ?? 0;
   const unitCount = property?.unitCount ?? 0;
   const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits / unitCount) * 100) : 0;
@@ -136,15 +124,9 @@ export default function PropertyDetailPage() {
     const now = new Date();
     const expiresBefore = new Date(now);
     expiresBefore.setDate(expiresBefore.getDate() + 90);
-    return (
-      lease.endsOn !== null &&
-      new Date(lease.endsOn) >= now &&
-      new Date(lease.endsOn) <= expiresBefore
-    );
+    return lease.endsOn !== null && new Date(lease.endsOn) >= now && new Date(lease.endsOn) <= expiresBefore;
   }).length;
-  const openMaintenanceTickets = maintenanceTickets.filter(
-    (ticket) => ticket.status !== "resolved",
-  ).length;
+  const openMaintenanceTickets = maintenanceTickets.filter((ticket) => ticket.status !== "resolved").length;
   const sampleVacantUnits = Math.max(unitCount - occupiedUnits, 0);
   const contactItems = property
     ? [
@@ -178,9 +160,7 @@ export default function PropertyDetailPage() {
         };
       })
     : [];
-  const filteredUnitCards = unitCards.filter(
-    ({ status }) => unitStatusFilter === "all" || status === unitStatusFilter,
-  );
+  const filteredUnitCards = unitCards.filter(({ status }) => unitStatusFilter === "all" || status === unitStatusFilter);
 
   function openEditDrawer() {
     if (!property) {
@@ -227,7 +207,7 @@ export default function PropertyDetailPage() {
         <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>
           <DialogContent
             aria-label={`${property.name} property image`}
-            className="border-0 bg-transparent p-0 shadow-none"
+            className="w-fit max-w-[90vw] place-items-center border-0 bg-transparent p-0 shadow-none [&>button]:right-3 [&>button]:top-3 [&>button]:grid [&>button]:h-8 [&>button]:w-8 [&>button]:place-items-center [&>button]:rounded-md [&>button]:border [&>button]:border-parcelis-border [&>button]:bg-white [&>button]:p-0 [&>button]:!text-slate-900 [&>button]:opacity-100 [&>button:hover]:bg-parcelis-porcelain [&>button:hover]:!text-slate-950"
           >
             <img
               alt={`${property.name} property`}
@@ -240,14 +220,19 @@ export default function PropertyDetailPage() {
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
-          <div className="lg:hidden">
-            <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
+          <div className="flex items-center gap-2">
+            <div className="lg:hidden">
+              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
+            </div>
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/properties">
+                <ArrowLeft className="h-4 w-4" />
+                Properties
+              </Link>
+            </Button>
           </div>
-          <Button asChild size="sm" variant="secondary">
-            <Link href="/properties">
-              <ArrowLeft className="h-4 w-4" />
-              Properties
-            </Link>
+          <Button disabled={!property} onClick={openEditDrawer} size="sm">
+            Edit property
           </Button>
         </header>
 
@@ -288,8 +273,8 @@ export default function PropertyDetailPage() {
                     <h1 className="mt-5 text-3xl font-bold md:text-5xl">{property.name}</h1>
                     <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
                       {property.line1}
-                      {property.line2 ? `, ${property.line2}` : ""}, {property.city},{" "}
-                      {property.region} {property.postalCode}
+                      {property.line2 ? `, ${property.line2}` : ""}, {property.city}, {property.region}{" "}
+                      {property.postalCode}
                     </p>
                     {contactItems.length > 0 ? (
                       <div className="mt-5 flex max-w-4xl flex-wrap gap-2">
@@ -299,19 +284,14 @@ export default function PropertyDetailPage() {
                             key={label}
                           >
                             <Badge variant="marker">{label}</Badge>
-                            <span className="whitespace-pre-line break-words font-semibold text-white">
-                              {value}
-                            </span>
+                            <span className="whitespace-pre-line break-words font-semibold text-white">{value}</span>
                           </div>
                         ))}
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex w-full flex-col gap-4 md:w-52 md:self-stretch md:items-end">
-                    <Button onClick={openEditDrawer} variant="secondary">
-                      Edit property
-                    </Button>
-                    {property.imageUrl ? (
+                  {property.imageUrl ? (
+                    <div className="flex w-full flex-col gap-4 md:w-52 md:self-stretch md:items-end">
                       <div className="flex flex-1 items-center md:w-full md:justify-end">
                         <button
                           aria-label={`View ${property.name} property image`}
@@ -326,8 +306,8 @@ export default function PropertyDetailPage() {
                           />
                         </button>
                       </div>
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               </section>
 
@@ -341,12 +321,7 @@ export default function PropertyDetailPage() {
                     `${activeLeases.length} active leases`,
                     CircleDollarSign,
                   ],
-                  [
-                    "Tickets",
-                    String(openMaintenanceTickets),
-                    `${expiringLeases90Days} leases expiring`,
-                    Wrench,
-                  ],
+                  ["Tickets", String(openMaintenanceTickets), `${expiringLeases90Days} leases expiring`, Wrench],
                 ].map(([label, value, detail, Icon]) => (
                   <Card key={label as string}>
                     <CardContent>
@@ -356,9 +331,7 @@ export default function PropertyDetailPage() {
                           className: "h-4 w-4 text-parcelis-green",
                         })}
                       </div>
-                      <p className="mt-2 text-3xl font-bold text-parcelis-charcoal">
-                        {value as string}
-                      </p>
+                      <p className="mt-2 text-3xl font-bold text-parcelis-charcoal">{value as string}</p>
                       <div className="mt-1 flex items-center justify-between gap-3 text-sm">
                         <p className="text-parcelis-gray">{detail as string}</p>
                         {label === "Monthly Rent" ? (
@@ -427,9 +400,7 @@ export default function PropertyDetailPage() {
                       );
                     })}
                     {filteredUnitCards.length === 0 ? (
-                      <p className="text-sm text-parcelis-gray sm:col-span-2">
-                        No units match this status.
-                      </p>
+                      <p className="text-sm text-parcelis-gray sm:col-span-2">No units match this status.</p>
                     ) : null}
                   </CardContent>
                 </Card>
@@ -440,20 +411,14 @@ export default function PropertyDetailPage() {
                   </CardHeader>
                   <CardContent className="max-h-[34rem] space-y-3 overflow-y-auto pr-3">
                     {leases.length === 0 ? (
-                      <p className="text-sm text-parcelis-gray">
-                        No leases are attached to this property yet.
-                      </p>
+                      <p className="text-sm text-parcelis-gray">No leases are attached to this property yet.</p>
                     ) : (
                       leases.map((lease) => (
-                        <div
-                          className="rounded-md border border-parcelis-border p-3"
-                          key={lease.id}
-                        >
+                        <div className="rounded-md border border-parcelis-border p-3" key={lease.id}>
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="font-semibold text-parcelis-charcoal">
-                                Unit {lease.unitLabel} · {lease.tenant.firstName}{" "}
-                                {lease.tenant.lastName}
+                                Unit {lease.unitLabel} · {lease.tenant.firstName} {lease.tenant.lastName}
                               </p>
                               <p className="mt-1 text-sm text-parcelis-gray">
                                 {formatDate(lease.startsOn)} to{" "}
@@ -512,9 +477,7 @@ export default function PropertyDetailPage() {
                         >
                           <Wrench className="h-4 w-4 text-parcelis-green" />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-parcelis-charcoal">
-                              {ticket.title}
-                            </p>
+                            <p className="truncate text-sm font-semibold text-parcelis-charcoal">{ticket.title}</p>
                             <p className="text-xs text-parcelis-gray">
                               {formatStatus(ticket.status)} · {formatStatus(ticket.priority)}
                               {ticket.dueOn ? ` · Due ${formatDate(ticket.dueOn)}` : ""}
@@ -536,14 +499,8 @@ export default function PropertyDetailPage() {
                         ["Gross scheduled rent", formatCurrency(monthlyRentCents)],
                         ["Overdue balance", formatCurrency(amountOverdueCents)],
                         ["Leases expiring in 90 days", String(expiringLeases90Days)],
-                        [
-                          "Estimated vacancy loss",
-                          formatCurrency(Math.max(unitCount - occupiedUnits, 0) * 175000),
-                        ],
-                        [
-                          "Owner distribution",
-                          formatCurrency(Math.max(monthlyRentCents - 126000, 0)),
-                        ],
+                        ["Estimated vacancy loss", formatCurrency(Math.max(unitCount - occupiedUnits, 0) * 175000)],
+                        ["Owner distribution", formatCurrency(Math.max(monthlyRentCents - 126000, 0))],
                       ].map(([label, value]) => (
                         <div
                           className="flex items-center justify-between rounded-md border border-parcelis-border p-3"

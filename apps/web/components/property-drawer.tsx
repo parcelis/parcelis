@@ -8,13 +8,12 @@ import {
   BedDouble,
   Building2,
   ChevronDown,
+  ChevronRight,
   DoorOpen,
   ExternalLink,
   Home,
-  ImagePlus,
   Loader2,
   Plus,
-  Replace,
   Ruler,
   Settings,
   Trash2,
@@ -44,14 +43,11 @@ import {
   PopoverTrigger,
   Select,
 } from "@parcelis/ui";
-import {
-  propertyTypeValues,
-  type CreatePropertyInput,
-  type PropertyType,
-} from "@parcelis/schemas";
+import { propertyTypeValues, type CreatePropertyInput, type PropertyType } from "@parcelis/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, queryKeys } from "./api-client";
 import { useShortcut, type ShortcutKey } from "./shortcut-provider";
+import { ImageUploadPanel } from "./image-upload-panel";
 
 export type PropertyFormState = {
   name: string;
@@ -124,9 +120,7 @@ function createUnitDetailsFormState(index = 0): UnitDetailsFormState {
 }
 
 function getInitialUnitFormStates(initialUnits?: UnitDetailsFormState[]) {
-  return initialUnits && initialUnits.length > 0
-    ? initialUnits
-    : [createUnitDetailsFormState()];
+  return initialUnits && initialUnits.length > 0 ? initialUnits : [createUnitDetailsFormState()];
 }
 
 type PropertyDrawerProps = {
@@ -236,10 +230,7 @@ function AddressField({
             </Label>
             <Label className="md:col-span-2">
               <FieldLabel>City</FieldLabel>
-              <Input
-                onChange={(event) => onChange("city", event.target.value)}
-                value={values.city}
-              />
+              <Input onChange={(event) => onChange("city", event.target.value)} value={values.city} />
             </Label>
             <div className="grid gap-4 md:col-span-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
               <Label>
@@ -253,12 +244,7 @@ function AddressField({
               </Label>
               <Label>
                 <FieldLabel>Postal Code</FieldLabel>
-                <Input
-                  onChange={(event) =>
-                    onChange("postalCode", event.target.value)
-                  }
-                  value={values.postalCode}
-                />
+                <Input onChange={(event) => onChange("postalCode", event.target.value)} value={values.postalCode} />
               </Label>
             </div>
           </div>
@@ -291,32 +277,20 @@ export function PropertyDrawer({
   toggleShortcut = "Mod+Shift+P",
   unitHref,
 }: PropertyDrawerProps) {
-  const imageInputRef = React.useRef<HTMLInputElement | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = React.useState(imageUrl);
   const queryClient = useQueryClient();
-  const initialUnitStates = React.useMemo(
-    () => getInitialUnitFormStates(initialUnits),
-    [initialUnits],
-  );
+  const initialUnitStates = React.useMemo(() => getInitialUnitFormStates(initialUnits), [initialUnits]);
   const [currentStep, setCurrentStep] = React.useState<DrawerStep>(initialStep);
   const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
-  const [isContactAddressPopoverOpen, setIsContactAddressPopoverOpen] =
-    React.useState(false);
+  const [isContactAddressPopoverOpen, setIsContactAddressPopoverOpen] = React.useState(false);
   const [isContactInfoOpen, setIsContactInfoOpen] = React.useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = React.useState(false);
   const [customTag, setCustomTag] = React.useState("");
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = React.useState(false);
-  const [imageValidationError, setImageValidationError] = React.useState<
-    string | null
-  >(null);
-  const [unitPendingRemovalId, setUnitPendingRemovalId] =
-    React.useState<UnitId | null>(null);
-  const [units, setUnits] = React.useState<UnitDetailsFormState[]>(() => [
-    ...initialUnitStates,
-  ]);
-  const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<UnitId>>(
-    () => new Set(),
-  );
+  const [imageValidationError, setImageValidationError] = React.useState<string | null>(null);
+  const [unitPendingRemovalId, setUnitPendingRemovalId] = React.useState<UnitId | null>(null);
+  const [units, setUnits] = React.useState<UnitDetailsFormState[]>(() => [...initialUnitStates]);
+  const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<UnitId>>(() => new Set());
   const drawerScrollRef = React.useRef<HTMLDivElement | null>(null);
   const unitCardRefs = React.useRef(new Map<UnitId, HTMLDivElement>());
   const unitOptionsQuery = useQuery({
@@ -339,22 +313,14 @@ export function PropertyDrawer({
     },
   });
   const canContinueToUnitDetails = Boolean(
-    form.name &&
-    form.line1 &&
-    form.city &&
-    form.region &&
-    form.postalCode &&
-    form.propertyType &&
-    form.unitCount,
+    form.name && form.line1 && form.city && form.region && form.postalCode && form.propertyType && form.unitCount,
   );
   const canSubmitUnitDetails =
-    units.length > 0 &&
-    units.every((unit) => unit.unitName && unit.marketRate && unit.unitType);
+    units.length > 0 && units.every((unit) => unit.unitName && unit.marketRate && unit.unitType);
   const hasFormChanges = Object.entries(form).some(([field, value]) => {
     const initialValue = initialFormState[field as keyof PropertyFormState];
     return Array.isArray(value) && Array.isArray(initialValue)
-      ? value.length !== initialValue.length ||
-          value.some((item, index) => item !== initialValue[index])
+      ? value.length !== initialValue.length || value.some((item, index) => item !== initialValue[index])
       : value !== initialValue;
   });
   const hasUnitDetailsChanges =
@@ -380,32 +346,19 @@ export function PropertyDrawer({
       : canSubmitUnitDetails && !imageValidationError;
   const primaryActionLabel = currentStep === "property" ? "Next" : submitLabel;
   const hasImageChange = Boolean(imageFile);
-  const cityLine = [
-    form.city,
-    [form.region, form.postalCode].filter(Boolean).join(" "),
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const cityLine = [form.city, [form.region, form.postalCode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   const addressLines = [form.line1, form.line2, cityLine].filter(Boolean);
-  const contactCityLine = [
-    form.contactCity,
-    [form.contactRegion, form.contactPostalCode].filter(Boolean).join(" "),
-  ]
+  const contactCityLine = [form.contactCity, [form.contactRegion, form.contactPostalCode].filter(Boolean).join(" ")]
     .filter(Boolean)
     .join(", ");
-  const contactAddressLines = [
-    form.contactAddressLine1,
-    form.contactAddressLine2,
-    contactCityLine,
-  ].filter(Boolean);
+  const contactAddressLines = [form.contactAddressLine1, form.contactAddressLine2, contactCityLine].filter(Boolean);
   const contactAddress = contactAddressLines.join("\n");
   const utilityTypes = unitOptionsQuery.data?.utilities ?? [];
   const amenityTypes = unitOptionsQuery.data?.amenityTypes ?? [];
   const propertyTagIds = form.tagIds ?? [];
   const tags = tagsQuery.data ?? [];
   const selectedTags = tags.filter((tag) => propertyTagIds.includes(tag.id));
-  const unitPendingRemoval =
-    units.find((unit) => unit.id === unitPendingRemovalId) ?? null;
+  const unitPendingRemoval = units.find((unit) => unit.id === unitPendingRemovalId) ?? null;
   useShortcut("Mod+Enter", () => runPrimaryAction(), {
     enabled: open && canSubmit && !isPending,
   });
@@ -430,9 +383,7 @@ export function PropertyDrawer({
     if (open && !wasOpen) {
       setCurrentStep(initialStep);
       setUnits([...initialUnitStates]);
-      setExpandedUnitIds(
-        initialExpandedUnitId ? new Set([initialExpandedUnitId]) : new Set(),
-      );
+      setExpandedUnitIds(initialExpandedUnitId ? new Set([initialExpandedUnitId]) : new Set());
       setIsAddressPopoverOpen(false);
       setIsContactAddressPopoverOpen(false);
       setIsContactInfoOpen(false);
@@ -475,9 +426,7 @@ export function PropertyDrawer({
       return;
     }
 
-    setExpandedUnitIds((current) =>
-      new Set(current).add(initialExpandedUnitId),
-    );
+    setExpandedUnitIds((current) => new Set(current).add(initialExpandedUnitId));
 
     const timeouts = [0, 80, 180, 320].map((delay) =>
       window.setTimeout(() => {
@@ -508,10 +457,7 @@ export function PropertyDrawer({
     };
   }, [currentStep, initialExpandedUnitId, open]);
 
-  function updateField<Key extends keyof PropertyFormState>(
-    field: Key,
-    value: PropertyFormState[Key],
-  ) {
+  function updateField<Key extends keyof PropertyFormState>(field: Key, value: PropertyFormState[Key]) {
     onFormChange((current) => ({ ...current, [field]: value }));
   }
 
@@ -520,27 +466,16 @@ export function PropertyDrawer({
     field: Key,
     value: UnitDetailsFormState[Key],
   ) {
-    setUnits((current) =>
-      current.map((unit) =>
-        unit.id === unitId ? { ...unit, [field]: value } : unit,
-      ),
-    );
+    setUnits((current) => current.map((unit) => (unit.id === unitId ? { ...unit, [field]: value } : unit)));
   }
 
-  function updateUnitOption(
-    unitId: UnitId,
-    field: "utilities" | "amenities",
-    optionId: number,
-    checked: boolean,
-  ) {
+  function updateUnitOption(unitId: UnitId, field: "utilities" | "amenities", optionId: number, checked: boolean) {
     setUnits((current) =>
       current.map((unit) =>
         unit.id === unitId
           ? {
               ...unit,
-              [field]: checked
-                ? [...unit[field], optionId]
-                : unit[field].filter((value) => value !== optionId),
+              [field]: checked ? [...unit[field], optionId] : unit[field].filter((value) => value !== optionId),
             }
           : unit,
       ),
@@ -552,9 +487,7 @@ export function PropertyDrawer({
       ...current,
       tagIds: checked
         ? [...(current.tagIds ?? []), tagId]
-        : (current.tagIds ?? []).filter(
-            (currentTagId) => currentTagId !== tagId,
-          ),
+        : (current.tagIds ?? []).filter((currentTagId) => currentTagId !== tagId),
     }));
   }
 
@@ -563,9 +496,7 @@ export function PropertyDrawer({
     if (!label || createTag.isPending) {
       return;
     }
-    const existingTag = tags.find(
-      (tag) => tag.label.toLowerCase() === label.toLowerCase(),
-    );
+    const existingTag = tags.find((tag) => tag.label.toLowerCase() === label.toLowerCase());
     if (existingTag) {
       toggleTag(existingTag.id, true);
       setCustomTag("");
@@ -583,11 +514,7 @@ export function PropertyDrawer({
   }
 
   function removeUnit(unitId: UnitId) {
-    setUnits((current) =>
-      current.length > 1
-        ? current.filter((unit) => unit.id !== unitId)
-        : current,
-    );
+    setUnits((current) => (current.length > 1 ? current.filter((unit) => unit.id !== unitId) : current));
     setExpandedUnitIds((current) => {
       const next = new Set(current);
       next.delete(unitId);
@@ -727,25 +654,14 @@ export function PropertyDrawer({
       }}
     >
       <DrawerContent size="lg">
-        <AlertDialog
-          open={isDiscardDialogOpen}
-          onOpenChange={setIsDiscardDialogOpen}
-        >
+        <AlertDialog open={isDiscardDialogOpen} onOpenChange={setIsDiscardDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>
-                Your changes will not be saved.
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {cancelDescription}
-              </AlertDialogDescription>
+              <AlertDialogTitle>Your changes will not be saved.</AlertDialogTitle>
+              <AlertDialogDescription>{cancelDescription}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setIsDiscardDialogOpen(false)}
-              >
+              <Button type="button" variant="secondary" onClick={() => setIsDiscardDialogOpen(false)}>
                 Keep Editing
               </Button>
               <Button type="button" onClick={resetAndClose}>
@@ -756,24 +672,17 @@ export function PropertyDrawer({
         </AlertDialog>
         <AlertDialog
           open={Boolean(unitPendingRemoval)}
-          onOpenChange={(nextOpen) =>
-            !nextOpen && setUnitPendingRemovalId(null)
-          }
+          onOpenChange={(nextOpen) => !nextOpen && setUnitPendingRemovalId(null)}
         >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Remove Unit</AlertDialogTitle>
               <AlertDialogDescription>
-                This will remove {unitPendingRemoval?.unitName || "this unit"}{" "}
-                from the property if you continue.
+                This will remove {unitPendingRemoval?.unitName || "this unit"} from the property if you continue.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setUnitPendingRemovalId(null)}
-              >
+              <Button type="button" variant="secondary" onClick={() => setUnitPendingRemovalId(null)}>
                 Keep Unit
               </Button>
               <Button type="button" onClick={confirmUnitRemoval}>
@@ -783,10 +692,7 @@ export function PropertyDrawer({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <form
-          className="flex min-h-0 flex-1 flex-col"
-          onSubmit={submitProperty}
-        >
+        <form className="flex min-h-0 flex-1 flex-col" onSubmit={submitProperty}>
           <DrawerHeader className="flex items-center gap-3">
             <DrawerClose />
             <DrawerTitle>{drawerTitle}</DrawerTitle>
@@ -799,9 +705,7 @@ export function PropertyDrawer({
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-base font-bold text-white">
-                    {form.name || "Property Name"}
-                  </p>
+                  <p className="truncate text-base font-bold text-white">{form.name || "Property Name"}</p>
                   <div className="mt-1 space-y-0.5 text-sm font-medium text-white/70">
                     {addressLines.length > 0 ? (
                       addressLines.map((line, index) => (
@@ -815,12 +719,8 @@ export function PropertyDrawer({
                   </div>
                 </div>
                 <div className="border-white/15 md:border-l md:pl-8">
-                  <p className="text-xs font-semibold uppercase text-white/55">
-                    Units
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-white">
-                    {form.unitCount || "-"}
-                  </p>
+                  <p className="text-xs font-semibold uppercase text-white/55">Units</p>
+                  <p className="mt-1 text-base font-semibold text-white">{form.unitCount || "-"}</p>
                 </div>
               </div>
             </div>
@@ -839,9 +739,7 @@ export function PropertyDrawer({
                       return (
                         <div className={className} key={step.label}>
                           <Icon className="h-5 w-5 text-parcelis-gray" />
-                          <span className="text-sm font-semibold">
-                            {step.label}
-                          </span>
+                          <span className="text-sm font-semibold">{step.label}</span>
                         </div>
                       );
                     }
@@ -853,100 +751,28 @@ export function PropertyDrawer({
                         onClick={() => setCurrentStep(step.step)}
                         type="button"
                       >
-                        <Icon
-                          className={`h-5 w-5 ${isActive ? "text-parcelis-green" : "text-parcelis-gray"}`}
-                        />
-                        <span className="text-sm font-semibold">
-                          {step.label}
-                        </span>
+                        <Icon className={`h-5 w-5 ${isActive ? "text-parcelis-green" : "text-parcelis-gray"}`} />
+                        <span className="text-sm font-semibold">{step.label}</span>
                       </button>
                     );
                   })}
                 </aside>
 
-                <section className="w-full">
-                  <h3 className="text-xl font-bold text-parcelis-charcoal">
-                    Property Image
-                  </h3>
-                  <div className="mx-auto w-full max-w-xs">
-                    <input
-                      accept="image/jpeg,image/png,image/webp"
-                      className="sr-only"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0] ?? null;
-                        if (file) {
-                          if (
-                            !["image/jpeg", "image/png", "image/webp"].includes(
-                              file.type,
-                            )
-                          ) {
-                            setImageValidationError(
-                              "Choose a JPG, PNG, or WebP image.",
-                            );
-                          } else {
-                            setImageValidationError(null);
-                            onImageChange?.(file);
-                          }
-                        }
-                        event.target.value = "";
-                      }}
-                      ref={imageInputRef}
-                      type="file"
-                    />
-                    <button
-                      className="mt-3 flex aspect-[4/3] w-full flex-col items-center justify-center overflow-hidden rounded-md border border-dashed border-parcelis-border bg-parcelis-porcelain/50 text-center transition hover:border-parcelis-green"
-                      onClick={() => imageInputRef.current?.click()}
-                      type="button"
-                    >
-                      {imagePreviewUrl ? (
-                        <img
-                          alt="Selected property"
-                          className="h-full w-full object-cover"
-                          src={imagePreviewUrl}
-                        />
-                      ) : (
-                        <>
-                          <ImagePlus className="h-6 w-6 text-parcelis-green" />
-                          <span className="mt-3 text-sm font-semibold text-parcelis-charcoal">
-                            Upload image
-                          </span>
-                          <span className="mt-1 px-3 text-xs text-parcelis-gray">
-                            JPG, PNG, or WebP
-                          </span>
-                        </>
-                      )}
-                    </button>
-                    {imagePreviewUrl ? (
-                      <div className="mt-3 flex items-center justify-between gap-3 text-sm font-semibold">
-                        <button
-                          className="inline-flex items-center gap-1.5 text-parcelis-charcoal hover:underline"
-                          onClick={() => imageInputRef.current?.click()}
-                          type="button"
-                        >
-                          <Replace className="h-4 w-4" />
-                          Replace image
-                        </button>
-                        <button
-                          className="inline-flex items-center gap-1.5 text-red-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                          disabled={isImageDeletePending}
-                          onClick={removeImage}
-                          type="button"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete image
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </section>
+                <ImageUploadPanel
+                  alt="Selected property"
+                  imagePreviewUrl={imagePreviewUrl}
+                  isDeletePending={isImageDeletePending}
+                  onDelete={removeImage}
+                  onImageChange={(file) => onImageChange?.(file)}
+                  onValidationErrorChange={setImageValidationError}
+                  title="Property Image"
+                />
               </div>
 
               <section>
                 <div className="min-w-0">
                   <h3 className="text-xl font-bold text-parcelis-charcoal">
-                    {currentStep === "property"
-                      ? "Property Details"
-                      : "Unit Details"}
+                    {currentStep === "property" ? "Property Details" : "Unit Details"}
                   </h3>
                   {currentStep === "property" ? (
                     <>
@@ -965,9 +791,7 @@ export function PropertyDrawer({
                         <Label className="md:col-span-2">
                           <FieldLabel>Name</FieldLabel>
                           <Input
-                            onChange={(event) =>
-                              updateField("name", event.target.value)
-                            }
+                            onChange={(event) => updateField("name", event.target.value)}
                             placeholder="Vine Street Lofts"
                             required
                             value={form.name}
@@ -977,12 +801,7 @@ export function PropertyDrawer({
                         <Label>
                           <FieldLabel>Property Type</FieldLabel>
                           <Select
-                            onChange={(event) =>
-                              updateField(
-                                "propertyType",
-                                event.target.value as PropertyType,
-                              )
-                            }
+                            onChange={(event) => updateField("propertyType", event.target.value as PropertyType)}
                             required
                             value={form.propertyType}
                           >
@@ -998,9 +817,7 @@ export function PropertyDrawer({
                           <FieldLabel>Units</FieldLabel>
                           <Input
                             min={1}
-                            onChange={(event) =>
-                              updateField("unitCount", event.target.value)
-                            }
+                            onChange={(event) => updateField("unitCount", event.target.value)}
                             required
                             type="number"
                             value={form.unitCount}
@@ -1009,10 +826,7 @@ export function PropertyDrawer({
 
                         <div className="grid gap-3 md:col-span-2">
                           <FieldLabel>Tags</FieldLabel>
-                          <Popover
-                            open={isTagPopoverOpen}
-                            onOpenChange={setIsTagPopoverOpen}
-                          >
+                          <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
                             <PopoverTrigger asChild>
                               <button
                                 className="flex min-h-10 w-full items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 py-1.5 text-left text-sm transition hover:border-parcelis-gray focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green"
@@ -1026,24 +840,17 @@ export function PropertyDrawer({
                                       </Badge>
                                     ))
                                   ) : (
-                                    <span className="py-1 text-parcelis-gray">
-                                      Select tags
-                                    </span>
+                                    <span className="py-1 text-parcelis-gray">Select tags</span>
                                   )}
                                 </span>
                                 <ChevronDown className="h-4 w-4 shrink-0 text-parcelis-gray" />
                               </button>
                             </PopoverTrigger>
-                            <PopoverContent
-                              align="start"
-                              className="w-[min(calc(100vw-2rem),32rem)] p-3"
-                            >
+                            <PopoverContent align="start" className="w-[min(calc(100vw-2rem),32rem)] p-3">
                               <div className="flex gap-2">
                                 <Input
                                   aria-label="Add custom tag"
-                                  onChange={(event) =>
-                                    setCustomTag(event.target.value)
-                                  }
+                                  onChange={(event) => setCustomTag(event.target.value)}
                                   onKeyDown={(event) => {
                                     if (event.key === "Enter") {
                                       event.preventDefault();
@@ -1065,18 +872,13 @@ export function PropertyDrawer({
                               </div>
                               <div className="mt-3 grid max-h-52 gap-1 overflow-y-auto">
                                 {tagsQuery.isPending ? (
-                                  <p className="px-2 py-3 text-sm text-parcelis-gray">
-                                    Loading tags…
-                                  </p>
+                                  <p className="px-2 py-3 text-sm text-parcelis-gray">Loading tags…</p>
                                 ) : tagsQuery.isError ? (
                                   <p className="px-2 py-3 text-sm text-parcelis-gray">
-                                    Tags could not be loaded. Restart the API
-                                    and try again.
+                                    Tags could not be loaded. Restart the API and try again.
                                   </p>
                                 ) : tags.length === 0 ? (
-                                  <p className="px-2 py-3 text-sm text-parcelis-gray">
-                                    No tags are available.
-                                  </p>
+                                  <p className="px-2 py-3 text-sm text-parcelis-gray">No tags are available.</p>
                                 ) : (
                                   tags.map((tag) => (
                                     <label
@@ -1084,12 +886,8 @@ export function PropertyDrawer({
                                       key={tag.id}
                                     >
                                       <Checkbox
-                                        checked={propertyTagIds.includes(
-                                          tag.id,
-                                        )}
-                                        onCheckedChange={(checked) =>
-                                          toggleTag(tag.id, checked === true)
-                                        }
+                                        checked={propertyTagIds.includes(tag.id)}
+                                        onCheckedChange={(checked) => toggleTag(tag.id, checked === true)}
                                       />
                                       <span>{tag.label}</span>
                                     </label>
@@ -1103,9 +901,7 @@ export function PropertyDrawer({
 
                       <button
                         className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-parcelis-charcoal hover:underline"
-                        onClick={() =>
-                          setIsContactInfoOpen((current) => !current)
-                        }
+                        onClick={() => setIsContactInfoOpen((current) => !current)}
                         type="button"
                       >
                         Property Contact Info
@@ -1119,18 +915,14 @@ export function PropertyDrawer({
                           <Label>
                             <FieldLabel>Contact Name</FieldLabel>
                             <Input
-                              onChange={(event) =>
-                                updateField("contactName", event.target.value)
-                              }
+                              onChange={(event) => updateField("contactName", event.target.value)}
                               value={form.contactName}
                             />
                           </Label>
                           <Label>
                             <FieldLabel>Contact Email</FieldLabel>
                             <Input
-                              onChange={(event) =>
-                                updateField("contactEmail", event.target.value)
-                              }
+                              onChange={(event) => updateField("contactEmail", event.target.value)}
                               type="email"
                               value={form.contactEmail}
                             />
@@ -1138,9 +930,7 @@ export function PropertyDrawer({
                           <Label>
                             <FieldLabel>Contact Phone</FieldLabel>
                             <Input
-                              onChange={(event) =>
-                                updateField("contactPhone", event.target.value)
-                              }
+                              onChange={(event) => updateField("contactPhone", event.target.value)}
                               type="tel"
                               value={form.contactPhone}
                             />
@@ -1196,13 +986,7 @@ export function PropertyDrawer({
                                 <Label>
                                   <FieldLabel>Unit Name</FieldLabel>
                                   <Input
-                                    onChange={(event) =>
-                                      updateUnitField(
-                                        unit.id,
-                                        "unitName",
-                                        event.target.value,
-                                      )
-                                    }
+                                    onChange={(event) => updateUnitField(unit.id, "unitName", event.target.value)}
                                     placeholder="Unit 1A"
                                     required
                                     value={unit.unitName}
@@ -1212,13 +996,7 @@ export function PropertyDrawer({
                                   <FieldLabel>Market Rate</FieldLabel>
                                   <Input
                                     min={0}
-                                    onChange={(event) =>
-                                      updateUnitField(
-                                        unit.id,
-                                        "marketRate",
-                                        event.target.value,
-                                      )
-                                    }
+                                    onChange={(event) => updateUnitField(unit.id, "marketRate", event.target.value)}
                                     required
                                     type="number"
                                     value={unit.marketRate}
@@ -1228,21 +1006,13 @@ export function PropertyDrawer({
                                   <FieldLabel>Unit Type</FieldLabel>
                                   <Select
                                     onChange={(event) =>
-                                      updateUnitField(
-                                        unit.id,
-                                        "unitType",
-                                        event.target.value as UnitType,
-                                      )
+                                      updateUnitField(unit.id, "unitType", event.target.value as UnitType)
                                     }
                                     required
                                     value={unit.unitType}
                                   >
-                                    <option value="Residential">
-                                      Residential
-                                    </option>
-                                    <option value="Commercial">
-                                      Commercial
-                                    </option>
+                                    <option value="Residential">Residential</option>
+                                    <option value="Commercial">Commercial</option>
                                   </Select>
                                 </Label>
                               </div>
@@ -1262,9 +1032,7 @@ export function PropertyDrawer({
                                     aria-label={`Remove ${unit.unitName || "unit"}`}
                                     className="inline-grid h-9 w-9 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                                     disabled={units.length === 1}
-                                    onClick={() =>
-                                      setUnitPendingRemovalId(unit.id)
-                                    }
+                                    onClick={() => setUnitPendingRemovalId(unit.id)}
                                     type="button"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -1306,13 +1074,7 @@ export function PropertyDrawer({
                                       <FieldLabel>Bedrooms</FieldLabel>
                                       <Input
                                         min={0}
-                                        onChange={(event) =>
-                                          updateUnitField(
-                                            unit.id,
-                                            "bedrooms",
-                                            event.target.value,
-                                          )
-                                        }
+                                        onChange={(event) => updateUnitField(unit.id, "bedrooms", event.target.value)}
                                         type="number"
                                         value={unit.bedrooms}
                                       />
@@ -1321,13 +1083,7 @@ export function PropertyDrawer({
                                       <FieldLabel>Bathrooms</FieldLabel>
                                       <Input
                                         min={0}
-                                        onChange={(event) =>
-                                          updateUnitField(
-                                            unit.id,
-                                            "bathrooms",
-                                            event.target.value,
-                                          )
-                                        }
+                                        onChange={(event) => updateUnitField(unit.id, "bathrooms", event.target.value)}
                                         step="0.5"
                                         type="number"
                                         value={unit.bathrooms}
@@ -1337,13 +1093,7 @@ export function PropertyDrawer({
                                       <FieldLabel>Square Feet</FieldLabel>
                                       <Input
                                         min={0}
-                                        onChange={(event) =>
-                                          updateUnitField(
-                                            unit.id,
-                                            "squareFeet",
-                                            event.target.value,
-                                          )
-                                        }
+                                        onChange={(event) => updateUnitField(unit.id, "squareFeet", event.target.value)}
                                         type="number"
                                         value={unit.squareFeet}
                                       />
@@ -1352,9 +1102,7 @@ export function PropertyDrawer({
 
                                   <div className="grid gap-5">
                                     <section>
-                                      <FieldLabel>
-                                        Utilities Included
-                                      </FieldLabel>
+                                      <FieldLabel>Utilities Included</FieldLabel>
                                       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-3">
                                         {utilityTypes.map((option) => (
                                           <label
@@ -1362,16 +1110,9 @@ export function PropertyDrawer({
                                             key={option.id}
                                           >
                                             <Checkbox
-                                              checked={unit.utilities.includes(
-                                                option.id,
-                                              )}
+                                              checked={unit.utilities.includes(option.id)}
                                               onCheckedChange={(checked) =>
-                                                updateUnitOption(
-                                                  unit.id,
-                                                  "utilities",
-                                                  option.id,
-                                                  checked === true,
-                                                )
+                                                updateUnitOption(unit.id, "utilities", option.id, checked === true)
                                               }
                                             />
                                             {option.label}
@@ -1389,16 +1130,9 @@ export function PropertyDrawer({
                                             key={option.id}
                                           >
                                             <Checkbox
-                                              checked={unit.amenities.includes(
-                                                option.id,
-                                              )}
+                                              checked={unit.amenities.includes(option.id)}
                                               onCheckedChange={(checked) =>
-                                                updateUnitOption(
-                                                  unit.id,
-                                                  "amenities",
-                                                  option.id,
-                                                  checked === true,
-                                                )
+                                                updateUnitOption(unit.id, "amenities", option.id, checked === true)
                                               }
                                             />
                                             {option.label}
@@ -1414,12 +1148,7 @@ export function PropertyDrawer({
                         );
                       })}
 
-                      <Button
-                        className="justify-self-start"
-                        onClick={addUnit}
-                        type="button"
-                        variant="secondary"
-                      >
+                      <Button className="justify-self-start" onClick={addUnit} type="button" variant="secondary">
                         <Plus className="h-4 w-4" />
                         Add Unit
                       </Button>
@@ -1427,13 +1156,9 @@ export function PropertyDrawer({
                   )}
 
                   {error ? (
-                    <p className="mt-5 text-sm font-medium text-red-700">
-                      {error.message}
-                    </p>
+                    <p className="mt-5 text-sm font-medium text-red-700">{error.message}</p>
                   ) : imageValidationError ? (
-                    <p className="mt-5 text-sm font-medium text-red-700">
-                      {imageValidationError}
-                    </p>
+                    <p className="mt-5 text-sm font-medium text-red-700">{imageValidationError}</p>
                   ) : null}
                 </div>
               </section>
@@ -1441,19 +1166,14 @@ export function PropertyDrawer({
           </div>
 
           <DrawerFooter className="flex items-center justify-between gap-3">
-            <Button
-              className="min-w-40"
-              onClick={closeAndReset}
-              type="button"
-              variant="secondary"
-            >
+            <Button className="min-w-40" onClick={closeAndReset} type="button" variant="secondary">
               <X className="h-4 w-4" />
               Cancel
             </Button>
             <div className="flex items-center gap-3">
               {currentStep === "unit" ? (
                 <Button
-                  className="min-w-32"
+                  className="min-w-40"
                   onClick={() => setCurrentStep("property")}
                   type="button"
                   variant="secondary"
@@ -1461,17 +1181,14 @@ export function PropertyDrawer({
                   Back
                 </Button>
               ) : null}
-              <Button
-                className="min-w-40"
-                disabled={!canSubmit || isPending}
-                type="submit"
-              >
+              <Button className="min-w-40" disabled={!canSubmit || isPending} type="submit">
                 {isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
+                ) : primaryActionLabel === "Next" ? null : (
                   <Plus className="h-4 w-4" />
                 )}
                 {primaryActionLabel}
+                {!isPending && primaryActionLabel === "Next" ? <ChevronRight className="h-4 w-4" /> : null}
               </Button>
             </div>
           </DrawerFooter>

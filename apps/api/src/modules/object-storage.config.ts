@@ -1,9 +1,4 @@
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
 
@@ -17,28 +12,17 @@ export type ObjectStorageConfig = {
 };
 
 export function getObjectStorageConfig(): ObjectStorageConfig {
-  const endpoint =
-    process.env.OBJECT_STORAGE_ENDPOINT ?? "http://localhost:9000";
+  const endpoint = process.env.OBJECT_STORAGE_ENDPOINT ?? "http://localhost:9000";
 
   return {
-    accessKeyId:
-      process.env.OBJECT_STORAGE_ACCESS_KEY_ID ??
-      process.env.MINIO_ROOT_USER ??
-      "parcelis-minio",
-    bucket:
-      process.env.OBJECT_STORAGE_BUCKET ??
-      process.env.MINIO_BUCKET ??
-      "parcelis-images",
+    accessKeyId: process.env.OBJECT_STORAGE_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio",
+    bucket: process.env.OBJECT_STORAGE_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images",
     endpoint,
     publicEndpoint:
-      process.env.OBJECT_STORAGE_PUBLIC_ENDPOINT ??
-      process.env.NEXT_PUBLIC_OBJECT_STORAGE_URL ??
-      endpoint,
+      process.env.OBJECT_STORAGE_PUBLIC_ENDPOINT ?? process.env.NEXT_PUBLIC_OBJECT_STORAGE_URL ?? endpoint,
     region: process.env.OBJECT_STORAGE_REGION ?? "us-east-1",
     secretAccessKey:
-      process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY ??
-      process.env.MINIO_ROOT_PASSWORD ??
-      "parcelis-minio-secret",
+      process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret",
   };
 }
 
@@ -72,17 +56,11 @@ const imageExtensions = {
   "image/webp": "webp",
 } as const;
 
-export function createPropertyImageObjectKey(
-  contentType: keyof typeof imageExtensions,
-  propertyId: number,
-) {
+export function createPropertyImageObjectKey(contentType: keyof typeof imageExtensions, propertyId: number) {
   return `properties/${propertyId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createPropertyImageUploadUrl(
-  contentType: keyof typeof imageExtensions,
-  propertyId: number,
-) {
+export async function createPropertyImageUploadUrl(contentType: keyof typeof imageExtensions, propertyId: number) {
   const config = getObjectStorageConfig();
   const objectKey = createPropertyImageObjectKey(contentType, propertyId);
   const uploadUrl = await getSignedUrl(
@@ -104,16 +82,35 @@ export async function createPropertyImageDownloadUrl(objectKey: string | null) {
   }
 
   const config = getObjectStorageConfig();
-  return getSignedUrl(
-    createObjectStorageClient(),
-    new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }),
-    { expiresIn: 60 * 60 },
-  );
+  return getSignedUrl(createObjectStorageClient(), new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }), {
+    expiresIn: 60 * 60,
+  });
 }
 
 export async function deletePropertyImageObject(objectKey: string) {
   const config = getObjectStorageConfig();
-  await createObjectStorageClient().send(
-    new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey }),
-  );
+  await createObjectStorageClient().send(new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey }));
 }
+
+export function createTenantImageObjectKey(contentType: keyof typeof imageExtensions, tenantId: number) {
+  return `tenants/${tenantId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
+}
+
+export async function createTenantImageUploadUrl(contentType: keyof typeof imageExtensions, tenantId: number) {
+  const config = getObjectStorageConfig();
+  const objectKey = createTenantImageObjectKey(contentType, tenantId);
+  const uploadUrl = await getSignedUrl(
+    createObjectStorageClient(),
+    new PutObjectCommand({
+      Bucket: config.bucket,
+      ContentType: contentType,
+      Key: objectKey,
+    }),
+    { expiresIn: 10 * 60 },
+  );
+
+  return { objectKey, uploadUrl };
+}
+
+export const createTenantImageDownloadUrl = createPropertyImageDownloadUrl;
+export const deleteTenantImageObject = deletePropertyImageObject;

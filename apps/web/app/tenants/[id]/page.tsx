@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BadgeCheck,
   Building2,
   CalendarDays,
+  ChevronRight,
   CircleDollarSign,
   Coins,
   Mail,
@@ -36,6 +37,7 @@ import {
   Input,
   Label,
   ParcelisLogo,
+  Select,
   Table,
   TableBody,
   TableCell,
@@ -45,9 +47,37 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { Sidebar } from "../../../components/sidebar";
+import { ImageUploadPanel } from "../../../components/image-upload-panel";
+import { deleteTenantImage, uploadTenantImage } from "../../../components/tenant-image-upload";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
+
+type TenantForm = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  emergencyContactFirstName: string;
+  emergencyContactLastName: string;
+  emergencyContactPhone: string;
+  accountStatus: "activated" | "invitation_pending" | "disabled";
+  insuranceStatus: "active" | "expired" | "not_on_file";
+};
+
+type TenantDrawerStep = "tenant" | "emergency";
+
+const initialTenantForm: TenantForm = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  emergencyContactFirstName: "",
+  emergencyContactLastName: "",
+  emergencyContactPhone: "",
+  accountStatus: "invitation_pending",
+  insuranceStatus: "not_on_file",
+};
 
 function formatDate(date: Date | string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -85,6 +115,12 @@ export default function TenantDetailPage() {
   const tenantId = Number(params.id);
   const [isEmergencyContactOpen, setIsEmergencyContactOpen] = useState(false);
   const [isEmergencyContactDrawerOpen, setIsEmergencyContactDrawerOpen] = useState(false);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [isTenantDrawerOpen, setIsTenantDrawerOpen] = useState(false);
+  const [tenantDrawerStep, setTenantDrawerStep] = useState<TenantDrawerStep>("tenant");
+  const [tenantForm, setTenantForm] = useState<TenantForm>(initialTenantForm);
+  const [tenantImageFile, setTenantImageFile] = useState<File | null>(null);
+  const [tenantImagePreviewUrl, setTenantImagePreviewUrl] = useState<string | null>(null);
   const [emergencyContactDraft, setEmergencyContactDraft] = useState({
     firstName: "",
     lastName: "",
@@ -106,6 +142,30 @@ export default function TenantDetailPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) });
     },
   });
+  const updateTenantMutation = useMutation({
+    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: TenantForm & { id: number } }) => {
+      const updatedTenant = await apiClient.tenants.update.mutate(input);
+      if (imageFile) await uploadTenantImage(input.id, imageFile);
+      return updatedTenant;
+    },
+    onSuccess: async () => {
+      setIsTenantDrawerOpen(false);
+      setTenantImageFile(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+      ]);
+    },
+  });
+  const deleteTenantImageMutation = useMutation({
+    mutationFn: deleteTenantImage,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+      ]);
+    },
+  });
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
   const overdueCents = currentLease?.amountOverdueCents ?? 0;
   const currentInvoiceCents = currentLease?.monthlyRentCents ?? 0;
@@ -116,6 +176,37 @@ export default function TenantDetailPage() {
     ? `INV-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
     : null;
   const pastDueInvoiceId = currentInvoiceId ? `${currentInvoiceId}-OVERDUE` : null;
+
+  useEffect(() => {
+    if (!tenantImageFile) {
+      setTenantImagePreviewUrl(tenant?.imageUrl ?? null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(tenantImageFile);
+    setTenantImagePreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [tenant?.imageUrl, tenantImageFile]);
+
+  function openTenantDrawer() {
+    if (!tenant) return;
+
+    const tenantEmergencyContact = tenant.emergencyContacts?.[0];
+    setTenantForm({
+      firstName: tenant.firstName,
+      lastName: tenant.lastName,
+      email: tenant.email,
+      phone: tenant.phone ?? "",
+      emergencyContactFirstName: tenantEmergencyContact?.firstName ?? "",
+      emergencyContactLastName: tenantEmergencyContact?.lastName ?? "",
+      emergencyContactPhone: tenantEmergencyContact?.phone ?? "",
+      accountStatus: tenant.accountStatus,
+      insuranceStatus: tenant.insuranceStatus,
+    });
+    setTenantImageFile(null);
+    setTenantDrawerStep("tenant");
+    setIsTenantDrawerOpen(true);
+  }
 
   return (
     <main className="min-h-screen">
@@ -130,9 +221,7 @@ export default function TenantDetailPage() {
               </div>
               <div>
                 <dt className="text-parcelis-gray">Last Name</dt>
-                <dd className="font-semibold text-parcelis-charcoal">
-                  {emergencyContact.lastName ?? "Not provided"}
-                </dd>
+                <dd className="font-semibold text-parcelis-charcoal">{emergencyContact.lastName ?? "Not provided"}</dd>
               </div>
               <div>
                 <dt className="text-parcelis-gray">Phone</dt>
@@ -221,9 +310,7 @@ export default function TenantDetailPage() {
                 </Label>
               </div>
               {updateEmergencyContactMutation.error ? (
-                <p className="mt-4 text-sm font-medium text-red-700">
-                  {updateEmergencyContactMutation.error.message}
-                </p>
+                <p className="mt-4 text-sm font-medium text-red-700">{updateEmergencyContactMutation.error.message}</p>
               ) : null}
             </div>
             <DrawerFooter className="flex items-center justify-between gap-3">
@@ -236,11 +323,7 @@ export default function TenantDetailPage() {
                 <X className="h-4 w-4" />
                 Cancel
               </Button>
-              <Button
-                className="min-w-40"
-                disabled={updateEmergencyContactMutation.isPending}
-                type="submit"
-              >
+              <Button className="min-w-40" disabled={updateEmergencyContactMutation.isPending} type="submit">
                 <Save className="h-4 w-4" />
                 Save Contact
               </Button>
@@ -248,17 +331,280 @@ export default function TenantDetailPage() {
           </form>
         </DrawerContent>
       </Drawer>
+      <Drawer
+        onOpenChange={(open) => {
+          setIsTenantDrawerOpen(open);
+          if (!open) {
+            setTenantDrawerStep("tenant");
+            setTenantImageFile(null);
+          }
+        }}
+        open={isTenantDrawerOpen}
+      >
+        <DrawerContent size="lg">
+          <DrawerHeader className="flex items-center gap-3">
+            <DrawerClose />
+            <DrawerTitle>Edit Tenant</DrawerTitle>
+          </DrawerHeader>
+          <form
+            className="flex min-h-0 flex-1 flex-col"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (tenantDrawerStep === "tenant") {
+                setTenantDrawerStep("emergency");
+                return;
+              }
+              updateTenantMutation.mutate({
+                imageFile: tenantImageFile,
+                input: { id: tenantId, ...tenantForm },
+              });
+            }}
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4 py-5 md:px-6">
+                <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem] md:items-center dark:bg-parcelis-slate">
+                  <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
+                    {tenantImagePreviewUrl ? (
+                      <img
+                        alt="Selected tenant"
+                        className="h-full w-full rounded-md object-cover"
+                        src={tenantImagePreviewUrl}
+                      />
+                    ) : (
+                      <UserRound className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-bold text-white">
+                      {tenantForm.firstName || tenantForm.lastName
+                        ? `${tenantForm.firstName} ${tenantForm.lastName}`.trim()
+                        : "Tenant Name"}
+                    </p>
+                    <div className="mt-1 space-y-0.5 text-sm font-medium text-white/70">
+                      <p className="truncate">{tenantForm.email || "Email Address"}</p>
+                      <p className="truncate">{tenantForm.phone || "Phone Number"}</p>
+                    </div>
+                  </div>
+                  <div className="border-white/15 md:border-l md:pl-8">
+                    <p className="text-xs font-semibold uppercase text-white/55">Account</p>
+                    <p className="mt-1 text-base font-semibold text-white">{formatStatus(tenantForm.accountStatus)}</p>
+                  </div>
+                  <div className="border-white/15 md:border-l md:pl-8">
+                    <p className="text-xs font-semibold uppercase text-white/55">Insurance</p>
+                    <p className="mt-1 text-base font-semibold text-white">
+                      {formatStatus(tenantForm.insuranceStatus)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-10 px-4 py-6 md:px-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
+                <div className="grid gap-6 lg:sticky lg:top-6 lg:self-start">
+                  <aside className="overflow-hidden rounded-md border border-parcelis-border bg-white dark:bg-parcelis-slate">
+                    {[
+                      { icon: UserRound, label: "Tenant Details", step: "tenant" },
+                      { icon: Phone, label: "Emergency Contact", step: "emergency" },
+                    ].map(({ icon: Icon, label, step }) => {
+                      const isActive = tenantDrawerStep === step;
+
+                      return (
+                        <button
+                          className={`flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-parcelis-porcelain/70 hover:text-parcelis-charcoal ${
+                            step === "emergency" ? "border-t border-parcelis-border" : ""
+                          } ${
+                            isActive
+                              ? "bg-parcelis-porcelain/70 text-parcelis-charcoal dark:bg-parcelis-charcoal/55"
+                              : "text-parcelis-gray"
+                          }`}
+                          key={step}
+                          onClick={() => setTenantDrawerStep(step as TenantDrawerStep)}
+                          type="button"
+                        >
+                          <Icon className={`h-5 w-5 ${isActive ? "text-parcelis-green" : "text-parcelis-gray"}`} />
+                          <span className="text-sm font-semibold">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </aside>
+                  <ImageUploadPanel
+                    alt="Selected tenant"
+                    imagePreviewUrl={tenantImagePreviewUrl}
+                    isDeletePending={deleteTenantImageMutation.isPending}
+                    onDelete={() => {
+                      if (tenantImageFile) setTenantImageFile(null);
+                      else deleteTenantImageMutation.mutate(tenantId);
+                    }}
+                    onImageChange={setTenantImageFile}
+                    title="Tenant Image"
+                  />
+                </div>
+
+                <section>
+                  <h3 className="text-xl font-bold text-parcelis-charcoal">
+                    {tenantDrawerStep === "tenant" ? "Tenant Details" : "Emergency Contact"}
+                  </h3>
+                  {tenantDrawerStep === "tenant" ? (
+                    <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                      <Label>
+                        First Name
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setTenantForm({ ...tenantForm, firstName: event.target.value })}
+                          required
+                          value={tenantForm.firstName}
+                        />
+                      </Label>
+                      <Label>
+                        Last Name
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setTenantForm({ ...tenantForm, lastName: event.target.value })}
+                          required
+                          value={tenantForm.lastName}
+                        />
+                      </Label>
+                      <Label className="sm:col-span-2">
+                        Email
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setTenantForm({ ...tenantForm, email: event.target.value })}
+                          required
+                          type="email"
+                          value={tenantForm.email}
+                        />
+                      </Label>
+                      <Label className="sm:col-span-2">
+                        Phone
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setTenantForm({ ...tenantForm, phone: event.target.value })}
+                          type="tel"
+                          value={tenantForm.phone}
+                        />
+                      </Label>
+                      <Label>
+                        Account Status
+                        <Select
+                          className="mt-1"
+                          onChange={(event) =>
+                            setTenantForm({
+                              ...tenantForm,
+                              accountStatus: event.target.value as TenantForm["accountStatus"],
+                            })
+                          }
+                          value={tenantForm.accountStatus}
+                        >
+                          <option value="activated">Activated</option>
+                          <option value="invitation_pending">Invitation Pending</option>
+                          <option value="disabled">Disabled</option>
+                        </Select>
+                      </Label>
+                      <Label>
+                        Insurance Status
+                        <Select
+                          className="mt-1"
+                          onChange={(event) =>
+                            setTenantForm({
+                              ...tenantForm,
+                              insuranceStatus: event.target.value as TenantForm["insuranceStatus"],
+                            })
+                          }
+                          value={tenantForm.insuranceStatus}
+                        >
+                          <option value="active">Active</option>
+                          <option value="expired">Expired</option>
+                          <option value="not_on_file">Not on File</option>
+                        </Select>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                      <Label>
+                        First Name
+                        <Input
+                          className="mt-1"
+                          onChange={(event) =>
+                            setTenantForm({ ...tenantForm, emergencyContactFirstName: event.target.value })
+                          }
+                          value={tenantForm.emergencyContactFirstName}
+                        />
+                      </Label>
+                      <Label>
+                        Last Name
+                        <Input
+                          className="mt-1"
+                          onChange={(event) =>
+                            setTenantForm({ ...tenantForm, emergencyContactLastName: event.target.value })
+                          }
+                          value={tenantForm.emergencyContactLastName}
+                        />
+                      </Label>
+                      <Label className="sm:col-span-2">
+                        Phone
+                        <Input
+                          className="mt-1"
+                          onChange={(event) =>
+                            setTenantForm({ ...tenantForm, emergencyContactPhone: event.target.value })
+                          }
+                          type="tel"
+                          value={tenantForm.emergencyContactPhone}
+                        />
+                      </Label>
+                    </div>
+                  )}
+                </section>
+                {updateTenantMutation.error ? (
+                  <p className="mt-4 text-sm font-medium text-red-700">{updateTenantMutation.error.message}</p>
+                ) : null}
+              </div>
+            </div>
+            <DrawerFooter className="flex items-center justify-between gap-3">
+              <Button
+                className="min-w-40"
+                onClick={() => setIsTenantDrawerOpen(false)}
+                type="button"
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button className="min-w-40" disabled={updateTenantMutation.isPending} type="submit">
+                {tenantDrawerStep === "tenant" ? "Next" : "Save"}
+                {tenantDrawerStep === "tenant" ? <ChevronRight className="h-4 w-4" /> : null}
+              </Button>
+            </DrawerFooter>
+          </form>
+        </DrawerContent>
+      </Drawer>
+      {tenant?.imageUrl ? (
+        <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>
+          <DialogContent
+            aria-label={`${tenant.firstName} ${tenant.lastName} image`}
+            className="w-fit max-w-[90vw] place-items-center border-0 bg-transparent p-0 shadow-none [&>button]:right-3 [&>button]:top-3 [&>button]:grid [&>button]:h-8 [&>button]:w-8 [&>button]:place-items-center [&>button]:rounded-md [&>button]:border [&>button]:border-parcelis-border [&>button]:bg-white [&>button]:p-0 [&>button]:!text-slate-900 [&>button]:opacity-100 [&>button:hover]:bg-parcelis-porcelain [&>button:hover]:!text-slate-950"
+          >
+            <img
+              alt={`${tenant.firstName} ${tenant.lastName}`}
+              className="max-h-[85vh] max-w-[90vw] rounded-md object-contain"
+              src={tenant.imageUrl}
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
       <Sidebar active="tenants" />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
-          <div className="lg:hidden">
-            <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
+          <div className="flex items-center gap-2">
+            <div className="lg:hidden">
+              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
+            </div>
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/tenants">
+                <ArrowLeft className="h-4 w-4" />
+                Tenants
+              </Link>
+            </Button>
           </div>
-          <Button asChild size="sm" variant="secondary">
-            <Link href="/tenants">
-              <ArrowLeft className="h-4 w-4" />
-              Tenants
-            </Link>
+          <Button disabled={!tenant} onClick={openTenantDrawer} size="sm">
+            Edit tenant
           </Button>
         </header>
 
@@ -283,15 +629,25 @@ export default function TenantDetailPage() {
             <>
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <div className="grid h-11 w-11 place-items-center rounded-full bg-white/10 text-parcelis-green">
-                        <UserRound className="h-5 w-5" />
+                  <div className="min-w-0">
+                    {tenant.imageUrl ? (
+                      <button
+                        aria-label={`View ${tenant.firstName} ${tenant.lastName} image`}
+                        className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/10 text-parcelis-green transition hover:ring-2 hover:ring-parcelis-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green"
+                        onClick={() => setIsImagePreviewOpen(true)}
+                        type="button"
+                      >
+                        <img
+                          alt={`${tenant.firstName} ${tenant.lastName}`}
+                          className="h-full w-full rounded-full object-cover"
+                          src={tenant.imageUrl}
+                        />
+                      </button>
+                    ) : (
+                      <div className="grid h-28 w-28 place-items-center rounded-full bg-white/10 text-parcelis-green">
+                        <UserRound className="h-10 w-10" />
                       </div>
-                      <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold text-parcelis-green">
-                        {formatStatus(tenant.tenantStatus)}
-                      </span>
-                    </div>
+                    )}
                     <h1 className="mt-5 text-3xl font-bold md:text-5xl">
                       {tenant.firstName} {tenant.lastName}
                     </h1>
@@ -314,10 +670,12 @@ export default function TenantDetailPage() {
                       ) : null}
                     </div>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-3 lg:w-[36rem]">
-                    <HeroStatus icon={BadgeCheck} label="Account Status" status={tenant.accountStatus} />
-                    <HeroStatus icon={ShieldCheck} label="Insurance Status" status={tenant.insuranceStatus} />
-                    <HeroStatus icon={CalendarDays} label="Tenant Status" status={tenant.tenantStatus} />
+                  <div className="w-full lg:w-[36rem]">
+                    <div className="grid w-full gap-3 sm:grid-cols-3">
+                      <HeroStatus icon={BadgeCheck} label="Account Status" status={tenant.accountStatus} />
+                      <HeroStatus icon={ShieldCheck} label="Insurance Status" status={tenant.insuranceStatus} />
+                      <HeroStatus icon={CalendarDays} label="Tenant Status" status={tenant.tenantStatus} />
+                    </div>
                   </div>
                 </div>
               </section>
@@ -383,26 +741,26 @@ export default function TenantDetailPage() {
                             <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
                             {currentInvoiceId ? (
                               <Link
-                                className="mt-1 inline-block text-xl font-bold text-parcelis-green hover:underline"
+                                className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
                                 href={`/tenants/${tenant.id}/invoices/${currentInvoiceId}`}
                               >
                                 {currentInvoiceId}
                               </Link>
                             ) : (
-                              <p className="mt-1 text-xl font-bold text-parcelis-charcoal">No Record found.</p>
+                              <p className="mt-1 text-base font-bold text-parcelis-charcoal">No Record found.</p>
                             )}
                           </div>
                           <div>
                             <p className="text-sm font-medium text-parcelis-gray">Past Due Invoices</p>
                             {overdueCents > 0 && pastDueInvoiceId ? (
                               <Link
-                                className="mt-1 inline-block text-xl font-bold text-parcelis-green hover:underline"
+                                className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
                                 href={`/tenants/${tenant.id}/invoices/${pastDueInvoiceId}`}
                               >
                                 {pastDueInvoiceId}
                               </Link>
                             ) : (
-                              <p className="mt-1 text-xl font-bold text-parcelis-charcoal">No Record found.</p>
+                              <p className="mt-1 text-base font-bold text-parcelis-charcoal">No Record found.</p>
                             )}
                           </div>
                         </div>
@@ -431,19 +789,17 @@ export default function TenantDetailPage() {
                         </div>
                         <div>
                           <p className="text-parcelis-gray">Phone</p>
-                          <p className="font-semibold text-parcelis-charcoal">
-                            {tenant.phone ?? "Not provided"}
-                          </p>
+                          <p className="font-semibold text-parcelis-charcoal">{tenant.phone ?? "Not provided"}</p>
                         </div>
                       </div>
                       <div>
-                      <p className="text-parcelis-gray">Email</p>
-                      <a
-                        className="font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                        href={`mailto:${tenant.email}`}
-                      >
-                        {tenant.email}
-                      </a>
+                        <p className="text-parcelis-gray">Email</p>
+                        <a
+                          className="font-semibold text-parcelis-charcoal hover:text-parcelis-green"
+                          href={`mailto:${tenant.email}`}
+                        >
+                          {tenant.email}
+                        </a>
                       </div>
                       {tenant.archivedAt ? (
                         <div>

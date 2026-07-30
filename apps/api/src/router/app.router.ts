@@ -9,6 +9,8 @@ import {
   propertyNotesInputSchema,
   propertyStatusInputSchema,
   tenantByIdInputSchema,
+  tenantImageUploadCompleteInputSchema,
+  tenantImageUploadInputSchema,
   tenantNotesInputSchema,
   updateEmergencyContactInputSchema,
   updateTenantInputSchema,
@@ -24,6 +26,9 @@ import {
   createPropertyImageDownloadUrl,
   createPropertyImageUploadUrl,
   deletePropertyImageObject,
+  createTenantImageDownloadUrl,
+  createTenantImageUploadUrl,
+  deleteTenantImageObject,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { publicProcedure, router } from "./trpc";
@@ -487,10 +492,13 @@ export const appRouter = router({
         take: 100,
       });
 
-      return tenants.map((tenant) => ({
-        ...tenant,
-        tenantStatus: getTenantStatus(tenant),
-      }));
+      return Promise.all(
+        tenants.map(async (tenant) => ({
+          ...tenant,
+          imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
+          tenantStatus: getTenantStatus(tenant),
+        })),
+      );
     }),
     /** Returns one tenant with lease history. */
     byId: publicProcedure.input(tenantByIdInputSchema).query(async ({ ctx, input }) => {
@@ -511,7 +519,54 @@ export const appRouter = router({
         },
       });
 
-      return tenant ? { ...tenant, tenantStatus: getTenantStatus(tenant) } : null;
+      return tenant
+        ? {
+            ...tenant,
+            imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
+            tenantStatus: getTenantStatus(tenant),
+          }
+        : null;
+    }),
+    /** Creates a short-lived URL for uploading a tenant image to MinIO. */
+    createImageUploadUrl: publicProcedure.input(tenantImageUploadInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.tenant.findUniqueOrThrow({ where: { id: input.id } });
+      return createTenantImageUploadUrl(input.contentType, input.id);
+    }),
+    /** Records a successfully uploaded tenant image and removes the previous object. */
+    completeImageUpload: publicProcedure
+      .input(tenantImageUploadCompleteInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const currentTenant = await ctx.prisma.tenant.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { imageObjectKey: true },
+        });
+        const tenant = await ctx.prisma.tenant.update({
+          where: { id: input.id },
+          data: { imageObjectKey: input.objectKey },
+        });
+
+        if (currentTenant.imageObjectKey && currentTenant.imageObjectKey !== input.objectKey) {
+          await deleteTenantImageObject(currentTenant.imageObjectKey);
+        }
+
+        return tenant;
+      }),
+    /** Removes the current tenant image reference and its MinIO object. */
+    deleteImage: publicProcedure.input(tenantByIdInputSchema).mutation(async ({ ctx, input }) => {
+      const currentTenant = await ctx.prisma.tenant.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { imageObjectKey: true },
+      });
+      const tenant = await ctx.prisma.tenant.update({
+        where: { id: input.id },
+        data: { imageObjectKey: null },
+      });
+
+      if (currentTenant.imageObjectKey) {
+        await deleteTenantImageObject(currentTenant.imageObjectKey);
+      }
+
+      return tenant;
     }),
     /** Archives a tenant without removing their lease history. */
     archive: publicProcedure.input(tenantByIdInputSchema).mutation(({ ctx, input }) =>
@@ -564,18 +619,16 @@ export const appRouter = router({
       });
     }),
     /** Updates an emergency contact linked to a tenant. */
-    updateEmergencyContact: publicProcedure
-      .input(updateEmergencyContactInputSchema)
-      .mutation(({ ctx, input }) =>
-        ctx.prisma.emergencyContact.update({
-          where: { id: input.id },
-          data: {
-            firstName: input.firstName,
-            lastName: input.lastName || null,
-            phone: input.phone || null,
-          },
-        }),
-      ),
+    updateEmergencyContact: publicProcedure.input(updateEmergencyContactInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.emergencyContact.update({
+        where: { id: input.id },
+        data: {
+          firstName: input.firstName,
+          lastName: input.lastName || null,
+          phone: input.phone || null,
+        },
+      }),
+    ),
     /** Updates the internal notes attached to a tenant. */
     updateNotes: publicProcedure.input(tenantNotesInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.tenant.update({

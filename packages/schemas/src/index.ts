@@ -125,6 +125,19 @@ export const tenantByIdInputSchema = z.object({
   id: idSchema,
 });
 
+export const tenantImageUploadInputSchema = z.object({
+  id: idSchema,
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  fileName: z.string().trim().min(1).max(255),
+});
+
+export const tenantImageUploadCompleteInputSchema = z
+  .object({
+    id: idSchema,
+    objectKey: z.string().regex(/^tenants\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+  })
+  .strict();
+
 export const updateEmergencyContactInputSchema = z.object({
   id: idSchema,
   firstName: z.string().trim().min(1),

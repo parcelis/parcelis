@@ -150,6 +150,7 @@ model Tenant {
   lastName        String
   email           String                @unique
   phone           String?
+  imageObjectKey  String?
   accountStatus   TenantAccountStatus   @default(invitation_pending)
   insuranceStatus TenantInsuranceStatus @default(not_on_file)
   archivedAt      DateTime?

@@ -536,11 +536,20 @@ export default function TenantsPage() {
                   </p>
                 ) : null}
               </div>
-              <DrawerFooter className="flex justify-end gap-2">
-                <Button onClick={() => setIsTenantDrawerOpen(false)} type="button" variant="secondary">
+              <DrawerFooter className="flex items-center justify-between gap-3">
+                <Button
+                  className="min-w-40"
+                  onClick={() => setIsTenantDrawerOpen(false)}
+                  type="button"
+                  variant="secondary"
+                >
                   Cancel
                 </Button>
-                <Button disabled={createTenantMutation.isPending || updateTenantMutation.isPending} type="submit">
+                <Button
+                  className="min-w-40"
+                  disabled={createTenantMutation.isPending || updateTenantMutation.isPending}
+                  type="submit"
+                >
                   {editTenant ? "Save" : "Add Tenant"}
                 </Button>
               </DrawerFooter>
@@ -600,18 +609,18 @@ export default function TenantsPage() {
       </Dialog>
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
-          <div className="lg:hidden">
-            <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-          </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <div className="lg:hidden">
+              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
+            </div>
             <Button asChild size="sm" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>
-            <Button onClick={openCreate} size="sm">
-              <Plus className="h-4 w-4" />
-              Tenant
-            </Button>
           </div>
+          <Button onClick={openCreate} size="sm">
+            <Plus className="h-4 w-4" />
+            Tenant
+          </Button>
         </header>
 
         <div className="parcelis-page-shell">

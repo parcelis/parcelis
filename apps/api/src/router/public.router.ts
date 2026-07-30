@@ -6,6 +6,9 @@ import {
   propertyByIdInputSchema,
   propertyImageUploadCompleteInputSchema,
   propertyImageUploadInputSchema,
+  tenantByIdInputSchema,
+  tenantImageUploadCompleteInputSchema,
+  tenantImageUploadInputSchema,
   propertyNotesInputSchema,
   propertyStatusInputSchema,
   listUnitsInputSchema,
@@ -99,9 +102,7 @@ export const publicRouter = router({
       .input(propertyImageUploadInputSchema)
       .output(dataObjectSchema)
       .mutation(async ({ ctx, input }) => ({
-        data: await appRouter
-          .createCaller(ctx)
-          .properties.createImageUploadUrl(input),
+        data: await appRouter.createCaller(ctx).properties.createImageUploadUrl(input),
       })),
     completeImageUpload: publicProcedure
       .meta({
@@ -114,9 +115,7 @@ export const publicRouter = router({
       .input(propertyImageUploadCompleteInputSchema)
       .output(dataObjectSchema)
       .mutation(async ({ ctx, input }) => ({
-        data: await appRouter
-          .createCaller(ctx)
-          .properties.completeImageUpload(input),
+        data: await appRouter.createCaller(ctx).properties.completeImageUpload(input),
       })),
     deleteImage: publicProcedure
       .meta({
@@ -195,6 +194,47 @@ export const publicRouter = router({
       .output(dataObjectSchema)
       .mutation(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).properties.updateNotes(input),
+      })),
+  }),
+  tenants: router({
+    createImageUploadUrl: publicProcedure
+      .meta({
+        openapi: {
+          method: "POST",
+          path: "/tenants/{id}/image-upload-url",
+          tags: ["Tenants"],
+        },
+      })
+      .input(tenantImageUploadInputSchema)
+      .output(dataObjectSchema)
+      .mutation(async ({ ctx, input }) => ({
+        data: await appRouter.createCaller(ctx).tenants.createImageUploadUrl(input),
+      })),
+    completeImageUpload: publicProcedure
+      .meta({
+        openapi: {
+          method: "POST",
+          path: "/tenants/{id}/image",
+          tags: ["Tenants"],
+        },
+      })
+      .input(tenantImageUploadCompleteInputSchema)
+      .output(dataObjectSchema)
+      .mutation(async ({ ctx, input }) => ({
+        data: await appRouter.createCaller(ctx).tenants.completeImageUpload(input),
+      })),
+    deleteImage: publicProcedure
+      .meta({
+        openapi: {
+          method: "DELETE",
+          path: "/tenants/{id}/image",
+          tags: ["Tenants"],
+        },
+      })
+      .input(tenantByIdInputSchema)
+      .output(dataObjectSchema)
+      .mutation(async ({ ctx, input }) => ({
+        data: await appRouter.createCaller(ctx).tenants.deleteImage(input),
       })),
   }),
   tags: router({
