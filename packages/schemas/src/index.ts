@@ -69,6 +69,23 @@ export const listUnitsInputSchema = z.object({
   propertyId: idSchema.optional(),
 });
 
+export const noteSubjectInputSchema = z.union([
+  z.object({ propertyId: idSchema }),
+  z.object({ unitId: idSchema }),
+  z.object({ tenantId: idSchema }),
+]);
+
+export const createNoteInputSchema = noteSubjectInputSchema.and(z.object({ body: z.string().trim().min(1).max(5000) }));
+
+export const updateNoteInputSchema = z.object({
+  id: idSchema,
+  body: z.string().trim().min(1).max(5000),
+});
+
+export const deleteNoteInputSchema = z.object({
+  id: idSchema,
+});
+
 export const propertySchema = z.object({
   id: idSchema,
   name: z.string().min(2),
@@ -200,6 +217,7 @@ export type Option = z.infer<typeof optionSchema>;
 export type UnitDetailsInput = z.infer<typeof unitDetailsInputSchema>;
 export type CreateUnitInput = z.infer<typeof createUnitInputSchema>;
 export type UpdateUnitInput = z.infer<typeof updateUnitInputSchema>;
+export type NoteSubjectInput = z.infer<typeof noteSubjectInputSchema>;
 export type Tenant = z.infer<typeof tenantSchema>;
 export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;

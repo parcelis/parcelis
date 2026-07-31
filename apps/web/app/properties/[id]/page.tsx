@@ -14,6 +14,7 @@ import {
   Mail,
   PenLine,
   Phone,
+  Plus,
   Ruler,
   Wrench,
 } from "lucide-react";
@@ -39,6 +40,7 @@ import {
 import { getPropertyFormState, getUnitFormStates } from "../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
+import { NotesDrawer } from "../../../components/notes-drawer";
 import { Sidebar } from "../../../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -105,6 +107,7 @@ export default function PropertyDetailPage() {
     },
   });
   const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
+  const [isNotesDrawerOpen, setIsNotesDrawerOpen] = React.useState(false);
   const [editInitialForm, setEditInitialForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [editInitialUnits, setEditInitialUnits] = React.useState<UnitDetailsFormState[]>([]);
   const [editForm, setEditForm] = React.useState<PropertyFormState>(initialPropertyFormState);
@@ -204,6 +207,25 @@ export default function PropertyDetailPage() {
         submitLabel="Save"
         unitHref={(unit) => (unit.id ? `/properties/${propertyId}/units/${unit.id}` : null)}
       />
+      <NotesDrawer
+        onOpenChange={setIsNotesDrawerOpen}
+        open={isNotesDrawerOpen}
+        propertySummary={
+          property
+            ? {
+                name: property.name,
+                addressLines: [
+                  property.line1,
+                  ...(property.line2 ? [property.line2] : []),
+                  `${property.city}, ${property.region} ${property.postalCode}`,
+                ],
+                unitCount: property.unitCount,
+              }
+            : undefined
+        }
+        subject={{ propertyId }}
+        subjectLabel={property?.name ?? "Property"}
+      />
       {property?.imageUrl ? (
         <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>
           <DialogContent
@@ -232,10 +254,21 @@ export default function PropertyDetailPage() {
               </Link>
             </Button>
           </div>
-          <Button className="min-w-40" disabled={!property} onClick={openEditDrawer}>
-            <PenLine className="h-4 w-4" />
-            Edit property
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              className="min-w-40"
+              disabled={!property}
+              onClick={() => setIsNotesDrawerOpen(true)}
+              variant="secondary"
+            >
+              <Plus className="h-4 w-4" />
+              Add Notes
+            </Button>
+            <Button className="min-w-40" disabled={!property} onClick={openEditDrawer}>
+              <PenLine className="h-4 w-4" />
+              Edit property
+            </Button>
+          </div>
         </header>
 
         <div className="parcelis-page-shell">
