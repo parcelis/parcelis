@@ -527,7 +527,7 @@ export default function PropertiesPage() {
 
   function openNotes(property: PropertyListItem) {
     setNotesPropertyId(property.id);
-    setNotesDraft(property.notes ?? "");
+    setNotesDraft(property.legacyNotes ?? "");
   }
 
   return (
@@ -606,7 +606,7 @@ export default function PropertiesPage() {
                   contactEmail: deleteUnitProperty.contactEmail ?? undefined,
                   contactPhone: deleteUnitProperty.contactPhone ?? undefined,
                   contactAddress: deleteUnitProperty.contactAddress ?? undefined,
-                  notes: deleteUnitProperty.notes ?? undefined,
+                  notes: deleteUnitProperty.legacyNotes ?? undefined,
                   unitCount: deleteUnitProperty.unitCount - 1,
                   units: deleteUnitProperty.units
                     .filter((unit) => unit.id !== deleteUnitTarget.unitId)

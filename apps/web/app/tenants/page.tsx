@@ -329,7 +329,7 @@ export default function TenantsPage() {
 
   function openNotes(tenant: TenantListItem) {
     setNotesTenant(tenant);
-    setNotesDraft(tenant.notes ?? "");
+    setNotesDraft(tenant.legacyNotes ?? "");
   }
 
   return (
