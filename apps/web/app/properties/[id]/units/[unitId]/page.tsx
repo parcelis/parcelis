@@ -16,10 +16,10 @@ import {
   FileText,
   Loader2,
   Mail,
+  PenLine,
   Phone,
   Plus,
   Ruler,
-  Settings,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -238,7 +238,7 @@ export default function UnitDetailPage() {
             {property ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="secondary">
+                  <Button className="min-w-40" variant="secondary">
                     All Units
                     <ChevronDown className="h-4 w-4" />
                   </Button>
@@ -262,22 +262,27 @@ export default function UnitDetailPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button disabled size="sm" variant="secondary">
+              <Button className="min-w-40" disabled variant="secondary">
                 All Units
                 <ChevronDown className="h-4 w-4" />
               </Button>
             )}
-            <Button size="sm" variant="secondary">
+            <Button className="min-w-40" variant="secondary">
               <Archive className="h-4 w-4" />
-              <span className="hidden sm:inline">Archive</span>
+              Archive
             </Button>
-            <Button disabled={!property} onClick={openEditUnitDrawer} size="sm" variant="secondary">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Edit Unit</span>
-            </Button>
-            <Button disabled={!unit} onClick={() => setIsNotesDrawerOpen(true)} size="sm">
+            <Button
+              className="min-w-40"
+              disabled={!unit}
+              onClick={() => setIsNotesDrawerOpen(true)}
+              variant="secondary"
+            >
               <StickyNotePlusIcon />
-              <span className="hidden sm:inline">Add Notes</span>
+              Add Notes
+            </Button>
+            <Button className="min-w-40" disabled={!property} onClick={openEditUnitDrawer}>
+              <PenLine className="h-4 w-4" />
+              Edit Unit
             </Button>
           </div>
         </header>
