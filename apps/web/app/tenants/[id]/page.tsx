@@ -319,6 +319,15 @@ export default function TenantDetailPage() {
         open={isNotesDrawerOpen}
         subject={{ tenantId }}
         subjectLabel={tenant ? `${tenant.firstName} ${tenant.lastName}` : "Tenant"}
+        tenantSummary={
+          tenant
+            ? {
+                name: `${tenant.firstName} ${tenant.lastName}`,
+                email: tenant.email,
+                phone: tenant.phone,
+              }
+            : undefined
+        }
       />
       {tenant?.imageUrl ? (
         <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>

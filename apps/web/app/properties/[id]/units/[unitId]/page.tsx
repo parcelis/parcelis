@@ -204,16 +204,16 @@ export default function UnitDetailPage() {
       <NotesDrawer
         onOpenChange={setIsNotesDrawerOpen}
         open={isNotesDrawerOpen}
-        propertySummary={
-          property
+        unitSummary={
+          property && unit
             ? {
-                name: property.name,
+                name: `Unit ${unit.name}`,
+                propertyName: property.name,
                 addressLines: [
-                  property.line1,
-                  ...(property.line2 ? [property.line2] : []),
-                  `${property.city}, ${property.region} ${property.postalCode}`,
+                  [property.line1, property.line2, `${property.city}, ${property.region} ${property.postalCode}`]
+                    .filter(Boolean)
+                    .join(", "),
                 ],
-                unitCount: property.unitCount,
               }
             : undefined
         }

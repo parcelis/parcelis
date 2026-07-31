@@ -1,7 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { Building2, CircleArrowUp, FileText, Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  Building2,
+  CircleArrowUp,
+  DoorOpen,
+  FileText,
+  Loader2,
+  Mail,
+  MoreVertical,
+  Pencil,
+  Phone,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
@@ -29,6 +41,16 @@ type NotesDrawerProps = {
     addressLines: string[];
     unitCount: number;
   };
+  tenantSummary?: {
+    email: string;
+    name: string;
+    phone: string | null;
+  };
+  unitSummary?: {
+    addressLines: string[];
+    name: string;
+    propertyName: string;
+  };
   subject: NoteSubject;
   subjectLabel: string;
 };
@@ -43,7 +65,15 @@ function formatDate(date: Date | string) {
   }).format(new Date(date));
 }
 
-export function NotesDrawer({ onOpenChange, open, propertySummary, subject, subjectLabel }: NotesDrawerProps) {
+export function NotesDrawer({
+  onOpenChange,
+  open,
+  propertySummary,
+  subject,
+  subjectLabel,
+  tenantSummary,
+  unitSummary,
+}: NotesDrawerProps) {
   const [activeTab, setActiveTab] = React.useState<"notes" | "files">("notes");
   const [draft, setDraft] = React.useState("");
   const [editingNoteId, setEditingNoteId] = React.useState<number | null>(null);
@@ -102,6 +132,50 @@ export function NotesDrawer({ onOpenChange, open, propertySummary, subject, subj
               <div className="border-white/15 md:border-l md:pl-8">
                 <p className="text-xs font-semibold uppercase text-white/55">Units</p>
                 <p className="mt-1 text-base font-semibold text-white">{propertySummary.unitCount}</p>
+              </div>
+            </div>
+          ) : unitSummary ? (
+            <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)] md:items-center dark:bg-parcelis-slate">
+              <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
+                <DoorOpen className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-base font-bold text-white">{unitSummary.name}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-white/80">{unitSummary.propertyName}</p>
+                <div className="mt-1 space-y-0.5 text-sm font-medium text-white/70">
+                  {unitSummary.addressLines.map((line, index) => (
+                    <p className="truncate" key={`${line}-${index}`}>
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : tenantSummary ? (
+            <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)] md:items-center dark:bg-parcelis-slate">
+              <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
+                <UserRound className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-base font-bold text-white">{tenantSummary.name}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    className="inline-flex items-center gap-2 rounded-md bg-white/10 px-2.5 py-2 text-sm font-semibold hover:bg-white/15"
+                    href={`mailto:${tenantSummary.email}`}
+                  >
+                    <Mail className="h-4 w-4 text-parcelis-green" />
+                    {tenantSummary.email}
+                  </a>
+                  {tenantSummary.phone ? (
+                    <a
+                      className="inline-flex items-center gap-2 rounded-md bg-white/10 px-2.5 py-2 text-sm font-semibold hover:bg-white/15"
+                      href={`tel:${tenantSummary.phone}`}
+                    >
+                      <Phone className="h-4 w-4 text-parcelis-green" />
+                      {tenantSummary.phone}
+                    </a>
+                  ) : null}
+                </div>
               </div>
             </div>
           ) : (
