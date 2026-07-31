@@ -48,6 +48,7 @@ import {
 import { getPropertyFormState, getUnitFormStates } from "../../../../../components/property-drawer-state";
 import { Sidebar } from "../../../../../components/sidebar";
 import { NotesDrawer } from "../../../../../components/notes-drawer";
+import { StickyNotePlusIcon } from "../../../../../components/sticky-note-plus-icon";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -275,7 +276,7 @@ export default function UnitDetailPage() {
               <span className="hidden sm:inline">Edit Unit</span>
             </Button>
             <Button disabled={!unit} onClick={() => setIsNotesDrawerOpen(true)} size="sm">
-              <Plus className="h-4 w-4" />
+              <StickyNotePlusIcon />
               <span className="hidden sm:inline">Add Notes</span>
             </Button>
           </div>

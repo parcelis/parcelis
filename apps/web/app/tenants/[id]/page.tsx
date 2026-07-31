@@ -13,7 +13,6 @@ import {
   Coins,
   Mail,
   PenLine,
-  Plus,
   Phone,
   Save,
   ScrollText,
@@ -50,6 +49,7 @@ import { Sidebar } from "../../../components/sidebar";
 import { deleteTenantImage, uploadTenantImage } from "../../../components/tenant-image-upload";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../components/tenant-drawer";
 import { NotesDrawer } from "../../../components/notes-drawer";
+import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -355,7 +355,7 @@ export default function TenantDetailPage() {
               onClick={() => setIsNotesDrawerOpen(true)}
               variant="secondary"
             >
-              <Plus className="h-4 w-4" />
+              <StickyNotePlusIcon />
               Add Notes
             </Button>
             <Button className="min-w-40" disabled={!tenant} onClick={openTenantDrawer}>

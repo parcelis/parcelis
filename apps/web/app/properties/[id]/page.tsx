@@ -14,7 +14,6 @@ import {
   Mail,
   PenLine,
   Phone,
-  Plus,
   Ruler,
   Wrench,
 } from "lucide-react";
@@ -42,6 +41,7 @@ import { apiClient, queryKeys } from "../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { Sidebar } from "../../../components/sidebar";
+import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -261,7 +261,7 @@ export default function PropertyDetailPage() {
               onClick={() => setIsNotesDrawerOpen(true)}
               variant="secondary"
             >
-              <Plus className="h-4 w-4" />
+              <StickyNotePlusIcon />
               Add Notes
             </Button>
             <Button className="min-w-40" disabled={!property} onClick={openEditDrawer}>
