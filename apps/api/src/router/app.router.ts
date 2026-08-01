@@ -3,6 +3,9 @@ import {
   createTenantInputSchema,
   createTagInputSchema,
   createUnitInputSchema,
+  createNoteInputSchema,
+  deleteNoteInputSchema,
+  noteSubjectInputSchema,
   propertyByIdInputSchema,
   propertyImageUploadCompleteInputSchema,
   propertyImageUploadInputSchema,
@@ -19,6 +22,7 @@ import {
   unitByIdInputSchema,
   updateUnitInputSchema,
   updateAmenityInputSchema,
+  updateNoteInputSchema,
   updatePropertyInputSchema,
 } from "@parcelis/schemas";
 import { LeaseStatus, UnitType } from "@parcelis/db";
@@ -48,7 +52,7 @@ const propertySelect = {
   contactEmail: true,
   contactPhone: true,
   contactAddress: true,
-  notes: true,
+  legacyNotes: true,
   unitCount: true,
   occupiedUnits: true,
   status: true,
@@ -343,7 +347,7 @@ export const appRouter = router({
             contactEmail: input.contactEmail ?? null,
             contactPhone: input.contactPhone ?? null,
             contactAddress: input.contactAddress ?? null,
-            notes: input.notes === undefined ? undefined : (input.notes ?? null),
+            legacyNotes: input.notes === undefined ? undefined : (input.notes ?? null),
             unitCount: input.unitCount,
           },
         });
@@ -377,7 +381,7 @@ export const appRouter = router({
           contactEmail: input.contactEmail ?? null,
           contactPhone: input.contactPhone ?? null,
           contactAddress: input.contactAddress ?? null,
-          notes: input.notes ?? null,
+          legacyNotes: input.notes ?? null,
           unitCount: input.unitCount,
         },
       });
@@ -469,7 +473,7 @@ export const appRouter = router({
       ctx.prisma.property.update({
         where: { id: input.id },
         select: propertySelect,
-        data: { notes: input.notes ?? null },
+        data: { legacyNotes: input.notes ?? null },
       }),
     ),
   }),
@@ -633,7 +637,7 @@ export const appRouter = router({
     updateNotes: publicProcedure.input(tenantNotesInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.tenant.update({
         where: { id: input.id },
-        data: { notes: input.notes || null },
+        data: { legacyNotes: input.notes || null },
       }),
     ),
     /** Permanently deletes a tenant and their lease history. */
@@ -691,6 +695,35 @@ export const appRouter = router({
         select: { id: true, label: true, sortOrder: true },
       }),
     ),
+  }),
+  notes: router({
+    /** Lists the notes attached to one property, unit, or tenant. */
+    list: publicProcedure.input(noteSubjectInputSchema).query(({ ctx, input }) =>
+      ctx.prisma.note.findMany({
+        where: input,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, body: true, createdAt: true, updatedAt: true },
+      }),
+    ),
+    /** Adds an internal note to one property, unit, or tenant. */
+    create: publicProcedure.input(createNoteInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.note.create({
+        data: input,
+        select: { id: true, body: true, createdAt: true, updatedAt: true },
+      }),
+    ),
+    /** Updates an internal note. */
+    update: publicProcedure.input(updateNoteInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.note.update({
+        where: { id: input.id },
+        data: { body: input.body },
+        select: { id: true, body: true, createdAt: true, updatedAt: true },
+      }),
+    ),
+    /** Deletes an internal note. */
+    delete: publicProcedure
+      .input(deleteNoteInputSchema)
+      .mutation(({ ctx, input }) => ctx.prisma.note.delete({ where: { id: input.id } })),
   }),
   units: router({
     /** Lists units, optionally filtered to a property. */

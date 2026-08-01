@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Eye, EyeOff, Github, LockKeyhole, LockOpen, Mail, Moon, Sun, UsersRound, Layers3 } from "lucide-react";
+import { Code2, Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, Moon, Sun, UsersRound } from "lucide-react";
 import * as React from "react";
 import { Button, Input } from "@parcelis/ui";
 import { useTheme } from "../../components/theme-provider";
@@ -162,7 +162,7 @@ export default function LoginPage() {
               or
             </div>
             <Button className="w-full" size="lg" type="button" variant="secondary">
-              <Github className="h-4 w-4" />
+              <Code2 className="h-4 w-4" />
               Sign in with GitHub
             </Button>
             <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">

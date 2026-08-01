@@ -16,10 +16,10 @@ import {
   FileText,
   Loader2,
   Mail,
+  PenLine,
   Phone,
   Plus,
   Ruler,
-  Settings,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -38,21 +38,17 @@ import {
 } from "@parcelis/ui";
 import type { UpdatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
-import {
-  deletePropertyImage,
-  uploadPropertyImage,
-} from "../../../../../components/property-image-upload";
+import { deletePropertyImage, uploadPropertyImage } from "../../../../../components/property-image-upload";
 import {
   PropertyDrawer,
   initialPropertyFormState,
   type PropertyFormState,
   type UnitDetailsFormState,
 } from "../../../../../components/property-drawer";
-import {
-  getPropertyFormState,
-  getUnitFormStates,
-} from "../../../../../components/property-drawer-state";
+import { getPropertyFormState, getUnitFormStates } from "../../../../../components/property-drawer-state";
 import { Sidebar } from "../../../../../components/sidebar";
+import { NotesDrawer } from "../../../../../components/notes-drawer";
+import { StickyNotePlusIcon } from "../../../../../components/sticky-note-plus-icon";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -104,13 +100,7 @@ export default function UnitDetailPage() {
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
   });
   const updateProperty = useMutation({
-    mutationFn: async ({
-      imageFile,
-      input,
-    }: {
-      imageFile: File | null;
-      input: UpdatePropertyInput;
-    }) => {
+    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: UpdatePropertyInput }) => {
       const updatedProperty = await apiClient.properties.update.mutate(input);
       if (imageFile) await uploadPropertyImage(updatedProperty.id, imageFile);
       return updatedProperty;
@@ -139,8 +129,8 @@ export default function UnitDetailPage() {
     },
   });
   const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
-  const [editInitialForm, setEditInitialForm] =
-    React.useState<PropertyFormState>(initialPropertyFormState);
+  const [isNotesDrawerOpen, setIsNotesDrawerOpen] = React.useState(false);
+  const [editInitialForm, setEditInitialForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [editInitialUnits, setEditInitialUnits] = React.useState<UnitDetailsFormState[]>([]);
   const [editForm, setEditForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
@@ -149,14 +139,10 @@ export default function UnitDetailPage() {
   const unit = property?.units.find((item) => item.id === unitId) ?? null;
   const lease =
     property?.leases.find(
-      (item) =>
-        unit &&
-        item.unitLabel === unit.name &&
-        (item.status === "active" || item.status === "notice"),
+      (item) => unit && item.unitLabel === unit.name && (item.status === "active" || item.status === "notice"),
     ) ?? null;
   const tenant = lease?.tenant ?? null;
-  const unitTickets =
-    property?.maintenanceTickets.filter((ticket) => unit && ticket.unitLabel === unit.name) ?? [];
+  const unitTickets = property?.maintenanceTickets.filter((ticket) => unit && ticket.unitLabel === unit.name) ?? [];
   const openTickets = unitTickets.filter((ticket) => ticket.status !== "resolved");
   const utilities = unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
   const amenities = unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
@@ -213,9 +199,26 @@ export default function UnitDetailPage() {
         }
         open={isEditDrawerOpen}
         submitLabel="Save"
-        unitHref={(drawerUnit) =>
-          drawerUnit.id ? `/properties/${propertyId}/units/${drawerUnit.id}` : null
+        unitHref={(drawerUnit) => (drawerUnit.id ? `/properties/${propertyId}/units/${drawerUnit.id}` : null)}
+      />
+      <NotesDrawer
+        onOpenChange={setIsNotesDrawerOpen}
+        open={isNotesDrawerOpen}
+        unitSummary={
+          property && unit
+            ? {
+                name: `Unit ${unit.name}`,
+                propertyName: property.name,
+                addressLines: [
+                  [property.line1, property.line2, `${property.city}, ${property.region} ${property.postalCode}`]
+                    .filter(Boolean)
+                    .join(", "),
+                ],
+              }
+            : undefined
         }
+        subject={{ unitId }}
+        subjectLabel={unit ? `Unit ${unit.name}` : "Unit"}
       />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
@@ -235,7 +238,7 @@ export default function UnitDetailPage() {
             {property ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="secondary">
+                  <Button className="min-w-40" variant="secondary">
                     All Units
                     <ChevronDown className="h-4 w-4" />
                   </Button>
@@ -248,9 +251,7 @@ export default function UnitDetailPage() {
                     <DropdownMenuItem asChild key={propertyUnit.id}>
                       <Link
                         className={
-                          propertyUnit.id === unitId
-                            ? "bg-parcelis-porcelain text-parcelis-charcoal"
-                            : undefined
+                          propertyUnit.id === unitId ? "bg-parcelis-porcelain text-parcelis-charcoal" : undefined
                         }
                         href={`/properties/${propertyId}/units/${propertyUnit.id}`}
                       >
@@ -261,22 +262,27 @@ export default function UnitDetailPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button disabled size="sm" variant="secondary">
+              <Button className="min-w-40" disabled variant="secondary">
                 All Units
                 <ChevronDown className="h-4 w-4" />
               </Button>
             )}
-            <Button size="sm" variant="secondary">
+            <Button className="min-w-40" variant="secondary">
               <Archive className="h-4 w-4" />
-              <span className="hidden sm:inline">Archive</span>
+              Archive
             </Button>
-            <Button disabled={!property} onClick={openEditUnitDrawer} size="sm" variant="secondary">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Edit Unit</span>
+            <Button
+              className="min-w-40"
+              disabled={!unit}
+              onClick={() => setIsNotesDrawerOpen(true)}
+              variant="secondary"
+            >
+              <StickyNotePlusIcon />
+              Add Notes
             </Button>
-            <Button size="sm">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Note</span>
+            <Button className="min-w-40" disabled={!property} onClick={openEditUnitDrawer}>
+              <PenLine className="h-4 w-4" />
+              Edit Unit
             </Button>
           </div>
         </header>
@@ -316,8 +322,8 @@ export default function UnitDetailPage() {
                     <h1 className="mt-5 text-3xl font-bold md:text-5xl">Unit {unit.name}</h1>
                     <p className="mt-3 max-w-3xl text-sm leading-6 text-white/75">
                       {property.name} · {property.line1}
-                      {property.line2 ? `, ${property.line2}` : ""}, {property.city},{" "}
-                      {property.region} {property.postalCode}
+                      {property.line2 ? `, ${property.line2}` : ""}, {property.city}, {property.region}{" "}
+                      {property.postalCode}
                     </p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2 lg:min-w-80">
@@ -355,9 +361,7 @@ export default function UnitDetailPage() {
                       <div className="grid gap-5">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-parcelis-charcoal">
-                              Current Lease
-                            </p>
+                            <p className="text-sm font-semibold text-parcelis-charcoal">Current Lease</p>
                             <p className="mt-1 text-sm text-parcelis-gray">
                               {formatDate(lease.startsOn)} to{" "}
                               {lease.endsOn ? formatDate(lease.endsOn) : "Month-to-Month"}
@@ -372,17 +376,11 @@ export default function UnitDetailPage() {
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
                           <div>
-                            <p className="text-xs font-semibold uppercase text-parcelis-gray">
-                              Start
-                            </p>
-                            <p className="mt-1 font-semibold text-parcelis-charcoal">
-                              {formatDate(lease.startsOn)}
-                            </p>
+                            <p className="text-xs font-semibold uppercase text-parcelis-gray">Start</p>
+                            <p className="mt-1 font-semibold text-parcelis-charcoal">{formatDate(lease.startsOn)}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold uppercase text-parcelis-gray">
-                              End
-                            </p>
+                            <p className="text-xs font-semibold uppercase text-parcelis-gray">End</p>
                             <p className="mt-1 font-semibold text-parcelis-charcoal">
                               {lease.endsOn ? formatDate(lease.endsOn) : "Month-to-Month"}
                             </p>
@@ -390,9 +388,7 @@ export default function UnitDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-parcelis-gray">
-                        No active lease is attached to this unit.
-                      </p>
+                      <p className="text-sm text-parcelis-gray">No active lease is attached to this unit.</p>
                     )}
                   </CardContent>
                 </Card>
@@ -405,20 +401,13 @@ export default function UnitDetailPage() {
                     <div className="grid gap-6 md:grid-cols-[11rem_minmax(0,1fr)] md:items-center">
                       <div className="grid aspect-square place-items-center rounded-full border-[1.35rem] border-parcelis-green bg-white">
                         <div className="text-center">
-                          <p className="text-xs font-semibold uppercase text-parcelis-gray">
-                            Total
-                          </p>
-                          <p className="text-xl font-bold text-parcelis-charcoal">
-                            {formatCurrency(monthlyRentCents)}
-                          </p>
+                          <p className="text-xs font-semibold uppercase text-parcelis-gray">Total</p>
+                          <p className="text-xl font-bold text-parcelis-charcoal">{formatCurrency(monthlyRentCents)}</p>
                         </div>
                       </div>
                       <div className="grid gap-3">
                         {collectionRows.map(([label, value, color]) => (
-                          <div
-                            className="flex items-center justify-between gap-4 text-sm"
-                            key={label}
-                          >
+                          <div className="flex items-center justify-between gap-4 text-sm" key={label}>
                             <span className="inline-flex items-center gap-2 font-medium text-parcelis-charcoal">
                               <span className={`h-3 w-3 rounded-sm ${color}`} />
                               {label}
@@ -494,12 +483,8 @@ export default function UnitDetailPage() {
                             className="grid grid-cols-[1fr_1fr_8rem] border-t border-parcelis-border px-4 py-3 text-sm"
                             key={invoice.id}
                           >
-                            <span className="font-semibold text-parcelis-charcoal">
-                              {invoice.id}
-                            </span>
-                            <span className="text-parcelis-gray">
-                              {formatDate(invoice.dueDate)}
-                            </span>
+                            <span className="font-semibold text-parcelis-charcoal">{invoice.id}</span>
+                            <span className="text-parcelis-gray">{formatDate(invoice.dueDate)}</span>
                             <span className="text-right font-semibold text-parcelis-charcoal">
                               {formatCurrency(invoice.amountCents)}
                             </span>
@@ -538,9 +523,7 @@ export default function UnitDetailPage() {
                           })}
                           {label as string}
                         </span>
-                        <span className="font-semibold text-parcelis-charcoal">
-                          {value as string}
-                        </span>
+                        <span className="font-semibold text-parcelis-charcoal">{value as string}</span>
                       </div>
                     ))}
                     <div className="grid gap-2 pt-2">
@@ -562,9 +545,7 @@ export default function UnitDetailPage() {
 
                 <Card>
                   <CardHeader className="flex items-center justify-between gap-3 sm:flex-row">
-                    <h2 className="font-semibold text-parcelis-charcoal">
-                      Open Maintenance Requests
-                    </h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">Open Maintenance Requests</h2>
                     <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
                       {openTickets.length}
                     </span>
@@ -578,9 +559,7 @@ export default function UnitDetailPage() {
                         >
                           <Wrench className="h-4 w-4 text-parcelis-green" />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-parcelis-charcoal">
-                              {ticket.title}
-                            </p>
+                            <p className="truncate text-sm font-semibold text-parcelis-charcoal">{ticket.title}</p>
                             <p className="text-xs text-parcelis-gray">
                               {formatStatus(ticket.status)} · {formatStatus(ticket.priority)}
                               {ticket.dueOn ? ` · Due ${formatDate(ticket.dueOn)}` : ""}

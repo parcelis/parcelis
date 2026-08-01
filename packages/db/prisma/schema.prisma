@@ -67,12 +67,13 @@ model Property {
   contactEmail       String?
   contactPhone       String?
   contactAddress     String?
-  notes              String?
+  legacyNotes        String?             @map("notes")
   unitCount          Int
   occupiedUnits      Int                 @default(0)
   status             PropertyStatus      @default(active)
   units              Unit[]
   leases             Lease[]
+  notes              Note[]
   maintenanceTickets MaintenanceTicket[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
@@ -99,6 +100,7 @@ model Unit {
   property        Property          @relation(fields: [propertyId], references: [id])
   utilities       UnitUtility[]
   amenities       UnitAmenity[]
+  notes           Note[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -154,11 +156,29 @@ model Tenant {
   accountStatus   TenantAccountStatus   @default(invitation_pending)
   insuranceStatus TenantInsuranceStatus @default(not_on_file)
   archivedAt      DateTime?
-  notes           String?
+  legacyNotes     String?                 @map("notes")
   emergencyContacts EmergencyContact[]
   leases          Lease[]
+  notes           Note[]
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
+}
+
+model Note {
+  id         Int       @id @default(autoincrement())
+  body       String
+  propertyId Int?
+  unitId     Int?
+  tenantId   Int?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit       Unit?     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenant     Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([propertyId, createdAt])
+  @@index([unitId, createdAt])
+  @@index([tenantId, createdAt])
 }
 
 model EmergencyContact {

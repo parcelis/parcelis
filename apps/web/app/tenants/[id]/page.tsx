@@ -48,6 +48,8 @@ import { apiClient, queryKeys } from "../../../components/api-client";
 import { Sidebar } from "../../../components/sidebar";
 import { deleteTenantImage, uploadTenantImage } from "../../../components/tenant-image-upload";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../components/tenant-drawer";
+import { NotesDrawer } from "../../../components/notes-drawer";
+import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -90,6 +92,7 @@ export default function TenantDetailPage() {
   const [isEmergencyContactDrawerOpen, setIsEmergencyContactDrawerOpen] = useState(false);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [isTenantDrawerOpen, setIsTenantDrawerOpen] = useState(false);
+  const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
   const [tenantForm, setTenantForm] = useState<TenantFormState>(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = useState<File | null>(null);
   const [emergencyContactDraft, setEmergencyContactDraft] = useState({
@@ -311,6 +314,21 @@ export default function TenantDetailPage() {
         open={isTenantDrawerOpen}
         submitLabel="Save"
       />
+      <NotesDrawer
+        onOpenChange={setIsNotesDrawerOpen}
+        open={isNotesDrawerOpen}
+        subject={{ tenantId }}
+        subjectLabel={tenant ? `${tenant.firstName} ${tenant.lastName}` : "Tenant"}
+        tenantSummary={
+          tenant
+            ? {
+                name: `${tenant.firstName} ${tenant.lastName}`,
+                email: tenant.email,
+                phone: tenant.phone,
+              }
+            : undefined
+        }
+      />
       {tenant?.imageUrl ? (
         <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>
           <DialogContent
@@ -339,10 +357,21 @@ export default function TenantDetailPage() {
               </Link>
             </Button>
           </div>
-          <Button className="min-w-40" disabled={!tenant} onClick={openTenantDrawer}>
-            <PenLine className="h-4 w-4" />
-            Edit tenant
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              className="min-w-40"
+              disabled={!tenant}
+              onClick={() => setIsNotesDrawerOpen(true)}
+              variant="secondary"
+            >
+              <StickyNotePlusIcon />
+              Add Notes
+            </Button>
+            <Button className="min-w-40" disabled={!tenant} onClick={openTenantDrawer}>
+              <PenLine className="h-4 w-4" />
+              Edit tenant
+            </Button>
+          </div>
         </header>
 
         <div className="parcelis-page-shell">

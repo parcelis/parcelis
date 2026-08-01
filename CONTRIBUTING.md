@@ -2,6 +2,15 @@
 
 Thanks for contributing to Parcelis. Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
+## Contributor License Agreement
+
+By submitting a contribution, you accept the [Contributor License Agreement](CLA.md). It lets
+Parcelis use and relicense contributions while you retain ownership. If you contribute for an
+organization, ensure that you are authorized to accept the agreement on its behalf.
+
+The public [CLA Gist](https://gist.github.com/NDCallahan/580fbbc25333ebc1deaf66dcfd853635)
+is available for CLA-bot configuration.
+
 ## Commit messages
 
 Parcelis uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Write commit subjects in this form:
