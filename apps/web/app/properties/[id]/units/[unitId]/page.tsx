@@ -231,7 +231,7 @@ export default function UnitDetailPage() {
             <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
               <Link href={`/properties/${propertyId}`}>
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Property</span>
+                <span className="sr-only sm:not-sr-only">Property</span>
               </Link>
             </Button>
           </div>
