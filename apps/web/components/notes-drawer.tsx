@@ -224,7 +224,11 @@ export function NotesDrawer({
               <AlertDialogTitle>Delete note?</AlertDialogTitle>
               <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
             </AlertDialogHeader>
-            {deleteNote.error ? <p className="mt-3 text-sm text-red-700">{deleteNote.error.message}</p> : null}
+            {deleteNote.error ? (
+              <p className="mt-3 text-sm text-red-700" role="alert">
+                {deleteNote.error.message}
+              </p>
+            ) : null}
             <AlertDialogFooter>
               <Button
                 disabled={deleteNote.isPending}
@@ -384,7 +388,11 @@ export function NotesDrawer({
                   )}
                 </button>
               </div>
-              {createNote.error ? <p className="text-sm text-red-700">{createNote.error.message}</p> : null}
+              {createNote.error ? (
+                <p className="text-sm text-red-700" role="alert">
+                  {createNote.error.message}
+                </p>
+              ) : null}
               {notesQuery.isLoading ? (
                 <div className="flex items-center gap-2 py-8 text-sm text-parcelis-gray">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -409,7 +417,9 @@ export function NotesDrawer({
                           />
                           <div className="mt-3 flex justify-end gap-2">
                             {updateNote.error ? (
-                              <p className="mr-auto self-center text-sm text-red-700">{updateNote.error.message}</p>
+                              <p className="mr-auto self-center text-sm text-red-700" role="alert">
+                                {updateNote.error.message}
+                              </p>
                             ) : null}
                             <Button
                               disabled={isMutationPending}
