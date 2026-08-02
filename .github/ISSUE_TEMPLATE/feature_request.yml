@@ -1,7 +1,10 @@
 name: 🧩 Feature Request
 description: Suggest a new idea or enhancement for this project
-labels: "enhancement, needs-triaged"
+labels:
+  - enhancement
+  - needs-triage
 type: feature
+title: "[Feat]: "
 body:
   - type: markdown
     attributes:
