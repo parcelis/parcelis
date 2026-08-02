@@ -1,0 +1,62 @@
+name: Documentation Issue
+description: Report missing, incorrect, or outdated documentation
+title: "[Docs]: "
+labels:
+  - documentation
+  - docs-needed
+  - needs-triage
+
+body:
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Issue Type
+      description: Select all that apply.
+      options:
+        - label: Missing documentation
+        - label: Incorrect information
+        - label: Outdated information
+        - label: Unclear or confusing explanation
+        - label: Broken link or reference
+        - label: Other (please specify below)
+
+  - type: input
+    id: docs-location
+    attributes:
+      label: Documentation Location
+      description: Provide a link or describe where the issue exists.
+      placeholder: "https://github.com/your/repo/docs/page.md"
+
+  - type: textarea
+    id: section-heading
+    attributes:
+      label: Section / Heading (optional)
+      placeholder: "e.g., 'Installation → Docker Setup'"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Issue
+      description: Clearly describe what is missing, incorrect, or out of date.
+      placeholder: "Explain what’s wrong and why."
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected or Correct Information
+      description: Describe what the documentation should say or what you expected to find.
+      placeholder: "Provide the correct or expected content."
+
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested Fix (optional)
+      description: If you have a proposed update, include it here.
+      placeholder: "Suggested wording, links, or related PRs/issues."
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add screenshots, examples, or any other helpful details.
+      placeholder: "Anything else we should know?"
