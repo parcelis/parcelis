@@ -1,9 +1,9 @@
 name: 📚 Documentation Issue
 description: Report missing, incorrect, or outdated documentation
 title: "[Docs]: "
+type: documentation
 labels:
   - documentation
-  - docs-needed
   - needs-triage
 
 body:
@@ -16,7 +16,7 @@ body:
         - label: Missing documentation
         - label: Incorrect information
         - label: Outdated information
-        - label: Unclear or confusing explanation
+        - label: Unclear explanation
         - label: Broken link or reference
         - label: Other (please specify below)
 
