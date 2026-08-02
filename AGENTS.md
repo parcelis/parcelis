@@ -84,6 +84,7 @@
   - `DEPENDENCIES.md` when adding, removing, or materially changing a direct dependency or service.
   - `CONTRIBUTING.md` when changing the contributor workflow, development setup, or contribution standards.
   - `README.md` when changing the project overview, architecture, local setup, or primary workflows.
+  - `ARCHITECTURE.md` when changing application boundaries, request/data flows, package responsibilities, infrastructure, or local runtime topology.
 - Make the applicable documentation updates in the same change. If none are needed, state that in the handoff or pull request summary.
 - Keep docs concise and task-oriented.
 
