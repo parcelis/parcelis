@@ -1,4 +1,4 @@
-name: CI
+name: Commit Message Validation & Quality
 
 on:
   pull_request:
