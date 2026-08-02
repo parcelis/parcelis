@@ -155,19 +155,22 @@ export function NotesDrawer({
     wasOpen.current = open;
   }, [isMutationPending, open, resetTransientState]);
 
-  function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen) {
-      if (isMutationPending) {
-        return;
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        if (isMutationPending) {
+          return;
+        }
+        if (notePendingDeletion !== null) {
+          setNotePendingDeletion(null);
+          return;
+        }
+        resetTransientState();
       }
-      if (notePendingDeletion !== null) {
-        setNotePendingDeletion(null);
-        return;
-      }
-      resetTransientState();
-    }
-    onOpenChange(nextOpen);
-  }
+      onOpenChange(nextOpen);
+    },
+    [isMutationPending, notePendingDeletion, onOpenChange, resetTransientState],
+  );
 
   function selectTab(tab: NotesTab) {
     setActiveTab(tab);
