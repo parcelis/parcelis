@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  Archive,
   ArrowLeft,
   Bath,
   BedDouble,
@@ -268,10 +267,6 @@ export default function UnitDetailPage() {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             )}
-            <Button className="hidden min-w-40 xl:inline-flex" variant="secondary">
-              <Archive className="h-4 w-4" />
-              Archive
-            </Button>
             <Button
               className="hidden min-w-40 xl:inline-flex"
               disabled={!unit}
@@ -292,10 +287,6 @@ export default function UnitDetailPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Archive className="h-4 w-4" />
-                  Archive
-                </DropdownMenuItem>
                 <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
                   <StickyNotePlusIcon />
                   Add Notes
