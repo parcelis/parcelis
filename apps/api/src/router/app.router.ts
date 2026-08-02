@@ -53,6 +53,7 @@ const propertySelect = {
   contactPhone: true,
   contactAddress: true,
   legacyNotes: true,
+  legacyNoteId: true,
   unitCount: true,
   occupiedUnits: true,
   status: true,
@@ -481,17 +482,38 @@ export const appRouter = router({
     /** Updates the notes stored on a property. */
     updateNotes: publicProcedure.input(propertyNotesInputSchema).mutation(async ({ ctx, input }) => {
       const property = await ctx.prisma.$transaction(async (tx) => {
-        const updatedProperty = await tx.property.update({
+        const currentProperty = await tx.property.findUniqueOrThrow({
           where: { id: input.id },
-          select: propertySelect,
-          data: { legacyNotes: input.notes ?? null },
+          select: { legacyNoteId: true },
         });
 
         if (input.notes) {
-          await tx.note.create({ data: { propertyId: input.id, body: input.notes } });
+          const updatedNote = currentProperty.legacyNoteId
+            ? await tx.note.updateMany({
+                where: { id: currentProperty.legacyNoteId, propertyId: input.id },
+                data: { body: input.notes },
+              })
+            : null;
+          const legacyNote = updatedNote?.count
+            ? { id: currentProperty.legacyNoteId! }
+            : await tx.note.create({ data: { propertyId: input.id, body: input.notes }, select: { id: true } });
+
+          return tx.property.update({
+            where: { id: input.id },
+            select: propertySelect,
+            data: { legacyNotes: input.notes, legacyNoteId: legacyNote.id },
+          });
         }
 
-        return updatedProperty;
+        if (currentProperty.legacyNoteId) {
+          await tx.note.deleteMany({ where: { id: currentProperty.legacyNoteId, propertyId: input.id } });
+        }
+
+        return tx.property.update({
+          where: { id: input.id },
+          select: propertySelect,
+          data: { legacyNotes: null, legacyNoteId: null },
+        });
       });
 
       return withPropertyNotes(property);
@@ -656,16 +678,36 @@ export const appRouter = router({
     /** Updates the internal notes attached to a tenant. */
     updateNotes: publicProcedure.input(tenantNotesInputSchema).mutation(async ({ ctx, input }) => {
       return ctx.prisma.$transaction(async (tx) => {
-        const tenant = await tx.tenant.update({
+        const currentTenant = await tx.tenant.findUniqueOrThrow({
           where: { id: input.id },
-          data: { legacyNotes: input.notes || null },
+          select: { legacyNoteId: true },
         });
 
         if (input.notes) {
-          await tx.note.create({ data: { tenantId: input.id, body: input.notes } });
+          const updatedNote = currentTenant.legacyNoteId
+            ? await tx.note.updateMany({
+                where: { id: currentTenant.legacyNoteId, tenantId: input.id },
+                data: { body: input.notes },
+              })
+            : null;
+          const legacyNote = updatedNote?.count
+            ? { id: currentTenant.legacyNoteId! }
+            : await tx.note.create({ data: { tenantId: input.id, body: input.notes }, select: { id: true } });
+
+          return tx.tenant.update({
+            where: { id: input.id },
+            data: { legacyNotes: input.notes, legacyNoteId: legacyNote.id },
+          });
         }
 
-        return tenant;
+        if (currentTenant.legacyNoteId) {
+          await tx.note.deleteMany({ where: { id: currentTenant.legacyNoteId, tenantId: input.id } });
+        }
+
+        return tx.tenant.update({
+          where: { id: input.id },
+          data: { legacyNotes: null, legacyNoteId: null },
+        });
       });
     }),
     /** Permanently deletes a tenant and their lease history. */
