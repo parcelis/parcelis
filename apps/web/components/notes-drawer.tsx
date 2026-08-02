@@ -154,6 +154,18 @@ export function NotesDrawer({
     tabRefs.current[tab]?.focus();
   }
 
+  function startEdit(note: { id: number; body: string }) {
+    updateNote.reset();
+    setEditingNoteId(note.id);
+    setEditDraft(note.body);
+  }
+
+  function cancelEdit() {
+    updateNote.reset();
+    setEditingNoteId(null);
+    setEditDraft("");
+  }
+
   function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
     const currentIndex = tabs.findIndex((tab) => tab.value === activeTab);
     let nextIndex: number | null = null;
@@ -369,10 +381,8 @@ export function NotesDrawer({
                               <p className="mr-auto self-center text-sm text-red-700">{updateNote.error.message}</p>
                             ) : null}
                             <Button
-                              onClick={() => {
-                                setEditingNoteId(null);
-                                setEditDraft("");
-                              }}
+                              disabled={updateNote.isPending}
+                              onClick={cancelEdit}
                               size="sm"
                               type="button"
                               variant="secondary"
@@ -401,10 +411,7 @@ export function NotesDrawer({
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
-                                  onSelect={() => {
-                                    setEditingNoteId(note.id);
-                                    setEditDraft(note.body);
-                                  }}
+                                  onSelect={() => startEdit(note)}
                                 >
                                   <Pencil className="h-4 w-4 text-parcelis-green" />
                                   Edit
