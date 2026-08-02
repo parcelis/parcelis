@@ -353,7 +353,7 @@ export default function TenantDetailPage() {
             <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
               <Link href="/tenants">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Tenants</span>
+                <span className="sr-only sm:not-sr-only">Tenants</span>
               </Link>
             </Button>
           </div>
