@@ -68,8 +68,8 @@ model Property {
   contactPhone       String?
   contactAddress     String?
   legacyNotes        String?             @map("notes")
-  legacyNoteId       Int?                @unique
-  legacyNote         Note?               @relation("PropertyLegacyNote", fields: [legacyNoteId], references: [id], onDelete: SetNull)
+  legacyNoteId       Int?
+  legacyNote         Note?               @relation("PropertyLegacyNote", fields: [id, legacyNoteId], references: [propertyId, id], onDelete: SetNull)
   unitCount          Int
   occupiedUnits      Int                 @default(0)
   status             PropertyStatus      @default(active)
@@ -79,6 +79,8 @@ model Property {
   maintenanceTickets MaintenanceTicket[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+
+  @@unique([id, legacyNoteId])
 }
 
 model Tag {
@@ -159,13 +161,15 @@ model Tenant {
   insuranceStatus TenantInsuranceStatus @default(not_on_file)
   archivedAt      DateTime?
   legacyNotes     String?                 @map("notes")
-  legacyNoteId    Int?                    @unique
-  legacyNote      Note?                   @relation("TenantLegacyNote", fields: [legacyNoteId], references: [id], onDelete: SetNull)
+  legacyNoteId    Int?
+  legacyNote      Note?                   @relation("TenantLegacyNote", fields: [id, legacyNoteId], references: [tenantId, id], onDelete: SetNull)
   emergencyContacts EmergencyContact[]
   leases          Lease[]
   notes           Note[]
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
+
+  @@unique([id, legacyNoteId])
 }
 
 model Note {
@@ -185,6 +189,8 @@ model Note {
   @@index([propertyId, createdAt, id])
   @@index([unitId, createdAt, id])
   @@index([tenantId, createdAt, id])
+  @@unique([propertyId, id])
+  @@unique([tenantId, id])
 }
 
 model EmergencyContact {
