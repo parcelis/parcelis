@@ -128,6 +128,9 @@ export function NotesDrawer({
     setEditDraft("");
     setNotePendingDeletion(null);
     createNote.reset();
+    if (updateNote.isPending) {
+      return;
+    }
     updateNote.reset();
     deleteNote.reset();
   }, [createNote.reset, deleteNote.reset, updateNote.reset]);
