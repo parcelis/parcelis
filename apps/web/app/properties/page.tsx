@@ -63,6 +63,7 @@ import {
   getUnitFormStates,
 } from "../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../components/api-client";
+import { NotesDrawer } from "../../components/notes-drawer";
 import { deletePropertyImage, uploadPropertyImage } from "../../components/property-image-upload";
 import { useShortcut } from "../../components/shortcut-provider";
 import { Sidebar } from "../../components/sidebar";
@@ -124,10 +125,16 @@ function getUnitRows(property: PropertyListItem) {
     ticketCountsByUnit.set(ticket.unitLabel, (ticketCountsByUnit.get(ticket.unitLabel) ?? 0) + 1);
   }
 
-  return Array.from({ length: property.unitCount }, (_, index) => {
-    const fallbackLabel = String(index + 1);
-    const lease = property.leases[index];
-    const unitLabel = lease?.unitLabel ?? fallbackLabel;
+  const unitLabels = new Set([
+    ...property.units.map((unit) => unit.name),
+    ...property.leases.map((lease) => lease.unitLabel),
+    ...property.maintenanceTickets.flatMap((ticket) => (ticket.unitLabel ? [ticket.unitLabel] : [])),
+  ]);
+  for (let index = 1; unitLabels.size < property.unitCount; index += 1) {
+    unitLabels.add(String(index));
+  }
+
+  return Array.from(unitLabels, (unitLabel) => {
     const activeLease = leaseByUnit.get(unitLabel);
     const endsOn =
       activeLease?.endsOn !== null && activeLease?.endsOn !== undefined ? new Date(activeLease.endsOn) : null;
@@ -136,7 +143,7 @@ function getUnitRows(property: PropertyListItem) {
     return {
       id: property.units.find((unit) => unit.name === unitLabel)?.id,
       unitLabel,
-      isOccupied: index < property.occupiedUnits,
+      isOccupied: activeLease?.status === "active",
       monthlyRentCents: activeLease?.monthlyRentCents ?? 0,
       amountOverdueCents: activeLease?.amountOverdueCents ?? 0,
       expiringLeases90Days: isExpiring ? 1 : 0,
@@ -341,19 +348,6 @@ export default function PropertiesPage() {
       ]);
     },
   });
-  const updatePropertyNotes = useMutation({
-    mutationFn: (input: { id: number; notes?: string }) => apiClient.properties.updateNotes.mutate(input),
-    onSuccess: async (_property, input) => {
-      setNotesPropertyId(null);
-      setNotesDraft("");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.properties.byId(input.id),
-        }),
-      ]);
-    },
-  });
   const deleteUnit = useMutation({
     mutationFn: (input: UpdatePropertyInput) => apiClient.properties.update.mutate(input),
     onSuccess: async (_property, input) => {
@@ -385,7 +379,6 @@ export default function PropertiesPage() {
     unitLabel: string;
   } | null>(null);
   const [notesPropertyId, setNotesPropertyId] = React.useState<number | null>(null);
-  const [notesDraft, setNotesDraft] = React.useState("");
   const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   useShortcut("/", () => searchInputRef.current?.focus(), {
@@ -490,7 +483,6 @@ export default function PropertiesPage() {
 
   function openNotes(property: PropertyListItem) {
     setNotesPropertyId(property.id);
-    setNotesDraft(property.legacyNotes ?? "");
   }
 
   return (
@@ -637,44 +629,12 @@ export default function PropertiesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog open={Boolean(notesPropertyTarget)} onOpenChange={(open) => !open && setNotesPropertyId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Property notes</AlertDialogTitle>
-            <AlertDialogDescription>
-              Add internal notes for {notesPropertyTarget?.name ?? "this property"}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <textarea
-            className="mt-4 min-h-32 w-full resize-y rounded-md border border-parcelis-border bg-white p-3 text-sm text-parcelis-charcoal outline-none transition focus:border-parcelis-green"
-            onChange={(event) => setNotesDraft(event.target.value)}
-            value={notesDraft}
-          />
-          <AlertDialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setNotesPropertyId(null)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={updatePropertyNotes.isPending}
-              onClick={() =>
-                notesPropertyTarget &&
-                updatePropertyNotes.mutate({
-                  id: notesPropertyTarget.id,
-                  notes: notesDraft || undefined,
-                })
-              }
-              type="button"
-            >
-              {updatePropertyNotes.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <StickyNote className="h-4 w-4" />
-              )}
-              Save Notes
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <NotesDrawer
+        onOpenChange={(open) => !open && setNotesPropertyId(null)}
+        open={Boolean(notesPropertyTarget)}
+        subject={notesPropertyTarget ? { propertyId: notesPropertyTarget.id } : { propertyId: 0 }}
+        subjectLabel={notesPropertyTarget?.name ?? "Property"}
+      />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">

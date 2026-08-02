@@ -2,6 +2,7 @@
 
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@parcelis/api/router";
+import type { NoteSubjectInput } from "@parcelis/schemas";
 
 export const apiClient = createTRPCProxyClient<AppRouter>({
   links: [
@@ -21,8 +22,7 @@ export const queryKeys = {
     byId: (id: number) => ["tenants", "byId", id] as const,
   },
   notes: {
-    list: (subject: { propertyId: number } | { unitId: number } | { tenantId: number }) =>
-      ["notes", "list", subject] as const,
+    list: (subject: NoteSubjectInput) => ["notes", "list", subject] as const,
   },
   unitOptions: {
     list: ["unitOptions", "list"] as const,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Code2, Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, Moon, Sun, UsersRound } from "lucide-react";
+import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, Moon, Sun, UsersRound } from "lucide-react";
 import * as React from "react";
 import { Button, Input } from "@parcelis/ui";
 import { useTheme } from "../../components/theme-provider";
@@ -162,7 +162,9 @@ export default function LoginPage() {
               or
             </div>
             <Button className="w-full" size="lg" type="button" variant="secondary">
-              <Code2 className="h-4 w-4" />
+              <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 0C3.58 0 0 3.64 0 8.13c0 3.59 2.29 6.63 5.47 7.71.4.08.55-.18.55-.4 0-.2-.01-.86-.01-1.56-2.01.38-2.53-.5-2.69-.96-.09-.24-.48-.96-.82-1.15-.28-.15-.68-.53-.01-.54.63-.01 1.08.59 1.23.83.72 1.23 1.87.88 2.33.67.07-.53.28-.88.51-1.08-1.78-.2-3.64-.91-3.64-4.03 0-.89.31-1.62.82-2.19-.08-.2-.36-1.04.08-2.17 0 0 .67-.22 2.2.83A7.49 7.49 0 0 1 8 4.86c.68 0 1.36.09 2 .27 1.53-1.06 2.2-.83 2.2-.83.44 1.13.16 1.97.08 2.17.51.57.82 1.29.82 2.19 0 3.13-1.87 3.83-3.65 4.03.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .22.15.48.55.4A8.02 8.02 0 0 0 16 8.13C16 3.64 12.42 0 8 0Z" />
+              </svg>
               Sign in with GitHub
             </Button>
             <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">

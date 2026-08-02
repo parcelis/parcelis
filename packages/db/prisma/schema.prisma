@@ -176,9 +176,9 @@ model Note {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  @@index([propertyId, createdAt])
-  @@index([unitId, createdAt])
-  @@index([tenantId, createdAt])
+  @@index([propertyId, createdAt, id])
+  @@index([unitId, createdAt, id])
+  @@index([tenantId, createdAt, id])
 }
 
 model EmergencyContact {

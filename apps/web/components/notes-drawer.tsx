@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Button,
   Drawer,
   DrawerClose,
@@ -32,6 +38,12 @@ import {
 import { apiClient, queryKeys } from "./api-client";
 
 type NoteSubject = { propertyId: number } | { unitId: number } | { tenantId: number };
+type NotesTab = "notes" | "files";
+
+const tabs: { value: NotesTab; label: string }[] = [
+  { value: "notes", label: "Notes" },
+  { value: "files", label: "Files" },
+];
 
 type NotesDrawerProps = {
   open: boolean;
@@ -74,10 +86,12 @@ export function NotesDrawer({
   tenantSummary,
   unitSummary,
 }: NotesDrawerProps) {
-  const [activeTab, setActiveTab] = React.useState<"notes" | "files">("notes");
+  const [activeTab, setActiveTab] = React.useState<NotesTab>("notes");
   const [draft, setDraft] = React.useState("");
   const [editingNoteId, setEditingNoteId] = React.useState<number | null>(null);
   const [editDraft, setEditDraft] = React.useState("");
+  const [notePendingDeletion, setNotePendingDeletion] = React.useState<number | null>(null);
+  const tabRefs = React.useRef<Record<NotesTab, HTMLButtonElement | null>>({ notes: null, files: null });
   const queryClient = useQueryClient();
   const notesQuery = useQuery({
     queryKey: queryKeys.notes.list(subject),
@@ -102,13 +116,92 @@ export function NotesDrawer({
   const deleteNote = useMutation({
     mutationFn: (id: number) => apiClient.notes.delete.mutate({ id }),
     onSuccess: async () => {
+      setNotePendingDeletion(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
     },
   });
 
+  const resetTransientState = React.useCallback(() => {
+    setActiveTab("notes");
+    setDraft("");
+    setEditingNoteId(null);
+    setEditDraft("");
+    setNotePendingDeletion(null);
+    createNote.reset();
+    updateNote.reset();
+    deleteNote.reset();
+  }, [createNote.reset, deleteNote.reset, updateNote.reset]);
+
+  React.useEffect(() => {
+    if (!open) {
+      resetTransientState();
+    }
+  }, [open, resetTransientState]);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      resetTransientState();
+    }
+    onOpenChange(nextOpen);
+  }
+
+  function selectTab(tab: NotesTab) {
+    setActiveTab(tab);
+    tabRefs.current[tab]?.focus();
+  }
+
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    const currentIndex = tabs.findIndex((tab) => tab.value === activeTab);
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = tabs.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      const nextTab = tabs[nextIndex];
+      if (nextTab) {
+        selectTab(nextTab.value);
+      }
+    }
+  }
+
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
+    <Drawer onOpenChange={handleOpenChange} open={open}>
       <DrawerContent size="lg">
+        <AlertDialog
+          onOpenChange={(nextOpen) => !nextOpen && setNotePendingDeletion(null)}
+          open={notePendingDeletion !== null}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete note?</AlertDialogTitle>
+              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            </AlertDialogHeader>
+            {deleteNote.error ? <p className="mt-3 text-sm text-red-700">{deleteNote.error.message}</p> : null}
+            <AlertDialogFooter>
+              <Button onClick={() => setNotePendingDeletion(null)} type="button" variant="secondary">
+                Cancel
+              </Button>
+              <Button
+                disabled={deleteNote.isPending}
+                onClick={() => notePendingDeletion !== null && deleteNote.mutate(notePendingDeletion)}
+                type="button"
+                className="bg-red-700 text-white hover:bg-red-800 focus-visible:outline-red-700"
+              >
+                {deleteNote.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <DrawerHeader className="flex items-center gap-3">
           <DrawerClose />
           <DrawerTitle>Notes</DrawerTitle>
@@ -184,11 +277,9 @@ export function NotesDrawer({
         </div>
         <div className="border-b border-parcelis-border px-4 md:px-6">
           <div aria-label="Notes drawer sections" className="flex gap-5" role="tablist">
-            {[
-              ["notes", "Notes"],
-              ["files", "Files"],
-            ].map(([value, label]) => (
+            {tabs.map(({ label, value }) => (
               <button
+                aria-controls={`${value}-panel`}
                 aria-selected={activeTab === value}
                 className={`border-b-2 px-1 py-3 text-sm font-semibold transition ${
                   activeTab === value
@@ -196,8 +287,14 @@ export function NotesDrawer({
                     : "border-transparent text-parcelis-gray hover:text-parcelis-charcoal"
                 }`}
                 key={value}
-                onClick={() => setActiveTab(value as "notes" | "files")}
+                id={`${value}-tab`}
+                onClick={() => selectTab(value)}
+                onKeyDown={handleTabKeyDown}
+                ref={(element) => {
+                  tabRefs.current[value] = element;
+                }}
                 role="tab"
+                tabIndex={activeTab === value ? 0 : -1}
                 type="button"
               >
                 {label}
@@ -205,7 +302,13 @@ export function NotesDrawer({
             ))}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
+        <div
+          aria-labelledby={`${activeTab}-tab`}
+          className="flex-1 overflow-y-auto px-4 py-5 md:px-6"
+          id={`${activeTab}-panel`}
+          role="tabpanel"
+          tabIndex={0}
+        >
           {activeTab === "notes" ? (
             <div className="space-y-5">
               <div className="relative">
@@ -214,6 +317,7 @@ export function NotesDrawer({
                 </label>
                 <Textarea
                   className="mt-2 pr-12"
+                  disabled={createNote.isPending}
                   id="note-body"
                   onChange={(event) => setDraft(event.target.value)}
                   placeholder="Add internal context, reminders, or instructions..."
@@ -233,6 +337,7 @@ export function NotesDrawer({
                   )}
                 </button>
               </div>
+              {createNote.error ? <p className="text-sm text-red-700">{createNote.error.message}</p> : null}
               {notesQuery.isLoading ? (
                 <div className="flex items-center gap-2 py-8 text-sm text-parcelis-gray">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -251,10 +356,14 @@ export function NotesDrawer({
                         <div>
                           <Textarea
                             aria-label="Edit note"
+                            disabled={updateNote.isPending}
                             onChange={(event) => setEditDraft(event.target.value)}
                             value={editDraft}
                           />
                           <div className="mt-3 flex justify-end gap-2">
+                            {updateNote.error ? (
+                              <p className="mr-auto self-center text-sm text-red-700">{updateNote.error.message}</p>
+                            ) : null}
                             <Button
                               onClick={() => {
                                 setEditingNoteId(null);
@@ -298,7 +407,7 @@ export function NotesDrawer({
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-red-700 focus:bg-red-50 focus:text-red-700"
-                                  onSelect={() => deleteNote.mutate(note.id)}
+                                  onSelect={() => setNotePendingDeletion(note.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   Delete
@@ -330,7 +439,7 @@ export function NotesDrawer({
         </div>
         {activeTab === "notes" ? (
           <DrawerFooter className="flex items-center justify-between gap-3">
-            <Button className="min-w-40" onClick={() => onOpenChange(false)} type="button" variant="secondary">
+            <Button className="min-w-40" onClick={() => handleOpenChange(false)} type="button" variant="secondary">
               Cancel
             </Button>
             <Button

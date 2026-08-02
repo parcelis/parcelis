@@ -35,8 +35,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Dialog,
-  DialogContent,
   Input,
   Label,
   ParcelisLogo,
@@ -49,6 +47,7 @@ import {
   TableRow,
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../components/api-client";
+import { NotesDrawer } from "../../components/notes-drawer";
 import { Sidebar } from "../../components/sidebar";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../components/tenant-drawer";
 import { deleteTenantImage, uploadTenantImage } from "../../components/tenant-image-upload";
@@ -179,7 +178,6 @@ export default function TenantsPage() {
   const [notesTenant, setNotesTenant] = React.useState<TenantListItem | null>(null);
   const [editForm, setEditForm] = React.useState<TenantFormState>(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = React.useState<File | null>(null);
-  const [notesDraft, setNotesDraft] = React.useState("");
   const archiveMutation = useMutation({
     mutationFn: (id: number) => apiClient.tenants.archive.mutate({ id }),
     onSuccess: async (_tenant, id) => {
@@ -236,19 +234,6 @@ export default function TenantsPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(id) }),
-      ]);
-    },
-  });
-  const updateNotesMutation = useMutation({
-    mutationFn: (input: { id: number; notes?: string }) => apiClient.tenants.updateNotes.mutate(input),
-    onSuccess: async (_tenant, input) => {
-      setNotesTenant(null);
-      setNotesDraft("");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tenants.byId(input.id),
-        }),
       ]);
     },
   });
@@ -329,7 +314,6 @@ export default function TenantsPage() {
 
   function openNotes(tenant: TenantListItem) {
     setNotesTenant(tenant);
-    setNotesDraft(tenant.legacyNotes ?? "");
   }
 
   return (
@@ -413,56 +397,12 @@ export default function TenantsPage() {
         open={isTenantDrawerOpen}
         submitLabel={editTenant ? "Save" : "Add Tenant"}
       />
-      <Dialog
-        onOpenChange={(open) => {
-          if (!open) {
-            setNotesTenant(null);
-            setNotesDraft("");
-          }
-        }}
+      <NotesDrawer
+        onOpenChange={(open) => !open && setNotesTenant(null)}
         open={Boolean(notesTenant)}
-      >
-        <DialogContent className="w-full max-w-xl p-6">
-          <h2 className="text-lg font-semibold text-parcelis-charcoal">Tenant Notes</h2>
-          <form
-            className="mt-5 space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (notesTenant) {
-                updateNotesMutation.mutate({
-                  id: notesTenant.id,
-                  notes: notesDraft || undefined,
-                });
-              }
-            }}
-          >
-            <textarea
-              className="min-h-36 w-full rounded-md border border-parcelis-border p-3 text-sm text-parcelis-charcoal outline-none focus:border-parcelis-green"
-              onChange={(event) => setNotesDraft(event.target.value)}
-              placeholder="Add internal notes about this tenant"
-              value={notesDraft}
-            />
-            {updateNotesMutation.error ? (
-              <p className="text-sm font-medium text-red-700">{updateNotesMutation.error.message}</p>
-            ) : null}
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => {
-                  setNotesTenant(null);
-                  setNotesDraft("");
-                }}
-                type="button"
-                variant="secondary"
-              >
-                Cancel
-              </Button>
-              <Button disabled={updateNotesMutation.isPending} type="submit">
-                Save Notes
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+        subject={notesTenant ? { tenantId: notesTenant.id } : { tenantId: 0 }}
+        subjectLabel={notesTenant ? `${notesTenant.firstName} ${notesTenant.lastName}` : "Tenant"}
+      />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">

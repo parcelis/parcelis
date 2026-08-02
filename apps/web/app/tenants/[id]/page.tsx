@@ -350,26 +350,32 @@ export default function TenantDetailPage() {
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
-            <Button asChild className="min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
               <Link href="/tenants">
                 <ArrowLeft className="h-4 w-4" />
-                Tenants
+                <span className="hidden sm:inline">Tenants</span>
               </Link>
             </Button>
           </div>
           <div className="flex items-center gap-2">
             <Button
-              className="min-w-40"
+              aria-label="Add notes"
+              className="min-w-10 sm:min-w-40"
               disabled={!tenant}
               onClick={() => setIsNotesDrawerOpen(true)}
               variant="secondary"
             >
               <StickyNotePlusIcon />
-              Add Notes
+              <span className="hidden sm:inline">Add Notes</span>
             </Button>
-            <Button className="min-w-40" disabled={!tenant} onClick={openTenantDrawer}>
+            <Button
+              aria-label="Edit tenant"
+              className="min-w-10 sm:min-w-40"
+              disabled={!tenant}
+              onClick={openTenantDrawer}
+            >
               <PenLine className="h-4 w-4" />
-              Edit tenant
+              <span className="hidden sm:inline">Edit tenant</span>
             </Button>
           </div>
         </header>

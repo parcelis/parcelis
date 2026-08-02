@@ -5,7 +5,7 @@ import {
   createUnitInputSchema,
   createNoteInputSchema,
   deleteNoteInputSchema,
-  noteSubjectInputSchema,
+  noteListInputSchema,
   propertyByIdInputSchema,
   propertyImageUploadCompleteInputSchema,
   propertyImageUploadInputSchema,
@@ -63,6 +63,10 @@ const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
   return unitType === "Commercial" ? UnitType.commercial : UnitType.residential;
+}
+
+function withPropertyNotes<T extends { legacyNotes: string | null }>(property: T) {
+  return { ...property, notes: property.legacyNotes };
 }
 
 function getUnitCreateData(propertyId: number, unitDetails: UnitDetailsInput) {
@@ -238,7 +242,7 @@ export const appRouter = router({
       return Promise.all(
         properties.map(async (property) => ({
           ...withOperatingMetrics({
-            ...property,
+            ...withPropertyNotes(property),
             units: property.units.map(serializeUnit),
           }),
           imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
@@ -276,7 +280,7 @@ export const appRouter = router({
 
       return property
         ? {
-            ...property,
+            ...withPropertyNotes(property),
             units: property.units.map(serializeUnit),
             unitStatuses,
             imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
@@ -309,7 +313,7 @@ export const appRouter = router({
           await deletePropertyImageObject(currentProperty.imageObjectKey);
         }
 
-        return property;
+        return withPropertyNotes(property);
       }),
     /** Removes the current image reference and its MinIO object. */
     deleteImage: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
@@ -327,7 +331,7 @@ export const appRouter = router({
         await deletePropertyImageObject(currentProperty.imageObjectKey);
       }
 
-      return property;
+      return withPropertyNotes(property);
     }),
     /** Creates a property and its initial units. */
     create: publicProcedure.input(createPropertyInputSchema).mutation(async ({ ctx, input }) => {
@@ -360,7 +364,7 @@ export const appRouter = router({
           ),
         );
 
-        return property;
+        return withPropertyNotes(property);
       });
     }),
     /** Updates a property and synchronizes its units. */
@@ -424,31 +428,37 @@ export const appRouter = router({
         );
       });
 
-      return property;
+      return withPropertyNotes(property);
     }),
     /** Marks a property as archived. */
     archive: publicProcedure.input(propertyByIdInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.property.update({
-        where: { id: input.id },
-        select: propertySelect,
-        data: { status: "archived" },
-      }),
+      ctx.prisma.property
+        .update({
+          where: { id: input.id },
+          select: propertySelect,
+          data: { status: "archived" },
+        })
+        .then(withPropertyNotes),
     ),
     /** Marks a property as inactive. */
     inactivate: publicProcedure.input(propertyStatusInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.property.update({
-        where: { id: input.id },
-        select: propertySelect,
-        data: { status: "archived" },
-      }),
+      ctx.prisma.property
+        .update({
+          where: { id: input.id },
+          select: propertySelect,
+          data: { status: "archived" },
+        })
+        .then(withPropertyNotes),
     ),
     /** Restores an inactive property to active status. */
     reactivate: publicProcedure.input(propertyStatusInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.property.update({
-        where: { id: input.id },
-        select: propertySelect,
-        data: { status: "active" },
-      }),
+      ctx.prisma.property
+        .update({
+          where: { id: input.id },
+          select: propertySelect,
+          data: { status: "active" },
+        })
+        .then(withPropertyNotes),
     ),
     /** Permanently deletes a property and its related operational records. */
     delete: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
@@ -466,16 +476,26 @@ export const appRouter = router({
         ctx.prisma.property.delete({ where: { id: input.id } }),
       ]);
 
-      return property;
+      return withPropertyNotes(property);
     }),
     /** Updates the notes stored on a property. */
-    updateNotes: publicProcedure.input(propertyNotesInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.property.update({
-        where: { id: input.id },
-        select: propertySelect,
-        data: { legacyNotes: input.notes ?? null },
-      }),
-    ),
+    updateNotes: publicProcedure.input(propertyNotesInputSchema).mutation(async ({ ctx, input }) => {
+      const property = await ctx.prisma.$transaction(async (tx) => {
+        const updatedProperty = await tx.property.update({
+          where: { id: input.id },
+          select: propertySelect,
+          data: { legacyNotes: input.notes ?? null },
+        });
+
+        if (input.notes) {
+          await tx.note.create({ data: { propertyId: input.id, body: input.notes } });
+        }
+
+        return updatedProperty;
+      });
+
+      return withPropertyNotes(property);
+    }),
   }),
   tenants: router({
     /** Lists tenants with their most recent lease first. */
@@ -634,12 +654,20 @@ export const appRouter = router({
       }),
     ),
     /** Updates the internal notes attached to a tenant. */
-    updateNotes: publicProcedure.input(tenantNotesInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.tenant.update({
-        where: { id: input.id },
-        data: { legacyNotes: input.notes || null },
-      }),
-    ),
+    updateNotes: publicProcedure.input(tenantNotesInputSchema).mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const tenant = await tx.tenant.update({
+          where: { id: input.id },
+          data: { legacyNotes: input.notes || null },
+        });
+
+        if (input.notes) {
+          await tx.note.create({ data: { tenantId: input.id, body: input.notes } });
+        }
+
+        return tenant;
+      });
+    }),
     /** Permanently deletes a tenant and their lease history. */
     delete: publicProcedure.input(tenantByIdInputSchema).mutation(async ({ ctx, input }) => {
       await ctx.prisma.$transaction([
@@ -698,13 +726,16 @@ export const appRouter = router({
   }),
   notes: router({
     /** Lists the notes attached to one property, unit, or tenant. */
-    list: publicProcedure.input(noteSubjectInputSchema).query(({ ctx, input }) =>
-      ctx.prisma.note.findMany({
-        where: input,
-        orderBy: { createdAt: "desc" },
+    list: publicProcedure.input(noteListInputSchema).query(({ ctx, input }) => {
+      const { limit, ...subject } = input;
+
+      return ctx.prisma.note.findMany({
+        where: subject,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: limit,
         select: { id: true, body: true, createdAt: true, updatedAt: true },
-      }),
-    ),
+      });
+    }),
     /** Adds an internal note to one property, unit, or tenant. */
     create: publicProcedure.input(createNoteInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.note.create({

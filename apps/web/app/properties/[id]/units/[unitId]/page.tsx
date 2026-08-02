@@ -16,6 +16,7 @@ import {
   FileText,
   Loader2,
   Mail,
+  MoreHorizontal,
   PenLine,
   Phone,
   Plus,
@@ -227,10 +228,10 @@ export default function UnitDetailPage() {
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
-            <Button asChild className="min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
               <Link href={`/properties/${propertyId}`}>
                 <ArrowLeft className="h-4 w-4" />
-                Property
+                <span className="hidden sm:inline">Property</span>
               </Link>
             </Button>
           </div>
@@ -238,7 +239,7 @@ export default function UnitDetailPage() {
             {property ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="min-w-40" variant="secondary">
+                  <Button className="min-w-0 sm:min-w-40" variant="secondary">
                     All Units
                     <ChevronDown className="h-4 w-4" />
                   </Button>
@@ -262,17 +263,17 @@ export default function UnitDetailPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button className="min-w-40" disabled variant="secondary">
+              <Button className="min-w-0 sm:min-w-40" disabled variant="secondary">
                 All Units
                 <ChevronDown className="h-4 w-4" />
               </Button>
             )}
-            <Button className="min-w-40" variant="secondary">
+            <Button className="hidden min-w-40 xl:inline-flex" variant="secondary">
               <Archive className="h-4 w-4" />
               Archive
             </Button>
             <Button
-              className="min-w-40"
+              className="hidden min-w-40 xl:inline-flex"
               disabled={!unit}
               onClick={() => setIsNotesDrawerOpen(true)}
               variant="secondary"
@@ -280,10 +281,31 @@ export default function UnitDetailPage() {
               <StickyNotePlusIcon />
               Add Notes
             </Button>
-            <Button className="min-w-40" disabled={!property} onClick={openEditUnitDrawer}>
+            <Button className="hidden min-w-40 xl:inline-flex" disabled={!property} onClick={openEditUnitDrawer}>
               <PenLine className="h-4 w-4" />
               Edit Unit
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button aria-label="Unit actions" className="min-w-10 xl:hidden" variant="secondary">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <Archive className="h-4 w-4" />
+                  Archive
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
+                  <StickyNotePlusIcon />
+                  Add Notes
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={!property} onSelect={openEditUnitDrawer}>
+                  <PenLine className="h-4 w-4" />
+                  Edit Unit
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 

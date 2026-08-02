@@ -69,13 +69,47 @@ export const listUnitsInputSchema = z.object({
   propertyId: idSchema.optional(),
 });
 
-export const noteSubjectInputSchema = z.union([
-  z.object({ propertyId: idSchema }),
-  z.object({ unitId: idSchema }),
-  z.object({ tenantId: idSchema }),
-]);
+const noteSubjectFields = {
+  propertyId: idSchema.optional(),
+  unitId: idSchema.optional(),
+  tenantId: idSchema.optional(),
+};
 
-export const createNoteInputSchema = noteSubjectInputSchema.and(z.object({ body: z.string().trim().min(1).max(5000) }));
+function withExactlyOneNoteSubject<T extends z.ZodType>(schema: T) {
+  return schema.superRefine((value, ctx) => {
+    const subject = value as { propertyId?: number; unitId?: number; tenantId?: number };
+    const subjectCount = [subject.propertyId, subject.unitId, subject.tenantId].filter(
+      (subjectId) => subjectId !== undefined,
+    ).length;
+
+    if (subjectCount !== 1) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Provide exactly one note subject.",
+      });
+    }
+  });
+}
+
+export const noteSubjectInputSchema = withExactlyOneNoteSubject(z.object(noteSubjectFields).strict());
+
+export const noteListInputSchema = withExactlyOneNoteSubject(
+  z
+    .object({
+      ...noteSubjectFields,
+      limit: z.number().int().min(1).max(100).default(50),
+    })
+    .strict(),
+);
+
+export const createNoteInputSchema = withExactlyOneNoteSubject(
+  z
+    .object({
+      ...noteSubjectFields,
+      body: z.string().trim().min(1).max(5000),
+    })
+    .strict(),
+);
 
 export const updateNoteInputSchema = z.object({
   id: idSchema,
@@ -186,7 +220,7 @@ export const tenantNotesInputSchema = z.object({
 
 export const propertyNotesInputSchema = z.object({
   id: idSchema,
-  notes: z.string().optional(),
+  notes: z.string().trim().max(5000).optional(),
 });
 
 export const propertyStatusInputSchema = z.object({
