@@ -1,9 +1,9 @@
 name: 🐞 Bug Report
 labels:
-  - bug
-  - needs-triaged
+  - documentation
+  - needs-triage
 type: bug
-title: [bug]:
+title: "[Bug]: "
 description: Create a bug report to help us improve
 body:
   - type: markdown
