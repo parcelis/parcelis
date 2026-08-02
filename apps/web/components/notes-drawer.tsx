@@ -140,6 +140,10 @@ export function NotesDrawer({
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
+      if (notePendingDeletion !== null) {
+        setNotePendingDeletion(null);
+        return;
+      }
       resetTransientState();
     }
     onOpenChange(nextOpen);
