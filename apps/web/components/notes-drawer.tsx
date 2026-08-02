@@ -353,14 +353,8 @@ export function NotesDrawer({
             ))}
           </div>
         </div>
-        <div
-          aria-labelledby={`${activeTab}-tab`}
-          className="flex-1 overflow-y-auto px-4 py-5 md:px-6"
-          id={`${activeTab}-panel`}
-          role="tabpanel"
-          tabIndex={0}
-        >
-          {activeTab === "notes" ? (
+        <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
+          <div aria-labelledby="notes-tab" hidden={activeTab !== "notes"} id="notes-panel" role="tabpanel" tabIndex={0}>
             <div className="space-y-5">
               <div className="relative">
                 <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="note-body">
@@ -485,7 +479,8 @@ export function NotesDrawer({
                 </p>
               )}
             </div>
-          ) : (
+          </div>
+          <div aria-labelledby="files-tab" hidden={activeTab !== "files"} id="files-panel" role="tabpanel" tabIndex={0}>
             <div className="grid min-h-56 place-items-center rounded-md border border-dashed border-parcelis-border p-6 text-center">
               <div>
                 <FileText className="mx-auto h-7 w-7 text-parcelis-gray" />
@@ -493,7 +488,7 @@ export function NotesDrawer({
                 <p className="mt-1 text-sm text-parcelis-gray">Attachments will be managed here.</p>
               </div>
             </div>
-          )}
+          </div>
         </div>
         {activeTab === "notes" ? (
           <DrawerFooter className="flex items-center justify-between gap-3">
