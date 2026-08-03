@@ -3,7 +3,18 @@
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, EllipsisVertical, Eye, Filter, Pencil, Plus, Search, Trash2, Wrench } from "lucide-react";
+import {
+  Archive,
+  ChevronRight,
+  EllipsisVertical,
+  Eye,
+  Filter,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Wrench,
+} from "lucide-react";
 import {
   Button,
   Card,
@@ -49,6 +60,8 @@ export default function MaintenancePage() {
   const [propertyFilter, setPropertyFilter] = React.useState("all");
   const [categoryFilter, setCategoryFilter] = React.useState("all");
   const [urgencyFilter, setUrgencyFilter] = React.useState("all");
+  const [groupByProperty, setGroupByProperty] = React.useState(false);
+  const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const ticketsQuery = useQuery({
     queryKey: ["maintenance", "list"],
@@ -90,6 +103,25 @@ export default function MaintenancePage() {
   );
   const activeTickets = tickets.filter((ticket) => ["new", "in_progress", "pending"].includes(ticket.status));
   const urgentTickets = tickets.filter((ticket) => ticket.isUrgent).length;
+  const groupedTickets = Array.from(
+    filteredTickets.reduce((groups, ticket) => {
+      const group = groups.get(ticket.property.id) ?? {
+        name: ticket.property.name,
+        tickets: [] as typeof filteredTickets,
+      };
+      group.tickets.push(ticket);
+      groups.set(ticket.property.id, group);
+      return groups;
+    }, new Map<number, { name: string; tickets: typeof filteredTickets }>()),
+  );
+
+  function toggleProperty(propertyId: number) {
+    setExpandedPropertyIds((current) => {
+      const next = new Set(current);
+      next.has(propertyId) ? next.delete(propertyId) : next.add(propertyId);
+      return next;
+    });
+  }
 
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
@@ -160,6 +192,10 @@ export default function MaintenancePage() {
                   <Button onClick={() => setIsFilterOpen((open) => !open)} type="button" variant="secondary">
                     <Filter className="h-4 w-4" />
                     Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
+                  </Button>
+                  <Button onClick={() => setGroupByProperty((grouped) => !grouped)} type="button" variant="secondary">
+                    Group by
+                    {groupByProperty ? " Property" : ""}
                   </Button>
                 </div>
                 {isFilterOpen ? (
@@ -237,6 +273,84 @@ export default function MaintenancePage() {
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">
                   Unable to load maintenance tickets. Please try again.
                 </div>
+              ) : groupByProperty ? (
+                <Table className="min-w-[860px] border-collapse text-left">
+                  <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                    <TableRow className="border-0">
+                      <TableHead className="w-[40%] px-5 py-3 font-semibold">Property / Unit</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Issue Date</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Status</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Category</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groupedTickets.map(([propertyId, group]) => {
+                      const isExpanded = expandedPropertyIds.has(propertyId);
+                      return (
+                        <React.Fragment key={propertyId}>
+                          <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">
+                            <TableCell className="px-5 py-4">
+                              <button
+                                className="flex items-center gap-3 font-semibold text-parcelis-charcoal"
+                                onClick={() => toggleProperty(propertyId)}
+                                type="button"
+                              >
+                                <span className="grid h-8 w-8 place-items-center rounded-md border border-parcelis-border">
+                                  <ChevronRight
+                                    className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                                  />
+                                </span>
+                                <Wrench className="h-4 w-4 text-parcelis-green" />
+                                {group.name}
+                                <span className="text-sm font-medium text-parcelis-gray">({group.tickets.length})</span>
+                              </button>
+                            </TableCell>
+                            <TableCell className="px-5 py-4 text-parcelis-gray">—</TableCell>
+                            <TableCell className="px-5 py-4 text-parcelis-gray">—</TableCell>
+                            <TableCell className="px-5 py-4 text-parcelis-gray">—</TableCell>
+                          </TableRow>
+                          {isExpanded
+                            ? group.tickets.map((ticket) => (
+                                <TableRow
+                                  className="border-t border-parcelis-border bg-parcelis-porcelain/45"
+                                  key={ticket.id}
+                                >
+                                  <TableCell className="px-5 py-3">
+                                    <Link
+                                      className="grid grid-cols-[2rem_2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
+                                      href={`/maintenance/${ticket.id}`}
+                                    >
+                                      <span />
+                                      <Wrench className="h-4 w-4 text-parcelis-green" />
+                                      <span>
+                                        {ticket.units.length
+                                          ? ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ")
+                                          : "Property-wide"}
+                                        <span className="ml-2 text-sm font-medium text-parcelis-gray">
+                                          · {ticket.title}
+                                        </span>
+                                      </span>
+                                    </Link>
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
+                                    {formatDate(ticket.openedOn)}
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3">
+                                    <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
+                                      {label(ticket.status)}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
+                                    {ticket.category?.label ?? "—"}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            : null}
+                        </React.Fragment>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               ) : (
                 <Table className="min-w-[1050px] border-collapse text-left">
                   <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
