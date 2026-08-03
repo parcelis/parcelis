@@ -2,7 +2,7 @@ name: 📚 Documentation Issue
 description: Report missing, incorrect, or outdated documentation
 title: "[Docs]: "
 type: documentation
-labels: documentation,needs-triage,documentation
+labels: documentation,needs triage,documentation
 
 body:
   - type: checkboxes
