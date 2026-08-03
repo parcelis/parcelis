@@ -202,24 +202,27 @@ model MaintenanceCategory {
 }
 
 model Note {
-  id             Int       @id @default(autoincrement())
-  body           String
-  propertyId     Int?
-  unitId         Int?
-  tenantId       Int?
-  property       Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  unit           Unit?     @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  tenant         Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  legacyProperty Property? @relation("PropertyLegacyNote")
-  legacyTenant   Tenant?   @relation("TenantLegacyNote")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                  Int                @id @default(autoincrement())
+  body                String
+  propertyId          Int?
+  unitId              Int?
+  tenantId            Int?
+  maintenanceTicketId Int?
+  property            Property?          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit                Unit?              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenant              Tenant?            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  maintenanceTicket   MaintenanceTicket? @relation(fields: [maintenanceTicketId], references: [id], onDelete: Cascade)
+  legacyProperty      Property?          @relation("PropertyLegacyNote")
+  legacyTenant        Tenant?            @relation("TenantLegacyNote")
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@unique([propertyId, id])
   @@unique([tenantId, id])
   @@index([propertyId, createdAt, id])
   @@index([unitId, createdAt, id])
   @@index([tenantId, createdAt, id])
+  @@index([maintenanceTicketId, createdAt, id])
 }
 
 model EmergencyContact {
@@ -276,6 +279,7 @@ model MaintenanceTicket {
   requestedByTenant     Tenant?                   @relation("MaintenanceRequesterTenant", fields: [requestedByTenantId], references: [id])
   requestedByLandlord   Landlord?                 @relation("MaintenanceRequesterLandlord", fields: [requestedByLandlordId], references: [id])
   units                 MaintenanceTicketUnit[]
+  notes                 Note[]
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
 

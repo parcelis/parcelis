@@ -1,12 +1,14 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Wrench } from "lucide-react";
+import { ArrowLeft, Check, Image, StickyNote, Wrench } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
 import { apiClient } from "../../../components/api-client";
 import { Sidebar } from "../../../components/sidebar";
+import { NotesDrawer } from "../../../components/notes-drawer";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -21,6 +23,7 @@ const formatDate = (value: Date | string) =>
 export default function MaintenanceTicketPage() {
   const { id: idParam } = useParams<{ id: string }>();
   const id = Number(idParam);
+  const [notesOpen, setNotesOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const ticketQuery = useQuery({
     queryKey: ["maintenance", "byId", id],
@@ -36,6 +39,12 @@ export default function MaintenanceTicketPage() {
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
       <Sidebar active="maintenance" />
+      <NotesDrawer
+        onOpenChange={setNotesOpen}
+        open={notesOpen}
+        subject={{ maintenanceTicketId: id }}
+        subjectLabel={ticket?.title ?? "Maintenance Ticket"}
+      />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
@@ -49,16 +58,22 @@ export default function MaintenanceTicketPage() {
               </Link>
             </Button>
           </div>
-          {ticket?.status === "new" ? (
-            <Button
-              className="min-w-40"
-              disabled={acknowledgeMutation.isPending}
-              onClick={() => acknowledgeMutation.mutate()}
-            >
-              <Check className="h-4 w-4" />
-              Acknowledge
+          <div className="flex gap-2">
+            <Button className="min-w-40" onClick={() => setNotesOpen(true)} variant="secondary">
+              <StickyNote className="h-4 w-4" />
+              Notes
             </Button>
-          ) : null}
+            {ticket?.status === "new" ? (
+              <Button
+                className="min-w-40"
+                disabled={acknowledgeMutation.isPending}
+                onClick={() => acknowledgeMutation.mutate()}
+              >
+                <Check className="h-4 w-4" />
+                Acknowledge
+              </Button>
+            ) : null}
+          </div>
         </header>
         <div className="parcelis-page-shell">
           {ticketQuery.isLoading ? (
@@ -97,37 +112,55 @@ export default function MaintenanceTicketPage() {
                   </div>
                 </div>
               </section>
-              <Card>
-                <CardHeader>
-                  <h2 className="font-semibold text-parcelis-charcoal">Ticket details</h2>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase text-parcelis-gray">Category</p>
-                      <p className="mt-1 font-semibold text-parcelis-charcoal">{ticket.category?.label ?? "Not set"}</p>
+              <div className="space-y-5">
+                <Card>
+                  <CardHeader>
+                    <h2 className="font-semibold text-parcelis-charcoal">Ticket details</h2>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-parcelis-gray">Category</p>
+                        <p className="mt-1 font-semibold text-parcelis-charcoal">
+                          {ticket.category?.label ?? "Not set"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-parcelis-gray">Priority</p>
+                        <p className="mt-1 font-semibold text-parcelis-charcoal">
+                          {ticket.isUrgent ? "Urgent" : label(ticket.priority)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-parcelis-gray">Requested by</p>
+                        <p className="mt-1 font-semibold text-parcelis-charcoal">
+                          {requester ? `${requester.firstName} ${requester.lastName}` : "Not set"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase text-parcelis-gray">Priority</p>
-                      <p className="mt-1 font-semibold text-parcelis-charcoal">
-                        {ticket.isUrgent ? "Urgent" : label(ticket.priority)}
+                    <div className="border-t border-parcelis-border pt-5">
+                      <p className="text-xs font-semibold uppercase text-parcelis-gray">Description</p>
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-parcelis-charcoal">
+                        {ticket.description}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase text-parcelis-gray">Requested by</p>
-                      <p className="mt-1 font-semibold text-parcelis-charcoal">
-                        {requester ? `${requester.firstName} ${requester.lastName}` : "Not set"}
-                      </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <h2 className="font-semibold text-parcelis-charcoal">Photos</h2>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-parcelis-border bg-parcelis-porcelain/50 px-4 py-10 text-center dark:bg-parcelis-charcoal/55">
+                      <Image className="h-6 w-6 text-parcelis-green" />
+                      <span className="mt-3 text-sm font-semibold text-parcelis-charcoal dark:text-white">
+                        No photos attached
+                      </span>
+                      <span className="mt-1 text-xs text-parcelis-gray">Attached photos will be available in the gallery.</span>
                     </div>
-                  </div>
-                  <div className="border-t border-parcelis-border pt-5">
-                    <p className="text-xs font-semibold uppercase text-parcelis-gray">Description</p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-parcelis-charcoal">
-                      {ticket.description}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </>
           )}
         </div>

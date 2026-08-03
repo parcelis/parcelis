@@ -37,7 +37,7 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "./api-client";
 
-type NoteSubject = { propertyId: number } | { unitId: number } | { tenantId: number };
+type NoteSubject = { propertyId: number } | { unitId: number } | { tenantId: number } | { maintenanceTicketId: number };
 type NotesTab = "notes" | "files";
 
 const tabs: { value: NotesTab; label: string }[] = [
