@@ -827,22 +827,30 @@ export const appRouter = router({
     /** Updates an internal note. */
     update: publicProcedure.input(updateNoteInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.$transaction(async (tx) => {
-        const note = await tx.note.update({
+        const { propertyId, tenantId, ...note } = await tx.note.update({
           where: { id: input.id },
           data: { body: input.body },
-          select: { id: true, body: true, createdAt: true, updatedAt: true },
+          select: {
+            id: true,
+            body: true,
+            propertyId: true,
+            tenantId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         });
 
-        await Promise.all([
-          tx.property.updateMany({
-            where: { legacyNoteId: note.id },
+        if (propertyId !== null) {
+          await tx.property.updateMany({
+            where: { id: propertyId, legacyNoteId: note.id },
             data: { legacyNotes: note.body },
-          }),
-          tx.tenant.updateMany({
-            where: { legacyNoteId: note.id },
+          });
+        } else if (tenantId !== null) {
+          await tx.tenant.updateMany({
+            where: { id: tenantId, legacyNoteId: note.id },
             data: { legacyNotes: note.body },
-          }),
-        ]);
+          });
+        }
 
         return note;
       }),
@@ -850,18 +858,29 @@ export const appRouter = router({
     /** Deletes an internal note. */
     delete: publicProcedure.input(deleteNoteInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.$transaction(async (tx) => {
-        await Promise.all([
-          tx.property.updateMany({
-            where: { legacyNoteId: input.id },
-            data: { legacyNoteId: null, legacyNotes: null },
-          }),
-          tx.tenant.updateMany({
-            where: { legacyNoteId: input.id },
-            data: { legacyNoteId: null, legacyNotes: null },
-          }),
-        ]);
+        const note = await tx.note.findUniqueOrThrow({
+          where: { id: input.id },
+          select: {
+            legacyProperty: { select: { id: true } },
+            legacyTenant: { select: { id: true } },
+          },
+        });
 
-        return tx.note.delete({ where: { id: input.id } });
+        const deletedNote = await tx.note.delete({ where: { id: input.id } });
+
+        if (note.legacyProperty) {
+          await tx.property.updateMany({
+            where: { id: note.legacyProperty.id },
+            data: { legacyNotes: null },
+          });
+        } else if (note.legacyTenant) {
+          await tx.tenant.updateMany({
+            where: { id: note.legacyTenant.id },
+            data: { legacyNotes: null },
+          });
+        }
+
+        return deletedNote;
       }),
     ),
   }),

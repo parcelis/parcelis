@@ -19,7 +19,8 @@ WITH inserted_notes AS (
     INSERT INTO "Note" ("body", "propertyId", "createdAt", "updatedAt")
     SELECT "notes", "id", "createdAt", "updatedAt"
     FROM "Property"
-    WHERE "notes" IS NOT NULL AND "notes" !~ '^[[:space:]]*$'
+    WHERE "notes" IS NOT NULL
+      AND "notes" !~ U&'^[\0009-\000D\0020\00A0\1680\2000-\200A\2028\2029\202F\205F\3000\FEFF]*$'
     RETURNING "id", "propertyId"
 )
 UPDATE "Property" AS property
@@ -31,7 +32,8 @@ WITH inserted_notes AS (
     INSERT INTO "Note" ("body", "tenantId", "createdAt", "updatedAt")
     SELECT "notes", "id", "createdAt", "updatedAt"
     FROM "Tenant"
-    WHERE "notes" IS NOT NULL AND "notes" !~ '^[[:space:]]*$'
+    WHERE "notes" IS NOT NULL
+      AND "notes" !~ U&'^[\0009-\000D\0020\00A0\1680\2000-\200A\2028\2029\202F\205F\3000\FEFF]*$'
     RETURNING "id", "tenantId"
 )
 UPDATE "Tenant" AS tenant

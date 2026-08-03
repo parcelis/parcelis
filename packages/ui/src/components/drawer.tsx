@@ -153,7 +153,7 @@ export function DrawerClose({ className, ...props }: React.ButtonHTMLAttributes<
     <button
       aria-label="Close drawer"
       className={cn(
-        "inline-grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-parcelis-porcelain hover:text-parcelis-charcoal",
+        "inline-grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-parcelis-porcelain hover:text-parcelis-charcoal disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
       onClick={(event) => {
