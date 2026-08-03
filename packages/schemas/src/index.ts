@@ -69,13 +69,20 @@ export const listUnitsInputSchema = z.object({
   propertyId: idSchema.optional(),
 });
 
-export const noteSubjectInputSchema = z.union([
-  z.object({ propertyId: idSchema }),
-  z.object({ unitId: idSchema }),
-  z.object({ tenantId: idSchema }),
-]);
+const propertyNoteSubjectSchema = z.object({ propertyId: idSchema }).strict();
+const unitNoteSubjectSchema = z.object({ unitId: idSchema }).strict();
+const tenantNoteSubjectSchema = z.object({ tenantId: idSchema }).strict();
+const noteSubjectSchemas = [propertyNoteSubjectSchema, unitNoteSubjectSchema, tenantNoteSubjectSchema] as const;
 
-export const createNoteInputSchema = noteSubjectInputSchema.and(z.object({ body: z.string().trim().min(1).max(5000) }));
+export const noteSubjectInputSchema = z.union(noteSubjectSchemas);
+
+export const noteListInputSchema = z.union(
+  noteSubjectSchemas.map((schema) => schema.extend({ limit: z.number().int().min(1).max(100).default(50) })),
+);
+
+export const createNoteInputSchema = z.union(
+  noteSubjectSchemas.map((schema) => schema.extend({ body: z.string().trim().min(1).max(5000) })),
+);
 
 export const updateNoteInputSchema = z.object({
   id: idSchema,
@@ -85,6 +92,8 @@ export const updateNoteInputSchema = z.object({
 export const deleteNoteInputSchema = z.object({
   id: idSchema,
 });
+
+const legacyNotesSchema = z.string().trim().max(5000).optional();
 
 export const propertySchema = z.object({
   id: idSchema,
@@ -96,7 +105,7 @@ export const propertySchema = z.object({
   contactEmail: z.string().email().optional(),
   contactPhone: z.string().optional(),
   contactAddress: z.string().optional(),
-  notes: z.string().optional(),
+  notes: legacyNotesSchema,
   unitCount: z.number().int().nonnegative(),
   units: z.array(unitDetailsInputSchema).default([]),
   occupiedUnits: z.number().int().nonnegative(),
@@ -181,12 +190,12 @@ export const createTenantInputSchema = updateTenantInputSchema.omit({
 
 export const tenantNotesInputSchema = z.object({
   id: idSchema,
-  notes: z.string().trim().max(5000).optional(),
+  notes: legacyNotesSchema,
 });
 
 export const propertyNotesInputSchema = z.object({
   id: idSchema,
-  notes: z.string().optional(),
+  notes: legacyNotesSchema,
 });
 
 export const propertyStatusInputSchema = z.object({

@@ -247,26 +247,32 @@ export default function PropertyDetailPage() {
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
-            <Button asChild className="min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
               <Link href="/properties">
                 <ArrowLeft className="h-4 w-4" />
-                Properties
+                <span className="hidden sm:inline">Properties</span>
               </Link>
             </Button>
           </div>
           <div className="flex items-center gap-2">
             <Button
-              className="min-w-40"
+              aria-label="Add notes"
+              className="min-w-10 sm:min-w-40"
               disabled={!property}
               onClick={() => setIsNotesDrawerOpen(true)}
               variant="secondary"
             >
               <StickyNotePlusIcon />
-              Add Notes
+              <span className="hidden sm:inline">Add Notes</span>
             </Button>
-            <Button className="min-w-40" disabled={!property} onClick={openEditDrawer}>
+            <Button
+              aria-label="Edit property"
+              className="min-w-10 sm:min-w-40"
+              disabled={!property}
+              onClick={openEditDrawer}
+            >
               <PenLine className="h-4 w-4" />
-              Edit property
+              <span className="hidden sm:inline">Edit property</span>
             </Button>
           </div>
         </header>

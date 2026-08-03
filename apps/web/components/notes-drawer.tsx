@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Button,
   Drawer,
   DrawerClose,
@@ -32,6 +38,12 @@ import {
 import { apiClient, queryKeys } from "./api-client";
 
 type NoteSubject = { propertyId: number } | { unitId: number } | { tenantId: number };
+type NotesTab = "notes" | "files";
+
+const tabs: { value: NotesTab; label: string }[] = [
+  { value: "notes", label: "Notes" },
+  { value: "files", label: "Files" },
+];
 
 type NotesDrawerProps = {
   open: boolean;
@@ -74,10 +86,15 @@ export function NotesDrawer({
   tenantSummary,
   unitSummary,
 }: NotesDrawerProps) {
-  const [activeTab, setActiveTab] = React.useState<"notes" | "files">("notes");
+  const [activeTab, setActiveTab] = React.useState<NotesTab>("notes");
   const [draft, setDraft] = React.useState("");
   const [editingNoteId, setEditingNoteId] = React.useState<number | null>(null);
   const [editDraft, setEditDraft] = React.useState("");
+  const [notePendingDeletion, setNotePendingDeletion] = React.useState<number | null>(null);
+  const tabRefs = React.useRef<Record<NotesTab, HTMLButtonElement | null>>({ notes: null, files: null });
+  const drawerSession = React.useRef(0);
+  const wasOpen = React.useRef(open);
+  const needsReset = React.useRef(false);
   const queryClient = useQueryClient();
   const notesQuery = useQuery({
     queryKey: queryKeys.notes.list(subject),
@@ -85,32 +102,158 @@ export function NotesDrawer({
     enabled: open,
   });
   const createNote = useMutation({
-    mutationFn: () => apiClient.notes.create.mutate({ ...subject, body: draft }),
-    onSuccess: async () => {
-      setDraft("");
+    mutationFn: ({ body }: { body: string; session: number }) => apiClient.notes.create.mutate({ ...subject, body }),
+    onSuccess: async (_note, variables) => {
+      if (variables.session === drawerSession.current) {
+        setDraft((currentDraft) => (currentDraft === variables.body ? "" : currentDraft));
+      }
       await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
     },
   });
   const updateNote = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: string }) => apiClient.notes.update.mutate({ id, body }),
-    onSuccess: async () => {
-      setEditingNoteId(null);
-      setEditDraft("");
+    mutationFn: ({ id, body }: { id: number; body: string; session: number }) =>
+      apiClient.notes.update.mutate({ id, body }),
+    onSuccess: async (_note, variables) => {
+      if (variables.session === drawerSession.current) {
+        setEditingNoteId((currentNoteId) => (currentNoteId === variables.id ? null : currentNoteId));
+        setEditDraft((currentDraft) => (currentDraft === variables.body ? "" : currentDraft));
+      }
       await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
     },
   });
   const deleteNote = useMutation({
-    mutationFn: (id: number) => apiClient.notes.delete.mutate({ id }),
-    onSuccess: async () => {
+    mutationFn: ({ id }: { id: number; session: number }) => apiClient.notes.delete.mutate({ id }),
+    onSuccess: async (_note, variables) => {
+      if (variables.session === drawerSession.current) {
+        setNotePendingDeletion((currentNoteId) => (currentNoteId === variables.id ? null : currentNoteId));
+      }
       await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
     },
   });
+  const isMutationPending = createNote.isPending || updateNote.isPending || deleteNote.isPending;
+
+  const resetTransientState = React.useCallback(() => {
+    setActiveTab("notes");
+    setDraft("");
+    setEditingNoteId(null);
+    setEditDraft("");
+    setNotePendingDeletion(null);
+    createNote.reset();
+    updateNote.reset();
+    deleteNote.reset();
+  }, [createNote.reset, deleteNote.reset, updateNote.reset]);
+
+  React.useEffect(() => {
+    if (!open && wasOpen.current) {
+      drawerSession.current += 1;
+      needsReset.current = true;
+    }
+    if (needsReset.current && !isMutationPending) {
+      resetTransientState();
+      needsReset.current = false;
+    }
+    wasOpen.current = open;
+  }, [isMutationPending, open, resetTransientState]);
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        if (isMutationPending) {
+          return;
+        }
+        if (notePendingDeletion !== null) {
+          setNotePendingDeletion(null);
+          return;
+        }
+      }
+      onOpenChange(nextOpen);
+    },
+    [isMutationPending, notePendingDeletion, onOpenChange],
+  );
+
+  function selectTab(tab: NotesTab) {
+    setActiveTab(tab);
+    tabRefs.current[tab]?.focus();
+  }
+
+  function startEdit(note: { id: number; body: string }) {
+    updateNote.reset();
+    setEditingNoteId(note.id);
+    setEditDraft(note.body);
+  }
+
+  function cancelEdit() {
+    updateNote.reset();
+    setEditingNoteId(null);
+    setEditDraft("");
+  }
+
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    const currentIndex = tabs.findIndex((tab) => tab.value === activeTab);
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = tabs.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      const nextTab = tabs[nextIndex];
+      if (nextTab) {
+        selectTab(nextTab.value);
+      }
+    }
+  }
 
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
+    <Drawer onOpenChange={handleOpenChange} open={open}>
       <DrawerContent size="lg">
+        <AlertDialog
+          onOpenChange={(nextOpen) => !nextOpen && !deleteNote.isPending && setNotePendingDeletion(null)}
+          open={notePendingDeletion !== null}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete note?</AlertDialogTitle>
+              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            </AlertDialogHeader>
+            {deleteNote.error ? (
+              <p className="mt-3 text-sm text-red-700" role="alert">
+                {deleteNote.error.message}
+              </p>
+            ) : null}
+            <AlertDialogFooter>
+              <Button
+                disabled={deleteNote.isPending}
+                onClick={() => setNotePendingDeletion(null)}
+                type="button"
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={isMutationPending}
+                onClick={() =>
+                  notePendingDeletion !== null &&
+                  deleteNote.mutate({ id: notePendingDeletion, session: drawerSession.current })
+                }
+                type="button"
+                className="bg-red-700 text-white hover:bg-red-800 focus-visible:outline-red-700"
+              >
+                {deleteNote.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <DrawerHeader className="flex items-center gap-3">
-          <DrawerClose />
+          <DrawerClose disabled={isMutationPending} />
           <DrawerTitle>Notes</DrawerTitle>
         </DrawerHeader>
         <div className="px-4 py-5 md:px-6">
@@ -184,11 +327,9 @@ export function NotesDrawer({
         </div>
         <div className="border-b border-parcelis-border px-4 md:px-6">
           <div aria-label="Notes drawer sections" className="flex gap-5" role="tablist">
-            {[
-              ["notes", "Notes"],
-              ["files", "Files"],
-            ].map(([value, label]) => (
+            {tabs.map(({ label, value }) => (
               <button
+                aria-controls={`${value}-panel`}
                 aria-selected={activeTab === value}
                 className={`border-b-2 px-1 py-3 text-sm font-semibold transition ${
                   activeTab === value
@@ -196,8 +337,14 @@ export function NotesDrawer({
                     : "border-transparent text-parcelis-gray hover:text-parcelis-charcoal"
                 }`}
                 key={value}
-                onClick={() => setActiveTab(value as "notes" | "files")}
+                id={`${value}-tab`}
+                onClick={() => selectTab(value)}
+                onKeyDown={handleTabKeyDown}
+                ref={(element) => {
+                  tabRefs.current[value] = element;
+                }}
                 role="tab"
+                tabIndex={activeTab === value ? 0 : -1}
                 type="button"
               >
                 {label}
@@ -206,7 +353,7 @@ export function NotesDrawer({
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
-          {activeTab === "notes" ? (
+          <div aria-labelledby="notes-tab" hidden={activeTab !== "notes"} id="notes-panel" role="tabpanel" tabIndex={0}>
             <div className="space-y-5">
               <div className="relative">
                 <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="note-body">
@@ -214,6 +361,7 @@ export function NotesDrawer({
                 </label>
                 <Textarea
                   className="mt-2 pr-12"
+                  disabled={isMutationPending}
                   id="note-body"
                   onChange={(event) => setDraft(event.target.value)}
                   placeholder="Add internal context, reminders, or instructions..."
@@ -222,8 +370,8 @@ export function NotesDrawer({
                 <button
                   aria-label="Add note"
                   className="absolute bottom-2 right-2 inline-grid h-8 w-8 place-items-center rounded-full text-parcelis-green transition hover:bg-parcelis-green/10 disabled:cursor-not-allowed disabled:text-parcelis-gray disabled:hover:bg-transparent"
-                  disabled={!draft.trim() || createNote.isPending}
-                  onClick={() => createNote.mutate()}
+                  disabled={!draft.trim() || isMutationPending}
+                  onClick={() => createNote.mutate({ body: draft, session: drawerSession.current })}
                   type="button"
                 >
                   {createNote.isPending ? (
@@ -233,6 +381,11 @@ export function NotesDrawer({
                   )}
                 </button>
               </div>
+              {createNote.error ? (
+                <p className="text-sm text-red-700" role="alert">
+                  {createNote.error.message}
+                </p>
+              ) : null}
               {notesQuery.isLoading ? (
                 <div className="flex items-center gap-2 py-8 text-sm text-parcelis-gray">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -251,15 +404,19 @@ export function NotesDrawer({
                         <div>
                           <Textarea
                             aria-label="Edit note"
+                            disabled={isMutationPending}
                             onChange={(event) => setEditDraft(event.target.value)}
                             value={editDraft}
                           />
                           <div className="mt-3 flex justify-end gap-2">
+                            {updateNote.error ? (
+                              <p className="mr-auto self-center text-sm text-red-700" role="alert">
+                                {updateNote.error.message}
+                              </p>
+                            ) : null}
                             <Button
-                              onClick={() => {
-                                setEditingNoteId(null);
-                                setEditDraft("");
-                              }}
+                              disabled={isMutationPending}
+                              onClick={cancelEdit}
                               size="sm"
                               type="button"
                               variant="secondary"
@@ -267,8 +424,10 @@ export function NotesDrawer({
                               Cancel
                             </Button>
                             <Button
-                              disabled={!editDraft.trim() || updateNote.isPending}
-                              onClick={() => updateNote.mutate({ id: note.id, body: editDraft })}
+                              disabled={!editDraft.trim() || isMutationPending}
+                              onClick={() =>
+                                updateNote.mutate({ id: note.id, body: editDraft, session: drawerSession.current })
+                              }
                               size="sm"
                               type="button"
                             >
@@ -282,23 +441,24 @@ export function NotesDrawer({
                             <p className="whitespace-pre-wrap text-sm leading-6 text-parcelis-charcoal">{note.body}</p>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button aria-label="Note actions" size="sm" type="button" variant="ghost">
+                                <Button
+                                  aria-label="Note actions"
+                                  disabled={isMutationPending}
+                                  size="sm"
+                                  type="button"
+                                  variant="ghost"
+                                >
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onSelect={() => {
-                                    setEditingNoteId(note.id);
-                                    setEditDraft(note.body);
-                                  }}
-                                >
+                                <DropdownMenuItem onSelect={() => startEdit(note)}>
                                   <Pencil className="h-4 w-4 text-parcelis-green" />
                                   Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-red-700 focus:bg-red-50 focus:text-red-700"
-                                  onSelect={() => deleteNote.mutate(note.id)}
+                                  onSelect={() => setNotePendingDeletion(note.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   Delete
@@ -318,7 +478,8 @@ export function NotesDrawer({
                 </p>
               )}
             </div>
-          ) : (
+          </div>
+          <div aria-labelledby="files-tab" hidden={activeTab !== "files"} id="files-panel" role="tabpanel" tabIndex={0}>
             <div className="grid min-h-56 place-items-center rounded-md border border-dashed border-parcelis-border p-6 text-center">
               <div>
                 <FileText className="mx-auto h-7 w-7 text-parcelis-gray" />
@@ -326,17 +487,23 @@ export function NotesDrawer({
                 <p className="mt-1 text-sm text-parcelis-gray">Attachments will be managed here.</p>
               </div>
             </div>
-          )}
+          </div>
         </div>
         {activeTab === "notes" ? (
           <DrawerFooter className="flex items-center justify-between gap-3">
-            <Button className="min-w-40" onClick={() => onOpenChange(false)} type="button" variant="secondary">
+            <Button
+              className="min-w-40"
+              disabled={isMutationPending}
+              onClick={() => handleOpenChange(false)}
+              type="button"
+              variant="secondary"
+            >
               Cancel
             </Button>
             <Button
               className="min-w-40"
-              disabled={!draft.trim() || createNote.isPending}
-              onClick={() => createNote.mutate()}
+              disabled={!draft.trim() || isMutationPending}
+              onClick={() => createNote.mutate({ body: draft, session: drawerSession.current })}
               type="button"
             >
               Add note

@@ -68,6 +68,8 @@ model Property {
   contactPhone       String?
   contactAddress     String?
   legacyNotes        String?             @map("notes")
+  legacyNoteId       Int?
+  legacyNote         Note?               @relation("PropertyLegacyNote", fields: [id, legacyNoteId], references: [propertyId, id], onDelete: SetNull)
   unitCount          Int
   occupiedUnits      Int                 @default(0)
   status             PropertyStatus      @default(active)
@@ -77,6 +79,8 @@ model Property {
   maintenanceTickets MaintenanceTicket[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+
+  @@unique([id, legacyNoteId])
 }
 
 model Tag {
@@ -157,11 +161,15 @@ model Tenant {
   insuranceStatus TenantInsuranceStatus @default(not_on_file)
   archivedAt      DateTime?
   legacyNotes     String?                 @map("notes")
+  legacyNoteId    Int?
+  legacyNote      Note?                   @relation("TenantLegacyNote", fields: [id, legacyNoteId], references: [tenantId, id], onDelete: SetNull)
   emergencyContacts EmergencyContact[]
   leases          Lease[]
   notes           Note[]
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
+
+  @@unique([id, legacyNoteId])
 }
 
 model Note {
@@ -173,12 +181,16 @@ model Note {
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   unit       Unit?     @relation(fields: [unitId], references: [id], onDelete: Cascade)
   tenant     Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  legacyProperty Property? @relation("PropertyLegacyNote")
+  legacyTenant   Tenant?   @relation("TenantLegacyNote")
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  @@index([propertyId, createdAt])
-  @@index([unitId, createdAt])
-  @@index([tenantId, createdAt])
+  @@index([propertyId, createdAt, id])
+  @@index([unitId, createdAt, id])
+  @@index([tenantId, createdAt, id])
+  @@unique([propertyId, id])
+  @@unique([tenantId, id])
 }
 
 model EmergencyContact {

@@ -34,8 +34,8 @@ you can license and that are necessarily infringed by your Contribution alone or
 with the project as it existed when you submitted the Contribution.
 
 If you or an entity you control bring patent litigation alleging that Parcelis or a Contribution
-infringes a patent, the patent licenses granted to that entity under this Agreement terminate when
-the litigation is filed.
+infringes a patent, all patent licenses you granted under this Agreement terminate when the
+litigation is filed.
 
 ## 4. Your representations
 
