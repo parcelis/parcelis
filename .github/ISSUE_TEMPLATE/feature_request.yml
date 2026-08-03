@@ -2,7 +2,7 @@ name: 🧩 Feature Request
 description: Suggest a new idea or enhancement for this project
 labels:
   - enhancement
-  - needs-triage
+  - needs triage
 type: feature
 title: "[Feat]: "
 body:
