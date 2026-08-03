@@ -130,7 +130,7 @@ export default function PropertyDetailPage() {
     expiresBefore.setDate(expiresBefore.getDate() + 90);
     return lease.endsOn !== null && new Date(lease.endsOn) >= now && new Date(lease.endsOn) <= expiresBefore;
   }).length;
-  const openMaintenanceTickets = maintenanceTickets.filter((ticket) => ticket.status !== "resolved").length;
+  const openMaintenanceTickets = maintenanceTickets.filter((ticket) => ["new", "in_progress", "pending"].includes(ticket.status)).length;
   const sampleVacantUnits = Math.max(unitCount - occupiedUnits, 0);
   const contactItems = property
     ? [

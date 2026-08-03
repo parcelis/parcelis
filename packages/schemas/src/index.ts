@@ -158,6 +158,20 @@ export const createMaintenanceTicketInputSchema = z.object({
   isUrgent: z.boolean().default(false),
 });
 
+export const maintenanceTicketByIdInputSchema = z.object({ id: idSchema });
+export const maintenanceTicketStatusSchema = z.enum([
+  "new",
+  "in_progress",
+  "pending",
+  "resolved",
+  "closed",
+  "canceled",
+]);
+export const updateMaintenanceTicketStatusInputSchema = z.object({
+  id: idSchema,
+  status: maintenanceTicketStatusSchema,
+});
+
 export const tenantByIdInputSchema = z.object({
   id: idSchema,
 });

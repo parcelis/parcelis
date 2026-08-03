@@ -111,7 +111,7 @@ function formatCurrency(cents: number) {
 }
 
 function getUnitRows(property: PropertyListItem) {
-  const openTicketStatuses = new Set(["open", "in_progress", "waiting_vendor"]);
+  const openTicketStatuses = new Set(["new", "in_progress", "pending"]);
   const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
   const ticketCountsByUnit = new Map<string, number>();
   const now = new Date();

@@ -1,6 +1,8 @@
 import {
   createPropertyInputSchema,
   createMaintenanceTicketInputSchema,
+  maintenanceTicketByIdInputSchema,
+  updateMaintenanceTicketStatusInputSchema,
   createTenantInputSchema,
   createTagInputSchema,
   createUnitInputSchema,
@@ -60,7 +62,7 @@ const propertySelect = {
   status: true,
 } as const;
 
-const openMaintenanceStatuses = new Set(["open", "in_progress", "waiting_vendor"]);
+const openMaintenanceStatuses = new Set(["new", "in_progress", "pending"]);
 const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(LeaseStatus)];
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
@@ -784,6 +786,42 @@ export const appRouter = router({
     ),
   }),
   maintenance: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.maintenanceTicket.findMany({
+        where: { archivedAt: null },
+        orderBy: [{ openedOn: "desc" }, { id: "desc" }],
+        include: {
+          category: { select: { label: true } },
+          property: { select: { id: true, name: true } },
+          units: { include: { unit: { select: { name: true } } } },
+        },
+      }),
+    ),
+    byId: publicProcedure.input(maintenanceTicketByIdInputSchema).query(({ ctx, input }) =>
+      ctx.prisma.maintenanceTicket.findUnique({
+        where: { id: input.id },
+        include: {
+          category: { select: { label: true } },
+          property: { select: { id: true, name: true, city: true, region: true } },
+          units: { include: { unit: { select: { name: true } } } },
+          requestedByTenant: { select: { firstName: true, lastName: true } },
+          requestedByLandlord: { select: { firstName: true, lastName: true } },
+        },
+      }),
+    ),
+    updateStatus: publicProcedure
+      .input(updateMaintenanceTicketStatusInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } }),
+      ),
+    archive: publicProcedure
+      .input(maintenanceTicketByIdInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { archivedAt: new Date() } }),
+      ),
+    delete: publicProcedure
+      .input(maintenanceTicketByIdInputSchema)
+      .mutation(({ ctx, input }) => ctx.prisma.maintenanceTicket.delete({ where: { id: input.id } })),
     create: publicProcedure.input(createMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
       const units = await ctx.prisma.unit.findMany({
         where: { id: { in: input.unitIds }, propertyId: input.propertyId },

@@ -22,10 +22,12 @@ enum LeaseStatus {
 }
 
 enum MaintenanceTicketStatus {
-  open
+  new
   in_progress
-  waiting_vendor
+  pending
   resolved
+  closed
+  canceled
 }
 
 enum MaintenanceTicketPriority {
@@ -259,7 +261,7 @@ model MaintenanceTicket {
   unitLabel             String?
   title                 String
   description           String?
-  status                MaintenanceTicketStatus   @default(open)
+  status                MaintenanceTicketStatus   @default(new)
   priority              MaintenanceTicketPriority @default(medium)
   isUrgent              Boolean                   @default(false)
   categoryId            Int?
@@ -268,6 +270,7 @@ model MaintenanceTicket {
   requestedByLandlordId Int?
   openedOn              DateTime                  @default(now())
   dueOn                 DateTime?
+  archivedAt            DateTime?
   property              Property                  @relation(fields: [propertyId], references: [id])
   category              MaintenanceCategory?      @relation(fields: [categoryId], references: [id])
   requestedByTenant     Tenant?                   @relation("MaintenanceRequesterTenant", fields: [requestedByTenantId], references: [id])
