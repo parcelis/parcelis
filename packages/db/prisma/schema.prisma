@@ -279,6 +279,7 @@ model MaintenanceTicket {
   requestedByTenant     Tenant?                   @relation("MaintenanceRequesterTenant", fields: [requestedByTenantId], references: [id])
   requestedByLandlord   Landlord?                 @relation("MaintenanceRequesterLandlord", fields: [requestedByLandlordId], references: [id])
   units                 MaintenanceTicketUnit[]
+  attachments           MaintenanceAttachment[]
   notes                 Note[]
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
@@ -288,6 +289,18 @@ model MaintenanceTicket {
   @@index([categoryId])
   @@index([requestedByTenantId])
   @@index([requestedByLandlordId])
+}
+
+model MaintenanceAttachment {
+  id          Int               @id @default(autoincrement())
+  ticketId    Int
+  objectKey   String            @unique
+  fileName    String
+  contentType String
+  ticket      MaintenanceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdAt   DateTime          @default(now())
+
+  @@index([ticketId, createdAt])
 }
 
 model MaintenanceTicketUnit {

@@ -1,8 +1,12 @@
 import {
   createPropertyInputSchema,
   createMaintenanceTicketInputSchema,
+  maintenanceAttachmentByIdInputSchema,
+  maintenanceImageUploadCompleteInputSchema,
+  maintenanceImageUploadInputSchema,
   maintenanceTicketByIdInputSchema,
   updateMaintenanceTicketStatusInputSchema,
+  updateMaintenanceTicketInputSchema,
   createTenantInputSchema,
   createTagInputSchema,
   createUnitInputSchema,
@@ -32,7 +36,10 @@ import { LeaseStatus, UnitType, type Prisma } from "@parcelis/db";
 import {
   createPropertyImageDownloadUrl,
   createPropertyImageUploadUrl,
+  createMaintenanceImageDownloadUrl,
+  createMaintenanceImageUploadUrl,
   deletePropertyImageObject,
+  deleteMaintenanceImageObject,
   createTenantImageDownloadUrl,
   createTenantImageUploadUrl,
   deleteTenantImageObject,
@@ -791,37 +798,97 @@ export const appRouter = router({
         where: { archivedAt: null },
         orderBy: [{ openedOn: "desc" }, { id: "desc" }],
         include: {
-          category: { select: { label: true } },
+          category: { select: { id: true, label: true } },
           property: { select: { id: true, name: true } },
-          units: { include: { unit: { select: { name: true } } } },
+          units: { include: { unit: { select: { id: true, name: true } } } },
         },
       }),
     ),
-    byId: publicProcedure.input(maintenanceTicketByIdInputSchema).query(({ ctx, input }) =>
-      ctx.prisma.maintenanceTicket.findUnique({
+    byId: publicProcedure.input(maintenanceTicketByIdInputSchema).query(async ({ ctx, input }) => {
+      const ticket = await ctx.prisma.maintenanceTicket.findUnique({
         where: { id: input.id },
         include: {
-          category: { select: { label: true } },
+          category: { select: { id: true, label: true } },
           property: { select: { id: true, name: true, city: true, region: true } },
-          units: { include: { unit: { select: { name: true } } } },
+          units: { include: { unit: { select: { id: true, name: true } } } },
+          attachments: { orderBy: { createdAt: "desc" } },
           requestedByTenant: { select: { firstName: true, lastName: true } },
           requestedByLandlord: { select: { firstName: true, lastName: true } },
         },
+      });
+      if (!ticket) return null;
+
+      return {
+        ...ticket,
+        attachments: await Promise.all(
+          ticket.attachments.map(async (attachment) => ({
+            ...attachment,
+            imageUrl: await createMaintenanceImageDownloadUrl(attachment.objectKey),
+          })),
+        ),
+      };
+    }),
+    createImageUploadUrl: publicProcedure.input(maintenanceImageUploadInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.maintenanceTicket.findUniqueOrThrow({ where: { id: input.id }, select: { id: true } });
+      return createMaintenanceImageUploadUrl(input.contentType, input.id);
+    }),
+    completeImageUpload: publicProcedure.input(maintenanceImageUploadCompleteInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.maintenanceAttachment.create({
+        data: {
+          ticketId: input.id,
+          objectKey: input.objectKey,
+          fileName: input.fileName,
+          contentType: input.contentType,
+        },
       }),
     ),
+    deleteImage: publicProcedure.input(maintenanceAttachmentByIdInputSchema).mutation(async ({ ctx, input }) => {
+      const attachment = await ctx.prisma.maintenanceAttachment.delete({ where: { id: input.id } });
+      await deleteMaintenanceImageObject(attachment.objectKey);
+      return attachment;
+    }),
     updateStatus: publicProcedure
       .input(updateMaintenanceTicketStatusInputSchema)
       .mutation(({ ctx, input }) =>
         ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } }),
       ),
+    update: publicProcedure.input(updateMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
+      const units = await ctx.prisma.unit.findMany({
+        where: { id: { in: input.unitIds }, propertyId: input.propertyId },
+        select: { id: true, name: true },
+      });
+      if (units.length !== input.unitIds.length) throw new Error("Selected units must belong to the chosen property.");
+      return ctx.prisma.maintenanceTicket.update({
+        where: { id: input.id },
+        data: {
+          propertyId: input.propertyId,
+          title: input.ticketTitle,
+          description: input.description || null,
+          categoryId: input.categoryId,
+          isUrgent: input.isUrgent,
+          priority: input.isUrgent ? "urgent" : "medium",
+          requestedByType: input.requestedByType,
+          requestedByTenantId: input.requestedByType === "tenant" ? input.requestedById : null,
+          requestedByLandlordId: input.requestedByType === "landlord" ? input.requestedById : null,
+          unitLabel: units.length === 1 ? (units[0]?.name ?? null) : null,
+          units: { deleteMany: {}, create: units.map((unit) => ({ unitId: unit.id })) },
+        },
+      });
+    }),
     archive: publicProcedure
       .input(maintenanceTicketByIdInputSchema)
       .mutation(({ ctx, input }) =>
         ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { archivedAt: new Date() } }),
       ),
-    delete: publicProcedure
-      .input(maintenanceTicketByIdInputSchema)
-      .mutation(({ ctx, input }) => ctx.prisma.maintenanceTicket.delete({ where: { id: input.id } })),
+    delete: publicProcedure.input(maintenanceTicketByIdInputSchema).mutation(async ({ ctx, input }) => {
+      const attachments = await ctx.prisma.maintenanceAttachment.findMany({
+        where: { ticketId: input.id },
+        select: { objectKey: true },
+      });
+      const ticket = await ctx.prisma.maintenanceTicket.delete({ where: { id: input.id } });
+      await Promise.all(attachments.map((attachment) => deleteMaintenanceImageObject(attachment.objectKey)));
+      return ticket;
+    }),
     create: publicProcedure.input(createMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
       const units = await ctx.prisma.unit.findMany({
         where: { id: { in: input.unitIds }, propertyId: input.propertyId },

@@ -37,6 +37,7 @@ import {
 } from "@parcelis/ui";
 import { apiClient } from "../../components/api-client";
 import { MaintenanceDrawer } from "../../components/maintenance-drawer";
+import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
 import { Sidebar } from "../../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -68,8 +69,17 @@ export default function MaintenancePage() {
     queryFn: () => apiClient.maintenance.list.query(),
   });
   const createMutation = useMutation({
-    mutationFn: (input: Parameters<typeof apiClient.maintenance.create.mutate>[0]) =>
-      apiClient.maintenance.create.mutate(input),
+    mutationFn: async ({
+      input,
+      attachments,
+    }: {
+      input: Parameters<typeof apiClient.maintenance.create.mutate>[0];
+      attachments: File[];
+    }) => {
+      const ticket = await apiClient.maintenance.create.mutate(input);
+      await Promise.all(attachments.map((file) => uploadMaintenanceImage(ticket.id, file)));
+      return ticket;
+    },
     onSuccess: async () => {
       setDrawerOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] });
@@ -130,7 +140,7 @@ export default function MaintenancePage() {
         error={createMutation.error}
         isPending={createMutation.isPending}
         onOpenChange={setDrawerOpen}
-        onSubmit={(input) => createMutation.mutate(input)}
+        onSubmit={(input, attachments) => createMutation.mutate({ input, attachments })}
         open={drawerOpen}
       />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">

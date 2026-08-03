@@ -40,10 +40,16 @@ import type { CreateMaintenanceTicketInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "./api-client";
 
 type MaintenanceDrawerProps = {
+  drawerTitle?: string;
   error?: Error | null;
+  existingAttachments?: Array<{ id: number; fileName: string; imageUrl: string | null }>;
+  isDeletingAttachment?: boolean;
   isPending: boolean;
+  onDeleteExistingAttachment?: (attachmentId: number) => void;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (input: CreateMaintenanceTicketInput) => void;
+  onSubmit: (input: CreateMaintenanceTicketInput, attachments: File[]) => void;
+  initialValues?: Partial<typeof initialForm>;
+  submitLabel?: string;
   open: boolean;
 };
 
@@ -71,11 +77,24 @@ const categoryIcons: Record<string, LucideIcon> = {
   Exterior: House,
 };
 
-export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, open }: MaintenanceDrawerProps) {
+export function MaintenanceDrawer({
+  drawerTitle = "New Maintenance Item",
+  error,
+  existingAttachments = [],
+  isDeletingAttachment = false,
+  initialValues,
+  isPending,
+  onDeleteExistingAttachment,
+  onOpenChange,
+  onSubmit,
+  open,
+  submitLabel = "Create Item",
+}: MaintenanceDrawerProps) {
   const [form, setForm] = React.useState(initialForm);
   const [section, setSection] = React.useState<"details" | "images">("details");
   const [attachments, setAttachments] = React.useState<Array<{ file: File; previewUrl: string }>>([]);
   const imageInputRef = React.useRef<HTMLInputElement | null>(null);
+  const wasOpen = React.useRef(false);
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -117,6 +136,10 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
       });
     }
   }, [open]);
+  React.useEffect(() => {
+    if (open && !wasOpen.current) setForm({ ...initialForm, ...initialValues });
+    wasOpen.current = open;
+  }, [initialValues, open]);
 
   function toggleUnit(unitId: number) {
     setForm((current) => ({
@@ -133,23 +156,30 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
       <DrawerContent size="lg">
         <DrawerHeader className="flex items-center gap-3">
           <DrawerClose disabled={isPending} />
-          <DrawerTitle>New Maintenance Item</DrawerTitle>
+          <DrawerTitle>{drawerTitle}</DrawerTitle>
         </DrawerHeader>
         <form
           className="flex min-h-0 flex-1 flex-col"
           onSubmit={(event) => {
             event.preventDefault();
+            if (section === "details") {
+              if (isDetailsComplete) setSection("images");
+              return;
+            }
             if (!isDetailsComplete) return;
-            onSubmit({
-              ticketTitle: form.ticketTitle,
-              propertyId: Number(form.propertyId),
-              unitIds: form.unitIds,
-              categoryId: Number(form.categoryId),
-              description: form.description || undefined,
-              requestedById: Number(form.requestedById),
-              requestedByType: form.requestedByType,
-              isUrgent: form.isUrgent,
-            });
+            onSubmit(
+              {
+                ticketTitle: form.ticketTitle,
+                propertyId: Number(form.propertyId),
+                unitIds: form.unitIds,
+                categoryId: Number(form.categoryId),
+                description: form.description || undefined,
+                requestedById: Number(form.requestedById),
+                requestedByType: form.requestedByType,
+                isUrgent: form.isUrgent,
+              },
+              attachments.map((attachment) => attachment.file),
+            );
           }}
         >
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -202,7 +232,10 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
                     <ImagePlus
                       className={`h-5 w-5 ${section === "images" ? "text-parcelis-green" : "text-parcelis-gray"}`}
                     />
-                    Maintenance Images{attachments.length ? ` (${attachments.length})` : ""}
+                    Maintenance Images
+                    {existingAttachments.length + attachments.length
+                      ? ` (${existingAttachments.length + attachments.length})`
+                      : ""}
                   </button>
                 </aside>
               </div>
@@ -354,7 +387,9 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
                         <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Maintenance images</h3>
                         <p className="mt-1 text-sm text-parcelis-gray">Add images for this maintenance item.</p>
                       </div>
-                      <span className="text-sm font-semibold text-parcelis-gray">{attachments.length}</span>
+                      <span className="text-sm font-semibold text-parcelis-gray">
+                        {existingAttachments.length + attachments.length}
+                      </span>
                     </div>
                     <input
                       accept="image/jpeg,image/png,image/webp"
@@ -385,6 +420,35 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
                       <span className="mt-1 text-xs text-parcelis-gray">JPG, PNG, or WebP</span>
                     </button>
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      {existingAttachments.map((attachment) => (
+                        <div
+                          className="flex items-center gap-3 rounded-md border border-parcelis-border bg-white p-3 dark:bg-parcelis-slate"
+                          key={attachment.id}
+                        >
+                          <img
+                            alt={attachment.fileName}
+                            className="h-14 w-14 rounded object-cover"
+                            src={attachment.imageUrl ?? undefined}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-parcelis-charcoal dark:text-white">
+                              {attachment.fileName}
+                            </span>
+                            <span className="text-xs font-medium text-parcelis-gray">Attached</span>
+                          </div>
+                          {onDeleteExistingAttachment ? (
+                            <button
+                              aria-label={`Delete ${attachment.fileName}`}
+                              className="text-parcelis-gray hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              disabled={isDeletingAttachment}
+                              onClick={() => onDeleteExistingAttachment(attachment.id)}
+                              type="button"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          ) : null}
+                        </div>
+                      ))}
                       {attachments.map((attachment, index) => (
                         <div
                           className="flex items-center gap-3 rounded-md border border-parcelis-border bg-white p-3 dark:bg-parcelis-slate"
@@ -425,18 +489,13 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
               Cancel
             </Button>
             {section === "details" ? (
-              <Button
-                className="min-w-40"
-                disabled={!isDetailsComplete}
-                onClick={() => setSection("images")}
-                type="button"
-              >
+              <Button className="min-w-40" disabled={!isDetailsComplete} type="submit">
                 Next
                 <ChevronRight className="h-4 w-4" />
               </Button>
             ) : (
               <Button className="min-w-40" disabled={isPending || !isDetailsComplete} type="submit">
-                Create Item
+                {submitLabel}
               </Button>
             )}
           </DrawerFooter>

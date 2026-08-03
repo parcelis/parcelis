@@ -13,6 +13,7 @@ import {
   Phone,
   Trash2,
   UserRound,
+  Wrench,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -53,6 +54,11 @@ type NotesDrawerProps = {
     addressLines: string[];
     unitCount: number;
   };
+  maintenanceSummary?: {
+    propertyName: string;
+    status: string;
+    units: string;
+  };
   tenantSummary?: {
     email: string;
     name: string;
@@ -80,6 +86,7 @@ function formatDate(date: Date | string) {
 export function NotesDrawer({
   onOpenChange,
   open,
+  maintenanceSummary,
   propertySummary,
   subject,
   subjectLabel,
@@ -257,7 +264,22 @@ export function NotesDrawer({
           <DrawerTitle>Notes</DrawerTitle>
         </DrawerHeader>
         <div className="px-4 py-5 md:px-6">
-          {propertySummary ? (
+          {maintenanceSummary ? (
+            <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)_8rem] md:items-center dark:bg-parcelis-slate">
+              <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
+                <Wrench className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-base font-bold text-white">{subjectLabel}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-white/80">{maintenanceSummary.propertyName}</p>
+                <p className="mt-1 truncate text-sm font-medium text-white/70">{maintenanceSummary.units}</p>
+              </div>
+              <div className="border-white/15 md:border-l md:pl-8">
+                <p className="text-xs font-semibold uppercase text-white/55">Status</p>
+                <p className="mt-1 text-base font-semibold text-white">{maintenanceSummary.status}</p>
+              </div>
+            </div>
+          ) : propertySummary ? (
             <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)_8rem] md:items-center dark:bg-parcelis-slate">
               <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
                 <Building2 className="h-5 w-5" />

@@ -114,3 +114,22 @@ export async function createTenantImageUploadUrl(contentType: keyof typeof image
 
 export const createTenantImageDownloadUrl = createPropertyImageDownloadUrl;
 export const deleteTenantImageObject = deletePropertyImageObject;
+
+export function createMaintenanceImageObjectKey(contentType: keyof typeof imageExtensions, ticketId: number) {
+  return `maintenance/${ticketId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
+}
+
+export async function createMaintenanceImageUploadUrl(contentType: keyof typeof imageExtensions, ticketId: number) {
+  const config = getObjectStorageConfig();
+  const objectKey = createMaintenanceImageObjectKey(contentType, ticketId);
+  const uploadUrl = await getSignedUrl(
+    createObjectStorageClient(),
+    new PutObjectCommand({ Bucket: config.bucket, ContentType: contentType, Key: objectKey }),
+    { expiresIn: 10 * 60 },
+  );
+
+  return { objectKey, uploadUrl };
+}
+
+export const createMaintenanceImageDownloadUrl = createPropertyImageDownloadUrl;
+export const deleteMaintenanceImageObject = deletePropertyImageObject;
