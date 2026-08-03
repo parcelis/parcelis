@@ -15,6 +15,8 @@ const label = (value: string) =>
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+const formatDate = (value: Date | string) =>
+  new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 
 export default function MaintenanceTicketPage() {
   const { id: idParam } = useParams<{ id: string }>();
@@ -84,9 +86,15 @@ export default function MaintenanceTicketPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold">
-                    {ticket.status === "in_progress" ? "Acknowledged · In Progress" : label(ticket.status)}
-                  </span>
+                  <div className="flex flex-wrap justify-end gap-2 text-sm font-semibold">
+                    <span className="rounded-md bg-white/10 px-3 py-2">
+                      {ticket.status === "in_progress" ? "Acknowledged · In Progress" : label(ticket.status)}
+                    </span>
+                    <span className="rounded-md bg-white/10 px-3 py-2">
+                      Requested by {requester ? `${requester.firstName} ${requester.lastName}` : "Not set"}
+                    </span>
+                    <span className="rounded-md bg-white/10 px-3 py-2">Issue date {formatDate(ticket.openedOn)}</span>
+                  </div>
                 </div>
               </section>
               <Card>
