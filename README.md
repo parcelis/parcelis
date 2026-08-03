@@ -24,7 +24,7 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br />
 
-[![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml)
+[![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml)   [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml)
 
 ## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
 
