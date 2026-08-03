@@ -6,6 +6,7 @@ import {
   Bath,
   Bug,
   CircleHelp,
+  ChevronRight,
   CookingPot,
   Droplets,
   Flame,
@@ -97,6 +98,14 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
     ),
   );
   const requesters = form.requestedByType === "tenant" ? tenantRequesters : (landlordsQuery.data ?? []);
+  const isDetailsComplete = Boolean(
+    form.ticketTitle.trim() &&
+    form.propertyId &&
+    form.unitIds.length > 0 &&
+    form.categoryId &&
+    form.description.trim() &&
+    form.requestedById,
+  );
 
   React.useEffect(() => {
     if (!open) {
@@ -130,6 +139,7 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
           className="flex min-h-0 flex-1 flex-col"
           onSubmit={(event) => {
             event.preventDefault();
+            if (!isDetailsComplete) return;
             onSubmit({
               ticketTitle: form.ticketTitle,
               propertyId: Number(form.propertyId),
@@ -199,7 +209,7 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
               <div className="min-w-0 flex-1">
                 <div className={section === "details" ? "grid gap-5 md:grid-cols-2" : "hidden"}>
                   <Label className="gap-2 md:col-span-2">
-                    Ticket Title
+                    Ticket Title *
                     <Input
                       required
                       value={form.ticketTitle}
@@ -207,7 +217,7 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
                     />
                   </Label>
                   <Label className="gap-2">
-                    Property
+                    Property *
                     <Select
                       required
                       value={form.propertyId}
@@ -224,7 +234,7 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
                     </Select>
                   </Label>
                   <div className="grid gap-2">
-                    <Label>Units</Label>
+                    <Label>Units *</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
@@ -258,7 +268,7 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
                     </Popover>
                   </div>
                   <div className="md:col-span-2">
-                    <Label>Category</Label>
+                    <Label>Category *</Label>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {(categoriesQuery.data ?? []).map((item) => {
                         const isSelected = form.categoryId === String(item.id);
@@ -285,15 +295,16 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
                     </div>
                   </div>
                   <Label className="gap-2 md:col-span-2">
-                    Description
+                    Description *
                     <Textarea
                       rows={4}
                       value={form.description}
                       onChange={(event) => setForm({ ...form, description: event.target.value })}
+                      required
                     />
                   </Label>
                   <Label className="gap-2">
-                    Requested By Type
+                    Requested By Type *
                     <Select
                       value={form.requestedByType}
                       onChange={(event) =>
@@ -309,7 +320,7 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
                     </Select>
                   </Label>
                   <Label className="gap-2">
-                    Requested By
+                    Requested By *
                     <Select
                       required
                       value={form.requestedById}
@@ -413,9 +424,21 @@ export function MaintenanceDrawer({ error, isPending, onOpenChange, onSubmit, op
             <Button className="min-w-40" type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button className="min-w-40" disabled={isPending} type="submit">
-              Create Item
-            </Button>
+            {section === "details" ? (
+              <Button
+                className="min-w-40"
+                disabled={!isDetailsComplete}
+                onClick={() => setSection("images")}
+                type="button"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button className="min-w-40" disabled={isPending || !isDetailsComplete} type="submit">
+                Create Item
+              </Button>
+            )}
           </DrawerFooter>
         </form>
       </DrawerContent>
