@@ -93,6 +93,8 @@ export const deleteNoteInputSchema = z.object({
   id: idSchema,
 });
 
+const legacyNotesSchema = z.string().trim().max(5000).optional();
+
 export const propertySchema = z.object({
   id: idSchema,
   name: z.string().min(2),
@@ -103,7 +105,7 @@ export const propertySchema = z.object({
   contactEmail: z.string().email().optional(),
   contactPhone: z.string().optional(),
   contactAddress: z.string().optional(),
-  notes: z.string().optional(),
+  notes: legacyNotesSchema,
   unitCount: z.number().int().nonnegative(),
   units: z.array(unitDetailsInputSchema).default([]),
   occupiedUnits: z.number().int().nonnegative(),
@@ -188,12 +190,12 @@ export const createTenantInputSchema = updateTenantInputSchema.omit({
 
 export const tenantNotesInputSchema = z.object({
   id: idSchema,
-  notes: z.string().trim().max(5000).optional(),
+  notes: legacyNotesSchema,
 });
 
 export const propertyNotesInputSchema = z.object({
   id: idSchema,
-  notes: z.string().trim().max(5000).optional(),
+  notes: legacyNotesSchema,
 });
 
 export const propertyStatusInputSchema = z.object({

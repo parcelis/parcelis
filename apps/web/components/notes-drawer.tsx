@@ -148,7 +148,7 @@ export function NotesDrawer({
       drawerSession.current += 1;
       needsReset.current = true;
     }
-    if (!open && needsReset.current && !isMutationPending) {
+    if (needsReset.current && !isMutationPending) {
       resetTransientState();
       needsReset.current = false;
     }
@@ -165,11 +165,10 @@ export function NotesDrawer({
           setNotePendingDeletion(null);
           return;
         }
-        resetTransientState();
       }
       onOpenChange(nextOpen);
     },
-    [isMutationPending, notePendingDeletion, onOpenChange, resetTransientState],
+    [isMutationPending, notePendingDeletion, onOpenChange],
   );
 
   function selectTab(tab: NotesTab) {
@@ -254,7 +253,7 @@ export function NotesDrawer({
           </AlertDialogContent>
         </AlertDialog>
         <DrawerHeader className="flex items-center gap-3">
-          <DrawerClose />
+          <DrawerClose disabled={isMutationPending} />
           <DrawerTitle>Notes</DrawerTitle>
         </DrawerHeader>
         <div className="px-4 py-5 md:px-6">
