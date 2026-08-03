@@ -1,5 +1,5 @@
 name: 🐞 Bug Report
-labels: documentation,needs-triage,bug
+labels: documentation,needs triage,bug
 type: bug
 title: "[Bug]: "
 description: Create a bug report to help us improve
