@@ -27,6 +27,12 @@ export const queryKeys = {
   unitOptions: {
     list: ["unitOptions", "list"] as const,
   },
+  maintenanceCategories: {
+    list: ["maintenanceCategories", "list"] as const,
+  },
+  landlords: {
+    list: ["landlords", "list"] as const,
+  },
   tags: {
     list: ["tags", "list"] as const,
   },

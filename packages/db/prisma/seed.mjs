@@ -96,25 +96,12 @@ function getDemoUnitNames(property, leaseLabels) {
 
 function getDemoUnitDetails(property, unitName, index, leaseRentCents) {
   const isCommercial =
-    property.propertyType === "Commercial" ||
-    (property.propertyType === "Mixed-Use" && index % 5 === 0);
+    property.propertyType === "Commercial" || (property.propertyType === "Mixed-Use" && index % 5 === 0);
   const bedroomCycle = [0, 1, 1, 2, 2, 3];
-  const bedrooms = isCommercial
-    ? null
-    : bedroomCycle[index % bedroomCycle.length];
-  const bathrooms = isCommercial
-    ? 1
-    : bedrooms === 0
-      ? 1
-      : bedrooms >= 3
-        ? 2
-        : 1.5;
-  const squareFeet = isCommercial
-    ? 950 + (index % 4) * 175
-    : 525 + (bedrooms ?? 0) * 225 + (index % 3) * 35;
-  const baseRentCents = isCommercial
-    ? 285000
-    : 145000 + (bedrooms ?? 0) * 35000 + (index % 4) * 7500;
+  const bedrooms = isCommercial ? null : bedroomCycle[index % bedroomCycle.length];
+  const bathrooms = isCommercial ? 1 : bedrooms === 0 ? 1 : bedrooms >= 3 ? 2 : 1.5;
+  const squareFeet = isCommercial ? 950 + (index % 4) * 175 : 525 + (bedrooms ?? 0) * 225 + (index % 3) * 35;
+  const baseRentCents = isCommercial ? 285000 : 145000 + (bedrooms ?? 0) * 35000 + (index % 4) * 7500;
 
   return {
     name: unitName,
@@ -134,9 +121,7 @@ async function seedUnitsForProperty(property) {
       unitLabel: true,
     },
   });
-  const leaseRentByUnit = new Map(
-    leases.map((lease) => [lease.unitLabel, lease.monthlyRentCents]),
-  );
+  const leaseRentByUnit = new Map(leases.map((lease) => [lease.unitLabel, lease.monthlyRentCents]));
   const unitNames = getDemoUnitNames(
     property,
     leases.map((lease) => lease.unitLabel),
@@ -150,12 +135,7 @@ async function seedUnitsForProperty(property) {
   });
 
   for (const [index, unitName] of unitNames.entries()) {
-    const unitDetails = getDemoUnitDetails(
-      property,
-      unitName,
-      index,
-      leaseRentByUnit.get(unitName),
-    );
+    const unitDetails = getDemoUnitDetails(property, unitName, index, leaseRentByUnit.get(unitName));
     const unit = await prisma.unit.upsert({
       where: {
         propertyId_name: {
@@ -221,9 +201,7 @@ async function upsertLease(data) {
     where: { propertyId: data.propertyId, unitLabel: data.unitLabel },
   });
 
-  return existing
-    ? prisma.lease.update({ where: { id: existing.id }, data })
-    : prisma.lease.create({ data });
+  return existing ? prisma.lease.update({ where: { id: existing.id }, data }) : prisma.lease.create({ data });
 }
 
 async function main() {
@@ -464,10 +442,55 @@ async function main() {
     }),
   ]);
 
+  await Promise.all([seedUnitsForProperty(hawthorne), seedUnitsForProperty(mariner), seedUnitsForProperty(juniper)]);
+
+  const maintenanceCategories = [
+    "A/C",
+    "Appliance",
+    "Plumbing",
+    "Electrical",
+    "Heat",
+    "Kitchen",
+    "Other",
+    "Pest Control",
+    "Bathroom",
+    "Exterior",
+  ];
+  await Promise.all(
+    maintenanceCategories.map((label, sortOrder) =>
+      prisma.maintenanceCategory.upsert({
+        where: { label },
+        update: { sortOrder },
+        create: { label, sortOrder },
+      }),
+    ),
+  );
   await Promise.all([
-    seedUnitsForProperty(hawthorne),
-    seedUnitsForProperty(mariner),
-    seedUnitsForProperty(juniper),
+    prisma.landlord.upsert({
+      where: { email: "avery.mitchell@hawthorneflats.example" },
+      update: { firstName: "Avery", lastName: "Mitchell", phone: "615-555-0194" },
+      create: {
+        firstName: "Avery",
+        lastName: "Mitchell",
+        email: "avery.mitchell@hawthorneflats.example",
+        phone: "615-555-0194",
+      },
+    }),
+    prisma.landlord.upsert({
+      where: { email: "jordan.reyes@marinercourt.example" },
+      update: { firstName: "Jordan", lastName: "Reyes", phone: "843-555-0127" },
+      create: {
+        firstName: "Jordan",
+        lastName: "Reyes",
+        email: "jordan.reyes@marinercourt.example",
+        phone: "843-555-0127",
+      },
+    }),
+    prisma.landlord.upsert({
+      where: { email: "priya.shah@juniperrow.example" },
+      update: { firstName: "Priya", lastName: "Shah", phone: "512-555-0169" },
+      create: { firstName: "Priya", lastName: "Shah", email: "priya.shah@juniperrow.example", phone: "512-555-0169" },
+    }),
   ]);
 
   const tickets = [

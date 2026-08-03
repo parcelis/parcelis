@@ -1,5 +1,6 @@
 import {
   createPropertyInputSchema,
+  createMaintenanceTicketInputSchema,
   createTenantInputSchema,
   createTagInputSchema,
   createUnitInputSchema,
@@ -250,7 +251,12 @@ export const appRouter = router({
             },
           },
           maintenanceTickets: {
+            orderBy: { openedOn: "desc" },
             select: {
+              id: true,
+              title: true,
+              openedOn: true,
+              dueOn: true,
               priority: true,
               status: true,
               unitLabel: true,
@@ -419,12 +425,7 @@ export const appRouter = router({
         const legacyNote =
           input.notes === undefined
             ? {}
-            : await synchronizePropertyLegacyNote(
-                tx,
-                input.id,
-                currentProperty.legacyNoteId,
-                input.notes,
-              );
+            : await synchronizePropertyLegacyNote(tx, input.id, currentProperty.legacyNoteId, input.notes);
         const updatedProperty = await tx.property.update({
           where: { id: input.id },
           select: propertySelect,
@@ -541,12 +542,7 @@ export const appRouter = router({
           select: { legacyNoteId: true },
         });
 
-        const legacyNote = await synchronizePropertyLegacyNote(
-          tx,
-          input.id,
-          currentProperty.legacyNoteId,
-          input.notes,
-        );
+        const legacyNote = await synchronizePropertyLegacyNote(tx, input.id, currentProperty.legacyNoteId, input.notes);
 
         return tx.property.update({
           where: { id: input.id },
@@ -770,6 +766,66 @@ export const appRouter = router({
         select: { id: true, label: true, sortOrder: true },
       }),
     ),
+  }),
+  maintenanceCategories: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.maintenanceCategory.findMany({
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: { id: true, label: true, sortOrder: true },
+      }),
+    ),
+  }),
+  landlords: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.landlord.findMany({
+        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+        select: { id: true, firstName: true, lastName: true, email: true },
+      }),
+    ),
+  }),
+  maintenance: router({
+    create: publicProcedure.input(createMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
+      const units = await ctx.prisma.unit.findMany({
+        where: { id: { in: input.unitIds }, propertyId: input.propertyId },
+        select: { id: true, name: true },
+      });
+      if (units.length !== input.unitIds.length) {
+        throw new Error("Selected units must belong to the chosen property.");
+      }
+
+      if (input.requestedByType === "tenant") {
+        const tenantLease = await ctx.prisma.lease.findFirst({
+          where: {
+            tenantId: input.requestedById,
+            propertyId: input.propertyId,
+            unitLabel: input.unitIds.length ? { in: units.map((unit) => unit.name) } : undefined,
+            status: { in: ["active", "notice"] },
+          },
+          select: { id: true },
+        });
+        if (!tenantLease) {
+          throw new Error("The selected tenant is not assigned to the selected unit.");
+        }
+      } else {
+        await ctx.prisma.landlord.findUniqueOrThrow({ where: { id: input.requestedById }, select: { id: true } });
+      }
+
+      return ctx.prisma.maintenanceTicket.create({
+        data: {
+          propertyId: input.propertyId,
+          title: input.ticketTitle,
+          description: input.description || null,
+          categoryId: input.categoryId,
+          isUrgent: input.isUrgent,
+          priority: input.isUrgent ? "urgent" : "medium",
+          requestedByType: input.requestedByType,
+          requestedByTenantId: input.requestedByType === "tenant" ? input.requestedById : null,
+          requestedByLandlordId: input.requestedByType === "landlord" ? input.requestedById : null,
+          unitLabel: units.length === 1 ? (units[0]?.name ?? null) : null,
+          units: { create: units.map((unit) => ({ unitId: unit.id })) },
+        },
+      });
+    }),
   }),
   unitOptions: router({
     /** Lists the available utility and amenity options for units. */
