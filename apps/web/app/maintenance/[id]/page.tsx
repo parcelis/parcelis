@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  BadgeCheck,
+  CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -14,6 +16,7 @@ import {
   Pencil,
   StickyNote,
   Trash2,
+  UserRound,
   Wrench,
 } from "lucide-react";
 import {
@@ -202,7 +205,7 @@ export default function MaintenanceTicketPage() {
           ) : (
             <>
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex gap-4">
                     <span className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
                       <Wrench className="h-5 w-5" />
@@ -220,14 +223,25 @@ export default function MaintenanceTicketPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap justify-end gap-2 text-sm font-semibold">
-                    <span className="rounded-md bg-white/10 px-3 py-2">
-                      {ticket.status === "in_progress" ? "Acknowledged · In Progress" : label(ticket.status)}
-                    </span>
-                    <span className="rounded-md bg-white/10 px-3 py-2">
-                      Requested by {requester ? `${requester.firstName} ${requester.lastName}` : "Not set"}
-                    </span>
-                    <span className="rounded-md bg-white/10 px-3 py-2">Issue date {formatDate(ticket.openedOn)}</span>
+                  <div className="w-full lg:w-[36rem]">
+                    <div className="grid w-full gap-3 sm:grid-cols-3">
+                      <MaintenanceHeroStatus
+                        icon={BadgeCheck}
+                        label="Ticket Status"
+                        tone={getStatusTone(ticket.status)}
+                        value={label(ticket.status)}
+                      />
+                      <MaintenanceHeroStatus
+                        icon={UserRound}
+                        label="Requested By"
+                        value={requester ? `${requester.firstName} ${requester.lastName}` : "Not set"}
+                      />
+                      <MaintenanceHeroStatus
+                        icon={CalendarDays}
+                        label="Issue Date"
+                        value={formatDate(ticket.openedOn)}
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
@@ -445,5 +459,33 @@ export default function MaintenanceTicketPage() {
         </DialogContent>
       </Dialog>
     </main>
+  );
+}
+
+function getStatusTone(status: string) {
+  if (status === "resolved" || status === "closed") return "text-parcelis-green";
+  if (status === "canceled") return "text-red-700";
+  return "text-amber-500";
+}
+
+function MaintenanceHeroStatus({
+  icon: Icon,
+  label,
+  tone = "text-parcelis-green",
+  value,
+}: {
+  icon: typeof BadgeCheck;
+  label: string;
+  tone?: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-md bg-white/10 p-3">
+      <div className="flex items-center gap-2 text-xs font-medium text-white/70">
+        <Icon className={`h-4 w-4 ${tone}`} />
+        {label}
+      </div>
+      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+    </div>
   );
 }
