@@ -36,7 +36,7 @@ import {
   DropdownMenuTrigger,
   ParcelisLogo,
 } from "@parcelis/ui";
-import type { UpdatePropertyInput } from "@parcelis/schemas";
+import { isActiveMaintenanceTicketStatus, type UpdatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../../../components/property-image-upload";
 import {
@@ -143,7 +143,7 @@ export default function UnitDetailPage() {
     ) ?? null;
   const tenant = lease?.tenant ?? null;
   const unitTickets = property?.maintenanceTickets.filter((ticket) => unit && ticket.unitLabel === unit.name) ?? [];
-  const openTickets = unitTickets.filter((ticket) => ["new", "in_progress", "pending"].includes(ticket.status));
+  const openTickets = unitTickets.filter((ticket) => isActiveMaintenanceTicketStatus(ticket.status));
   const utilities = unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
   const amenities = unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
   const monthlyRentCents = lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0;

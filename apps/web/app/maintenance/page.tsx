@@ -42,6 +42,11 @@ import {
   TableRow,
   Textarea,
 } from "@parcelis/ui";
+import {
+  isActiveMaintenanceTicketStatus,
+  isTerminalMaintenanceTicketStatus,
+  maintenanceTicketStatuses,
+} from "@parcelis/schemas";
 import { apiClient } from "../../components/api-client";
 import { MaintenanceDrawer } from "../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
@@ -74,6 +79,7 @@ function statusBadgeClass(status: string) {
   if (status === "new") return "bg-parcelis-green/15 text-parcelis-charcoal";
   if (status === "in_progress") return "bg-sky-500/15 text-sky-700";
   if (status === "pending") return "bg-amber-500/15 text-amber-700";
+  if (status === "scheduled") return "bg-violet-500/15 text-violet-700";
   if (status === "resolved") return "bg-emerald-500/15 text-emerald-700";
   if (status === "canceled") return "bg-red-500/15 text-red-700";
   return "bg-parcelis-porcelain text-parcelis-gray";
@@ -174,7 +180,7 @@ export default function MaintenancePage() {
         (urgencyFilter === "standard" && !ticket.isUrgent),
     ].every(Boolean),
   );
-  const activeTickets = tickets.filter((ticket) => ["new", "in_progress", "pending"].includes(ticket.status));
+  const activeTickets = tickets.filter((ticket) => isActiveMaintenanceTicketStatus(ticket.status));
   const urgentTickets = tickets.filter((ticket) => ticket.isUrgent).length;
   const latestActionNote = latestActionNoteQuery.data?.[0];
   const actionHasRecentNote = latestActionNote
@@ -293,7 +299,7 @@ export default function MaintenancePage() {
                       Status
                       <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
                         <option value="all">All statuses</option>
-                        {["new", "in_progress", "pending", "resolved", "closed", "canceled"].map((status) => (
+                        {maintenanceTicketStatuses.map((status) => (
                           <option key={status} value={status}>
                             {label(status)}
                           </option>
@@ -533,7 +539,7 @@ export default function MaintenancePage() {
                                 Notes
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {!["resolved", "closed", "canceled"].includes(ticket.status) ? (
+                              {!isTerminalMaintenanceTicketStatus(ticket.status) ? (
                                 <DropdownMenuItem
                                   onSelect={() =>
                                     setTicketAction({
@@ -555,9 +561,10 @@ export default function MaintenancePage() {
                                   Reopen Ticket
                                 </DropdownMenuItem>
                               ) : null}
-                              {(["new", "in_progress", "pending"].includes(ticket.status) ||
-                                ticket.status === "resolved") && <DropdownMenuSeparator />}
-                              {!["resolved", "closed", "canceled"].includes(ticket.status) ? (
+                              {(isActiveMaintenanceTicketStatus(ticket.status) || ticket.status === "resolved") && (
+                                <DropdownMenuSeparator />
+                              )}
+                              {!isTerminalMaintenanceTicketStatus(ticket.status) ? (
                                 <DropdownMenuItem
                                   className="text-red-700"
                                   onSelect={() =>

@@ -34,6 +34,7 @@ import {
   ParcelisLogo,
   Textarea,
 } from "@parcelis/ui";
+import { isActiveMaintenanceTicketStatus, isTerminalMaintenanceTicketStatus } from "@parcelis/schemas";
 import { apiClient } from "../../../components/api-client";
 import { Sidebar } from "../../../components/sidebar";
 import { NotesDrawer } from "../../../components/notes-drawer";
@@ -224,14 +225,14 @@ export default function MaintenanceTicketPage() {
           <div className="flex gap-2">
             <Button
               className="min-w-40 border-red-200 text-red-700 hover:bg-red-50"
-              disabled={!ticket || ["resolved", "closed", "canceled"].includes(ticket.status) || cancelTicket.isPending}
+              disabled={!ticket || isTerminalMaintenanceTicketStatus(ticket.status) || cancelTicket.isPending}
               onClick={() => setIsCancellationNoteOpen(true)}
               variant="secondary"
             >
               <CircleX className="h-4 w-4" />
               Cancel Ticket
             </Button>
-            {ticket && !["resolved", "closed", "canceled"].includes(ticket.status) ? (
+            {ticket && isActiveMaintenanceTicketStatus(ticket.status) ? (
               <Button
                 className="min-w-40"
                 disabled={resolveTicket.isPending}

@@ -29,7 +29,7 @@ import {
   ParcelisLogo,
   Select,
 } from "@parcelis/ui";
-import type { UpdatePropertyInput } from "@parcelis/schemas";
+import { isActiveMaintenanceTicketStatus, type UpdatePropertyInput } from "@parcelis/schemas";
 import {
   PropertyDrawer,
   initialPropertyFormState,
@@ -130,7 +130,9 @@ export default function PropertyDetailPage() {
     expiresBefore.setDate(expiresBefore.getDate() + 90);
     return lease.endsOn !== null && new Date(lease.endsOn) >= now && new Date(lease.endsOn) <= expiresBefore;
   }).length;
-  const openMaintenanceTickets = maintenanceTickets.filter((ticket) => ["new", "in_progress", "pending"].includes(ticket.status)).length;
+  const openMaintenanceTickets = maintenanceTickets.filter((ticket) =>
+    isActiveMaintenanceTicketStatus(ticket.status),
+  ).length;
   const sampleVacantUnits = Math.max(unitCount - occupiedUnits, 0);
   const contactItems = property
     ? [

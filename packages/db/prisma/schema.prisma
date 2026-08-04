@@ -25,6 +25,7 @@ enum MaintenanceTicketStatus {
   new
   in_progress
   pending
+  scheduled
   resolved
   closed
   canceled

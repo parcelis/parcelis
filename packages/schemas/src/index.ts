@@ -168,14 +168,26 @@ export const createMaintenanceTicketInputSchema = z.object({
 export const updateMaintenanceTicketInputSchema = createMaintenanceTicketInputSchema.extend({ id: idSchema });
 
 export const maintenanceTicketByIdInputSchema = z.object({ id: idSchema });
-export const maintenanceTicketStatusSchema = z.enum([
+export const maintenanceTicketStatuses = [
   "new",
   "in_progress",
   "pending",
+  "scheduled",
   "resolved",
   "closed",
   "canceled",
-]);
+] as const;
+export const activeMaintenanceTicketStatuses = ["new", "in_progress", "pending", "scheduled"] as const;
+export const terminalMaintenanceTicketStatuses = ["resolved", "closed", "canceled"] as const;
+export const maintenanceTicketStatusSchema = z.enum(maintenanceTicketStatuses);
+
+export function isActiveMaintenanceTicketStatus(status: string) {
+  return activeMaintenanceTicketStatuses.includes(status as (typeof activeMaintenanceTicketStatuses)[number]);
+}
+
+export function isTerminalMaintenanceTicketStatus(status: string) {
+  return terminalMaintenanceTicketStatuses.includes(status as (typeof terminalMaintenanceTicketStatuses)[number]);
+}
 export const updateMaintenanceTicketStatusInputSchema = z.object({
   id: idSchema,
   noteBody: z.string().trim().min(1).max(5000).optional(),

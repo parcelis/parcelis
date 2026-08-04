@@ -1,5 +1,6 @@
 import {
   createPropertyInputSchema,
+  isActiveMaintenanceTicketStatus,
   createMaintenanceTicketInputSchema,
   maintenanceAttachmentByIdInputSchema,
   maintenanceImageUploadCompleteInputSchema,
@@ -69,7 +70,6 @@ const propertySelect = {
   status: true,
 } as const;
 
-const openMaintenanceStatuses = new Set(["new", "in_progress", "pending"]);
 const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(LeaseStatus)];
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
@@ -191,7 +191,7 @@ function withOperatingMetrics<
   expiresBefore.setDate(expiresBefore.getDate() + 90);
   const activeLeases = property.leases.filter((lease) => lease.status === "active" || lease.status === "notice");
   const openMaintenanceTickets = property.maintenanceTickets.filter((ticket) =>
-    openMaintenanceStatuses.has(ticket.status),
+    isActiveMaintenanceTicketStatus(ticket.status),
   ).length;
   const urgentMaintenanceTickets = property.maintenanceTickets.filter(
     (ticket) => ticket.priority === "urgent" && ticket.status !== "resolved",
