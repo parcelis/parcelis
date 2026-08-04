@@ -1,5 +1,5 @@
 # .github/workflows/pr-title-lint.yml
-name: Lint PR title
+name: PR Linter
 
 on:
   pull_request_target:
