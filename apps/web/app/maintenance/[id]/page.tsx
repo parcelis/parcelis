@@ -495,10 +495,13 @@ export default function MaintenanceTicketPage() {
                         <p className="text-sm text-parcelis-gray">Loading notes…</p>
                       ) : notesQuery.data?.length ? (
                         notesQuery.data.map((note) => (
-                          <div className="rounded-md border border-parcelis-border p-3" key={note.id}>
-                            <div className="flex gap-3">
+                          <article
+                            className="border-l-4 border-parcelis-green bg-parcelis-green/5 py-3 pl-4 pr-3"
+                            key={note.id}
+                          >
+                            <div className="flex items-start justify-between gap-3">
                               {editingNoteId === note.id ? (
-                                <div className="min-w-0 flex-1 rounded-md border border-parcelis-green/40 bg-parcelis-green/5 p-3">
+                                <div className="min-w-0 flex-1">
                                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-green">
                                     Editing note
                                   </p>
@@ -529,13 +532,9 @@ export default function MaintenanceTicketPage() {
                               )}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <button
-                                    aria-label="Note actions"
-                                    className="grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray"
-                                    type="button"
-                                  >
+                                  <Button aria-label="Note actions" size="sm" type="button" variant="ghost">
                                     <EllipsisVertical className="h-4 w-4" />
-                                  </button>
+                                  </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem
@@ -557,17 +556,21 @@ export default function MaintenanceTicketPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
-                            <p className="mt-2 text-xs text-parcelis-gray">
+                            <p className="mt-3 text-xs text-parcelis-gray">
                               {new Intl.DateTimeFormat("en-US", {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
+                                hour: "numeric",
+                                minute: "2-digit",
                               }).format(new Date(note.createdAt))}
                             </p>
-                          </div>
+                          </article>
                         ))
                       ) : (
-                        <p className="text-sm text-parcelis-gray">No notes yet.</p>
+                        <p className="rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center text-sm text-parcelis-gray">
+                          No notes yet.
+                        </p>
                       )}
                     </CardContent>
                   </Card>
