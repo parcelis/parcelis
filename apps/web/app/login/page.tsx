@@ -26,7 +26,7 @@ export default function LoginPage() {
   const { resolvedMode, setMode } = useTheme();
 
   return (
-    <main className="relative min-h-[100svh] overflow-hidden bg-parcelis-porcelain text-parcelis-charcoal dark:bg-[#071b2f] dark:text-white">
+    <main className="relative flex-1 overflow-hidden bg-parcelis-porcelain text-parcelis-charcoal dark:bg-[#071b2f] dark:text-white">
       <div className="absolute inset-0 bg-[url('/brand/parcelis-light-background.svg')] bg-cover bg-center dark:bg-[url('/brand/parcelis-dark-background.svg')]" />
       <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/55 to-white/30 dark:from-[#041220]/80 dark:via-[#041220]/55 dark:to-[#041220]/30" />
       <div className="relative mx-auto flex min-h-[100svh] w-full max-w-[100rem] flex-col px-6 py-10 sm:px-10 lg:px-12">

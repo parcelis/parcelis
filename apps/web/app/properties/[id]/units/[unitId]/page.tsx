@@ -172,7 +172,7 @@ export default function UnitDetailPage() {
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="flex-1">
       <Sidebar active="properties" />
       <PropertyDrawer
         cancelDescription="Are you sure you'd like to cancel editing?"
