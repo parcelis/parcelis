@@ -71,6 +71,7 @@
 
 - Add tRPC routes in `apps/api/src/router/app.router.ts` or split them when the router grows.
 - Validate procedure inputs with Zod schemas from `@parcelis/schemas`.
+- For schemas that are not database-driven, define them once in a central shared location and import them where needed; never duplicate or hardcode the same schema in multiple places.
 - Keep Prisma models and migrations in `packages/db/prisma`.
 - After editing `schema.prisma`, run `pnpm db:migrate` and `pnpm db:generate`.
 - Seed local demo data with `pnpm db:seed`.
