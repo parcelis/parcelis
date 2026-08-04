@@ -16,6 +16,7 @@ import {
   Image,
   Pencil,
   StickyNote,
+  StickyNotes,
   Trash2,
   UserRound,
   Wrench,
@@ -437,8 +438,8 @@ export default function MaintenanceTicketPage() {
                       </div>
                     </div>
                     <div className="border-t border-parcelis-border pt-5">
-                      <p className="text-xs font-semibold uppercase text-parcelis-gray">Description</p>
-                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-parcelis-charcoal">
+                      <p className="font-semibold text-parcelis-charcoal">Description</p>
+                      <p className="mt-4 whitespace-pre-wrap text-md leading-6 text-parcelis-charcoal">
                         {ticket.description}
                       </p>
                     </div>
@@ -472,13 +473,13 @@ export default function MaintenanceTicketPage() {
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-parcelis-border bg-parcelis-porcelain/50 px-4 py-10 text-center dark:bg-parcelis-charcoal/55">
-                          <Image className="h-6 w-6 text-parcelis-green" />
+                        <Image className="h-10 w-10 text-parcelis-green" />
                           <span className="mt-3 text-sm font-semibold text-parcelis-charcoal dark:text-white">
                             No photos attached
                           </span>
-                          <span className="mt-1 text-xs text-parcelis-gray">
-                            Attached photos will be available in the gallery.
-                          </span>
+                        <span className="mt-1 text-xs text-parcelis-gray">
+                          Attached photos will be available in the gallery.
+                        </span>
                         </div>
                       )}
                     </CardContent>
@@ -568,9 +569,11 @@ export default function MaintenanceTicketPage() {
                           </article>
                         ))
                       ) : (
-                        <p className="rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center text-sm text-parcelis-gray">
-                          No notes yet.
-                        </p>
+                        <div className="flex flex-col items-center rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center">
+                          <StickyNotes className="h-10 w-10 text-parcelis-green" />
+                          <p className="mt-3 text-sm font-semibold text-parcelis-charcoal">No notes yet.</p>
+                          <p className="mt-1 text-sm text-parcelis-gray">Add private notes that tenants cannot see.</p>
+                        </div>
                       )}
                     </CardContent>
                   </Card>

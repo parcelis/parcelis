@@ -11,6 +11,7 @@ import {
   MoreVertical,
   Pencil,
   Phone,
+  StickyNotes,
   Trash2,
   UserRound,
   Wrench,
@@ -495,9 +496,11 @@ export function NotesDrawer({
                   ))}
                 </div>
               ) : (
-                <p className="rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center text-sm text-parcelis-gray">
-                  No notes yet.
-                </p>
+                <div className="flex flex-col items-center rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center">
+                  <StickyNotes className="h-10 w-10 text-parcelis-green" />
+                  <p className="mt-3 text-sm font-semibold text-parcelis-charcoal">No notes yet.</p>
+                  <p className="mt-1 text-sm text-parcelis-gray">Add private notes that tenants cannot see.</p>
+                </div>
               )}
             </div>
           </div>
