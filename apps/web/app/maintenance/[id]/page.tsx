@@ -430,7 +430,7 @@ export default function MaintenanceTicketPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold uppercase text-parcelis-gray">Entry consent</p>
+                        <p className="text-xs font-semibold uppercase text-parcelis-gray">Consent to enter</p>
                         <p className="mt-1 font-semibold text-parcelis-charcoal">
                           {ticket.consentToEnter ? "Granted" : "Not granted"}
                         </p>
