@@ -512,8 +512,9 @@ export default function PropertyDetailPage() {
                       </p>
                     ) : (
                       maintenanceTickets.map((ticket) => (
-                        <div
-                          className="flex items-center gap-3 rounded-md border border-parcelis-border p-3"
+                        <Link
+                          className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
+                          href={`/maintenance/${ticket.id}`}
                           key={ticket.id}
                         >
                           <Wrench className="h-4 w-4 text-parcelis-green" />
@@ -524,7 +525,7 @@ export default function PropertyDetailPage() {
                               {ticket.dueOn ? ` · Due ${formatDate(ticket.dueOn)}` : ""}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       ))
                     )}
                   </CardContent>

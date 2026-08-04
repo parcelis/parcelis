@@ -847,12 +847,61 @@ export const appRouter = router({
       await deleteMaintenanceImageObject(attachment.objectKey);
       return attachment;
     }),
-    updateStatus: publicProcedure
-      .input(updateMaintenanceTicketStatusInputSchema)
-      .mutation(({ ctx, input }) =>
-        ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } }),
-      ),
+    updateStatus: publicProcedure.input(updateMaintenanceTicketStatusInputSchema).mutation(async ({ ctx, input }) => {
+      const currentTicket = await ctx.prisma.maintenanceTicket.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { status: true },
+      });
+
+      if (input.status === "resolved") {
+        const recentNote = await ctx.prisma.note.findFirst({
+          where: {
+            maintenanceTicketId: input.id,
+            createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          },
+          select: { id: true },
+        });
+        const noteBody = input.noteBody;
+        if (!recentNote && !noteBody) {
+          throw new Error("A maintenance note from the last 24 hours is required before resolving this ticket.");
+        }
+        if (!recentNote && noteBody) {
+          return ctx.prisma.$transaction(async (tx) => {
+            const ticket = await tx.maintenanceTicket.update({
+              where: { id: input.id },
+              data: { status: input.status },
+            });
+            await tx.note.create({ data: { maintenanceTicketId: input.id, body: noteBody } });
+            return ticket;
+          });
+        }
+      }
+
+      if (currentTicket.status === "resolved" && input.status === "in_progress") {
+        return ctx.prisma.$transaction(async (tx) => {
+          const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
+          await tx.note.create({ data: { maintenanceTicketId: input.id, body: "Ticket Reopened" } });
+          return ticket;
+        });
+      }
+
+      if (input.status === "canceled") {
+        const noteBody = input.noteBody;
+        if (!noteBody) {
+          throw new Error("A cancellation note is required before canceling this ticket.");
+        }
+
+        return ctx.prisma.$transaction(async (tx) => {
+          const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
+          await tx.note.create({ data: { maintenanceTicketId: input.id, body: noteBody } });
+          return ticket;
+        });
+      }
+
+      return ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
+    }),
     update: publicProcedure.input(updateMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
+      const priority = input.isUrgent ? "urgent" : input.priority;
       const units = await ctx.prisma.unit.findMany({
         where: { id: { in: input.unitIds }, propertyId: input.propertyId },
         select: { id: true, name: true },
@@ -865,8 +914,9 @@ export const appRouter = router({
           title: input.ticketTitle,
           description: input.description || null,
           categoryId: input.categoryId,
-          isUrgent: input.isUrgent,
-          priority: input.isUrgent ? "urgent" : "medium",
+          isUrgent: priority === "urgent",
+          priority,
+          consentToEnter: input.consentToEnter,
           requestedByType: input.requestedByType,
           requestedByTenantId: input.requestedByType === "tenant" ? input.requestedById : null,
           requestedByLandlordId: input.requestedByType === "landlord" ? input.requestedById : null,
@@ -890,6 +940,7 @@ export const appRouter = router({
       return ticket;
     }),
     create: publicProcedure.input(createMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
+      const priority = input.isUrgent ? "urgent" : input.priority;
       const units = await ctx.prisma.unit.findMany({
         where: { id: { in: input.unitIds }, propertyId: input.propertyId },
         select: { id: true, name: true },
@@ -921,8 +972,9 @@ export const appRouter = router({
           title: input.ticketTitle,
           description: input.description || null,
           categoryId: input.categoryId,
-          isUrgent: input.isUrgent,
-          priority: input.isUrgent ? "urgent" : "medium",
+          isUrgent: priority === "urgent",
+          priority,
+          consentToEnter: input.consentToEnter,
           requestedByType: input.requestedByType,
           requestedByTenantId: input.requestedByType === "tenant" ? input.requestedById : null,
           requestedByLandlordId: input.requestedByType === "landlord" ? input.requestedById : null,

@@ -267,6 +267,7 @@ model MaintenanceTicket {
   status                MaintenanceTicketStatus   @default(new)
   priority              MaintenanceTicketPriority @default(medium)
   isUrgent              Boolean                   @default(false)
+  consentToEnter        Boolean                   @default(false)
   categoryId            Int?
   requestedByType       MaintenanceRequesterType?
   requestedByTenantId   Int?

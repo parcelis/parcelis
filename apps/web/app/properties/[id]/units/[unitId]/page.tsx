@@ -566,8 +566,9 @@ export default function UnitDetailPage() {
                   <CardContent className="space-y-3">
                     {openTickets.length > 0 ? (
                       openTickets.map((ticket) => (
-                        <div
-                          className="flex items-center gap-3 rounded-md border border-parcelis-border p-3"
+                        <Link
+                          className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
+                          href={`/maintenance/${ticket.id}`}
                           key={ticket.id}
                         >
                           <Wrench className="h-4 w-4 text-parcelis-green" />
@@ -578,7 +579,7 @@ export default function UnitDetailPage() {
                               {ticket.dueOn ? ` · Due ${formatDate(ticket.dueOn)}` : ""}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       ))
                     ) : (
                       <div className="flex min-h-36 items-center justify-center gap-2 text-sm text-parcelis-gray">

@@ -161,7 +161,9 @@ export const createMaintenanceTicketInputSchema = z.object({
   description: z.string().trim().max(5000).optional(),
   requestedById: idSchema,
   requestedByType: z.enum(["tenant", "landlord"]),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
   isUrgent: z.boolean().default(false),
+  consentToEnter: z.boolean().default(false),
 });
 export const updateMaintenanceTicketInputSchema = createMaintenanceTicketInputSchema.extend({ id: idSchema });
 
@@ -176,6 +178,7 @@ export const maintenanceTicketStatusSchema = z.enum([
 ]);
 export const updateMaintenanceTicketStatusInputSchema = z.object({
   id: idSchema,
+  noteBody: z.string().trim().min(1).max(5000).optional(),
   status: maintenanceTicketStatusSchema,
 });
 export const maintenanceImageUploadInputSchema = z.object({

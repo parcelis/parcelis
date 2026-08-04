@@ -49,6 +49,7 @@ type MaintenanceDrawerProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (input: CreateMaintenanceTicketInput, attachments: File[]) => void;
   initialValues?: Partial<typeof initialForm>;
+  statusLabel?: string;
   submitLabel?: string;
   open: boolean;
 };
@@ -61,7 +62,9 @@ const initialForm = {
   description: "",
   requestedById: "",
   requestedByType: "tenant" as "tenant" | "landlord",
+  priority: "medium" as "low" | "medium" | "high" | "urgent",
   isUrgent: false,
+  consentToEnter: false,
 };
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -88,6 +91,7 @@ export function MaintenanceDrawer({
   onOpenChange,
   onSubmit,
   open,
+  statusLabel = "New",
   submitLabel = "Create Item",
 }: MaintenanceDrawerProps) {
   const [form, setForm] = React.useState(initialForm);
@@ -176,7 +180,9 @@ export function MaintenanceDrawer({
                 description: form.description || undefined,
                 requestedById: Number(form.requestedById),
                 requestedByType: form.requestedByType,
+                priority: form.priority,
                 isUrgent: form.isUrgent,
+                consentToEnter: form.consentToEnter,
               },
               attachments.map((attachment) => attachment.file),
             );
@@ -203,7 +209,7 @@ export function MaintenanceDrawer({
                 </div>
                 <div className="border-white/15 md:border-l md:pl-8">
                   <p className="text-xs font-semibold uppercase text-white/55">Status</p>
-                  <p className="mt-1 text-base font-semibold text-white">Open</p>
+                  <p className="mt-1 text-base font-semibold text-white">{statusLabel}</p>
                 </div>
                 <div className="border-white/15 md:border-l md:pl-8">
                   <p className="text-xs font-semibold uppercase text-white/55">Priority</p>
@@ -327,6 +333,21 @@ export function MaintenanceDrawer({
                       })}
                     </div>
                   </div>
+                  <Label className="gap-2">
+                    Priority *
+                    <Select
+                      value={form.priority}
+                      onChange={(event) => {
+                        const priority = event.target.value as typeof form.priority;
+                        setForm({ ...form, priority, isUrgent: priority === "urgent" });
+                      }}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </Select>
+                  </Label>
                   <Label className="gap-2 md:col-span-2">
                     Description *
                     <Textarea
@@ -367,13 +388,31 @@ export function MaintenanceDrawer({
                       ))}
                     </Select>
                   </Label>
-                  <label className="flex items-center gap-3 text-sm font-semibold text-parcelis-charcoal md:col-span-2">
+                  <div className="flex items-center gap-3 text-sm font-semibold text-parcelis-charcoal md:col-span-2">
                     <Checkbox
                       checked={form.isUrgent}
-                      onCheckedChange={(checked) => setForm({ ...form, isUrgent: checked === true })}
+                      onCheckedChange={(checked) => {
+                        const isUrgent = checked === true;
+                        setForm((current) => ({
+                          ...current,
+                          isUrgent,
+                          priority: isUrgent ? "urgent" : "medium",
+                        }));
+                      }}
+                      id="isUrgent"
                     />
-                    Urgent request
-                  </label>
+                    <Label htmlFor="isUrgent">Urgent request</Label>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm font-semibold text-parcelis-charcoal md:col-span-2">
+                    <Checkbox
+                      checked={form.consentToEnter}
+                      id="consentToEnter"
+                      onCheckedChange={(checked) =>
+                        setForm((current) => ({ ...current, consentToEnter: checked === true }))
+                      }
+                    />
+                    <Label htmlFor="consentToEnter">Consent to enter premises</Label>
+                  </div>
                   {error ? (
                     <p className="text-sm font-medium text-red-700 md:col-span-2">
                       Unable to create maintenance item. Please try again.

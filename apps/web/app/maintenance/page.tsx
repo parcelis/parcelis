@@ -5,13 +5,16 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
+  Check,
   ChevronRight,
+  CircleX,
   EllipsisVertical,
   Eye,
   Filter,
   Pencil,
   Plus,
   Search,
+  StickyNote,
   Trash2,
   Wrench,
 } from "lucide-react";
@@ -20,9 +23,12 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Dialog,
+  DialogContent,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
   Label,
@@ -34,14 +40,23 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Textarea,
 } from "@parcelis/ui";
 import { apiClient } from "../../components/api-client";
 import { MaintenanceDrawer } from "../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
+import { NotesDrawer } from "../../components/notes-drawer";
 import { Sidebar } from "../../components/sidebar";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
+type TicketAction = {
+  id: number;
+  propertyName: string;
+  status: "resolved" | "canceled";
+  title: string;
+  units: string;
+};
 
 function label(value: string) {
   return value
@@ -51,6 +66,17 @@ function label(value: string) {
 }
 function formatDate(value: Date | string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+function ticketUnits(ticket: { units: Array<{ unit: { name: string } }> }) {
+  return ticket.units.length ? ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ") : "Property-wide";
+}
+function statusBadgeClass(status: string) {
+  if (status === "new") return "bg-parcelis-green/15 text-parcelis-charcoal";
+  if (status === "in_progress") return "bg-sky-500/15 text-sky-700";
+  if (status === "pending") return "bg-amber-500/15 text-amber-700";
+  if (status === "resolved") return "bg-emerald-500/15 text-emerald-700";
+  if (status === "canceled") return "bg-red-500/15 text-red-700";
+  return "bg-parcelis-porcelain text-parcelis-gray";
 }
 
 export default function MaintenancePage() {
@@ -64,11 +90,20 @@ export default function MaintenancePage() {
   const [groupByProperty, setGroupByProperty] = React.useState(false);
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [notesTicket, setNotesTicket] = React.useState<{
+    id: number;
+    propertyName: string;
+    status: string;
+    title: string;
+    units: string;
+  } | null>(null);
+  const [ticketAction, setTicketAction] = React.useState<TicketAction | null>(null);
+  const [ticketActionNote, setTicketActionNote] = React.useState("");
   const ticketsQuery = useQuery({
     queryKey: ["maintenance", "list"],
     queryFn: () => apiClient.maintenance.list.query(),
   });
-  const createMutation = useMutation({
+  const createTicket = useMutation({
     mutationFn: async ({
       input,
       attachments,
@@ -85,12 +120,40 @@ export default function MaintenancePage() {
       await queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] });
     },
   });
-  const archiveMutation = useMutation({
+  const archiveTicket = useMutation({
     mutationFn: (id: number) => apiClient.maintenance.archive.mutate({ id }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
   });
-  const deleteMutation = useMutation({
+  const deleteTicket = useMutation({
     mutationFn: (id: number) => apiClient.maintenance.delete.mutate({ id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
+  });
+  const latestActionNoteQuery = useQuery({
+    queryKey: ["notes", "list", { maintenanceTicketId: ticketAction?.id ?? 0, limit: 1 }],
+    queryFn: () => apiClient.notes.list.query({ maintenanceTicketId: ticketAction!.id, limit: 1 }),
+    enabled: ticketAction?.status === "resolved",
+  });
+  const changeTicketStatus = useMutation({
+    mutationFn: ({ id, noteBody, status }: { id: number; noteBody?: string; status: "resolved" | "canceled" }) =>
+      apiClient.maintenance.updateStatus.mutate({ id, noteBody, status }),
+    onSuccess: async () => {
+      const ticketId = ticketAction?.id;
+      setTicketAction(null);
+      setTicketActionNote("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
+        ...(ticketId
+          ? [
+              queryClient.invalidateQueries({
+                queryKey: ["notes", "list", { maintenanceTicketId: ticketId, limit: 1 }],
+              }),
+            ]
+          : []),
+      ]);
+    },
+  });
+  const reopenTicket = useMutation({
+    mutationFn: (id: number) => apiClient.maintenance.updateStatus.mutate({ id, status: "in_progress" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
   });
   const tickets = ticketsQuery.data ?? [];
@@ -113,6 +176,11 @@ export default function MaintenancePage() {
   );
   const activeTickets = tickets.filter((ticket) => ["new", "in_progress", "pending"].includes(ticket.status));
   const urgentTickets = tickets.filter((ticket) => ticket.isUrgent).length;
+  const latestActionNote = latestActionNoteQuery.data?.[0];
+  const actionHasRecentNote = latestActionNote
+    ? Date.now() - new Date(latestActionNote.createdAt).getTime() <= 24 * 60 * 60 * 1000
+    : false;
+  const actionRequiresNote = ticketAction?.status === "canceled" || !actionHasRecentNote;
   const groupedTickets = Array.from(
     filteredTickets.reduce((groups, ticket) => {
       const group = groups.get(ticket.property.id) ?? {
@@ -137,11 +205,22 @@ export default function MaintenancePage() {
     <main className="min-h-screen bg-parcelis-porcelain">
       <Sidebar active="maintenance" />
       <MaintenanceDrawer
-        error={createMutation.error}
-        isPending={createMutation.isPending}
+        error={createTicket.error}
+        isPending={createTicket.isPending}
         onOpenChange={setDrawerOpen}
-        onSubmit={(input, attachments) => createMutation.mutate({ input, attachments })}
+        onSubmit={(input, attachments) => createTicket.mutate({ input, attachments })}
         open={drawerOpen}
+      />
+      <NotesDrawer
+        maintenanceSummary={
+          notesTicket
+            ? { propertyName: notesTicket.propertyName, status: label(notesTicket.status), units: notesTicket.units }
+            : undefined
+        }
+        onOpenChange={(open) => !open && setNotesTicket(null)}
+        open={Boolean(notesTicket)}
+        subject={{ maintenanceTicketId: notesTicket?.id ?? 0 }}
+        subjectLabel={notesTicket?.title ?? "Maintenance Ticket"}
       />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -346,7 +425,9 @@ export default function MaintenancePage() {
                                     {formatDate(ticket.openedOn)}
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
-                                    <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
+                                    <span
+                                      className={`rounded-md px-2 py-1 text-xs font-semibold ${statusBadgeClass(ticket.status)}`}
+                                    >
                                       {label(ticket.status)}
                                     </span>
                                   </TableCell>
@@ -404,7 +485,7 @@ export default function MaintenancePage() {
                         </TableCell>
                         <TableCell className="px-5 py-4">
                           <span
-                            className={`rounded-md px-2 py-1 text-xs font-semibold ${ticket.status === "new" ? "bg-parcelis-green/15 text-parcelis-charcoal" : "bg-parcelis-porcelain text-parcelis-gray"}`}
+                            className={`rounded-md px-2 py-1 text-xs font-semibold ${statusBadgeClass(ticket.status)}`}
                           >
                             {label(ticket.status)}
                           </span>
@@ -437,13 +518,69 @@ export default function MaintenancePage() {
                                 <Pencil className="h-4 w-4 text-parcelis-green" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => archiveMutation.mutate(ticket.id)}>
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  setNotesTicket({
+                                    id: ticket.id,
+                                    propertyName: ticket.property.name,
+                                    status: ticket.status,
+                                    title: ticket.title,
+                                    units: ticketUnits(ticket),
+                                  })
+                                }
+                              >
+                                <StickyNote className="h-4 w-4 text-parcelis-green" />
+                                Notes
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {!["resolved", "closed", "canceled"].includes(ticket.status) ? (
+                                <DropdownMenuItem
+                                  onSelect={() =>
+                                    setTicketAction({
+                                      id: ticket.id,
+                                      propertyName: ticket.property.name,
+                                      status: "resolved",
+                                      title: ticket.title,
+                                      units: ticketUnits(ticket),
+                                    })
+                                  }
+                                >
+                                  <Check className="h-4 w-4 text-parcelis-green" />
+                                  Resolve
+                                </DropdownMenuItem>
+                              ) : null}
+                              {ticket.status === "resolved" ? (
+                                <DropdownMenuItem onSelect={() => reopenTicket.mutate(ticket.id)}>
+                                  <Wrench className="h-4 w-4 text-parcelis-green" />
+                                  Reopen Ticket
+                                </DropdownMenuItem>
+                              ) : null}
+                              {(["new", "in_progress", "pending"].includes(ticket.status) ||
+                                ticket.status === "resolved") && <DropdownMenuSeparator />}
+                              {!["resolved", "closed", "canceled"].includes(ticket.status) ? (
+                                <DropdownMenuItem
+                                  className="text-red-700"
+                                  onSelect={() =>
+                                    setTicketAction({
+                                      id: ticket.id,
+                                      propertyName: ticket.property.name,
+                                      status: "canceled",
+                                      title: ticket.title,
+                                      units: ticketUnits(ticket),
+                                    })
+                                  }
+                                >
+                                  <CircleX className="h-4 w-4" />
+                                  Cancel Ticket
+                                </DropdownMenuItem>
+                              ) : null}
+                              <DropdownMenuItem onSelect={() => archiveTicket.mutate(ticket.id)}>
                                 <Archive className="h-4 w-4 text-parcelis-green" />
                                 Archive
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-700"
-                                onSelect={() => deleteMutation.mutate(ticket.id)}
+                                onSelect={() => deleteTicket.mutate(ticket.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
                                 Delete
@@ -460,6 +597,81 @@ export default function MaintenancePage() {
           </Card>
         </div>
       </section>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setTicketAction(null);
+            setTicketActionNote("");
+          }
+        }}
+        open={Boolean(ticketAction)}
+      >
+        <DialogContent>
+          {ticketAction ? (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-parcelis-charcoal">
+                  {ticketAction.status === "canceled" ? "Cancel ticket" : "Resolve ticket"}
+                </h2>
+                <p className="mt-1 text-sm text-parcelis-gray">{ticketAction.title}</p>
+              </div>
+              {ticketAction.status === "resolved" && latestActionNoteQuery.isLoading ? (
+                <p className="text-sm text-parcelis-gray">Checking recent notes…</p>
+              ) : actionRequiresNote ? (
+                <div>
+                  <p className="mb-3 text-sm text-parcelis-gray">
+                    {ticketAction.status === "canceled"
+                      ? "A cancellation note is required before updating this ticket."
+                      : "A note from the last 24 hours is required before resolving this ticket."}
+                  </p>
+                  <Textarea
+                    onChange={(event) => setTicketActionNote(event.target.value)}
+                    placeholder={
+                      ticketAction.status === "canceled"
+                        ? "Explain why this ticket is being canceled."
+                        : "Describe the work completed or the resolution."
+                    }
+                    rows={4}
+                    value={ticketActionNote}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-parcelis-gray">A recent maintenance note is on file.</p>
+              )}
+              {changeTicketStatus.error ? (
+                <p className="text-sm font-medium text-red-700">{changeTicketStatus.error.message}</p>
+              ) : null}
+              <div className="flex items-center justify-between gap-3">
+                <Button onClick={() => setTicketAction(null)} type="button" variant="secondary">
+                  Cancel
+                </Button>
+                <Button
+                  className={
+                    ticketAction.status === "canceled" ? "border-red-200 text-red-700 hover:bg-red-50" : undefined
+                  }
+                  disabled={
+                    latestActionNoteQuery.isLoading ||
+                    changeTicketStatus.isPending ||
+                    (actionRequiresNote && !ticketActionNote.trim())
+                  }
+                  onClick={() =>
+                    changeTicketStatus.mutate({
+                      id: ticketAction.id,
+                      noteBody: actionRequiresNote ? ticketActionNote.trim() : undefined,
+                      status: ticketAction.status,
+                    })
+                  }
+                  type="button"
+                  variant={ticketAction.status === "canceled" ? "secondary" : "primary"}
+                >
+                  {ticketAction.status === "canceled" ? <CircleX className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                  {ticketAction.status === "canceled" ? "Save Note & Cancel" : "Resolve Ticket"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

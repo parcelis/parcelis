@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   BadgeCheck,
   CalendarDays,
+  CircleX,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -56,6 +57,10 @@ export default function MaintenanceTicketPage() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [editingNoteId, setEditingNoteId] = React.useState<number | null>(null);
   const [noteDraft, setNoteDraft] = React.useState("");
+  const [resolutionNote, setResolutionNote] = React.useState("");
+  const [isResolutionNoteOpen, setIsResolutionNoteOpen] = React.useState(false);
+  const [cancellationNote, setCancellationNote] = React.useState("");
+  const [isCancellationNoteOpen, setIsCancellationNoteOpen] = React.useState(false);
   const [galleryIndex, setGalleryIndex] = React.useState<number | null>(null);
   const queryClient = useQueryClient();
   const ticketQuery = useQuery({
@@ -68,11 +73,44 @@ export default function MaintenanceTicketPage() {
     queryFn: () => apiClient.notes.list.query({ maintenanceTicketId: id, limit: 5 }),
     enabled: id > 0,
   });
-  const acknowledgeMutation = useMutation({
+  const acknowledgeTicket = useMutation({
     mutationFn: () => apiClient.maintenance.updateStatus.mutate({ id, status: "in_progress" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
   });
-  const updateMutation = useMutation({
+  const resolveTicket = useMutation({
+    mutationFn: async (note?: string) => {
+      if (note) await apiClient.notes.create.mutate({ maintenanceTicketId: id, body: note });
+      return apiClient.maintenance.updateStatus.mutate({ id, status: "resolved" });
+    },
+    onSuccess: async () => {
+      setResolutionNote("");
+      setIsResolutionNoteOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
+        queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+      ]);
+    },
+  });
+  const reopenTicket = useMutation({
+    mutationFn: () => apiClient.maintenance.updateStatus.mutate({ id, status: "in_progress" }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
+        queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+      ]),
+  });
+  const cancelTicket = useMutation({
+    mutationFn: (noteBody: string) => apiClient.maintenance.updateStatus.mutate({ id, status: "canceled", noteBody }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
+        queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+      ]).then(() => {
+        setCancellationNote("");
+        setIsCancellationNoteOpen(false);
+      }),
+  });
+  const saveTicket = useMutation({
     mutationFn: async ({
       input,
       attachments,
@@ -89,16 +127,16 @@ export default function MaintenanceTicketPage() {
       queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] });
     },
   });
-  const deleteImageMutation = useMutation({
+  const deleteAttachment = useMutation({
     mutationFn: (attachmentId: number) => apiClient.maintenance.deleteImage.mutate({ id: attachmentId }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
   });
-  const deleteNoteMutation = useMutation({
+  const deleteNote = useMutation({
     mutationFn: (noteId: number) => apiClient.notes.delete.mutate({ id: noteId }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
   });
-  const updateNoteMutation = useMutation({
+  const saveNote = useMutation({
     mutationFn: ({ noteId, body }: { noteId: number; body: string }) =>
       apiClient.notes.update.mutate({ id: noteId, body }),
     onSuccess: () => {
@@ -111,6 +149,10 @@ export default function MaintenanceTicketPage() {
   const requester = ticket?.requestedByTenant ?? ticket?.requestedByLandlord;
   const attachments = ticket?.attachments ?? [];
   const activeAttachment = galleryIndex === null ? null : attachments[galleryIndex];
+  const latestNote = notesQuery.data?.[0];
+  const hasRecentNote = latestNote
+    ? Date.now() - new Date(latestNote.createdAt).getTime() <= 24 * 60 * 60 * 1000
+    : false;
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
       <Sidebar active="maintenance" />
@@ -133,13 +175,13 @@ export default function MaintenanceTicketPage() {
       />
       <MaintenanceDrawer
         drawerTitle="Edit Maintenance Item"
-        error={updateMutation.error}
+        error={saveTicket.error}
         existingAttachments={attachments.map((attachment) => ({
           id: attachment.id,
           fileName: attachment.fileName,
           imageUrl: attachment.imageUrl,
         }))}
-        isDeletingAttachment={deleteImageMutation.isPending}
+        isDeletingAttachment={deleteAttachment.isPending}
         initialValues={
           ticket
             ? {
@@ -150,17 +192,20 @@ export default function MaintenanceTicketPage() {
                 description: ticket.description ?? "",
                 requestedById: String(ticket.requestedByTenantId ?? ticket.requestedByLandlordId ?? ""),
                 requestedByType: ticket.requestedByType ?? "tenant",
+                priority: ticket.priority,
                 isUrgent: ticket.isUrgent,
+                consentToEnter: ticket.consentToEnter,
               }
             : undefined
         }
-        isPending={updateMutation.isPending}
+        isPending={saveTicket.isPending}
         onOpenChange={setEditOpen}
-        onDeleteExistingAttachment={(attachmentId) => deleteImageMutation.mutate(attachmentId)}
+        onDeleteExistingAttachment={(attachmentId) => deleteAttachment.mutate(attachmentId)}
         onSubmit={(input, attachmentFiles) =>
-          updateMutation.mutate({ input: { ...input, id }, attachments: attachmentFiles })
+          saveTicket.mutate({ input: { ...input, id }, attachments: attachmentFiles })
         }
         open={editOpen}
+        statusLabel={ticket ? label(ticket.status) : "New"}
         submitLabel="Save Changes"
       />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
@@ -177,6 +222,35 @@ export default function MaintenanceTicketPage() {
             </Button>
           </div>
           <div className="flex gap-2">
+            <Button
+              className="min-w-40 border-red-200 text-red-700 hover:bg-red-50"
+              disabled={!ticket || ["resolved", "closed", "canceled"].includes(ticket.status) || cancelTicket.isPending}
+              onClick={() => setIsCancellationNoteOpen(true)}
+              variant="secondary"
+            >
+              <CircleX className="h-4 w-4" />
+              Cancel Ticket
+            </Button>
+            {ticket && !["resolved", "closed", "canceled"].includes(ticket.status) ? (
+              <Button
+                className="min-w-40"
+                disabled={resolveTicket.isPending}
+                onClick={() => (hasRecentNote ? resolveTicket.mutate(undefined) : setIsResolutionNoteOpen(true))}
+                variant="secondary"
+              >
+                <Check className="h-4 w-4" />
+                Resolve
+              </Button>
+            ) : null}
+            <Button
+              className="min-w-40"
+              disabled={ticket?.status !== "resolved" || reopenTicket.isPending}
+              onClick={() => reopenTicket.mutate()}
+              variant="secondary"
+            >
+              <Wrench className="h-4 w-4" />
+              Reopen Ticket
+            </Button>
             <Button className="min-w-40" onClick={() => setNotesOpen(true)} variant="secondary">
               <StickyNote className="h-4 w-4" />
               Notes
@@ -188,8 +262,8 @@ export default function MaintenanceTicketPage() {
             {ticket?.status === "new" ? (
               <Button
                 className="min-w-40"
-                disabled={acknowledgeMutation.isPending}
-                onClick={() => acknowledgeMutation.mutate()}
+                disabled={acknowledgeTicket.isPending}
+                onClick={() => acknowledgeTicket.mutate()}
               >
                 <Check className="h-4 w-4" />
                 Acknowledge
@@ -245,13 +319,97 @@ export default function MaintenanceTicketPage() {
                   </div>
                 </div>
               </section>
+              {isResolutionNoteOpen ? (
+                <Card className="mb-6 border-amber-500/30">
+                  <CardHeader>
+                    <h2 className="font-semibold text-parcelis-charcoal">Add a resolution note</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      A note from the last 24 hours is required before resolving this ticket.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      onChange={(event) => setResolutionNote(event.target.value)}
+                      placeholder="Describe the work completed or the resolution."
+                      rows={4}
+                      value={resolutionNote}
+                    />
+                    {resolveTicket.error ? (
+                      <p className="mt-3 text-sm font-medium text-red-700">{resolveTicket.error.message}</p>
+                    ) : null}
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <Button
+                        onClick={() => {
+                          setIsResolutionNoteOpen(false);
+                          setResolutionNote("");
+                        }}
+                        type="button"
+                        variant="secondary"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        disabled={!resolutionNote.trim() || resolveTicket.isPending}
+                        onClick={() => resolveTicket.mutate(resolutionNote.trim())}
+                        type="button"
+                      >
+                        <Check className="h-4 w-4" />
+                        Save Note & Resolve
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+              {isCancellationNoteOpen ? (
+                <Card className="mb-6 border-red-200">
+                  <CardHeader>
+                    <h2 className="font-semibold text-parcelis-charcoal">Add a cancellation note</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      A note is required before canceling this maintenance ticket.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      onChange={(event) => setCancellationNote(event.target.value)}
+                      placeholder="Explain why this ticket is being canceled."
+                      rows={4}
+                      value={cancellationNote}
+                    />
+                    {cancelTicket.error ? (
+                      <p className="mt-3 text-sm font-medium text-red-700">{cancelTicket.error.message}</p>
+                    ) : null}
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <Button
+                        onClick={() => {
+                          setIsCancellationNoteOpen(false);
+                          setCancellationNote("");
+                        }}
+                        type="button"
+                        variant="secondary"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="border-red-200 text-red-700 hover:bg-red-50"
+                        disabled={!cancellationNote.trim() || cancelTicket.isPending}
+                        onClick={() => cancelTicket.mutate(cancellationNote.trim())}
+                        type="button"
+                        variant="secondary"
+                      >
+                        <CircleX className="h-4 w-4" />
+                        Save Note & Cancel Ticket
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
               <div className="space-y-5">
                 <Card>
                   <CardHeader>
                     <h2 className="font-semibold text-parcelis-charcoal">Ticket details</h2>
                   </CardHeader>
                   <CardContent className="space-y-5">
-                    <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-4">
                       <div>
                         <p className="text-xs font-semibold uppercase text-parcelis-gray">Category</p>
                         <p className="mt-1 font-semibold text-parcelis-charcoal">
@@ -268,6 +426,12 @@ export default function MaintenanceTicketPage() {
                         <p className="text-xs font-semibold uppercase text-parcelis-gray">Requested by</p>
                         <p className="mt-1 font-semibold text-parcelis-charcoal">
                           {requester ? `${requester.firstName} ${requester.lastName}` : "Not set"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-parcelis-gray">Entry consent</p>
+                        <p className="mt-1 font-semibold text-parcelis-charcoal">
+                          {ticket.consentToEnter ? "Granted" : "Not granted"}
                         </p>
                       </div>
                     </div>
@@ -348,8 +512,8 @@ export default function MaintenanceTicketPage() {
                                       Cancel
                                     </Button>
                                     <Button
-                                      disabled={!noteDraft.trim() || updateNoteMutation.isPending}
-                                      onClick={() => updateNoteMutation.mutate({ noteId: note.id, body: noteDraft })}
+                                      disabled={!noteDraft.trim() || saveNote.isPending}
+                                      onClick={() => saveNote.mutate({ noteId: note.id, body: noteDraft })}
                                       size="sm"
                                       type="button"
                                     >
@@ -384,7 +548,7 @@ export default function MaintenanceTicketPage() {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-red-700"
-                                    onSelect={() => deleteNoteMutation.mutate(note.id)}
+                                    onSelect={() => deleteNote.mutate(note.id)}
                                   >
                                     <Trash2 className="h-4 w-4" />
                                     Delete
