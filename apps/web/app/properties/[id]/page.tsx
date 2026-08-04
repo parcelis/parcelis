@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Archive,
   Bath,
   BedDouble,
   Building2,
@@ -15,11 +16,18 @@ import {
   PenLine,
   Phone,
   Ruler,
+  Trash2,
   Wrench,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Badge,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Button,
   Card,
   CardContent,
@@ -71,6 +79,7 @@ function formatDate(date: Date | string) {
 
 export default function PropertyDetailPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const propertyId = Number(params.id);
   const propertyQuery = useQuery({
@@ -106,6 +115,25 @@ export default function PropertyDetailPage() {
       ]);
     },
   });
+  const archivePropertyMutation = useMutation({
+    mutationFn: () => apiClient.properties.archive.mutate({ id: propertyId }),
+    onSuccess: async () => {
+      setIsArchiveDialogOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+      ]);
+      router.push("/properties");
+    },
+  });
+  const deletePropertyMutation = useMutation({
+    mutationFn: () => apiClient.properties.delete.mutate({ id: propertyId }),
+    onSuccess: async () => {
+      setIsDeleteDialogOpen(false);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
+      router.push("/properties");
+    },
+  });
   const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = React.useState(false);
   const [editInitialForm, setEditInitialForm] = React.useState<PropertyFormState>(initialPropertyFormState);
@@ -114,6 +142,8 @@ export default function PropertyDetailPage() {
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = React.useState(false);
   const [unitStatusFilter, setUnitStatusFilter] = React.useState("all");
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = React.useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
   const property = propertyQuery.data;
   const leases = property?.leases ?? [];
@@ -182,6 +212,61 @@ export default function PropertyDetailPage() {
   return (
     <main className="min-h-screen">
       <Sidebar active="properties" />
+      <AlertDialog onOpenChange={setIsArchiveDialogOpen} open={isArchiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive property?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will hide {property?.name ?? "this property"} from the default properties view.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button onClick={() => setIsArchiveDialogOpen(false)} type="button" variant="secondary">
+              Keep Active
+            </Button>
+            <Button
+              disabled={archivePropertyMutation.isPending}
+              onClick={() => archivePropertyMutation.mutate()}
+              type="button"
+            >
+              {archivePropertyMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Archive className="h-4 w-4" />
+              )}
+              Archive
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog onOpenChange={setIsDeleteDialogOpen} open={isDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete property?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes {property?.name ?? "this property"} and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button onClick={() => setIsDeleteDialogOpen(false)} type="button" variant="secondary">
+              Keep Property
+            </Button>
+            <Button
+              disabled={deletePropertyMutation.isPending}
+              onClick={() => deletePropertyMutation.mutate()}
+              type="button"
+              variant="destructive"
+            >
+              {deletePropertyMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <PropertyDrawer
         cancelDescription="Are you sure you'd like to cancel editing?"
         drawerTitle="Edit Property"
@@ -255,6 +340,26 @@ export default function PropertyDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              aria-label="Archive property"
+              className="min-w-10 sm:min-w-40"
+              disabled={!property}
+              onClick={() => setIsArchiveDialogOpen(true)}
+              variant="secondary"
+            >
+              <Archive className="h-4 w-4" />
+              <span className="hidden sm:inline">Archive</span>
+            </Button>
+            <Button
+              aria-label="Delete property"
+              className="min-w-10 sm:min-w-40"
+              disabled={!property}
+              onClick={() => setIsDeleteDialogOpen(true)}
+              variant="destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
             <Button
               aria-label="Add notes"
               className="min-w-10 sm:min-w-40"

@@ -8,9 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-parcelis-green text-parcelis-charcoal hover:bg-parcelis-green-hover focus-visible:outline-parcelis-green",
+        primary:
+          "bg-parcelis-green text-parcelis-charcoal hover:bg-parcelis-green-hover focus-visible:outline-parcelis-green",
         secondary: "border border-parcelis-border bg-white text-parcelis-charcoal hover:bg-parcelis-porcelain",
         ghost: "text-parcelis-charcoal hover:bg-parcelis-porcelain",
+        destructive:
+          "border border-red-700 bg-white text-red-700 hover:bg-red-50 focus-visible:outline-red-700 dark:hover:bg-red-950/40",
       },
       size: {
         sm: "h-8 px-3 text-xs",
@@ -26,8 +29,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 

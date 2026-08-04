@@ -1,26 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Archive,
   BadgeCheck,
   Building2,
   CalendarDays,
   CircleDollarSign,
   Coins,
+  Loader2,
   Mail,
   PenLine,
   Phone,
   Save,
   ScrollText,
   ShieldCheck,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Badge,
   Button,
   Card,
@@ -87,12 +96,15 @@ function getStatusTone(status?: string | null) {
 
 export default function TenantDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const tenantId = Number(params.id);
   const [isEmergencyContactOpen, setIsEmergencyContactOpen] = useState(false);
   const [isEmergencyContactDrawerOpen, setIsEmergencyContactDrawerOpen] = useState(false);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [isTenantDrawerOpen, setIsTenantDrawerOpen] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [tenantForm, setTenantForm] = useState<TenantFormState>(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = useState<File | null>(null);
   const [emergencyContactDraft, setEmergencyContactDraft] = useState({
@@ -140,6 +152,25 @@ export default function TenantDetailPage() {
       ]);
     },
   });
+  const archiveTenantMutation = useMutation({
+    mutationFn: () => apiClient.tenants.archive.mutate({ id: tenantId }),
+    onSuccess: async () => {
+      setIsArchiveDialogOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+      ]);
+      router.push("/tenants");
+    },
+  });
+  const deleteTenantMutation = useMutation({
+    mutationFn: () => apiClient.tenants.delete.mutate({ id: tenantId }),
+    onSuccess: async () => {
+      setIsDeleteDialogOpen(false);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
+      router.push("/tenants");
+    },
+  });
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
   const overdueCents = currentLease?.amountOverdueCents ?? 0;
   const currentInvoiceCents = currentLease?.monthlyRentCents ?? 0;
@@ -172,6 +203,63 @@ export default function TenantDetailPage() {
 
   return (
     <main className="min-h-screen">
+      <AlertDialog onOpenChange={setIsArchiveDialogOpen} open={isArchiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive tenant?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} as archived while
+              preserving their lease history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button onClick={() => setIsArchiveDialogOpen(false)} type="button" variant="secondary">
+              Keep Active
+            </Button>
+            <Button
+              disabled={archiveTenantMutation.isPending}
+              onClick={() => archiveTenantMutation.mutate()}
+              type="button"
+            >
+              {archiveTenantMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Archive className="h-4 w-4" />
+              )}
+              Archive
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog onOpenChange={setIsDeleteDialogOpen} open={isDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete tenant?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} and their
+              lease history. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button onClick={() => setIsDeleteDialogOpen(false)} type="button" variant="secondary">
+              Keep Tenant
+            </Button>
+            <Button
+              disabled={deleteTenantMutation.isPending}
+              onClick={() => deleteTenantMutation.mutate()}
+              type="button"
+              variant="destructive"
+            >
+              {deleteTenantMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {emergencyContact ? (
         <Dialog onOpenChange={setIsEmergencyContactOpen} open={isEmergencyContactOpen}>
           <DialogContent className="w-full max-w-md p-6">
@@ -358,6 +446,26 @@ export default function TenantDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              aria-label="Archive tenant"
+              className="min-w-10 sm:min-w-40"
+              disabled={!tenant}
+              onClick={() => setIsArchiveDialogOpen(true)}
+              variant="secondary"
+            >
+              <Archive className="h-4 w-4" />
+              <span className="hidden sm:inline">Archive</span>
+            </Button>
+            <Button
+              aria-label="Delete tenant"
+              className="min-w-10 sm:min-w-40"
+              disabled={!tenant}
+              onClick={() => setIsDeleteDialogOpen(true)}
+              variant="destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
             <Button
               aria-label="Add notes"
               className="min-w-10 sm:min-w-40"
