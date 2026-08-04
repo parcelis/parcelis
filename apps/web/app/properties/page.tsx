@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Archive,
+  ArchiveRestore,
   Building2,
   CalendarClock,
   ChevronRight,
@@ -160,14 +161,18 @@ function PropertyActionsMenu({
   onDelete,
   onEdit,
   onNotes,
+  onReactivate,
   property,
 }: {
   onArchive: () => void;
   onDelete: () => void;
   onEdit: () => void;
   onNotes: () => void;
+  onReactivate: () => void;
   property: PropertyListItem;
 }) {
+  const isArchived = property.status === "archived";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -194,10 +199,17 @@ function PropertyActionsMenu({
           <StickyNote className="h-4 w-4 text-parcelis-green" />
           Add Notes
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={property.status === "archived"} onSelect={onArchive}>
-          <Archive className="h-4 w-4 text-parcelis-green" />
-          Archive
-        </DropdownMenuItem>
+        {isArchived ? (
+          <DropdownMenuItem onSelect={onReactivate}>
+            <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
+            Unarchive
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onSelect={onArchive}>
+            <Archive className="h-4 w-4 text-parcelis-green" />
+            Archive
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
           <Trash2 className="h-4 w-4" />
           Delete
@@ -328,6 +340,17 @@ export default function PropertiesPage() {
     mutationFn: (input: { id: number }) => apiClient.properties.archive.mutate(input),
     onSuccess: async (_property, input) => {
       setArchivePropertyId(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.byId(input.id),
+        }),
+      ]);
+    },
+  });
+  const reactivateProperty = useMutation({
+    mutationFn: (input: { id: number }) => apiClient.properties.reactivate.mutate(input),
+    onSuccess: async (_property, input) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
         queryClient.invalidateQueries({
@@ -974,6 +997,7 @@ export default function PropertiesPage() {
                                 onDelete={() => setDeletePropertyId(property.id)}
                                 onEdit={() => openEditProperty(property)}
                                 onNotes={() => openNotes(property)}
+                                onReactivate={() => reactivateProperty.mutate({ id: property.id })}
                                 property={property}
                               />
                             </TableCell>

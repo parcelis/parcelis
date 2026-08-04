@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Archive,
+  ArchiveRestore,
   Bath,
   BedDouble,
   Building2,
@@ -124,6 +125,15 @@ export default function PropertyDetailPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
       ]);
       router.push("/properties");
+    },
+  });
+  const reactivatePropertyMutation = useMutation({
+    mutationFn: () => apiClient.properties.reactivate.mutate({ id: propertyId }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+      ]);
     },
   });
   const deletePropertyMutation = useMutation({
@@ -340,16 +350,33 @@ export default function PropertyDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              aria-label="Archive property"
-              className="min-w-10 sm:min-w-40"
-              disabled={!property}
-              onClick={() => setIsArchiveDialogOpen(true)}
-              variant="secondary"
-            >
-              <Archive className="h-4 w-4" />
-              <span className="hidden sm:inline">Archive</span>
-            </Button>
+            {property?.status === "archived" ? (
+              <Button
+                aria-label="Unarchive property"
+                className="min-w-10 sm:min-w-40"
+                disabled={reactivatePropertyMutation.isPending}
+                onClick={() => reactivatePropertyMutation.mutate()}
+                variant="secondary"
+              >
+                {reactivatePropertyMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArchiveRestore className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Unarchive</span>
+              </Button>
+            ) : (
+              <Button
+                aria-label="Archive property"
+                className="min-w-10 sm:min-w-40"
+                disabled={!property}
+                onClick={() => setIsArchiveDialogOpen(true)}
+                variant="secondary"
+              >
+                <Archive className="h-4 w-4" />
+                <span className="hidden sm:inline">Archive</span>
+              </Button>
+            )}
             <Button
               aria-label="Delete property"
               className="min-w-10 sm:min-w-40"

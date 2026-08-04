@@ -505,7 +505,7 @@ export const appRouter = router({
         })
         .then(withPropertyNotes),
     ),
-    /** Restores an inactive property to active status. */
+    /** Restores an archived property to active status. */
     reactivate: publicProcedure.input(propertyStatusInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.property
         .update({

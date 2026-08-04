@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Archive,
+  ArchiveRestore,
   BadgeCheck,
   Building2,
   CalendarDays,
@@ -161,6 +162,15 @@ export default function TenantDetailPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
       ]);
       router.push("/tenants");
+    },
+  });
+  const reactivateTenantMutation = useMutation({
+    mutationFn: () => apiClient.tenants.reactivate.mutate({ id: tenantId }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+      ]);
     },
   });
   const deleteTenantMutation = useMutation({
@@ -446,16 +456,33 @@ export default function TenantDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              aria-label="Archive tenant"
-              className="min-w-10 sm:min-w-40"
-              disabled={!tenant}
-              onClick={() => setIsArchiveDialogOpen(true)}
-              variant="secondary"
-            >
-              <Archive className="h-4 w-4" />
-              <span className="hidden sm:inline">Archive</span>
-            </Button>
+            {tenant?.tenantStatus === "archived" ? (
+              <Button
+                aria-label="Unarchive tenant"
+                className="min-w-10 sm:min-w-40"
+                disabled={reactivateTenantMutation.isPending}
+                onClick={() => reactivateTenantMutation.mutate()}
+                variant="secondary"
+              >
+                {reactivateTenantMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArchiveRestore className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Unarchive</span>
+              </Button>
+            ) : (
+              <Button
+                aria-label="Archive tenant"
+                className="min-w-10 sm:min-w-40"
+                disabled={!tenant}
+                onClick={() => setIsArchiveDialogOpen(true)}
+                variant="secondary"
+              >
+                <Archive className="h-4 w-4" />
+                <span className="hidden sm:inline">Archive</span>
+              </Button>
+            )}
             <Button
               aria-label="Delete tenant"
               className="min-w-10 sm:min-w-40"
