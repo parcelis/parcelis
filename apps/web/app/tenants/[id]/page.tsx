@@ -48,6 +48,7 @@ import { apiClient, queryKeys } from "../../../components/api-client";
 import { Sidebar } from "../../../components/sidebar";
 import { deleteTenantImage, uploadTenantImage } from "../../../components/tenant-image-upload";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../components/tenant-drawer";
+import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
 
@@ -382,9 +383,7 @@ export default function TenantDetailPage() {
 
         <div className="parcelis-page-shell">
           {tenantQuery.isLoading ? (
-            <div className="flex min-h-[60vh] items-center justify-center text-sm font-medium text-parcelis-gray">
-              Loading tenant
-            </div>
+            <LoadingState className="min-h-[60vh]" label="Loading tenant" />
           ) : tenantQuery.error ? (
             <Card>
               <CardContent>

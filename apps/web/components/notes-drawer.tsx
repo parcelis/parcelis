@@ -38,6 +38,7 @@ import {
   Textarea,
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "./api-client";
+import { LoadingState } from "./loading-state";
 
 type NoteSubject = { propertyId: number } | { unitId: number } | { tenantId: number } | { maintenanceTicketId: number };
 type NotesTab = "notes" | "files";
@@ -410,10 +411,7 @@ export function NotesDrawer({
                 </p>
               ) : null}
               {notesQuery.isLoading ? (
-                <div className="flex items-center gap-2 py-8 text-sm text-parcelis-gray">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading notes
-                </div>
+                <LoadingState className="min-h-0 py-8" label="Loading notes" />
               ) : notesQuery.error ? (
                 <p className="text-sm text-red-700">{notesQuery.error.message}</p>
               ) : notesQuery.data?.length ? (

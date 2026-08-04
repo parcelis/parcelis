@@ -48,6 +48,7 @@ import {
   maintenanceTicketStatuses,
 } from "@parcelis/schemas";
 import { apiClient } from "../../components/api-client";
+import { LoadingState } from "../../components/loading-state";
 import { MaintenanceDrawer } from "../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
 import { NotesDrawer } from "../../components/notes-drawer";
@@ -363,7 +364,7 @@ export default function MaintenancePage() {
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
               {ticketsQuery.isLoading ? (
-                <div className="min-h-48 p-5 text-sm text-parcelis-gray">Loading maintenance tickets…</div>
+                <LoadingState label="Loading maintenance tickets…" />
               ) : ticketsQuery.error ? (
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">
                   Unable to load maintenance tickets. Please try again.

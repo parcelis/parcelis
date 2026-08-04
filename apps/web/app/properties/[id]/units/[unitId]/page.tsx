@@ -13,7 +13,6 @@ import {
   CircleDollarSign,
   DoorOpen,
   FileText,
-  Loader2,
   Mail,
   MoreHorizontal,
   PenLine,
@@ -46,6 +45,7 @@ import {
   type UnitDetailsFormState,
 } from "../../../../../components/property-drawer";
 import { getPropertyFormState, getUnitFormStates } from "../../../../../components/property-drawer-state";
+import { LoadingState } from "../../../../../components/loading-state";
 import { Sidebar } from "../../../../../components/sidebar";
 import { NotesDrawer } from "../../../../../components/notes-drawer";
 import { StickyNotePlusIcon } from "../../../../../components/sticky-note-plus-icon";
@@ -302,10 +302,7 @@ export default function UnitDetailPage() {
 
         <div className="parcelis-page-shell">
           {propertyQuery.isLoading ? (
-            <div className="flex min-h-[60vh] items-center justify-center gap-2 text-sm font-medium text-parcelis-gray">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading unit
-            </div>
+            <LoadingState className="min-h-[60vh]" label="Loading unit" />
           ) : propertyQuery.error ? (
             <Card>
               <CardContent>

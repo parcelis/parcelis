@@ -47,6 +47,7 @@ import {
   TableRow,
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../components/api-client";
+import { LoadingState } from "../../components/loading-state";
 import { NotesDrawer } from "../../components/notes-drawer";
 import { Sidebar } from "../../components/sidebar";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../components/tenant-drawer";
@@ -521,7 +522,7 @@ export default function TenantsPage() {
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
               {tenantsQuery.isLoading ? (
-                <div className="min-h-48 p-5 text-sm text-parcelis-gray">Loading tenants…</div>
+                <LoadingState label="Loading tenants…" />
               ) : tenantsQuery.error ? (
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">{tenantsQuery.error.message}</div>
               ) : filteredTenants.length === 0 ? (

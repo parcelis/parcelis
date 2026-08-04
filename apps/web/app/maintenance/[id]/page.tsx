@@ -37,6 +37,7 @@ import {
 } from "@parcelis/ui";
 import { isActiveMaintenanceTicketStatus, isTerminalMaintenanceTicketStatus } from "@parcelis/schemas";
 import { apiClient } from "../../../components/api-client";
+import { LoadingState } from "../../../components/loading-state";
 import { Sidebar } from "../../../components/sidebar";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { MaintenanceDrawer } from "../../../components/maintenance-drawer";
@@ -275,7 +276,7 @@ export default function MaintenanceTicketPage() {
         </header>
         <div className="parcelis-page-shell">
           {ticketQuery.isLoading ? (
-            <p className="text-sm text-parcelis-gray">Loading maintenance ticket…</p>
+            <LoadingState label="Loading maintenance ticket…" />
           ) : !ticket ? (
             <p className="text-sm text-parcelis-gray">Maintenance ticket not found.</p>
           ) : (
@@ -493,7 +494,11 @@ export default function MaintenanceTicketPage() {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {notesQuery.isLoading ? (
-                        <p className="text-sm text-parcelis-gray">Loading notes…</p>
+                        <LoadingState
+                          className="min-h-0 justify-start py-2"
+                          iconClassName="h-6 w-6"
+                          label="Loading notes…"
+                        />
                       ) : notesQuery.data?.length ? (
                         notesQuery.data.map((note) => (
                           <article

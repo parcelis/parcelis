@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="250 120 1050 1360" role="img" aria-labelledby="title">
+  <title id="title">Loading</title>
+  <style>
+    :root { --orbit: 6s; --flip: 3s; }
+    .piece { transform-box: view-box; transform-origin: 800px 800px; transform-style: preserve-3d; }
+    .tile { transform-box: fill-box; transform-origin: center; transform-style: preserve-3d; backface-visibility: visible; }
+    .top { animation: orbit-top var(--orbit) linear infinite; }
+    .bottom { animation: orbit-bottom var(--orbit) linear infinite; }
+    .right { animation: orbit-right var(--orbit) linear infinite; }
+    .top .tile { animation: flip-top var(--flip) linear infinite; }
+    .bottom .tile { animation: flip-bottom var(--flip) linear infinite; }
+    .right .tile { animation: flip-right var(--flip) linear infinite; }
+    .front { stroke: rgb(220 255 182 / .5); stroke-width: 5; stroke-linejoin: round; }
+    .top-front { fill: url(#glass-top); }
+    .bottom-front { fill: url(#glass-bottom); }
+    .right-front { fill: url(#glass-right); }
+    .side { fill: url(#glass-side); }
+    .base { fill: url(#glass-base); }
+    .shine { fill: url(#sheen); opacity: .72; mix-blend-mode: screen; }
+    .glint { fill: none; stroke: url(#rim-light); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 150 980; opacity: .7; filter: url(#soft-glow); animation: glint var(--orbit) linear infinite; }
+    @keyframes orbit-top { from { transform: perspective(900px) rotateZ(0deg) rotateY(0deg); } to { transform: perspective(900px) rotateZ(360deg) rotateY(-360deg); } }
+    @keyframes orbit-bottom { from { transform: perspective(900px) rotateZ(0deg) rotateX(0deg); } to { transform: perspective(900px) rotateZ(360deg) rotateX(360deg); } }
+    @keyframes orbit-right { from { transform: perspective(900px) rotateZ(0deg) rotateY(0deg); } to { transform: perspective(900px) rotateZ(360deg) rotateY(360deg); } }
+    @keyframes flip-top { from { transform: perspective(720px) rotateX(0deg) rotateY(0deg); } to { transform: perspective(720px) rotateX(360deg) rotateY(720deg); } }
+    @keyframes flip-bottom { from { transform: perspective(720px) rotateX(0deg) rotateY(0deg); } to { transform: perspective(720px) rotateX(-720deg) rotateY(360deg); } }
+    @keyframes flip-right { from { transform: perspective(720px) rotateX(0deg) rotateY(0deg); } to { transform: perspective(720px) rotateX(-360deg) rotateY(-720deg); } }
+    @keyframes glint { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -1130; } }
+    @media (prefers-reduced-motion: reduce) { .piece, .tile, .glint { animation: none; } .glint { display: none; } }
+  </style>
+
+  <defs>
+    <linearGradient id="glass-top" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d0ff91"/><stop offset=".24" stop-color="#9ddd5f"/><stop offset=".68" stop-color="#70b84f"/><stop offset="1" stop-color="#3f8d55"/>
+    </linearGradient>
+    <linearGradient id="glass-bottom" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#408958"/><stop offset=".42" stop-color="#73b84e"/><stop offset=".78" stop-color="#a8e46a"/><stop offset="1" stop-color="#d4ff9a"/>
+    </linearGradient>
+    <linearGradient id="glass-right" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#caff86"/><stop offset=".2" stop-color="#9cdd5c"/><stop offset=".58" stop-color="#66ae50"/><stop offset="1" stop-color="#367b58"/>
+    </linearGradient>
+    <linearGradient id="glass-side" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6ca44e" stop-opacity=".95"/><stop offset="1" stop-color="#214d45" stop-opacity=".92"/>
+    </linearGradient>
+    <linearGradient id="glass-base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#416c3b" stop-opacity=".96"/><stop offset="1" stop-color="#183a37" stop-opacity=".94"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2=".82" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".68"/><stop offset=".16" stop-color="#efffd9" stop-opacity=".2"/><stop offset=".38" stop-color="#fff" stop-opacity="0"/><stop offset=".76" stop-color="#b9fff0" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity=".32"/>
+    </linearGradient>
+    <linearGradient id="rim-light" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#efffc8"/><stop offset=".5" stop-color="#9cff8e"/><stop offset="1" stop-color="#54e0a6"/>
+    </linearGradient>
+    <filter id="soft-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="9" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <g class="piece top">
+    <g class="tile">
+      <polygon class="side" points="730,280 750,292 754,687 734,675"/>
+      <polygon class="base" points="405,891 734,675 754,687 425,904"/>
+      <polygon class="front top-front" points="404,499 730,280 734,675 405,891"/>
+      <polygon class="shine" points="416,505 720,301 721,386 416,590"/>
+      <path class="glint" pathLength="1130" d="M404 499 730 280 734 675 405 891Z"/>
+    </g>
+  </g>
+  <g class="piece bottom">
+    <g class="tile">
+      <polygon class="side" points="731,771 751,783 755,1177 735,1165"/>
+      <polygon class="base" points="406,1381 735,1165 755,1177 426,1394"/>
+      <polygon class="front bottom-front" points="404,989 731,771 735,1165 406,1381"/>
+      <polygon class="shine" points="416,995 721,792 722,876 416,1080"/>
+      <path class="glint" pathLength="1130" d="M404 989 731 771 735 1165 406 1381Z"/>
+    </g>
+  </g>
+  <g class="piece right">
+    <g class="tile">
+      <polygon class="side" points="1195,438 1216,451 1218,900 1197,887"/>
+      <polygon class="base" points="821,1112 1197,887 1218,900 842,1125"/>
+      <polygon class="front right-front" points="818,217 1195,438 1197,887 821,1112"/>
+      <polygon class="shine" points="831,240 1182,446 1182,540 832,335"/>
+      <path class="glint" pathLength="1310" d="M818 217 1195 438 1197 887 821 1112Z"/>
+    </g>
+  </g>
+</svg>

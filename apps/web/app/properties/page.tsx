@@ -63,6 +63,7 @@ import {
   getUnitFormStates,
 } from "../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../components/api-client";
+import { LoadingState } from "../../components/loading-state";
 import { NotesDrawer } from "../../components/notes-drawer";
 import { deletePropertyImage, uploadPropertyImage } from "../../components/property-image-upload";
 import { useShortcut } from "../../components/shortcut-provider";
@@ -840,10 +841,7 @@ export default function PropertiesPage() {
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
               {propertiesQuery.isLoading ? (
-                <div className="flex min-h-48 items-center justify-center gap-2 text-sm font-medium text-parcelis-gray">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading properties
-                </div>
+                <LoadingState label="Loading properties" />
               ) : propertiesQuery.error ? (
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">{propertiesQuery.error.message}</div>
               ) : filteredProperties.length === 0 ? (
