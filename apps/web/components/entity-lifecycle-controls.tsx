@@ -43,8 +43,12 @@ export function EntityLifecycleControls({
   onReactivate,
   onReactivateSuccess,
 }: EntityLifecycleControlsProps) {
+  const [isMounted, setIsMounted] = React.useState(false);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const archiveMutation = useMutation({
     mutationFn: onArchive,
     onSuccess: async () => {
@@ -128,44 +132,53 @@ export function EntityLifecycleControls({
 
   return (
     <>
-      {typeof document === "undefined" ? dialogs : createPortal(dialogs, document.body)}
-      {isArchived ? (
-        <Button
-          aria-label={`Unarchive ${entityLabel}`}
-          className="min-w-10 sm:min-w-40"
-          disabled={reactivateMutation.isPending}
-          onClick={() => reactivateMutation.mutate()}
-          variant="secondary"
-        >
-          {reactivateMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+      {isMounted ? createPortal(dialogs, document.body) : null}
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-2">
+          {isArchived ? (
+            <Button
+              aria-label={`Unarchive ${entityLabel}`}
+              className="min-w-10 sm:min-w-40"
+              disabled={reactivateMutation.isPending}
+              onClick={() => reactivateMutation.mutate()}
+              variant="secondary"
+            >
+              {reactivateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArchiveRestore className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">Unarchive</span>
+            </Button>
           ) : (
-            <ArchiveRestore className="h-4 w-4" />
+            <Button
+              aria-label={`Archive ${entityLabel}`}
+              className="min-w-10 sm:min-w-40"
+              disabled={!isAvailable}
+              onClick={() => setIsArchiveDialogOpen(true)}
+              variant="secondary"
+            >
+              <Archive className="h-4 w-4" />
+              <span className="hidden sm:inline">Archive</span>
+            </Button>
           )}
-          <span className="hidden sm:inline">Unarchive</span>
-        </Button>
-      ) : (
-        <Button
-          aria-label={`Archive ${entityLabel}`}
-          className="min-w-10 sm:min-w-40"
-          disabled={!isAvailable}
-          onClick={() => setIsArchiveDialogOpen(true)}
-          variant="secondary"
-        >
-          <Archive className="h-4 w-4" />
-          <span className="hidden sm:inline">Archive</span>
-        </Button>
-      )}
-      <Button
-        aria-label={`Delete ${entityLabel}`}
-        className="min-w-10 sm:min-w-40"
-        disabled={!isAvailable}
-        onClick={() => setIsDeleteDialogOpen(true)}
-        variant="destructive"
-      >
-        <Trash2 className="h-4 w-4" />
-        <span className="hidden sm:inline">Delete</span>
-      </Button>
+          <Button
+            aria-label={`Delete ${entityLabel}`}
+            className="min-w-10 sm:min-w-40"
+            disabled={!isAvailable}
+            onClick={() => setIsDeleteDialogOpen(true)}
+            variant="destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Delete</span>
+          </Button>
+        </div>
+        {reactivateMutation.error ? (
+          <p className="text-sm font-medium text-red-700" role="alert">
+            Unable to unarchive this {entityLabel}. {reactivateMutation.error.message}
+          </p>
+        ) : null}
+      </div>
     </>
   );
 }
