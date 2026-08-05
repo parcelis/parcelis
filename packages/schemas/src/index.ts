@@ -216,9 +216,16 @@ export const updateMaintenanceTicketStatusInputSchema = z.object({
   noteBody: z.string().trim().min(1).max(5000).optional(),
   status: maintenanceTicketStatusSchema,
 });
+export const activitySubjectTypes = ["maintenance_ticket", "tenant", "property", "invoice"] as const;
+export const activitySubjectTypeSchema = z.enum(activitySubjectTypes);
 export const activityEventListInputSchema = z.object({
-  maintenanceTicketId: idSchema.optional(),
+  subjectType: activitySubjectTypeSchema.optional(),
+  subjectId: idSchema.optional(),
+  propertyId: idSchema.optional(),
   limit: z.number().int().min(1).max(100).default(50),
+}).refine(({ subjectType, subjectId }) => Boolean(subjectType) === Boolean(subjectId), {
+  message: "Subject type and subject ID must be provided together.",
+  path: ["subjectId"],
 });
 export const maintenanceImageUploadInputSchema = z.object({
   id: idSchema,

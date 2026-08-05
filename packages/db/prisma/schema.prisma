@@ -43,6 +43,13 @@ enum MaintenanceRequesterType {
   landlord
 }
 
+enum ActivitySubjectType {
+  maintenance_ticket
+  tenant
+  property
+  invoice
+}
+
 enum UnitType {
   residential
   commercial
@@ -122,6 +129,7 @@ model Property {
   leases             Lease[]
   notes              Note[]
   maintenanceTickets MaintenanceTicket[]
+  activityEvents     ActivityEvent[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -298,6 +306,7 @@ model Lease {
 
 model MaintenanceTicket {
   id                    Int                       @id @default(autoincrement())
+  ticketNumber          Int                       @unique @default(autoincrement())
   propertyId            Int
   unitLabel             String?
   title                 String
@@ -320,7 +329,6 @@ model MaintenanceTicket {
   units                 MaintenanceTicketUnit[]
   attachments           MaintenanceAttachment[]
   notes                 Note[]
-  activityEvents        ActivityEvent[]
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
 
@@ -332,18 +340,23 @@ model MaintenanceTicket {
 }
 
 model ActivityEvent {
-  id                  Int                     @id @default(autoincrement())
-  maintenanceTicketId Int
-  action              String
-  previousStatus      MaintenanceTicketStatus?
-  nextStatus          MaintenanceTicketStatus?
-  actorId             String?
-  actorLabel          String?
-  metadata            Json?
-  maintenanceTicket   MaintenanceTicket       @relation(fields: [maintenanceTicketId], references: [id], onDelete: Cascade)
-  createdAt           DateTime                @default(now())
+  id             Int                     @id @default(autoincrement())
+  subjectType    ActivitySubjectType
+  subjectId      Int
+  subjectLabel   String
+  subjectReference String?
+  propertyId     Int?
+  action         String
+  previousStatus MaintenanceTicketStatus?
+  nextStatus     MaintenanceTicketStatus?
+  actorId        String?
+  actorLabel     String?
+  metadata       Json?
+  property       Property?               @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  createdAt      DateTime                @default(now())
 
-  @@index([maintenanceTicketId, createdAt, id])
+  @@index([subjectType, subjectId, createdAt, id])
+  @@index([propertyId, createdAt, id])
   @@index([action, createdAt])
 }
 

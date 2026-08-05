@@ -51,6 +51,7 @@ type MaintenanceDrawerProps = {
   initialValues?: Partial<typeof initialForm>;
   statusLabel?: string;
   submitLabel?: string;
+  ticketNumber?: number;
   open: boolean;
 };
 
@@ -93,6 +94,7 @@ export function MaintenanceDrawer({
   open,
   statusLabel = "New",
   submitLabel = "Create Item",
+  ticketNumber,
 }: MaintenanceDrawerProps) {
   const [form, setForm] = React.useState(initialForm);
   const [section, setSection] = React.useState<"details" | "images">("details");
@@ -247,6 +249,12 @@ export function MaintenanceDrawer({
               </div>
               <div className="min-w-0 flex-1">
                 <div className={section === "details" ? "grid gap-5 md:grid-cols-2" : "hidden"}>
+                  {ticketNumber ? (
+                    <Label className="gap-2 md:col-span-2">
+                      Ticket Number
+                      <Input readOnly value={`MNT-${ticketNumber.toString().padStart(7, "0")}`} />
+                    </Label>
+                  ) : null}
                   <Label className="gap-2 md:col-span-2">
                     Ticket Title *
                     <Input

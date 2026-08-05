@@ -67,11 +67,12 @@ type TicketAction = {
 };
 type ActivityEventSummary = {
   id: number;
+  subjectLabel: string;
+  subjectReference: string | null;
   action: string;
   previousStatus: string | null;
   nextStatus: string | null;
   createdAt: Date | string;
-  maintenanceTicket: { title: string; property: { name: string } };
 };
 
 function label(value: string) {
@@ -91,6 +92,9 @@ function formatDateTime(value: Date | string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+function formatTicketNumber(ticketNumber: number) {
+  return `MNT-${ticketNumber.toString().padStart(7, "0")}`;
 }
 function ticketUnits(ticket: { units: Array<{ unit: { name: string } }> }) {
   return ticket.units.length ? ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ") : "Property-wide";
@@ -511,7 +515,12 @@ export default function MaintenancePage() {
                             <span className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-green">
                               <Wrench className="h-4 w-4" />
                             </span>
-                            {ticket.title}
+                            <span>
+                              {ticket.title}
+                              <span className="mt-1 block text-xs font-medium text-parcelis-gray">
+                                {formatTicketNumber(ticket.ticketNumber)}
+                              </span>
+                            </span>
                           </Link>
                         </TableCell>
                         <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
@@ -662,20 +671,25 @@ export default function MaintenancePage() {
                   <p className="p-5 text-sm font-medium text-red-700">Unable to load activity. Please try again.</p>
                 ) : activityEvents.length ? (
                   <ul className="divide-y divide-parcelis-border">
-                    {activityEvents.map((event) => (
-                      <li className="flex flex-col gap-1 px-5 py-4 text-sm md:flex-row md:items-center md:justify-between" key={event.id}>
-                        <div>
-                          <p className="font-semibold text-parcelis-charcoal">{label(event.action.replace("maintenance.", ""))}</p>
-                          <p className="mt-1 text-parcelis-gray">
-                            {event.maintenanceTicket.title} · {event.maintenanceTicket.property.name}
-                            {event.previousStatus && event.nextStatus
-                              ? ` · ${label(event.previousStatus)} → ${label(event.nextStatus)}`
-                              : ""}
-                          </p>
-                        </div>
-                        <time className="shrink-0 text-parcelis-gray">{formatDateTime(event.createdAt)}</time>
-                      </li>
-                    ))}
+                    {activityEvents.map((event) => {
+                      return (
+                        <li className="flex flex-col gap-1 px-5 py-4 text-sm md:flex-row md:items-center md:justify-between" key={event.id}>
+                          <div>
+                            <p className="font-semibold text-parcelis-charcoal">{label(event.action.replace("maintenance.", ""))}</p>
+                            <p className="mt-1 text-parcelis-gray">
+                              {event.subjectLabel}
+                              {event.previousStatus && event.nextStatus
+                                ? ` · ${label(event.previousStatus)} → ${label(event.nextStatus)}`
+                                : ""}
+                            </p>
+                            {event.subjectReference ? (
+                              <p className="mt-1 text-xs font-semibold text-parcelis-green">{event.subjectReference}</p>
+                            ) : null}
+                          </div>
+                          <time className="shrink-0 text-parcelis-gray">{formatDateTime(event.createdAt)}</time>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <div className="m-5 flex flex-col items-center rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center">

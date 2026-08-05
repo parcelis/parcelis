@@ -62,8 +62,11 @@ const formatDateTime = (value: Date | string) =>
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+const formatTicketNumber = (ticketNumber: number) => `MNT-${ticketNumber.toString().padStart(7, "0")}`;
 type ActivityEventSummary = {
   id: number;
+  subjectLabel: string;
+  subjectReference: string | null;
   action: string;
   previousStatus: string | null;
   nextStatus: string | null;
@@ -95,8 +98,8 @@ export default function MaintenanceTicketPage() {
     enabled: id > 0,
   });
   const activityEventsQuery = useQuery({
-    queryKey: ["activityEvents", "list", { maintenanceTicketId: id, limit: 50 }],
-    queryFn: () => apiClient.activityEvents.list.query({ maintenanceTicketId: id, limit: 50 }),
+    queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id, limit: 50 }],
+    queryFn: () => apiClient.activityEvents.list.query({ subjectType: "maintenance_ticket", subjectId: id, limit: 50 }),
     enabled: isLoggingOpen && id > 0,
   });
   const acknowledgeTicket = useMutation({
@@ -104,7 +107,7 @@ export default function MaintenanceTicketPage() {
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
-        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { maintenanceTicketId: id }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }] }),
       ]),
   });
   const resolveTicket = useMutation({
@@ -118,7 +121,7 @@ export default function MaintenanceTicketPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
-        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { maintenanceTicketId: id }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }] }),
       ]);
     },
   });
@@ -128,7 +131,7 @@ export default function MaintenanceTicketPage() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
-        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { maintenanceTicketId: id }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }] }),
       ]),
   });
   const cancelTicket = useMutation({
@@ -137,7 +140,7 @@ export default function MaintenanceTicketPage() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
-        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { maintenanceTicketId: id }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }] }),
       ]).then(() => {
         setCancellationNote("");
         setIsCancellationNoteOpen(false);
@@ -241,6 +244,7 @@ export default function MaintenanceTicketPage() {
         open={editOpen}
         statusLabel={ticket ? label(ticket.status) : "New"}
         submitLabel="Save Changes"
+        ticketNumber={ticket?.ticketNumber}
       />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -320,7 +324,7 @@ export default function MaintenanceTicketPage() {
                     </span>
                     <div>
                       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">
-                        Maintenance Ticket
+                        {formatTicketNumber(ticket.ticketNumber)}
                       </p>
                       <h1 className="mt-3 text-3xl font-bold">{ticket.title}</h1>
                       <p className="mt-2 text-sm text-white/75">
@@ -444,6 +448,12 @@ export default function MaintenanceTicketPage() {
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <div className="grid gap-4 sm:grid-cols-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-parcelis-gray">Ticket number</p>
+                        <p className="mt-1 font-semibold text-parcelis-charcoal">
+                          {formatTicketNumber(ticket.ticketNumber)}
+                        </p>
+                      </div>
                       <div>
                         <p className="text-xs font-semibold uppercase text-parcelis-gray">Category</p>
                         <p className="mt-1 font-semibold text-parcelis-charcoal">
@@ -651,9 +661,14 @@ export default function MaintenanceTicketPage() {
                                 </p>
                                 {event.previousStatus && event.nextStatus ? (
                                   <p className="mt-1 text-parcelis-gray">
-                                    {label(event.previousStatus)} → {label(event.nextStatus)}
+                                    {event.subjectLabel} · {label(event.previousStatus)} → {label(event.nextStatus)}
                                   </p>
-                                ) : null}
+                                ) : (
+                                  <p className="mt-1 text-parcelis-gray">{event.subjectLabel}</p>
+                                )}
+                                <p className="mt-1 text-xs font-semibold text-parcelis-green">
+                                  {event.subjectReference ?? formatTicketNumber(ticket.ticketNumber)}
+                                </p>
                               </div>
                               <time className="shrink-0 text-parcelis-gray">{formatDateTime(event.createdAt)}</time>
                             </li>

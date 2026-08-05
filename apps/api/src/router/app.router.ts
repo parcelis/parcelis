@@ -38,6 +38,7 @@ import {
   deleteUserInputSchema,
 } from "@parcelis/schemas";
 import {
+  ActivitySubjectType,
   LeaseStatus,
   MaintenanceTicketStatus,
   Prisma,
@@ -100,7 +101,7 @@ function maintenanceStatusAction(previousStatus: MaintenanceTicketStatus, nextSt
 
 async function recordMaintenanceStatusEvent(
   tx: Prisma.TransactionClient,
-  ticketId: number,
+  ticket: { id: number; propertyId: number; ticketNumber: number; title: string },
   previousStatus: MaintenanceTicketStatus,
   nextStatus: MaintenanceTicketStatus,
 ) {
@@ -108,7 +109,11 @@ async function recordMaintenanceStatusEvent(
 
   await tx.activityEvent.create({
     data: {
-      maintenanceTicketId: ticketId,
+      subjectType: ActivitySubjectType.maintenance_ticket,
+      subjectId: ticket.id,
+      subjectLabel: ticket.title,
+      subjectReference: `MNT-${ticket.ticketNumber.toString().padStart(7, "0")}`,
+      propertyId: ticket.propertyId,
       action: maintenanceStatusAction(previousStatus, nextStatus),
       previousStatus,
       nextStatus,
@@ -361,6 +366,7 @@ export const appRouter = router({
             orderBy: { openedOn: "desc" },
             select: {
               id: true,
+              ticketNumber: true,
               title: true,
               openedOn: true,
               dueOn: true,
@@ -948,7 +954,7 @@ export const appRouter = router({
     updateStatus: publicProcedure.input(updateMaintenanceTicketStatusInputSchema).mutation(async ({ ctx, input }) => {
       const currentTicket = await ctx.prisma.maintenanceTicket.findUniqueOrThrow({
         where: { id: input.id },
-        select: { status: true },
+        select: { id: true, propertyId: true, ticketNumber: true, title: true, status: true },
       });
 
       if (input.status === "resolved") {
@@ -971,7 +977,7 @@ export const appRouter = router({
             });
             await tx.note.create({ data: { maintenanceTicketId: input.id, body: noteBody } });
             await tx.note.create({ data: { maintenanceTicketId: input.id, body: "Ticket Resolved" } });
-            await recordMaintenanceStatusEvent(tx, input.id, currentTicket.status, input.status);
+            await recordMaintenanceStatusEvent(tx, currentTicket, currentTicket.status, input.status);
             return ticket;
           });
         }
@@ -981,7 +987,7 @@ export const appRouter = router({
         return ctx.prisma.$transaction(async (tx) => {
           const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
           await tx.note.create({ data: { maintenanceTicketId: input.id, body: "Ticket Reopened" } });
-          await recordMaintenanceStatusEvent(tx, input.id, currentTicket.status, input.status);
+          await recordMaintenanceStatusEvent(tx, currentTicket, currentTicket.status, input.status);
           return ticket;
         });
       }
@@ -995,7 +1001,7 @@ export const appRouter = router({
         return ctx.prisma.$transaction(async (tx) => {
           const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
           await tx.note.create({ data: { maintenanceTicketId: input.id, body: noteBody } });
-          await recordMaintenanceStatusEvent(tx, input.id, currentTicket.status, input.status);
+          await recordMaintenanceStatusEvent(tx, currentTicket, currentTicket.status, input.status);
           return ticket;
         });
       }
@@ -1005,7 +1011,7 @@ export const appRouter = router({
         if (currentTicket.status !== input.status && input.status === "resolved") {
           await tx.note.create({ data: { maintenanceTicketId: input.id, body: "Ticket Resolved" } });
         }
-        await recordMaintenanceStatusEvent(tx, input.id, currentTicket.status, input.status);
+        await recordMaintenanceStatusEvent(tx, currentTicket, currentTicket.status, input.status);
         return ticket;
       });
     }),
@@ -1094,14 +1100,22 @@ export const appRouter = router({
     }),
   }),
   activityEvents: router({
-    /** Lists immutable activity events for a maintenance ticket. */
+    /** Lists immutable activity events globally or for one subject. */
     list: publicProcedure.input(activityEventListInputSchema).query(({ ctx, input }) =>
       ctx.prisma.activityEvent.findMany({
-        where: input.maintenanceTicketId ? { maintenanceTicketId: input.maintenanceTicketId } : undefined,
+        where: {
+          subjectType: input.subjectType,
+          subjectId: input.subjectId,
+          propertyId: input.propertyId,
+        },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: input.limit,
         select: {
           id: true,
+          subjectType: true,
+          subjectId: true,
+          subjectLabel: true,
+          subjectReference: true,
           action: true,
           previousStatus: true,
           nextStatus: true,
@@ -1109,13 +1123,7 @@ export const appRouter = router({
           actorLabel: true,
           metadata: true,
           createdAt: true,
-          maintenanceTicket: {
-            select: {
-              id: true,
-              title: true,
-              property: { select: { name: true } },
-            },
-          },
+          property: { select: { name: true } },
         },
       }),
     ),
