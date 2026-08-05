@@ -26,21 +26,21 @@ export default function LoginPage() {
   const { resolvedMode, setMode } = useTheme();
 
   return (
-    <main className="relative flex-1 overflow-hidden bg-parcelis-porcelain text-parcelis-charcoal dark:bg-[#071b2f] dark:text-white">
+    <main className="relative min-h-[100dvh] overflow-hidden bg-parcelis-porcelain text-parcelis-charcoal dark:bg-[#071b2f] dark:text-white">
       <div className="absolute inset-0 bg-[url('/brand/parcelis-light-background.svg')] bg-cover bg-center dark:bg-[url('/brand/parcelis-dark-background.svg')]" />
       <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/55 to-white/30 dark:from-[#041220]/80 dark:via-[#041220]/55 dark:to-[#041220]/30" />
-      <div className="relative mx-auto flex min-h-[100svh] w-full max-w-[100rem] flex-col px-6 py-10 sm:px-10 lg:px-12">
-        <header className="flex shrink-0 items-center justify-between">
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[100rem] flex-col px-6 py-4 sm:px-10 lg:px-12">
+        <header className="flex shrink-0 items-center justify-end lg:justify-between">
           <Image
             alt="Parcelis"
-            className="h-auto w-56 dark:hidden"
+            className="hidden h-auto w-56 lg:block dark:hidden"
             height={159}
             src="/brand/parcelis-light-banner.png"
             width={488}
           />
           <Image
             alt="Parcelis"
-            className="hidden h-auto w-56 dark:block"
+            className="hidden h-auto w-56 lg:dark:block"
             height={159}
             src="/brand/parcelis-dark-banner.png"
             width={488}
@@ -83,19 +83,19 @@ export default function LoginPage() {
           </section>
 
           <section
-            className="w-full max-w-[33rem] flex-[0_1_33rem] rounded-xl border border-white/55 bg-white/[.98] p-8 text-parcelis-charcoal shadow-2xl dark:border-parcelis-border dark:bg-parcelis-slate dark:text-parcelis-porcelain sm:p-10 lg:p-14"
+            className="w-full max-w-[33rem] flex-[0_1_33rem] rounded-xl border border-white/55 bg-white/[.98] p-6 text-parcelis-charcoal shadow-2xl dark:border-parcelis-border dark:bg-parcelis-slate dark:text-parcelis-porcelain"
             aria-labelledby="sign-in-title"
           >
             <Image
               alt="Parcelis"
-              className="mx-auto mb-10 h-auto w-full max-w-[15.25rem] dark:hidden"
+              className="mx-auto mb-6 h-auto w-full max-w-[12rem] dark:hidden"
               height={159}
               src="/brand/parcelis-light-banner.png"
               width={488}
             />
             <Image
               alt="Parcelis"
-              className="mx-auto mb-10 hidden h-auto w-full max-w-[15.25rem] dark:block"
+              className="mx-auto mb-6 hidden h-auto w-full max-w-[12rem] dark:block"
               height={159}
               src="/brand/parcelis-dark-banner.png"
               width={488}
@@ -104,7 +104,7 @@ export default function LoginPage() {
               <h2 id="sign-in-title" className="m-0 text-2xl font-semibold tracking-[-0.035em]">
                 Welcome back
               </h2>
-              <p className="mb-9 mt-2 text-sm text-parcelis-gray">Sign in to access your account</p>
+              <p className="mb-6 mt-2 text-sm text-parcelis-gray">Sign in to access your account</p>
             </div>
             <form onSubmit={(event) => event.preventDefault()}>
               <label className="mb-2 block text-sm font-semibold" htmlFor="email">
@@ -124,7 +124,7 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                 />
               </div>
-              <div className="mt-6 flex items-center justify-between">
+              <div className="mt-4 flex items-center justify-between">
                 <label className="mb-0 block text-sm font-semibold" htmlFor="password">
                   Password
                 </label>
@@ -154,11 +154,11 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <Button className="mt-6 w-full text-white" size="lg" type="submit">
+              <Button className="mt-4 w-full text-white" size="lg" type="submit">
                 Sign in
               </Button>
             </form>
-            <div className="my-7 flex items-center gap-4 text-xs text-parcelis-gray before:h-px before:flex-1 before:bg-parcelis-border after:h-px after:flex-1 after:bg-parcelis-border">
+            <div className="my-5 flex items-center gap-4 text-xs text-parcelis-gray before:h-px before:flex-1 before:bg-parcelis-border after:h-px after:flex-1 after:bg-parcelis-border">
               or
             </div>
             <Button className="w-full" size="lg" type="button" variant="secondary">
@@ -167,7 +167,7 @@ export default function LoginPage() {
               </svg>
               Sign in with GitHub
             </Button>
-            <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">
+            <p className="mb-0 mt-6 text-center text-sm text-parcelis-gray">
               New to Parcelis?{" "}
               <Link className="text-xs font-semibold text-parcelis-green-hover no-underline" href="/">
                 Learn more
@@ -175,7 +175,7 @@ export default function LoginPage() {
             </p>
           </section>
         </div>
-        <footer className="mt-8 w-full max-w-[33rem] self-end text-center text-xs text-parcelis-gray dark:text-white/70">
+        <footer className="mt-4 w-full max-w-[33rem] self-end text-center text-xs text-parcelis-gray dark:text-white/70">
           © 2026 <span className="text-parcelis-green">Parcelis.</span> Open source. Open future.
         </footer>
       </div>
