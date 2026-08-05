@@ -26,7 +26,7 @@ export default function LoginPage() {
   const { resolvedMode, setMode } = useTheme();
 
   return (
-    <main className="relative min-h-[100svh] overflow-hidden bg-parcelis-porcelain text-parcelis-charcoal dark:bg-[#071b2f] dark:text-white">
+    <main className="relative flex-1 overflow-hidden bg-parcelis-porcelain text-parcelis-charcoal dark:bg-[#071b2f] dark:text-white">
       <div className="absolute inset-0 bg-[url('/brand/parcelis-light-background.svg')] bg-cover bg-center dark:bg-[url('/brand/parcelis-dark-background.svg')]" />
       <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/55 to-white/30 dark:from-[#041220]/80 dark:via-[#041220]/55 dark:to-[#041220]/30" />
       <div className="relative mx-auto flex min-h-[100svh] w-full max-w-[100rem] flex-col px-6 py-10 sm:px-10 lg:px-12">
@@ -46,7 +46,7 @@ export default function LoginPage() {
             width={488}
           />
           <button
-            className="grid h-10 w-10 place-items-center rounded-md border border-parcelis-charcoal/20 bg-white/50 text-parcelis-charcoal transition hover:bg-white/80 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            className="flex h-10 w-10 items-center justify-center rounded-md border border-parcelis-charcoal/20 bg-white/50 text-parcelis-charcoal transition hover:bg-white/80 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
             type="button"
             aria-label={resolvedMode === "dark" ? "Use light theme" : "Use dark theme"}
             onClick={() => setMode(resolvedMode === "dark" ? "light" : "dark")}
@@ -69,10 +69,10 @@ export default function LoginPage() {
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-parcelis-charcoal/90 dark:text-white/95">
               Parcelis is the modern, open-source platform for property management.
             </p>
-            <ul className="mt-14 grid list-none gap-6 p-0">
+            <ul className="mt-14 flex list-none flex-col gap-6 p-0">
               {benefits.map(({ icon: Icon, title, description }) => (
-                <li key={title} className="grid grid-cols-[2.55rem_1fr] gap-4">
-                  <Icon aria-hidden="true" className="h-8 w-8 stroke-parcelis-green stroke-[1.6]" />
+                <li key={title} className="flex items-start gap-4">
+                  <Icon aria-hidden="true" className="h-8 w-8 shrink-0 stroke-parcelis-green stroke-[1.6]" />
                   <div>
                     <h2 className="m-0 text-base font-semibold">{title}</h2>
                     <p className="mt-1 text-sm leading-relaxed text-parcelis-gray dark:text-white/80">{description}</p>
@@ -146,7 +146,7 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                 />
                 <button
-                  className="absolute right-0 top-0 grid h-full w-12 place-items-center border-0 bg-transparent text-parcelis-gray"
+                  className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-0 bg-transparent text-parcelis-gray"
                   type="button"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() => setShowPassword((visible) => !visible)}

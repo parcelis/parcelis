@@ -486,7 +486,7 @@ export default function PropertiesPage() {
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="flex-1">
       <Sidebar active="properties" />
       <PropertyDrawer
         cancelDescription={editingProperty ? "Are you sure you'd like to cancel editing?" : undefined}
