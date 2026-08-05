@@ -18,7 +18,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ThemeProvider>
           <ShortcutProvider>
             <TrpcProvider>
-              <div className="flex min-h-screen flex-col">
+              <div className="flex min-h-[100svh] flex-col">
                 {children}
                 <AppFooter />
               </div>
