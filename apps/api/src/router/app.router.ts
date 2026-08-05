@@ -1,5 +1,13 @@
 import {
   createPropertyInputSchema,
+  isActiveMaintenanceTicketStatus,
+  createMaintenanceTicketInputSchema,
+  maintenanceAttachmentByIdInputSchema,
+  maintenanceImageUploadCompleteInputSchema,
+  maintenanceImageUploadInputSchema,
+  maintenanceTicketByIdInputSchema,
+  updateMaintenanceTicketStatusInputSchema,
+  updateMaintenanceTicketInputSchema,
   createTenantInputSchema,
   createTagInputSchema,
   createUnitInputSchema,
@@ -29,7 +37,10 @@ import { LeaseStatus, UnitType, type Prisma } from "@parcelis/db";
 import {
   createPropertyImageDownloadUrl,
   createPropertyImageUploadUrl,
+  createMaintenanceImageDownloadUrl,
+  createMaintenanceImageUploadUrl,
   deletePropertyImageObject,
+  deleteMaintenanceImageObject,
   createTenantImageDownloadUrl,
   createTenantImageUploadUrl,
   deleteTenantImageObject,
@@ -59,7 +70,6 @@ const propertySelect = {
   status: true,
 } as const;
 
-const openMaintenanceStatuses = new Set(["open", "in_progress", "waiting_vendor"]);
 const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(LeaseStatus)];
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
@@ -181,7 +191,7 @@ function withOperatingMetrics<
   expiresBefore.setDate(expiresBefore.getDate() + 90);
   const activeLeases = property.leases.filter((lease) => lease.status === "active" || lease.status === "notice");
   const openMaintenanceTickets = property.maintenanceTickets.filter((ticket) =>
-    openMaintenanceStatuses.has(ticket.status),
+    isActiveMaintenanceTicketStatus(ticket.status),
   ).length;
   const urgentMaintenanceTickets = property.maintenanceTickets.filter(
     (ticket) => ticket.priority === "urgent" && ticket.status !== "resolved",
@@ -250,7 +260,12 @@ export const appRouter = router({
             },
           },
           maintenanceTickets: {
+            orderBy: { openedOn: "desc" },
             select: {
+              id: true,
+              title: true,
+              openedOn: true,
+              dueOn: true,
               priority: true,
               status: true,
               unitLabel: true,
@@ -419,12 +434,7 @@ export const appRouter = router({
         const legacyNote =
           input.notes === undefined
             ? {}
-            : await synchronizePropertyLegacyNote(
-                tx,
-                input.id,
-                currentProperty.legacyNoteId,
-                input.notes,
-              );
+            : await synchronizePropertyLegacyNote(tx, input.id, currentProperty.legacyNoteId, input.notes);
         const updatedProperty = await tx.property.update({
           where: { id: input.id },
           select: propertySelect,
@@ -541,12 +551,7 @@ export const appRouter = router({
           select: { legacyNoteId: true },
         });
 
-        const legacyNote = await synchronizePropertyLegacyNote(
-          tx,
-          input.id,
-          currentProperty.legacyNoteId,
-          input.notes,
-        );
+        const legacyNote = await synchronizePropertyLegacyNote(tx, input.id, currentProperty.legacyNoteId, input.notes);
 
         return tx.property.update({
           where: { id: input.id },
@@ -770,6 +775,214 @@ export const appRouter = router({
         select: { id: true, label: true, sortOrder: true },
       }),
     ),
+  }),
+  maintenanceCategories: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.maintenanceCategory.findMany({
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: { id: true, label: true, sortOrder: true },
+      }),
+    ),
+  }),
+  landlords: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.landlord.findMany({
+        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+        select: { id: true, firstName: true, lastName: true, email: true },
+      }),
+    ),
+  }),
+  maintenance: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.maintenanceTicket.findMany({
+        where: { archivedAt: null },
+        orderBy: [{ openedOn: "desc" }, { id: "desc" }],
+        include: {
+          category: { select: { id: true, label: true } },
+          property: { select: { id: true, name: true } },
+          units: { include: { unit: { select: { id: true, name: true } } } },
+        },
+      }),
+    ),
+    byId: publicProcedure.input(maintenanceTicketByIdInputSchema).query(async ({ ctx, input }) => {
+      const ticket = await ctx.prisma.maintenanceTicket.findUnique({
+        where: { id: input.id },
+        include: {
+          category: { select: { id: true, label: true } },
+          property: { select: { id: true, name: true, city: true, region: true } },
+          units: { include: { unit: { select: { id: true, name: true } } } },
+          attachments: { orderBy: { createdAt: "desc" } },
+          requestedByTenant: { select: { firstName: true, lastName: true } },
+          requestedByLandlord: { select: { firstName: true, lastName: true } },
+        },
+      });
+      if (!ticket) return null;
+
+      return {
+        ...ticket,
+        attachments: await Promise.all(
+          ticket.attachments.map(async (attachment) => ({
+            ...attachment,
+            imageUrl: await createMaintenanceImageDownloadUrl(attachment.objectKey),
+          })),
+        ),
+      };
+    }),
+    createImageUploadUrl: publicProcedure.input(maintenanceImageUploadInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.maintenanceTicket.findUniqueOrThrow({ where: { id: input.id }, select: { id: true } });
+      return createMaintenanceImageUploadUrl(input.contentType, input.id);
+    }),
+    completeImageUpload: publicProcedure.input(maintenanceImageUploadCompleteInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.maintenanceAttachment.create({
+        data: {
+          ticketId: input.id,
+          objectKey: input.objectKey,
+          fileName: input.fileName,
+          contentType: input.contentType,
+        },
+      }),
+    ),
+    deleteImage: publicProcedure.input(maintenanceAttachmentByIdInputSchema).mutation(async ({ ctx, input }) => {
+      const attachment = await ctx.prisma.maintenanceAttachment.delete({ where: { id: input.id } });
+      await deleteMaintenanceImageObject(attachment.objectKey);
+      return attachment;
+    }),
+    updateStatus: publicProcedure.input(updateMaintenanceTicketStatusInputSchema).mutation(async ({ ctx, input }) => {
+      const currentTicket = await ctx.prisma.maintenanceTicket.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { status: true },
+      });
+
+      if (input.status === "resolved") {
+        const recentNote = await ctx.prisma.note.findFirst({
+          where: {
+            maintenanceTicketId: input.id,
+            createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          },
+          select: { id: true },
+        });
+        const noteBody = input.noteBody;
+        if (!recentNote && !noteBody) {
+          throw new Error("A maintenance note from the last 24 hours is required before resolving this ticket.");
+        }
+        if (!recentNote && noteBody) {
+          return ctx.prisma.$transaction(async (tx) => {
+            const ticket = await tx.maintenanceTicket.update({
+              where: { id: input.id },
+              data: { status: input.status },
+            });
+            await tx.note.create({ data: { maintenanceTicketId: input.id, body: noteBody } });
+            return ticket;
+          });
+        }
+      }
+
+      if (currentTicket.status === "resolved" && input.status === "in_progress") {
+        return ctx.prisma.$transaction(async (tx) => {
+          const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
+          await tx.note.create({ data: { maintenanceTicketId: input.id, body: "Ticket Reopened" } });
+          return ticket;
+        });
+      }
+
+      if (input.status === "canceled") {
+        const noteBody = input.noteBody;
+        if (!noteBody) {
+          throw new Error("A cancellation note is required before canceling this ticket.");
+        }
+
+        return ctx.prisma.$transaction(async (tx) => {
+          const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
+          await tx.note.create({ data: { maintenanceTicketId: input.id, body: noteBody } });
+          return ticket;
+        });
+      }
+
+      return ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
+    }),
+    update: publicProcedure.input(updateMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
+      const priority = input.isUrgent ? "urgent" : input.priority;
+      const units = await ctx.prisma.unit.findMany({
+        where: { id: { in: input.unitIds }, propertyId: input.propertyId },
+        select: { id: true, name: true },
+      });
+      if (units.length !== input.unitIds.length) throw new Error("Selected units must belong to the chosen property.");
+      return ctx.prisma.maintenanceTicket.update({
+        where: { id: input.id },
+        data: {
+          propertyId: input.propertyId,
+          title: input.ticketTitle,
+          description: input.description || null,
+          categoryId: input.categoryId,
+          isUrgent: priority === "urgent",
+          priority,
+          consentToEnter: input.consentToEnter,
+          requestedByType: input.requestedByType,
+          requestedByTenantId: input.requestedByType === "tenant" ? input.requestedById : null,
+          requestedByLandlordId: input.requestedByType === "landlord" ? input.requestedById : null,
+          unitLabel: units.length === 1 ? (units[0]?.name ?? null) : null,
+          units: { deleteMany: {}, create: units.map((unit) => ({ unitId: unit.id })) },
+        },
+      });
+    }),
+    archive: publicProcedure
+      .input(maintenanceTicketByIdInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { archivedAt: new Date() } }),
+      ),
+    delete: publicProcedure.input(maintenanceTicketByIdInputSchema).mutation(async ({ ctx, input }) => {
+      const attachments = await ctx.prisma.maintenanceAttachment.findMany({
+        where: { ticketId: input.id },
+        select: { objectKey: true },
+      });
+      const ticket = await ctx.prisma.maintenanceTicket.delete({ where: { id: input.id } });
+      await Promise.all(attachments.map((attachment) => deleteMaintenanceImageObject(attachment.objectKey)));
+      return ticket;
+    }),
+    create: publicProcedure.input(createMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
+      const priority = input.isUrgent ? "urgent" : input.priority;
+      const units = await ctx.prisma.unit.findMany({
+        where: { id: { in: input.unitIds }, propertyId: input.propertyId },
+        select: { id: true, name: true },
+      });
+      if (units.length !== input.unitIds.length) {
+        throw new Error("Selected units must belong to the chosen property.");
+      }
+
+      if (input.requestedByType === "tenant") {
+        const tenantLease = await ctx.prisma.lease.findFirst({
+          where: {
+            tenantId: input.requestedById,
+            propertyId: input.propertyId,
+            unitLabel: input.unitIds.length ? { in: units.map((unit) => unit.name) } : undefined,
+            status: { in: ["active", "notice"] },
+          },
+          select: { id: true },
+        });
+        if (!tenantLease) {
+          throw new Error("The selected tenant is not assigned to the selected unit.");
+        }
+      } else {
+        await ctx.prisma.landlord.findUniqueOrThrow({ where: { id: input.requestedById }, select: { id: true } });
+      }
+
+      return ctx.prisma.maintenanceTicket.create({
+        data: {
+          propertyId: input.propertyId,
+          title: input.ticketTitle,
+          description: input.description || null,
+          categoryId: input.categoryId,
+          isUrgent: priority === "urgent",
+          priority,
+          consentToEnter: input.consentToEnter,
+          requestedByType: input.requestedByType,
+          requestedByTenantId: input.requestedByType === "tenant" ? input.requestedById : null,
+          requestedByLandlordId: input.requestedByType === "landlord" ? input.requestedById : null,
+          unitLabel: units.length === 1 ? (units[0]?.name ?? null) : null,
+          units: { create: units.map((unit) => ({ unitId: unit.id })) },
+        },
+      });
+    }),
   }),
   unitOptions: router({
     /** Lists the available utility and amenity options for units. */

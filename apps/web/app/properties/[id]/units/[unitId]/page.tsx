@@ -13,7 +13,6 @@ import {
   CircleDollarSign,
   DoorOpen,
   FileText,
-  Loader2,
   Mail,
   MoreHorizontal,
   PenLine,
@@ -36,7 +35,7 @@ import {
   DropdownMenuTrigger,
   ParcelisLogo,
 } from "@parcelis/ui";
-import type { UpdatePropertyInput } from "@parcelis/schemas";
+import { isActiveMaintenanceTicketStatus, type UpdatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../../../components/property-image-upload";
 import {
@@ -46,6 +45,7 @@ import {
   type UnitDetailsFormState,
 } from "../../../../../components/property-drawer";
 import { getPropertyFormState, getUnitFormStates } from "../../../../../components/property-drawer-state";
+import { LoadingState } from "../../../../../components/loading-state";
 import { Sidebar } from "../../../../../components/sidebar";
 import { NotesDrawer } from "../../../../../components/notes-drawer";
 import { StickyNotePlusIcon } from "../../../../../components/sticky-note-plus-icon";
@@ -143,7 +143,7 @@ export default function UnitDetailPage() {
     ) ?? null;
   const tenant = lease?.tenant ?? null;
   const unitTickets = property?.maintenanceTickets.filter((ticket) => unit && ticket.unitLabel === unit.name) ?? [];
-  const openTickets = unitTickets.filter((ticket) => ticket.status !== "resolved");
+  const openTickets = unitTickets.filter((ticket) => isActiveMaintenanceTicketStatus(ticket.status));
   const utilities = unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
   const amenities = unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
   const monthlyRentCents = lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0;
@@ -302,10 +302,7 @@ export default function UnitDetailPage() {
 
         <div className="parcelis-page-shell">
           {propertyQuery.isLoading ? (
-            <div className="flex min-h-[60vh] items-center justify-center gap-2 text-sm font-medium text-parcelis-gray">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading unit
-            </div>
+            <LoadingState className="min-h-[60vh]" label="Loading unit" />
           ) : propertyQuery.error ? (
             <Card>
               <CardContent>
@@ -566,8 +563,9 @@ export default function UnitDetailPage() {
                   <CardContent className="space-y-3">
                     {openTickets.length > 0 ? (
                       openTickets.map((ticket) => (
-                        <div
-                          className="flex items-center gap-3 rounded-md border border-parcelis-border p-3"
+                        <Link
+                          className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
+                          href={`/maintenance/${ticket.id}`}
                           key={ticket.id}
                         >
                           <Wrench className="h-4 w-4 text-parcelis-green" />
@@ -578,7 +576,7 @@ export default function UnitDetailPage() {
                               {ticket.dueOn ? ` · Due ${formatDate(ticket.dueOn)}` : ""}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       ))
                     ) : (
                       <div className="flex min-h-36 items-center justify-center gap-2 text-sm text-parcelis-gray">

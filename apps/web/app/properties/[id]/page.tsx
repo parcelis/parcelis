@@ -10,7 +10,6 @@ import {
   Building2,
   CircleDollarSign,
   DoorOpen,
-  Loader2,
   Mail,
   PenLine,
   Phone,
@@ -29,7 +28,7 @@ import {
   ParcelisLogo,
   Select,
 } from "@parcelis/ui";
-import type { UpdatePropertyInput } from "@parcelis/schemas";
+import { isActiveMaintenanceTicketStatus, type UpdatePropertyInput } from "@parcelis/schemas";
 import {
   PropertyDrawer,
   initialPropertyFormState,
@@ -39,6 +38,7 @@ import {
 import { getPropertyFormState, getUnitFormStates } from "../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
+import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { Sidebar } from "../../../components/sidebar";
@@ -132,7 +132,9 @@ export default function PropertyDetailPage() {
     expiresBefore.setDate(expiresBefore.getDate() + 90);
     return lease.endsOn !== null && new Date(lease.endsOn) >= now && new Date(lease.endsOn) <= expiresBefore;
   }).length;
-  const openMaintenanceTickets = maintenanceTickets.filter((ticket) => ticket.status !== "resolved").length;
+  const openMaintenanceTickets = maintenanceTickets.filter((ticket) =>
+    isActiveMaintenanceTicketStatus(ticket.status),
+  ).length;
   const sampleVacantUnits = Math.max(unitCount - occupiedUnits, 0);
   const contactItems = property
     ? [
@@ -316,10 +318,7 @@ export default function PropertyDetailPage() {
 
         <div className="parcelis-page-shell">
           {propertyQuery.isLoading ? (
-            <div className="flex min-h-[60vh] items-center justify-center gap-2 text-sm font-medium text-parcelis-gray">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading property
-            </div>
+            <LoadingState className="min-h-[60vh]" label="Loading property" />
           ) : propertyQuery.error ? (
             <Card>
               <CardContent>
@@ -549,8 +548,9 @@ export default function PropertyDetailPage() {
                       </p>
                     ) : (
                       maintenanceTickets.map((ticket) => (
-                        <div
-                          className="flex items-center gap-3 rounded-md border border-parcelis-border p-3"
+                        <Link
+                          className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
+                          href={`/maintenance/${ticket.id}`}
                           key={ticket.id}
                         >
                           <Wrench className="h-4 w-4 text-parcelis-green" />
@@ -561,7 +561,7 @@ export default function PropertyDetailPage() {
                               {ticket.dueOn ? ` · Due ${formatDate(ticket.dueOn)}` : ""}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       ))
                     )}
                   </CardContent>

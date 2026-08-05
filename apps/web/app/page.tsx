@@ -7,7 +7,6 @@ import {
   CalendarClock,
   CircleDollarSign,
   ClipboardCheck,
-  Loader2,
   Plus,
   Search,
   Wrench,
@@ -17,6 +16,7 @@ import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/u
 import type { CreatePropertyInput } from "@parcelis/schemas";
 import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../components/property-drawer";
 import { apiClient, queryKeys } from "../components/api-client";
+import { LoadingState } from "../components/loading-state";
 import { uploadPropertyImage } from "../components/property-image-upload";
 import { Sidebar } from "../components/sidebar";
 
@@ -169,10 +169,7 @@ export default function Page() {
               </CardHeader>
               <CardContent className="overflow-x-auto p-0">
                 {propertiesQuery.isLoading ? (
-                  <div className="flex min-h-48 items-center justify-center gap-2 text-sm font-medium text-parcelis-gray">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading portfolio
-                  </div>
+                  <LoadingState label="Loading portfolio" />
                 ) : propertiesQuery.error ? (
                   <div className="min-h-48 p-5 text-sm font-medium text-red-700">{propertiesQuery.error.message}</div>
                 ) : properties.length === 0 ? (

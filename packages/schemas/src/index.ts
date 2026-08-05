@@ -72,7 +72,13 @@ export const listUnitsInputSchema = z.object({
 const propertyNoteSubjectSchema = z.object({ propertyId: idSchema }).strict();
 const unitNoteSubjectSchema = z.object({ unitId: idSchema }).strict();
 const tenantNoteSubjectSchema = z.object({ tenantId: idSchema }).strict();
-const noteSubjectSchemas = [propertyNoteSubjectSchema, unitNoteSubjectSchema, tenantNoteSubjectSchema] as const;
+const maintenanceTicketNoteSubjectSchema = z.object({ maintenanceTicketId: idSchema }).strict();
+const noteSubjectSchemas = [
+  propertyNoteSubjectSchema,
+  unitNoteSubjectSchema,
+  tenantNoteSubjectSchema,
+  maintenanceTicketNoteSubjectSchema,
+] as const;
 
 export const noteSubjectInputSchema = z.union(noteSubjectSchemas);
 
@@ -146,6 +152,64 @@ export const updatePropertyInputSchema = createPropertyInputSchema.extend({
 export const propertyByIdInputSchema = z.object({
   id: idSchema,
 });
+
+export const createMaintenanceTicketInputSchema = z.object({
+  ticketTitle: z.string().trim().min(1).max(200),
+  propertyId: idSchema,
+  unitIds: z.array(idSchema).max(50).default([]),
+  categoryId: idSchema,
+  description: z.string().trim().max(5000).optional(),
+  requestedById: idSchema,
+  requestedByType: z.enum(["tenant", "landlord"]),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  isUrgent: z.boolean().default(false),
+  consentToEnter: z.boolean().default(false),
+});
+export const updateMaintenanceTicketInputSchema = createMaintenanceTicketInputSchema.extend({ id: idSchema });
+
+export const maintenanceTicketByIdInputSchema = z.object({ id: idSchema });
+export const maintenanceTicketStatuses = [
+  "new",
+  "in_progress",
+  "pending",
+  "scheduled",
+  "resolved",
+  "closed",
+  "canceled",
+] as const;
+export const activeMaintenanceTicketStatuses = ["new", "in_progress", "pending", "scheduled"] as const;
+export const terminalMaintenanceTicketStatuses = ["resolved", "closed", "canceled"] as const;
+export const maintenanceTicketStatusSchema = z.enum(maintenanceTicketStatuses);
+
+export function isActiveMaintenanceTicketStatus(status: string) {
+  return activeMaintenanceTicketStatuses.includes(status as (typeof activeMaintenanceTicketStatuses)[number]);
+}
+
+export function isTerminalMaintenanceTicketStatus(status: string) {
+  return terminalMaintenanceTicketStatuses.includes(status as (typeof terminalMaintenanceTicketStatuses)[number]);
+}
+export const updateMaintenanceTicketStatusInputSchema = z.object({
+  id: idSchema,
+  noteBody: z.string().trim().min(1).max(5000).optional(),
+  status: maintenanceTicketStatusSchema,
+});
+export const maintenanceImageUploadInputSchema = z.object({
+  id: idSchema,
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  fileName: z.string().trim().min(1).max(255),
+});
+export const maintenanceImageUploadCompleteInputSchema = z
+  .object({
+    id: idSchema,
+    fileName: z.string().trim().min(1).max(255),
+    contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+    objectKey: z.string().regex(/^maintenance\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+  })
+  .refine(({ id, objectKey }) => objectKey.startsWith(`maintenance/${id}/images/`), {
+    message: "The image must belong to the selected maintenance ticket.",
+    path: ["objectKey"],
+  });
+export const maintenanceAttachmentByIdInputSchema = z.object({ id: idSchema });
 
 export const tenantByIdInputSchema = z.object({
   id: idSchema,
@@ -231,5 +295,8 @@ export type Tenant = z.infer<typeof tenantSchema>;
 export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;
 export type UpdatePropertyInput = z.infer<typeof updatePropertyInputSchema>;
+export type CreateMaintenanceTicketInput = z.infer<typeof createMaintenanceTicketInputSchema>;
+export type MaintenanceImageUploadInput = z.infer<typeof maintenanceImageUploadInputSchema>;
+export type MaintenanceImageUploadCompleteInput = z.infer<typeof maintenanceImageUploadCompleteInputSchema>;
 export type PropertyImageUploadInput = z.infer<typeof propertyImageUploadInputSchema>;
 export type PropertyImageUploadCompleteInput = z.infer<typeof propertyImageUploadCompleteInputSchema>;

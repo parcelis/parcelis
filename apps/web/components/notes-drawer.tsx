@@ -11,8 +11,10 @@ import {
   MoreVertical,
   Pencil,
   Phone,
+  StickyNotes,
   Trash2,
   UserRound,
+  Wrench,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -36,8 +38,9 @@ import {
   Textarea,
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "./api-client";
+import { LoadingState } from "./loading-state";
 
-type NoteSubject = { propertyId: number } | { unitId: number } | { tenantId: number };
+type NoteSubject = { propertyId: number } | { unitId: number } | { tenantId: number } | { maintenanceTicketId: number };
 type NotesTab = "notes" | "files";
 
 const tabs: { value: NotesTab; label: string }[] = [
@@ -52,6 +55,11 @@ type NotesDrawerProps = {
     name: string;
     addressLines: string[];
     unitCount: number;
+  };
+  maintenanceSummary?: {
+    propertyName: string;
+    status: string;
+    units: string;
   };
   tenantSummary?: {
     email: string;
@@ -80,6 +88,7 @@ function formatDate(date: Date | string) {
 export function NotesDrawer({
   onOpenChange,
   open,
+  maintenanceSummary,
   propertySummary,
   subject,
   subjectLabel,
@@ -257,7 +266,22 @@ export function NotesDrawer({
           <DrawerTitle>Notes</DrawerTitle>
         </DrawerHeader>
         <div className="px-4 py-5 md:px-6">
-          {propertySummary ? (
+          {maintenanceSummary ? (
+            <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)_8rem] md:items-center dark:bg-parcelis-slate">
+              <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
+                <Wrench className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-base font-bold text-white">{subjectLabel}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-white/80">{maintenanceSummary.propertyName}</p>
+                <p className="mt-1 truncate text-sm font-medium text-white/70">{maintenanceSummary.units}</p>
+              </div>
+              <div className="border-white/15 md:border-l md:pl-8">
+                <p className="text-xs font-semibold uppercase text-white/55">Status</p>
+                <p className="mt-1 text-base font-semibold text-white">{maintenanceSummary.status}</p>
+              </div>
+            </div>
+          ) : propertySummary ? (
             <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)_8rem] md:items-center dark:bg-parcelis-slate">
               <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
                 <Building2 className="h-5 w-5" />
@@ -387,10 +411,7 @@ export function NotesDrawer({
                 </p>
               ) : null}
               {notesQuery.isLoading ? (
-                <div className="flex items-center gap-2 py-8 text-sm text-parcelis-gray">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading notes
-                </div>
+                <LoadingState className="min-h-0 py-8" label="Loading notes" />
               ) : notesQuery.error ? (
                 <p className="text-sm text-red-700">{notesQuery.error.message}</p>
               ) : notesQuery.data?.length ? (
@@ -473,9 +494,11 @@ export function NotesDrawer({
                   ))}
                 </div>
               ) : (
-                <p className="rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center text-sm text-parcelis-gray">
-                  No notes yet.
-                </p>
+                <div className="flex flex-col items-center rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center">
+                  <StickyNotes className="h-10 w-10 text-parcelis-green" />
+                  <p className="mt-3 text-sm font-semibold text-parcelis-charcoal">No notes yet.</p>
+                  <p className="mt-1 text-sm text-parcelis-gray">Add private notes that tenants cannot see.</p>
+                </div>
               )}
             </div>
           </div>

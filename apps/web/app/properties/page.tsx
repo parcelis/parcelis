@@ -50,7 +50,7 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import type { CreatePropertyInput, UpdatePropertyInput } from "@parcelis/schemas";
+import { isActiveMaintenanceTicketStatus, type CreatePropertyInput, type UpdatePropertyInput } from "@parcelis/schemas";
 import {
   PropertyDrawer,
   initialPropertyFormState,
@@ -64,6 +64,7 @@ import {
   getUnitFormStates,
 } from "../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../components/api-client";
+import { LoadingState } from "../../components/loading-state";
 import { NotesDrawer } from "../../components/notes-drawer";
 import { deletePropertyImage, uploadPropertyImage } from "../../components/property-image-upload";
 import { useShortcut } from "../../components/shortcut-provider";
@@ -112,7 +113,6 @@ function formatCurrency(cents: number) {
 }
 
 function getUnitRows(property: PropertyListItem) {
-  const openTicketStatuses = new Set(["open", "in_progress", "waiting_vendor"]);
   const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
   const ticketCountsByUnit = new Map<string, number>();
   const now = new Date();
@@ -120,7 +120,7 @@ function getUnitRows(property: PropertyListItem) {
   expiresBefore.setDate(expiresBefore.getDate() + 90);
 
   for (const ticket of property.maintenanceTickets) {
-    if (!ticket.unitLabel || !openTicketStatuses.has(ticket.status)) {
+    if (!ticket.unitLabel || !isActiveMaintenanceTicketStatus(ticket.status)) {
       continue;
     }
     ticketCountsByUnit.set(ticket.unitLabel, (ticketCountsByUnit.get(ticket.unitLabel) ?? 0) + 1);
@@ -864,10 +864,7 @@ export default function PropertiesPage() {
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
               {propertiesQuery.isLoading ? (
-                <div className="flex min-h-48 items-center justify-center gap-2 text-sm font-medium text-parcelis-gray">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading properties
-                </div>
+                <LoadingState label="Loading properties" />
               ) : propertiesQuery.error ? (
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">{propertiesQuery.error.message}</div>
               ) : filteredProperties.length === 0 ? (

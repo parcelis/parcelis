@@ -46,6 +46,7 @@ import {
 import { propertyTypeValues, type CreatePropertyInput, type PropertyType } from "@parcelis/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, queryKeys } from "./api-client";
+import { LoadingState } from "./loading-state";
 import { useShortcut, type ShortcutKey } from "./shortcut-provider";
 import { ImageUploadPanel } from "./image-upload-panel";
 
@@ -872,7 +873,11 @@ export function PropertyDrawer({
                               </div>
                               <div className="mt-3 grid max-h-52 gap-1 overflow-y-auto">
                                 {tagsQuery.isPending ? (
-                                  <p className="px-2 py-3 text-sm text-parcelis-gray">Loading tags…</p>
+                                  <LoadingState
+                                    className="min-h-0 justify-start px-2 py-3"
+                                    iconClassName="h-5 w-5"
+                                    label="Loading tags…"
+                                  />
                                 ) : tagsQuery.isError ? (
                                   <p className="px-2 py-3 text-sm text-parcelis-gray">
                                     Tags could not be loaded. Restart the API and try again.
