@@ -1,2 +1,2 @@
-export { LeaseStatus, PrismaClient, UnitType } from "@prisma/client";
-export type { Lease, Prisma, Property, Tenant } from "@prisma/client";
+export { LeaseStatus, Prisma, PrismaClient, UnitType } from "@prisma/client";
+export type { Lease, Property, Tenant } from "@prisma/client";

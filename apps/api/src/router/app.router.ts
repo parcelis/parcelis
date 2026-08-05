@@ -32,8 +32,12 @@ import {
   updateAmenityInputSchema,
   updateNoteInputSchema,
   updatePropertyInputSchema,
+  updateUserInputSchema,
+  userAccountStatusInputSchema,
+  deleteUserInputSchema,
 } from "@parcelis/schemas";
-import { LeaseStatus, UnitType, type Prisma } from "@parcelis/db";
+import { LeaseStatus, Prisma, UnitType } from "@parcelis/db";
+import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
   createPropertyImageUploadUrl,
@@ -239,6 +243,39 @@ function getEmergencyContact(input: {
 
 export const appRouter = router({
   auth: authRouter,
+  users: router({
+    /** Lists accounts that can access this workspace. */
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.user.findMany({
+        select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+        orderBy: { createdAt: "asc" },
+      }),
+    ),
+    update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
+      try {
+        return await ctx.prisma.user.update({
+          where: { id: input.id },
+          data: { ...input, phone: input.phone || null },
+          select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+        }
+        throw error;
+      }
+    }),
+    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.user.update({
+        where: { id: input.id },
+        data: { accountStatus: input.accountStatus },
+        select: { id: true, accountStatus: true },
+      }),
+    ),
+    delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.user.delete({ where: { id: input.id } }),
+    ),
+  }),
   /** Reports API health and the public object-storage configuration. */
   health: publicProcedure.query(() => ({
     status: "ok",

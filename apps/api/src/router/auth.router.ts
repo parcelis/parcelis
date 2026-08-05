@@ -66,6 +66,9 @@ export const authRouter = router({
       recordFailedLogin(rateLimitKey);
       throw invalidCredentials;
     }
+    if (user.accountStatus === "disabled") {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "This account has been disabled." });
+    }
 
     await createSession(ctx, user.id);
     clearLoginRateLimit(rateLimitKey);

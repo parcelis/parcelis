@@ -31,7 +31,7 @@ const navItems = [
   { label: "Tenants", href: "/tenants", key: "tenants", icon: Users },
   { label: "Maintenance", href: "/maintenance", key: "maintenance", icon: Wrench },
   { label: "Accounting", href: "#", key: "accounting", icon: Banknote },
-  { label: "Settings", href: "#", key: "settings", icon: Settings },
+  { label: "Settings", href: "/settings", key: "settings", icon: Settings },
 ] as const;
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
