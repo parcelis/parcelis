@@ -30,7 +30,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-[url('/brand/parcelis-light-background.svg')] bg-cover bg-center dark:bg-[url('/brand/parcelis-dark-background.svg')]" />
       <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/55 to-white/30 dark:from-[#041220]/80 dark:via-[#041220]/55 dark:to-[#041220]/30" />
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[100rem] flex-col px-6 py-4 sm:px-10 lg:px-12">
-        <header className="flex shrink-0 items-center justify-between">
+        <header className="flex shrink-0 items-center justify-end lg:justify-between">
           <Image
             alt="Parcelis"
             className="hidden h-auto w-56 lg:block dark:hidden"
