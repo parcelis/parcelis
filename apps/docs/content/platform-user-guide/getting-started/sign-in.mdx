@@ -1,0 +1,20 @@
+---
+id: sign-in
+title: Sign In
+---
+
+Parcelis requires an account before you can access the workspace.
+
+1. Open the sign-in page.
+2. Enter your email address and password.
+3. Select **Sign in**.
+
+New users can select **Create account** on the same page. Passwords must be at least 12 characters long.
+
+Fresh Parcelis deployments include a local administrator account for initial access: `admin@parcelis.dev` with the password `password1234`.
+
+Sign out is available from the application navigation. Signing out revokes the current browser session.
+
+## Development Only
+
+Set `AUTH_DISABLED=true` in your local environment to bypass sign-in while developing. This setting is ignored when `NODE_ENV=production`.

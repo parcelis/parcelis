@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import * as argon2 from "argon2";
 
 const prisma = new PrismaClient();
 
@@ -205,6 +206,18 @@ async function upsertLease(data) {
 }
 
 async function main() {
+  const passwordHash = await argon2.hash("password1234", {
+    type: argon2.argon2id,
+    memoryCost: 19 * 1024,
+    timeCost: 2,
+    parallelism: 1,
+  });
+  await prisma.user.upsert({
+    where: { email: "admin@parcelis.dev" },
+    update: { name: "Administrator", passwordHash },
+    create: { name: "Administrator", email: "admin@parcelis.dev", passwordHash },
+  });
+
   for (const [index, label] of utilityTypes.entries()) {
     await prisma.utilityType.upsert({
       where: { label },

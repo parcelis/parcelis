@@ -26,6 +26,7 @@
     "@parcelis/db": "workspace:*",
     "@parcelis/schemas": "workspace:*",
     "@trpc/server": "^11.18.0",
+    "argon2": "^0.45.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",

@@ -3,6 +3,14 @@ import { LeaseStatus } from "@parcelis/db";
 
 const idSchema = z.coerce.number().int().positive();
 
+export const authCredentialsInputSchema = z.object({
+  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+  password: z.string().min(12).max(1024),
+});
+
+export const authLoginInputSchema = authCredentialsInputSchema;
+export const authRegisterInputSchema = authCredentialsInputSchema;
+
 export const addressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().optional(),

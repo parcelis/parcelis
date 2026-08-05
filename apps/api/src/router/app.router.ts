@@ -46,7 +46,8 @@ import {
   deleteTenantImageObject,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
-import { publicProcedure, router } from "./trpc";
+import { authRouter } from "./auth.router";
+import { protectedProcedure as publicProcedure, router } from "./trpc";
 
 const propertySelect = {
   id: true,
@@ -237,6 +238,7 @@ function getEmergencyContact(input: {
 }
 
 export const appRouter = router({
+  auth: authRouter,
   /** Reports API health and the public object-storage configuration. */
   health: publicProcedure.query(() => ({
     status: "ok",

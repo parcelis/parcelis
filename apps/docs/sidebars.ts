@@ -16,6 +16,7 @@ const sidebars: SidebarsConfig = {
           label: "Getting Started",
           items: [
             "platform-user-guide/getting-started/first-steps",
+            "platform-user-guide/getting-started/sign-in",
             "platform-user-guide/getting-started/portfolio-dashboard",
           ],
         },
