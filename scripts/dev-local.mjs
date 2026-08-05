@@ -1,6 +1,19 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { findOpenPort } from "./port-utils.mjs";
+
+const envPath = resolve(import.meta.dirname, "../.env");
+
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)\s*$/);
+    if (match && !process.env[match[1]]) {
+      process.env[match[1]] = match[2].replace(/^["']|["']$/g, "");
+    }
+  }
+}
 
 const apiPort = await findOpenPort(process.env.API_PORT ?? 4000);
 const webPort = await findOpenPort(

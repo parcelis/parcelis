@@ -72,9 +72,10 @@ export const authRouter = router({
     return { user: { id: user.id, email: user.email } };
   }),
 
-  logout: protectedProcedure.mutation(async ({ ctx }) => {
-    if (isAuthenticationDisabled()) return { success: true };
-    await ctx.prisma.session.update({ where: { id: ctx.session.id }, data: { revokedAt: new Date() } });
+  logout: publicProcedure.mutation(async ({ ctx }) => {
+    if (!isAuthenticationDisabled() && ctx.session) {
+      await ctx.prisma.session.update({ where: { id: ctx.session.id }, data: { revokedAt: new Date() } });
+    }
     clearSessionCookie(ctx.res);
     return { success: true };
   }),

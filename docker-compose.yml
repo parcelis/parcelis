@@ -83,7 +83,7 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-4000}
       NEXT_PUBLIC_OBJECT_STORAGE_URL: http://localhost:${MINIO_API_PORT:-9000}
       NEXT_PUBLIC_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-9000}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-light.png
       NEXT_PUBLIC_DARK_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-9000}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-dark.png
@@ -114,6 +114,7 @@ services:
     environment:
       DATABASE_URL: postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public
       API_PORT: "4000"
+      WEB_ORIGIN: http://localhost:${WEB_PORT:-3000}
       OBJECT_STORAGE_ENDPOINT: http://minio:9000
       OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_PORT:-9000}
       OBJECT_STORAGE_REGION: us-east-1

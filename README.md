@@ -76,6 +76,7 @@ pnpm dev
 ```
 
 `pnpm dev` chooses the next open ports when the defaults are busy and prints the URLs it selected.
+It reads the root `.env` so the web, API, and database connection use the same port configuration.
 Defaults are web `http://localhost:3000`, API `http://localhost:4000`, and docs `http://localhost:3001`.
 pgAdmin is available at `http://localhost:5050` with the default login
 `admin@parcelis.dev` / `parcelis`; the Parcelis database is preconfigured.
