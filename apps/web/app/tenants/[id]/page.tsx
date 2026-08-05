@@ -171,7 +171,7 @@ export default function TenantDetailPage() {
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="flex-1">
       {emergencyContact ? (
         <Dialog onOpenChange={setIsEmergencyContactOpen} open={isEmergencyContactOpen}>
           <DialogContent className="w-full max-w-md p-6">

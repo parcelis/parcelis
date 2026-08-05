@@ -1,0 +1,26 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
+export function AppFooter() {
+  const pathname = usePathname();
+
+  if (pathname === "/login") {
+    return null;
+  }
+
+  return (
+    <footer className="border-t border-parcelis-border bg-white/80 px-4 py-4 text-xs text-parcelis-gray backdrop-blur dark:bg-parcelis-slate/80 lg:ml-[var(--parcelis-sidebar-width)] lg:px-8">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <span>
+          © {new Date().getFullYear()}{" "}
+          <a className="hover:text-parcelis-charcoal" href="https://parcelis.dev">
+            Parcelis
+          </a>
+          . Open source. Open future.
+        </span>
+        <span>The open-source platform for property management.</span>
+      </div>
+    </footer>
+  );
+}

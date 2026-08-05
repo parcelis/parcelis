@@ -317,7 +317,7 @@ export default function TenantsPage() {
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="flex-1">
       <Sidebar active="tenants" />
       <AlertDialog onOpenChange={(open) => !open && setArchiveTenant(null)} open={Boolean(archiveTenant)}>
         <AlertDialogContent>

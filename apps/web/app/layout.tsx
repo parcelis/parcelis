@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AppFooter } from "../components/app-footer";
 import { ShortcutProvider } from "../components/shortcut-provider";
 import { TrpcProvider } from "../components/trpc-provider";
 import { ThemeProvider } from "../components/theme-provider";
@@ -7,7 +8,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Parcelis | Property management",
-  description: "An open-source property management system for property managers, landlords, and local teams."
+  description: "An open-source property management system for property managers, landlords, and local teams.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -16,7 +17,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <ThemeProvider>
           <ShortcutProvider>
-            <TrpcProvider>{children}</TrpcProvider>
+            <TrpcProvider>
+              <div className="flex min-h-[100svh] flex-col">
+                {children}
+                <AppFooter />
+              </div>
+            </TrpcProvider>
           </ShortcutProvider>
         </ThemeProvider>
       </body>
