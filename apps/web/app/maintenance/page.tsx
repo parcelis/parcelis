@@ -203,7 +203,11 @@ export default function MaintenancePage() {
   function toggleProperty(propertyId: number) {
     setExpandedPropertyIds((current) => {
       const next = new Set(current);
-      next.has(propertyId) ? next.delete(propertyId) : next.add(propertyId);
+      if (next.has(propertyId)) {
+        next.delete(propertyId);
+      } else {
+        next.add(propertyId);
+      }
       return next;
     });
   }
