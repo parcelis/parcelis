@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Bath,
@@ -40,6 +40,7 @@ import { getPropertyFormState, getUnitFormStates } from "../../../components/pro
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
 import { NotesDrawer } from "../../../components/notes-drawer";
+import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { Sidebar } from "../../../components/sidebar";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
 
@@ -71,6 +72,7 @@ function formatDate(date: Date | string) {
 
 export default function PropertyDetailPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const propertyId = Number(params.id);
   const propertyQuery = useQuery({
@@ -255,6 +257,41 @@ export default function PropertyDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            <EntityLifecycleControls
+              archiveDescription={
+                <>This will hide {property?.name ?? "this property"} from the default properties view.</>
+              }
+              cancelDeleteLabel="Keep Property"
+              deleteDescription={
+                <>This permanently deletes {property?.name ?? "this property"} and cannot be undone.</>
+              }
+              entityLabel="property"
+              isArchived={property?.status === "archived"}
+              isAvailable={Boolean(property)}
+              onArchive={() => apiClient.properties.archive.mutate({ id: propertyId })}
+              onArchiveSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+                ]);
+                router.push("/properties");
+              }}
+              onDelete={() => apiClient.properties.delete.mutate({ id: propertyId })}
+              onDeleteSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+                ]);
+                router.push("/properties");
+              }}
+              onReactivate={() => apiClient.properties.reactivate.mutate({ id: propertyId })}
+              onReactivateSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+                ]);
+              }}
+            />
             <Button
               aria-label="Add notes"
               className="min-w-10 sm:min-w-40"

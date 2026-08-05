@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -49,6 +49,7 @@ import { Sidebar } from "../../../components/sidebar";
 import { deleteTenantImage, uploadTenantImage } from "../../../components/tenant-image-upload";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../components/tenant-drawer";
 import { NotesDrawer } from "../../../components/notes-drawer";
+import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -87,6 +88,7 @@ function getStatusTone(status?: string | null) {
 
 export default function TenantDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const tenantId = Number(params.id);
   const [isEmergencyContactOpen, setIsEmergencyContactOpen] = useState(false);
   const [isEmergencyContactDrawerOpen, setIsEmergencyContactDrawerOpen] = useState(false);
@@ -358,6 +360,47 @@ export default function TenantDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            <EntityLifecycleControls
+              archiveDescription={
+                <>
+                  This will mark {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} as archived while
+                  preserving their lease history.
+                </>
+              }
+              cancelDeleteLabel="Keep Tenant"
+              deleteDescription={
+                <>
+                  This permanently deletes {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} and their
+                  lease history. This cannot be undone.
+                </>
+              }
+              entityLabel="tenant"
+              isArchived={tenant?.tenantStatus === "archived"}
+              isAvailable={Boolean(tenant)}
+              onArchive={() => apiClient.tenants.archive.mutate({ id: tenantId })}
+              onArchiveSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                ]);
+                router.push("/tenants");
+              }}
+              onDelete={() => apiClient.tenants.delete.mutate({ id: tenantId })}
+              onDeleteSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                ]);
+                router.push("/tenants");
+              }}
+              onReactivate={() => apiClient.tenants.reactivate.mutate({ id: tenantId })}
+              onReactivateSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                ]);
+              }}
+            />
             <Button
               aria-label="Add notes"
               className="min-w-10 sm:min-w-40"

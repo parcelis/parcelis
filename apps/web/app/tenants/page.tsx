@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   BadgeCheck,
   Archive,
+  ArchiveRestore,
   CalendarCheck2,
   EllipsisVertical,
   Eye,
@@ -114,8 +115,8 @@ function TenantActionsMenu({
         </DropdownMenuItem>
         {isArchived ? (
           <DropdownMenuItem onSelect={onReactivate}>
-            <Archive className="h-4 w-4 text-parcelis-green" />
-            Restore
+            <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
+            Unarchive
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem onSelect={onArchive}>

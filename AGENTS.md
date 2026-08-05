@@ -63,6 +63,10 @@
   height, padding, and minimum width.
 - Reserve `size="sm"` and compact widths for dense table actions, icon-only controls, and
   multi-action toolbars where standard buttons would cause overflow.
+- Use `variant="destructive"` for actions that permanently delete data; it uses a red outline, red content, and a
+  white surface. Use `variant="secondary"` for
+  non-destructive actions such as archive, cancel, and back navigation; a confirmation dialog's final action may use
+  `primary` to distinguish it from cancellation.
 - In drawer footers, place Cancel on the left and the primary action on the right. Use
   `ChevronRight` after the label for every Next button.
 - Keep operational screens dense, scannable, and task-focused rather than marketing-oriented.
