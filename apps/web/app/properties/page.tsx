@@ -997,7 +997,11 @@ export default function PropertiesPage() {
                                 onDelete={() => setDeletePropertyId(property.id)}
                                 onEdit={() => openEditProperty(property)}
                                 onNotes={() => openNotes(property)}
-                                onReactivate={() => reactivateProperty.mutate({ id: property.id })}
+                                onReactivate={() => {
+                                  if (!reactivateProperty.isPending) {
+                                    reactivateProperty.mutate({ id: property.id });
+                                  }
+                                }}
                                 property={property}
                               />
                             </TableCell>

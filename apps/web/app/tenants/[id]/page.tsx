@@ -6,31 +6,21 @@ import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
-  Archive,
-  ArchiveRestore,
   BadgeCheck,
   Building2,
   CalendarDays,
   CircleDollarSign,
   Coins,
-  Loader2,
   Mail,
   PenLine,
   Phone,
   Save,
   ScrollText,
   ShieldCheck,
-  Trash2,
   UserRound,
   X,
 } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   Badge,
   Button,
   Card,
@@ -59,6 +49,7 @@ import { Sidebar } from "../../../components/sidebar";
 import { deleteTenantImage, uploadTenantImage } from "../../../components/tenant-image-upload";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../components/tenant-drawer";
 import { NotesDrawer } from "../../../components/notes-drawer";
+import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -104,8 +95,6 @@ export default function TenantDetailPage() {
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [isTenantDrawerOpen, setIsTenantDrawerOpen] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
-  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [tenantForm, setTenantForm] = useState<TenantFormState>(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = useState<File | null>(null);
   const [emergencyContactDraft, setEmergencyContactDraft] = useState({
@@ -153,34 +142,6 @@ export default function TenantDetailPage() {
       ]);
     },
   });
-  const archiveTenantMutation = useMutation({
-    mutationFn: () => apiClient.tenants.archive.mutate({ id: tenantId }),
-    onSuccess: async () => {
-      setIsArchiveDialogOpen(false);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
-      ]);
-      router.push("/tenants");
-    },
-  });
-  const reactivateTenantMutation = useMutation({
-    mutationFn: () => apiClient.tenants.reactivate.mutate({ id: tenantId }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
-      ]);
-    },
-  });
-  const deleteTenantMutation = useMutation({
-    mutationFn: () => apiClient.tenants.delete.mutate({ id: tenantId }),
-    onSuccess: async () => {
-      setIsDeleteDialogOpen(false);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
-      router.push("/tenants");
-    },
-  });
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
   const overdueCents = currentLease?.amountOverdueCents ?? 0;
   const currentInvoiceCents = currentLease?.monthlyRentCents ?? 0;
@@ -213,63 +174,6 @@ export default function TenantDetailPage() {
 
   return (
     <main className="min-h-screen">
-      <AlertDialog onOpenChange={setIsArchiveDialogOpen} open={isArchiveDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Archive tenant?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will mark {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} as archived while
-              preserving their lease history.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button onClick={() => setIsArchiveDialogOpen(false)} type="button" variant="secondary">
-              Keep Active
-            </Button>
-            <Button
-              disabled={archiveTenantMutation.isPending}
-              onClick={() => archiveTenantMutation.mutate()}
-              type="button"
-            >
-              {archiveTenantMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Archive className="h-4 w-4" />
-              )}
-              Archive
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog onOpenChange={setIsDeleteDialogOpen} open={isDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete tenant?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} and their
-              lease history. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button onClick={() => setIsDeleteDialogOpen(false)} type="button" variant="secondary">
-              Keep Tenant
-            </Button>
-            <Button
-              disabled={deleteTenantMutation.isPending}
-              onClick={() => deleteTenantMutation.mutate()}
-              type="button"
-              variant="destructive"
-            >
-              {deleteTenantMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              Delete
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       {emergencyContact ? (
         <Dialog onOpenChange={setIsEmergencyContactOpen} open={isEmergencyContactOpen}>
           <DialogContent className="w-full max-w-md p-6">
@@ -456,43 +360,47 @@ export default function TenantDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            {tenant?.tenantStatus === "archived" ? (
-              <Button
-                aria-label="Unarchive tenant"
-                className="min-w-10 sm:min-w-40"
-                disabled={reactivateTenantMutation.isPending}
-                onClick={() => reactivateTenantMutation.mutate()}
-                variant="secondary"
-              >
-                {reactivateTenantMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArchiveRestore className="h-4 w-4" />
-                )}
-                <span className="hidden sm:inline">Unarchive</span>
-              </Button>
-            ) : (
-              <Button
-                aria-label="Archive tenant"
-                className="min-w-10 sm:min-w-40"
-                disabled={!tenant}
-                onClick={() => setIsArchiveDialogOpen(true)}
-                variant="secondary"
-              >
-                <Archive className="h-4 w-4" />
-                <span className="hidden sm:inline">Archive</span>
-              </Button>
-            )}
-            <Button
-              aria-label="Delete tenant"
-              className="min-w-10 sm:min-w-40"
-              disabled={!tenant}
-              onClick={() => setIsDeleteDialogOpen(true)}
-              variant="destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Delete</span>
-            </Button>
+            <EntityLifecycleControls
+              archiveDescription={
+                <>
+                  This will mark {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} as archived while
+                  preserving their lease history.
+                </>
+              }
+              cancelDeleteLabel="Keep Tenant"
+              deleteDescription={
+                <>
+                  This permanently deletes {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} and their
+                  lease history. This cannot be undone.
+                </>
+              }
+              entityLabel="tenant"
+              isArchived={tenant?.tenantStatus === "archived"}
+              isAvailable={Boolean(tenant)}
+              onArchive={() => apiClient.tenants.archive.mutate({ id: tenantId })}
+              onArchiveSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                ]);
+                router.push("/tenants");
+              }}
+              onDelete={() => apiClient.tenants.delete.mutate({ id: tenantId })}
+              onDeleteSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                ]);
+                router.push("/tenants");
+              }}
+              onReactivate={() => apiClient.tenants.reactivate.mutate({ id: tenantId })}
+              onReactivateSuccess={async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                ]);
+              }}
+            />
             <Button
               aria-label="Add notes"
               className="min-w-10 sm:min-w-40"
