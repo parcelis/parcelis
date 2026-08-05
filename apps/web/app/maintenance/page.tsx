@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleX,
   EllipsisVertical,
@@ -17,6 +18,7 @@ import {
   StickyNote,
   Trash2,
   Wrench,
+  WrenchOff,
 } from "lucide-react";
 import {
   Button,
@@ -63,6 +65,14 @@ type TicketAction = {
   title: string;
   units: string;
 };
+type ActivityEventSummary = {
+  id: number;
+  action: string;
+  previousStatus: string | null;
+  nextStatus: string | null;
+  createdAt: Date | string;
+  maintenanceTicket: { title: string; property: { name: string } };
+};
 
 function label(value: string) {
   return value
@@ -72,6 +82,15 @@ function label(value: string) {
 }
 function formatDate(value: Date | string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+function formatDateTime(value: Date | string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 function ticketUnits(ticket: { units: Array<{ unit: { name: string } }> }) {
   return ticket.units.length ? ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ") : "Property-wide";
@@ -95,6 +114,7 @@ export default function MaintenancePage() {
   const [categoryFilter, setCategoryFilter] = React.useState("all");
   const [urgencyFilter, setUrgencyFilter] = React.useState("all");
   const [groupByProperty, setGroupByProperty] = React.useState(false);
+  const [isLoggingOpen, setIsLoggingOpen] = React.useState(false);
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [notesTicket, setNotesTicket] = React.useState<{
@@ -109,6 +129,11 @@ export default function MaintenancePage() {
   const ticketsQuery = useQuery({
     queryKey: ["maintenance", "list"],
     queryFn: () => apiClient.maintenance.list.query(),
+  });
+  const activityEventsQuery = useQuery({
+    queryKey: ["activityEvents", "list", { limit: 50 }],
+    queryFn: () => apiClient.activityEvents.list.query({ limit: 50 }),
+    enabled: isLoggingOpen,
   });
   const createTicket = useMutation({
     mutationFn: async ({
@@ -149,6 +174,7 @@ export default function MaintenancePage() {
       setTicketActionNote("");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] }),
         ...(ticketId
           ? [
               queryClient.invalidateQueries({
@@ -161,9 +187,14 @@ export default function MaintenancePage() {
   });
   const reopenTicket = useMutation({
     mutationFn: (id: number) => apiClient.maintenance.updateStatus.mutate({ id, status: "in_progress" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] }),
+      ]),
   });
   const tickets = ticketsQuery.data ?? [];
+  const activityEvents = (activityEventsQuery.data ?? []) as ActivityEventSummary[];
   const normalizedSearch = search.toLowerCase();
   const activeFilterCount = [statusFilter, propertyFilter, categoryFilter, urgencyFilter].filter(
     (value) => value !== "all",
@@ -606,6 +637,56 @@ export default function MaintenancePage() {
                 </Table>
               )}
             </CardContent>
+          </Card>
+          <Card className="mt-6">
+            <CardHeader className="border-b-0 p-0">
+              <button
+                aria-controls="maintenance-logging"
+                aria-expanded={isLoggingOpen}
+                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+                onClick={() => setIsLoggingOpen((open) => !open)}
+                type="button"
+              >
+                <div>
+                  <h2 className="font-semibold text-parcelis-charcoal">Logging</h2>
+                  <p className="mt-1 text-sm text-parcelis-gray">Recent maintenance ticket activity.</p>
+                </div>
+                <ChevronDown className={`h-5 w-5 text-parcelis-gray transition-transform ${isLoggingOpen ? "rotate-180" : ""}`} />
+              </button>
+            </CardHeader>
+            {isLoggingOpen ? (
+              <CardContent className="border-t border-parcelis-border p-0" id="maintenance-logging">
+                {activityEventsQuery.isLoading ? (
+                  <LoadingState className="min-h-32" label="Loading activity…" />
+                ) : activityEventsQuery.error ? (
+                  <p className="p-5 text-sm font-medium text-red-700">Unable to load activity. Please try again.</p>
+                ) : activityEvents.length ? (
+                  <ul className="divide-y divide-parcelis-border">
+                    {activityEvents.map((event) => (
+                      <li className="flex flex-col gap-1 px-5 py-4 text-sm md:flex-row md:items-center md:justify-between" key={event.id}>
+                        <div>
+                          <p className="font-semibold text-parcelis-charcoal">{label(event.action.replace("maintenance.", ""))}</p>
+                          <p className="mt-1 text-parcelis-gray">
+                            {event.maintenanceTicket.title} · {event.maintenanceTicket.property.name}
+                            {event.previousStatus && event.nextStatus
+                              ? ` · ${label(event.previousStatus)} → ${label(event.nextStatus)}`
+                              : ""}
+                          </p>
+                        </div>
+                        <time className="shrink-0 text-parcelis-gray">{formatDateTime(event.createdAt)}</time>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="m-5 flex flex-col items-center rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center">
+                    <WrenchOff className="h-10 w-10 text-parcelis-green" />
+                    <p className="mt-3 text-sm font-semibold text-parcelis-charcoal">
+                      No maintenance activity has been recorded yet.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            ) : null}
           </Card>
         </div>
       </section>

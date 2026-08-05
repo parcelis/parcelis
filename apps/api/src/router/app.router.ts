@@ -1,5 +1,6 @@
 import {
   createPropertyInputSchema,
+  activityEventListInputSchema,
   isActiveMaintenanceTicketStatus,
   createMaintenanceTicketInputSchema,
   maintenanceAttachmentByIdInputSchema,
@@ -36,7 +37,14 @@ import {
   userAccountStatusInputSchema,
   deleteUserInputSchema,
 } from "@parcelis/schemas";
-import { LeaseStatus, Prisma, PrismaClient, UnitType, type UserRole } from "@parcelis/db";
+import {
+  LeaseStatus,
+  MaintenanceTicketStatus,
+  Prisma,
+  PrismaClient,
+  UnitType,
+  type UserRole,
+} from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
@@ -80,6 +88,32 @@ const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
   return unitType === "Commercial" ? UnitType.commercial : UnitType.residential;
+}
+
+function maintenanceStatusAction(previousStatus: MaintenanceTicketStatus, nextStatus: MaintenanceTicketStatus) {
+  if (previousStatus === "new" && nextStatus === "in_progress") return "maintenance.acknowledged";
+  if (previousStatus === "resolved" && nextStatus === "in_progress") return "maintenance.reopened";
+  if (nextStatus === "resolved") return "maintenance.resolved";
+  if (nextStatus === "canceled") return "maintenance.canceled";
+  return "maintenance.status_changed";
+}
+
+async function recordMaintenanceStatusEvent(
+  tx: Prisma.TransactionClient,
+  ticketId: number,
+  previousStatus: MaintenanceTicketStatus,
+  nextStatus: MaintenanceTicketStatus,
+) {
+  if (previousStatus === nextStatus) return;
+
+  await tx.activityEvent.create({
+    data: {
+      maintenanceTicketId: ticketId,
+      action: maintenanceStatusAction(previousStatus, nextStatus),
+      previousStatus,
+      nextStatus,
+    },
+  });
 }
 
 function withPropertyNotes<T extends { legacyNotes: string | null }>(property: T) {
@@ -936,6 +970,8 @@ export const appRouter = router({
               data: { status: input.status },
             });
             await tx.note.create({ data: { maintenanceTicketId: input.id, body: noteBody } });
+            await tx.note.create({ data: { maintenanceTicketId: input.id, body: "Ticket Resolved" } });
+            await recordMaintenanceStatusEvent(tx, input.id, currentTicket.status, input.status);
             return ticket;
           });
         }
@@ -945,6 +981,7 @@ export const appRouter = router({
         return ctx.prisma.$transaction(async (tx) => {
           const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
           await tx.note.create({ data: { maintenanceTicketId: input.id, body: "Ticket Reopened" } });
+          await recordMaintenanceStatusEvent(tx, input.id, currentTicket.status, input.status);
           return ticket;
         });
       }
@@ -958,11 +995,19 @@ export const appRouter = router({
         return ctx.prisma.$transaction(async (tx) => {
           const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
           await tx.note.create({ data: { maintenanceTicketId: input.id, body: noteBody } });
+          await recordMaintenanceStatusEvent(tx, input.id, currentTicket.status, input.status);
           return ticket;
         });
       }
 
-      return ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
+      return ctx.prisma.$transaction(async (tx) => {
+        const ticket = await tx.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
+        if (currentTicket.status !== input.status && input.status === "resolved") {
+          await tx.note.create({ data: { maintenanceTicketId: input.id, body: "Ticket Resolved" } });
+        }
+        await recordMaintenanceStatusEvent(tx, input.id, currentTicket.status, input.status);
+        return ticket;
+      });
     }),
     update: publicProcedure.input(updateMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
       const priority = input.isUrgent ? "urgent" : input.priority;
@@ -1047,6 +1092,33 @@ export const appRouter = router({
         },
       });
     }),
+  }),
+  activityEvents: router({
+    /** Lists immutable activity events for a maintenance ticket. */
+    list: publicProcedure.input(activityEventListInputSchema).query(({ ctx, input }) =>
+      ctx.prisma.activityEvent.findMany({
+        where: input.maintenanceTicketId ? { maintenanceTicketId: input.maintenanceTicketId } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: input.limit,
+        select: {
+          id: true,
+          action: true,
+          previousStatus: true,
+          nextStatus: true,
+          actorId: true,
+          actorLabel: true,
+          metadata: true,
+          createdAt: true,
+          maintenanceTicket: {
+            select: {
+              id: true,
+              title: true,
+              property: { select: { name: true } },
+            },
+          },
+        },
+      }),
+    ),
   }),
   unitOptions: router({
     /** Lists the available utility and amenity options for units. */

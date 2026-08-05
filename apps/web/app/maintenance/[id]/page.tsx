@@ -10,6 +10,7 @@ import {
   CalendarDays,
   CircleX,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   EllipsisVertical,
@@ -20,6 +21,7 @@ import {
   Trash2,
   UserRound,
   Wrench,
+  WrenchOff,
 } from "lucide-react";
 import {
   Button,
@@ -52,6 +54,21 @@ const label = (value: string) =>
     .join(" ");
 const formatDate = (value: Date | string) =>
   new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+const formatDateTime = (value: Date | string) =>
+  new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+type ActivityEventSummary = {
+  id: number;
+  action: string;
+  previousStatus: string | null;
+  nextStatus: string | null;
+  createdAt: Date | string;
+};
 
 export default function MaintenanceTicketPage() {
   const { id: idParam } = useParams<{ id: string }>();
@@ -64,6 +81,7 @@ export default function MaintenanceTicketPage() {
   const [isResolutionNoteOpen, setIsResolutionNoteOpen] = React.useState(false);
   const [cancellationNote, setCancellationNote] = React.useState("");
   const [isCancellationNoteOpen, setIsCancellationNoteOpen] = React.useState(false);
+  const [isLoggingOpen, setIsLoggingOpen] = React.useState(false);
   const [galleryIndex, setGalleryIndex] = React.useState<number | null>(null);
   const queryClient = useQueryClient();
   const ticketQuery = useQuery({
@@ -76,9 +94,18 @@ export default function MaintenanceTicketPage() {
     queryFn: () => apiClient.notes.list.query({ maintenanceTicketId: id, limit: 5 }),
     enabled: id > 0,
   });
+  const activityEventsQuery = useQuery({
+    queryKey: ["activityEvents", "list", { maintenanceTicketId: id, limit: 50 }],
+    queryFn: () => apiClient.activityEvents.list.query({ maintenanceTicketId: id, limit: 50 }),
+    enabled: isLoggingOpen && id > 0,
+  });
   const acknowledgeTicket = useMutation({
     mutationFn: () => apiClient.maintenance.updateStatus.mutate({ id, status: "in_progress" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { maintenanceTicketId: id }] }),
+      ]),
   });
   const resolveTicket = useMutation({
     mutationFn: async (note?: string) => {
@@ -91,6 +118,7 @@ export default function MaintenanceTicketPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { maintenanceTicketId: id }] }),
       ]);
     },
   });
@@ -100,6 +128,7 @@ export default function MaintenanceTicketPage() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { maintenanceTicketId: id }] }),
       ]),
   });
   const cancelTicket = useMutation({
@@ -108,6 +137,7 @@ export default function MaintenanceTicketPage() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { maintenanceTicketId: id }] }),
       ]).then(() => {
         setCancellationNote("");
         setIsCancellationNoteOpen(false);
@@ -149,6 +179,7 @@ export default function MaintenanceTicketPage() {
     },
   });
   const ticket = ticketQuery.data;
+  const activityEvents = (activityEventsQuery.data ?? []) as ActivityEventSummary[];
   const requester = ticket?.requestedByTenant ?? ticket?.requestedByLandlord;
   const attachments = ticket?.attachments ?? [];
   const activeAttachment = galleryIndex === null ? null : attachments[galleryIndex];
@@ -583,6 +614,62 @@ export default function MaintenanceTicketPage() {
                     </CardContent>
                   </Card>
                 </div>
+                <Card className="mt-5">
+                  <CardHeader className="border-b-0 p-0">
+                    <button
+                      aria-controls="ticket-logging"
+                      aria-expanded={isLoggingOpen}
+                      className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+                      onClick={() => setIsLoggingOpen((open) => !open)}
+                      type="button"
+                    >
+                      <div>
+                        <h2 className="font-semibold text-parcelis-charcoal">Logging</h2>
+                        <p className="mt-1 text-sm text-parcelis-gray">Activity for this maintenance ticket.</p>
+                      </div>
+                      <ChevronDown
+                        className={`h-5 w-5 text-parcelis-gray transition-transform ${isLoggingOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                  </CardHeader>
+                  {isLoggingOpen ? (
+                    <CardContent className="border-t border-parcelis-border p-0" id="ticket-logging">
+                      {activityEventsQuery.isLoading ? (
+                        <LoadingState className="min-h-32" label="Loading activity…" />
+                      ) : activityEventsQuery.error ? (
+                        <p className="p-5 text-sm font-medium text-red-700">Unable to load activity. Please try again.</p>
+                      ) : activityEvents.length ? (
+                        <ul className="divide-y divide-parcelis-border">
+                          {activityEvents.map((event) => (
+                            <li
+                              className="flex flex-col gap-1 px-5 py-4 text-sm md:flex-row md:items-center md:justify-between"
+                              key={event.id}
+                            >
+                              <div>
+                                <p className="font-semibold text-parcelis-charcoal">
+                                  {label(event.action.replace("maintenance.", ""))}
+                                </p>
+                                {event.previousStatus && event.nextStatus ? (
+                                  <p className="mt-1 text-parcelis-gray">
+                                    {label(event.previousStatus)} → {label(event.nextStatus)}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <time className="shrink-0 text-parcelis-gray">{formatDateTime(event.createdAt)}</time>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="m-5 flex flex-col items-center rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center">
+                          <WrenchOff className="h-10 w-10 text-parcelis-green" />
+                          <p className="mt-3 text-sm font-semibold text-parcelis-charcoal">
+                            No maintenance activity has been recorded yet.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  ) : null}
+                </Card>
               </div>
             </>
           )}

@@ -320,6 +320,7 @@ model MaintenanceTicket {
   units                 MaintenanceTicketUnit[]
   attachments           MaintenanceAttachment[]
   notes                 Note[]
+  activityEvents        ActivityEvent[]
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
 
@@ -328,6 +329,22 @@ model MaintenanceTicket {
   @@index([categoryId])
   @@index([requestedByTenantId])
   @@index([requestedByLandlordId])
+}
+
+model ActivityEvent {
+  id                  Int                     @id @default(autoincrement())
+  maintenanceTicketId Int
+  action              String
+  previousStatus      MaintenanceTicketStatus?
+  nextStatus          MaintenanceTicketStatus?
+  actorId             String?
+  actorLabel          String?
+  metadata            Json?
+  maintenanceTicket   MaintenanceTicket       @relation(fields: [maintenanceTicketId], references: [id], onDelete: Cascade)
+  createdAt           DateTime                @default(now())
+
+  @@index([maintenanceTicketId, createdAt, id])
+  @@index([action, createdAt])
 }
 
 model MaintenanceAttachment {

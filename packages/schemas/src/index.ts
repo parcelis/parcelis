@@ -216,6 +216,10 @@ export const updateMaintenanceTicketStatusInputSchema = z.object({
   noteBody: z.string().trim().min(1).max(5000).optional(),
   status: maintenanceTicketStatusSchema,
 });
+export const activityEventListInputSchema = z.object({
+  maintenanceTicketId: idSchema.optional(),
+  limit: z.number().int().min(1).max(100).default(50),
+});
 export const maintenanceImageUploadInputSchema = z.object({
   id: idSchema,
   contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
