@@ -78,13 +78,16 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm dev` chooses the next open ports when the defaults are busy and prints the URLs it selected.
+`pnpm dev` uses the Parcelis host-port block and chooses the next open port when a default is busy.
 It reads the root `.env` so the web, API, and database connection use the same port configuration.
-Defaults are web `http://localhost:3000`, API `http://localhost:4000`, and docs `http://localhost:3001`.
-pgAdmin is available at `http://localhost:5050` with the default login
+Defaults are web `http://localhost:43100`, docs `http://localhost:43101`, API
+`http://localhost:43102`, PostgreSQL `localhost:43103`, pgAdmin
+`http://localhost:43104`, MinIO `http://localhost:43105`, and the MinIO console
+`http://localhost:43106`.
+pgAdmin is available at `http://localhost:43104` with the default login
 `admin@parcelis.dev` / `parcelis`; the Parcelis database is preconfigured.
 When connecting to it for the first time, use the database password `parcelis`.
-If `DATABASE_URL` is not set, the API falls back to `postgresql://parcelis:parcelis@localhost:55432/parcelis?schema=public`.
+If `DATABASE_URL` is not set, the API falls back to `postgresql://parcelis:parcelis@localhost:43103/parcelis?schema=public`.
 If a previous dev run is still watching files, stop it with `Ctrl+C` before
 starting another one.
 Prisma commands load the root `.env` automatically when run through `pnpm db:*`.
@@ -107,9 +110,9 @@ docker compose run --rm api sh -c "corepack enable && pnpm install && pnpm db:mi
 docker compose up -d web api
 ```
 
-Open the web app at `http://localhost:3000`, the API at
-`http://localhost:4000`, the docs at `http://localhost:3001`, pgAdmin at
-`http://localhost:5050`, and the MinIO console at `http://localhost:9001`.
+Open the web app at `http://localhost:43100`, the API at
+`http://localhost:43102`, the docs at `http://localhost:43101`, pgAdmin at
+`http://localhost:43104`, and the MinIO console at `http://localhost:43106`.
 The `minio-init` container runs once to create buckets and upload the light and
 dark Parcelis logos, then exits normally.
 
@@ -143,7 +146,7 @@ Parcelis is licensed under the GNU Affero General Public License version 3. See
 ## Object storage
 
 Parcelis uses MinIO for local S3-compatible image storage. Docker Compose starts
-MinIO on `http://localhost:9000`, opens the console at `http://localhost:9001`,
+MinIO on `http://localhost:43105`, opens the console at `http://localhost:43106`,
 and creates a private `parcelis-images` bucket through the `minio-init` service.
 It also creates a public-read `parcelis-assets` bucket and uploads the brand
 logos to `brand/parcelis-light.png` and `brand/parcelis-dark.png`. The
@@ -171,13 +174,12 @@ For Docker Compose, host ports are configured with `WEB_PORT`, `API_PORT`, `POST
 `PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
 
 ```bash
-WEB_PORT=3010 API_PORT=4010 DOCS_PORT=3011 POSTGRES_PORT=5434 PGADMIN_PORT=5050 MINIO_API_PORT=9010 MINIO_CONSOLE_PORT=9011 docker compose up
+WEB_PORT=43200 API_PORT=43202 DOCS_PORT=43201 POSTGRES_PORT=43203 PGADMIN_PORT=43204 MINIO_API_PORT=43205 MINIO_CONSOLE_PORT=43206 docker compose up
 ```
 
-The Compose Postgres container listens on `5432` internally, but maps to host
-port `55432` by default so it can coexist with local Postgres installs.
-The Compose MinIO container listens on `9000` internally, with the console on
-`9001`.
+The Compose services retain their standard internal ports, but map to the
+Parcelis host-port block (`43100`–`43106`) by default. Set the corresponding
+environment variables to override individual host ports.
 
 If Docker reports that its predefined address pools have been fully subnetted,
 Parcelis uses a fixed `10.88.0.0/24` development network. If that subnet is also

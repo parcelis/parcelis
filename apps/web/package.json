@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node ../../scripts/run-with-open-port.mjs PORT 3000 next dev --turbo --hostname 0.0.0.0 --port {PORT}",
-    "dev:fixed": "next dev --turbo --hostname 0.0.0.0 --port ${PORT:-3000}",
+    "dev": "node ../../scripts/run-with-open-port.mjs PORT 43100 next dev --turbo --hostname 0.0.0.0 --port {PORT}",
+    "dev:fixed": "next dev --turbo --hostname 0.0.0.0 --port ${PORT:-43100}",
     "build": "next build",
-    "start": "node ../../scripts/run-with-open-port.mjs PORT 3000 next start --port {PORT}",
+    "start": "node ../../scripts/run-with-open-port.mjs PORT 43100 next start --port {PORT}",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

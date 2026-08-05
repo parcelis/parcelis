@@ -19,7 +19,7 @@ if (existsSync(envPath)) {
   }
 }
 
-process.env.DATABASE_URL ??= `postgresql://parcelis:parcelis@localhost:${process.env.POSTGRES_PORT ?? 55432}/parcelis?schema=public`;
+process.env.DATABASE_URL ??= `postgresql://parcelis:parcelis@localhost:${process.env.POSTGRES_PORT ?? 43103}/parcelis?schema=public`;
 
 const args = process.argv.slice(2);
 const child = spawn("prisma", args, {

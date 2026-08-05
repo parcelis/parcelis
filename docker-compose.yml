@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: parcelis
       POSTGRES_DB: parcelis
     ports:
-      - "${POSTGRES_PORT:-55432}:5432"
+      - "${POSTGRES_PORT:-43103}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -25,7 +25,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@parcelis.dev}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-parcelis}
     ports:
-      - "${PGADMIN_PORT:-5050}:80"
+      - "${PGADMIN_PORT:-43104}:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
       - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
@@ -44,8 +44,8 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-parcelis-images}
       MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:-parcelis-assets}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_API_PORT:-43105}:9000"
+      - "${MINIO_CONSOLE_PORT:-43106}:9001"
     volumes:
       - minio-data:/data
     networks:
@@ -81,12 +81,12 @@ services:
     working_dir: /repo
     command: sh -c "corepack enable && pnpm install && pnpm --filter @parcelis/web dev"
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - "${WEB_PORT:-43100}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-4000}
-      NEXT_PUBLIC_OBJECT_STORAGE_URL: http://localhost:${MINIO_API_PORT:-9000}
-      NEXT_PUBLIC_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-9000}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-light.png
-      NEXT_PUBLIC_DARK_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-9000}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-dark.png
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-43102}
+      NEXT_PUBLIC_OBJECT_STORAGE_URL: http://localhost:${MINIO_API_PORT:-43105}
+      NEXT_PUBLIC_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-43105}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-light.png
+      NEXT_PUBLIC_DARK_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-43105}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-dark.png
     volumes:
       - .:/repo
       - pnpm-store:/root/.local/share/pnpm/store
@@ -101,7 +101,7 @@ services:
       dockerfile: apps/docs/Dockerfile
       target: caddy
     ports:
-      - "${DOCS_PORT:-3001}:80"
+      - "${DOCS_PORT:-43101}:80"
     networks:
       - parcelis-dev
 
@@ -110,13 +110,13 @@ services:
     working_dir: /repo
     command: sh -c "corepack enable && pnpm install && pnpm --filter @parcelis/api dev"
     ports:
-      - "${API_PORT:-4000}:4000"
+      - "${API_PORT:-43102}:4000"
     environment:
       DATABASE_URL: postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public
       API_PORT: "4000"
-      WEB_ORIGIN: http://localhost:${WEB_PORT:-3000}
+      WEB_ORIGIN: http://localhost:${WEB_PORT:-43100}
       OBJECT_STORAGE_ENDPOINT: http://minio:9000
-      OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_PORT:-9000}
+      OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_PORT:-43105}
       OBJECT_STORAGE_REGION: us-east-1
       OBJECT_STORAGE_BUCKET: ${MINIO_BUCKET:-parcelis-images}
       OBJECT_STORAGE_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-parcelis-minio}

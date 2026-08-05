@@ -9,7 +9,7 @@
     }
   },
   "scripts": {
-    "dev": "node ../../scripts/run-with-open-port.mjs API_PORT 4000 nest start --watch",
+    "dev": "node ../../scripts/run-with-open-port.mjs API_PORT 43102 nest start --watch",
     "dev:fixed": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",

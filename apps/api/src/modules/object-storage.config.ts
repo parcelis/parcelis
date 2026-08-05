@@ -12,7 +12,7 @@ export type ObjectStorageConfig = {
 };
 
 export function getObjectStorageConfig(): ObjectStorageConfig {
-  const endpoint = process.env.OBJECT_STORAGE_ENDPOINT ?? "http://localhost:9000";
+  const endpoint = process.env.OBJECT_STORAGE_ENDPOINT ?? "http://localhost:43105";
 
   return {
     accessKeyId: process.env.OBJECT_STORAGE_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio",

@@ -29,9 +29,9 @@ Parcelis is a property-management platform for landlords, small operators, and l
 
 | Package          | Location    | Responsibility                                                   | Default port |
 | ---------------- | ----------- | ---------------------------------------------------------------- | ------------ |
-| `@parcelis/web`  | `apps/web`  | Next.js App Router operational UI                                | 3000         |
-| `@parcelis/api`  | `apps/api`  | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 4000         |
-| `@parcelis/docs` | `apps/docs` | Docusaurus user, contributor, and generated API documentation    | 3001         |
+| `@parcelis/web`  | `apps/web`  | Next.js App Router operational UI                                | 43100        |
+| `@parcelis/api`  | `apps/api`  | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 43102        |
+| `@parcelis/docs` | `apps/docs` | Docusaurus user, contributor, and generated API documentation    | 43101        |
 
 ### Shared packages
 

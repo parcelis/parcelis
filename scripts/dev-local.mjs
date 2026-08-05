@@ -10,11 +10,13 @@ if (existsSync(envPath)) {
   process.loadEnvFile(envPath);
 }
 
-const apiPort = await findOpenPort(process.env.API_PORT ?? 4000);
-const webPort = await findOpenPort(process.env.WEB_PORT ?? process.env.PORT ?? 3000);
-const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 3001);
-const postgresPort = process.env.POSTGRES_PORT ?? 55432;
-const minioPort = process.env.MINIO_API_PORT ?? 9000;
+const apiPort = await findOpenPort(process.env.API_PORT ?? 43102);
+const webPort = await findOpenPort(
+  process.env.WEB_PORT ?? process.env.PORT ?? 43100,
+);
+const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 43101);
+const postgresPort = process.env.POSTGRES_PORT ?? 43103;
+const minioPort = process.env.MINIO_API_PORT ?? 43105;
 const databaseUrl =
   process.env.DATABASE_URL ?? `postgresql://parcelis:parcelis@localhost:${postgresPort}/parcelis?schema=public`;
 const objectStorageEndpoint = process.env.OBJECT_STORAGE_ENDPOINT ?? `http://localhost:${minioPort}`;
