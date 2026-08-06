@@ -26,7 +26,7 @@ async function hasValidSession(request: NextRequest) {
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (isAuthenticationDisabled) return NextResponse.next();
   if (await hasValidSession(request)) return NextResponse.next();
 
