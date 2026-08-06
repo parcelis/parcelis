@@ -22,9 +22,9 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
           revokedAt: null,
           createdAt: now,
           lastSeenAt: now,
-          user: { id: 0, email: "development@parcelis.dev" },
+          user: { id: 0, email: "development@parcelis.dev", role: "administrator", accountStatus: "active" },
         },
-        user: { id: 0, email: "development@parcelis.dev" },
+        user: { id: 0, email: "development@parcelis.dev", role: "administrator", accountStatus: "active" },
       },
     });
   }

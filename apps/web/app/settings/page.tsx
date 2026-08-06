@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { EllipsisVertical, Mail, Pencil, Phone, ShieldCheck, Trash2, UserRoundCheck, UserRoundX, Users } from "lucide-react";
+import { EllipsisVertical, Mail, Pencil, Phone, Shield, ShieldCheck, Trash2, UserRoundCheck, UserRoundX, Users } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -55,8 +55,20 @@ type UserFormState = {
   name: string;
   email: string;
   phone: string;
-  role: "administrator" | "member";
+  role: "administrator" | "property_manager" | "lease_manager" | "maintenance" | "property_owner" | "resident_manager";
 };
+
+function formatRole(role: string | null | undefined) {
+  const labels: Record<string, string> = {
+    administrator: "Administrator",
+    property_manager: "Property Manager",
+    lease_manager: "Lease Manager",
+    maintenance: "Maintenance",
+    property_owner: "Property Owner",
+    resident_manager: "Resident Manager",
+  };
+  return role ? (labels[role] ?? formatLabel(role)) : "Not set";
+}
 
 function UserActionsMenu({
   onDelete,
@@ -106,7 +118,13 @@ export default function SettingsPage() {
     queryKey: queryKeys.users.list,
     queryFn: () => apiClient.users.list.query(),
   });
+  const rolesQuery = useQuery({
+    queryKey: queryKeys.roles.list,
+    queryFn: () => apiClient.roles.list.query(),
+  });
   const users = usersQuery.data ?? [];
+  const roles = rolesQuery.data ?? [];
+  const [activeTab, setActiveTab] = React.useState<"users" | "roles">("users");
   const [editUser, setEditUser] = React.useState<UserListItem | null>(null);
   const [disableUser, setDisableUser] = React.useState<UserListItem | null>(null);
   const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
@@ -114,7 +132,7 @@ export default function SettingsPage() {
     name: "",
     email: "",
     phone: "",
-    role: "member",
+    role: "property_manager",
   });
   const updateUserMutation = useMutation({
     mutationFn: (input: UserFormState & { id: number }) => apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
@@ -138,13 +156,20 @@ export default function SettingsPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
     },
   });
+  const updateRolePermission = useMutation({
+    mutationFn: ({ propertyAccess, role }: { propertyAccess: "none" | "view" | "edit" | "delete" | "all"; role: UserFormState["role"] }) =>
+      apiClient.roles.updatePropertyAccess.mutate({ role, propertyAccess }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.roles.list });
+    },
+  });
 
   function openEdit(user: UserListItem) {
     setEditForm({
       name: user.name,
       email: user.email,
       phone: user.phone ?? "",
-      role: user.role ?? "member",
+      role: user.role ?? "property_manager",
     });
     setEditUser(user);
   }
@@ -182,7 +207,11 @@ export default function SettingsPage() {
                 Role
                 <Select className="mt-1" onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })} value={editForm.role}>
                   <option value="administrator">Administrator</option>
-                  <option value="member">Member</option>
+                  <option value="property_manager">Property Manager</option>
+                  <option value="lease_manager">Lease Manager</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="property_owner">Property Owner</option>
+                  <option value="resident_manager">Resident Manager</option>
                 </Select>
               </Label>
             </div>
@@ -251,12 +280,79 @@ export default function SettingsPage() {
         <div className="parcelis-page-shell">
           <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-            <h1 className="mt-5 text-3xl font-bold md:text-5xl">Users</h1>
+            <h1 className="mt-5 text-3xl font-bold md:text-5xl">Settings</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-              Review the accounts with access to Parcelis.
+              Manage workspace users and role-based feature access.
             </p>
           </section>
 
+          <div className="mb-6 flex gap-2 border-b border-parcelis-border">
+            <button
+              className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "users" ? "border-parcelis-green text-parcelis-charcoal" : "border-transparent text-parcelis-gray hover:text-parcelis-charcoal"}`}
+              onClick={() => setActiveTab("users")}
+              type="button"
+            >
+              Users
+            </button>
+            <button
+              className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "roles" ? "border-parcelis-green text-parcelis-charcoal" : "border-transparent text-parcelis-gray hover:text-parcelis-charcoal"}`}
+              onClick={() => setActiveTab("roles")}
+              type="button"
+            >
+              Roles
+            </button>
+          </div>
+
+          {activeTab === "roles" ? (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">Role access</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">Set the Properties feature access for each role.</p>
+                  </div>
+                  <Shield className="h-5 w-5 text-parcelis-green" />
+                </div>
+              </CardHeader>
+              <CardContent className="overflow-x-auto p-0">
+                {rolesQuery.isLoading ? (
+                  <LoadingState label="Loading roles…" />
+                ) : rolesQuery.error ? (
+                  <div className="min-h-48 p-5 text-sm font-medium text-red-700">{rolesQuery.error.message}</div>
+                ) : (
+                  <Table className="min-w-[680px] border-collapse text-left">
+                    <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                      <TableRow className="border-0">
+                        <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Properties access</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {roles.map((role) => (
+                        <TableRow className="border-t border-parcelis-border" key={role.role}>
+                          <TableCell className="px-5 py-4 font-semibold text-parcelis-charcoal">{formatRole(role.role)}</TableCell>
+                          <TableCell className="px-5 py-4">
+                            <Select
+                              className="max-w-52"
+                              disabled={role.role === "administrator" || updateRolePermission.isPending}
+                              onChange={(event) => updateRolePermission.mutate({ role: role.role, propertyAccess: event.target.value as "none" | "view" | "edit" | "delete" | "all" })}
+                              value={role.propertyAccess}
+                            >
+                              <option value="none">None</option>
+                              <option value="view">View</option>
+                              <option value="edit">Edit</option>
+                              <option value="delete">Delete</option>
+                              <option value="all">All</option>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-4">
@@ -316,7 +412,7 @@ export default function SettingsPage() {
                           )}
                         </TableCell>
                         <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
-                          {formatLabel(user.role)}
+                          {formatRole(user.role)}
                         </TableCell>
                         <TableCell className="px-5 py-4">
                           <Badge className="w-fit" variant={user.accountStatus === "active" ? "default" : "secondary"}>
@@ -339,6 +435,7 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
       </section>
     </main>

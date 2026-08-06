@@ -83,5 +83,15 @@ export const authRouter = router({
     return { success: true };
   }),
 
-  me: protectedProcedure.query(({ ctx }) => ({ user: ctx.user })),
+  me: protectedProcedure.query(async ({ ctx }) => {
+    const role = ctx.user.role as
+      | "administrator"
+      | "property_manager"
+      | "lease_manager"
+      | "maintenance"
+      | "property_owner"
+      | "resident_manager";
+    const permission = await ctx.prisma.rolePermission.findUnique({ where: { role } });
+    return { user: ctx.user, propertyAccess: permission?.propertyAccess ?? "none" };
+  }),
 });

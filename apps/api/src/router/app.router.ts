@@ -35,6 +35,7 @@ import {
   updateUserInputSchema,
   userAccountStatusInputSchema,
   deleteUserInputSchema,
+  updateRolePermissionInputSchema,
 } from "@parcelis/schemas";
 import { LeaseStatus, Prisma, UnitType } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
@@ -51,6 +52,7 @@ import {
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
+import { requireAdministrator, requirePropertyAccess } from "../modules/permissions";
 import { protectedProcedure as publicProcedure, router } from "./trpc";
 
 const propertySelect = {
@@ -245,13 +247,15 @@ export const appRouter = router({
   auth: authRouter,
   users: router({
     /** Lists accounts that can access this workspace. */
-    list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.user.findMany({
+    list: publicProcedure.query(({ ctx }) => {
+      requireAdministrator(ctx.user.role);
+      return ctx.prisma.user.findMany({
         select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
         orderBy: { createdAt: "asc" },
-      }),
-    ),
+      });
+    }),
     update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
+      requireAdministrator(ctx.user.role);
       try {
         return await ctx.prisma.user.update({
           where: { id: input.id },
@@ -265,16 +269,35 @@ export const appRouter = router({
         throw error;
       }
     }),
-    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.user.update({
+    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(({ ctx, input }) => {
+      requireAdministrator(ctx.user.role);
+      return ctx.prisma.user.update({
         where: { id: input.id },
         data: { accountStatus: input.accountStatus },
         select: { id: true, accountStatus: true },
-      }),
-    ),
-    delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.user.delete({ where: { id: input.id } }),
-    ),
+      });
+    }),
+    delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) => {
+      requireAdministrator(ctx.user.role);
+      return ctx.prisma.user.delete({ where: { id: input.id } });
+    }),
+  }),
+  roles: router({
+    list: publicProcedure.query(({ ctx }) => {
+      requireAdministrator(ctx.user.role);
+      return ctx.prisma.rolePermission.findMany({ orderBy: { role: "asc" } });
+    }),
+    updatePropertyAccess: publicProcedure.input(updateRolePermissionInputSchema).mutation(({ ctx, input }) => {
+      requireAdministrator(ctx.user.role);
+      if (input.role === "administrator" && input.propertyAccess !== "all") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Administrators always have full Properties access." });
+      }
+      return ctx.prisma.rolePermission.upsert({
+        where: { role: input.role },
+        create: input,
+        update: { propertyAccess: input.propertyAccess },
+      });
+    }),
   }),
   /** Reports API health and the public object-storage configuration. */
   health: publicProcedure.query(() => ({
@@ -286,6 +309,7 @@ export const appRouter = router({
   properties: router({
     /** Lists up to 50 properties with units, lease metrics, and maintenance metrics. */
     list: publicProcedure.query(async ({ ctx }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
       const properties = await ctx.prisma.property.findMany({
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
@@ -338,6 +362,7 @@ export const appRouter = router({
     }),
     /** Returns one property with its units, leases, and maintenance tickets. */
     byId: publicProcedure.input(propertyByIdInputSchema).query(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
       const property = await ctx.prisma.property.findUnique({
         where: { id: input.id },
         include: {
@@ -376,6 +401,7 @@ export const appRouter = router({
     }),
     /** Creates a short-lived URL for uploading a property image to MinIO. */
     createImageUploadUrl: publicProcedure.input(propertyImageUploadInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
       await ctx.prisma.property.findUniqueOrThrow({
         where: { id: input.id },
       });
@@ -385,6 +411,7 @@ export const appRouter = router({
     completeImageUpload: publicProcedure
       .input(propertyImageUploadCompleteInputSchema)
       .mutation(async ({ ctx, input }) => {
+        await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
         const currentProperty = await ctx.prisma.property.findUniqueOrThrow({
           where: { id: input.id },
           select: { imageObjectKey: true },
@@ -404,6 +431,7 @@ export const appRouter = router({
       }),
     /** Removes the current image reference and its MinIO object. */
     deleteImage: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
       const currentProperty = await ctx.prisma.property.findUniqueOrThrow({
         where: { id: input.id },
         select: { imageObjectKey: true },
@@ -422,6 +450,7 @@ export const appRouter = router({
     }),
     /** Creates a property and its initial units. */
     create: publicProcedure.input(createPropertyInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
       return ctx.prisma.$transaction(async (tx) => {
         const initialProperty = await tx.property.create({
           select: propertySelect,
@@ -465,6 +494,7 @@ export const appRouter = router({
     }),
     /** Updates a property and synchronizes its units. */
     update: publicProcedure.input(updatePropertyInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
       const property = await ctx.prisma.$transaction(async (tx) => {
         const currentProperty = await tx.property.findUniqueOrThrow({
           where: { id: input.id },
@@ -535,37 +565,41 @@ export const appRouter = router({
       return withPropertyNotes(property);
     }),
     /** Marks a property as archived. */
-    archive: publicProcedure.input(propertyByIdInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.property
+    archive: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
+      return ctx.prisma.property
         .update({
           where: { id: input.id },
           select: propertySelect,
           data: { status: "archived" },
         })
-        .then(withPropertyNotes),
-    ),
+        .then(withPropertyNotes);
+    }),
     /** Marks a property as inactive. */
-    inactivate: publicProcedure.input(propertyStatusInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.property
+    inactivate: publicProcedure.input(propertyStatusInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
+      return ctx.prisma.property
         .update({
           where: { id: input.id },
           select: propertySelect,
           data: { status: "archived" },
         })
-        .then(withPropertyNotes),
-    ),
+        .then(withPropertyNotes);
+    }),
     /** Restores an archived property to active status. */
-    reactivate: publicProcedure.input(propertyStatusInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.property
+    reactivate: publicProcedure.input(propertyStatusInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
+      return ctx.prisma.property
         .update({
           where: { id: input.id },
           select: propertySelect,
           data: { status: "active" },
         })
-        .then(withPropertyNotes),
-    ),
+        .then(withPropertyNotes);
+    }),
     /** Permanently deletes a property and its related operational records. */
     delete: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
       const property = await ctx.prisma.property.findUniqueOrThrow({
         where: { id: input.id },
         select: propertySelect,

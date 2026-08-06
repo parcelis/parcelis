@@ -12,7 +12,7 @@ export function createContext(prisma: PrismaService) {
             expiresAt: { gt: new Date() },
             revokedAt: null,
           },
-          include: { user: { select: { id: true, email: true } } },
+          include: { user: { select: { id: true, email: true, role: true, accountStatus: true } } },
         })
       : null;
 

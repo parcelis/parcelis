@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,7 +23,7 @@ import {
 import { ParcelisLogo } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
 import { useTheme, type ThemeMode } from "./theme-provider";
-import { apiClient } from "./api-client";
+import { apiClient, queryKeys } from "./api-client";
 
 const navItems = [
   { label: "Portfolio", href: "/", key: "portfolio", icon: Home },
@@ -50,6 +51,11 @@ export function Sidebar({ active }: SidebarProps) {
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const { mode, setMode } = useTheme();
   const router = useRouter();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canViewProperties = currentUserQuery.data?.propertyAccess !== "none";
 
   React.useEffect(() => {
     const saved = window.localStorage.getItem("parcelis-sidebar-collapsed") === "true";
@@ -122,7 +128,7 @@ export function Sidebar({ active }: SidebarProps) {
       </div>
 
       <nav className="mt-8 flex-1 space-y-1 text-sm font-medium text-parcelis-gray">
-        {navItems.map((item) => {
+        {navItems.filter((item) => item.key !== "properties" || canViewProperties).map((item) => {
           const Icon = item.icon;
           const isActive = item.key === active;
           return (

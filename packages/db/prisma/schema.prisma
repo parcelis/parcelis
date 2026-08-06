@@ -62,7 +62,11 @@ enum TenantInsuranceStatus {
 
 enum UserRole {
   administrator
-  member
+  property_manager
+  lease_manager
+  maintenance
+  property_owner
+  resident_manager
 }
 
 enum UserAccountStatus {
@@ -70,17 +74,31 @@ enum UserAccountStatus {
   disabled
 }
 
+enum PropertyAccessLevel {
+  none
+  view
+  edit
+  delete
+  all
+}
+
 model User {
   id            Int               @id @default(autoincrement())
   name          String            @default("User")
   email         String            @unique
   phone         String?
-  role          UserRole          @default(member)
+  role          UserRole          @default(property_manager)
   accountStatus UserAccountStatus @default(active)
   passwordHash  String
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   sessions      Session[]
+}
+
+model RolePermission {
+  role           UserRole            @id
+  propertyAccess PropertyAccessLevel @default(none)
+  updatedAt      DateTime            @updatedAt
 }
 
 model Session {
