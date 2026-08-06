@@ -20,6 +20,8 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 <a href="https://discord.gg/4XYkWmVpWH"><img src="https://i.imgur.com/d7JM2wK.png" width="150px" /></a>
 <span>&nbsp; &nbsp; &nbsp;</span>
 <a href="https://parcelis.dev/"><img width="50" height="50" alt="image" src="https://github.com/user-attachments/assets/9f838f54-df0d-4f52-bfa8-8d21e8c99735" /></a>
+<span>&nbsp; &nbsp; &nbsp;</span>
+<a href="https://snyk.io/?utm_source=open-source&utm_medium=pg-ptr&utm_campaign=ref-2501-osp&utm_content=pg-cta"><img src="https://github.com/snyk-labs/secure-developer-sample-repo/blob/main/badge_round.svg" width="100px" /></a>
 </p>
 
 <br />
