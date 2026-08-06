@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1334 1888" role="img" aria-labelledby="title">
+  <title id="title">Parcelis dark-mode logo reveal</title>
+  <style>
+    :root { --speed: 7s; }
+    .outline { fill: none; stroke: url(#ink); stroke-width: 146; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; transform-box: fill-box; transform-origin: center; filter: drop-shadow(0 10px 16px rgb(255 255 255 / .12)); }
+    .frame-left { animation: frame-left var(--speed) cubic-bezier(.16,1,.3,1) 1 forwards; }
+    .frame-right { animation: frame-right var(--speed) cubic-bezier(.16,1,.3,1) 1 forwards; }
+    .frame-tail { animation: frame-tail var(--speed) cubic-bezier(.16,1,.3,1) 1 forwards; }
+    .frame-stem { animation: frame-stem var(--speed) cubic-bezier(.16,1,.3,1) 1 forwards; }
+    .parcel { transform-box: fill-box; transform-origin: center; transform-style: preserve-3d; backface-visibility: visible; filter: drop-shadow(0 16px 22px rgb(54 108 46 / .18)); }
+    .left-top { animation: parcel-a var(--speed) cubic-bezier(.16,1,.3,1) 1 forwards; }
+    .left-bottom { animation: parcel-b var(--speed) cubic-bezier(.16,1,.3,1) 1 forwards; }
+    .right { animation: parcel-c var(--speed) cubic-bezier(.16,1,.3,1) 1 forwards; }
+    .front { stroke: rgb(225 255 195 / .56); stroke-width: 5; stroke-linejoin: round; }
+    .left-top .front { fill: url(#glass-a); }
+    .left-bottom .front { fill: url(#glass-b); }
+    .right .front { fill: url(#glass-c); }
+    .side { fill: url(#side); }
+    .base { fill: url(#base); }
+    .shine { fill: url(#sheen); opacity: .68; mix-blend-mode: screen; }
+    .glint { fill: none; stroke: url(#rim); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 130 1000; opacity: 0; filter: url(#glow); animation: glint var(--speed) linear 1 forwards; }
+    @keyframes frame-left { 0%,5% { opacity:0; stroke-dashoffset:1; transform:translate(-170px,-120px) rotate(-9deg); } 27% { opacity:1; transform:translate(0,0) rotate(0); } 46%,100% { opacity:1; stroke-dashoffset:0; transform:none; } }
+    @keyframes frame-right { 0%,10% { opacity:0; stroke-dashoffset:1; transform:translate(170px,-130px) rotate(9deg); } 32% { opacity:1; transform:translate(0,0) rotate(0); } 50%,100% { opacity:1; stroke-dashoffset:0; transform:none; } }
+    @keyframes frame-tail { 0%,15% { opacity:0; stroke-dashoffset:1; transform:translate(190px,170px) rotate(-8deg); } 37% { opacity:1; transform:translate(0,0) rotate(0); } 54%,100% { opacity:1; stroke-dashoffset:0; transform:none; } }
+    @keyframes frame-stem { 0%,20% { opacity:0; stroke-dashoffset:1; transform:translate(-145px,140px) rotate(7deg); } 42% { opacity:1; transform:translate(0,0) rotate(0); } 58%,100% { opacity:1; stroke-dashoffset:0; transform:none; } }
+    @keyframes parcel-a { 0%,15% { opacity:0; transform:perspective(900px) translate3d(380px,250px,-600px) rotateX(150deg) rotateY(-210deg) rotateZ(95deg) scale(.35); } 38% { opacity:1; transform:perspective(900px) translate3d(-15px,8px,30px) rotateX(355deg) rotateY(-350deg) rotateZ(4deg) scale(1.035); } 45%,100% { opacity:1; transform:perspective(900px) translate3d(0,0,0) rotateX(360deg) rotateY(-360deg) rotateZ(0) scale(1); } }
+    @keyframes parcel-b { 0%,20% { opacity:0; transform:perspective(900px) translate3d(390px,-240px,-620px) rotateX(-170deg) rotateY(-220deg) rotateZ(-95deg) scale(.34); } 43% { opacity:1; transform:perspective(900px) translate3d(-14px,-8px,30px) rotateX(-355deg) rotateY(-350deg) rotateZ(-4deg) scale(1.035); } 50%,100% { opacity:1; transform:perspective(900px) translate3d(0,0,0) rotateX(-360deg) rotateY(-360deg) rotateZ(0) scale(1); } }
+    @keyframes parcel-c { 0%,25% { opacity:0; transform:perspective(900px) translate3d(-430px,0,-680px) rotateX(120deg) rotateY(230deg) rotateZ(-120deg) scale(.32); } 48% { opacity:1; transform:perspective(900px) translate3d(15px,0,32px) rotateX(350deg) rotateY(355deg) rotateZ(3deg) scale(1.03); } 55%,100% { opacity:1; transform:perspective(900px) translate3d(0,0,0) rotateX(360deg) rotateY(360deg) rotateZ(0) scale(1); } }
+    @keyframes glint { 0%,48% { opacity:0; stroke-dashoffset:0; } 55% { opacity:.72; } 74% { opacity:.72; stroke-dashoffset:-1100; } 78%,100% { opacity:0; stroke-dashoffset:-1130; } }
+    @media (prefers-reduced-motion: reduce) { .outline,.parcel,.glint { animation:none; opacity:1; stroke-dashoffset:0; transform:none; } .glint { display:none; } }
+  </style>
+  <defs>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#ffffff"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+    <linearGradient id="glass-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d5ff9c"/><stop offset=".24" stop-color="#a2df64"/><stop offset=".68" stop-color="#72b54e"/><stop offset="1" stop-color="#3f8b58"/></linearGradient>
+    <linearGradient id="glass-b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#40865b"/><stop offset=".42" stop-color="#74b550"/><stop offset=".78" stop-color="#aae36c"/><stop offset="1" stop-color="#d8ffa2"/></linearGradient>
+    <linearGradient id="glass-c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cdff8d"/><stop offset=".2" stop-color="#9fdd61"/><stop offset=".58" stop-color="#68ae54"/><stop offset="1" stop-color="#36795b"/></linearGradient>
+    <linearGradient id="side" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#699e4d"/><stop offset="1" stop-color="#214c45"/></linearGradient>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#416b3c"/><stop offset="1" stop-color="#173837"/></linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2=".82" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".72"/><stop offset=".18" stop-color="#f0ffdc" stop-opacity=".22"/><stop offset=".42" stop-color="#fff" stop-opacity="0"/><stop offset=".78" stop-color="#bdfff1" stop-opacity=".13"/><stop offset="1" stop-color="#fff" stop-opacity=".34"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0ffc9"/><stop offset=".5" stop-color="#9dff90"/><stop offset="1" stop-color="#58e1aa"/></linearGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <path class="outline frame-left" pathLength="1" d="M98 1090 96 500Q96 440 150 405L600 108Q666 64 720 95"/>
+  <path class="outline frame-right" pathLength="1" d="M720 95 1180 390Q1245 430 1245 500L1245 1065"/>
+  <path class="outline frame-tail" pathLength="1" d="M1245 1065Q1245 1110 1195 1142L355 1635Q340 1650 341 1700L342 1807"/>
+  <path class="outline frame-stem" pathLength="1" d="M94 1265 95 1795"/>
+  <g class="parcel left-top"><polygon class="side" points="616,377 633,387 636,783 619,773"/><polygon class="base" points="289,992 619,773 636,783 306,1003"/><polygon class="front" points="286,598 616,377 619,773 289,992"/><polygon class="shine" points="298,604 604,399 605,482 298,687"/><path class="glint" pathLength="1130" d="M286 598 616 377 619 773 289 992Z"/></g>
+  <g class="parcel left-bottom"><polygon class="side" points="617,872 634,882 637,1278 620,1268"/><polygon class="base" points="289,1489 620,1268 637,1278 306,1500"/><polygon class="front" points="286,1091 617,872 620,1268 289,1489"/><polygon class="shine" points="298,1097 605,893 606,976 298,1180"/><path class="glint" pathLength="1130" d="M286 1091 617 872 620 1268 289 1489Z"/></g>
+  <g class="parcel right"><polygon class="side" points="1082,536 1100,547 1103,999 1085,988"/><polygon class="base" points="708,1212 1085,988 1103,999 726,1223"/><polygon class="front" points="704,312 1082,536 1085,988 708,1212"/><polygon class="shine" points="716,334 1069,543 1070,635 717,426"/><path class="glint" pathLength="1310" d="M704 312 1082 536 1085 988 708 1212Z"/></g>
+</svg>

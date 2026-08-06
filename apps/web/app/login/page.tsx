@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, Moon, Sun, UsersRound } from "lucide-react";
 import * as React from "react";
+import { flushSync } from "react-dom";
 import { Button, Input } from "@parcelis/ui";
 import { useTheme } from "../../components/theme-provider";
 import { apiClient } from "../../components/api-client";
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [isRegistering, setIsRegistering] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isLoadingApp, setIsLoadingApp] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [destination, setDestination] = React.useState("/");
   const { resolvedMode, setMode } = useTheme();
@@ -54,9 +56,13 @@ export default function LoginPage() {
       } else {
         await apiClient.auth.login.mutate(input);
       }
+      flushSync(() => setIsLoadingApp(true));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 5000));
       router.replace(destination);
       router.refresh();
     } catch (cause) {
+      setIsLoadingApp(false);
       setError(cause instanceof Error ? cause.message : "Unable to sign in. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -220,6 +226,38 @@ export default function LoginPage() {
           © 2026 <span className="text-parcelis-green">Parcelis.</span> Open source. Open future.
         </footer>
       </div>
+      {isLoadingApp ? (
+        <div
+          aria-busy="true"
+          aria-live="polite"
+          className="fixed inset-0 z-50 grid place-items-center overflow-hidden bg-parcelis-porcelain text-parcelis-charcoal dark:bg-[#071b2f] dark:text-white"
+          role="status"
+        >
+          <div className="absolute inset-0 bg-[url('/brand/parcelis-light-background.svg')] bg-cover bg-center dark:bg-[url('/brand/parcelis-dark-background.svg')]" />
+          <div className="absolute inset-0 bg-white/80 dark:bg-[#041220]/80" />
+          <div className="relative flex flex-col items-center px-6 text-center">
+            <Image
+              alt=""
+              aria-hidden="true"
+              className="h-64 w-auto sm:h-80 dark:hidden"
+              height={320}
+              src="/brand/parcelis-fullmark-reveal-light.svg"
+              unoptimized
+              width={226}
+            />
+            <Image
+              alt=""
+              aria-hidden="true"
+              className="hidden h-64 w-auto sm:h-80 dark:block"
+              height={320}
+              src="/brand/parcelis-fullmark-reveal-dark.svg"
+              unoptimized
+              width={226}
+            />
+            <p className="mt-8 text-lg font-medium text-parcelis-gray dark:text-white/80">Preparing your workspace…</p>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
