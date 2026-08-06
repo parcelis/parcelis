@@ -66,6 +66,7 @@ import {
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { NotesDrawer } from "../../components/notes-drawer";
+import { hasPropertyAccess } from "../../components/property-access";
 import { deletePropertyImage, uploadPropertyImage } from "../../components/property-image-upload";
 import { useShortcut } from "../../components/shortcut-provider";
 import { Sidebar } from "../../components/sidebar";
@@ -157,6 +158,8 @@ function getUnitRows(property: PropertyListItem) {
 type UnitRow = ReturnType<typeof getUnitRows>[number];
 
 function PropertyActionsMenu({
+  canDelete,
+  canEdit,
   onArchive,
   onDelete,
   onEdit,
@@ -164,6 +167,8 @@ function PropertyActionsMenu({
   onReactivate,
   property,
 }: {
+  canDelete: boolean;
+  canEdit: boolean;
   onArchive: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -191,41 +196,56 @@ function PropertyActionsMenu({
             View
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onEdit}>
-          <Pencil className="h-4 w-4 text-parcelis-green" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onNotes}>
-          <StickyNote className="h-4 w-4 text-parcelis-green" />
-          Add Notes
-        </DropdownMenuItem>
-        {isArchived ? (
-          <DropdownMenuItem onSelect={onReactivate}>
-            <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
-            Unarchive
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onSelect={onArchive}>
-            <Archive className="h-4 w-4 text-parcelis-green" />
-            Archive
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
+        {canEdit ? (
+          <>
+            <DropdownMenuItem onSelect={onEdit}>
+              <Pencil className="h-4 w-4 text-parcelis-green" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onNotes}>
+              <StickyNote className="h-4 w-4 text-parcelis-green" />
+              Add Notes
+            </DropdownMenuItem>
+          </>
+        ) : null}
+        {canDelete ? (
+          <>
+            {isArchived ? (
+              <DropdownMenuItem onSelect={onReactivate}>
+                <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
+                Unarchive
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onSelect={onArchive}>
+                <Archive className="h-4 w-4 text-parcelis-green" />
+                Archive
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
+              onSelect={onDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 function UnitActionsMenu({
+  canDelete,
+  canEdit,
   onDelete,
   onEdit,
   onNotes,
   property,
   unit,
 }: {
+  canDelete: boolean;
+  canEdit: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onNotes: () => void;
@@ -233,6 +253,10 @@ function UnitActionsMenu({
   unit: UnitRow;
 }) {
   const unitHref = unit.id ? `/properties/${property.id}/units/${unit.id}` : null;
+
+  if (!unitHref && !canEdit && !canDelete) {
+    return null;
+  }
 
   return (
     <DropdownMenu>
@@ -259,26 +283,34 @@ function UnitActionsMenu({
             View
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem disabled={!unit.id} onSelect={onEdit}>
-          <Pencil className="h-4 w-4 text-parcelis-green" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onNotes}>
-          <StickyNote className="h-4 w-4 text-parcelis-green" />
-          Add Notes
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Archive className="h-4 w-4 text-parcelis-green" />
-          Archive
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
-          disabled={!unit.id}
-          onSelect={onDelete}
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
+        {canEdit ? (
+          <>
+            <DropdownMenuItem disabled={!unit.id} onSelect={onEdit}>
+              <Pencil className="h-4 w-4 text-parcelis-green" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onNotes}>
+              <StickyNote className="h-4 w-4 text-parcelis-green" />
+              Add Notes
+            </DropdownMenuItem>
+          </>
+        ) : null}
+        {canDelete ? (
+          <>
+            <DropdownMenuItem>
+              <Archive className="h-4 w-4 text-parcelis-green" />
+              Archive
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
+              disabled={!unit.id}
+              onSelect={onDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -290,6 +322,12 @@ export default function PropertiesPage() {
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
   });
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditProperties = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "edit");
+  const canDeleteProperties = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "delete");
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
       const property = await apiClient.properties.create.mutate(input);
@@ -669,10 +707,12 @@ export default function PropertiesPage() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button className="min-w-40" onClick={() => setIsFormOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Property
-          </Button>
+          {canEditProperties ? (
+            <Button className="min-w-40" onClick={() => setIsFormOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Property
+            </Button>
+          ) : null}
         </header>
 
         <div className="parcelis-page-shell">
@@ -990,6 +1030,8 @@ export default function PropertiesPage() {
                             </TableCell>
                             <TableCell className="px-5 py-4 text-right">
                               <PropertyActionsMenu
+                                canDelete={canDeleteProperties}
+                                canEdit={canEditProperties}
                                 onArchive={() => setArchivePropertyId(property.id)}
                                 onDelete={() => setDeletePropertyId(property.id)}
                                 onEdit={() => openEditProperty(property)}
@@ -1081,6 +1123,8 @@ export default function PropertiesPage() {
                                   </TableCell>
                                   <TableCell className="px-5 py-3 text-right">
                                     <UnitActionsMenu
+                                      canDelete={canDeleteProperties}
+                                      canEdit={canEditProperties}
                                       onDelete={() => {
                                         if (unit.id) {
                                           setDeleteUnitTarget({

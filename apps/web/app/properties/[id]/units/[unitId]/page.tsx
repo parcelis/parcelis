@@ -48,6 +48,7 @@ import { getPropertyFormState, getUnitFormStates } from "../../../../../componen
 import { LoadingState } from "../../../../../components/loading-state";
 import { Sidebar } from "../../../../../components/sidebar";
 import { NotesDrawer } from "../../../../../components/notes-drawer";
+import { hasPropertyAccess } from "../../../../../components/property-access";
 import { StickyNotePlusIcon } from "../../../../../components/sticky-note-plus-icon";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -99,6 +100,11 @@ export default function UnitDetailPage() {
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
   });
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditProperty = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "edit");
   const updateProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: UpdatePropertyInput }) => {
       const updatedProperty = await apiClient.properties.update.mutate(input);
@@ -267,36 +273,40 @@ export default function UnitDetailPage() {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             )}
-            <Button
-              className="hidden min-w-40 xl:inline-flex"
-              disabled={!unit}
-              onClick={() => setIsNotesDrawerOpen(true)}
-              variant="secondary"
-            >
-              <StickyNotePlusIcon />
-              Add Notes
-            </Button>
-            <Button className="hidden min-w-40 xl:inline-flex" disabled={!property} onClick={openEditUnitDrawer}>
-              <PenLine className="h-4 w-4" />
-              Edit Unit
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button aria-label="Unit actions" className="min-w-10 xl:hidden" variant="secondary">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
+            {canEditProperty ? (
+              <>
+                <Button
+                  className="hidden min-w-40 xl:inline-flex"
+                  disabled={!unit}
+                  onClick={() => setIsNotesDrawerOpen(true)}
+                  variant="secondary"
+                >
                   <StickyNotePlusIcon />
                   Add Notes
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled={!property} onSelect={openEditUnitDrawer}>
+                </Button>
+                <Button className="hidden min-w-40 xl:inline-flex" disabled={!property} onClick={openEditUnitDrawer}>
                   <PenLine className="h-4 w-4" />
                   Edit Unit
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button aria-label="Unit actions" className="min-w-10 xl:hidden" variant="secondary">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
+                      <StickyNotePlusIcon />
+                      Add Notes
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled={!property} onSelect={openEditUnitDrawer}>
+                      <PenLine className="h-4 w-4" />
+                      Edit Unit
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : null}
           </div>
         </header>
 

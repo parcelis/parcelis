@@ -618,6 +618,7 @@ export const appRouter = router({
     }),
     /** Updates the notes stored on a property. */
     updateNotes: publicProcedure.input(propertyNotesInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
       const property = await ctx.prisma.$transaction(async (tx) => {
         const currentProperty = await tx.property.findUniqueOrThrow({
           where: { id: input.id },
@@ -1093,7 +1094,10 @@ export const appRouter = router({
   }),
   notes: router({
     /** Lists the notes attached to one property, unit, or tenant. */
-    list: publicProcedure.input(noteListInputSchema).query(({ ctx, input }) => {
+    list: publicProcedure.input(noteListInputSchema).query(async ({ ctx, input }) => {
+      if ("propertyId" in input || "unitId" in input) {
+        await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
+      }
       const { limit, ...subject } = input;
 
       return ctx.prisma.note.findMany({
@@ -1104,15 +1108,27 @@ export const appRouter = router({
       });
     }),
     /** Adds an internal note to one property, unit, or tenant. */
-    create: publicProcedure.input(createNoteInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.note.create({
+    create: publicProcedure.input(createNoteInputSchema).mutation(async ({ ctx, input }) => {
+      if ("propertyId" in input || "unitId" in input) {
+        await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      }
+
+      return ctx.prisma.note.create({
         data: input,
         select: { id: true, body: true, createdAt: true, updatedAt: true },
-      }),
-    ),
+      });
+    }),
     /** Updates an internal note. */
-    update: publicProcedure.input(updateNoteInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.$transaction(async (tx) => {
+    update: publicProcedure.input(updateNoteInputSchema).mutation(async ({ ctx, input }) => {
+      const subject = await ctx.prisma.note.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { propertyId: true, unitId: true },
+      });
+      if (subject.propertyId !== null || subject.unitId !== null) {
+        await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      }
+
+      return ctx.prisma.$transaction(async (tx) => {
         const { propertyId, tenantId, ...note } = await tx.note.update({
           where: { id: input.id },
           data: { body: input.body },
@@ -1139,11 +1155,19 @@ export const appRouter = router({
         }
 
         return note;
-      }),
-    ),
+      });
+    }),
     /** Deletes an internal note. */
-    delete: publicProcedure.input(deleteNoteInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.$transaction(async (tx) => {
+    delete: publicProcedure.input(deleteNoteInputSchema).mutation(async ({ ctx, input }) => {
+      const subject = await ctx.prisma.note.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { propertyId: true, unitId: true },
+      });
+      if (subject.propertyId !== null || subject.unitId !== null) {
+        await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      }
+
+      return ctx.prisma.$transaction(async (tx) => {
         const note = await tx.note.findUniqueOrThrow({
           where: { id: input.id },
           select: {
@@ -1167,12 +1191,13 @@ export const appRouter = router({
         }
 
         return deletedNote;
-      }),
-    ),
+      });
+    }),
   }),
   units: router({
     /** Lists units, optionally filtered to a property. */
     list: publicProcedure.input(listUnitsInputSchema).query(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
       const units = await ctx.prisma.unit.findMany({
         where: input.propertyId ? { propertyId: input.propertyId } : undefined,
         orderBy: [{ propertyId: "asc" }, { createdAt: "asc" }],
@@ -1190,6 +1215,7 @@ export const appRouter = router({
     }),
     /** Returns a unit by its ID. */
     byId: publicProcedure.input(unitByIdInputSchema).query(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
       const unit = await ctx.prisma.unit.findUnique({
         where: { id: input.id },
         include: {
@@ -1205,7 +1231,8 @@ export const appRouter = router({
       return unit ? serializeUnit(unit) : null;
     }),
     /** Creates a unit for a property. */
-    create: publicProcedure.input(createUnitInputSchema).mutation(({ ctx, input }) => {
+    create: publicProcedure.input(createUnitInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
       const { propertyId, ...unitDetails } = input;
 
       return ctx.prisma.unit
@@ -1224,6 +1251,7 @@ export const appRouter = router({
     }),
     /** Updates a unit by its ID. */
     update: publicProcedure.input(updateUnitInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
       const unit = await ctx.prisma.$transaction(async (tx) => {
         await tx.unitUtility.deleteMany({ where: { unitId: input.id } });
         await tx.unitAmenity.deleteMany({ where: { unitId: input.id } });
@@ -1246,6 +1274,7 @@ export const appRouter = router({
     }),
     /** Deletes a unit by its ID. */
     delete: publicProcedure.input(unitByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
       const unit = await ctx.prisma.unit.findUniqueOrThrow({
         where: { id: input.id },
         include: {

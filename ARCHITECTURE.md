@@ -12,7 +12,7 @@ Parcelis is a property-management platform for landlords, small operators, and l
                                  v
                   Next.js web application (apps/web)
                      |                         |
-                     | tRPC                    | Direct public asset URLs
+                     | Same-origin tRPC proxy  | Direct public asset URLs
                      v                         v
           NestJS API (apps/api)          MinIO / S3-compatible storage
                      |
@@ -49,6 +49,10 @@ Next.js route or client component
         |
         | @trpc/client
         v
+POST /api/trpc/*
+        |
+        | Next.js rewrite
+        v
 POST /trpc/*
         |
         v
@@ -65,7 +69,7 @@ appRouter procedure
              PostgreSQL
 ```
 
-The web app creates a typed tRPC proxy client in `apps/web/components/api-client.ts`. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies Nest's `PrismaService` to every procedure.
+The web app creates a typed tRPC client in `apps/web/components/api-client.ts`. Browser requests use the same-origin `/api/trpc` path, which Next.js rewrites to the NestJS API so session cookies remain on the web origin. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies the authenticated session and Nest's `PrismaService` to every procedure.
 
 The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
 
@@ -86,7 +90,7 @@ The NestJS application starts in `apps/api/src/main.ts`. `AppModule` mounts:
 
 Object storage is configured in `apps/api/src/modules/object-storage.config.ts`. The API generates signed download and upload URLs for private property and tenant images; the browser uploads directly to object storage after receiving a signed URL.
 
-At present, the API context contains Prisma only and the routers use `publicProcedure`. Authentication, authorization, and organization scoping should be introduced at the context/procedure layer before treating the API as multi-tenant or internet-facing.
+The API context resolves the session cookie and supplies Prisma. Application procedures require an authenticated session, and sensitive operations add role or feature-access checks. Organization scoping is not yet implemented, so the API should not be treated as multi-tenant.
 
 ## Data model
 

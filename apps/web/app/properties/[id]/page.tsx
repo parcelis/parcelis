@@ -40,6 +40,7 @@ import { apiClient, queryKeys } from "../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
 import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
+import { hasPropertyAccess } from "../../../components/property-access";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { Sidebar } from "../../../components/sidebar";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
@@ -79,6 +80,12 @@ export default function PropertyDetailPage() {
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
   });
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditProperty = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "edit");
+  const canDeleteProperty = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "delete");
   const updateProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: UpdatePropertyInput }) => {
       const updatedProperty = await apiClient.properties.update.mutate(input);
@@ -259,60 +266,66 @@ export default function PropertyDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <EntityLifecycleControls
-              archiveDescription={
-                <>This will hide {property?.name ?? "this property"} from the default properties view.</>
-              }
-              cancelDeleteLabel="Keep Property"
-              deleteDescription={
-                <>This permanently deletes {property?.name ?? "this property"} and cannot be undone.</>
-              }
-              entityLabel="property"
-              isArchived={property?.status === "archived"}
-              isAvailable={Boolean(property)}
-              onArchive={() => apiClient.properties.archive.mutate({ id: propertyId })}
-              onArchiveSuccess={async () => {
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
-                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-                ]);
-                router.push("/properties");
-              }}
-              onDelete={() => apiClient.properties.delete.mutate({ id: propertyId })}
-              onDeleteSuccess={async () => {
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
-                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-                ]);
-                router.push("/properties");
-              }}
-              onReactivate={() => apiClient.properties.reactivate.mutate({ id: propertyId })}
-              onReactivateSuccess={async () => {
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
-                  queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-                ]);
-              }}
-            />
-            <Button
-              aria-label="Add notes"
-              className="min-w-10 sm:min-w-40"
-              disabled={!property}
-              onClick={() => setIsNotesDrawerOpen(true)}
-              variant="secondary"
-            >
-              <StickyNotePlusIcon />
-              <span className="hidden sm:inline">Add Notes</span>
-            </Button>
-            <Button
-              aria-label="Edit property"
-              className="min-w-10 sm:min-w-40"
-              disabled={!property}
-              onClick={openEditDrawer}
-            >
-              <PenLine className="h-4 w-4" />
-              <span className="hidden sm:inline">Edit property</span>
-            </Button>
+            {canDeleteProperty ? (
+              <EntityLifecycleControls
+                archiveDescription={
+                  <>This will hide {property?.name ?? "this property"} from the default properties view.</>
+                }
+                cancelDeleteLabel="Keep Property"
+                deleteDescription={
+                  <>This permanently deletes {property?.name ?? "this property"} and cannot be undone.</>
+                }
+                entityLabel="property"
+                isArchived={property?.status === "archived"}
+                isAvailable={Boolean(property)}
+                onArchive={() => apiClient.properties.archive.mutate({ id: propertyId })}
+                onArchiveSuccess={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+                  ]);
+                  router.push("/properties");
+                }}
+                onDelete={() => apiClient.properties.delete.mutate({ id: propertyId })}
+                onDeleteSuccess={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+                  ]);
+                  router.push("/properties");
+                }}
+                onReactivate={() => apiClient.properties.reactivate.mutate({ id: propertyId })}
+                onReactivateSuccess={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+                  ]);
+                }}
+              />
+            ) : null}
+            {canEditProperty ? (
+              <>
+                <Button
+                  aria-label="Add notes"
+                  className="min-w-10 sm:min-w-40"
+                  disabled={!property}
+                  onClick={() => setIsNotesDrawerOpen(true)}
+                  variant="secondary"
+                >
+                  <StickyNotePlusIcon />
+                  <span className="hidden sm:inline">Add Notes</span>
+                </Button>
+                <Button
+                  aria-label="Edit property"
+                  className="min-w-10 sm:min-w-40"
+                  disabled={!property}
+                  onClick={openEditDrawer}
+                >
+                  <PenLine className="h-4 w-4" />
+                  <span className="hidden sm:inline">Edit property</span>
+                </Button>
+              </>
+            ) : null}
           </div>
         </header>
 
