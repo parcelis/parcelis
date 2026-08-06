@@ -60,6 +60,43 @@ enum TenantInsuranceStatus {
   not_on_file
 }
 
+enum UserRole {
+  administrator
+  member
+}
+
+enum UserAccountStatus {
+  active
+  disabled
+}
+
+model User {
+  id            Int               @id @default(autoincrement())
+  name          String            @default("User")
+  email         String            @unique
+  phone         String?
+  role          UserRole          @default(member)
+  accountStatus UserAccountStatus @default(active)
+  passwordHash  String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  sessions      Session[]
+}
+
+model Session {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  lastSeenAt DateTime @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 model Property {
   id                 Int                 @id @default(autoincrement())
   name               String

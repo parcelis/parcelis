@@ -15,7 +15,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^5.20.0"
+    "@prisma/client": "^5.20.0",
+    "argon2": "^0.45.1"
   },
   "devDependencies": {
     "@parcelis/config": "workspace:*",

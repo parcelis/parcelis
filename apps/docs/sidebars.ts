@@ -16,6 +16,7 @@ const sidebars: SidebarsConfig = {
           label: "Getting Started",
           items: [
             "platform-user-guide/getting-started/first-steps",
+            "platform-user-guide/getting-started/sign-in",
             "platform-user-guide/getting-started/portfolio-dashboard",
           ],
         },
@@ -53,6 +54,7 @@ const sidebars: SidebarsConfig = {
           label: "Navigation And Preferences",
           items: [
             "platform-user-guide/navigation-and-preferences/sidebar",
+            "platform-user-guide/navigation-and-preferences/users",
             "platform-user-guide/navigation-and-preferences/collapse-navigation",
             "platform-user-guide/navigation-and-preferences/theme",
             "platform-user-guide/navigation-and-preferences/keyboard-shortcuts",

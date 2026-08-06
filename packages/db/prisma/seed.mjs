@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import * as argon2 from "argon2";
 
 const prisma = new PrismaClient();
 
@@ -205,6 +206,31 @@ async function upsertLease(data) {
 }
 
 async function main() {
+  const administratorEmail = "admin@parcelis.dev";
+  const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
+
+  if (administrator) {
+    await prisma.user.update({
+      where: { id: administrator.id },
+      data: { name: "Administrator", role: "administrator" },
+    });
+  } else {
+    const administratorPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (!administratorPassword || administratorPassword.length < 12) {
+      throw new Error("SEED_ADMIN_PASSWORD must be set to at least 12 characters to create the seed administrator.");
+    }
+
+    const passwordHash = await argon2.hash(administratorPassword, {
+      type: argon2.argon2id,
+      memoryCost: 19 * 1024,
+      timeCost: 2,
+      parallelism: 1,
+    });
+    await prisma.user.create({
+      data: { name: "Administrator", email: administratorEmail, passwordHash, role: "administrator" },
+    });
+  }
+
   for (const [index, label] of utilityTypes.entries()) {
     await prisma.utilityType.upsert({
       where: { label },

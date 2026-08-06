@@ -1,10 +1,24 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
+import { getSessionToken, hashSessionToken } from "../modules/auth";
 import type { PrismaService } from "../modules/prisma.service";
 
 export function createContext(prisma: PrismaService) {
-  return (_opts: CreateExpressContextOptions) => ({
-    prisma,
-  });
+  return async (opts: CreateExpressContextOptions) => {
+    const sessionToken = getSessionToken(opts.req);
+    const session = sessionToken
+      ? await prisma.session.findFirst({
+          where: {
+            tokenHash: hashSessionToken(sessionToken),
+            expiresAt: { gt: new Date() },
+            revokedAt: null,
+            user: { accountStatus: "active" },
+          },
+          include: { user: { select: { id: true, email: true, role: true, accountStatus: true } } },
+        })
+      : null;
+
+    return { prisma, req: opts.req, res: opts.res, session };
+  };
 }
 
 export type Context = Awaited<ReturnType<ReturnType<typeof createContext>>>;

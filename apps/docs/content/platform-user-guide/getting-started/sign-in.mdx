@@ -1,0 +1,22 @@
+---
+id: sign-in
+title: Sign In
+---
+
+Parcelis requires an account before you can access the workspace.
+
+1. Open the sign-in page.
+2. Enter your email address and password.
+3. Select **Sign in**.
+
+New users can select **Create account** on the same page. Passwords must be at least 12 characters long.
+
+For local development, `pnpm db:seed` creates `admin@parcelis.dev` using the value of
+`SEED_ADMIN_PASSWORD`. Set this environment variable to a unique password of at least 12 characters
+before running the seed command. Later seed runs do not replace the administrator password.
+
+Sign out is available from the application navigation. Signing out revokes the current browser session.
+
+## Development Only
+
+Set `AUTH_DISABLED=true` in your local environment to bypass sign-in while developing. This setting is ignored when `NODE_ENV=production`.

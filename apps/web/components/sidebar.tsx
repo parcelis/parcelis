@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Banknote,
   Building2,
@@ -10,6 +11,7 @@ import {
   ChevronRight,
   ClipboardList,
   Home,
+  LogOut,
   Monitor,
   Moon,
   Settings,
@@ -20,6 +22,7 @@ import {
 import { ParcelisLogo } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
 import { useTheme, type ThemeMode } from "./theme-provider";
+import { apiClient } from "./api-client";
 
 const navItems = [
   { label: "Portfolio", href: "/", key: "portfolio", icon: Home },
@@ -28,7 +31,7 @@ const navItems = [
   { label: "Tenants", href: "/tenants", key: "tenants", icon: Users },
   { label: "Maintenance", href: "/maintenance", key: "maintenance", icon: Wrench },
   { label: "Accounting", href: "#", key: "accounting", icon: Banknote },
-  { label: "Settings", href: "#", key: "settings", icon: Settings },
+  { label: "Settings", href: "/settings", key: "settings", icon: Settings },
 ] as const;
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -44,7 +47,10 @@ function setSidebarWidth(collapsed: boolean) {
 
 export function Sidebar({ active }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isSigningOut, setIsSigningOut] = React.useState(false);
+  const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const { mode, setMode } = useTheme();
+  const router = useRouter();
 
   React.useEffect(() => {
     const saved = window.localStorage.getItem("parcelis-sidebar-collapsed") === "true";
@@ -67,6 +73,20 @@ export function Sidebar({ active }: SidebarProps) {
   }
 
   useShortcut("Mod+B", toggleSidebar);
+
+  async function signOut() {
+    setSignOutError(null);
+    setIsSigningOut(true);
+    try {
+      await apiClient.auth.logout.mutate();
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      setSignOutError("Unable to sign out. Please try again.");
+    } finally {
+      setIsSigningOut(false);
+    }
+  }
 
   const ThemeIcon = mode === "light" ? Sun : mode === "dark" ? Moon : Monitor;
 
@@ -127,6 +147,22 @@ export function Sidebar({ active }: SidebarProps) {
       </nav>
 
       <div className="border-t border-parcelis-border pt-4">
+        <button
+          aria-label="Sign out"
+          className={`mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain ${isCollapsed ? "justify-center" : ""}`}
+          disabled={isSigningOut}
+          onClick={signOut}
+          title={isCollapsed ? "Sign out" : undefined}
+          type="button"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {isCollapsed ? null : <span>{isSigningOut ? "Signing out…" : "Sign out"}</span>}
+        </button>
+        {signOutError ? (
+          <p className="mb-4 text-xs text-red-700" role="alert">
+            {signOutError}
+          </p>
+        ) : null}
         {isCollapsed ? (
           <button
             aria-label="Cycle theme"

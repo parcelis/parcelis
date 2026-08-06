@@ -32,8 +32,12 @@ import {
   updateAmenityInputSchema,
   updateNoteInputSchema,
   updatePropertyInputSchema,
+  updateUserInputSchema,
+  userAccountStatusInputSchema,
+  deleteUserInputSchema,
 } from "@parcelis/schemas";
-import { LeaseStatus, UnitType, type Prisma } from "@parcelis/db";
+import { LeaseStatus, Prisma, PrismaClient, UnitType, type UserRole } from "@parcelis/db";
+import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
   createPropertyImageUploadUrl,
@@ -46,7 +50,9 @@ import {
   deleteTenantImageObject,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
-import { publicProcedure, router } from "./trpc";
+import { authRouter } from "./auth.router";
+import { requireAdministrator } from "../modules/authorization";
+import { protectedProcedure as publicProcedure, router } from "./trpc";
 
 const propertySelect = {
   id: true,
@@ -236,7 +242,65 @@ function getEmergencyContact(input: {
   };
 }
 
+async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Prisma.TransactionClient, userId: number) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, accountStatus: true } });
+  if (user?.role !== "administrator" || user.accountStatus !== "active") return;
+
+  const activeAdministratorCount = await prisma.user.count({
+    where: { role: "administrator", accountStatus: "active" },
+  });
+  if (activeAdministratorCount <= 1) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "At least one active administrator is required." });
+  }
+}
+
 export const appRouter = router({
+  auth: authRouter,
+  users: router({
+    /** Lists accounts that can access this workspace. */
+    list: publicProcedure.query(({ ctx }) => {
+      requireAdministrator(ctx.user.role as UserRole);
+      return ctx.prisma.user.findMany({
+        select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+        orderBy: { createdAt: "asc" },
+      });
+    }),
+    update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
+      requireAdministrator(ctx.user.role as UserRole);
+      try {
+        return await ctx.prisma.$transaction(async (tx) => {
+          if (input.role !== "administrator") await assertActiveAdministratorCanBeRemoved(tx, input.id);
+          return tx.user.update({
+            where: { id: input.id },
+            data: { ...input, phone: input.phone || null },
+            select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+          });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+        }
+        throw error;
+      }
+    }),
+    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(async ({ ctx, input }) => {
+      requireAdministrator(ctx.user.role as UserRole);
+      if (input.accountStatus === "disabled") {
+        return ctx.prisma.$transaction(async (tx) => {
+          await assertActiveAdministratorCanBeRemoved(tx, input.id);
+          return tx.user.update({ where: { id: input.id }, data: { accountStatus: input.accountStatus }, select: { id: true, accountStatus: true } });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      }
+      return ctx.prisma.user.update({ where: { id: input.id }, data: { accountStatus: input.accountStatus }, select: { id: true, accountStatus: true } });
+    }),
+    delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) => {
+      requireAdministrator(ctx.user.role as UserRole);
+      return ctx.prisma.$transaction(async (tx) => {
+        await assertActiveAdministratorCanBeRemoved(tx, input.id);
+        return tx.user.delete({ where: { id: input.id }, select: { id: true } });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }),
+  }),
   /** Reports API health and the public object-storage configuration. */
   health: publicProcedure.query(() => ({
     status: "ok",

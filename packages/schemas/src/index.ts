@@ -3,6 +3,29 @@ import { LeaseStatus } from "@parcelis/db";
 
 const idSchema = z.coerce.number().int().positive();
 
+export const authCredentialsInputSchema = z.object({
+  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+  password: z.string().min(12).max(1024),
+});
+
+export const authLoginInputSchema = authCredentialsInputSchema;
+export const authRegisterInputSchema = authCredentialsInputSchema;
+
+export const userRoleSchema = z.enum(["administrator", "member"]);
+export const userAccountStatusSchema = z.enum(["active", "disabled"]);
+export const updateUserInputSchema = z.object({
+  id: idSchema,
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+  phone: z.string().trim().max(50).nullable(),
+  role: userRoleSchema,
+});
+export const userAccountStatusInputSchema = z.object({
+  id: idSchema,
+  accountStatus: userAccountStatusSchema,
+});
+export const deleteUserInputSchema = z.object({ id: idSchema });
+
 export const addressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().optional(),
