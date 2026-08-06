@@ -22,7 +22,7 @@ async function hasValidSession(request: NextRequest) {
     });
     return response.ok;
   } catch {
-    return true;
+    return false;
   }
 }
 
