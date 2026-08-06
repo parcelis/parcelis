@@ -33,7 +33,9 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     const nextPath = new URLSearchParams(window.location.search).get("next");
-    if (nextPath?.startsWith("/") && !nextPath.startsWith("//")) setDestination(nextPath);
+    if (nextPath?.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("\\")) {
+      setDestination(nextPath);
+    }
   }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {

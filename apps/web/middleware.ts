@@ -10,25 +10,9 @@ function redirectToLogin(request: NextRequest) {
   return NextResponse.redirect(loginUrl);
 }
 
-async function hasValidSession(request: NextRequest) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-  const cookie = request.headers.get("cookie");
-  if (!cookie) return false;
-
-  try {
-    const response = await fetch(`${apiUrl}/trpc/auth.me?input=${encodeURIComponent('{"json":null}')}`, {
-      headers: { cookie },
-      cache: "no-store",
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   if (isAuthenticationDisabled) return NextResponse.next();
-  if (request.cookies.has(sessionCookieName) && (await hasValidSession(request))) return NextResponse.next();
+  if (request.cookies.has(sessionCookieName)) return NextResponse.next();
 
   return redirectToLogin(request);
 }

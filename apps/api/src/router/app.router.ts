@@ -36,7 +36,7 @@ import {
   userAccountStatusInputSchema,
   deleteUserInputSchema,
 } from "@parcelis/schemas";
-import { LeaseStatus, Prisma, UnitType } from "@parcelis/db";
+import { LeaseStatus, Prisma, PrismaClient, UnitType, type UserRole } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
@@ -242,19 +242,32 @@ function getEmergencyContact(input: {
   };
 }
 
+async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient, userId: number) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, accountStatus: true } });
+  if (user?.role !== "administrator" || user.accountStatus !== "active") return;
+
+  const activeAdministratorCount = await prisma.user.count({
+    where: { role: "administrator", accountStatus: "active" },
+  });
+  if (activeAdministratorCount <= 1) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "At least one active administrator is required." });
+  }
+}
+
 export const appRouter = router({
   auth: authRouter,
   users: router({
     /** Lists accounts that can access this workspace. */
     list: publicProcedure.query(({ ctx }) => {
-      requireAdministrator(ctx.user.role);
+      requireAdministrator(ctx.user.role as UserRole);
       return ctx.prisma.user.findMany({
         select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
         orderBy: { createdAt: "asc" },
       });
     }),
     update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
-      requireAdministrator(ctx.user.role);
+      requireAdministrator(ctx.user.role as UserRole);
+      if (input.role !== "administrator") await assertActiveAdministratorCanBeRemoved(ctx.prisma, input.id);
       try {
         return await ctx.prisma.user.update({
           where: { id: input.id },
@@ -269,16 +282,19 @@ export const appRouter = router({
       }
     }),
     updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(({ ctx, input }) => {
-      requireAdministrator(ctx.user.role);
-      return ctx.prisma.user.update({
+      requireAdministrator(ctx.user.role as UserRole);
+      if (input.accountStatus === "disabled") return assertActiveAdministratorCanBeRemoved(ctx.prisma, input.id).then(() => ctx.prisma.user.update({
         where: { id: input.id },
         data: { accountStatus: input.accountStatus },
         select: { id: true, accountStatus: true },
-      });
+      }));
+      return ctx.prisma.user.update({ where: { id: input.id }, data: { accountStatus: input.accountStatus }, select: { id: true, accountStatus: true } });
     }),
     delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) => {
-      requireAdministrator(ctx.user.role);
-      return ctx.prisma.user.delete({ where: { id: input.id }, select: { id: true } });
+      requireAdministrator(ctx.user.role as UserRole);
+      return assertActiveAdministratorCanBeRemoved(ctx.prisma, input.id).then(() =>
+        ctx.prisma.user.delete({ where: { id: input.id }, select: { id: true } }),
+      );
     }),
   }),
   /** Reports API health and the public object-storage configuration. */
