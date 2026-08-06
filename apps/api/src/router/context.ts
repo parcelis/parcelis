@@ -11,8 +11,9 @@ export function createContext(prisma: PrismaService) {
             tokenHash: hashSessionToken(sessionToken),
             expiresAt: { gt: new Date() },
             revokedAt: null,
+            user: { accountStatus: "active" },
           },
-          include: { user: { select: { id: true, email: true } } },
+          include: { user: { select: { id: true, email: true, role: true, accountStatus: true } } },
         })
       : null;
 

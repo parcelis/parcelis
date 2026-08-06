@@ -1,4 +1,5 @@
 import { authLoginInputSchema, authRegisterInputSchema } from "@parcelis/schemas";
+import { Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import {
   clearSessionCookie,
@@ -10,12 +11,7 @@ import {
   verifyPassword,
   isAuthenticationDisabled,
 } from "../modules/auth";
-import {
-  assertLoginRateLimit,
-  clearLoginRateLimit,
-  getLoginRateLimitKey,
-  recordFailedLogin,
-} from "../modules/login-rate-limit";
+import { clearLoginRateLimit, consumeLoginRateLimit, getLoginRateLimitKey } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
 
@@ -39,17 +35,24 @@ async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: numbe
 export const authRouter = router({
   register: publicProcedure.input(authRegisterInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
-    assertLoginRateLimit(rateLimitKey);
+    consumeLoginRateLimit(rateLimitKey);
     const existingUser = await ctx.prisma.user.findUnique({ where: { email: input.email }, select: { id: true } });
     if (existingUser) {
-      recordFailedLogin(rateLimitKey);
       throw new TRPCError({ code: "CONFLICT", message: "Unable to create account." });
     }
 
-    const user = await ctx.prisma.user.create({
-      data: { email: input.email, passwordHash: await hashPassword(input.password) },
-      select: { id: true, email: true },
-    });
+    let user;
+    try {
+      user = await ctx.prisma.user.create({
+        data: { email: input.email, passwordHash: await hashPassword(input.password) },
+        select: { id: true, email: true },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new TRPCError({ code: "CONFLICT", message: "Unable to create account." });
+      }
+      throw error;
+    }
     await createSession(ctx, user.id);
     clearLoginRateLimit(rateLimitKey);
     return { user };
@@ -57,13 +60,12 @@ export const authRouter = router({
 
   login: publicProcedure.input(authLoginInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
-    assertLoginRateLimit(rateLimitKey);
+    consumeLoginRateLimit(rateLimitKey);
     const user = await ctx.prisma.user.findUnique({ where: { email: input.email } });
     const isPasswordValid = user
       ? await verifyPassword(user.passwordHash, input.password)
       : (await hashPassword(input.password), false);
     if (!user || !isPasswordValid) {
-      recordFailedLogin(rateLimitKey);
       throw invalidCredentials;
     }
     if (user.accountStatus === "disabled") {

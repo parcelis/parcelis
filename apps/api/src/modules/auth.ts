@@ -6,16 +6,20 @@ const sessionCookieName = "parcelis_session";
 const sessionDurationMs = 1000 * 60 * 60 * 24 * 7;
 
 export function isAuthenticationDisabled() {
-  return process.env.AUTH_DISABLED === "true" && process.env.NODE_ENV !== "production";
+  return process.env.AUTH_DISABLED === "true" && ["development", "test"].includes(process.env.NODE_ENV ?? "");
 }
 
-const cookieOptions = {
-  domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
-  httpOnly: true,
-  sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
-  path: "/",
-};
+function getCookieOptions() {
+  const isLocalEnvironment = ["development", "test"].includes(process.env.NODE_ENV ?? "");
+
+  return {
+    domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.AUTH_COOKIE_SECURE ? process.env.AUTH_COOKIE_SECURE === "true" : !isLocalEnvironment,
+    path: "/",
+  };
+}
 
 export const passwordHashOptions = {
   type: argon2.argon2id as 2,
@@ -48,13 +52,13 @@ export function getSessionToken(request: Request) {
 
 export function setSessionCookie(response: Response, token: string) {
   response.cookie(sessionCookieName, token, {
-    ...cookieOptions,
+    ...getCookieOptions(),
     maxAge: sessionDurationMs,
   });
 }
 
 export function clearSessionCookie(response: Response) {
-  response.clearCookie(sessionCookieName, cookieOptions);
+  response.clearCookie(sessionCookieName, getCookieOptions());
 }
 
 export function getSessionExpiration() {

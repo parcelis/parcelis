@@ -51,6 +51,7 @@ import {
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
+import { requireAdministrator } from "../modules/authorization";
 import { protectedProcedure as publicProcedure, router } from "./trpc";
 
 const propertySelect = {
@@ -245,13 +246,15 @@ export const appRouter = router({
   auth: authRouter,
   users: router({
     /** Lists accounts that can access this workspace. */
-    list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.user.findMany({
+    list: publicProcedure.query(({ ctx }) => {
+      requireAdministrator(ctx.user.role);
+      return ctx.prisma.user.findMany({
         select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
         orderBy: { createdAt: "asc" },
-      }),
-    ),
+      });
+    }),
     update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
+      requireAdministrator(ctx.user.role);
       try {
         return await ctx.prisma.user.update({
           where: { id: input.id },
@@ -265,16 +268,18 @@ export const appRouter = router({
         throw error;
       }
     }),
-    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.user.update({
+    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(({ ctx, input }) => {
+      requireAdministrator(ctx.user.role);
+      return ctx.prisma.user.update({
         where: { id: input.id },
         data: { accountStatus: input.accountStatus },
         select: { id: true, accountStatus: true },
-      }),
-    ),
-    delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.user.delete({ where: { id: input.id } }),
-    ),
+      });
+    }),
+    delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) => {
+      requireAdministrator(ctx.user.role);
+      return ctx.prisma.user.delete({ where: { id: input.id }, select: { id: true } });
+    }),
   }),
   /** Reports API health and the public object-storage configuration. */
   health: publicProcedure.query(() => ({

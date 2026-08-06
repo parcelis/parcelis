@@ -1,48 +1,32 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { findOpenPort } from "./port-utils.mjs";
 
 const envPath = resolve(import.meta.dirname, "../.env");
 
 if (existsSync(envPath)) {
-  for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {
-    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)\s*$/);
-    if (match && !process.env[match[1]]) {
-      process.env[match[1]] = match[2].replace(/^["']|["']$/g, "");
-    }
-  }
+  process.loadEnvFile(envPath);
 }
 
 const apiPort = await findOpenPort(process.env.API_PORT ?? 4000);
-const webPort = await findOpenPort(
-  process.env.WEB_PORT ?? process.env.PORT ?? 3000,
-);
+const webPort = await findOpenPort(process.env.WEB_PORT ?? process.env.PORT ?? 3000);
 const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 3001);
 const postgresPort = process.env.POSTGRES_PORT ?? 55432;
 const minioPort = process.env.MINIO_API_PORT ?? 9000;
 const databaseUrl =
-  process.env.DATABASE_URL ??
-  `postgresql://parcelis:parcelis@localhost:${postgresPort}/parcelis?schema=public`;
-const objectStorageEndpoint =
-  process.env.OBJECT_STORAGE_ENDPOINT ?? `http://localhost:${minioPort}`;
+  process.env.DATABASE_URL ?? `postgresql://parcelis:parcelis@localhost:${postgresPort}/parcelis?schema=public`;
+const objectStorageEndpoint = process.env.OBJECT_STORAGE_ENDPOINT ?? `http://localhost:${minioPort}`;
 const objectStoragePublicEndpoint =
   process.env.OBJECT_STORAGE_PUBLIC_ENDPOINT ??
   process.env.NEXT_PUBLIC_OBJECT_STORAGE_URL ??
   `http://localhost:${minioPort}`;
-const objectStorageBucket =
-  process.env.OBJECT_STORAGE_BUCKET ??
-  process.env.MINIO_BUCKET ??
-  "parcelis-images";
+const objectStorageBucket = process.env.OBJECT_STORAGE_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images";
 const objectStorageAccessKeyId =
-  process.env.OBJECT_STORAGE_ACCESS_KEY_ID ??
-  process.env.MINIO_ROOT_USER ??
-  "parcelis-minio";
+  process.env.OBJECT_STORAGE_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio";
 const objectStorageSecretAccessKey =
-  process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY ??
-  process.env.MINIO_ROOT_PASSWORD ??
-  "parcelis-minio-secret";
+  process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret";
 const brandLogoUrl =
   process.env.NEXT_PUBLIC_BRAND_LOGO_URL ??
   `${objectStoragePublicEndpoint}/${process.env.MINIO_ASSETS_BUCKET ?? "parcelis-assets"}/brand/parcelis-light.png`;
@@ -90,9 +74,7 @@ console.log("[parcelis] Starting local development");
 console.log(`[parcelis] Web:  http://localhost:${webPort}`);
 console.log(`[parcelis] API:  http://localhost:${apiPort}`);
 console.log(`[parcelis] Docs: http://localhost:${docsPort}`);
-console.log(
-  `[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`,
-);
+console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);
 
 const children = processes.map(({ name, args, env }) => {
   const child = spawn("pnpm", args, {
@@ -142,10 +124,7 @@ async function shutdown(code = 0) {
 
   shuttingDown = true;
   children.forEach(stopChild);
-  await Promise.race([
-    Promise.all(children.map(waitForExit)),
-    new Promise((resolve) => setTimeout(resolve, 5000)),
-  ]);
+  await Promise.race([Promise.all(children.map(waitForExit)), new Promise((resolve) => setTimeout(resolve, 5000))]);
   process.exit(code);
 }
 

@@ -1,29 +1,44 @@
+import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 
 const maxAttempts = 5;
 const windowMs = 15 * 60 * 1000;
+const sweepIntervalMs = 60 * 1000;
 const attempts = new Map<string, { count: number; resetAt: number }>();
+let lastSweepAt = 0;
 
-function getAttempt(key: string) {
+function getAttempt(key: string, now = Date.now()) {
   const attempt = attempts.get(key);
-  if (!attempt || attempt.resetAt <= Date.now()) {
+  if (!attempt || attempt.resetAt <= now) {
     attempts.delete(key);
     return null;
   }
   return attempt;
 }
 
-export function assertLoginRateLimit(key: string) {
-  if ((getAttempt(key)?.count ?? 0) >= maxAttempts) {
-    throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please try again later." });
+function sweepExpiredAttempts(now: number) {
+  if (now - lastSweepAt < sweepIntervalMs) {
+    return;
+  }
+
+  lastSweepAt = now;
+  for (const [key, attempt] of attempts) {
+    if (attempt.resetAt <= now) {
+      attempts.delete(key);
+    }
   }
 }
 
-export function recordFailedLogin(key: string) {
-  const attempt = getAttempt(key);
+export function consumeLoginRateLimit(key: string) {
+  const now = Date.now();
+  sweepExpiredAttempts(now);
+  const attempt = getAttempt(key, now);
+  if ((attempt?.count ?? 0) >= maxAttempts) {
+    throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please try again later." });
+  }
   attempts.set(key, {
     count: (attempt?.count ?? 0) + 1,
-    resetAt: attempt?.resetAt ?? Date.now() + windowMs,
+    resetAt: attempt?.resetAt ?? now + windowMs,
   });
 }
 
@@ -31,6 +46,9 @@ export function clearLoginRateLimit(key: string) {
   attempts.delete(key);
 }
 
-export function getLoginRateLimitKey(ip: string | undefined, _email: string) {
-  return ip ?? "unknown";
+export function getLoginRateLimitKey(ip: string | undefined, email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  return createHash("sha256")
+    .update(`${ip ?? "unknown"}\0${normalizedEmail}`)
+    .digest("base64url");
 }

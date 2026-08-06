@@ -1,10 +1,7 @@
-import { config } from "dotenv";
-import { resolve } from "node:path";
+import "./load-env";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./modules/app.module";
-
-config({ path: resolve(__dirname, "../../../.env") });
 
 async function bootstrap() {
   process.env.DATABASE_URL ??= `postgresql://parcelis:parcelis@localhost:${process.env.POSTGRES_PORT ?? 55432}/parcelis?schema=public`;

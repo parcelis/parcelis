@@ -68,6 +68,7 @@ machine with hot reload:
 ```bash
 pnpm install
 cp .env.example .env
+# Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
 docker compose up postgres pgadmin minio minio-init -d
 pnpm db:generate
 pnpm db:migrate
@@ -85,6 +86,8 @@ If `DATABASE_URL` is not set, the API falls back to `postgresql://parcelis:parce
 If a previous dev run is still watching files, stop it with `Ctrl+C` before
 starting another one.
 Prisma commands load the root `.env` automatically when run through `pnpm db:*`.
+Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first
+`pnpm db:seed`; it creates the local administrator account without replacing an existing password.
 After pulling schema changes, run `pnpm db:migrate && pnpm db:seed` to apply new
 columns and refresh demo operating metrics such as overdue balances, lease
 expirations, and unit-level maintenance tickets.

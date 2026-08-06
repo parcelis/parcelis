@@ -48,6 +48,7 @@ function setSidebarWidth(collapsed: boolean) {
 export function Sidebar({ active }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
+  const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const { mode, setMode } = useTheme();
   const router = useRouter();
 
@@ -74,11 +75,14 @@ export function Sidebar({ active }: SidebarProps) {
   useShortcut("Mod+B", toggleSidebar);
 
   async function signOut() {
+    setSignOutError(null);
     setIsSigningOut(true);
     try {
       await apiClient.auth.logout.mutate();
       router.replace("/login");
       router.refresh();
+    } catch {
+      setSignOutError("Unable to sign out. Please try again.");
     } finally {
       setIsSigningOut(false);
     }
@@ -154,6 +158,11 @@ export function Sidebar({ active }: SidebarProps) {
           <LogOut className="h-4 w-4 shrink-0" />
           {isCollapsed ? null : <span>{isSigningOut ? "Signing out…" : "Sign out"}</span>}
         </button>
+        {signOutError ? (
+          <p className="mb-4 text-xs text-red-700" role="alert">
+            {signOutError}
+          </p>
+        ) : null}
         {isCollapsed ? (
           <button
             aria-label="Cycle theme"

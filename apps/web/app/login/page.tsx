@@ -27,8 +27,14 @@ export default function LoginPage() {
   const [isRegistering, setIsRegistering] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [destination, setDestination] = React.useState("/");
   const { resolvedMode, setMode } = useTheme();
   const router = useRouter();
+
+  React.useEffect(() => {
+    const nextPath = new URLSearchParams(window.location.search).get("next");
+    if (nextPath?.startsWith("/") && !nextPath.startsWith("//")) setDestination(nextPath);
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -46,7 +52,7 @@ export default function LoginPage() {
       } else {
         await apiClient.auth.login.mutate(input);
       }
-      router.replace("/");
+      router.replace(destination);
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to sign in. Please try again.");
