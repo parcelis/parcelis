@@ -29,8 +29,16 @@ export const changePasswordInputSchema = z
     path: ["reenterPassword"],
   });
 
-export const userRoleSchema = z.enum(["administrator", "member"]);
+export const userRoleSchema = z.enum([
+  "administrator",
+  "property_manager",
+  "lease_manager",
+  "maintenance",
+  "property_owner",
+  "resident_manager",
+]);
 export const userAccountStatusSchema = z.enum(["active", "disabled"]);
+export const propertyAccessLevelSchema = z.enum(["none", "view", "edit", "delete", "all"]);
 export const updateUserInputSchema = z.object({
   id: idSchema,
   name: z.string().trim().min(1).max(100),
@@ -83,6 +91,10 @@ export const userAccountStatusInputSchema = z.object({
   accountStatus: userAccountStatusSchema,
 });
 export const deleteUserInputSchema = z.object({ id: idSchema });
+export const updateRolePermissionInputSchema = z.object({
+  role: userRoleSchema,
+  propertyAccess: propertyAccessLevelSchema,
+});
 
 export const organizationMemberRoleSchema = z.enum(["owner", "administrator", "member"]);
 export const switchOrganizationInputSchema = z.object({ organizationId: idSchema });

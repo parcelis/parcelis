@@ -1,0 +1,3 @@
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'viewer';
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'super_user';
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'maintenance';
