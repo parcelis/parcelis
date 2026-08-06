@@ -242,7 +242,7 @@ function getEmergencyContact(input: {
   };
 }
 
-async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient, userId: number) {
+async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Prisma.TransactionClient, userId: number) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, accountStatus: true } });
   if (user?.role !== "administrator" || user.accountStatus !== "active") return;
 
@@ -267,13 +267,15 @@ export const appRouter = router({
     }),
     update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
       requireAdministrator(ctx.user.role as UserRole);
-      if (input.role !== "administrator") await assertActiveAdministratorCanBeRemoved(ctx.prisma, input.id);
       try {
-        return await ctx.prisma.user.update({
-          where: { id: input.id },
-          data: { ...input, phone: input.phone || null },
-          select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
-        });
+        return await ctx.prisma.$transaction(async (tx) => {
+          if (input.role !== "administrator") await assertActiveAdministratorCanBeRemoved(tx, input.id);
+          return tx.user.update({
+            where: { id: input.id },
+            data: { ...input, phone: input.phone || null },
+            select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+          });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
           throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
@@ -281,20 +283,22 @@ export const appRouter = router({
         throw error;
       }
     }),
-    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(({ ctx, input }) => {
+    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(async ({ ctx, input }) => {
       requireAdministrator(ctx.user.role as UserRole);
-      if (input.accountStatus === "disabled") return assertActiveAdministratorCanBeRemoved(ctx.prisma, input.id).then(() => ctx.prisma.user.update({
-        where: { id: input.id },
-        data: { accountStatus: input.accountStatus },
-        select: { id: true, accountStatus: true },
-      }));
+      if (input.accountStatus === "disabled") {
+        return ctx.prisma.$transaction(async (tx) => {
+          await assertActiveAdministratorCanBeRemoved(tx, input.id);
+          return tx.user.update({ where: { id: input.id }, data: { accountStatus: input.accountStatus }, select: { id: true, accountStatus: true } });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      }
       return ctx.prisma.user.update({ where: { id: input.id }, data: { accountStatus: input.accountStatus }, select: { id: true, accountStatus: true } });
     }),
     delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) => {
       requireAdministrator(ctx.user.role as UserRole);
-      return assertActiveAdministratorCanBeRemoved(ctx.prisma, input.id).then(() =>
-        ctx.prisma.user.delete({ where: { id: input.id }, select: { id: true } }),
-      );
+      return ctx.prisma.$transaction(async (tx) => {
+        await assertActiveAdministratorCanBeRemoved(tx, input.id);
+        return tx.user.delete({ where: { id: input.id }, select: { id: true } });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     }),
   }),
   /** Reports API health and the public object-storage configuration. */
