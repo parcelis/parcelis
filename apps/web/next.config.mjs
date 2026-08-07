@@ -5,9 +5,13 @@ import { fileURLToPath } from "node:url";
 config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env") });
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    root: workspaceRoot,
+  },
   async rewrites() {
     return [
       {

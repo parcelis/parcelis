@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const sessionCookieName = "parcelis_session";
 const isAuthenticationDisabled = process.env.AUTH_DISABLED === "true" && process.env.NODE_ENV !== "production";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (isAuthenticationDisabled) return NextResponse.next();
   if (request.cookies.has(sessionCookieName)) return NextResponse.next();
 

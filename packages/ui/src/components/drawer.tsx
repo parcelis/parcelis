@@ -66,7 +66,7 @@ export function DrawerTrigger({
   children,
 }: {
   asChild?: boolean;
-  children: React.ReactElement;
+  children: React.ReactElement<{ onClick?: React.MouseEventHandler<Element> }>;
 }) {
   const { onOpenChange } = useDrawer();
 
