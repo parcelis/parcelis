@@ -2,15 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import {
-  Building2,
-  CalendarClock,
-  CircleDollarSign,
-  ClipboardCheck,
-  Plus,
-  Search,
-  Wrench,
-} from "lucide-react";
+import { Building2, CalendarClock, CircleDollarSign, ClipboardCheck, Plus, Search, Wrench } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
 import type { CreatePropertyInput } from "@parcelis/schemas";

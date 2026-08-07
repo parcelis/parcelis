@@ -12,17 +12,14 @@ import {
   ClipboardList,
   Home,
   LogOut,
-  Monitor,
-  Moon,
   Settings,
-  Sun,
   Users,
   Wrench,
 } from "lucide-react";
 import { ParcelisLogo } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
-import { useTheme, type ThemeMode } from "./theme-provider";
 import { apiClient } from "./api-client";
+import { ThemeSelector } from "./theme-selector";
 
 const navItems = [
   { label: "Portfolio", href: "/", key: "portfolio", icon: Home },
@@ -49,7 +46,6 @@ export function Sidebar({ active }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
-  const { mode, setMode } = useTheme();
   const router = useRouter();
 
   React.useEffect(() => {
@@ -67,11 +63,6 @@ export function Sidebar({ active }: SidebarProps) {
     });
   }
 
-  function cycleTheme() {
-    const nextMode: ThemeMode = mode === "light" ? "dark" : mode === "dark" ? "system" : "light";
-    setMode(nextMode);
-  }
-
   useShortcut("Mod+B", toggleSidebar);
 
   async function signOut() {
@@ -87,8 +78,6 @@ export function Sidebar({ active }: SidebarProps) {
       setIsSigningOut(false);
     }
   }
-
-  const ThemeIcon = mode === "light" ? Sun : mode === "dark" ? Moon : Monitor;
 
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-[var(--parcelis-sidebar-width)] border-r border-parcelis-border bg-white px-4 py-6 transition-[width] duration-200 lg:flex lg:flex-col">
@@ -146,62 +135,24 @@ export function Sidebar({ active }: SidebarProps) {
         })}
       </nav>
 
+      <button
+        aria-label="Sign out"
+        className={`mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain ${isCollapsed ? "justify-center" : ""}`}
+        disabled={isSigningOut}
+        onClick={signOut}
+        title={isCollapsed ? "Sign out" : undefined}
+        type="button"
+      >
+        <LogOut className="h-4 w-4 shrink-0" />
+        {isCollapsed ? null : <span>{isSigningOut ? "Signing out…" : "Sign out"}</span>}
+      </button>
+      {signOutError ? (
+        <p className="mb-4 text-xs text-red-700" role="alert">
+          {signOutError}
+        </p>
+      ) : null}
       <div className="border-t border-parcelis-border pt-4">
-        <button
-          aria-label="Sign out"
-          className={`mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain ${isCollapsed ? "justify-center" : ""}`}
-          disabled={isSigningOut}
-          onClick={signOut}
-          title={isCollapsed ? "Sign out" : undefined}
-          type="button"
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {isCollapsed ? null : <span>{isSigningOut ? "Signing out…" : "Sign out"}</span>}
-        </button>
-        {signOutError ? (
-          <p className="mb-4 text-xs text-red-700" role="alert">
-            {signOutError}
-          </p>
-        ) : null}
-        {isCollapsed ? (
-          <button
-            aria-label="Cycle theme"
-            className="grid h-10 w-full place-items-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
-            onClick={cycleTheme}
-            title={`Theme: ${mode}`}
-            type="button"
-          >
-            <ThemeIcon className="h-4 w-4" />
-          </button>
-        ) : (
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-parcelis-gray">
-              <ThemeIcon className="h-4 w-4" />
-              Theme
-            </div>
-            <div className="grid grid-cols-3 gap-1 rounded-md border border-parcelis-border bg-parcelis-porcelain p-1">
-              {(["light", "dark", "system"] as const).map((themeMode) => {
-                const Icon = themeMode === "light" ? Sun : themeMode === "dark" ? Moon : Monitor;
-                return (
-                  <button
-                    aria-pressed={mode === themeMode}
-                    className={`grid h-8 place-items-center rounded text-xs font-semibold ${
-                      mode === themeMode
-                        ? "bg-white text-parcelis-charcoal shadow-sm"
-                        : "text-parcelis-gray hover:bg-white/60"
-                    }`}
-                    key={themeMode}
-                    onClick={() => setMode(themeMode)}
-                    title={themeMode}
-                    type="button"
-                  >
-                    <Icon className="h-4 w-4" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <ThemeSelector compact={isCollapsed} />
       </div>
     </aside>
   );
