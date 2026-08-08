@@ -53,92 +53,10 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEPENDENCIES.md) for the maintained technology inventory and each tool's role.
 
-## API reference
-
-The API reference is generated from the tRPC router. Regenerate the OpenAPI specification and Docusaurus pages after changing API procedures or shared schemas:
-
-```bash
-pnpm --filter @parcelis/api generate:openapi
-pnpm --filter @parcelis/docs generate:api
-```
-
-## Local development
-
-Install dependencies, start the Docker-backed services, and run the apps on your
-machine with hot reload:
-
-```bash
-pnpm install
-cp .env.example .env
-# Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
-docker compose -f docker-compose-dev.yml up -d
-pnpm db:generate
-pnpm db:migrate
-pnpm db:seed
-pnpm dev
-```
-
-`pnpm dev` uses the Parcelis host-port block and chooses the next open port when a default is busy.
-It reads the root `.env` so the web, API, and database connection use the same port configuration.
-Defaults are web `http://localhost:30000`, docs `http://localhost:40000`, API
-`http://localhost:40010`, PostgreSQL `localhost:54320`, pgAdmin
-`http://localhost:8000`, MinIO `http://localhost:9001`, and the MinIO console
-`http://localhost:9010`.
-pgAdmin is available at `http://localhost:8000` with the default login
-`admin@parcelis.dev` / `parcelis`; the Parcelis database is preconfigured.
-When connecting to it for the first time, use the database password `parcelis`.
-If `DATABASE_URL` is not set, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
-If a previous dev run is still watching files, stop it with `Ctrl+C` before
-starting another one.
-Prisma commands load the root `.env` automatically when run through `pnpm db:*`.
-Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first
-`pnpm db:seed`; it creates the local administrator account without replacing an existing password.
-After pulling schema changes, run `pnpm db:migrate && pnpm db:seed` to apply new
-columns and refresh demo operating metrics such as overdue balances, lease
-expirations, and unit-level maintenance tickets.
-
-## Docker Compose
-
-`docker-compose-dev.yml` runs only the local dependencies. Use it with `pnpm dev`; the
-web, API, and docs processes remain on the host for hot reload.
-
-```bash
-cp .env.example .env
-docker compose -f docker-compose-dev.yml up -d
-```
-
-`docker-compose.yml` builds and runs the deployable application stack. Copy
-`.env.production.example` to `.env.production`, replace every placeholder, then run:
-
-```bash
-docker compose --env-file .env.production up -d --build
-```
-
-It runs database migrations and MinIO provisioning before starting the API. The
-`migrate` and `minio-init` containers exit successfully after that work; MinIO itself
-continues running. Put a TLS reverse proxy in front of the web, API, docs, and object-storage URLs configured in `.env.production`.
-
-For local dependency logs and cleanup:
-
-```bash
-docker compose -f docker-compose-dev.yml logs -f
-docker compose -f docker-compose-dev.yml down
-```
-
-`docker compose -f docker-compose-dev.yml down` stops containers but preserves the local database and
-object-storage volumes. Use `docker compose -f docker-compose-dev.yml down -v` only when you intentionally
-want to erase local Parcelis data and start over.
-
-## UI components
-
-Parcelis uses shadcn/ui-style primitives through `@parcelis/ui`. Add or extend
-shared components in `packages/ui/src/components`, then import them into apps
-instead of hand-styling repeated controls in page files.
-
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development expectations and the
-Conventional Commit format enforced for pull requests.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, contributor expectations,
+and the Conventional Commit format enforced for pull requests.
 
 ## Licensing
 
