@@ -3,6 +3,7 @@
 **/.docusaurus
 **/build
 .git
+.env*
 .turbo
 coverage
 *.log
