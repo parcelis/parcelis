@@ -1,6 +1,6 @@
 {
   "name": "@parcelis/docs",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "node ../../scripts/run-with-open-port.mjs PORT 40000 docusaurus start --host 0.0.0.0 --port {PORT}",
