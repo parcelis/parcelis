@@ -15,7 +15,7 @@ async function hasValidSession(request: NextRequest) {
   if (!token) return false;
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+    const apiUrl = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
     const response = await fetch(`${apiUrl}/trpc/auth.me?input=${encodeURIComponent('{"json":null}')}`, {
       headers: { cookie: `${sessionCookieName}=${token}` },
       cache: "no-store",

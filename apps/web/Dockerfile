@@ -2,7 +2,7 @@
 FROM node:22-alpine
 
 WORKDIR /repo
-RUN corepack enable
+RUN apk add --no-cache openssl && corepack enable
 COPY . .
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_S3_URL

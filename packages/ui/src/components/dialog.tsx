@@ -5,7 +5,9 @@ import { X } from "lucide-react";
 import * as React from "react";
 import { cn } from "../lib/utils";
 
-export const Dialog = DialogPrimitive.Root;
+export function Dialog({ children, ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  return <DialogPrimitive.Root {...props}>{children}</DialogPrimitive.Root>;
+}
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 export const DialogPortal = DialogPrimitive.Portal;

@@ -70,3 +70,10 @@ volumes:
   postgres-data:
   pgadmin-data:
   minio-data:
+
+networks:
+  default:
+    name: parcelis-dev-local
+    ipam:
+      config:
+        - subnet: 10.88.1.0/24

@@ -25,6 +25,9 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio-data:/data
+    ports:
+      - "${MINIO_API_PORT:-9001}:9000"
+      - "${MINIO_CONSOLE_PORT:-9010}:9001"
     networks:
       - parcelis
 
@@ -59,7 +62,7 @@ services:
       dockerfile: apps/api/Dockerfile
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,15 +74,20 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       API_PORT: "4000"
       WEB_ORIGIN: ${WEB_ORIGIN}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_DISABLED: ${AUTH_DISABLED:-false}
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_BUCKET: ${S3_BUCKET}
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${API_PORT:-40010}:4000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -97,6 +105,8 @@ services:
         NEXT_PUBLIC_S3_URL: ${NEXT_PUBLIC_S3_URL}
         NEXT_PUBLIC_BRAND_LOGO_URL: ${NEXT_PUBLIC_BRAND_LOGO_URL}
         NEXT_PUBLIC_DARK_BRAND_LOGO_URL: ${NEXT_PUBLIC_DARK_BRAND_LOGO_URL}
+    environment:
+      API_INTERNAL_URL: http://api:4000
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:
@@ -121,3 +131,7 @@ volumes:
 
 networks:
   parcelis:
+    name: parcelis
+    ipam:
+      config:
+        - subnet: 10.89.0.0/24

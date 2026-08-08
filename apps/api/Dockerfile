@@ -2,7 +2,7 @@
 FROM node:22-alpine
 
 WORKDIR /repo
-RUN corepack enable
+RUN apk add --no-cache openssl && corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile && pnpm --filter @parcelis/api build
 
