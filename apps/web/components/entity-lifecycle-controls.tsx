@@ -16,6 +16,8 @@ import {
 
 type EntityLifecycleControlsProps = {
   archiveDescription: React.ReactNode;
+  canArchive: boolean;
+  canDelete: boolean;
   cancelDeleteLabel: string;
   deleteDescription: React.ReactNode;
   entityLabel: string;
@@ -31,6 +33,8 @@ type EntityLifecycleControlsProps = {
 
 export function EntityLifecycleControls({
   archiveDescription,
+  canArchive,
+  canDelete,
   cancelDeleteLabel,
   deleteDescription,
   entityLabel,
@@ -135,7 +139,7 @@ export function EntityLifecycleControls({
       {isMounted ? createPortal(dialogs, document.body) : null}
       <div className="flex flex-col items-end gap-1">
         <div className="flex items-center gap-2">
-          {isArchived ? (
+          {canArchive && isArchived ? (
             <Button
               aria-label={`Unarchive ${entityLabel}`}
               className="min-w-10 sm:min-w-40"
@@ -150,7 +154,7 @@ export function EntityLifecycleControls({
               )}
               <span className="hidden sm:inline">Unarchive</span>
             </Button>
-          ) : (
+          ) : canArchive ? (
             <Button
               aria-label={`Archive ${entityLabel}`}
               className="min-w-10 sm:min-w-40"
@@ -161,17 +165,19 @@ export function EntityLifecycleControls({
               <Archive className="h-4 w-4" />
               <span className="hidden sm:inline">Archive</span>
             </Button>
-          )}
-          <Button
-            aria-label={`Delete ${entityLabel}`}
-            className="min-w-10 sm:min-w-40"
-            disabled={!isAvailable}
-            onClick={() => setIsDeleteDialogOpen(true)}
-            variant="destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Delete</span>
-          </Button>
+          ) : null}
+          {canDelete ? (
+            <Button
+              aria-label={`Delete ${entityLabel}`}
+              className="min-w-10 sm:min-w-40"
+              disabled={!isAvailable}
+              onClick={() => setIsDeleteDialogOpen(true)}
+              variant="destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
+          ) : null}
         </div>
         {reactivateMutation.error ? (
           <p className="text-sm font-medium text-red-700" role="alert">

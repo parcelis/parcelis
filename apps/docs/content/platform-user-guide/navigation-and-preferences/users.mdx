@@ -13,7 +13,11 @@ Use the Actions menu to edit an account, disable or enable sign-in access, or pe
 Disabled accounts cannot sign in until they are enabled again.
 
 The **Roles** tab lists Administrator, Property Manager, Lease Manager, Maintenance, Property Owner, and Resident
-Manager roles and sets access by feature.
-Properties access levels are None, View, Edit, Delete, and All. Each level
-includes the levels before it: View permits property lists and details; Edit also permits changes; Delete also permits
-archiving and deletion. Administrators always have All Properties access.
+Manager roles. Select **Manage access** to grant View, Create, Edit, Archive, and Delete permissions independently for
+Properties, Units, Tenants, and Maintenance. Selecting a modifying action also enables View; clearing View clears the
+other actions for that area.
+
+Expand **Notes** to configure Property Notes, Unit Notes, Tenant Notes, and Maintenance Notes separately. The parent
+Notes checkboxes apply an action to every note type and show a mixed state when the sub-items differ. A role must also
+have View access to the record containing the note. For example, reading a unit note requires both Unit Notes View and
+Units View. Notes do not support archiving. Administrator permissions are always enabled and cannot be changed.
