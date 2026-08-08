@@ -4,15 +4,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: parcelis
-      POSTGRES_PASSWORD: parcelis
-      POSTGRES_DB: parcelis
+      POSTGRES_USER: ${POSTGRES_USER:-parcelis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-parcelis}
+      POSTGRES_DB: ${POSTGRES_DB:-parcelis}
     ports:
-      - "${POSTGRES_PORT:-43103}:5432"
+      - "${POSTGRES_PORT:-54320}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U parcelis"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -23,7 +23,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@parcelis.dev}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-parcelis}
     ports:
-      - "${PGADMIN_PORT:-43104}:80"
+      - "${PGADMIN_PORT:-8000}:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
       - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
@@ -38,8 +38,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
     ports:
-      - "${MINIO_API_PORT:-43105}:9000"
-      - "${MINIO_CONSOLE_PORT:-43106}:9001"
+      - "${MINIO_API_PORT:-9001}:9000"
+      - "${MINIO_CONSOLE_PORT:-9010}:9001"
     volumes:
       - minio-data:/data
 

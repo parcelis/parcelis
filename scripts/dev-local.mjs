@@ -10,25 +10,25 @@ if (existsSync(envPath)) {
   process.loadEnvFile(envPath);
 }
 
-const apiPort = await findOpenPort(process.env.API_PORT ?? 43102);
+const apiPort = await findOpenPort(process.env.API_PORT ?? 40010);
 const webPort = await findOpenPort(
-  process.env.WEB_PORT ?? process.env.PORT ?? 43100,
+  process.env.WEB_PORT ?? process.env.PORT ?? 30000,
 );
-const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 43101);
-const postgresPort = process.env.POSTGRES_PORT ?? 43103;
-const minioPort = process.env.MINIO_API_PORT ?? 43105;
+const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 40000);
+const postgresPort = process.env.POSTGRES_PORT ?? 54320;
+const minioPort = process.env.MINIO_API_PORT ?? 9001;
 const databaseUrl =
   process.env.DATABASE_URL ?? `postgresql://parcelis:parcelis@localhost:${postgresPort}/parcelis?schema=public`;
-const objectStorageEndpoint = process.env.OBJECT_STORAGE_ENDPOINT ?? `http://localhost:${minioPort}`;
+const objectStorageEndpoint = process.env.S3_ENDPOINT ?? `http://localhost:${minioPort}`;
 const objectStoragePublicEndpoint =
-  process.env.OBJECT_STORAGE_PUBLIC_ENDPOINT ??
-  process.env.NEXT_PUBLIC_OBJECT_STORAGE_URL ??
+  process.env.S3_PUBLIC_ENDPOINT ??
+  process.env.NEXT_PUBLIC_S3_URL ??
   `http://localhost:${minioPort}`;
-const objectStorageBucket = process.env.OBJECT_STORAGE_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images";
+const objectStorageBucket = process.env.S3_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images";
 const objectStorageAccessKeyId =
-  process.env.OBJECT_STORAGE_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio";
+  process.env.S3_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio";
 const objectStorageSecretAccessKey =
-  process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret";
+  process.env.S3_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret";
 const brandLogoUrl =
   process.env.NEXT_PUBLIC_BRAND_LOGO_URL ??
   `${objectStoragePublicEndpoint}/${process.env.MINIO_ASSETS_BUCKET ?? "parcelis-assets"}/brand/parcelis-light.png`;
@@ -43,12 +43,12 @@ const processes = [
     env: {
       API_PORT: String(apiPort),
       DATABASE_URL: databaseUrl,
-      OBJECT_STORAGE_ACCESS_KEY_ID: objectStorageAccessKeyId,
-      OBJECT_STORAGE_BUCKET: objectStorageBucket,
-      OBJECT_STORAGE_ENDPOINT: objectStorageEndpoint,
-      OBJECT_STORAGE_PUBLIC_ENDPOINT: objectStoragePublicEndpoint,
-      OBJECT_STORAGE_REGION: process.env.OBJECT_STORAGE_REGION ?? "us-east-1",
-      OBJECT_STORAGE_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,
+      S3_ACCESS_KEY_ID: objectStorageAccessKeyId,
+      S3_BUCKET: objectStorageBucket,
+      S3_ENDPOINT: objectStorageEndpoint,
+      S3_PUBLIC_ENDPOINT: objectStoragePublicEndpoint,
+      S3_REGION: process.env.S3_REGION ?? "us-east-1",
+      S3_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,
       WEB_ORIGIN: `http://localhost:${webPort}`,
     },
   },
@@ -56,7 +56,7 @@ const processes = [
     name: "web",
     args: ["--filter", "@parcelis/web", "dev:fixed"],
     env: {
-      NEXT_PUBLIC_OBJECT_STORAGE_URL: objectStoragePublicEndpoint,
+      NEXT_PUBLIC_S3_URL: objectStoragePublicEndpoint,
       NEXT_PUBLIC_BRAND_LOGO_URL: brandLogoUrl,
       NEXT_PUBLIC_DARK_BRAND_LOGO_URL: darkBrandLogoUrl,
       PORT: String(webPort),

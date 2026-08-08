@@ -12,17 +12,17 @@ export type ObjectStorageConfig = {
 };
 
 export function getObjectStorageConfig(): ObjectStorageConfig {
-  const endpoint = process.env.OBJECT_STORAGE_ENDPOINT ?? "http://localhost:43105";
+  const endpoint = process.env.S3_ENDPOINT ?? "http://localhost:9001";
 
   return {
-    accessKeyId: process.env.OBJECT_STORAGE_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio",
-    bucket: process.env.OBJECT_STORAGE_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images",
+    accessKeyId: process.env.S3_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio",
+    bucket: process.env.S3_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images",
     endpoint,
     publicEndpoint:
-      process.env.OBJECT_STORAGE_PUBLIC_ENDPOINT ?? process.env.NEXT_PUBLIC_OBJECT_STORAGE_URL ?? endpoint,
-    region: process.env.OBJECT_STORAGE_REGION ?? "us-east-1",
+      process.env.S3_PUBLIC_ENDPOINT ?? process.env.NEXT_PUBLIC_S3_URL ?? endpoint,
+    region: process.env.S3_REGION ?? "us-east-1",
     secretAccessKey:
-      process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret",
+      process.env.S3_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret",
   };
 }
 

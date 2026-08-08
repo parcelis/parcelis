@@ -80,14 +80,14 @@ pnpm dev
 
 `pnpm dev` uses the Parcelis host-port block and chooses the next open port when a default is busy.
 It reads the root `.env` so the web, API, and database connection use the same port configuration.
-Defaults are web `http://localhost:43100`, docs `http://localhost:43101`, API
-`http://localhost:43102`, PostgreSQL `localhost:43103`, pgAdmin
-`http://localhost:43104`, MinIO `http://localhost:43105`, and the MinIO console
-`http://localhost:43106`.
-pgAdmin is available at `http://localhost:43104` with the default login
+Defaults are web `http://localhost:30000`, docs `http://localhost:40000`, API
+`http://localhost:40010`, PostgreSQL `localhost:54320`, pgAdmin
+`http://localhost:8000`, MinIO `http://localhost:9001`, and the MinIO console
+`http://localhost:9010`.
+pgAdmin is available at `http://localhost:8000` with the default login
 `admin@parcelis.dev` / `parcelis`; the Parcelis database is preconfigured.
 When connecting to it for the first time, use the database password `parcelis`.
-If `DATABASE_URL` is not set, the API falls back to `postgresql://parcelis:parcelis@localhost:43103/parcelis?schema=public`.
+If `DATABASE_URL` is not set, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
 If a previous dev run is still watching files, stop it with `Ctrl+C` before
 starting another one.
 Prisma commands load the root `.env` automatically when run through `pnpm db:*`.
@@ -148,7 +148,7 @@ Parcelis is licensed under the GNU Affero General Public License version 3. See
 ## Object storage
 
 Parcelis uses MinIO for local S3-compatible image storage. Docker Compose starts
-MinIO on `http://localhost:43105`, opens the console at `http://localhost:43106`,
+MinIO on `http://localhost:9001`, opens the console at `http://localhost:9010`,
 and creates a private `parcelis-images` bucket through the `minio-init` service.
 It also creates a public-read `parcelis-assets` bucket and uploads the brand
 logos to `brand/parcelis-light.png` and `brand/parcelis-dark.png`. The
@@ -162,7 +162,7 @@ MINIO_ROOT_PASSWORD=parcelis-minio-secret
 ```
 
 The API reads S3-compatible settings from `OBJECT_STORAGE_*` env vars, while the
-web app can use `NEXT_PUBLIC_OBJECT_STORAGE_URL` for public asset URLs.
+web app can use `NEXT_PUBLIC_S3_URL` for public asset URLs.
 `NEXT_PUBLIC_BRAND_LOGO_URL` points at the MinIO-hosted Parcelis logo.
 The responsive navigation and login banners are bundled with the web app as
 `/brand/parcelis-light-banner.png` and `/brand/parcelis-dark-banner.png`.
@@ -180,7 +180,7 @@ WEB_PORT=43200 API_PORT=43202 DOCS_PORT=43201 POSTGRES_PORT=43203 PGADMIN_PORT=4
 ```
 
 The Compose services retain their standard internal ports, but map to the
-Parcelis host-port block (`43100`–`43106`) by default. Set the corresponding
+the local ports listed above by default. Set the corresponding
 environment variables to override individual host ports.
 
 If Docker reports that its predefined address pools have been fully subnetted,

@@ -35,8 +35,8 @@
 - Start required local services with `docker compose up postgres minio minio-init -d`.
 - Run `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:seed` after installing or pulling schema changes.
 - `pnpm dev` chooses open ports when defaults are busy and prints the selected URLs.
-- Default local URLs are web `http://localhost:43100`, API `http://localhost:43102`, docs `http://localhost:43101`, and MinIO console `http://localhost:43106`.
-- If `DATABASE_URL` is unset, the API falls back to `postgresql://parcelis:parcelis@localhost:43103/parcelis?schema=public`.
+- Default local URLs are web `http://localhost:30000`, API `http://localhost:40010`, docs `http://localhost:40000`, and MinIO console `http://localhost:9010`.
+- If `DATABASE_URL` is unset, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
 - Stop an existing watcher with `Ctrl+C` before starting a second dev run.
 
 ## Code Style
@@ -111,6 +111,6 @@
 
 - This repo uses `pnpm@10.28.2`; avoid npm or yarn lockfile changes.
 - `postinstall` runs Prisma client generation.
-- Docker Compose maps services to the Parcelis host-port block (`43100`–`43106`) by default.
+- Docker Compose maps local dependencies to the documented default host ports.
 - `minio-init` is expected to exit after creating buckets and uploading brand assets.
 - Use `docker compose down -v` only when intentionally deleting local database and object-storage volumes.

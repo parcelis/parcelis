@@ -6,7 +6,7 @@ const { publicRouter } = await import("../src/router/public.router.ts");
 const document = generateOpenApiDocument(publicRouter, {
   title: "Parcelis API",
   version: "0.1.0",
-  baseUrl: "http://localhost:43102/api/v1",
+  baseUrl: "http://localhost:40010/api/v1",
 });
 
 await writeFile(
