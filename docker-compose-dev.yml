@@ -1,0 +1,72 @@
+name: parcelis-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: parcelis
+      POSTGRES_PASSWORD: parcelis
+      POSTGRES_DB: parcelis
+    ports:
+      - "${POSTGRES_PORT:-43103}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parcelis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@parcelis.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-parcelis}
+    ports:
+      - "${PGADMIN_PORT:-43104}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
+    ports:
+      - "${MINIO_API_PORT:-43105}:9000"
+      - "${MINIO_CONSOLE_PORT:-43106}:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-parcelis-images}
+      MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:-parcelis-assets}
+    volumes:
+      - ./infra/minio/assets:/assets:ro
+      - ./infra/minio/property-images:/property-images:ro
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set parcelis http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_BUCKET;
+      /usr/bin/mc anonymous set none parcelis/$$MINIO_BUCKET;
+      /usr/bin/mc cors set parcelis/$$MINIO_BUCKET /property-images;
+      /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_ASSETS_BUCKET;
+      /usr/bin/mc cp --recursive /assets/ parcelis/$$MINIO_ASSETS_BUCKET/;
+      /usr/bin/mc anonymous set download parcelis/$$MINIO_ASSETS_BUCKET;
+      "
+
+volumes:
+  postgres-data:
+  pgadmin-data:
+  minio-data:

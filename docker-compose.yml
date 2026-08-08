@@ -4,62 +4,39 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: parcelis
-      POSTGRES_PASSWORD: parcelis
-      POSTGRES_DB: parcelis
-    ports:
-      - "${POSTGRES_PORT:-43103}:5432"
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in the production environment}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the production environment}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in the production environment}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U parcelis"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
     networks:
-      - parcelis-dev
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@parcelis.dev}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-parcelis}
-    ports:
-      - "${PGADMIN_PORT:-43104}:80"
-    volumes:
-      - pgadmin-data:/var/lib/pgadmin
-      - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - parcelis-dev
+      - parcelis
 
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
-      MINIO_BUCKET: ${MINIO_BUCKET:-parcelis-images}
-      MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:-parcelis-assets}
-    ports:
-      - "${MINIO_API_PORT:-43105}:9000"
-      - "${MINIO_CONSOLE_PORT:-43106}:9001"
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in the production environment}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in the production environment}
     volumes:
       - minio-data:/data
     networks:
-      - parcelis-dev
+      - parcelis
 
   minio-init:
     image: minio/mc:latest
     depends_on:
       - minio
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
-      MINIO_BUCKET: ${MINIO_BUCKET:-parcelis-images}
-      MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:-parcelis-assets}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in the production environment}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in the production environment}
+      MINIO_BUCKET: ${OBJECT_STORAGE_BUCKET:?Set OBJECT_STORAGE_BUCKET}
+      MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:?Set MINIO_ASSETS_BUCKET}
     volumes:
       - ./infra/minio/assets:/assets:ro
       - ./infra/minio/property-images:/property-images:ro
@@ -74,26 +51,59 @@ services:
       /usr/bin/mc anonymous set download parcelis/$$MINIO_ASSETS_BUCKET;
       "
     networks:
-      - parcelis-dev
+      - parcelis
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - parcelis
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      API_PORT: "4000"
+      WEB_ORIGIN: ${WEB_ORIGIN:?Set WEB_ORIGIN to the public web URL}
+      OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      OBJECT_STORAGE_PUBLIC_ENDPOINT: ${OBJECT_STORAGE_PUBLIC_ENDPOINT:?Set OBJECT_STORAGE_PUBLIC_ENDPOINT}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:?Set OBJECT_STORAGE_BUCKET}
+      OBJECT_STORAGE_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - parcelis
 
   web:
-    image: node:22-alpine
-    working_dir: /repo
-    command: sh -c "corepack enable && pnpm install && pnpm --filter @parcelis/web dev"
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL to the public API URL}
+        NEXT_PUBLIC_OBJECT_STORAGE_URL: ${NEXT_PUBLIC_OBJECT_STORAGE_URL:?Set NEXT_PUBLIC_OBJECT_STORAGE_URL}
+        NEXT_PUBLIC_BRAND_LOGO_URL: ${NEXT_PUBLIC_BRAND_LOGO_URL:?Set NEXT_PUBLIC_BRAND_LOGO_URL}
+        NEXT_PUBLIC_DARK_BRAND_LOGO_URL: ${NEXT_PUBLIC_DARK_BRAND_LOGO_URL:?Set NEXT_PUBLIC_DARK_BRAND_LOGO_URL}
     ports:
-      - "${WEB_PORT:-43100}:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-43102}
-      NEXT_PUBLIC_OBJECT_STORAGE_URL: http://localhost:${MINIO_API_PORT:-43105}
-      NEXT_PUBLIC_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-43105}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-light.png
-      NEXT_PUBLIC_DARK_BRAND_LOGO_URL: http://localhost:${MINIO_API_PORT:-43105}/${MINIO_ASSETS_BUCKET:-parcelis-assets}/brand/parcelis-dark.png
-    volumes:
-      - .:/repo
-      - pnpm-store:/root/.local/share/pnpm/store
+      - "${WEB_PORT:-3000}:3000"
     depends_on:
-      - api
+      api:
+        condition: service_started
     networks:
-      - parcelis-dev
+      - parcelis
 
   docs:
     build:
@@ -101,44 +111,13 @@ services:
       dockerfile: apps/docs/Dockerfile
       target: caddy
     ports:
-      - "${DOCS_PORT:-43101}:80"
+      - "${DOCS_PORT:-8080}:80"
     networks:
-      - parcelis-dev
-
-  api:
-    image: node:22-alpine
-    working_dir: /repo
-    command: sh -c "corepack enable && pnpm install && pnpm --filter @parcelis/api dev"
-    ports:
-      - "${API_PORT:-43102}:4000"
-    environment:
-      DATABASE_URL: postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public
-      API_PORT: "4000"
-      WEB_ORIGIN: http://localhost:${WEB_PORT:-43100}
-      OBJECT_STORAGE_ENDPOINT: http://minio:9000
-      OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_PORT:-43105}
-      OBJECT_STORAGE_REGION: us-east-1
-      OBJECT_STORAGE_BUCKET: ${MINIO_BUCKET:-parcelis-images}
-      OBJECT_STORAGE_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-parcelis-minio}
-      OBJECT_STORAGE_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
-    volumes:
-      - .:/repo
-      - pnpm-store:/root/.local/share/pnpm/store
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - parcelis-dev
+      - parcelis
 
 volumes:
   postgres-data:
-  pgadmin-data:
   minio-data:
-  pnpm-store:
 
 networks:
-  parcelis-dev:
-    name: parcelis-dev
-    ipam:
-      config:
-        - subnet: 10.88.0.0/24
+  parcelis:

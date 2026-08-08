@@ -71,7 +71,7 @@ machine with hot reload:
 pnpm install
 cp .env.example .env
 # Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
-docker compose up postgres pgadmin minio minio-init -d
+docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
@@ -97,34 +97,36 @@ After pulling schema changes, run `pnpm db:migrate && pnpm db:seed` to apply new
 columns and refresh demo operating metrics such as overdue balances, lease
 expirations, and unit-level maintenance tickets.
 
-## Run with Docker
+## Docker Compose
 
-Docker Compose can run Postgres, pgAdmin, MinIO, the API, and the web app together. This
-is useful when you want the full Parcelis environment without starting Node
-processes on your host machine.
+`docker-compose-dev.yml` runs only the local dependencies. Use it with `pnpm dev`; the
+web, API, and docs processes remain on the host for hot reload.
 
 ```bash
 cp .env.example .env
-docker compose up -d postgres pgadmin minio minio-init
-docker compose run --rm api sh -c "corepack enable && pnpm install && pnpm db:migrate && pnpm db:seed"
-docker compose up -d web api
+docker compose -f docker-compose-dev.yml up -d
 ```
 
-Open the web app at `http://localhost:43100`, the API at
-`http://localhost:43102`, the docs at `http://localhost:43101`, pgAdmin at
-`http://localhost:43104`, and the MinIO console at `http://localhost:43106`.
-The `minio-init` container runs once to create buckets and upload the light and
-dark Parcelis logos, then exits normally.
-
-Use these commands while the Docker environment is running:
+`docker-compose.yml` builds and runs the deployable application stack. Copy
+`.env.production.example` to `.env.production`, replace every placeholder, then run:
 
 ```bash
-docker compose logs -f web api
-docker compose down
+docker compose --env-file .env.production up -d --build
 ```
 
-`docker compose down` stops containers but preserves the local database and
-object-storage volumes. Use `docker compose down -v` only when you intentionally
+It runs database migrations and MinIO provisioning before starting the API. The
+`migrate` and `minio-init` containers exit successfully after that work; MinIO itself
+continues running. Put a TLS reverse proxy in front of the web, API, docs, and object-storage URLs configured in `.env.production`.
+
+For local dependency logs and cleanup:
+
+```bash
+docker compose -f docker-compose-dev.yml logs -f
+docker compose -f docker-compose-dev.yml down
+```
+
+`docker compose -f docker-compose-dev.yml down` stops containers but preserves the local database and
+object-storage volumes. Use `docker compose -f docker-compose-dev.yml down -v` only when you intentionally
 want to erase local Parcelis data and start over.
 
 ## UI components
@@ -174,7 +176,7 @@ For Docker Compose, host ports are configured with `WEB_PORT`, `API_PORT`, `POST
 `PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
 
 ```bash
-WEB_PORT=43200 API_PORT=43202 DOCS_PORT=43201 POSTGRES_PORT=43203 PGADMIN_PORT=43204 MINIO_API_PORT=43205 MINIO_CONSOLE_PORT=43206 docker compose up
+WEB_PORT=43200 API_PORT=43202 DOCS_PORT=43201 POSTGRES_PORT=43203 PGADMIN_PORT=43204 MINIO_API_PORT=43205 MINIO_CONSOLE_PORT=43206 docker compose -f docker-compose-dev.yml up
 ```
 
 The Compose services retain their standard internal ports, but map to the

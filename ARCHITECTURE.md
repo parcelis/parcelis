@@ -136,12 +136,12 @@ Update the applicable user guide and generated API reference whenever a user-fac
 
 ## Local development
 
-Docker Compose provides PostgreSQL, pgAdmin, MinIO, and the MinIO initialization job. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets.
+`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, MinIO, and the MinIO initialization job for host-based development. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` builds the deployable web, API, documentation, database, and object-storage services.
 
 ```bash
 pnpm install
 cp .env.example .env
-docker compose up postgres pgadmin minio minio-init -d
+docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
