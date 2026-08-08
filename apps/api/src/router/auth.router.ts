@@ -1,5 +1,6 @@
 import { authLoginInputSchema, authRegisterInputSchema } from "@parcelis/schemas";
 import { TRPCError } from "@trpc/server";
+import { getRolePermissions } from "../modules/permissions";
 import {
   clearSessionCookie,
   createSessionToken,
@@ -84,14 +85,7 @@ export const authRouter = router({
   }),
 
   me: protectedProcedure.query(async ({ ctx }) => {
-    const role = ctx.user.role as
-      | "administrator"
-      | "property_manager"
-      | "lease_manager"
-      | "maintenance"
-      | "property_owner"
-      | "resident_manager";
-    const permission = await ctx.prisma.rolePermission.findUnique({ where: { role } });
-    return { user: ctx.user, propertyAccess: permission?.propertyAccess ?? "none" };
+    const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
+    return { user: ctx.user, permissions };
   }),
 });

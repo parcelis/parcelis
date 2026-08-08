@@ -66,7 +66,7 @@ import {
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { NotesDrawer } from "../../components/notes-drawer";
-import { hasPropertyAccess } from "../../components/property-access";
+import { hasPermission } from "../../components/property-access";
 import { deletePropertyImage, uploadPropertyImage } from "../../components/property-image-upload";
 import { useShortcut } from "../../components/shortcut-provider";
 import { Sidebar } from "../../components/sidebar";
@@ -158,8 +158,10 @@ function getUnitRows(property: PropertyListItem) {
 type UnitRow = ReturnType<typeof getUnitRows>[number];
 
 function PropertyActionsMenu({
+  canArchive,
   canDelete,
   canEdit,
+  canManageNotes,
   onArchive,
   onDelete,
   onEdit,
@@ -167,8 +169,10 @@ function PropertyActionsMenu({
   onReactivate,
   property,
 }: {
+  canArchive: boolean;
   canDelete: boolean;
   canEdit: boolean;
+  canManageNotes: boolean;
   onArchive: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -197,38 +201,35 @@ function PropertyActionsMenu({
           </Link>
         </DropdownMenuItem>
         {canEdit ? (
-          <>
-            <DropdownMenuItem onSelect={onEdit}>
-              <Pencil className="h-4 w-4 text-parcelis-green" />
-              Edit
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil className="h-4 w-4 text-parcelis-green" />
+            Edit
+          </DropdownMenuItem>
+        ) : null}
+        {canManageNotes ? (
+          <DropdownMenuItem onSelect={onNotes}>
+            <StickyNote className="h-4 w-4 text-parcelis-green" />
+            Add Notes
+          </DropdownMenuItem>
+        ) : null}
+        {canArchive ? (
+          isArchived ? (
+            <DropdownMenuItem onSelect={onReactivate}>
+              <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
+              Unarchive
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onNotes}>
-              <StickyNote className="h-4 w-4 text-parcelis-green" />
-              Add Notes
+          ) : (
+            <DropdownMenuItem onSelect={onArchive}>
+              <Archive className="h-4 w-4 text-parcelis-green" />
+              Archive
             </DropdownMenuItem>
-          </>
+          )
         ) : null}
         {canDelete ? (
-          <>
-            {isArchived ? (
-              <DropdownMenuItem onSelect={onReactivate}>
-                <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
-                Unarchive
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onSelect={onArchive}>
-                <Archive className="h-4 w-4 text-parcelis-green" />
-                Archive
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
-              onSelect={onDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </>
+          <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -236,16 +237,22 @@ function PropertyActionsMenu({
 }
 
 function UnitActionsMenu({
+  canArchive,
   canDelete,
   canEdit,
+  canManageNotes,
+  onArchive,
   onDelete,
   onEdit,
   onNotes,
   property,
   unit,
 }: {
+  canArchive: boolean;
   canDelete: boolean;
   canEdit: boolean;
+  canManageNotes: boolean;
+  onArchive: () => void;
   onDelete: () => void;
   onEdit: () => void;
   onNotes: () => void;
@@ -254,7 +261,7 @@ function UnitActionsMenu({
 }) {
   const unitHref = unit.id ? `/properties/${property.id}/units/${unit.id}` : null;
 
-  if (!unitHref && !canEdit && !canDelete) {
+  if (!unitHref && !canArchive && !canEdit && !canDelete && !canManageNotes) {
     return null;
   }
 
@@ -284,32 +291,32 @@ function UnitActionsMenu({
           </DropdownMenuItem>
         )}
         {canEdit ? (
-          <>
-            <DropdownMenuItem disabled={!unit.id} onSelect={onEdit}>
-              <Pencil className="h-4 w-4 text-parcelis-green" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onNotes}>
-              <StickyNote className="h-4 w-4 text-parcelis-green" />
-              Add Notes
-            </DropdownMenuItem>
-          </>
+          <DropdownMenuItem disabled={!unit.id} onSelect={onEdit}>
+            <Pencil className="h-4 w-4 text-parcelis-green" />
+            Edit
+          </DropdownMenuItem>
+        ) : null}
+        {canManageNotes ? (
+          <DropdownMenuItem onSelect={onNotes}>
+            <StickyNote className="h-4 w-4 text-parcelis-green" />
+            Add Notes
+          </DropdownMenuItem>
+        ) : null}
+        {canArchive ? (
+          <DropdownMenuItem disabled={!unit.id} onSelect={onArchive}>
+            <Archive className="h-4 w-4 text-parcelis-green" />
+            Archive
+          </DropdownMenuItem>
         ) : null}
         {canDelete ? (
-          <>
-            <DropdownMenuItem>
-              <Archive className="h-4 w-4 text-parcelis-green" />
-              Archive
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
-              disabled={!unit.id}
-              onSelect={onDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </>
+          <DropdownMenuItem
+            className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
+            disabled={!unit.id}
+            onSelect={onDelete}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -326,8 +333,15 @@ export default function PropertiesPage() {
     queryKey: queryKeys.auth.me,
     queryFn: () => apiClient.auth.me.query(),
   });
-  const canEditProperties = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "edit");
-  const canDeleteProperties = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "delete");
+  const canCreateProperties = hasPermission(currentUserQuery.data?.permissions, "properties", "create");
+  const canEditProperties = hasPermission(currentUserQuery.data?.permissions, "properties", "edit");
+  const canArchiveProperties = hasPermission(currentUserQuery.data?.permissions, "properties", "archive");
+  const canDeleteProperties = hasPermission(currentUserQuery.data?.permissions, "properties", "delete");
+  const canEditUnits = hasPermission(currentUserQuery.data?.permissions, "units", "edit");
+  const canArchiveUnits = hasPermission(currentUserQuery.data?.permissions, "units", "archive");
+  const canDeleteUnits = hasPermission(currentUserQuery.data?.permissions, "units", "delete");
+  const canCreatePropertyNotes = hasPermission(currentUserQuery.data?.permissions, "property_notes", "create");
+  const canCreateUnitNotes = hasPermission(currentUserQuery.data?.permissions, "unit_notes", "create");
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
       const property = await apiClient.properties.create.mutate(input);
@@ -421,6 +435,16 @@ export default function PropertiesPage() {
       ]);
     },
   });
+  const archiveUnit = useMutation({
+    mutationFn: ({ unitId }: { propertyId: number; unitId: number }) => apiClient.units.archive.mutate({ id: unitId }),
+    onSuccess: async (_unit, { propertyId, unitId }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+        queryClient.invalidateQueries({ queryKey: ["units", "byId", unitId] }),
+      ]);
+    },
+  });
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -439,7 +463,10 @@ export default function PropertiesPage() {
     unitId: number;
     unitLabel: string;
   } | null>(null);
-  const [notesPropertyId, setNotesPropertyId] = React.useState<number | null>(null);
+  const [notesTarget, setNotesTarget] = React.useState<{
+    subject: { propertyId: number } | { unitId: number };
+    label: string;
+  } | null>(null);
   const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   useShortcut("/", () => searchInputRef.current?.focus(), {
@@ -450,7 +477,6 @@ export default function PropertiesPage() {
   const editingProperty = properties.find((property) => property.id === editingPropertyId) ?? null;
   const archivePropertyTarget = properties.find((property) => property.id === archivePropertyId) ?? null;
   const deletePropertyTarget = properties.find((property) => property.id === deletePropertyId) ?? null;
-  const notesPropertyTarget = properties.find((property) => property.id === notesPropertyId) ?? null;
   const deleteUnitProperty = properties.find((property) => property.id === deleteUnitTarget?.propertyId) ?? null;
   const filteredProperties = properties.filter((property) => {
     const query = search.toLowerCase();
@@ -543,7 +569,11 @@ export default function PropertiesPage() {
   }
 
   function openNotes(property: PropertyListItem) {
-    setNotesPropertyId(property.id);
+    setNotesTarget({ subject: { propertyId: property.id }, label: property.name });
+  }
+
+  function openUnitNotes(unit: UnitRow) {
+    if (unit.id) setNotesTarget({ subject: { unitId: unit.id }, label: unit.unitLabel });
   }
 
   return (
@@ -691,10 +721,10 @@ export default function PropertiesPage() {
         </AlertDialogContent>
       </AlertDialog>
       <NotesDrawer
-        onOpenChange={(open) => !open && setNotesPropertyId(null)}
-        open={Boolean(notesPropertyTarget)}
-        subject={notesPropertyTarget ? { propertyId: notesPropertyTarget.id } : { propertyId: 0 }}
-        subjectLabel={notesPropertyTarget?.name ?? "Property"}
+        onOpenChange={(open) => !open && setNotesTarget(null)}
+        open={Boolean(notesTarget)}
+        subject={notesTarget?.subject ?? { propertyId: 0 }}
+        subjectLabel={notesTarget?.label ?? "Notes"}
       />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
@@ -707,7 +737,7 @@ export default function PropertiesPage() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          {canEditProperties ? (
+          {canCreateProperties ? (
             <Button className="min-w-40" onClick={() => setIsFormOpen(true)}>
               <Plus className="h-4 w-4" />
               Property
@@ -1030,8 +1060,10 @@ export default function PropertiesPage() {
                             </TableCell>
                             <TableCell className="px-5 py-4 text-right">
                               <PropertyActionsMenu
+                                canArchive={canArchiveProperties}
                                 canDelete={canDeleteProperties}
                                 canEdit={canEditProperties}
+                                canManageNotes={canCreatePropertyNotes}
                                 onArchive={() => setArchivePropertyId(property.id)}
                                 onDelete={() => setDeletePropertyId(property.id)}
                                 onEdit={() => openEditProperty(property)}
@@ -1123,8 +1155,15 @@ export default function PropertiesPage() {
                                   </TableCell>
                                   <TableCell className="px-5 py-3 text-right">
                                     <UnitActionsMenu
-                                      canDelete={canDeleteProperties}
-                                      canEdit={canEditProperties}
+                                      canArchive={canArchiveUnits}
+                                      canDelete={canDeleteUnits}
+                                      canEdit={canEditUnits}
+                                      canManageNotes={canCreateUnitNotes}
+                                      onArchive={() => {
+                                        if (unit.id && !archiveUnit.isPending) {
+                                          archiveUnit.mutate({ propertyId: property.id, unitId: unit.id });
+                                        }
+                                      }}
                                       onDelete={() => {
                                         if (unit.id) {
                                           setDeleteUnitTarget({
@@ -1139,7 +1178,7 @@ export default function PropertiesPage() {
                                           openEditProperty(property, unit.id);
                                         }
                                       }}
-                                      onNotes={() => openNotes(property)}
+                                      onNotes={() => openUnitNotes(unit)}
                                       property={property}
                                       unit={unit}
                                     />

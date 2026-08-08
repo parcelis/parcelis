@@ -74,12 +74,15 @@ enum UserAccountStatus {
   disabled
 }
 
-enum PropertyAccessLevel {
-  none
-  view
-  edit
-  delete
-  all
+enum PermissionResource {
+  properties
+  units
+  tenants
+  maintenance
+  property_notes
+  unit_notes
+  tenant_notes
+  maintenance_notes
 }
 
 model User {
@@ -96,20 +99,27 @@ model User {
 }
 
 model RolePermission {
-  role           UserRole            @id
-  propertyAccess PropertyAccessLevel @default(none)
-  updatedAt      DateTime            @updatedAt
+  role       UserRole
+  resource   PermissionResource
+  canView    Boolean            @default(false)
+  canCreate  Boolean            @default(false)
+  canEdit    Boolean            @default(false)
+  canArchive Boolean            @default(false)
+  canDelete  Boolean            @default(false)
+  updatedAt  DateTime           @updatedAt
+
+  @@id([role, resource])
 }
 
 model Session {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  tokenHash String    @unique
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
-  lastSeenAt DateTime @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -169,6 +179,7 @@ model Unit {
   amenities          UnitAmenity[]
   notes              Note[]
   maintenanceTickets MaintenanceTicketUnit[]
+  archivedAt         DateTime?
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
 

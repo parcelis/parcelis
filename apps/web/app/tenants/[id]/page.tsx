@@ -52,6 +52,7 @@ import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
+import { hasPermission } from "../../../components/property-access";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -104,6 +105,14 @@ export default function TenantDetailPage() {
     phone: "",
   });
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditTenant = hasPermission(currentUserQuery.data?.permissions, "tenants", "edit");
+  const canArchiveTenant = hasPermission(currentUserQuery.data?.permissions, "tenants", "archive");
+  const canDeleteTenant = hasPermission(currentUserQuery.data?.permissions, "tenants", "delete");
+  const canCreateNotes = hasPermission(currentUserQuery.data?.permissions, "tenant_notes", "create");
   const tenantQuery = useQuery({
     queryKey: queryKeys.tenants.byId(tenantId),
     queryFn: () => apiClient.tenants.byId.query({ id: tenantId }),
@@ -361,66 +370,74 @@ export default function TenantDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <EntityLifecycleControls
-              archiveDescription={
-                <>
-                  This will mark {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} as archived while
-                  preserving their lease history.
-                </>
-              }
-              cancelDeleteLabel="Keep Tenant"
-              deleteDescription={
-                <>
-                  This permanently deletes {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} and their
-                  lease history. This cannot be undone.
-                </>
-              }
-              entityLabel="tenant"
-              isArchived={tenant?.tenantStatus === "archived"}
-              isAvailable={Boolean(tenant)}
-              onArchive={() => apiClient.tenants.archive.mutate({ id: tenantId })}
-              onArchiveSuccess={async () => {
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
-                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
-                ]);
-                router.push("/tenants");
-              }}
-              onDelete={() => apiClient.tenants.delete.mutate({ id: tenantId })}
-              onDeleteSuccess={async () => {
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
-                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
-                ]);
-                router.push("/tenants");
-              }}
-              onReactivate={() => apiClient.tenants.reactivate.mutate({ id: tenantId })}
-              onReactivateSuccess={async () => {
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
-                  queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
-                ]);
-              }}
-            />
-            <Button
-              aria-label="Add notes"
-              className="min-w-10 sm:min-w-40"
-              disabled={!tenant}
-              onClick={() => setIsNotesDrawerOpen(true)}
-              variant="secondary"
-            >
-              <StickyNotePlusIcon />
-              <span className="hidden sm:inline">Add Notes</span>
-            </Button>
-            <Button
-              aria-label="Edit tenant"
-              className="min-w-10 sm:min-w-40"
-              disabled={!tenant}
-              onClick={openTenantDrawer}
-            >
-              <PenLine className="h-4 w-4" />
-              <span className="hidden sm:inline">Edit tenant</span>
-            </Button>
+            {canArchiveTenant || canDeleteTenant ? (
+              <EntityLifecycleControls
+                archiveDescription={
+                  <>
+                    This will mark {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} as archived while
+                    preserving their lease history.
+                  </>
+                }
+                canArchive={canArchiveTenant}
+                canDelete={canDeleteTenant}
+                cancelDeleteLabel="Keep Tenant"
+                deleteDescription={
+                  <>
+                    This permanently deletes {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} and
+                    their lease history. This cannot be undone.
+                  </>
+                }
+                entityLabel="tenant"
+                isArchived={tenant?.tenantStatus === "archived"}
+                isAvailable={Boolean(tenant)}
+                onArchive={() => apiClient.tenants.archive.mutate({ id: tenantId })}
+                onArchiveSuccess={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                  ]);
+                  router.push("/tenants");
+                }}
+                onDelete={() => apiClient.tenants.delete.mutate({ id: tenantId })}
+                onDeleteSuccess={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                  ]);
+                  router.push("/tenants");
+                }}
+                onReactivate={() => apiClient.tenants.reactivate.mutate({ id: tenantId })}
+                onReactivateSuccess={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+                  ]);
+                }}
+              />
+            ) : null}
+            {canCreateNotes ? (
+              <Button
+                aria-label="Add notes"
+                className="min-w-10 sm:min-w-40"
+                disabled={!tenant}
+                onClick={() => setIsNotesDrawerOpen(true)}
+                variant="secondary"
+              >
+                <StickyNotePlusIcon />
+                <span className="hidden sm:inline">Add Notes</span>
+              </Button>
+            ) : null}
+            {canEditTenant ? (
+              <Button
+                aria-label="Edit tenant"
+                className="min-w-10 sm:min-w-40"
+                disabled={!tenant}
+                onClick={openTenantDrawer}
+              >
+                <PenLine className="h-4 w-4" />
+                <span className="hidden sm:inline">Edit tenant</span>
+              </Button>
+            ) : null}
           </div>
         </header>
 

@@ -1,16 +1,9 @@
-export type PropertyAccess = "none" | "view" | "edit" | "delete" | "all";
+import type { PermissionAction, PermissionFlags, PermissionResource } from "@parcelis/schemas";
 
-const propertyAccessRank: Record<PropertyAccess, number> = {
-  none: 0,
-  view: 1,
-  edit: 2,
-  delete: 3,
-  all: 4,
-};
-
-export function hasPropertyAccess(
-  currentAccess: PropertyAccess | undefined,
-  requiredAccess: PropertyAccess,
+export function hasPermission(
+  permissions: Partial<Record<PermissionResource, PermissionFlags>> | undefined,
+  resource: PermissionResource,
+  action: PermissionAction,
 ) {
-  return propertyAccessRank[currentAccess ?? "none"] >= propertyAccessRank[requiredAccess];
+  return permissions?.[resource]?.[action] ?? false;
 }

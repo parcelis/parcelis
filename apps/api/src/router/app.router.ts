@@ -33,9 +33,10 @@ import {
   updateNoteInputSchema,
   updatePropertyInputSchema,
   updateUserInputSchema,
+  userRoleValues,
   userAccountStatusInputSchema,
   deleteUserInputSchema,
-  updateRolePermissionInputSchema,
+  updateRolePermissionsInputSchema,
 } from "@parcelis/schemas";
 import { LeaseStatus, Prisma, UnitType } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
@@ -52,7 +53,12 @@ import {
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
-import { requireAdministrator, requirePropertyAccess } from "../modules/permissions";
+import {
+  getRolePermissions,
+  requireAdministrator,
+  requireNotePermission,
+  requirePermission,
+} from "../modules/permissions";
 import { protectedProcedure as publicProcedure, router } from "./trpc";
 
 const propertySelect = {
@@ -85,6 +91,21 @@ function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
 
 function withPropertyNotes<T extends { legacyNotes: string | null }>(property: T) {
   return { ...property, notes: property.legacyNotes };
+}
+
+function withPropertyNotesAccess<T extends { legacyNotes: string | null; legacyNoteId: number | null }>(
+  property: T,
+  canViewNotes: boolean,
+) {
+  if (canViewNotes) return withPropertyNotes(property);
+  return { ...property, legacyNotes: null, legacyNoteId: null, notes: null };
+}
+
+function withTenantNotesAccess<T extends { legacyNotes: string | null; legacyNoteId: number | null }>(
+  tenant: T,
+  canViewNotes: boolean,
+) {
+  return canViewNotes ? tenant : { ...tenant, legacyNotes: null, legacyNoteId: null };
 }
 
 async function synchronizePropertyLegacyNote(
@@ -160,6 +181,41 @@ function getUnitUpdateData(unitDetails: UnitDetailsInput) {
       })),
     },
   };
+}
+
+function sameIds(left: number[], right: number[]) {
+  return [...left].sort((a, b) => a - b).join(",") === [...right].sort((a, b) => a - b).join(",");
+}
+
+function unitDetailsChanged(
+  existing: {
+    name: string;
+    marketRateCents: number;
+    unitType: UnitType;
+    bedrooms: number | null;
+    bathrooms: unknown;
+    squareFeet: number | null;
+    amenities: Array<{ option: { id: number } }>;
+    utilities: Array<{ option: { id: number } }>;
+  },
+  submitted: UnitDetailsInput,
+) {
+  return (
+    existing.name !== submitted.name ||
+    existing.marketRateCents !== submitted.marketRateCents ||
+    existing.unitType !== formatUnitType(submitted.unitType) ||
+    existing.bedrooms !== (submitted.bedrooms ?? null) ||
+    (existing.bathrooms === null ? null : Number(existing.bathrooms)) !== (submitted.bathrooms ?? null) ||
+    existing.squareFeet !== (submitted.squareFeet ?? null) ||
+    !sameIds(
+      existing.amenities.map(({ option }) => option.id),
+      submitted.amenityTypeIds,
+    ) ||
+    !sameIds(
+      existing.utilities.map(({ option }) => option.id),
+      submitted.utilityTypeIds,
+    )
+  );
 }
 
 function serializeUnit<
@@ -283,20 +339,43 @@ export const appRouter = router({
     }),
   }),
   roles: router({
-    list: publicProcedure.query(({ ctx }) => {
+    list: publicProcedure.query(async ({ ctx }) => {
       requireAdministrator(ctx.user.role);
-      return ctx.prisma.rolePermission.findMany({ orderBy: { role: "asc" } });
+      return Promise.all(
+        userRoleValues.map(async (role) => ({
+          role,
+          permissions: await getRolePermissions(ctx.prisma, role),
+        })),
+      );
     }),
-    updatePropertyAccess: publicProcedure.input(updateRolePermissionInputSchema).mutation(({ ctx, input }) => {
+    updatePermissions: publicProcedure.input(updateRolePermissionsInputSchema).mutation(({ ctx, input }) => {
       requireAdministrator(ctx.user.role);
-      if (input.role === "administrator" && input.propertyAccess !== "all") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Administrators always have full Properties access." });
+      if (input.role === "administrator") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Administrator permissions cannot be changed." });
       }
-      return ctx.prisma.rolePermission.upsert({
-        where: { role: input.role },
-        create: input,
-        update: { propertyAccess: input.propertyAccess },
-      });
+      return ctx.prisma.$transaction(
+        input.permissions.map(({ resource, view, create, edit, archive, delete: canDelete }) =>
+          ctx.prisma.rolePermission.upsert({
+            where: { role_resource: { role: input.role, resource } },
+            create: {
+              role: input.role,
+              resource,
+              canView: view,
+              canCreate: create,
+              canEdit: edit,
+              canArchive: resource.endsWith("_notes") ? false : archive,
+              canDelete,
+            },
+            update: {
+              canView: view,
+              canCreate: create,
+              canEdit: edit,
+              canArchive: resource.endsWith("_notes") ? false : archive,
+              canDelete,
+            },
+          }),
+        ),
+      );
     }),
   }),
   /** Reports API health and the public object-storage configuration. */
@@ -309,7 +388,8 @@ export const appRouter = router({
   properties: router({
     /** Lists up to 50 properties with units, lease metrics, and maintenance metrics. */
     list: publicProcedure.query(async ({ ctx }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "view");
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
       const properties = await ctx.prisma.property.findMany({
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
@@ -335,6 +415,7 @@ export const appRouter = router({
             },
           },
           units: {
+            where: { archivedAt: null },
             orderBy: { createdAt: "asc" },
             include: {
               amenities: {
@@ -353,8 +434,9 @@ export const appRouter = router({
       return Promise.all(
         properties.map(async (property) => ({
           ...withOperatingMetrics({
-            ...withPropertyNotes(property),
-            units: property.units.map(serializeUnit),
+            ...withPropertyNotesAccess(property, permissions.property_notes.view),
+            units: permissions.units.view ? property.units.map(serializeUnit) : [],
+            maintenanceTickets: permissions.maintenance.view ? property.maintenanceTickets : [],
           }),
           imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
         })),
@@ -362,7 +444,8 @@ export const appRouter = router({
     }),
     /** Returns one property with its units, leases, and maintenance tickets. */
     byId: publicProcedure.input(propertyByIdInputSchema).query(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "view");
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
       const property = await ctx.prisma.property.findUnique({
         where: { id: input.id },
         include: {
@@ -377,6 +460,7 @@ export const appRouter = router({
             orderBy: { openedOn: "desc" },
           },
           units: {
+            where: { archivedAt: null },
             orderBy: { createdAt: "asc" },
             include: {
               amenities: {
@@ -392,8 +476,9 @@ export const appRouter = router({
 
       return property
         ? {
-            ...withPropertyNotes(property),
-            units: property.units.map(serializeUnit),
+            ...withPropertyNotesAccess(property, permissions.property_notes.view),
+            units: permissions.units.view ? property.units.map(serializeUnit) : [],
+            maintenanceTickets: permissions.maintenance.view ? property.maintenanceTickets : [],
             unitStatuses,
             imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
           }
@@ -401,7 +486,7 @@ export const appRouter = router({
     }),
     /** Creates a short-lived URL for uploading a property image to MinIO. */
     createImageUploadUrl: publicProcedure.input(propertyImageUploadInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "edit");
       await ctx.prisma.property.findUniqueOrThrow({
         where: { id: input.id },
       });
@@ -411,7 +496,7 @@ export const appRouter = router({
     completeImageUpload: publicProcedure
       .input(propertyImageUploadCompleteInputSchema)
       .mutation(async ({ ctx, input }) => {
-        await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+        await requirePermission(ctx.prisma, ctx.user.role, "properties", "edit");
         const currentProperty = await ctx.prisma.property.findUniqueOrThrow({
           where: { id: input.id },
           select: { imageObjectKey: true },
@@ -431,7 +516,7 @@ export const appRouter = router({
       }),
     /** Removes the current image reference and its MinIO object. */
     deleteImage: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "edit");
       const currentProperty = await ctx.prisma.property.findUniqueOrThrow({
         where: { id: input.id },
         select: { imageObjectKey: true },
@@ -450,7 +535,13 @@ export const appRouter = router({
     }),
     /** Creates a property and its initial units. */
     create: publicProcedure.input(createPropertyInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "create");
+      if (input.units.length) {
+        await requirePermission(ctx.prisma, ctx.user.role, "units", "create");
+      }
+      if (input.notes?.trim()) {
+        await requirePermission(ctx.prisma, ctx.user.role, "property_notes", "create");
+      }
       return ctx.prisma.$transaction(async (tx) => {
         const initialProperty = await tx.property.create({
           select: propertySelect,
@@ -494,7 +585,34 @@ export const appRouter = router({
     }),
     /** Updates a property and synchronizes its units. */
     update: publicProcedure.input(updatePropertyInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "edit");
+      if (input.notes !== undefined) {
+        await requireNotePermission(ctx.prisma, ctx.user.role, { propertyId: input.id }, "edit");
+      }
+      const existingUnits = await ctx.prisma.unit.findMany({
+        where: { propertyId: input.id, archivedAt: null },
+        include: {
+          amenities: { select: { option: { select: { id: true } } } },
+          utilities: { select: { option: { select: { id: true } } } },
+        },
+      });
+      const existingUnitsById = new Map(existingUnits.map((unit) => [unit.id, unit]));
+      const submittedUnitIds = new Set(input.units.flatMap((unit) => (unit.id ? [unit.id] : [])));
+
+      if (input.units.some((unit) => !unit.id || !existingUnitsById.has(unit.id))) {
+        await requirePermission(ctx.prisma, ctx.user.role, "units", "create");
+      }
+      if (existingUnits.some((unit) => !submittedUnitIds.has(unit.id))) {
+        await requirePermission(ctx.prisma, ctx.user.role, "units", "delete");
+      }
+      if (
+        input.units.some((unit) => {
+          const existingUnit = unit.id ? existingUnitsById.get(unit.id) : undefined;
+          return existingUnit ? unitDetailsChanged(existingUnit, unit) : false;
+        })
+      ) {
+        await requirePermission(ctx.prisma, ctx.user.role, "units", "edit");
+      }
       const property = await ctx.prisma.$transaction(async (tx) => {
         const currentProperty = await tx.property.findUniqueOrThrow({
           where: { id: input.id },
@@ -524,11 +642,11 @@ export const appRouter = router({
             unitCount: input.unitCount,
           },
         });
-        const existingUnits = await tx.unit.findMany({
-          where: { propertyId: input.id },
+        const transactionUnits = await tx.unit.findMany({
+          where: { propertyId: input.id, archivedAt: null },
           select: { id: true },
         });
-        const existingUnitIds = new Set(existingUnits.map((unit) => unit.id));
+        const existingUnitIds = new Set(transactionUnits.map((unit) => unit.id));
         const submittedExistingUnitIds = input.units
           .map((unit) => unit.id)
           .filter((unitId): unitId is number => Boolean(unitId && existingUnitIds.has(unitId)));
@@ -566,7 +684,7 @@ export const appRouter = router({
     }),
     /** Marks a property as archived. */
     archive: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "archive");
       return ctx.prisma.property
         .update({
           where: { id: input.id },
@@ -577,7 +695,7 @@ export const appRouter = router({
     }),
     /** Marks a property as inactive. */
     inactivate: publicProcedure.input(propertyStatusInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "archive");
       return ctx.prisma.property
         .update({
           where: { id: input.id },
@@ -588,7 +706,7 @@ export const appRouter = router({
     }),
     /** Restores an archived property to active status. */
     reactivate: publicProcedure.input(propertyStatusInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "archive");
       return ctx.prisma.property
         .update({
           where: { id: input.id },
@@ -599,7 +717,7 @@ export const appRouter = router({
     }),
     /** Permanently deletes a property and its related operational records. */
     delete: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "delete");
       const property = await ctx.prisma.property.findUniqueOrThrow({
         where: { id: input.id },
         select: propertySelect,
@@ -618,7 +736,7 @@ export const appRouter = router({
     }),
     /** Updates the notes stored on a property. */
     updateNotes: publicProcedure.input(propertyNotesInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      await requireNotePermission(ctx.prisma, ctx.user.role, { propertyId: input.id }, "edit");
       const property = await ctx.prisma.$transaction(async (tx) => {
         const currentProperty = await tx.property.findUniqueOrThrow({
           where: { id: input.id },
@@ -640,6 +758,8 @@ export const appRouter = router({
   tenants: router({
     /** Lists tenants with their most recent lease first. */
     list: publicProcedure.query(async ({ ctx }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "view");
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
       const tenants = await ctx.prisma.tenant.findMany({
         include: {
           emergencyContacts: {
@@ -658,7 +778,7 @@ export const appRouter = router({
 
       return Promise.all(
         tenants.map(async (tenant) => ({
-          ...tenant,
+          ...withTenantNotesAccess(tenant, permissions.tenant_notes.view),
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
           tenantStatus: getTenantStatus(tenant),
         })),
@@ -666,6 +786,8 @@ export const appRouter = router({
     }),
     /** Returns one tenant with lease history. */
     byId: publicProcedure.input(tenantByIdInputSchema).query(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "view");
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
       const tenant = await ctx.prisma.tenant.findUnique({
         where: { id: input.id },
         include: {
@@ -685,7 +807,7 @@ export const appRouter = router({
 
       return tenant
         ? {
-            ...tenant,
+            ...withTenantNotesAccess(tenant, permissions.tenant_notes.view),
             imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
             tenantStatus: getTenantStatus(tenant),
           }
@@ -693,6 +815,7 @@ export const appRouter = router({
     }),
     /** Creates a short-lived URL for uploading a tenant image to MinIO. */
     createImageUploadUrl: publicProcedure.input(tenantImageUploadInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "edit");
       await ctx.prisma.tenant.findUniqueOrThrow({ where: { id: input.id } });
       return createTenantImageUploadUrl(input.contentType, input.id);
     }),
@@ -700,6 +823,7 @@ export const appRouter = router({
     completeImageUpload: publicProcedure
       .input(tenantImageUploadCompleteInputSchema)
       .mutation(async ({ ctx, input }) => {
+        await requirePermission(ctx.prisma, ctx.user.role, "tenants", "edit");
         const currentTenant = await ctx.prisma.tenant.findUniqueOrThrow({
           where: { id: input.id },
           select: { imageObjectKey: true },
@@ -717,6 +841,7 @@ export const appRouter = router({
       }),
     /** Removes the current tenant image reference and its MinIO object. */
     deleteImage: publicProcedure.input(tenantByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "edit");
       const currentTenant = await ctx.prisma.tenant.findUniqueOrThrow({
         where: { id: input.id },
         select: { imageObjectKey: true },
@@ -733,21 +858,24 @@ export const appRouter = router({
       return tenant;
     }),
     /** Archives a tenant without removing their lease history. */
-    archive: publicProcedure.input(tenantByIdInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.tenant.update({
+    archive: publicProcedure.input(tenantByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "archive");
+      return ctx.prisma.tenant.update({
         where: { id: input.id },
         data: { archivedAt: new Date() },
-      }),
-    ),
+      });
+    }),
     /** Restores an archived tenant to their lease-derived status. */
-    reactivate: publicProcedure.input(tenantByIdInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.tenant.update({
+    reactivate: publicProcedure.input(tenantByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "archive");
+      return ctx.prisma.tenant.update({
         where: { id: input.id },
         data: { archivedAt: null },
-      }),
-    ),
+      });
+    }),
     /** Updates tenant contact and account details. */
-    create: publicProcedure.input(createTenantInputSchema).mutation(({ ctx, input }) => {
+    create: publicProcedure.input(createTenantInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "create");
       const emergencyContact = getEmergencyContact(input);
 
       return ctx.prisma.tenant.create({
@@ -763,7 +891,8 @@ export const appRouter = router({
       });
     }),
     /** Updates tenant contact and account details. */
-    update: publicProcedure.input(updateTenantInputSchema).mutation(({ ctx, input }) => {
+    update: publicProcedure.input(updateTenantInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "edit");
       const emergencyContact = getEmergencyContact(input);
 
       return ctx.prisma.tenant.update({
@@ -783,18 +912,22 @@ export const appRouter = router({
       });
     }),
     /** Updates an emergency contact linked to a tenant. */
-    updateEmergencyContact: publicProcedure.input(updateEmergencyContactInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.emergencyContact.update({
-        where: { id: input.id },
-        data: {
-          firstName: input.firstName,
-          lastName: input.lastName || null,
-          phone: input.phone || null,
-        },
+    updateEmergencyContact: publicProcedure
+      .input(updateEmergencyContactInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        await requirePermission(ctx.prisma, ctx.user.role, "tenants", "edit");
+        return ctx.prisma.emergencyContact.update({
+          where: { id: input.id },
+          data: {
+            firstName: input.firstName,
+            lastName: input.lastName || null,
+            phone: input.phone || null,
+          },
+        });
       }),
-    ),
     /** Updates the internal notes attached to a tenant. */
     updateNotes: publicProcedure.input(tenantNotesInputSchema).mutation(async ({ ctx, input }) => {
+      await requireNotePermission(ctx.prisma, ctx.user.role, { tenantId: input.id }, "edit");
       return ctx.prisma.$transaction(async (tx) => {
         const currentTenant = await tx.tenant.findUniqueOrThrow({
           where: { id: input.id },
@@ -830,6 +963,7 @@ export const appRouter = router({
     }),
     /** Permanently deletes a tenant and their lease history. */
     delete: publicProcedure.input(tenantByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "tenants", "delete");
       await ctx.prisma.$transaction([
         ctx.prisma.lease.deleteMany({ where: { tenantId: input.id } }),
         ctx.prisma.tenant.delete({ where: { id: input.id } }),
@@ -837,38 +971,43 @@ export const appRouter = router({
     }),
   }),
   tags: router({
-    list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.tag.findMany({
+    list: publicProcedure.query(async ({ ctx }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "view");
+      return ctx.prisma.tag.findMany({
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
-      }),
-    ),
-    create: publicProcedure.input(createTagInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.tag.create({
+      });
+    }),
+    create: publicProcedure.input(createTagInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "properties", "edit");
+      return ctx.prisma.tag.create({
         data: { label: input.label },
         select: { id: true, label: true, sortOrder: true },
-      }),
-    ),
+      });
+    }),
   }),
   maintenanceCategories: router({
-    list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.maintenanceCategory.findMany({
+    list: publicProcedure.query(async ({ ctx }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "view");
+      return ctx.prisma.maintenanceCategory.findMany({
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
-      }),
-    ),
+      });
+    }),
   }),
   landlords: router({
-    list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.landlord.findMany({
+    list: publicProcedure.query(async ({ ctx }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "view");
+      return ctx.prisma.landlord.findMany({
         orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
         select: { id: true, firstName: true, lastName: true, email: true },
-      }),
-    ),
+      });
+    }),
   }),
   maintenance: router({
-    list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.maintenanceTicket.findMany({
+    list: publicProcedure.query(async ({ ctx }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "view");
+      return ctx.prisma.maintenanceTicket.findMany({
         where: { archivedAt: null },
         orderBy: [{ openedOn: "desc" }, { id: "desc" }],
         include: {
@@ -876,9 +1015,10 @@ export const appRouter = router({
           property: { select: { id: true, name: true } },
           units: { include: { unit: { select: { id: true, name: true } } } },
         },
-      }),
-    ),
+      });
+    }),
     byId: publicProcedure.input(maintenanceTicketByIdInputSchema).query(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "view");
       const ticket = await ctx.prisma.maintenanceTicket.findUnique({
         where: { id: input.id },
         include: {
@@ -903,25 +1043,31 @@ export const appRouter = router({
       };
     }),
     createImageUploadUrl: publicProcedure.input(maintenanceImageUploadInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "edit");
       await ctx.prisma.maintenanceTicket.findUniqueOrThrow({ where: { id: input.id }, select: { id: true } });
       return createMaintenanceImageUploadUrl(input.contentType, input.id);
     }),
-    completeImageUpload: publicProcedure.input(maintenanceImageUploadCompleteInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.maintenanceAttachment.create({
-        data: {
-          ticketId: input.id,
-          objectKey: input.objectKey,
-          fileName: input.fileName,
-          contentType: input.contentType,
-        },
+    completeImageUpload: publicProcedure
+      .input(maintenanceImageUploadCompleteInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "edit");
+        return ctx.prisma.maintenanceAttachment.create({
+          data: {
+            ticketId: input.id,
+            objectKey: input.objectKey,
+            fileName: input.fileName,
+            contentType: input.contentType,
+          },
+        });
       }),
-    ),
     deleteImage: publicProcedure.input(maintenanceAttachmentByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "edit");
       const attachment = await ctx.prisma.maintenanceAttachment.delete({ where: { id: input.id } });
       await deleteMaintenanceImageObject(attachment.objectKey);
       return attachment;
     }),
     updateStatus: publicProcedure.input(updateMaintenanceTicketStatusInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "edit");
       const currentTicket = await ctx.prisma.maintenanceTicket.findUniqueOrThrow({
         where: { id: input.id },
         select: { status: true },
@@ -975,6 +1121,7 @@ export const appRouter = router({
       return ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { status: input.status } });
     }),
     update: publicProcedure.input(updateMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "edit");
       const priority = input.isUrgent ? "urgent" : input.priority;
       const units = await ctx.prisma.unit.findMany({
         where: { id: { in: input.unitIds }, propertyId: input.propertyId },
@@ -999,12 +1146,12 @@ export const appRouter = router({
         },
       });
     }),
-    archive: publicProcedure
-      .input(maintenanceTicketByIdInputSchema)
-      .mutation(({ ctx, input }) =>
-        ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { archivedAt: new Date() } }),
-      ),
+    archive: publicProcedure.input(maintenanceTicketByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "archive");
+      return ctx.prisma.maintenanceTicket.update({ where: { id: input.id }, data: { archivedAt: new Date() } });
+    }),
     delete: publicProcedure.input(maintenanceTicketByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "delete");
       const attachments = await ctx.prisma.maintenanceAttachment.findMany({
         where: { ticketId: input.id },
         select: { objectKey: true },
@@ -1014,6 +1161,7 @@ export const appRouter = router({
       return ticket;
     }),
     create: publicProcedure.input(createMaintenanceTicketInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "maintenance", "create");
       const priority = input.isUrgent ? "urgent" : input.priority;
       const units = await ctx.prisma.unit.findMany({
         where: { id: { in: input.unitIds }, propertyId: input.propertyId },
@@ -1061,6 +1209,7 @@ export const appRouter = router({
   unitOptions: router({
     /** Lists the available utility and amenity options for units. */
     list: publicProcedure.query(async ({ ctx }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "view");
       const [utilities, amenityTypes] = await Promise.all([
         ctx.prisma.utilityType.findMany({
           orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
@@ -1077,27 +1226,27 @@ export const appRouter = router({
   }),
   amenities: router({
     /** Lists the available amenity options. */
-    list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.amenityType.findMany({
+    list: publicProcedure.query(async ({ ctx }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "view");
+      return ctx.prisma.amenityType.findMany({
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
-      }),
-    ),
+      });
+    }),
     /** Updates an amenity option. */
-    update: publicProcedure.input(updateAmenityInputSchema).mutation(({ ctx, input }) =>
-      ctx.prisma.amenityType.update({
+    update: publicProcedure.input(updateAmenityInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "edit");
+      return ctx.prisma.amenityType.update({
         where: { id: input.id },
         data: { label: input.label, sortOrder: input.sortOrder },
         select: { id: true, label: true, sortOrder: true },
-      }),
-    ),
+      });
+    }),
   }),
   notes: router({
     /** Lists the notes attached to one property, unit, or tenant. */
     list: publicProcedure.input(noteListInputSchema).query(async ({ ctx, input }) => {
-      if ("propertyId" in input || "unitId" in input) {
-        await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
-      }
+      await requireNotePermission(ctx.prisma, ctx.user.role, input, "view");
       const { limit, ...subject } = input;
 
       return ctx.prisma.note.findMany({
@@ -1109,9 +1258,7 @@ export const appRouter = router({
     }),
     /** Adds an internal note to one property, unit, or tenant. */
     create: publicProcedure.input(createNoteInputSchema).mutation(async ({ ctx, input }) => {
-      if ("propertyId" in input || "unitId" in input) {
-        await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
-      }
+      await requireNotePermission(ctx.prisma, ctx.user.role, input, "create");
 
       return ctx.prisma.note.create({
         data: input,
@@ -1122,11 +1269,9 @@ export const appRouter = router({
     update: publicProcedure.input(updateNoteInputSchema).mutation(async ({ ctx, input }) => {
       const subject = await ctx.prisma.note.findUniqueOrThrow({
         where: { id: input.id },
-        select: { propertyId: true, unitId: true },
+        select: { propertyId: true, unitId: true, tenantId: true, maintenanceTicketId: true },
       });
-      if (subject.propertyId !== null || subject.unitId !== null) {
-        await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
-      }
+      await requireNotePermission(ctx.prisma, ctx.user.role, subject, "edit");
 
       return ctx.prisma.$transaction(async (tx) => {
         const { propertyId, tenantId, ...note } = await tx.note.update({
@@ -1161,11 +1306,9 @@ export const appRouter = router({
     delete: publicProcedure.input(deleteNoteInputSchema).mutation(async ({ ctx, input }) => {
       const subject = await ctx.prisma.note.findUniqueOrThrow({
         where: { id: input.id },
-        select: { propertyId: true, unitId: true },
+        select: { propertyId: true, unitId: true, tenantId: true, maintenanceTicketId: true },
       });
-      if (subject.propertyId !== null || subject.unitId !== null) {
-        await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
-      }
+      await requireNotePermission(ctx.prisma, ctx.user.role, subject, "delete");
 
       return ctx.prisma.$transaction(async (tx) => {
         const note = await tx.note.findUniqueOrThrow({
@@ -1197,9 +1340,12 @@ export const appRouter = router({
   units: router({
     /** Lists units, optionally filtered to a property. */
     list: publicProcedure.input(listUnitsInputSchema).query(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "view");
       const units = await ctx.prisma.unit.findMany({
-        where: input.propertyId ? { propertyId: input.propertyId } : undefined,
+        where: {
+          archivedAt: null,
+          ...(input.propertyId ? { propertyId: input.propertyId } : {}),
+        },
         orderBy: [{ propertyId: "asc" }, { createdAt: "asc" }],
         include: {
           amenities: {
@@ -1215,7 +1361,7 @@ export const appRouter = router({
     }),
     /** Returns a unit by its ID. */
     byId: publicProcedure.input(unitByIdInputSchema).query(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "view");
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "view");
       const unit = await ctx.prisma.unit.findUnique({
         where: { id: input.id },
         include: {
@@ -1232,7 +1378,7 @@ export const appRouter = router({
     }),
     /** Creates a unit for a property. */
     create: publicProcedure.input(createUnitInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "create");
       const { propertyId, ...unitDetails } = input;
 
       return ctx.prisma.unit
@@ -1251,7 +1397,7 @@ export const appRouter = router({
     }),
     /** Updates a unit by its ID. */
     update: publicProcedure.input(updateUnitInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "edit");
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "edit");
       const unit = await ctx.prisma.$transaction(async (tx) => {
         await tx.unitUtility.deleteMany({ where: { unitId: input.id } });
         await tx.unitAmenity.deleteMany({ where: { unitId: input.id } });
@@ -1272,9 +1418,19 @@ export const appRouter = router({
 
       return serializeUnit(unit);
     }),
+    /** Archives a unit without deleting its notes or operational history. */
+    archive: publicProcedure.input(unitByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "archive");
+      return ctx.prisma.unit.update({ where: { id: input.id }, data: { archivedAt: new Date() } });
+    }),
+    /** Restores an archived unit. */
+    reactivate: publicProcedure.input(unitByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "archive");
+      return ctx.prisma.unit.update({ where: { id: input.id }, data: { archivedAt: null } });
+    }),
     /** Deletes a unit by its ID. */
     delete: publicProcedure.input(unitByIdInputSchema).mutation(async ({ ctx, input }) => {
-      await requirePropertyAccess(ctx.prisma, ctx.user.role, "delete");
+      await requirePermission(ctx.prisma, ctx.user.role, "units", "delete");
       const unit = await ctx.prisma.unit.findUniqueOrThrow({
         where: { id: input.id },
         include: {

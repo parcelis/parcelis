@@ -40,7 +40,7 @@ import { apiClient, queryKeys } from "../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
 import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
-import { hasPropertyAccess } from "../../../components/property-access";
+import { hasPermission } from "../../../components/property-access";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { Sidebar } from "../../../components/sidebar";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
@@ -84,8 +84,10 @@ export default function PropertyDetailPage() {
     queryKey: queryKeys.auth.me,
     queryFn: () => apiClient.auth.me.query(),
   });
-  const canEditProperty = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "edit");
-  const canDeleteProperty = hasPropertyAccess(currentUserQuery.data?.propertyAccess, "delete");
+  const canEditProperty = hasPermission(currentUserQuery.data?.permissions, "properties", "edit");
+  const canArchiveProperty = hasPermission(currentUserQuery.data?.permissions, "properties", "archive");
+  const canDeleteProperty = hasPermission(currentUserQuery.data?.permissions, "properties", "delete");
+  const canCreateNotes = hasPermission(currentUserQuery.data?.permissions, "property_notes", "create");
   const updateProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: UpdatePropertyInput }) => {
       const updatedProperty = await apiClient.properties.update.mutate(input);
@@ -266,11 +268,13 @@ export default function PropertyDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            {canDeleteProperty ? (
+            {canArchiveProperty || canDeleteProperty ? (
               <EntityLifecycleControls
                 archiveDescription={
                   <>This will hide {property?.name ?? "this property"} from the default properties view.</>
                 }
+                canArchive={canArchiveProperty}
+                canDelete={canDeleteProperty}
                 cancelDeleteLabel="Keep Property"
                 deleteDescription={
                   <>This permanently deletes {property?.name ?? "this property"} and cannot be undone.</>
@@ -303,28 +307,28 @@ export default function PropertyDetailPage() {
                 }}
               />
             ) : null}
+            {canCreateNotes ? (
+              <Button
+                aria-label="Add notes"
+                className="min-w-10 sm:min-w-40"
+                disabled={!property}
+                onClick={() => setIsNotesDrawerOpen(true)}
+                variant="secondary"
+              >
+                <StickyNotePlusIcon />
+                <span className="hidden sm:inline">Add Notes</span>
+              </Button>
+            ) : null}
             {canEditProperty ? (
-              <>
-                <Button
-                  aria-label="Add notes"
-                  className="min-w-10 sm:min-w-40"
-                  disabled={!property}
-                  onClick={() => setIsNotesDrawerOpen(true)}
-                  variant="secondary"
-                >
-                  <StickyNotePlusIcon />
-                  <span className="hidden sm:inline">Add Notes</span>
-                </Button>
-                <Button
-                  aria-label="Edit property"
-                  className="min-w-10 sm:min-w-40"
-                  disabled={!property}
-                  onClick={openEditDrawer}
-                >
-                  <PenLine className="h-4 w-4" />
-                  <span className="hidden sm:inline">Edit property</span>
-                </Button>
-              </>
+              <Button
+                aria-label="Edit property"
+                className="min-w-10 sm:min-w-40"
+                disabled={!property}
+                onClick={openEditDrawer}
+              >
+                <PenLine className="h-4 w-4" />
+                <span className="hidden sm:inline">Edit property</span>
+              </Button>
             ) : null}
           </div>
         </header>

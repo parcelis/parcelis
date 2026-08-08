@@ -53,6 +53,7 @@ import { NotesDrawer } from "../../components/notes-drawer";
 import { Sidebar } from "../../components/sidebar";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../components/tenant-drawer";
 import { deleteTenantImage, uploadTenantImage } from "../../components/tenant-image-upload";
+import { hasPermission } from "../../components/property-access";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -72,6 +73,10 @@ const initialFilters: TenantFilters = {
 type TenantListItem = Awaited<ReturnType<typeof apiClient.tenants.list.query>>[number];
 
 function TenantActionsMenu({
+  canArchive,
+  canDelete,
+  canEdit,
+  canManageNotes,
   onArchive,
   onDelete,
   onEdit,
@@ -79,6 +84,10 @@ function TenantActionsMenu({
   onReactivate,
   tenant,
 }: {
+  canArchive: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
+  canManageNotes: boolean;
   onArchive: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -106,29 +115,35 @@ function TenantActionsMenu({
             View
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onEdit}>
-          <Pencil className="h-4 w-4 text-parcelis-green" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onNotes}>
-          <StickyNote className="h-4 w-4 text-parcelis-green" />
-          Add Notes
-        </DropdownMenuItem>
-        {isArchived ? (
+        {canEdit ? (
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil className="h-4 w-4 text-parcelis-green" />
+            Edit
+          </DropdownMenuItem>
+        ) : null}
+        {canManageNotes ? (
+          <DropdownMenuItem onSelect={onNotes}>
+            <StickyNote className="h-4 w-4 text-parcelis-green" />
+            Add Notes
+          </DropdownMenuItem>
+        ) : null}
+        {canArchive && isArchived ? (
           <DropdownMenuItem onSelect={onReactivate}>
             <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
             Unarchive
           </DropdownMenuItem>
-        ) : (
+        ) : canArchive ? (
           <DropdownMenuItem onSelect={onArchive}>
             <Archive className="h-4 w-4 text-parcelis-green" />
             Archive
           </DropdownMenuItem>
-        )}
-        <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
+        ) : null}
+        {canDelete ? (
+          <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -165,10 +180,19 @@ function getStatusTone(status?: string | null) {
 
 export default function TenantsPage() {
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants.list,
     queryFn: () => apiClient.tenants.list.query(),
   });
+  const canCreateTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "create");
+  const canEditTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "edit");
+  const canArchiveTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "archive");
+  const canDeleteTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "delete");
+  const canCreateNotes = hasPermission(currentUserQuery.data?.permissions, "tenant_notes", "create");
   const [search, setSearch] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [draftFilters, setDraftFilters] = React.useState<TenantFilters>(initialFilters);
@@ -415,10 +439,12 @@ export default function TenantsPage() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button className="min-w-40" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Tenant
-          </Button>
+          {canCreateTenants ? (
+            <Button className="min-w-40" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Tenant
+            </Button>
+          ) : null}
         </header>
 
         <div className="parcelis-page-shell">
@@ -628,6 +654,10 @@ export default function TenantsPage() {
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right">
                             <TenantActionsMenu
+                              canArchive={canArchiveTenants}
+                              canDelete={canDeleteTenants}
+                              canEdit={canEditTenants}
+                              canManageNotes={canCreateNotes}
                               onArchive={() => setArchiveTenant(tenant)}
                               onDelete={() => setDeleteTenant(tenant)}
                               onEdit={() => openEdit(tenant)}

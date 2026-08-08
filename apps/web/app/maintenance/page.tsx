@@ -47,12 +47,13 @@ import {
   isTerminalMaintenanceTicketStatus,
   maintenanceTicketStatuses,
 } from "@parcelis/schemas";
-import { apiClient } from "../../components/api-client";
+import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { MaintenanceDrawer } from "../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
 import { NotesDrawer } from "../../components/notes-drawer";
 import { Sidebar } from "../../components/sidebar";
+import { hasPermission } from "../../components/property-access";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -88,6 +89,15 @@ function statusBadgeClass(status: string) {
 
 export default function MaintenancePage() {
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canCreateMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "create");
+  const canEditMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "edit");
+  const canArchiveMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "archive");
+  const canDeleteMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "delete");
+  const canViewNotes = hasPermission(currentUserQuery.data?.permissions, "maintenance_notes", "view");
   const [search, setSearch] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState("all");
@@ -243,10 +253,12 @@ export default function MaintenancePage() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button className="min-w-40" onClick={() => setDrawerOpen(true)}>
-            <Plus className="h-4 w-4" />
-            New Maintenance Item
-          </Button>
+          {canCreateMaintenance ? (
+            <Button className="min-w-40" onClick={() => setDrawerOpen(true)}>
+              <Plus className="h-4 w-4" />
+              New Maintenance Item
+            </Button>
+          ) : null}
         </header>
         <div className="parcelis-page-shell">
           <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
@@ -525,26 +537,30 @@ export default function MaintenancePage() {
                                   View
                                 </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Pencil className="h-4 w-4 text-parcelis-green" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() =>
-                                  setNotesTicket({
-                                    id: ticket.id,
-                                    propertyName: ticket.property.name,
-                                    status: ticket.status,
-                                    title: ticket.title,
-                                    units: ticketUnits(ticket),
-                                  })
-                                }
-                              >
-                                <StickyNote className="h-4 w-4 text-parcelis-green" />
-                                Notes
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {!isTerminalMaintenanceTicketStatus(ticket.status) ? (
+                              {canEditMaintenance ? (
+                                <DropdownMenuItem>
+                                  <Pencil className="h-4 w-4 text-parcelis-green" />
+                                  Edit
+                                </DropdownMenuItem>
+                              ) : null}
+                              {canViewNotes ? (
+                                <DropdownMenuItem
+                                  onSelect={() =>
+                                    setNotesTicket({
+                                      id: ticket.id,
+                                      propertyName: ticket.property.name,
+                                      status: ticket.status,
+                                      title: ticket.title,
+                                      units: ticketUnits(ticket),
+                                    })
+                                  }
+                                >
+                                  <StickyNote className="h-4 w-4 text-parcelis-green" />
+                                  Notes
+                                </DropdownMenuItem>
+                              ) : null}
+                              {canEditMaintenance ? <DropdownMenuSeparator /> : null}
+                              {canEditMaintenance && !isTerminalMaintenanceTicketStatus(ticket.status) ? (
                                 <DropdownMenuItem
                                   onSelect={() =>
                                     setTicketAction({
@@ -560,16 +576,17 @@ export default function MaintenancePage() {
                                   Resolve
                                 </DropdownMenuItem>
                               ) : null}
-                              {ticket.status === "resolved" ? (
+                              {canEditMaintenance && ticket.status === "resolved" ? (
                                 <DropdownMenuItem onSelect={() => reopenTicket.mutate(ticket.id)}>
                                   <Wrench className="h-4 w-4 text-parcelis-green" />
                                   Reopen Ticket
                                 </DropdownMenuItem>
                               ) : null}
-                              {(isActiveMaintenanceTicketStatus(ticket.status) || ticket.status === "resolved") && (
+                              {canEditMaintenance &&
+                              (isActiveMaintenanceTicketStatus(ticket.status) || ticket.status === "resolved") ? (
                                 <DropdownMenuSeparator />
-                              )}
-                              {!isTerminalMaintenanceTicketStatus(ticket.status) ? (
+                              ) : null}
+                              {canEditMaintenance && !isTerminalMaintenanceTicketStatus(ticket.status) ? (
                                 <DropdownMenuItem
                                   className="text-red-700"
                                   onSelect={() =>
@@ -586,17 +603,21 @@ export default function MaintenancePage() {
                                   Cancel Ticket
                                 </DropdownMenuItem>
                               ) : null}
-                              <DropdownMenuItem onSelect={() => archiveTicket.mutate(ticket.id)}>
-                                <Archive className="h-4 w-4 text-parcelis-green" />
-                                Archive
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-700"
-                                onSelect={() => deleteTicket.mutate(ticket.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
+                              {canArchiveMaintenance ? (
+                                <DropdownMenuItem onSelect={() => archiveTicket.mutate(ticket.id)}>
+                                  <Archive className="h-4 w-4 text-parcelis-green" />
+                                  Archive
+                                </DropdownMenuItem>
+                              ) : null}
+                              {canDeleteMaintenance ? (
+                                <DropdownMenuItem
+                                  className="text-red-700"
+                                  onSelect={() => deleteTicket.mutate(ticket.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              ) : null}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

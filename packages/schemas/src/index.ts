@@ -4,27 +4,98 @@ import { LeaseStatus } from "@parcelis/db";
 const idSchema = z.coerce.number().int().positive();
 
 export const authCredentialsInputSchema = z.object({
-  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
   password: z.string().min(12).max(1024),
 });
 
 export const authLoginInputSchema = authCredentialsInputSchema;
 export const authRegisterInputSchema = authCredentialsInputSchema;
 
-export const userRoleSchema = z.enum([
+export const userRoleValues = [
   "administrator",
   "property_manager",
   "lease_manager",
   "maintenance",
   "property_owner",
   "resident_manager",
-]);
+] as const;
+export const userRoleSchema = z.enum(userRoleValues);
+export type UserRole = z.infer<typeof userRoleSchema>;
 export const userAccountStatusSchema = z.enum(["active", "disabled"]);
-export const propertyAccessLevelSchema = z.enum(["none", "view", "edit", "delete", "all"]);
+export const primaryPermissionResourceValues = ["properties", "units", "tenants", "maintenance"] as const;
+export const notePermissionResourceValues = [
+  "property_notes",
+  "unit_notes",
+  "tenant_notes",
+  "maintenance_notes",
+] as const;
+export const permissionResourceValues = [...primaryPermissionResourceValues, ...notePermissionResourceValues] as const;
+export const permissionActionValues = ["view", "create", "edit", "archive", "delete"] as const;
+export const permissionResourceSchema = z.enum(permissionResourceValues);
+export const permissionActionSchema = z.enum(permissionActionValues);
+export type PermissionResource = z.infer<typeof permissionResourceSchema>;
+export type PermissionAction = z.infer<typeof permissionActionSchema>;
+export type PermissionFlags = Record<PermissionAction, boolean>;
+
+export const permissionCatalog: ReadonlyArray<{
+  resource: PermissionResource;
+  label: string;
+  description: string;
+  actions: readonly PermissionAction[];
+}> = [
+  {
+    resource: "properties",
+    label: "Properties",
+    description: "Property records, details, images, and status.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "units",
+    label: "Units",
+    description: "Units and their amenities and utilities.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "tenants",
+    label: "Tenants",
+    description: "Tenant records, contacts, images, and status.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "maintenance",
+    label: "Maintenance",
+    description: "Maintenance tickets, attachments, and workflow status.",
+    actions: permissionActionValues,
+  },
+];
+export const notePermissionCatalog: ReadonlyArray<{
+  resource: (typeof notePermissionResourceValues)[number];
+  label: string;
+  description: string;
+}> = [
+  { resource: "property_notes", label: "Property Notes", description: "Notes attached to properties." },
+  { resource: "unit_notes", label: "Unit Notes", description: "Notes attached to units." },
+  { resource: "tenant_notes", label: "Tenant Notes", description: "Notes attached to tenants." },
+  {
+    resource: "maintenance_notes",
+    label: "Maintenance Notes",
+    description: "Notes attached to maintenance tickets.",
+  },
+];
 export const updateUserInputSchema = z.object({
   id: idSchema,
   name: z.string().trim().min(1).max(100),
-  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
   phone: z.string().trim().max(50).nullable(),
   role: userRoleSchema,
 });
@@ -33,10 +104,24 @@ export const userAccountStatusInputSchema = z.object({
   accountStatus: userAccountStatusSchema,
 });
 export const deleteUserInputSchema = z.object({ id: idSchema });
-export const updateRolePermissionInputSchema = z.object({
-  role: userRoleSchema,
-  propertyAccess: propertyAccessLevelSchema,
+export const roleResourcePermissionSchema = z.object({
+  resource: permissionResourceSchema,
+  view: z.boolean(),
+  create: z.boolean(),
+  edit: z.boolean(),
+  archive: z.boolean(),
+  delete: z.boolean(),
 });
+export const updateRolePermissionsInputSchema = z
+  .object({
+    role: userRoleSchema,
+    permissions: z.array(roleResourcePermissionSchema).length(permissionResourceValues.length),
+  })
+  .superRefine(({ permissions }, ctx) => {
+    if (new Set(permissions.map(({ resource }) => resource)).size !== permissionResourceValues.length) {
+      ctx.addIssue({ code: "custom", message: "Each permission resource must be provided exactly once." });
+    }
+  });
 
 export const addressSchema = z.object({
   line1: z.string().min(1),

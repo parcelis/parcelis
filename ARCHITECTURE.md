@@ -90,7 +90,11 @@ The NestJS application starts in `apps/api/src/main.ts`. `AppModule` mounts:
 
 Object storage is configured in `apps/api/src/modules/object-storage.config.ts`. The API generates signed download and upload URLs for private property and tenant images; the browser uploads directly to object storage after receiving a signed URL.
 
-The API context resolves the session cookie and supplies Prisma. Application procedures require an authenticated session, and sensitive operations add role or feature-access checks. Organization scoping is not yet implemented, so the API should not be treated as multi-tenant.
+The API context resolves the session cookie and supplies Prisma. Application procedures require an authenticated
+session. `RolePermission` stores independent View, Create, Edit, Archive, and Delete flags for each role and resource,
+and API procedures enforce the applicable action. Notes use separate Property Notes, Unit Notes, Tenant Notes, and
+Maintenance Notes resources. Note procedures require both the scoped Notes action and View access to the parent record.
+Organization scoping is not yet implemented, so the API should not be treated as multi-tenant.
 
 ## Data model
 

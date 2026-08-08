@@ -24,6 +24,7 @@ import { ParcelisLogo } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
 import { useTheme, type ThemeMode } from "./theme-provider";
 import { apiClient, queryKeys } from "./api-client";
+import { hasPermission } from "./property-access";
 
 const navItems = [
   { label: "Portfolio", href: "/", key: "portfolio", icon: Home },
@@ -55,7 +56,17 @@ export function Sidebar({ active }: SidebarProps) {
     queryKey: queryKeys.auth.me,
     queryFn: () => apiClient.auth.me.query(),
   });
-  const canViewProperties = currentUserQuery.data?.propertyAccess !== "none";
+  const canViewProperties = hasPermission(currentUserQuery.data?.permissions, "properties", "view");
+  const canViewTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "view");
+  const canViewMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "view");
+  const isAdministrator = currentUserQuery.data?.user.role === "administrator";
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.key === "properties") return canViewProperties;
+    if (item.key === "tenants") return canViewTenants;
+    if (item.key === "maintenance") return canViewMaintenance;
+    if (item.key === "settings") return isAdministrator;
+    return true;
+  });
 
   React.useEffect(() => {
     const saved = window.localStorage.getItem("parcelis-sidebar-collapsed") === "true";
@@ -128,7 +139,7 @@ export function Sidebar({ active }: SidebarProps) {
       </div>
 
       <nav className="mt-8 flex-1 space-y-1 text-sm font-medium text-parcelis-gray">
-        {navItems.filter((item) => item.key !== "properties" || canViewProperties).map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.key === active;
           return (

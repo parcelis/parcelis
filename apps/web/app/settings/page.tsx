@@ -2,8 +2,31 @@
 
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  permissionActionValues,
+  permissionCatalog,
+  permissionResourceValues,
+  notePermissionCatalog,
+  notePermissionResourceValues,
+  type PermissionAction,
+  type PermissionFlags,
+  type PermissionResource,
+} from "@parcelis/schemas";
 import Link from "next/link";
-import { EllipsisVertical, Mail, Pencil, Phone, Shield, ShieldCheck, Trash2, UserRoundCheck, UserRoundX, Users } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  EllipsisVertical,
+  Mail,
+  Pencil,
+  Phone,
+  Shield,
+  ShieldCheck,
+  Trash2,
+  UserRoundCheck,
+  UserRoundX,
+  Users,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +38,7 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
   Dialog,
   DialogContent,
   DropdownMenu,
@@ -50,6 +74,8 @@ function formatLabel(value: string | null | undefined) {
 }
 
 type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
+type RoleListItem = Awaited<ReturnType<typeof apiClient.roles.list.query>>[number];
+type PermissionMatrix = Record<PermissionResource, PermissionFlags>;
 
 type UserFormState = {
   name: string;
@@ -100,7 +126,11 @@ function UserActionsMenu({
           Edit
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onToggleAccountStatus}>
-          {isDisabled ? <UserRoundCheck className="h-4 w-4 text-parcelis-green" /> : <UserRoundX className="h-4 w-4 text-parcelis-green" />}
+          {isDisabled ? (
+            <UserRoundCheck className="h-4 w-4 text-parcelis-green" />
+          ) : (
+            <UserRoundX className="h-4 w-4 text-parcelis-green" />
+          )}
           {isDisabled ? "Enable" : "Disable"}
         </DropdownMenuItem>
         <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
@@ -126,6 +156,9 @@ export default function SettingsPage() {
   const roles = rolesQuery.data ?? [];
   const [activeTab, setActiveTab] = React.useState<"users" | "roles">("users");
   const [editUser, setEditUser] = React.useState<UserListItem | null>(null);
+  const [editRole, setEditRole] = React.useState<RoleListItem | null>(null);
+  const [permissionDraft, setPermissionDraft] = React.useState<PermissionMatrix | null>(null);
+  const [notesExpanded, setNotesExpanded] = React.useState(true);
   const [disableUser, setDisableUser] = React.useState<UserListItem | null>(null);
   const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
   const [editForm, setEditForm] = React.useState<UserFormState>({
@@ -135,7 +168,8 @@ export default function SettingsPage() {
     role: "property_manager",
   });
   const updateUserMutation = useMutation({
-    mutationFn: (input: UserFormState & { id: number }) => apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
+    mutationFn: (input: UserFormState & { id: number }) =>
+      apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
     onSuccess: async () => {
       setEditUser(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
@@ -156,10 +190,15 @@ export default function SettingsPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
     },
   });
-  const updateRolePermission = useMutation({
-    mutationFn: ({ propertyAccess, role }: { propertyAccess: "none" | "view" | "edit" | "delete" | "all"; role: UserFormState["role"] }) =>
-      apiClient.roles.updatePropertyAccess.mutate({ role, propertyAccess }),
+  const updateRolePermissions = useMutation({
+    mutationFn: ({ permissions, role }: { permissions: PermissionMatrix; role: UserFormState["role"] }) =>
+      apiClient.roles.updatePermissions.mutate({
+        role,
+        permissions: permissionResourceValues.map((resource) => ({ resource, ...permissions[resource] })),
+      }),
     onSuccess: async () => {
+      setEditRole(null);
+      setPermissionDraft(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.roles.list });
     },
   });
@@ -172,6 +211,61 @@ export default function SettingsPage() {
       role: user.role ?? "property_manager",
     });
     setEditUser(user);
+  }
+
+  function openRolePermissions(role: RoleListItem) {
+    setEditRole(role);
+    setPermissionDraft(
+      Object.fromEntries(
+        permissionResourceValues.map((resource) => [resource, { ...role.permissions[resource] }]),
+      ) as PermissionMatrix,
+    );
+  }
+
+  function updatePermission(resource: PermissionResource, action: PermissionAction, checked: boolean) {
+    if (!permissionDraft || editRole?.role === "administrator") return;
+
+    setPermissionDraft((current) => {
+      if (!current) return current;
+      const nextFlags = { ...current[resource], [action]: checked };
+
+      if (action === "view" && !checked) {
+        permissionActionValues.forEach((permissionAction) => {
+          nextFlags[permissionAction] = false;
+        });
+      } else if (action !== "view" && checked) {
+        nextFlags.view = true;
+      }
+
+      return { ...current, [resource]: nextFlags };
+    });
+  }
+
+  function updateAllNotePermissions(action: PermissionAction, checked: boolean) {
+    if (!permissionDraft || editRole?.role === "administrator" || action === "archive") return;
+
+    setPermissionDraft((current) => {
+      if (!current) return current;
+      const next = { ...current };
+      notePermissionResourceValues.forEach((resource) => {
+        const nextFlags = { ...next[resource], [action]: checked };
+        if (action === "view" && !checked) {
+          permissionActionValues.forEach((permissionAction) => {
+            nextFlags[permissionAction] = false;
+          });
+        } else if (action !== "view" && checked) {
+          nextFlags.view = true;
+        }
+        next[resource] = nextFlags;
+      });
+      return next;
+    });
+  }
+
+  function getNoteGroupChecked(action: PermissionAction) {
+    if (!permissionDraft || action === "archive") return false;
+    const values = notePermissionResourceValues.map((resource) => permissionDraft[resource][action]);
+    return values.every(Boolean) ? true : values.some(Boolean) ? "indeterminate" : false;
   }
 
   return (
@@ -193,19 +287,39 @@ export default function SettingsPage() {
             <div className="grid gap-4">
               <Label>
                 Name
-                <Input className="mt-1" onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} required value={editForm.name} />
+                <Input
+                  className="mt-1"
+                  onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
+                  required
+                  value={editForm.name}
+                />
               </Label>
               <Label>
                 Email
-                <Input className="mt-1" onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} required type="email" value={editForm.email} />
+                <Input
+                  className="mt-1"
+                  onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
+                  required
+                  type="email"
+                  value={editForm.email}
+                />
               </Label>
               <Label>
                 Phone
-                <Input className="mt-1" onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} type="tel" value={editForm.phone} />
+                <Input
+                  className="mt-1"
+                  onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })}
+                  type="tel"
+                  value={editForm.phone}
+                />
               </Label>
               <Label>
                 Role
-                <Select className="mt-1" onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })} value={editForm.role}>
+                <Select
+                  className="mt-1"
+                  onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })}
+                  value={editForm.role}
+                >
                   <option value="administrator">Administrator</option>
                   <option value="property_manager">Property Manager</option>
                   <option value="lease_manager">Lease Manager</option>
@@ -215,7 +329,9 @@ export default function SettingsPage() {
                 </Select>
               </Label>
             </div>
-            {updateUserMutation.error ? <p className="text-sm font-medium text-red-700">{updateUserMutation.error.message}</p> : null}
+            {updateUserMutation.error ? (
+              <p className="text-sm font-medium text-red-700">{updateUserMutation.error.message}</p>
+            ) : null}
             <div className="flex items-center justify-between gap-3">
               <Button onClick={() => setEditUser(null)} type="button" variant="secondary">
                 Cancel
@@ -227,10 +343,159 @@ export default function SettingsPage() {
           </form>
         </DialogContent>
       </Dialog>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditRole(null);
+            setPermissionDraft(null);
+          }
+        }}
+        open={Boolean(editRole)}
+      >
+        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
+          <form
+            className="grid gap-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (editRole && permissionDraft && editRole.role !== "administrator") {
+                updateRolePermissions.mutate({ role: editRole.role, permissions: permissionDraft });
+              }
+            }}
+          >
+            <div>
+              <h2 className="text-lg font-bold text-parcelis-charcoal">Manage {formatRole(editRole?.role)} access</h2>
+              <p className="mt-1 text-sm text-parcelis-gray">
+                Choose what this role can do in each area. Expand Notes to configure each record type separately.
+              </p>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-parcelis-border">
+              <Table className="min-w-[720px] border-collapse text-left">
+                <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                  <TableRow className="border-0">
+                    <TableHead className="px-4 py-3 font-semibold">Area</TableHead>
+                    {permissionActionValues.map((action) => (
+                      <TableHead className="px-3 py-3 text-center font-semibold" key={action}>
+                        {formatLabel(action)}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {permissionCatalog.map(({ actions, description, label, resource }) => (
+                    <TableRow className="border-t border-parcelis-border" key={resource}>
+                      <TableCell className="px-4 py-4">
+                        <p className="font-semibold text-parcelis-charcoal">{label}</p>
+                        <p className="mt-1 max-w-xs text-xs leading-5 text-parcelis-gray">{description}</p>
+                      </TableCell>
+                      {permissionActionValues.map((action) => {
+                        const supported = actions.includes(action);
+                        return (
+                          <TableCell className="px-3 py-4 text-center" key={action}>
+                            {supported ? (
+                              <Checkbox
+                                aria-label={`${formatLabel(action)} ${label}`}
+                                checked={permissionDraft?.[resource][action] ?? false}
+                                disabled={editRole?.role === "administrator"}
+                                onCheckedChange={(checked) => updatePermission(resource, action, checked === true)}
+                              />
+                            ) : (
+                              <span className="text-parcelis-gray/60">—</span>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t border-parcelis-border bg-parcelis-porcelain/60">
+                    <TableCell className="px-4 py-4">
+                      <button
+                        aria-expanded={notesExpanded}
+                        className="flex items-center gap-2 text-left font-semibold text-parcelis-charcoal"
+                        onClick={() => setNotesExpanded((expanded) => !expanded)}
+                        type="button"
+                      >
+                        {notesExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        Notes
+                      </button>
+                      <p className="mt-1 pl-6 text-xs leading-5 text-parcelis-gray">
+                        Apply an action to every note type or expand for individual access.
+                      </p>
+                    </TableCell>
+                    {permissionActionValues.map((action) => (
+                      <TableCell className="px-3 py-4 text-center" key={action}>
+                        {action === "archive" ? (
+                          <span className="text-parcelis-gray/60">—</span>
+                        ) : (
+                          <Checkbox
+                            aria-label={`${formatLabel(action)} all Notes`}
+                            checked={getNoteGroupChecked(action)}
+                            disabled={editRole?.role === "administrator"}
+                            onCheckedChange={(checked) => updateAllNotePermissions(action, checked === true)}
+                          />
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {notesExpanded
+                    ? notePermissionCatalog.map(({ description, label, resource }) => (
+                        <TableRow className="border-t border-parcelis-border" key={resource}>
+                          <TableCell className="py-4 pl-10 pr-4">
+                            <p className="font-semibold text-parcelis-charcoal">{label}</p>
+                            <p className="mt-1 max-w-xs text-xs leading-5 text-parcelis-gray">{description}</p>
+                          </TableCell>
+                          {permissionActionValues.map((action) => (
+                            <TableCell className="px-3 py-4 text-center" key={action}>
+                              {action === "archive" ? (
+                                <span className="text-parcelis-gray/60">—</span>
+                              ) : (
+                                <Checkbox
+                                  aria-label={`${formatLabel(action)} ${label}`}
+                                  checked={permissionDraft?.[resource][action] ?? false}
+                                  disabled={editRole?.role === "administrator"}
+                                  onCheckedChange={(checked) => updatePermission(resource, action, checked === true)}
+                                />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    : null}
+                </TableBody>
+              </Table>
+            </div>
+            {editRole?.role === "administrator" ? (
+              <p className="text-sm text-parcelis-gray">Administrators always have full access.</p>
+            ) : null}
+            {updateRolePermissions.error ? (
+              <p className="text-sm font-medium text-red-700">{updateRolePermissions.error.message}</p>
+            ) : null}
+            <div className="flex items-center justify-between gap-3">
+              <Button
+                className="min-w-40"
+                onClick={() => {
+                  setEditRole(null);
+                  setPermissionDraft(null);
+                }}
+                type="button"
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              {editRole?.role !== "administrator" ? (
+                <Button className="min-w-40" disabled={updateRolePermissions.isPending} type="submit">
+                  Save permissions
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
       <AlertDialog onOpenChange={(open) => !open && setDisableUser(null)} open={Boolean(disableUser)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{disableUser?.accountStatus === "disabled" ? "Enable user?" : "Disable user?"}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {disableUser?.accountStatus === "disabled" ? "Enable user?" : "Disable user?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {disableUser?.accountStatus === "disabled"
                 ? `${disableUser.name} will be able to sign in again.`
@@ -238,10 +503,18 @@ export default function SettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button onClick={() => setDisableUser(null)} type="button" variant="secondary">Cancel</Button>
+            <Button onClick={() => setDisableUser(null)} type="button" variant="secondary">
+              Cancel
+            </Button>
             <Button
               disabled={updateAccountStatusMutation.isPending}
-              onClick={() => disableUser && updateAccountStatusMutation.mutate({ id: disableUser.id, accountStatus: disableUser.accountStatus === "disabled" ? "active" : "disabled" })}
+              onClick={() =>
+                disableUser &&
+                updateAccountStatusMutation.mutate({
+                  id: disableUser.id,
+                  accountStatus: disableUser.accountStatus === "disabled" ? "active" : "disabled",
+                })
+              }
               type="button"
             >
               {disableUser?.accountStatus === "disabled" ? "Enable" : "Disable"}
@@ -254,12 +527,20 @@ export default function SettingsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete user?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes {deleteUser?.name}{"'s"} account and active sessions.
+              This permanently deletes {deleteUser?.name}
+              {"'s"} account and active sessions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button onClick={() => setDeleteUser(null)} type="button" variant="secondary">Cancel</Button>
-            <Button disabled={deleteUserMutation.isPending} onClick={() => deleteUser && deleteUserMutation.mutate(deleteUser.id)} type="button" variant="destructive">
+            <Button onClick={() => setDeleteUser(null)} type="button" variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={deleteUserMutation.isPending}
+              onClick={() => deleteUser && deleteUserMutation.mutate(deleteUser.id)}
+              type="button"
+              variant="destructive"
+            >
               Delete
             </Button>
           </AlertDialogFooter>
@@ -309,7 +590,9 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <h2 className="font-semibold text-parcelis-charcoal">Role access</h2>
-                    <p className="mt-1 text-sm text-parcelis-gray">Set the Properties feature access for each role.</p>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      Grant resource and action access to each user role.
+                    </p>
                   </div>
                   <Shield className="h-5 w-5 text-parcelis-green" />
                 </div>
@@ -324,26 +607,27 @@ export default function SettingsPage() {
                     <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
                       <TableRow className="border-0">
                         <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
-                        <TableHead className="px-5 py-3 font-semibold">Properties access</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Access</TableHead>
+                        <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {roles.map((role) => (
                         <TableRow className="border-t border-parcelis-border" key={role.role}>
-                          <TableCell className="px-5 py-4 font-semibold text-parcelis-charcoal">{formatRole(role.role)}</TableCell>
+                          <TableCell className="px-5 py-4 font-semibold text-parcelis-charcoal">
+                            {formatRole(role.role)}
+                          </TableCell>
                           <TableCell className="px-5 py-4">
-                            <Select
-                              className="max-w-52"
-                              disabled={role.role === "administrator" || updateRolePermission.isPending}
-                              onChange={(event) => updateRolePermission.mutate({ role: role.role, propertyAccess: event.target.value as "none" | "view" | "edit" | "delete" | "all" })}
-                              value={role.propertyAccess}
-                            >
-                              <option value="none">None</option>
-                              <option value="view">View</option>
-                              <option value="edit">Edit</option>
-                              <option value="delete">Delete</option>
-                              <option value="all">All</option>
-                            </Select>
+                            <span className="text-sm text-parcelis-gray">
+                              {role.role === "administrator"
+                                ? "Full access"
+                                : `${permissionCatalog.filter(({ resource }) => role.permissions[resource].view).length} of ${permissionCatalog.length} areas visible`}
+                            </span>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-right">
+                            <Button onClick={() => openRolePermissions(role)} type="button" variant="secondary">
+                              Manage access
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -353,88 +637,100 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           ) : (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-semibold text-parcelis-charcoal">User accounts</h2>
-                  <p className="mt-1 text-sm text-parcelis-gray">
-                    {users.length} {users.length === 1 ? "account" : "accounts"} created
-                  </p>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">User accounts</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      {users.length} {users.length === 1 ? "account" : "accounts"} created
+                    </p>
+                  </div>
+                  <Users className="h-5 w-5 text-parcelis-green" />
                 </div>
-                <Users className="h-5 w-5 text-parcelis-green" />
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto p-0">
-              {usersQuery.isLoading ? (
-                <LoadingState label="Loading users…" />
-              ) : usersQuery.error ? (
-                <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
-              ) : users.length === 0 ? (
-                <div className="min-h-48 p-5 text-sm text-parcelis-gray">No user accounts yet.</div>
-              ) : (
-                <Table className="min-w-[1080px] border-collapse text-left">
-                  <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
-                    <TableRow className="border-0">
-                      <TableHead className="px-5 py-3 font-semibold">User</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Email</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
-                      <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60" key={user.id}>
-                        <TableCell className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
-                              <Users className="h-4 w-4" />
-                            </div>
-                            <span className="font-semibold text-parcelis-charcoal">{user.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                          <a className="flex items-center gap-2 hover:text-parcelis-charcoal" href={`mailto:${user.email}`}>
-                            <Mail className="h-4 w-4 text-parcelis-green" />
-                            {user.email}
-                          </a>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                          {user.phone ? (
-                            <a className="flex items-center gap-2 hover:text-parcelis-charcoal" href={`tel:${user.phone}`}>
-                              <Phone className="h-4 w-4 text-parcelis-green" />
-                              {user.phone}
-                            </a>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
-                          {formatRole(user.role)}
-                        </TableCell>
-                        <TableCell className="px-5 py-4">
-                          <Badge className="w-fit" variant={user.accountStatus === "active" ? "default" : "secondary"}>
-                            <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-                            {formatLabel(user.accountStatus)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-right">
-                          <UserActionsMenu
-                            onDelete={() => setDeleteUser(user)}
-                            onEdit={() => openEdit(user)}
-                            onToggleAccountStatus={() => setDisableUser(user)}
-                            user={user}
-                          />
-                        </TableCell>
+              </CardHeader>
+              <CardContent className="overflow-x-auto p-0">
+                {usersQuery.isLoading ? (
+                  <LoadingState label="Loading users…" />
+                ) : usersQuery.error ? (
+                  <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
+                ) : users.length === 0 ? (
+                  <div className="min-h-48 p-5 text-sm text-parcelis-gray">No user accounts yet.</div>
+                ) : (
+                  <Table className="min-w-[1080px] border-collapse text-left">
+                    <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                      <TableRow className="border-0">
+                        <TableHead className="px-5 py-3 font-semibold">User</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Email</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
+                        <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow
+                          className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
+                          key={user.id}
+                        >
+                          <TableCell className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
+                                <Users className="h-4 w-4" />
+                              </div>
+                              <span className="font-semibold text-parcelis-charcoal">{user.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            <a
+                              className="flex items-center gap-2 hover:text-parcelis-charcoal"
+                              href={`mailto:${user.email}`}
+                            >
+                              <Mail className="h-4 w-4 text-parcelis-green" />
+                              {user.email}
+                            </a>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            {user.phone ? (
+                              <a
+                                className="flex items-center gap-2 hover:text-parcelis-charcoal"
+                                href={`tel:${user.phone}`}
+                              >
+                                <Phone className="h-4 w-4 text-parcelis-green" />
+                                {user.phone}
+                              </a>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
+                            {formatRole(user.role)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4">
+                            <Badge
+                              className="w-fit"
+                              variant={user.accountStatus === "active" ? "default" : "secondary"}
+                            >
+                              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                              {formatLabel(user.accountStatus)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-right">
+                            <UserActionsMenu
+                              onDelete={() => setDeleteUser(user)}
+                              onEdit={() => openEdit(user)}
+                              onToggleAccountStatus={() => setDisableUser(user)}
+                              user={user}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
           )}
         </div>
       </section>
