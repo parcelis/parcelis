@@ -15,12 +15,18 @@ jobs:
         include:
           - image: apps
             file: Dockerfile.app
+            title: Parcelis Apps
+            description: Parcelis application and API service for the Parcelis Docker Compose stack.
           - image: docs
             file: apps/docs/Dockerfile
             target: nginx
+            title: Parcelis Docs
+            description: Parcelis documentation site for the Parcelis Docker Compose stack.
           - image: proxy
             file: infra/docker/proxy/Dockerfile
             target: proxy
+            title: Parcelis Proxy
+            description: Nginx reverse proxy for the Parcelis Docker Compose stack.
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +43,9 @@ jobs:
             type=ref,event=tag
             type=ref,event=tag,pattern={{version}}
             type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=${{ matrix.title }}
+            org.opencontainers.image.description=${{ matrix.description }}
 
       - uses: docker/build-push-action@v6
         with:
