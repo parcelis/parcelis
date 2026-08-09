@@ -57,8 +57,7 @@ Keep changes focused, run the relevant checks, and update user-facing documentat
 
 ### Local development
 
-Install dependencies, start the Docker-backed services, and run the apps on your
-machine with hot reload:
+Install dependencies and run the apps on your machine with hot reload:
 
 ```bash
 pnpm install
@@ -72,6 +71,7 @@ pnpm dev
 ```
 
 `pnpm dev` uses the Parcelis host-port block and chooses the next open port when a default is busy.
+It starts PostgreSQL, MinIO, and the one-shot MinIO initialization job automatically; Docker must be running.
 It reads the root `.env` so the web, API, and database connection use the same port configuration.
 Defaults are web `http://localhost:30000`, docs `http://localhost:40000`, API
 `http://localhost:40010`, PostgreSQL `localhost:54320`, pgAdmin
@@ -105,7 +105,7 @@ cp .env.example .env
 docker compose -f docker-compose-dev.yml up -d
 ```
 
-The development stack is intended for local dependencies only. Run `pnpm dev` in a separate terminal to start the host-based web, API, and docs processes. Keep the compose stack running while you work, then stop it when you are done.
+The development stack is intended for local dependencies only. `pnpm dev` starts the required PostgreSQL, MinIO, and MinIO initialization services before starting the host-based web, API, and docs processes. Keep the compose stack running while you work, then stop it when you are done.
 
 #### Production-style deployment
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { findOpenPort } from "./port-utils.mjs";
@@ -11,9 +11,7 @@ if (existsSync(envPath)) {
 }
 
 const apiPort = await findOpenPort(process.env.API_PORT ?? 40010);
-const webPort = await findOpenPort(
-  process.env.WEB_PORT ?? process.env.PORT ?? 30000,
-);
+const webPort = await findOpenPort(process.env.WEB_PORT ?? process.env.PORT ?? 30000);
 const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 40000);
 const postgresPort = process.env.POSTGRES_PORT ?? 54320;
 const minioPort = process.env.MINIO_API_PORT ?? 9001;
@@ -21,12 +19,9 @@ const databaseUrl =
   process.env.DATABASE_URL ?? `postgresql://parcelis:parcelis@localhost:${postgresPort}/parcelis?schema=public`;
 const objectStorageEndpoint = process.env.S3_ENDPOINT ?? `http://localhost:${minioPort}`;
 const objectStoragePublicEndpoint =
-  process.env.S3_PUBLIC_ENDPOINT ??
-  process.env.NEXT_PUBLIC_S3_URL ??
-  `http://localhost:${minioPort}`;
+  process.env.S3_PUBLIC_ENDPOINT ?? process.env.NEXT_PUBLIC_S3_URL ?? `http://localhost:${minioPort}`;
 const objectStorageBucket = process.env.S3_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images";
-const objectStorageAccessKeyId =
-  process.env.S3_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio";
+const objectStorageAccessKeyId = process.env.S3_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio";
 const objectStorageSecretAccessKey =
   process.env.S3_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret";
 const brandLogoUrl =
@@ -35,6 +30,27 @@ const brandLogoUrl =
 const darkBrandLogoUrl =
   process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL ??
   `${objectStoragePublicEndpoint}/${process.env.MINIO_ASSETS_BUCKET ?? "parcelis-assets"}/brand/parcelis-dark.png`;
+
+function runCompose(args) {
+  execFileSync("docker", ["compose", "-f", "docker-compose-dev.yml", ...args], {
+    cwd: resolve(import.meta.dirname, ".."),
+    stdio: "inherit",
+  });
+}
+
+function startDevelopmentServices() {
+  try {
+    console.log("[parcelis] Ensuring local services are running");
+    runCompose(["up", "-d", "--wait", "postgres"]);
+    runCompose(["up", "-d", "minio"]);
+    runCompose(["up", "minio-init"]);
+  } catch {
+    console.error("[parcelis] Could not start local services. Install and start Docker, then run pnpm dev again.");
+    process.exit(1);
+  }
+}
+
+startDevelopmentServices();
 
 const processes = [
   {

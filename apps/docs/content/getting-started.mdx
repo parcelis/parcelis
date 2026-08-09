@@ -4,11 +4,12 @@ title: Contributor Setup
 sidebar_label: Contributor Setup
 ---
 
-Parcelis is organized as a pnpm workspace. Install dependencies, start Postgres, generate the Prisma client, then run the development tasks.
+Parcelis is organized as a pnpm workspace. Install dependencies, generate the Prisma client, then run the development tasks. `pnpm dev` starts the required local Docker services automatically.
 
 ```bash
 pnpm install
-docker compose up postgres -d
+cp .env.example .env
+docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
 pnpm dev
 ```
