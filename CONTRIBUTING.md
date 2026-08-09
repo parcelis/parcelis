@@ -71,10 +71,13 @@ pnpm dev
 ```
 
 `pnpm dev` uses the Parcelis host-port block and chooses the next open port when a default is busy.
-It starts PostgreSQL, MinIO, and the one-shot MinIO initialization job automatically; Docker must be running.
+It starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job automatically; Docker must be running.
 It reads the root `.env` so the web, API, and database connection use the same port configuration.
-Defaults are web `http://localhost:30000`, docs `http://localhost:40000`, API
-`http://localhost:40010`, PostgreSQL `localhost:54320`, pgAdmin
+Use nginx as the local entry point: web is `http://localhost`, docs are
+`http://localhost/docs/`, and the REST API is `http://localhost/api/v1`.
+The host processes remain available on web `http://localhost:30000`, docs
+`http://localhost:40000`, and API `http://localhost:40010`. PostgreSQL is on
+`localhost:54320`, pgAdmin is on
 `http://localhost:8000`, MinIO `http://localhost:9001`, and the MinIO console
 `http://localhost:9010`.
 pgAdmin is available at `http://localhost:8000` with the default login
@@ -94,7 +97,7 @@ expirations, and unit-level maintenance tickets.
 
 Parcelis uses two Compose workflows:
 
-- `docker-compose-dev.yml` starts only the local infrastructure services needed for development: PostgreSQL, pgAdmin, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, and docs processes stay on the host so you get hot reload.
+- `docker-compose-dev.yml` starts nginx and the local infrastructure services needed for development: PostgreSQL, pgAdmin, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, and docs processes stay on the host so you get hot reload.
 - `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, plus PostgreSQL and MinIO.
 
 #### Local development dependencies
@@ -105,7 +108,7 @@ cp .env.example .env
 docker compose -f docker-compose-dev.yml up -d
 ```
 
-The development stack is intended for local dependencies only. `pnpm dev` starts the required PostgreSQL, MinIO, and MinIO initialization services before starting the host-based web, API, and docs processes. Keep the compose stack running while you work, then stop it when you are done.
+The development stack provides the nginx gateway and local dependencies. `pnpm dev` starts nginx, PostgreSQL, MinIO, and MinIO initialization before starting the host-based web, API, and docs processes. Keep the compose stack running while you work, then stop it when you are done. Set `GATEWAY_PORT` when port 80 is already in use.
 
 #### Production-style deployment
 

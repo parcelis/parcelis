@@ -4,7 +4,7 @@ const config: Config = {
   title: "Parcelis Docs",
   tagline: "Property management, made practical.",
   url: "https://docs.parcelis.dev",
-  baseUrl: "/",
+  baseUrl: process.env.DOCS_BASE_URL ?? "/",
   organizationName: "parcelis",
   projectName: "parcelis",
   onBrokenLinks: "throw",
@@ -110,7 +110,7 @@ const config: Config = {
           label: "Parcelis",
           position: "right",
         },
-            ],
+      ],
     },
     /*
     footer: {

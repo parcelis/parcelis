@@ -28,6 +28,11 @@ asset URLs are served by MinIO / S3-compatible storage.
       Docusaurus documentation site (apps/docs) is built and deployed separately.
 ```
 
+During local development, nginx listens on `http://localhost` and routes `/` to
+the web app, `/trpc/*` and `/api/*` to the API, and `/docs/*` to Docusaurus.
+The three application processes continue to run on their own host ports for hot
+reload.
+
 ## Monorepo structure
 
 ### Applications

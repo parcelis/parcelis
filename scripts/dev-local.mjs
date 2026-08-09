@@ -13,6 +13,8 @@ if (existsSync(envPath)) {
 const apiPort = await findOpenPort(process.env.API_PORT ?? 40010);
 const webPort = await findOpenPort(process.env.WEB_PORT ?? process.env.PORT ?? 30000);
 const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 40000);
+const gatewayPort = process.env.GATEWAY_PORT ?? 80;
+const gatewayOrigin = Number(gatewayPort) === 80 ? "http://localhost" : `http://localhost:${gatewayPort}`;
 const postgresPort = process.env.POSTGRES_PORT ?? 54320;
 const minioPort = process.env.MINIO_API_PORT ?? 9001;
 const databaseUrl =
@@ -34,6 +36,12 @@ const darkBrandLogoUrl =
 function runCompose(args) {
   execFileSync("docker", ["compose", "-f", "docker-compose-dev.yml", ...args], {
     cwd: resolve(import.meta.dirname, ".."),
+    env: {
+      ...process.env,
+      API_PORT: String(apiPort),
+      DOCS_PORT: String(docsPort),
+      WEB_PORT: String(webPort),
+    },
     stdio: "inherit",
   });
 }
@@ -41,6 +49,7 @@ function runCompose(args) {
 function startDevelopmentServices() {
   try {
     console.log("[parcelis] Ensuring local services are running");
+    runCompose(["up", "-d", "gateway"]);
     runCompose(["up", "-d", "--wait", "postgres"]);
     runCompose(["up", "-d", "minio"]);
     runCompose(["up", "minio-init"]);
@@ -65,7 +74,7 @@ const processes = [
       S3_PUBLIC_ENDPOINT: objectStoragePublicEndpoint,
       S3_REGION: process.env.S3_REGION ?? "us-east-1",
       S3_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,
-      WEB_ORIGIN: `http://localhost:${webPort}`,
+      WEB_ORIGIN: gatewayOrigin,
     },
   },
   {
@@ -76,7 +85,8 @@ const processes = [
       NEXT_PUBLIC_BRAND_LOGO_URL: brandLogoUrl,
       NEXT_PUBLIC_DARK_BRAND_LOGO_URL: darkBrandLogoUrl,
       PORT: String(webPort),
-      NEXT_PUBLIC_API_URL: `http://localhost:${apiPort}`,
+      API_INTERNAL_URL: `http://localhost:${apiPort}`,
+      NEXT_PUBLIC_API_URL: "",
     },
   },
   {
@@ -84,14 +94,15 @@ const processes = [
     args: ["--filter", "@parcelis/docs", "dev:fixed"],
     env: {
       PORT: String(docsPort),
+      DOCS_BASE_URL: "/docs/",
     },
   },
 ];
 
 console.log("[parcelis] Starting local development");
-console.log(`[parcelis] Web:  http://localhost:${webPort}`);
-console.log(`[parcelis] API:  http://localhost:${apiPort}`);
-console.log(`[parcelis] Docs: http://localhost:${docsPort}`);
+console.log(`[parcelis] Web:  ${gatewayOrigin}`);
+console.log(`[parcelis] API:  ${gatewayOrigin}/api/v1`);
+console.log(`[parcelis] Docs: ${gatewayOrigin}/docs/`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);
 
 const children = processes.map(({ name, args, env }) => {
