@@ -1,0 +1,54 @@
+---
+id: deploy-with-docker
+title: Deploy with Docker
+sidebar_label: Deploy with Docker
+---
+
+Parcelis ships published container images for the application and documentation site. The simplest way to run the platform is to use Docker directly when you already have PostgreSQL and S3-compatible storage services available.
+
+## Requirements
+
+To run Parcelis with Docker, the minimum requirements are simply those required to install and run Docker. For production deployments, we recommend a Linux host with a supported Docker engine and a reverse proxy in front of the exposed services.
+
+## Setting up Parcelis
+
+Once Docker is installed, the rest of the process is straightforward. Start the web app container with the required environment variables:
+
+```bash
+docker run -d --name parcelis-app \
+  -p 3000:3000 \
+  -e DATABASE_URL=postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public \
+  -e WEB_ORIGIN=https://parcelis.example.com \
+  -e AUTH_COOKIE_DOMAIN=parcelis.example.com \
+  -e AUTH_COOKIE_SECURE=true \
+  -e S3_ENDPOINT=https://s3.example.com \
+  -e S3_PUBLIC_ENDPOINT=https://s3.example.com \
+  -e S3_BUCKET=parcelis-images \
+  -e S3_ACCESS_KEY_ID=your-access-key \
+  -e S3_SECRET_ACCESS_KEY=your-secret-key \
+  parcelis/app:v0.3.0
+```
+
+You can run the documentation site separately with the published docs image:
+
+```bash
+docker run -d --name parcelis-docs \
+  -p 8080:80 \
+  parcelis/docs:v0.3.0
+```
+
+:::caution
+If you are planning to run Parcelis in a production environment, update the values for the database, object storage, and authentication settings before you expose the service publicly. Use strong, unique credentials and keep them out of shell history and version control.
+:::
+
+## Required environment variables
+
+The app container expects the following values at minimum:
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `WEB_ORIGIN`: the public origin used by the web app
+- `AUTH_COOKIE_DOMAIN`: the cookie domain for authentication sessions
+- `AUTH_COOKIE_SECURE`: set to `true` when the app is served over HTTPS
+- `S3_ENDPOINT` and `S3_PUBLIC_ENDPOINT`: S3-compatible endpoint URLs
+- `S3_BUCKET`: the object-storage bucket used for uploaded images
+- `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`: credentials for object storage

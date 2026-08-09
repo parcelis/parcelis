@@ -1,0 +1,55 @@
+---
+id: deploy-with-docker-compose
+title: Deploy with Docker Compose
+sidebar_label: Deploy with Docker Compose
+---
+
+Docker Compose is the recommended way to deploy Parcelis for a full production-style environment because it starts the application, documentation site, PostgreSQL, and MinIO together and runs the migration and storage initialization steps automatically.
+
+## Requirements
+
+To run the Parcelis platform, the minimum requirements are simply those required to install and run Docker. For production deployments, we recommend a Linux host with a supported Docker engine and Compose v2 installation.
+
+## Setting up Parcelis
+
+Once Docker is installed, the rest of the process is straightforward. Download or copy the files below to your host:
+
+1. [docker-compose.yml](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose.yml) - this defines the images used by Parcelis and how the services are orchestrated.
+2. [.env.production.example](https://raw.githubusercontent.com/parcelis/parcelis/main/.env.production.example) - this contains the default environment settings for the production deployment.
+
+Then configure the environment file and start the stack:
+
+```bash
+cp .env.production.example .env.production
+# edit .env.production with your production values
+
+docker compose --env-file .env.production pull
+docker compose --env-file .env.production up -d --remove-orphans
+```
+
+The stack will run the migration job first, then start the app and docs services once the database and object storage are ready.
+
+:::caution
+If you are planning to run Parcelis in a production environment, update the values in the secrets and authentication sections of `.env.production` before you go live. Use strong, unique values for the database, MinIO, and authentication settings so only you can access the platform services.
+:::
+
+## What the stack does
+
+- `migrate` runs Prisma migrations before the app starts
+- `minio-init` creates the object-storage buckets and uploads public brand assets
+- `app` serves the web UI and API
+- `docs` serves the documentation site
+
+## Verify the deployment
+
+After the containers are running, confirm the expected services are healthy:
+
+```bash
+docker compose --env-file .env.production ps
+```
+
+Then open the public URLs for your deployed web app and docs site. If you need to stop the stack later, run:
+
+```bash
+docker compose --env-file .env.production down
+```
