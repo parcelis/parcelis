@@ -54,13 +54,12 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 
 ## Deployment
 
-Published releases provide a combined application image at Docker Hub as `<namespace>/app` and a documentation image as `<namespace>/docs`. The application image serves the web UI and API through one public port. PostgreSQL and MinIO remain separate, persistent services managed by `docker-compose.yml`.
+Published releases provide a combined application image at Docker Hub as `parcelis/apps` and a documentation image as `parcelis/docs`. The application image serves the web UI and API through one public port. PostgreSQL and MinIO remain separate, persistent services managed by `docker-compose.yml`.
 
 Before publishing the first release, configure these GitHub repository values:
 
-- Variable: `DOCKERHUB_NAMESPACE` — the Docker Hub user or organization that owns the images.
 - Secret: `DOCKERHUB_USERNAME` — the Docker Hub username used for publishing.
-- Secret: `DOCKERHUB_TOKEN` — a Docker Hub access token with permission to push to that namespace.
+- Secret: `DOCKERHUB_TOKEN` — a Docker Hub access token with permission to push to the `parcelis` organization.
 
 Copy `.env.production.example` to `.env.production`, set the production values, then run:
 
@@ -69,7 +68,7 @@ docker compose --env-file .env.production pull
 docker compose --env-file .env.production up -d
 ```
 
-Set `PARCELIS_IMAGE`, `PARCELIS_DOCS_IMAGE`, and `PARCELIS_VERSION` to your Docker Hub namespace and a release tag such as `v0.3.0`; do not rely on `latest` for a production deployment.
+Set `PARCELIS_VERSION` to a release tag such as `v0.3.0`; do not rely on `latest` for a production deployment.
 
 ## Contributing
 
