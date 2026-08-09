@@ -140,7 +140,7 @@ docker compose --env-file .env.production up -d --remove-orphans
 docker compose --env-file .env.production logs -f app-service migrate-service minio-init-service
 ```
 
-Set `PARCELIS_VERSION` to a release tag such as `v0.3.0`; do not rely on `latest` for a production deployment. The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `APP_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
+Set `PARCELIS_VERSION` to a release tag such as `v0.4.0`; do not rely on `latest` for a production deployment. The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `APP_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
 
 ## Contributing
 

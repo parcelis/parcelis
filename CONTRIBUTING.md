@@ -112,7 +112,7 @@ The development stack provides the nginx proxy and local dependencies. `pnpm dev
 
 #### Production-style deployment
 
-Copy `.env.production.example` to `.env.production`, replace every placeholder, and set `PARCELIS_VERSION` to a release tag such as `v0.3.0` rather than using `latest`.
+Copy `.env.production.example` to `.env.production`, replace every placeholder, and set `PARCELIS_VERSION` to a release tag such as `v0.4.0` rather than using `latest`.
 
 ```bash
 docker compose --env-file .env.production pull

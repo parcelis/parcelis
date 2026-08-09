@@ -60,7 +60,7 @@ services:
       - parcelis
 
   migrate-service:
-    image: parcelis/app:v0.3.0
+    image: parcelis/app:v0.4.0
     container_name: parcelis-migrate
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     environment:
@@ -85,7 +85,7 @@ services:
       - parcelis
 
   app-service:
-    image: parcelis/app:v0.3.0
+    image: parcelis/app:v0.4.0
     container_name: parcelis-app
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-service:5432/${POSTGRES_DB}?schema=public
@@ -108,7 +108,7 @@ services:
       - parcelis
 
   docs-service:
-    image: parcelis/docs:v0.3.0
+    image: parcelis/docs:v0.4.0
     container_name: parcelis-docs
     networks:
       - parcelis
