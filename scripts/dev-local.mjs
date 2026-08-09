@@ -13,8 +13,8 @@ if (existsSync(envPath)) {
 const apiPort = await findOpenPort(process.env.API_PORT ?? 40010);
 const webPort = await findOpenPort(process.env.WEB_PORT ?? process.env.PORT ?? 30000);
 const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 40000);
-const gatewayPort = process.env.GATEWAY_PORT ?? 80;
-const gatewayOrigin = Number(gatewayPort) === 80 ? "http://localhost" : `http://localhost:${gatewayPort}`;
+const proxyPort = process.env.PROXY_PORT ?? 80;
+const proxyOrigin = Number(proxyPort) === 80 ? "http://localhost" : `http://localhost:${proxyPort}`;
 const postgresPort = process.env.POSTGRES_PORT ?? 54320;
 const minioPort = process.env.MINIO_API_PORT ?? 9001;
 const databaseUrl =
@@ -49,7 +49,7 @@ function runCompose(args) {
 function startDevelopmentServices() {
   try {
     console.log("[parcelis] Ensuring local services are running");
-    runCompose(["up", "-d", "gateway"]);
+    runCompose(["up", "-d", "proxy"]);
     runCompose(["up", "-d", "--wait", "postgres"]);
     runCompose(["up", "-d", "minio"]);
     runCompose(["up", "minio-init"]);
@@ -74,7 +74,7 @@ const processes = [
       S3_PUBLIC_ENDPOINT: objectStoragePublicEndpoint,
       S3_REGION: process.env.S3_REGION ?? "us-east-1",
       S3_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,
-      WEB_ORIGIN: gatewayOrigin,
+      WEB_ORIGIN: proxyOrigin,
     },
   },
   {
@@ -100,9 +100,9 @@ const processes = [
 ];
 
 console.log("[parcelis] Starting local development");
-console.log(`[parcelis] Web:  ${gatewayOrigin}`);
-console.log(`[parcelis] API:  ${gatewayOrigin}/api/v1`);
-console.log(`[parcelis] Docs: ${gatewayOrigin}/docs/`);
+console.log(`[parcelis] Web:  ${proxyOrigin}`);
+console.log(`[parcelis] API:  ${proxyOrigin}/api/v1`);
+console.log(`[parcelis] Docs: ${proxyOrigin}/docs/`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);
 
 const children = processes.map(({ name, args, env }) => {

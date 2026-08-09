@@ -1,5 +1,0 @@
-:3000 {
-  @api path /trpc /trpc/* /api /api/*
-  reverse_proxy @api 127.0.0.1:4000
-  reverse_proxy 127.0.0.1:3001
-}

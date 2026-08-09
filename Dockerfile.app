@@ -3,7 +3,7 @@ FROM node:22-alpine
 
 WORKDIR /repo
 
-RUN apk add --no-cache caddy openssl supervisor && corepack enable
+RUN apk add --no-cache nginx openssl supervisor && corepack enable
 
 COPY . .
 
@@ -11,7 +11,7 @@ RUN pnpm install --frozen-lockfile \
   && pnpm --filter @parcelis/api build \
   && pnpm --filter @parcelis/web build
 
-COPY infra/docker/app/Caddyfile /etc/caddy/Caddyfile
+COPY infra/docker/app/nginx.conf /etc/nginx/http.d/default.conf
 COPY infra/docker/app/supervisord.conf /etc/supervisord.conf
 
 EXPOSE 3000

@@ -13,9 +13,9 @@ RUN pnpm install --frozen-lockfile --filter @parcelis/docs...
 FROM dependencies AS build
 COPY apps/docs apps/docs
 WORKDIR /repo/apps/docs
-RUN pnpm build
+RUN DOCS_BASE_URL=/docs/ pnpm build
 
-FROM caddy:2-alpine AS caddy
-COPY apps/docs/Caddyfile /etc/caddy/Caddyfile
-COPY --from=build /repo/apps/docs/build /srv
+FROM nginx:1.27-alpine AS nginx
+COPY apps/docs/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /repo/apps/docs/build /usr/share/nginx/html
 EXPOSE 80

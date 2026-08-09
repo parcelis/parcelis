@@ -33,34 +33,42 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 ![GitHub License](https://img.shields.io/github/license/parcelis/parcelis)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-3.0-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-
 ## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
 
 <br /><br />
 
 ## 🧩 Features
+
 ### Run your rentals in one place
+
 Keep your properties, units, tenants, maintenance, and day-to-day operations organized in one shared workspace—without juggling spreadsheets, email threads, and separate tools.
 
 ### Keep your team on the same page
+
 Give every team member visibility into what needs attention, who owns it, and what has already been completed. Parcelis keeps operational work clear, accountable, and moving forward.
 
 ### Manage tenants with confidence
+
 Maintain a complete view of each tenant alongside the property information, requests, and activity that matter—so your team always has the context to respond quickly.
 
 ### Stay ahead of maintenance
+
 Create, assign, track, and resolve maintenance tickets in one place. Keep residents informed, coordinate work internally, and make sure important issues do not slip through the cracks.
 
 ### Bring everyday operations into the app
+
 Tenant questions, repair needs, follow-ups, and other operational tasks happen every day. Parcelis gives your team a simple way to capture, manage, and close the loop on that work.
 
 ### Built for growing portfolios
+
 Whether you manage a handful of homes or a growing portfolio, Parcelis gives your team a consistent operational system that scales with the way you work.
 
 ### Collect rent
+
 Coming soon. Give tenants a straightforward way to pay rent while keeping payment activity connected to the rest of your rental operations.
 
 ### Handle non-maintenance requests
+
 Coming soon. Manage questions, move-in needs, access requests, and other tenant needs alongside maintenance—so every request has a clear owner and outcome.
 
 Parcelis is the operating system for rental teams—bringing properties, tenants, maintenance, and everyday requests into one place.
@@ -83,7 +91,9 @@ Parcelis is the operating system for rental teams—bringing properties, tenants
 Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEPENDENCIES.md) for the maintained technology inventory and each tool's role.
 
 ### Tech Stack
+
 ---
+
 <p align="left">
   <a href="https://www.typescriptlang.org"><img src="https://shields.io/badge/TypeScript-3178C6?logo=TypeScript&logoColor=FFF&style=flat-square" alt="TypeScript"></a>
   <a href="https://prisma.io"><img width="122" height="20" src="http://made-with.prisma.io/indigo.svg" alt="Made with Prisma" /></a>
@@ -130,7 +140,7 @@ docker compose --env-file .env.production up -d --remove-orphans
 docker compose --env-file .env.production logs -f app migrate minio-init
 ```
 
-Set `PARCELIS_VERSION` to a release tag such as `v0.3.0`; do not rely on `latest` for a production deployment. The app container serves the web UI and API on the configured `WEB_PORT`, while the docs container serves the documentation site on `DOCS_PORT`. Put a TLS reverse proxy in front of those public endpoints and the object-storage endpoint you expose through S3.
+Set `PARCELIS_VERSION` to a release tag such as `v0.3.0`; do not rely on `latest` for a production deployment. The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `WEB_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
 
 ## Contributing
 

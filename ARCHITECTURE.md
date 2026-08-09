@@ -170,7 +170,7 @@ For scoped work, prefer the package-level command, for example `pnpm --filter @p
 
 ## Container deployment
 
-`Dockerfile.app` builds `apps/web` and `apps/api` into the single `app` image. Caddy routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the container. A release workflow publishes `app` and `docs` to Docker Hub when a GitHub release is published.
+`Dockerfile.app` builds `apps/web` and `apps/api` into the single `app` image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the container. The production Compose proxy is also nginx and routes `/docs/*` to the documentation container. A release workflow publishes `app` and `docs` to Docker Hub when a GitHub release is published.
 
 ## Design rules
 

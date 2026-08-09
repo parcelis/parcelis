@@ -8,7 +8,7 @@ Parcelis ships published container images for the application and documentation 
 
 ## Requirements
 
-To run Parcelis with Docker, the minimum requirements are simply those required to install and run Docker. For production deployments, we recommend a Linux host with a supported Docker engine and a reverse proxy in front of the exposed services.
+To run Parcelis with Docker, the minimum requirements are simply those required to install and run Docker. The production Compose stack includes nginx as the proxy for the web app, API, and documentation site.
 
 ## Setting up Parcelis
 
@@ -29,12 +29,10 @@ docker run -d --name parcelis-app \
   parcelis/app:v0.3.0
 ```
 
-You can run the documentation site separately with the published docs image:
+The published documentation image is designed to be mounted at `/docs/` by the nginx proxy. Use the production Compose stack when serving the application and documentation site together.
 
 ```bash
-docker run -d --name parcelis-docs \
-  -p 8080:80 \
-  parcelis/docs:v0.3.0
+docker compose --env-file .env.production up -d
 ```
 
 :::caution
@@ -52,3 +50,6 @@ The app container expects the following values at minimum:
 - `S3_ENDPOINT` and `S3_PUBLIC_ENDPOINT`: S3-compatible endpoint URLs
 - `S3_BUCKET`: the object-storage bucket used for uploaded images
 - `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`: credentials for object storage
+
+The nginx proxy exposes the web app at `/`, documentation at `/docs/`, and
+the API at `/api/v1`.
