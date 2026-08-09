@@ -18,6 +18,9 @@ jobs:
           - image: docs
             file: apps/docs/Dockerfile
             target: nginx
+          - image: proxy
+            file: infra/docker/proxy/Dockerfile
+            target: proxy
     steps:
       - uses: actions/checkout@v4
 

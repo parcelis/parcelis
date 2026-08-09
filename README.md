@@ -116,7 +116,7 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 
 ## Deployment
 
-Published releases publish separate Docker images for the application and docs stack: `parcelis/app` and `parcelis/docs`. The production Compose file starts the web/API application, docs site, PostgreSQL, and MinIO together, with the `migrate` and `minio-init` containers running once to prepare the database and object storage before the main services start.
+Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/app`, `parcelis/docs`, and `parcelis/proxy`. The production Compose file starts the web/API application, docs site, PostgreSQL, and MinIO together, with the `migrate` and `minio-init` containers running once to prepare the database and object storage before the main services start.
 
 Before publishing the first release, configure these GitHub repository values:
 
