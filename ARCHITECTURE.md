@@ -10,15 +10,20 @@ Parcelis is a property-management platform for landlords, small operators, and l
                               Browser
                                  |
                                  v
-                  Next.js web application (apps/web)
-                     |                         |
-                     | tRPC                    | Direct public asset URLs
-                     v                         v
-          NestJS API (apps/api)          MinIO / S3-compatible storage
+            Parcelis application image (app)
                      |
-                     | Prisma
-                     v
-                 PostgreSQL
+          +----------+----------+
+          |                     |
+          v                     v
+Next.js web application     NestJS API
+     (apps/web)             (apps/api)
+                                  |
+                                  | Prisma
+                                  v
+                              PostgreSQL
+
+The browser reaches the API through the same application origin. Direct public
+asset URLs are served by MinIO / S3-compatible storage.
 
       Docusaurus documentation site (apps/docs) is built and deployed separately.
 ```
@@ -136,7 +141,7 @@ Update the applicable user guide and generated API reference whenever a user-fac
 
 ## Local development
 
-`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, MinIO, and the MinIO initialization job for host-based development. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` builds the deployable web, API, documentation, database, and object-storage services.
+`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, MinIO, and the MinIO initialization job for host-based development. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` runs published Parcelis application and documentation images with PostgreSQL and MinIO.
 
 ```bash
 pnpm install
@@ -157,6 +162,10 @@ pnpm build
 ```
 
 For scoped work, prefer the package-level command, for example `pnpm --filter @parcelis/web typecheck`.
+
+## Container deployment
+
+`Dockerfile.app` builds `apps/web` and `apps/api` into the single `app` image. Caddy routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the container. A release workflow publishes `app` and `docs` to Docker Hub when a GitHub release is published.
 
 ## Design rules
 

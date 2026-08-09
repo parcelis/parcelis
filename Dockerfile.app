@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+FROM node:22-alpine
+
+WORKDIR /repo
+
+RUN apk add --no-cache caddy openssl supervisor && corepack enable
+
+COPY . .
+
+RUN pnpm install --frozen-lockfile \
+  && pnpm --filter @parcelis/api build \
+  && pnpm --filter @parcelis/web build
+
+COPY infra/docker/app/Caddyfile /etc/caddy/Caddyfile
+COPY infra/docker/app/supervisord.conf /etc/supervisord.conf
+
+EXPOSE 3000
+
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]

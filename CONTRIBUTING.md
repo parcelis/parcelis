@@ -100,16 +100,17 @@ cp .env.example .env
 docker compose -f docker-compose-dev.yml up -d
 ```
 
-`docker-compose.yml` builds and runs the deployable application stack. Copy
-`.env.production.example` to `.env.production`, replace every placeholder, then run:
+`docker-compose.yml` runs the published application stack. Copy
+`.env.production.example` to `.env.production`, set `PARCELIS_VERSION` to a release tag, replace every placeholder, then run:
 
 ```bash
-docker compose --env-file .env.production up -d --build
+docker compose --env-file .env.production pull
+docker compose --env-file .env.production up -d
 ```
 
-It runs database migrations and MinIO provisioning before starting the API. The
+It runs database migrations and MinIO provisioning before starting the application. The
 `migrate` and `minio-init` containers exit successfully after that work; MinIO itself
-continues running. Put a TLS reverse proxy in front of the web, API, docs, and object-storage URLs configured in `.env.production`.
+continues running. The application image serves the web UI and API on one port. Put a TLS reverse proxy in front of the application, docs, and object-storage URLs configured in `.env.production`.
 
 For local dependency logs and cleanup:
 

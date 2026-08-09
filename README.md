@@ -26,11 +26,7 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br />
 
-[![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml)   [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml)   ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/parcelis/parcelis)   ![GitHub Issues](https://img.shields.io/github/issues/parcelis/parcelis)   ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/parcelis/parcelis)   ![GitHub Discussions (all)](https://img.shields.io/github/discussions/all/parcelis/parcelis)
-
-
-
-
+[![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml) [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/parcelis/parcelis) ![GitHub Issues](https://img.shields.io/github/issues/parcelis/parcelis) ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/parcelis/parcelis) ![GitHub Discussions (all)](https://img.shields.io/github/discussions/all/parcelis/parcelis)
 
 ## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
 
@@ -52,6 +48,25 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 ## Technology
 
 Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEPENDENCIES.md) for the maintained technology inventory and each tool's role.
+
+## Deployment
+
+Published releases provide a combined application image at Docker Hub as `<namespace>/app` and a documentation image as `<namespace>/docs`. The application image serves the web UI and API through one public port. PostgreSQL and MinIO remain separate, persistent services managed by `docker-compose.yml`.
+
+Before publishing the first release, configure these GitHub repository values:
+
+- Variable: `DOCKERHUB_NAMESPACE` — the Docker Hub user or organization that owns the images.
+- Secret: `DOCKERHUB_USERNAME` — the Docker Hub username used for publishing.
+- Secret: `DOCKERHUB_TOKEN` — a Docker Hub access token with permission to push to that namespace.
+
+Copy `.env.production.example` to `.env.production`, set the production values, then run:
+
+```bash
+docker compose --env-file .env.production pull
+docker compose --env-file .env.production up -d
+```
+
+Set `PARCELIS_IMAGE`, `PARCELIS_DOCS_IMAGE`, and `PARCELIS_VERSION` to your Docker Hub namespace and a release tag such as `v0.3.0`; do not rely on `latest` for a production deployment.
 
 ## Contributing
 

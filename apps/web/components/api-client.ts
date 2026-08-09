@@ -7,7 +7,7 @@ import type { NoteSubjectInput } from "@parcelis/schemas";
 export const apiClient = createTRPCProxyClient<AppRouter>({
   links: [
     httpBatchLink({
-      url: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:40010"}/trpc`,
+      url: `${process.env.NEXT_PUBLIC_API_URL ?? ""}/trpc`,
       fetch(url, options) {
         return fetch(url, { ...options, credentials: "include" });
       },

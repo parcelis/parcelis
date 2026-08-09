@@ -57,9 +57,7 @@ services:
       - parcelis
 
   migrate:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ${PARCELIS_IMAGE}:${PARCELIS_VERSION:-latest}
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -69,13 +67,10 @@ services:
     networks:
       - parcelis
 
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+  app:
+    image: ${PARCELIS_IMAGE}:${PARCELIS_VERSION:-latest}
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      API_PORT: "4000"
       WEB_ORIGIN: ${WEB_ORIGIN}
       AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
@@ -87,7 +82,7 @@ services:
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "${API_PORT:-40010}:4000"
+      - "${WEB_PORT:-3000}:3000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -96,30 +91,8 @@ services:
     networks:
       - parcelis
 
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_S3_URL: ${NEXT_PUBLIC_S3_URL}
-        NEXT_PUBLIC_BRAND_LOGO_URL: ${NEXT_PUBLIC_BRAND_LOGO_URL}
-        NEXT_PUBLIC_DARK_BRAND_LOGO_URL: ${NEXT_PUBLIC_DARK_BRAND_LOGO_URL}
-    environment:
-      API_INTERNAL_URL: http://api:4000
-    ports:
-      - "${WEB_PORT:-3000}:3000"
-    depends_on:
-      api:
-        condition: service_started
-    networks:
-      - parcelis
-
   docs:
-    build:
-      context: .
-      dockerfile: apps/docs/Dockerfile
-      target: caddy
+    image: ${PARCELIS_DOCS_IMAGE}:${PARCELIS_VERSION:-latest}
     ports:
       - "${DOCS_PORT:-8080}:80"
     networks:
