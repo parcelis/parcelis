@@ -101,6 +101,8 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 - [shadcn/ui](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/) - Component Library
 - [tRPC](https://trpc.io/) - API
 - [Biome](https://biomejs.dev/) - Linting & Formatting
+- [Docusaurus](https://docusaurus.io/) - Documentation
+- [TanStack Hotkeys](https://tanstack.com/hotkeys/latest) - Keyboard Shortcuts
 
 ## Deployment
 
