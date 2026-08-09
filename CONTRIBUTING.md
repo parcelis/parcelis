@@ -158,11 +158,11 @@ Property images are stored under
 `tenants/{tenantId}/images/{imageId}.{extension}`. Both use the private
 `parcelis-images` bucket and short-lived signed URLs.
 
-For Docker Compose, host ports are configured with `WEB_PORT`, `API_PORT`, `POSTGRES_PORT`,
+For Docker Compose, host ports are configured with `APP_PORT`, `API_PORT`, `POSTGRES_PORT`,
 `PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
 
 ```bash
-WEB_PORT=43200 API_PORT=43202 DOCS_PORT=43201 POSTGRES_PORT=43203 PGADMIN_PORT=43204 MINIO_API_PORT=43205 MINIO_CONSOLE_PORT=43206 docker compose -f docker-compose-dev.yml up
+APP_PORT=43200 API_PORT=43202 DOCS_PORT=43201 POSTGRES_PORT=43203 PGADMIN_PORT=43204 MINIO_API_PORT=43205 MINIO_CONSOLE_PORT=43206 docker compose -f docker-compose-dev.yml up
 ```
 
 The Compose services retain their standard internal ports, but map to the

@@ -11,7 +11,7 @@ if (existsSync(envPath)) {
 }
 
 const apiPort = await findOpenPort(process.env.API_PORT ?? 40010);
-const webPort = await findOpenPort(process.env.WEB_PORT ?? process.env.PORT ?? 30000);
+const appPort = await findOpenPort(process.env.APP_PORT ?? process.env.PORT ?? 30000);
 const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 40000);
 const proxyPort = process.env.PROXY_PORT ?? 80;
 const proxyOrigin = Number(proxyPort) === 80 ? "http://localhost" : `http://localhost:${proxyPort}`;
@@ -40,7 +40,7 @@ function runCompose(args) {
       ...process.env,
       API_PORT: String(apiPort),
       DOCS_PORT: String(docsPort),
-      WEB_PORT: String(webPort),
+      APP_PORT: String(appPort),
     },
     stdio: "inherit",
   });
@@ -84,7 +84,7 @@ const processes = [
       NEXT_PUBLIC_S3_URL: objectStoragePublicEndpoint,
       NEXT_PUBLIC_BRAND_LOGO_URL: brandLogoUrl,
       NEXT_PUBLIC_DARK_BRAND_LOGO_URL: darkBrandLogoUrl,
-      PORT: String(webPort),
+      PORT: String(appPort),
       API_INTERNAL_URL: `http://localhost:${apiPort}`,
       NEXT_PUBLIC_API_URL: "",
     },

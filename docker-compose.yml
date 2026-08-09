@@ -70,7 +70,7 @@ services:
   proxy:
     image: nginx:1.27-alpine
     ports:
-      - "${WEB_PORT:-3000}:80"
+      - "${APP_PORT:-3000}:80"
     volumes:
       - ./infra/docker/proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
