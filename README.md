@@ -14,14 +14,14 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
   <a href="https://github.com/parcelis/parcelis/discussions">Community Discussions</a>
 </h3>
 
-<br /><br />
+<br />
 
 <p align="center">
 <a href="https://discord.gg/4XYkWmVpWH"><img src="https://i.imgur.com/d7JM2wK.png" width="150px" /></a>
 <span>&nbsp; &nbsp; &nbsp;</span>
 <a href="https://parcelis.dev/"><img width="50" height="50" alt="image" src="https://github.com/user-attachments/assets/9f838f54-df0d-4f52-bfa8-8d21e8c99735" /></a>
 <span>&nbsp; &nbsp; &nbsp;</span>
-<a href="https://snyk.io/?utm_source=open-source&utm_medium=pg-ptr&utm_campaign=ref-2501-osp&utm_content=pg-cta"><img src="https://github.com/snyk-labs/secure-developer-sample-repo/blob/main/badge_round.svg" width="100px" /></a>
+<a href="https://snyk.io/?utm_source=open-source&utm_medium=pg-ptr&utm_campaign=ref-2501-osp&utm_content=pg-cta"><img src="https://github.com/snyk-labs/secure-developer-sample-repo/blob/main/badge_round.svg" width="60px" /></a>
 </p>
 
 <br />
@@ -34,6 +34,33 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 ## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
 
 <br /><br />
+
+## 🧩 Features
+### Run your rentals in one place
+Keep your properties, units, tenants, maintenance, and day-to-day operations organized in one shared workspace—without juggling spreadsheets, email threads, and separate tools.
+
+### Keep your team on the same page
+Give every team member visibility into what needs attention, who owns it, and what has already been completed. Parcelis keeps operational work clear, accountable, and moving forward.
+
+### Manage tenants with confidence
+Maintain a complete view of each tenant alongside the property information, requests, and activity that matter—so your team always has the context to respond quickly.
+
+### Stay ahead of maintenance
+Create, assign, track, and resolve maintenance tickets in one place. Keep residents informed, coordinate work internally, and make sure important issues do not slip through the cracks.
+
+### Bring everyday operations into the app
+Tenant questions, repair needs, follow-ups, and other operational tasks happen every day. Parcelis gives your team a simple way to capture, manage, and close the loop on that work.
+
+### Built for growing portfolios
+Whether you manage a handful of homes or a growing portfolio, Parcelis gives your team a consistent operational system that scales with the way you work.
+
+### Collect rent
+Coming soon. Give tenants a straightforward way to pay rent while keeping payment activity connected to the rest of your rental operations.
+
+### Handle non-maintenance requests
+Coming soon. Manage questions, move-in needs, access requests, and other tenant needs alongside maintenance—so every request has a clear owner and outcome.
+
+Parcelis is the operating system for rental teams—bringing properties, tenants, maintenance, and everyday requests into one place.
 
 ## Apps
 
