@@ -17,7 +17,7 @@ jobs:
             file: Dockerfile.app
           - image: docs
             file: apps/docs/Dockerfile
-            target: caddy
+            target: nginx
     steps:
       - uses: actions/checkout@v4
 
