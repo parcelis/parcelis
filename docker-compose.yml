@@ -1,8 +1,9 @@
 name: parcelis
 
 services:
-  postgres:
+  postgres-service:
     image: postgres:16-alpine
+    container_name: parcelis-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -17,8 +18,9 @@ services:
     networks:
       - parcelis
 
-  minio:
+  minio-service:
     image: minio/minio:latest
+    container_name: parcelis-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -31,10 +33,11 @@ services:
     networks:
       - parcelis
 
-  minio-init:
+  minio-init-service:
     image: minio/mc:latest
+    container_name: parcelis-minio-init
     depends_on:
-      - minio
+      - minio-service
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -45,7 +48,7 @@ services:
       - ./infra/minio/property-images:/property-images:ro
     entrypoint: >
       /bin/sh -c "
-      until /usr/bin/mc alias set parcelis http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      until /usr/bin/mc alias set parcelis http://minio-service:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
       /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_BUCKET;
       /usr/bin/mc anonymous set none parcelis/$$MINIO_BUCKET;
       /usr/bin/mc cors set parcelis/$$MINIO_BUCKET /property-images;
@@ -56,53 +59,57 @@ services:
     networks:
       - parcelis
 
-  migrate:
+  migrate-service:
     image: parcelis/app:v0.3.0
+    container_name: parcelis-migrate
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-service:5432/${POSTGRES_DB}?schema=public
     depends_on:
-      postgres:
+      postgres-service:
         condition: service_healthy
     networks:
       - parcelis
 
-  proxy:
+  proxy-service:
     image: nginx:1.27-alpine
+    container_name: parcelis-proxy
     ports:
       - "${APP_PORT:-3000}:80"
     volumes:
       - ./infra/docker/proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - app
-      - docs
+      - app-service
+      - docs-service
     networks:
       - parcelis
 
-  app:
+  app-service:
     image: parcelis/app:v0.3.0
+    container_name: parcelis-app
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-service:5432/${POSTGRES_DB}?schema=public
       WEB_ORIGIN: ${WEB_ORIGIN}
       AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       AUTH_DISABLED: ${AUTH_DISABLED:-false}
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://minio-service:9000
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_BUCKET: ${S3_BUCKET}
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
     depends_on:
-      migrate:
+      migrate-service:
         condition: service_completed_successfully
-      minio-init:
+      minio-init-service:
         condition: service_completed_successfully
     networks:
       - parcelis
 
-  docs:
+  docs-service:
     image: parcelis/docs:v0.3.0
+    container_name: parcelis-docs
     networks:
       - parcelis
 

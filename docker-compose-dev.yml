@@ -1,8 +1,9 @@
 name: parcelis-dev
 
 services:
-  proxy:
+  proxy-service:
     image: nginx:1.27-alpine
+    container_name: parcelis-dev-proxy
     environment:
       API_UPSTREAM_PORT: ${API_PORT:-40010}
       DOCS_UPSTREAM_PORT: ${DOCS_PORT:-40000}
@@ -14,8 +15,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  postgres:
+  postgres-service:
     image: postgres:16-alpine
+    container_name: parcelis-dev-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-parcelis}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-parcelis}
@@ -30,8 +32,9 @@ services:
       timeout: 5s
       retries: 10
 
-  pgadmin:
+  pgadmin-service:
     image: dpage/pgadmin4:latest
+    container_name: parcelis-dev-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@parcelis.dev}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-parcelis}
@@ -41,11 +44,12 @@ services:
       - pgadmin-data:/var/lib/pgadmin
       - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
     depends_on:
-      postgres:
+      postgres-service:
         condition: service_healthy
 
-  minio:
+  minio-service:
     image: minio/minio:latest
+    container_name: parcelis-dev-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
@@ -56,10 +60,11 @@ services:
     volumes:
       - minio-data:/data
 
-  minio-init:
+  minio-init-service:
     image: minio/mc:latest
+    container_name: parcelis-dev-minio-init
     depends_on:
-      - minio
+      - minio-service
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
@@ -70,7 +75,7 @@ services:
       - ./infra/minio/property-images:/property-images:ro
     entrypoint: >
       /bin/sh -c "
-      until /usr/bin/mc alias set parcelis http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      until /usr/bin/mc alias set parcelis http://minio-service:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
       /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_BUCKET;
       /usr/bin/mc anonymous set none parcelis/$$MINIO_BUCKET;
       /usr/bin/mc cors set parcelis/$$MINIO_BUCKET /property-images;
