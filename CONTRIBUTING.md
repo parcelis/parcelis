@@ -92,36 +92,41 @@ expirations, and unit-level maintenance tickets.
 
 ### Docker Compose
 
-`docker-compose-dev.yml` runs only the local dependencies. Use it with `pnpm dev`; the
-web, API, and docs processes remain on the host for hot reload.
+Parcelis uses two Compose workflows:
+
+- `docker-compose-dev.yml` starts only the local infrastructure services needed for development: PostgreSQL, pgAdmin, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, and docs processes stay on the host so you get hot reload.
+- `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, plus PostgreSQL and MinIO.
+
+#### Local development dependencies
 
 ```bash
 cp .env.example .env
+# Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
 docker compose -f docker-compose-dev.yml up -d
 ```
 
-`docker-compose.yml` runs the published application stack. Copy
-`.env.production.example` to `.env.production`, set `PARCELIS_VERSION` to a release tag, replace every placeholder, then run:
+The development stack is intended for local dependencies only. Run `pnpm dev` in a separate terminal to start the host-based web, API, and docs processes. Keep the compose stack running while you work, then stop it when you are done.
+
+#### Production-style deployment
+
+Copy `.env.production.example` to `.env.production`, replace every placeholder, and set `PARCELIS_VERSION` to a release tag such as `v0.3.0` rather than using `latest`.
 
 ```bash
 docker compose --env-file .env.production pull
-docker compose --env-file .env.production up -d
+docker compose --env-file .env.production up -d --remove-orphans
 ```
 
-It runs database migrations and MinIO provisioning before starting the application. The
-`migrate` and `minio-init` containers exit successfully after that work; MinIO itself
-continues running. The application image serves the web UI and API on one port. Put a TLS reverse proxy in front of the application, docs, and object-storage URLs configured in `.env.production`.
+The Compose stack runs the database migration job and MinIO provisioning before the application services become available. The `migrate` and `minio-init` containers exit after that initialization work; MinIO continues running and the app/docs services remain up. Put a TLS reverse proxy in front of the exposed web, docs, and object-storage endpoints configured in `.env.production`.
 
-For local dependency logs and cleanup:
+For logs and cleanup:
 
 ```bash
 docker compose -f docker-compose-dev.yml logs -f
 docker compose -f docker-compose-dev.yml down
+docker compose --env-file .env.production logs -f
 ```
 
-`docker compose -f docker-compose-dev.yml down` stops containers but preserves the local database and
-object-storage volumes. Use `docker compose -f docker-compose-dev.yml down -v` only when you intentionally
-want to erase local Parcelis data and start over.
+`docker compose -f docker-compose-dev.yml down` stops containers but preserves the local database and object-storage volumes. Use `docker compose -f docker-compose-dev.yml down -v` only when you intentionally want to erase local Parcelis data and start over.
 
 ### Object storage
 

@@ -54,21 +54,31 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 
 ## Deployment
 
-Published releases provide a combined application image at Docker Hub as `parcelis/apps` and a documentation image as `parcelis/docs`. The application image serves the web UI and API through one public port. PostgreSQL and MinIO remain separate, persistent services managed by `docker-compose.yml`.
+Published releases publish separate Docker images for the application and docs stack: `parcelis/app` and `parcelis/docs`. The production Compose file starts the web/API application, docs site, PostgreSQL, and MinIO together, with the `migrate` and `minio-init` containers running once to prepare the database and object storage before the main services start.
 
 Before publishing the first release, configure these GitHub repository values:
 
 - Secret: `DOCKERHUB_USERNAME` — the Docker Hub username used for publishing.
 - Secret: `DOCKERHUB_TOKEN` — a Docker Hub access token with permission to push to the `parcelis` organization.
 
-Copy `.env.production.example` to `.env.production`, set the production values, then run:
+For a production deployment:
+
+1. Copy `.env.production.example` to `.env.production`.
+2. Replace the placeholder values with your real hostnames and secrets, especially `PARCELIS_VERSION`, `WEB_ORIGIN`, `AUTH_COOKIE_DOMAIN`, `AUTH_COOKIE_SECURE`, and the MinIO/S3 settings.
+3. Pull the published images and start the stack:
 
 ```bash
 docker compose --env-file .env.production pull
-docker compose --env-file .env.production up -d
+docker compose --env-file .env.production up -d --remove-orphans
 ```
 
-Set `PARCELIS_VERSION` to a release tag such as `v0.3.0`; do not rely on `latest` for a production deployment.
+4. Review the startup logs if needed:
+
+```bash
+docker compose --env-file .env.production logs -f app migrate minio-init
+```
+
+Set `PARCELIS_VERSION` to a release tag such as `v0.3.0`; do not rely on `latest` for a production deployment. The app container serves the web UI and API on the configured `WEB_PORT`, while the docs container serves the documentation site on `DOCS_PORT`. Put a TLS reverse proxy in front of those public endpoints and the object-storage endpoint you expose through S3.
 
 ## Contributing
 
