@@ -30,6 +30,9 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 ![Docker Automated build](https://img.shields.io/docker/automated/ndcallahan/parcelis)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/parcelis/parcelis/publish-images.yml)
 [![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml) [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/parcelis/parcelis) ![GitHub Issues](https://img.shields.io/github/issues/parcelis/parcelis) ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/parcelis/parcelis) ![GitHub Discussions (all)](https://img.shields.io/github/discussions/all/parcelis/parcelis)
+![GitHub License](https://img.shields.io/github/license/parcelis/parcelis)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-3.0-4baaaa.svg)](CODE_OF_CONDUCT.md)
+
 
 ## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
 
@@ -78,6 +81,26 @@ Parcelis is the operating system for rental teams—bringing properties, tenants
 ## Technology
 
 Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEPENDENCIES.md) for the maintained technology inventory and each tool's role.
+
+### Tech Stack
+---
+<p align="left">
+  <a href="https://www.typescriptlang.org"><img src="https://shields.io/badge/TypeScript-3178C6?logo=TypeScript&logoColor=FFF&style=flat-square" alt="TypeScript"></a>
+  <a href="https://prisma.io"><img width="122" height="20" src="http://made-with.prisma.io/indigo.svg" alt="Made with Prisma" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/tailwindcss-0F172A?&logo=tailwindcss" alt="Tailwind CSS"></a>
+  <a href=""><img src="" alt=""></a>
+  <a href=""><img src="" alt=""></a>
+  <a href=""><img src="" alt=""></a>
+  <a href=""><img src="" alt=""></a>
+  <a href=""><img src="" alt=""></a>
+</p>
+
+- [TypeScript](https://www.typescriptlang.org/) - Language
+- [Prisma](https://www.prisma.io/) - ORM
+- [Tailwind CSS](https://tailwindcss.com/) - CSS
+- [shadcn/ui](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/) - Component Library
+- [tRPC](https://trpc.io/) - API
+- [Biome](https://biomejs.dev/) - Linting & Formatting
 
 ## Deployment
 
