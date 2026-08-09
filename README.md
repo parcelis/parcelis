@@ -26,6 +26,9 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br />
 
+![GitHub Tag](https://img.shields.io/github/v/tag/parcelis/parcelis)
+![Docker Automated build](https://img.shields.io/docker/automated/ndcallahan/parcelis)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/parcelis/parcelis/publish-images.yml)
 [![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml) [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/parcelis/parcelis) ![GitHub Issues](https://img.shields.io/github/issues/parcelis/parcelis) ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/parcelis/parcelis) ![GitHub Discussions (all)](https://img.shields.io/github/discussions/all/parcelis/parcelis)
 
 ## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
