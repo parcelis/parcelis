@@ -3,12 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ChevronRight, DoorOpen } from "lucide-react";
+import { Building2, ChevronRight, DoorOpen, Search } from "lucide-react";
 import {
   Button,
   Card,
   CardContent,
   CardHeader,
+  Input,
   ParcelisLogo,
   Table,
   TableBody,
@@ -42,6 +43,7 @@ function formatLeaseStatus(status: string) {
 export default function IncomePage() {
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [groupByProperty, setGroupByProperty] = React.useState(true);
+  const [search, setSearch] = React.useState("");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -56,7 +58,18 @@ export default function IncomePage() {
   const scheduledIncomeCents = incomeProperties.reduce((total, property) => total + property.monthlyRentCents, 0);
   const overdueCents = incomeProperties.reduce((total, property) => total + property.amountOverdueCents, 0);
   const expectedIncomeCents = Math.max(scheduledIncomeCents - overdueCents, 0);
-  const incomeLeases = incomeProperties.flatMap((property) =>
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredIncomeProperties = incomeProperties
+    .map((property) => ({
+      ...property,
+      incomeLeases: property.incomeLeases.filter((lease) =>
+        [property.name, lease.unitLabel, formatLeaseStatus(lease.status)].some((value) =>
+          value.toLowerCase().includes(normalizedSearch),
+        ),
+      ),
+    }))
+    .filter((property) => property.incomeLeases.length > 0);
+  const incomeLeases = filteredIncomeProperties.flatMap((property) =>
     property.incomeLeases.map((lease) => ({ property, lease })),
   );
 
@@ -110,7 +123,7 @@ export default function IncomePage() {
 
           <Card>
             <CardHeader>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="font-semibold text-parcelis-charcoal">
                     {groupByProperty ? "Income by property" : "Income rent roll"}
@@ -121,9 +134,20 @@ export default function IncomePage() {
                       : "Active and notice-period leases listed by property and unit."}
                   </p>
                 </div>
-                <Button onClick={() => setGroupByProperty((grouped) => !grouped)} type="button" variant="secondary">
-                  {groupByProperty ? "Grouped By Property" : " Not Grouped"}
-                </Button>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <label className="flex h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray sm:min-w-72">
+                    <Search className="h-4 w-4" />
+                    <Input
+                      className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 focus:border-transparent"
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Search property, unit, status"
+                      value={search}
+                    />
+                  </label>
+                  <Button onClick={() => setGroupByProperty((grouped) => !grouped)} type="button" variant="secondary">
+                    {groupByProperty ? "Grouped By Property" : " Not Grouped"}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
@@ -133,9 +157,11 @@ export default function IncomePage() {
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">
                   Unable to load income. Please try again.
                 </div>
-              ) : incomeProperties.length === 0 ? (
+              ) : filteredIncomeProperties.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">
-                  No active leases are available to report income yet.
+                  {incomeProperties.length === 0
+                    ? "No active leases are available to report income yet."
+                    : "No income records match your search."}
                 </div>
               ) : groupByProperty ? (
                 <Table className="min-w-[840px] border-collapse text-left">
@@ -148,7 +174,7 @@ export default function IncomePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {incomeProperties.map((property) => {
+                    {filteredIncomeProperties.map((property) => {
                       const isExpanded = expandedPropertyIds.has(property.id);
                       return (
                         <React.Fragment key={property.id}>
