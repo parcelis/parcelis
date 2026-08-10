@@ -14,7 +14,7 @@ export function AppFooter() {
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <span>
           © {new Date().getFullYear()}{" "}
-          <a className="hover:text-parcelis-charcoal" href="https://parcelis.dev">
+          <a className="hover:text-parcelis-green" href="https://parcelis.dev">
             Parcelis
           </a>
           . Open source. Open future.
