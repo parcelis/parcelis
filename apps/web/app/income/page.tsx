@@ -21,7 +21,7 @@ import {
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { Sidebar } from "../../components/sidebar";
-import { getTenantLink, getUnitLink } from "../../lib/entity-links";
+import { getInvoiceLink, getTenantLink, getUnitLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -41,8 +41,8 @@ function formatLeaseStatus(status: string) {
     .join(" ");
 }
 
-function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(value);
+function formatDate(value: Date | string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
 function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number }) {
@@ -243,7 +243,8 @@ export default function IncomePage() {
                                 const unit = property.units.find((item) => item.name === lease.unitLabel);
                                 const unitHref = unit ? getUnitLink(property.id, unit.id) : null;
                                 const tenantName = `${lease.tenant.firstName} ${lease.tenant.lastName}`;
-                                const invoice = getCurrentInvoice(lease);
+                                const persistedInvoice = lease.invoices[0];
+                                const invoice = persistedInvoice ?? getCurrentInvoice(lease);
                                 return (
                                   <TableRow
                                     className="border-t border-parcelis-border bg-parcelis-porcelain/45"
@@ -279,20 +280,30 @@ export default function IncomePage() {
                                     </TableCell>
                                     <TableCell className="px-5 py-3 text-sm text-parcelis-gray">—</TableCell>
                                     <TableCell className="px-5 py-3 text-sm font-medium text-parcelis-charcoal">
-                                      {invoice.id}
+                                      {persistedInvoice ? (
+                                        <Link className="hover:text-parcelis-green" href={getInvoiceLink(persistedInvoice.id)}>
+                                          INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                                        </Link>
+                                      ) : (
+                                        invoice.id
+                                      )}
                                     </TableCell>
                                     <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
                                       {invoice.status}
                                     </TableCell>
                                     <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
-                                      {formatCurrency(lease.monthlyRentCents)}
+                                      {formatCurrency(
+                                        persistedInvoice ? persistedInvoice.amountCents : lease.monthlyRentCents,
+                                      )}
                                     </TableCell>
                                     <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">—</TableCell>
                                     <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">—</TableCell>
                                     <TableCell
                                       className={`px-5 py-3 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
                                     >
-                                      {formatCurrency(lease.amountOverdueCents)}
+                                      {formatCurrency(
+                                        persistedInvoice ? persistedInvoice.balanceCents : lease.amountOverdueCents,
+                                      )}
                                     </TableCell>
                                   </TableRow>
                                 );

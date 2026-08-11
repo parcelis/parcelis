@@ -14,8 +14,12 @@ export function getTenantInvoicesLink(tenantId: number) {
   return `${getTenantLink(tenantId)}/invoices`;
 }
 
-export function getTenantInvoiceLink(tenantId: number, invoiceId: string) {
+export function getTenantInvoiceLink(tenantId: number, invoiceId: number | string) {
   return `${getTenantInvoicesLink(tenantId)}/${invoiceId}`;
+}
+
+export function getInvoiceLink(invoiceId: number | string) {
+  return `/income/invoices/${invoiceId}`;
 }
 
 export function getMaintenanceLink(ticketId: number) {

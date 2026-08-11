@@ -1,6 +1,8 @@
 import {
   createPropertyInputSchema,
   createLeaseInputSchema,
+  invoiceByIdInputSchema,
+  invoiceListInputSchema,
   activityEventListInputSchema,
   isActiveMaintenanceTicketStatus,
   createMaintenanceTicketInputSchema,
@@ -263,6 +265,37 @@ function getTenantStatus(tenant: { archivedAt: Date | null; leases: Array<{ stat
   return tenant.leases.some((lease) => lease.status === "active" || lease.status === "notice") ? "active" : "past";
 }
 
+async function generateInitialLeaseInvoices(
+  tx: Prisma.TransactionClient,
+  lease: {
+    id: number;
+    propertyId: number;
+    tenantId: number;
+    monthlyRentCents: number;
+    startsOn: Date;
+    endsOn: Date | null;
+  },
+) {
+  const firstPeriod = new Date(lease.startsOn.getFullYear(), lease.startsOn.getMonth(), 1);
+  const periods = [firstPeriod, new Date(firstPeriod.getFullYear(), firstPeriod.getMonth() + 1, 1)];
+
+  await tx.invoice.createMany({
+    data: periods
+      .filter((periodStartsOn) => lease.endsOn === null || periodStartsOn <= lease.endsOn)
+      .map((periodStartsOn) => ({
+        leaseId: lease.id,
+        propertyId: lease.propertyId,
+        tenantId: lease.tenantId,
+        periodStartsOn,
+        periodEndsOn: new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0),
+        dueOn: periodStartsOn,
+        amountCents: lease.monthlyRentCents,
+        balanceCents: lease.monthlyRentCents,
+      })),
+    skipDuplicates: true,
+  });
+}
+
 function getEmergencyContact(input: {
   emergencyContactFirstName?: string;
   emergencyContactLastName?: string;
@@ -383,6 +416,18 @@ export const appRouter = router({
                   firstName: true,
                   id: true,
                   lastName: true,
+                },
+              },
+              invoices: {
+                where: { status: { in: ["open", "overdue"] } },
+                orderBy: { dueOn: "asc" },
+                select: {
+                  id: true,
+                  invoiceNumber: true,
+                  dueOn: true,
+                  status: true,
+                  amountCents: true,
+                  balanceCents: true,
                 },
               },
             },
@@ -733,6 +778,9 @@ export const appRouter = router({
               property: {
                 select: { id: true, name: true },
               },
+              invoices: {
+                orderBy: { periodStartsOn: "desc" },
+              },
             },
           },
         },
@@ -911,6 +959,7 @@ export const appRouter = router({
             where: { id: input.propertyId },
             data: { occupiedUnits: property.occupiedUnits + 1 },
           });
+          await generateInitialLeaseInvoices(tx, lease);
         }
         return lease;
       });
@@ -922,6 +971,24 @@ export const appRouter = router({
         ctx.prisma.tenant.delete({ where: { id: input.id } }),
       ]);
     }),
+  }),
+  invoices: router({
+    list: publicProcedure.input(invoiceListInputSchema).query(({ ctx, input }) =>
+      ctx.prisma.invoice.findMany({
+        where: input.tenantId ? { tenantId: input.tenantId } : undefined,
+        include: { lease: { select: { unitLabel: true } }, property: { select: { id: true, name: true } } },
+        orderBy: { dueOn: "desc" },
+      }),
+    ),
+    byId: publicProcedure.input(invoiceByIdInputSchema).query(({ ctx, input }) =>
+      ctx.prisma.invoice.findUnique({
+        where: { id: input.id },
+        include: {
+          property: { select: { id: true, name: true } },
+          tenant: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+    ),
   }),
   tags: router({
     list: publicProcedure.query(({ ctx }) =>

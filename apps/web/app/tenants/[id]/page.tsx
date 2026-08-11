@@ -54,7 +54,7 @@ import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
-import { getPropertyLink, getTenantInvoiceLink, getTenantInvoicesLink } from "../../../lib/entity-links";
+import { getInvoiceLink, getPropertyLink, getTenantInvoicesLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -181,15 +181,16 @@ export default function TenantDetailPage() {
     },
   });
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
-  const overdueCents = currentLease?.amountOverdueCents ?? 0;
-  const currentInvoiceCents = currentLease?.monthlyRentCents ?? 0;
+  const currentInvoice = currentLease?.invoices.find(
+    (invoice) => invoice.status === "open" || invoice.status === "overdue",
+  );
+  const overdueCents = currentInvoice?.balanceCents ?? 0;
+  const currentInvoiceCents = currentInvoice?.amountCents ?? 0;
   const rentCollectedCents = Math.max(currentInvoiceCents - overdueCents, 0);
   const otherCollectedCents = 0;
   const totalCollectedCents = rentCollectedCents + otherCollectedCents;
-  const currentInvoiceId = currentLease
-    ? `INV-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
-    : null;
-  const pastDueInvoiceId = currentInvoiceId ? `${currentInvoiceId}-OVERDUE` : null;
+  const currentInvoiceId = currentInvoice ? `INV-${String(currentInvoice.invoiceNumber).padStart(7, "0")}` : null;
+  const pastDueInvoiceId = currentInvoice?.status === "overdue" ? currentInvoiceId : null;
 
   function openTenantDrawer() {
     if (!tenant) return;
@@ -466,17 +467,12 @@ export default function TenantDetailPage() {
                 <option value="draft">Draft</option>
               </Select>
             </Label>
-            {createLease.error ? (
-              <p className="text-sm text-red-700">{createLease.error.message}</p>
-            ) : null}
+            {createLease.error ? <p className="text-sm text-red-700">{createLease.error.message}</p> : null}
             <div className="flex justify-between pt-2">
               <Button onClick={() => setIsLeaseDialogOpen(false)} type="button" variant="secondary">
                 Cancel
               </Button>
-              <Button
-                disabled={createLease.isPending || !leaseForm.propertyId || !leaseForm.unitLabel}
-                type="submit"
-              >
+              <Button disabled={createLease.isPending || !leaseForm.propertyId || !leaseForm.unitLabel} type="submit">
                 Create Lease
               </Button>
             </div>
@@ -702,7 +698,7 @@ export default function TenantDetailPage() {
                             {currentInvoiceId ? (
                               <Link
                                 className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
-                                href={getTenantInvoiceLink(tenant.id, currentInvoiceId)}
+                                href={getInvoiceLink(currentInvoice!.id)}
                               >
                                 {currentInvoiceId}
                               </Link>
@@ -715,7 +711,7 @@ export default function TenantDetailPage() {
                             {overdueCents > 0 && pastDueInvoiceId ? (
                               <Link
                                 className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
-                                href={getTenantInvoiceLink(tenant.id, pastDueInvoiceId)}
+                                href={getInvoiceLink(currentInvoice!.id)}
                               >
                                 {pastDueInvoiceId}
                               </Link>

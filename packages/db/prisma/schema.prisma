@@ -21,6 +21,13 @@ enum LeaseStatus {
   ended
 }
 
+enum InvoiceStatus {
+  open
+  overdue
+  paid
+  void
+}
+
 enum MaintenanceTicketStatus {
   new
   in_progress
@@ -127,6 +134,7 @@ model Property {
   status             PropertyStatus      @default(active)
   units              Unit[]
   leases             Lease[]
+  invoices           Invoice[]
   notes              Note[]
   maintenanceTickets MaintenanceTicket[]
   activityEvents     ActivityEvent[]
@@ -219,6 +227,7 @@ model Tenant {
   legacyNote          Note?                 @relation("TenantLegacyNote", fields: [id, legacyNoteId], references: [tenantId, id], onDelete: SetNull)
   emergencyContacts   EmergencyContact[]
   leases              Lease[]
+  invoices            Invoice[]
   notes               Note[]
   maintenanceRequests MaintenanceTicket[]   @relation("MaintenanceRequesterTenant")
   createdAt           DateTime              @default(now())
@@ -297,9 +306,34 @@ model Lease {
   status             LeaseStatus @default(draft)
   property           Property    @relation(fields: [propertyId], references: [id])
   tenant             Tenant      @relation(fields: [tenantId], references: [id])
+  invoices           Invoice[]
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
+  @@index([propertyId])
+  @@index([tenantId])
+}
+
+model Invoice {
+  id             Int           @id @default(autoincrement())
+  invoiceNumber  Int           @unique @default(autoincrement())
+  leaseId        Int
+  propertyId     Int
+  tenantId       Int
+  periodStartsOn DateTime
+  periodEndsOn   DateTime
+  dueOn          DateTime
+  amountCents    Int
+  balanceCents   Int
+  status         InvoiceStatus @default(open)
+  paidOn         DateTime?
+  lease          Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  property       Property      @relation(fields: [propertyId], references: [id])
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([leaseId, periodStartsOn])
   @@index([propertyId])
   @@index([tenantId])
 }

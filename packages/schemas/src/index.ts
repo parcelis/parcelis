@@ -173,6 +173,8 @@ export const leaseSchema = z.object({
 });
 
 export const createLeaseInputSchema = leaseSchema.omit({ id: true });
+export const invoiceByIdInputSchema = z.object({ id: idSchema });
+export const invoiceListInputSchema = z.object({ tenantId: idSchema.optional() });
 
 export const createPropertyInputSchema = propertySchema.omit({
   id: true,
