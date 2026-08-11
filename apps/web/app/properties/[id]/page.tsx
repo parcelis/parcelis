@@ -43,6 +43,7 @@ import { NotesDrawer } from "../../../components/notes-drawer";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { Sidebar } from "../../../components/sidebar";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
+import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -162,9 +163,7 @@ export default function PropertyDetailPage() {
           unit,
           lease,
           status: lease?.status ?? "vacant",
-          href: property.units.some((savedUnit) => savedUnit.id === unit.id)
-            ? `/properties/${property.id}/units/${unit.id}`
-            : null,
+          href: property.units.some((savedUnit) => savedUnit.id === unit.id) ? getUnitLink(property.id, unit.id) : null,
         };
       })
     : [];
@@ -209,7 +208,7 @@ export default function PropertyDetailPage() {
         }
         open={isEditDrawerOpen}
         submitLabel="Save"
-        unitHref={(unit) => (unit.id ? `/properties/${propertyId}/units/${unit.id}` : null)}
+        unitHref={(unit) => (unit.id ? getUnitLink(propertyId, unit.id) : null)}
       />
       <NotesDrawer
         onOpenChange={setIsNotesDrawerOpen}
@@ -445,7 +444,7 @@ export default function PropertyDetailPage() {
                       return (
                         <Link
                           className="block rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain/55"
-                          href={href ?? `/properties/${property.id}`}
+                          href={href ?? getPropertyLink(property.id)}
                           key={unit.id}
                         >
                           <div className="flex items-center justify-between">
@@ -550,7 +549,7 @@ export default function PropertyDetailPage() {
                       maintenanceTickets.map((ticket) => (
                         <Link
                           className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
-                          href={`/maintenance/${ticket.id}`}
+                          href={getMaintenanceLink(ticket.id)}
                           key={ticket.id}
                         >
                           <Wrench className="h-4 w-4 text-parcelis-green" />

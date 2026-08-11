@@ -55,6 +55,7 @@ import { MaintenanceDrawer } from "../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
 import { NotesDrawer } from "../../components/notes-drawer";
 import { Sidebar } from "../../components/sidebar";
+import { getMaintenanceLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -453,7 +454,7 @@ export default function MaintenancePage() {
                                   <TableCell className="px-5 py-3">
                                     <Link
                                       className="grid grid-cols-[2rem_2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                                      href={`/maintenance/${ticket.id}`}
+                                      href={getMaintenanceLink(ticket.id)}
                                     >
                                       <span />
                                       <Wrench className="h-4 w-4 text-parcelis-green" />
@@ -510,7 +511,7 @@ export default function MaintenancePage() {
                         <TableCell className="px-5 py-4">
                           <Link
                             className="flex items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                            href={`/maintenance/${ticket.id}`}
+                            href={getMaintenanceLink(ticket.id)}
                           >
                             <span className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-green">
                               <Wrench className="h-4 w-4" />
@@ -560,7 +561,7 @@ export default function MaintenancePage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem asChild>
-                                <Link href={`/maintenance/${ticket.id}`}>
+                                <Link href={getMaintenanceLink(ticket.id)}>
                                   <Eye className="h-4 w-4 text-parcelis-green" />
                                   View
                                 </Link>
@@ -660,7 +661,9 @@ export default function MaintenancePage() {
                   <h2 className="font-semibold text-parcelis-charcoal">Logging</h2>
                   <p className="mt-1 text-sm text-parcelis-gray">Recent maintenance ticket activity.</p>
                 </div>
-                <ChevronDown className={`h-5 w-5 text-parcelis-gray transition-transform ${isLoggingOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-5 w-5 text-parcelis-gray transition-transform ${isLoggingOpen ? "rotate-180" : ""}`}
+                />
               </button>
             </CardHeader>
             {isLoggingOpen ? (
@@ -673,9 +676,14 @@ export default function MaintenancePage() {
                   <ul className="divide-y divide-parcelis-border">
                     {activityEvents.map((event) => {
                       return (
-                        <li className="flex flex-col gap-1 px-5 py-4 text-sm md:flex-row md:items-center md:justify-between" key={event.id}>
+                        <li
+                          className="flex flex-col gap-1 px-5 py-4 text-sm md:flex-row md:items-center md:justify-between"
+                          key={event.id}
+                        >
                           <div>
-                            <p className="font-semibold text-parcelis-charcoal">{label(event.action.replace("maintenance.", ""))}</p>
+                            <p className="font-semibold text-parcelis-charcoal">
+                              {label(event.action.replace("maintenance.", ""))}
+                            </p>
                             <p className="mt-1 text-parcelis-gray">
                               {event.subjectLabel}
                               {event.previousStatus && event.nextStatus

@@ -49,6 +49,7 @@ import { LoadingState } from "../../../../../components/loading-state";
 import { Sidebar } from "../../../../../components/sidebar";
 import { NotesDrawer } from "../../../../../components/notes-drawer";
 import { StickyNotePlusIcon } from "../../../../../components/sticky-note-plus-icon";
+import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -199,7 +200,7 @@ export default function UnitDetailPage() {
         }
         open={isEditDrawerOpen}
         submitLabel="Save"
-        unitHref={(drawerUnit) => (drawerUnit.id ? `/properties/${propertyId}/units/${drawerUnit.id}` : null)}
+        unitHref={(drawerUnit) => (drawerUnit.id ? getUnitLink(propertyId, drawerUnit.id) : null)}
       />
       <NotesDrawer
         onOpenChange={setIsNotesDrawerOpen}
@@ -228,7 +229,7 @@ export default function UnitDetailPage() {
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
             </div>
             <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
-              <Link href={`/properties/${propertyId}`}>
+              <Link href={getPropertyLink(propertyId)}>
                 <ArrowLeft className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only">Property</span>
               </Link>
@@ -245,7 +246,7 @@ export default function UnitDetailPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="max-h-96 min-w-48 overflow-y-auto">
                   <DropdownMenuItem asChild>
-                    <Link href={`/properties/${propertyId}`}>All Units</Link>
+                    <Link href={getPropertyLink(propertyId)}>All Units</Link>
                   </DropdownMenuItem>
                   {property.units.map((propertyUnit) => (
                     <DropdownMenuItem asChild key={propertyUnit.id}>
@@ -253,7 +254,7 @@ export default function UnitDetailPage() {
                         className={
                           propertyUnit.id === unitId ? "bg-parcelis-porcelain text-parcelis-charcoal" : undefined
                         }
-                        href={`/properties/${propertyId}/units/${propertyUnit.id}`}
+                        href={getUnitLink(propertyId, propertyUnit.id)}
                       >
                         Unit {propertyUnit.name}
                       </Link>
@@ -565,7 +566,7 @@ export default function UnitDetailPage() {
                       openTickets.map((ticket) => (
                         <Link
                           className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
-                          href={`/maintenance/${ticket.id}`}
+                          href={getMaintenanceLink(ticket.id)}
                           key={ticket.id}
                         >
                           <Wrench className="h-4 w-4 text-parcelis-green" />

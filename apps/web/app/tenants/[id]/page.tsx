@@ -52,6 +52,7 @@ import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
+import { getPropertyLink, getTenantInvoiceLink, getTenantInvoicesLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -539,7 +540,7 @@ export default function TenantDetailPage() {
                     <h2 className="font-semibold text-parcelis-charcoal">Collection</h2>
                     <Link
                       className="text-sm font-medium text-parcelis-green hover:underline"
-                      href={`/tenants/${tenant.id}/invoices`}
+                      href={getTenantInvoicesLink(tenant.id)}
                     >
                       View All Invoices
                     </Link>
@@ -556,7 +557,7 @@ export default function TenantDetailPage() {
                             {currentInvoiceId ? (
                               <Link
                                 className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
-                                href={`/tenants/${tenant.id}/invoices/${currentInvoiceId}`}
+                                href={getTenantInvoiceLink(tenant.id, currentInvoiceId)}
                               >
                                 {currentInvoiceId}
                               </Link>
@@ -569,7 +570,7 @@ export default function TenantDetailPage() {
                             {overdueCents > 0 && pastDueInvoiceId ? (
                               <Link
                                 className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
-                                href={`/tenants/${tenant.id}/invoices/${pastDueInvoiceId}`}
+                                href={getTenantInvoiceLink(tenant.id, pastDueInvoiceId)}
                               >
                                 {pastDueInvoiceId}
                               </Link>
@@ -664,7 +665,7 @@ export default function TenantDetailPage() {
                               <TableCell className="px-5 py-4">
                                 <Link
                                   className="font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                                  href={`/properties/${lease.property.id}`}
+                                  href={getPropertyLink(lease.property.id)}
                                 >
                                   {lease.property.name}
                                 </Link>

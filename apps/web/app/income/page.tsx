@@ -21,6 +21,7 @@ import {
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { Sidebar } from "../../components/sidebar";
+import { getUnitLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -208,34 +209,46 @@ export default function IncomePage() {
                             </TableCell>
                           </TableRow>
                           {isExpanded
-                            ? property.incomeLeases.map((lease) => (
-                                <TableRow
-                                  className="border-t border-parcelis-border bg-parcelis-porcelain/45"
-                                  key={lease.unitLabel}
-                                >
-                                  <TableCell className="px-5 py-3">
-                                    <Link
-                                      className="grid grid-cols-[2rem_2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                                      href={`/properties/${property.id}`}
-                                    >
-                                      <span />
-                                      <DoorOpen className="h-4 w-4 text-parcelis-green" />
-                                      Unit {lease.unitLabel}
-                                    </Link>
-                                  </TableCell>
-                                  <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                    {formatLeaseStatus(lease.status)}
-                                  </TableCell>
-                                  <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
-                                    {formatCurrency(lease.monthlyRentCents)}
-                                  </TableCell>
-                                  <TableCell
-                                    className={`px-5 py-3 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
+                            ? property.incomeLeases.map((lease) => {
+                                const unit = property.units.find((item) => item.name === lease.unitLabel);
+                                const unitHref = unit ? getUnitLink(property.id, unit.id) : null;
+                                return (
+                                  <TableRow
+                                    className="border-t border-parcelis-border bg-parcelis-porcelain/45"
+                                    key={lease.unitLabel}
                                   >
-                                    {formatCurrency(lease.amountOverdueCents)}
-                                  </TableCell>
-                                </TableRow>
-                              ))
+                                    <TableCell className="px-5 py-3">
+                                      {unitHref ? (
+                                        <Link
+                                          className="grid grid-cols-[2rem_2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
+                                          href={unitHref}
+                                        >
+                                          <span />
+                                          <DoorOpen className="h-4 w-4 text-parcelis-green" />
+                                          Unit {lease.unitLabel}
+                                        </Link>
+                                      ) : (
+                                        <div className="grid grid-cols-[2rem_2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal">
+                                          <span />
+                                          <DoorOpen className="h-4 w-4 text-parcelis-green" />
+                                          Unit {lease.unitLabel}
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
+                                      {formatLeaseStatus(lease.status)}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
+                                      {formatCurrency(lease.monthlyRentCents)}
+                                    </TableCell>
+                                    <TableCell
+                                      className={`px-5 py-3 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
+                                    >
+                                      {formatCurrency(lease.amountOverdueCents)}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })
                             : null}
                         </React.Fragment>
                       );
@@ -254,38 +267,51 @@ export default function IncomePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {incomeLeases.map(({ property, lease }) => (
-                      <TableRow
-                        className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
-                        key={`${property.id}-${lease.unitLabel}`}
-                      >
-                        <TableCell className="px-5 py-4">
-                          <Link
-                            className="flex items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                            href={`/properties/${property.id}`}
-                          >
-                            <span className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-green">
-                              <DoorOpen className="h-4 w-4" />
-                            </span>
-                            Unit {lease.unitLabel}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
-                          {property.name}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                          {formatLeaseStatus(lease.status)}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-right text-sm font-semibold text-parcelis-charcoal">
-                          {formatCurrency(lease.monthlyRentCents)}
-                        </TableCell>
-                        <TableCell
-                          className={`px-5 py-4 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
+                    {incomeLeases.map(({ property, lease }) => {
+                      const unit = property.units.find((item) => item.name === lease.unitLabel);
+                      const unitHref = unit ? getUnitLink(property.id, unit.id) : null;
+                      return (
+                        <TableRow
+                          className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
+                          key={`${property.id}-${lease.unitLabel}`}
                         >
-                          {formatCurrency(lease.amountOverdueCents)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          <TableCell className="px-5 py-4">
+                            {unitHref ? (
+                              <Link
+                                className="flex items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
+                                href={unitHref}
+                              >
+                                <span className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-green">
+                                  <DoorOpen className="h-4 w-4" />
+                                </span>
+                                Unit {lease.unitLabel}
+                              </Link>
+                            ) : (
+                              <div className="flex items-center gap-3 font-semibold text-parcelis-charcoal">
+                                <span className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-green">
+                                  <DoorOpen className="h-4 w-4" />
+                                </span>
+                                Unit {lease.unitLabel}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
+                            {property.name}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            {formatLeaseStatus(lease.status)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-right text-sm font-semibold text-parcelis-charcoal">
+                            {formatCurrency(lease.monthlyRentCents)}
+                          </TableCell>
+                          <TableCell
+                            className={`px-5 py-4 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
+                          >
+                            {formatCurrency(lease.amountOverdueCents)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
