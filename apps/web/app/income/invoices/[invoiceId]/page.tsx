@@ -168,7 +168,8 @@ export default function InvoiceDetailPage() {
                         </div>
                         <h1 className="mt-4 text-3xl font-bold md:text-4xl">{invoiceLabel}</h1>
                         <p className="mt-2 text-sm text-white/70">
-                          Rent for {formatDate(invoice.periodStartsOn)} — {formatDate(invoice.periodEndsOn)}
+                          Unit {invoice.lease.unitLabel} · {formatDate(invoice.periodStartsOn)} —{" "}
+                          {formatDate(invoice.periodEndsOn)}
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
@@ -207,6 +208,7 @@ export default function InvoiceDetailPage() {
                               {invoice.property.name}
                             </Link>
                           </div>
+                          <p className="mt-2 pl-8 text-sm text-parcelis-gray">Unit {invoice.lease.unitLabel}</p>
                         </div>
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-wide text-parcelis-gray">

@@ -1004,6 +1004,7 @@ export const appRouter = router({
         include: {
           property: { select: { id: true, name: true } },
           tenant: { select: { id: true, firstName: true, lastName: true } },
+          lease: { select: { unitLabel: true } },
           items: { orderBy: { id: "asc" } },
         },
       }),
