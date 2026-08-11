@@ -4,7 +4,12 @@ import { LeaseStatus } from "@parcelis/db";
 const idSchema = z.coerce.number().int().positive();
 
 export const authCredentialsInputSchema = z.object({
-  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
   password: z.string().min(12).max(1024),
 });
 
@@ -16,7 +21,12 @@ export const userAccountStatusSchema = z.enum(["active", "disabled"]);
 export const updateUserInputSchema = z.object({
   id: idSchema,
   name: z.string().trim().min(1).max(100),
-  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
   phone: z.string().trim().max(50).nullable(),
   role: userRoleSchema,
 });
@@ -162,6 +172,8 @@ export const leaseSchema = z.object({
   status: leaseStatusSchema,
 });
 
+export const createLeaseInputSchema = leaseSchema.omit({ id: true });
+
 export const createPropertyInputSchema = propertySchema.omit({
   id: true,
   occupiedUnits: true,
@@ -218,15 +230,17 @@ export const updateMaintenanceTicketStatusInputSchema = z.object({
 });
 export const activitySubjectTypes = ["maintenance_ticket", "tenant", "property", "invoice"] as const;
 export const activitySubjectTypeSchema = z.enum(activitySubjectTypes);
-export const activityEventListInputSchema = z.object({
-  subjectType: activitySubjectTypeSchema.optional(),
-  subjectId: idSchema.optional(),
-  propertyId: idSchema.optional(),
-  limit: z.number().int().min(1).max(100).default(50),
-}).refine(({ subjectType, subjectId }) => Boolean(subjectType) === Boolean(subjectId), {
-  message: "Subject type and subject ID must be provided together.",
-  path: ["subjectId"],
-});
+export const activityEventListInputSchema = z
+  .object({
+    subjectType: activitySubjectTypeSchema.optional(),
+    subjectId: idSchema.optional(),
+    propertyId: idSchema.optional(),
+    limit: z.number().int().min(1).max(100).default(50),
+  })
+  .refine(({ subjectType, subjectId }) => Boolean(subjectType) === Boolean(subjectId), {
+    message: "Subject type and subject ID must be provided together.",
+    path: ["subjectId"],
+  });
 export const maintenanceImageUploadInputSchema = z.object({
   id: idSchema,
   contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),

@@ -1,5 +1,6 @@
 import {
   createPropertyInputSchema,
+  createLeaseInputSchema,
   activityEventListInputSchema,
   isActiveMaintenanceTicketStatus,
   createMaintenanceTicketInputSchema,
@@ -880,6 +881,38 @@ export const appRouter = router({
           where: { id: input.id },
           data: { legacyNotes: null, legacyNoteId: null },
         });
+      });
+    }),
+    /** Creates a lease for a tenant and validates that the selected unit is available. */
+    createLease: publicProcedure.input(createLeaseInputSchema).mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        await tx.tenant.findUniqueOrThrow({ where: { id: input.tenantId } });
+        const property = await tx.property.findUniqueOrThrow({
+          where: { id: input.propertyId },
+          include: { units: { where: { name: input.unitLabel }, select: { id: true } } },
+        });
+        if (!property.units.length) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Select a unit belonging to the chosen property." });
+        }
+        const existingLease = await tx.lease.findFirst({
+          where: {
+            propertyId: input.propertyId,
+            unitLabel: input.unitLabel,
+            status: { in: [LeaseStatus.active, LeaseStatus.notice] },
+          },
+          select: { id: true },
+        });
+        if (existingLease) {
+          throw new TRPCError({ code: "CONFLICT", message: "The selected unit already has an active lease." });
+        }
+        const lease = await tx.lease.create({ data: input });
+        if (input.status === LeaseStatus.active || input.status === LeaseStatus.notice) {
+          await tx.property.update({
+            where: { id: input.propertyId },
+            data: { occupiedUnits: property.occupiedUnits + 1 },
+          });
+        }
+        return lease;
       });
     }),
     /** Permanently deletes a tenant and their lease history. */

@@ -14,6 +14,7 @@ import {
   Mail,
   PenLine,
   Phone,
+  Plus,
   Save,
   ScrollText,
   ShieldCheck,
@@ -37,6 +38,7 @@ import {
   Input,
   Label,
   ParcelisLogo,
+  Select,
   Table,
   TableBody,
   TableCell,
@@ -97,6 +99,15 @@ export default function TenantDetailPage() {
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [isTenantDrawerOpen, setIsTenantDrawerOpen] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
+  const [isLeaseDialogOpen, setIsLeaseDialogOpen] = useState(false);
+  const [leaseForm, setLeaseForm] = useState({
+    endsOn: "",
+    monthlyRent: "",
+    propertyId: "",
+    startsOn: "",
+    status: "active",
+    unitLabel: "",
+  });
   const [tenantForm, setTenantForm] = useState<TenantFormState>(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = useState<File | null>(null);
   const [emergencyContactDraft, setEmergencyContactDraft] = useState({
@@ -109,6 +120,10 @@ export default function TenantDetailPage() {
     queryKey: queryKeys.tenants.byId(tenantId),
     queryFn: () => apiClient.tenants.byId.query({ id: tenantId }),
     enabled: Number.isInteger(tenantId) && tenantId > 0,
+  });
+  const propertiesQuery = useQuery({
+    queryKey: queryKeys.properties.list,
+    queryFn: () => apiClient.properties.list.query(),
   });
   const tenant = tenantQuery.data;
   const emergencyContact = tenant?.emergencyContacts?.[0];
@@ -130,6 +145,27 @@ export default function TenantDetailPage() {
       setIsTenantDrawerOpen(false);
       setTenantImageFile(null);
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+      ]);
+    },
+  });
+  const createLease = useMutation({
+    mutationFn: () =>
+      apiClient.tenants.createLease.mutate({
+        endsOn: leaseForm.endsOn ? new Date(leaseForm.endsOn) : null,
+        monthlyRentCents: Math.round(Number(leaseForm.monthlyRent) * 100),
+        propertyId: Number(leaseForm.propertyId),
+        startsOn: new Date(leaseForm.startsOn),
+        status: leaseForm.status as "active" | "draft" | "notice" | "ended",
+        tenantId,
+        unitLabel: leaseForm.unitLabel,
+      }),
+    onSuccess: async () => {
+      setIsLeaseDialogOpen(false);
+      setLeaseForm({ endsOn: "", monthlyRent: "", propertyId: "", startsOn: "", status: "active", unitLabel: "" });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
       ]);
@@ -347,6 +383,106 @@ export default function TenantDetailPage() {
           </DialogContent>
         </Dialog>
       ) : null}
+      <Dialog open={isLeaseDialogOpen} onOpenChange={setIsLeaseDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createLease.mutate();
+            }}
+          >
+            <h2 className="text-lg font-semibold text-parcelis-charcoal">Create lease</h2>
+            <Label>
+              Property
+              <Select
+                value={leaseForm.propertyId}
+                onChange={(event) =>
+                  setLeaseForm((current) => ({ ...current, propertyId: event.target.value, unitLabel: "" }))
+                }
+              >
+                <option value="">Select property</option>
+                {(propertiesQuery.data ?? []).map((property) => (
+                  <option key={property.id} value={property.id}>
+                    {property.name}
+                  </option>
+                ))}
+              </Select>
+            </Label>
+            <Label>
+              Unit
+              <Select
+                disabled={!leaseForm.propertyId}
+                value={leaseForm.unitLabel}
+                onChange={(event) => setLeaseForm((current) => ({ ...current, unitLabel: event.target.value }))}
+              >
+                <option value="">Select unit</option>
+                {(propertiesQuery.data ?? [])
+                  .find((property) => property.id === Number(leaseForm.propertyId))
+                  ?.units.map((unit) => (
+                    <option key={unit.id} value={unit.name}>
+                      Unit {unit.name}
+                    </option>
+                  ))}
+              </Select>
+            </Label>
+            <Label>
+              Monthly rent
+              <Input
+                min="0.01"
+                onChange={(event) => setLeaseForm((current) => ({ ...current, monthlyRent: event.target.value }))}
+                required
+                step="0.01"
+                type="number"
+                value={leaseForm.monthlyRent}
+              />
+            </Label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Label>
+                Start date
+                <Input
+                  onChange={(event) => setLeaseForm((current) => ({ ...current, startsOn: event.target.value }))}
+                  required
+                  type="date"
+                  value={leaseForm.startsOn}
+                />
+              </Label>
+              <Label>
+                End date
+                <Input
+                  onChange={(event) => setLeaseForm((current) => ({ ...current, endsOn: event.target.value }))}
+                  type="date"
+                  value={leaseForm.endsOn}
+                />
+              </Label>
+            </div>
+            <Label>
+              Status
+              <Select
+                value={leaseForm.status}
+                onChange={(event) => setLeaseForm((current) => ({ ...current, status: event.target.value }))}
+              >
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+              </Select>
+            </Label>
+            {createLease.error ? (
+              <p className="text-sm text-red-700">{createLease.error.message}</p>
+            ) : null}
+            <div className="flex justify-between pt-2">
+              <Button onClick={() => setIsLeaseDialogOpen(false)} type="button" variant="secondary">
+                Cancel
+              </Button>
+              <Button
+                disabled={createLease.isPending || !leaseForm.propertyId || !leaseForm.unitLabel}
+                type="submit"
+              >
+                Create Lease
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Sidebar active="tenants" />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -362,6 +498,15 @@ export default function TenantDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              className="min-w-40"
+              disabled={!tenant}
+              onClick={() => setIsLeaseDialogOpen(true)}
+              variant="secondary"
+            >
+              <Plus className="h-4 w-4" />
+              Create Lease
+            </Button>
             <EntityLifecycleControls
               archiveDescription={
                 <>
