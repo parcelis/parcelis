@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { Building2, ChevronRight, DoorOpen, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Building2, ChevronRight, DoorOpen, Plus, Search } from "lucide-react";
 import {
   Button,
   Card,
@@ -20,8 +21,9 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
+import { InvoiceDrawer } from "../../components/invoice-drawer";
 import { Sidebar } from "../../components/sidebar";
-import { getInvoiceLink, getTenantLink, getUnitLink } from "../../lib/entity-links";
+import { getInvoiceLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -56,15 +58,33 @@ function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents
   };
 }
 
+function formatInvoiceStatus(invoice: { amountCents: number; balanceCents: number; status: string }) {
+  if (invoice.balanceCents === 0 || invoice.status === "paid") return "Fully paid";
+  if (invoice.balanceCents < invoice.amountCents) return "Partially paid";
+  return formatLeaseStatus(invoice.status);
+}
+
 export default function IncomePage() {
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [groupByProperty, setGroupByProperty] = React.useState(true);
   const [search, setSearch] = React.useState("");
+  const [isInvoiceDrawerOpen, setIsInvoiceDrawerOpen] = React.useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
   });
   const properties = propertiesQuery.data ?? [];
+  const createInvoice = useMutation({
+    mutationFn: (input: Parameters<typeof apiClient.invoices.createManual.mutate>[0]) =>
+      apiClient.invoices.createManual.mutate(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
+      void queryClient.invalidateQueries({ queryKey: ["invoices", "list"] });
+      setIsInvoiceDrawerOpen(false);
+    },
+  });
   const incomeProperties = properties
     .map((property) => ({
       ...property,
@@ -91,6 +111,14 @@ export default function IncomePage() {
   const incomeLeases = filteredIncomeProperties.flatMap((property) =>
     property.incomeLeases.map((lease) => ({ property, lease })),
   );
+  const ungroupedIncomeRows = incomeLeases.flatMap(({ property, lease }) => {
+    return lease.invoices.map((persistedInvoice) => ({
+      property,
+      lease,
+      invoice: persistedInvoice,
+      persistedInvoice,
+    }));
+  });
 
   function toggleProperty(propertyId: number) {
     setExpandedPropertyIds((current) => {
@@ -105,7 +133,7 @@ export default function IncomePage() {
     <main className="min-h-screen bg-parcelis-porcelain">
       <Sidebar active="income" />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8 dark:bg-parcelis-slate/90">
           <div className="flex items-center gap-2">
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
@@ -114,6 +142,9 @@ export default function IncomePage() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
+          <Button className="min-w-40" onClick={() => setIsInvoiceDrawerOpen(true)} type="button">
+            <Plus className="h-4 w-4" /> New Invoice
+          </Button>
         </header>
         <div className="parcelis-page-shell">
           <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
@@ -240,73 +271,73 @@ export default function IncomePage() {
                           </TableRow>
                           {isExpanded
                             ? property.incomeLeases.map((lease) => {
-                                const unit = property.units.find((item) => item.name === lease.unitLabel);
-                                const unitHref = unit ? getUnitLink(property.id, unit.id) : null;
                                 const tenantName = `${lease.tenant.firstName} ${lease.tenant.lastName}`;
-                                const persistedInvoice = lease.invoices[0];
-                                const invoice = persistedInvoice ?? getCurrentInvoice(lease);
-                                return (
-                                  <TableRow
-                                    className="border-t border-parcelis-border bg-parcelis-porcelain/45"
-                                    key={lease.unitLabel}
-                                  >
-                                    <TableCell className="px-5 py-3">
-                                      <Link
-                                        className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                                        href={getTenantLink(lease.tenant.id)}
-                                      >
-                                        <span />
-                                        {tenantName}
-                                      </Link>
-                                    </TableCell>
-                                    <TableCell className="px-5 py-3">
-                                      {unitHref ? (
-                                        <Link
-                                          className="flex items-center gap-2 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                                          href={unitHref}
-                                        >
-                                          <DoorOpen className="h-4 w-4 text-parcelis-green" />
-                                          Unit {lease.unitLabel}
-                                        </Link>
-                                      ) : (
+                                const invoices = lease.invoices.length ? lease.invoices : [null];
+                                return invoices.map((persistedInvoice) => {
+                                  const invoice = persistedInvoice ?? getCurrentInvoice(lease);
+                                  return (
+                                    <TableRow
+                                      className="cursor-pointer border-t border-parcelis-border bg-parcelis-porcelain/45 hover:bg-parcelis-porcelain/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
+                                      key={persistedInvoice ? persistedInvoice.id : `${lease.id}-current`}
+                                      onClick={() => {
+                                        if (persistedInvoice) router.push(getInvoiceLink(persistedInvoice.id));
+                                      }}
+                                      onKeyDown={(event) => {
+                                        if (persistedInvoice && (event.key === "Enter" || event.key === " ")) {
+                                          event.preventDefault();
+                                          router.push(getInvoiceLink(persistedInvoice.id));
+                                        }
+                                      }}
+                                      role={persistedInvoice ? "link" : undefined}
+                                      tabIndex={persistedInvoice ? 0 : undefined}
+                                    >
+                                      <TableCell className="px-5 py-3">
+                                        <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal">
+                                          <span />
+                                          {tenantName}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3">
                                         <div className="flex items-center gap-2 font-semibold text-parcelis-charcoal">
                                           <DoorOpen className="h-4 w-4 text-parcelis-green" />
                                           Unit {lease.unitLabel}
                                         </div>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                      {formatDate(invoice.dueOn)}
-                                    </TableCell>
-                                    <TableCell className="px-5 py-3 text-sm text-parcelis-gray">—</TableCell>
-                                    <TableCell className="px-5 py-3 text-sm font-medium text-parcelis-charcoal">
-                                      {persistedInvoice ? (
-                                        <Link className="hover:text-parcelis-green" href={getInvoiceLink(persistedInvoice.id)}>
-                                          INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
-                                        </Link>
-                                      ) : (
-                                        invoice.id
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                      {invoice.status}
-                                    </TableCell>
-                                    <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
-                                      {formatCurrency(
-                                        persistedInvoice ? persistedInvoice.amountCents : lease.monthlyRentCents,
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">—</TableCell>
-                                    <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">—</TableCell>
-                                    <TableCell
-                                      className={`px-5 py-3 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
-                                    >
-                                      {formatCurrency(
-                                        persistedInvoice ? persistedInvoice.balanceCents : lease.amountOverdueCents,
-                                      )}
-                                    </TableCell>
-                                  </TableRow>
-                                );
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
+                                        {formatDate(invoice.dueOn)}
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3 text-sm text-parcelis-gray">—</TableCell>
+                                      <TableCell className="px-5 py-3 text-sm font-medium text-parcelis-charcoal">
+                                        {persistedInvoice ? (
+                                          <span>INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}</span>
+                                        ) : (
+                                          invoice.id
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
+                                        {invoice.status}
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
+                                        {formatCurrency(
+                                          persistedInvoice ? persistedInvoice.amountCents : lease.monthlyRentCents,
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
+                                        —
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
+                                        —
+                                      </TableCell>
+                                      <TableCell
+                                        className={`px-5 py-3 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
+                                      >
+                                        {formatCurrency(
+                                          persistedInvoice ? persistedInvoice.balanceCents : lease.amountOverdueCents,
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                });
                               })
                             : null}
                         </React.Fragment>
@@ -315,58 +346,73 @@ export default function IncomePage() {
                   </TableBody>
                 </Table>
               ) : (
-                <Table className="min-w-[900px] border-collapse text-left">
+                <Table className="min-w-[1480px] border-collapse text-left">
                   <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
                     <TableRow className="border-0">
-                      <TableHead className="w-[36%] px-5 py-3 font-semibold">Unit</TableHead>
-                      <TableHead className="w-[28%] px-5 py-3 font-semibold">Property</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Lease status</TableHead>
-                      <TableHead className="px-5 py-3 text-right font-semibold">Scheduled rent</TableHead>
-                      <TableHead className="px-5 py-3 text-right font-semibold">Overdue</TableHead>
+                      <TableHead className="w-[26%] px-5 py-3 font-semibold">Property / Shared by</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Due on</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Paid on</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Invoice ID</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Unit</TableHead>
+                      <TableHead className="px-5 py-3 text-right font-semibold">Amount</TableHead>
+                      <TableHead className="px-5 py-3 text-right font-semibold">Processing</TableHead>
+                      <TableHead className="px-5 py-3 text-right font-semibold">Paid</TableHead>
+                      <TableHead className="px-5 py-3 text-right font-semibold">Balance</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {incomeLeases.map(({ property, lease }) => {
-                      const unit = property.units.find((item) => item.name === lease.unitLabel);
-                      const unitHref = unit ? getUnitLink(property.id, unit.id) : null;
+                    {ungroupedIncomeRows.map(({ property, lease, invoice, persistedInvoice }) => {
                       return (
                         <TableRow
-                          className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
-                          key={`${property.id}-${lease.unitLabel}`}
+                          className="cursor-pointer border-t border-parcelis-border hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
+                          key={invoice.id}
+                          onClick={() => router.push(getInvoiceLink(invoice.id))}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              router.push(getInvoiceLink(invoice.id));
+                            }
+                          }}
+                          role="link"
+                          tabIndex={0}
                         >
                           <TableCell className="px-5 py-4">
-                            {unitHref ? (
-                              <Link
-                                className="flex items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                                href={unitHref}
-                              >
-                                <span className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-green">
-                                  <DoorOpen className="h-4 w-4" />
-                                </span>
-                                Unit {lease.unitLabel}
-                              </Link>
-                            ) : (
-                              <div className="flex items-center gap-3 font-semibold text-parcelis-charcoal">
-                                <span className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-green">
-                                  <DoorOpen className="h-4 w-4" />
-                                </span>
-                                Unit {lease.unitLabel}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
-                            {property.name}
+                            <div className="space-y-1">
+                              <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
+                              <p className="text-sm text-parcelis-gray">
+                                Unit {lease.unitLabel} · {lease.tenant.firstName} {lease.tenant.lastName}
+                              </p>
+                            </div>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {formatLeaseStatus(lease.status)}
+                            {formatDate(invoice.dueOn)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            {invoice.paidOn ? formatDate(invoice.paidOn) : "—"}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            <span className="font-medium text-parcelis-charcoal">
+                              INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                            </span>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            <span className="font-medium text-parcelis-charcoal">{lease.unitLabel}</span>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm font-semibold text-parcelis-charcoal">
-                            {formatCurrency(lease.monthlyRentCents)}
+                            {formatCurrency(invoice.amountCents)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-right text-sm text-parcelis-gray">—</TableCell>
+                          <TableCell className="px-5 py-4 text-right text-sm text-parcelis-gray">
+                            {formatCurrency(invoice.amountCents - invoice.balanceCents)}
                           </TableCell>
                           <TableCell
-                            className={`px-5 py-4 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
+                            className={`px-5 py-4 text-right text-sm font-semibold ${invoice.balanceCents ? "text-red-700" : "text-parcelis-gray"}`}
                           >
-                            {formatCurrency(lease.amountOverdueCents)}
+                            {formatCurrency(invoice.balanceCents)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            {formatInvoiceStatus(invoice)}
                           </TableCell>
                         </TableRow>
                       );
@@ -377,6 +423,14 @@ export default function IncomePage() {
             </CardContent>
           </Card>
         </div>
+        <InvoiceDrawer
+          error={createInvoice.error}
+          isPending={createInvoice.isPending}
+          onCreate={(input) => createInvoice.mutate(input)}
+          onOpenChange={setIsInvoiceDrawerOpen}
+          open={isInvoiceDrawerOpen}
+          properties={properties}
+        />
       </section>
     </main>
   );

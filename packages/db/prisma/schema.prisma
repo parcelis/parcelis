@@ -327,6 +327,7 @@ model Invoice {
   balanceCents   Int
   status         InvoiceStatus @default(open)
   paidOn         DateTime?
+  items          InvoiceItem[]
   lease          Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
   property       Property      @relation(fields: [propertyId], references: [id])
   tenant         Tenant        @relation(fields: [tenantId], references: [id])
@@ -336,6 +337,21 @@ model Invoice {
   @@unique([leaseId, periodStartsOn])
   @@index([propertyId])
   @@index([tenantId])
+}
+
+model InvoiceItem {
+  id          Int     @id @default(autoincrement())
+  invoiceId   Int
+  item        String
+  description String?
+  quantity    Int     @default(1)
+  rateCents   Int
+  amountCents Int
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([invoiceId])
 }
 
 model MaintenanceTicket {

@@ -175,6 +175,20 @@ export const leaseSchema = z.object({
 export const createLeaseInputSchema = leaseSchema.omit({ id: true });
 export const invoiceByIdInputSchema = z.object({ id: idSchema });
 export const invoiceListInputSchema = z.object({ tenantId: idSchema.optional() });
+export const invoiceItemInputSchema = z.object({
+  item: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).optional(),
+  quantity: z.number().int().positive(),
+  rateCents: z.number().int().nonnegative(),
+});
+export const createManualInvoiceInputSchema = z.object({
+  propertyId: idSchema,
+  leaseId: idSchema,
+  tenantId: idSchema,
+  dueOn: z.coerce.date(),
+  paidCents: z.number().int().nonnegative(),
+  items: z.array(invoiceItemInputSchema).min(1).max(50),
+});
 
 export const createPropertyInputSchema = propertySchema.omit({
   id: true,

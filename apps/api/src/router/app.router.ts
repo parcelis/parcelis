@@ -1,4 +1,5 @@
 import {
+  createManualInvoiceInputSchema,
   createPropertyInputSchema,
   createLeaseInputSchema,
   invoiceByIdInputSchema,
@@ -279,21 +280,35 @@ async function generateInitialLeaseInvoices(
   const firstPeriod = new Date(lease.startsOn.getFullYear(), lease.startsOn.getMonth(), 1);
   const periods = [firstPeriod, new Date(firstPeriod.getFullYear(), firstPeriod.getMonth() + 1, 1)];
 
-  await tx.invoice.createMany({
-    data: periods
+  await Promise.all(
+    periods
       .filter((periodStartsOn) => lease.endsOn === null || periodStartsOn <= lease.endsOn)
-      .map((periodStartsOn) => ({
-        leaseId: lease.id,
-        propertyId: lease.propertyId,
-        tenantId: lease.tenantId,
-        periodStartsOn,
-        periodEndsOn: new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0),
-        dueOn: periodStartsOn,
-        amountCents: lease.monthlyRentCents,
-        balanceCents: lease.monthlyRentCents,
-      })),
-    skipDuplicates: true,
-  });
+      .map((periodStartsOn) =>
+        tx.invoice.upsert({
+          where: { leaseId_periodStartsOn: { leaseId: lease.id, periodStartsOn } },
+          update: {},
+          create: {
+            leaseId: lease.id,
+            propertyId: lease.propertyId,
+            tenantId: lease.tenantId,
+            periodStartsOn,
+            periodEndsOn: new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0),
+            dueOn: periodStartsOn,
+            amountCents: lease.monthlyRentCents,
+            balanceCents: lease.monthlyRentCents,
+            items: {
+              create: {
+                item: "Rent",
+                description: `Rent for ${periodStartsOn.toLocaleDateString("en-US", { month: "long", year: "numeric" })}`,
+                quantity: 1,
+                rateCents: lease.monthlyRentCents,
+                amountCents: lease.monthlyRentCents,
+              },
+            },
+          },
+        }),
+      ),
+  );
 }
 
 function getEmergencyContact(input: {
@@ -407,6 +422,8 @@ export const appRouter = router({
           leases: {
             select: {
               monthlyRentCents: true,
+              id: true,
+              startsOn: true,
               amountOverdueCents: true,
               endsOn: true,
               status: true,
@@ -425,6 +442,7 @@ export const appRouter = router({
                   id: true,
                   invoiceNumber: true,
                   dueOn: true,
+                  paidOn: true,
                   status: true,
                   amountCents: true,
                   balanceCents: true,
@@ -986,9 +1004,49 @@ export const appRouter = router({
         include: {
           property: { select: { id: true, name: true } },
           tenant: { select: { id: true, firstName: true, lastName: true } },
+          items: { orderBy: { id: "asc" } },
         },
       }),
     ),
+    createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
+      const lease = await ctx.prisma.lease.findUnique({
+        where: { id: input.leaseId },
+        select: { id: true, propertyId: true, tenantId: true },
+      });
+      if (!lease || lease.propertyId !== input.propertyId || lease.tenantId !== input.tenantId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property and tenant." });
+      }
+
+      const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
+      if (input.paidCents > amountCents) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid cannot exceed the invoice total." });
+      }
+      const dueOn = new Date(input.dueOn);
+      dueOn.setHours(0, 0, 0, 0);
+
+      return ctx.prisma.invoice.create({
+        data: {
+          leaseId: lease.id,
+          propertyId: lease.propertyId,
+          tenantId: lease.tenantId,
+          periodStartsOn: dueOn,
+          periodEndsOn: dueOn,
+          dueOn,
+          amountCents,
+          balanceCents: amountCents - input.paidCents,
+          status: input.paidCents === amountCents ? "paid" : "open",
+          paidOn: input.paidCents === amountCents ? dueOn : null,
+          items: {
+            create: input.items.map((item) => ({
+              ...item,
+              description: item.description || null,
+              amountCents: item.quantity * item.rateCents,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+    }),
   }),
   tags: router({
     list: publicProcedure.query(({ ctx }) =>

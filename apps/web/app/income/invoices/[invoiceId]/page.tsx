@@ -75,6 +75,18 @@ export default function InvoiceDetailPage() {
             (() => {
               const paidCents = Math.max(invoice.amountCents - invoice.balanceCents, 0);
               const invoiceLabel = `INV-${String(invoice.invoiceNumber).padStart(7, "0")}`;
+              const items = invoice.items.length
+                ? invoice.items
+                : [
+                    {
+                      id: 0,
+                      item: "Rent",
+                      description: `Rent for ${formatDate(invoice.periodStartsOn)}`,
+                      quantity: 1,
+                      rateCents: invoice.amountCents,
+                      amountCents: invoice.amountCents,
+                    },
+                  ];
               return (
                 <div className="flex flex-col gap-5 lg:flex-row">
                   <aside className="w-full max-w-[20rem] shrink-0">
@@ -116,7 +128,29 @@ export default function InvoiceDetailPage() {
                               </div>
                               {collapsedPropertyIds.has(propertyId) ? null : (
                                 <div className="ml-3 border-l border-parcelis-border pl-2">
-                                  {Array.from(property.invoices.reduce((groups, item) => { const rows = groups.get(item.lease.unitLabel) ?? []; rows.push(item); groups.set(item.lease.unitLabel, rows); return groups; }, new Map<string, typeof property.invoices>())).map(([unitLabel, invoices]) => <div className="py-1" key={unitLabel}><p className="px-2 py-1 text-xs font-semibold text-parcelis-gray">Unit {unitLabel}</p>{invoices.map((item) => <Link className={`block rounded-md px-2 py-1.5 text-xs font-medium ${item.id === invoice.id ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`} href={getInvoiceLink(item.id)} key={item.id}>INV-{String(item.invoiceNumber).padStart(7, "0")}</Link>)}</div>)}
+                                  {Array.from(
+                                    property.invoices.reduce((groups, item) => {
+                                      const rows = groups.get(item.lease.unitLabel) ?? [];
+                                      rows.push(item);
+                                      groups.set(item.lease.unitLabel, rows);
+                                      return groups;
+                                    }, new Map<string, typeof property.invoices>()),
+                                  ).map(([unitLabel, invoices]) => (
+                                    <div className="py-1" key={unitLabel}>
+                                      <p className="px-2 py-1 text-xs font-semibold text-parcelis-gray">
+                                        Unit {unitLabel}
+                                      </p>
+                                      {invoices.map((item) => (
+                                        <Link
+                                          className={`block rounded-md px-2 py-1.5 text-xs font-medium ${item.id === invoice.id ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`}
+                                          href={getInvoiceLink(item.id)}
+                                          key={item.id}
+                                        >
+                                          INV-{String(item.invoiceNumber).padStart(7, "0")}
+                                        </Link>
+                                      ))}
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -202,19 +236,19 @@ export default function InvoiceDetailPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              <tr className="border-b border-parcelis-border">
-                                <td className="py-4 font-semibold text-parcelis-charcoal">Rent</td>
-                                <td className="py-4 text-parcelis-gray">
-                                  Rent for {formatDate(invoice.periodStartsOn)}
-                                </td>
-                                <td className="py-4 text-right text-parcelis-gray">1</td>
-                                <td className="py-4 text-right text-parcelis-gray">
-                                  {formatCurrency(invoice.amountCents)}
-                                </td>
-                                <td className="py-4 text-right font-semibold text-parcelis-charcoal">
-                                  {formatCurrency(invoice.amountCents)}
-                                </td>
-                              </tr>
+                              {items.map((item) => (
+                                <tr className="border-b border-parcelis-border" key={item.id}>
+                                  <td className="py-4 font-semibold text-parcelis-charcoal">{item.item}</td>
+                                  <td className="py-4 text-parcelis-gray">{item.description ?? "—"}</td>
+                                  <td className="py-4 text-right text-parcelis-gray">{item.quantity}</td>
+                                  <td className="py-4 text-right text-parcelis-gray">
+                                    {formatCurrency(item.rateCents)}
+                                  </td>
+                                  <td className="py-4 text-right font-semibold text-parcelis-charcoal">
+                                    {formatCurrency(item.amountCents)}
+                                  </td>
+                                </tr>
+                              ))}
                             </tbody>
                           </table>
                         </div>
