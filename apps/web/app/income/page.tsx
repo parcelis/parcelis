@@ -21,7 +21,7 @@ import {
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { Sidebar } from "../../components/sidebar";
-import { getUnitLink } from "../../lib/entity-links";
+import { getTenantLink, getUnitLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -39,6 +39,21 @@ function formatLeaseStatus(status: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function formatDate(value: Date) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(value);
+}
+
+function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number }) {
+  const now = new Date();
+  const dueOn = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  return {
+    dueOn,
+    id: `INV-${dueOn.getFullYear()}-${String(dueOn.getMonth() + 1).padStart(2, "0")}`,
+    status: lease.amountOverdueCents > 0 ? "Overdue" : "Current",
+  };
 }
 
 export default function IncomePage() {
@@ -64,9 +79,12 @@ export default function IncomePage() {
     .map((property) => ({
       ...property,
       incomeLeases: property.incomeLeases.filter((lease) =>
-        [property.name, lease.unitLabel, formatLeaseStatus(lease.status)].some((value) =>
-          value.toLowerCase().includes(normalizedSearch),
-        ),
+        [
+          property.name,
+          lease.unitLabel,
+          `${lease.tenant.firstName} ${lease.tenant.lastName}`,
+          formatLeaseStatus(lease.status),
+        ].some((value) => value.toLowerCase().includes(normalizedSearch)),
       ),
     }))
     .filter((property) => property.incomeLeases.length > 0);
@@ -165,13 +183,19 @@ export default function IncomePage() {
                     : "No income records match your search."}
                 </div>
               ) : groupByProperty ? (
-                <Table className="min-w-[840px] border-collapse text-left">
+                <Table className="min-w-[1360px] border-collapse text-left">
                   <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
                     <TableRow className="border-0">
-                      <TableHead className="w-[44%] px-5 py-3 font-semibold">Property / Unit</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Lease status</TableHead>
-                      <TableHead className="px-5 py-3 text-right font-semibold">Scheduled rent</TableHead>
-                      <TableHead className="px-5 py-3 text-right font-semibold">Overdue</TableHead>
+                      <TableHead className="w-[28%] px-5 py-3 font-semibold">Property / Tenant</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Unit</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Due on</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Paid on</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Invoice ID</TableHead>
+                      <TableHead className="px-5 py-3 font-semibold">Status</TableHead>
+                      <TableHead className="px-5 py-3 text-right font-semibold">Amount</TableHead>
+                      <TableHead className="px-5 py-3 text-right font-semibold">Processing</TableHead>
+                      <TableHead className="px-5 py-3 text-right font-semibold">Paid</TableHead>
+                      <TableHead className="px-5 py-3 text-right font-semibold">Balance</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -199,9 +223,15 @@ export default function IncomePage() {
                               </button>
                             </TableCell>
                             <TableCell className="px-5 py-4 text-parcelis-gray">—</TableCell>
+                            <TableCell className="px-5 py-4 text-parcelis-gray">—</TableCell>
+                            <TableCell className="px-5 py-4 text-parcelis-gray">—</TableCell>
+                            <TableCell className="px-5 py-4 text-parcelis-gray">—</TableCell>
+                            <TableCell className="px-5 py-4 text-parcelis-gray">—</TableCell>
                             <TableCell className="px-5 py-4 text-right font-semibold text-parcelis-charcoal">
                               {formatCurrency(property.monthlyRentCents)}
                             </TableCell>
+                            <TableCell className="px-5 py-4 text-right text-parcelis-gray">—</TableCell>
+                            <TableCell className="px-5 py-4 text-right text-parcelis-gray">—</TableCell>
                             <TableCell
                               className={`px-5 py-4 text-right font-semibold ${property.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
                             >
@@ -212,35 +242,53 @@ export default function IncomePage() {
                             ? property.incomeLeases.map((lease) => {
                                 const unit = property.units.find((item) => item.name === lease.unitLabel);
                                 const unitHref = unit ? getUnitLink(property.id, unit.id) : null;
+                                const tenantName = `${lease.tenant.firstName} ${lease.tenant.lastName}`;
+                                const invoice = getCurrentInvoice(lease);
                                 return (
                                   <TableRow
                                     className="border-t border-parcelis-border bg-parcelis-porcelain/45"
                                     key={lease.unitLabel}
                                   >
                                     <TableCell className="px-5 py-3">
+                                      <Link
+                                        className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
+                                        href={getTenantLink(lease.tenant.id)}
+                                      >
+                                        <span />
+                                        {tenantName}
+                                      </Link>
+                                    </TableCell>
+                                    <TableCell className="px-5 py-3">
                                       {unitHref ? (
                                         <Link
-                                          className="grid grid-cols-[2rem_2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
+                                          className="flex items-center gap-2 font-semibold text-parcelis-charcoal hover:text-parcelis-green"
                                           href={unitHref}
                                         >
-                                          <span />
                                           <DoorOpen className="h-4 w-4 text-parcelis-green" />
                                           Unit {lease.unitLabel}
                                         </Link>
                                       ) : (
-                                        <div className="grid grid-cols-[2rem_2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal">
-                                          <span />
+                                        <div className="flex items-center gap-2 font-semibold text-parcelis-charcoal">
                                           <DoorOpen className="h-4 w-4 text-parcelis-green" />
                                           Unit {lease.unitLabel}
                                         </div>
                                       )}
                                     </TableCell>
                                     <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                      {formatLeaseStatus(lease.status)}
+                                      {formatDate(invoice.dueOn)}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-3 text-sm text-parcelis-gray">—</TableCell>
+                                    <TableCell className="px-5 py-3 text-sm font-medium text-parcelis-charcoal">
+                                      {invoice.id}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
+                                      {invoice.status}
                                     </TableCell>
                                     <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
                                       {formatCurrency(lease.monthlyRentCents)}
                                     </TableCell>
+                                    <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">—</TableCell>
+                                    <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">—</TableCell>
                                     <TableCell
                                       className={`px-5 py-3 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
                                     >
