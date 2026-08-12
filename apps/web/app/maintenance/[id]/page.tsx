@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -44,6 +45,7 @@ import { Sidebar } from "../../../components/sidebar";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { MaintenanceDrawer } from "../../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../../components/maintenance-image-upload";
+import { entityUpdatedMessage } from "../../../components/toast-messages";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -158,9 +160,10 @@ export default function MaintenanceTicketPage() {
       await Promise.all(attachments.map((file) => uploadMaintenanceImage(updatedTicket.id, file)));
       return updatedTicket;
     },
-    onSuccess: () => {
+    onSuccess: (ticket) => {
       setEditOpen(false);
       queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] });
+      toast.success(entityUpdatedMessage("Maintenance", ticket.title));
     },
   });
   const deleteAttachment = useMutation({

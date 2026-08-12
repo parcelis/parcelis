@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import { AppFooter } from "../components/app-footer";
 import { ShortcutProvider } from "../components/shortcut-provider";
 import { TrpcProvider } from "../components/trpc-provider";
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 {children}
                 <AppFooter />
               </div>
+              <Toaster position="top-center" />
             </TrpcProvider>
           </ShortcutProvider>
         </ThemeProvider>
