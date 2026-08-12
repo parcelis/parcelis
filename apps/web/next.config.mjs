@@ -11,7 +11,7 @@ const nextConfig = {
     root: resolve(dirname(fileURLToPath(import.meta.url)), "../.."),
   },
   async rewrites() {
-    const apiUrl = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:40010";
+    const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:40010";
 
     return [
       {

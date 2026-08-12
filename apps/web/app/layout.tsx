@@ -3,6 +3,7 @@ import { AppFooter } from "../components/app-footer";
 import { ShortcutProvider } from "../components/shortcut-provider";
 import { TrpcProvider } from "../components/trpc-provider";
 import { ThemeProvider } from "../components/theme-provider";
+import { ToastProvider } from "../components/toast-provider";
 import "@parcelis/ui/styles.css";
 import "./globals.css";
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 {children}
                 <AppFooter />
               </div>
+              <ToastProvider />
             </TrpcProvider>
           </ShortcutProvider>
         </ThemeProvider>

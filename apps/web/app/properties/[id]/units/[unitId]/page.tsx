@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Bath,
@@ -48,6 +49,7 @@ import { getPropertyFormState, getUnitFormStates } from "../../../../../componen
 import { LoadingState } from "../../../../../components/loading-state";
 import { Sidebar } from "../../../../../components/sidebar";
 import { NotesDrawer } from "../../../../../components/notes-drawer";
+import { entityUpdatedMessage } from "../../../../../components/toast-messages";
 import { StickyNotePlusIcon } from "../../../../../components/sticky-note-plus-icon";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../../lib/entity-links";
 
@@ -106,7 +108,8 @@ export default function UnitDetailPage() {
       if (imageFile) await uploadPropertyImage(updatedProperty.id, imageFile);
       return updatedProperty;
     },
-    onSuccess: async () => {
+    onSuccess: async (property, { input }) => {
+      const unitName = input.units.find((candidate) => candidate.id === unitId)?.name ?? property.name;
       setIsEditDrawerOpen(false);
       setEditInitialUnits([]);
       setPropertyImageFile(null);
@@ -116,6 +119,7 @@ export default function UnitDetailPage() {
         }),
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
       ]);
+      toast.success(entityUpdatedMessage("Unit", unitName));
     },
   });
   const deletePropertyImageMutation = useMutation({

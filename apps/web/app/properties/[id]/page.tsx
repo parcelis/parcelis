@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Bath,
@@ -43,6 +44,7 @@ import { NotesDrawer } from "../../../components/notes-drawer";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { Sidebar } from "../../../components/sidebar";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
+import { entityUpdatedMessage } from "../../../components/toast-messages";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -86,7 +88,7 @@ export default function PropertyDetailPage() {
       if (imageFile) await uploadPropertyImage(updatedProperty.id, imageFile);
       return updatedProperty;
     },
-    onSuccess: async () => {
+    onSuccess: async (property) => {
       setIsEditDrawerOpen(false);
       setEditInitialUnits([]);
       setPropertyImageFile(null);
@@ -96,6 +98,7 @@ export default function PropertyDetailPage() {
         }),
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
       ]);
+      toast.success(entityUpdatedMessage("Property", property.name));
     },
   });
   const deletePropertyImageMutation = useMutation({

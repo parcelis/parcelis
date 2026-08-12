@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   BadgeCheck,
   Archive,
@@ -53,6 +54,13 @@ import { NotesDrawer } from "../../components/notes-drawer";
 import { Sidebar } from "../../components/sidebar";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../components/tenant-drawer";
 import { deleteTenantImage, uploadTenantImage } from "../../components/tenant-image-upload";
+import {
+  entityArchivedMessage,
+  entityCreatedMessage,
+  entityDeletedMessage,
+  entityReactivatedMessage,
+  entityUpdatedMessage,
+} from "../../components/toast-messages";
 import { getTenantLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -183,21 +191,23 @@ export default function TenantsPage() {
   const [tenantImageFile, setTenantImageFile] = React.useState<File | null>(null);
   const archiveMutation = useMutation({
     mutationFn: (id: number) => apiClient.tenants.archive.mutate({ id }),
-    onSuccess: async (_tenant, id) => {
+    onSuccess: async (tenant, id) => {
       setArchiveTenant(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(id) }),
       ]);
+      toast.success(entityArchivedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
   });
   const reactivateMutation = useMutation({
     mutationFn: (id: number) => apiClient.tenants.reactivate.mutate({ id }),
-    onSuccess: async (_tenant, id) => {
+    onSuccess: async (tenant, id) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(id) }),
       ]);
+      toast.success(entityReactivatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
   });
   const createTenantMutation = useMutation({
@@ -206,11 +216,12 @@ export default function TenantsPage() {
       if (imageFile) await uploadTenantImage(tenant.id, imageFile);
       return tenant;
     },
-    onSuccess: async () => {
+    onSuccess: async (tenant) => {
       setIsTenantDrawerOpen(false);
       setEditForm(initialTenantFormState);
       setTenantImageFile(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
+      toast.success(entityCreatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
   });
   const updateTenantMutation = useMutation({
@@ -219,7 +230,7 @@ export default function TenantsPage() {
       if (imageFile) await uploadTenantImage(input.id, imageFile);
       return tenant;
     },
-    onSuccess: async (_tenant, variables) => {
+    onSuccess: async (tenant, variables) => {
       setEditTenant(null);
       setEditForm(initialTenantFormState);
       setTenantImageFile(null);
@@ -229,6 +240,7 @@ export default function TenantsPage() {
           queryKey: queryKeys.tenants.byId(variables.input.id),
         }),
       ]);
+      toast.success(entityUpdatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
   });
   const deleteTenantImageMutation = useMutation({
@@ -241,10 +253,11 @@ export default function TenantsPage() {
     },
   });
   const deleteTenantMutation = useMutation({
-    mutationFn: (id: number) => apiClient.tenants.delete.mutate({ id }),
-    onSuccess: async () => {
+    mutationFn: (tenant: TenantListItem) => apiClient.tenants.delete.mutate({ id: tenant.id }),
+    onSuccess: async (_tenant, tenant) => {
       setDeleteTenant(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
+      toast.success(entityDeletedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
   });
   const tenants = tenantsQuery.data ?? [];
@@ -361,7 +374,7 @@ export default function TenantsPage() {
             <Button
               className="bg-red-700 hover:bg-red-800"
               disabled={deleteTenantMutation.isPending}
-              onClick={() => deleteTenant && deleteTenantMutation.mutate(deleteTenant.id)}
+              onClick={() => deleteTenant && deleteTenantMutation.mutate(deleteTenant)}
               type="button"
             >
               Delete

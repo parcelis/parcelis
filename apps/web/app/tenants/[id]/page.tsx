@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -54,6 +55,7 @@ import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
+import { entityUpdatedMessage } from "../../../components/toast-messages";
 import { getInvoiceLink, getPropertyLink, getTenantInvoicesLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -141,13 +143,14 @@ export default function TenantDetailPage() {
       if (imageFile) await uploadTenantImage(input.id, imageFile);
       return updatedTenant;
     },
-    onSuccess: async () => {
+    onSuccess: async (_tenant, variables) => {
       setIsTenantDrawerOpen(false);
       setTenantImageFile(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
       ]);
+      toast.success(entityUpdatedMessage("Tenant", `${variables.input.firstName} ${variables.input.lastName}`));
     },
   });
   const createLease = useMutation({

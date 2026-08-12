@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Archive,
   Check,
@@ -55,6 +56,7 @@ import { MaintenanceDrawer } from "../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
 import { NotesDrawer } from "../../components/notes-drawer";
 import { Sidebar } from "../../components/sidebar";
+import { entityArchivedMessage, entityCreatedMessage, entityDeletedMessage } from "../../components/toast-messages";
 import { getMaintenanceLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -152,18 +154,25 @@ export default function MaintenancePage() {
       await Promise.all(attachments.map((file) => uploadMaintenanceImage(ticket.id, file)));
       return ticket;
     },
-    onSuccess: async () => {
+    onSuccess: async (ticket) => {
       setDrawerOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] });
+      toast.success(entityCreatedMessage("Maintenance", ticket.title));
     },
   });
   const archiveTicket = useMutation({
     mutationFn: (id: number) => apiClient.maintenance.archive.mutate({ id }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
+    onSuccess: async (ticket) => {
+      await queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] });
+      toast.success(entityArchivedMessage("Maintenance", ticket.title));
+    },
   });
   const deleteTicket = useMutation({
     mutationFn: (id: number) => apiClient.maintenance.delete.mutate({ id }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
+    onSuccess: async (ticket) => {
+      await queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] });
+      toast.success(entityDeletedMessage("Maintenance", ticket.title));
+    },
   });
   const latestActionNoteQuery = useQuery({
     queryKey: ["notes", "list", { maintenanceTicketId: ticketAction?.id ?? 0, limit: 1 }],

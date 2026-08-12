@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   Archive,
@@ -69,6 +70,12 @@ import { NotesDrawer } from "../../components/notes-drawer";
 import { deletePropertyImage, uploadPropertyImage } from "../../components/property-image-upload";
 import { useShortcut } from "../../components/shortcut-provider";
 import { Sidebar } from "../../components/sidebar";
+import {
+  entityArchivedMessage,
+  entityCreatedMessage,
+  entityDeletedMessage,
+  entityUpdatedMessage,
+} from "../../components/toast-messages";
 import { getPropertyLink, getUnitLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -298,13 +305,14 @@ export default function PropertiesPage() {
       if (imageFile) await uploadPropertyImage(property.id, imageFile);
       return property;
     },
-    onSuccess: async () => {
+    onSuccess: async (property) => {
       setForm(initialPropertyFormState);
       setPropertyImageFile(null);
       setIsFormOpen(false);
       await queryClient.invalidateQueries({
         queryKey: queryKeys.properties.list,
       });
+      toast.success(entityCreatedMessage("Property", property.name));
     },
   });
   const updateProperty = useMutation({
@@ -313,7 +321,7 @@ export default function PropertiesPage() {
       if (imageFile) await uploadPropertyImage(property.id, imageFile);
       return property;
     },
-    onSuccess: async (_property, { input }) => {
+    onSuccess: async (property, { input }) => {
       setIsFormOpen(false);
       setEditingPropertyId(null);
       setEditInitialForm(initialPropertyFormState);
@@ -325,6 +333,7 @@ export default function PropertiesPage() {
           queryKey: queryKeys.properties.byId(input.id),
         }),
       ]);
+      toast.success(entityUpdatedMessage("Property", property.name));
     },
   });
   const deletePropertyImageMutation = useMutation({
@@ -340,7 +349,7 @@ export default function PropertiesPage() {
   });
   const archiveProperty = useMutation({
     mutationFn: (input: { id: number }) => apiClient.properties.archive.mutate(input),
-    onSuccess: async (_property, input) => {
+    onSuccess: async (property, input) => {
       setArchivePropertyId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
@@ -348,6 +357,7 @@ export default function PropertiesPage() {
           queryKey: queryKeys.properties.byId(input.id),
         }),
       ]);
+      toast.success(entityArchivedMessage("Property", property.name));
     },
   });
   const reactivateProperty = useMutation({
@@ -363,7 +373,7 @@ export default function PropertiesPage() {
   });
   const deleteProperty = useMutation({
     mutationFn: (input: { id: number }) => apiClient.properties.delete.mutate(input),
-    onSuccess: async (_property, input) => {
+    onSuccess: async (property, input) => {
       setDeletePropertyId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
@@ -371,6 +381,7 @@ export default function PropertiesPage() {
           queryKey: queryKeys.properties.byId(input.id),
         }),
       ]);
+      toast.success(entityDeletedMessage("Property", property.name));
     },
   });
   const deleteUnit = useMutation({
