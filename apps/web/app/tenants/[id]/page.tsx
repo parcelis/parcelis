@@ -116,7 +116,7 @@ export default function TenantDetailPage() {
   const updateEmergencyContactMutation = useMutation({
     mutationFn: (input: { id: number; firstName: string; lastName: string; phone: string }) =>
       apiClient.tenants.updateEmergencyContact.mutate(input),
-    onSuccess: async (_tenant, variables) => {
+    onSuccess: async () => {
       setIsEmergencyContactDrawerOpen(false);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) });
     },

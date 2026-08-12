@@ -58,6 +58,7 @@ import {
   entityArchivedMessage,
   entityCreatedMessage,
   entityDeletedMessage,
+  entityReactivatedMessage,
   entityUpdatedMessage,
 } from "../../components/toast-messages";
 
@@ -200,11 +201,12 @@ export default function TenantsPage() {
   });
   const reactivateMutation = useMutation({
     mutationFn: (id: number) => apiClient.tenants.reactivate.mutate({ id }),
-    onSuccess: async (_tenant, id) => {
+    onSuccess: async (tenant, id) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(id) }),
       ]);
+      toast.success(entityReactivatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
   });
   const createTenantMutation = useMutation({

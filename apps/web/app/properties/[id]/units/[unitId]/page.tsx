@@ -117,7 +117,7 @@ export default function UnitDetailPage() {
         }),
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
       ]);
-      toast.success(entityUpdatedMessage("Property", property.name));
+      toast.success(entityUpdatedMessage("Unit", unit?.name ?? property.name));
     },
   });
   const deletePropertyImageMutation = useMutation({

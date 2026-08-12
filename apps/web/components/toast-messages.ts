@@ -1,4 +1,4 @@
-type EntityLabel = "Property" | "Tenant" | "Maintenance" | "Invoice";
+type EntityLabel = "Property" | "Tenant" | "Maintenance" | "Invoice" | "Unit";
 
 export function entityCreatedMessage(entity: EntityLabel, name: string) {
   return `${entity} “${name}” has been created.`;
@@ -16,10 +16,6 @@ export function entityArchivedMessage(entity: EntityLabel, name: string) {
   return `${entity} “${name}” has been archived.`;
 }
 
-export function paymentEntityAddedMessage(name: string) {
-  return `Payment for “${name}” has been recorded.`;
-}
-
-export function paymentEntityDeletedMessage(name: string) {
-  return `Payment for “${name}” has been deleted.`;
+export function entityReactivatedMessage(entity: EntityLabel, name: string) {
+  return `${entity} “${name}” has been reactivated.`;
 }
