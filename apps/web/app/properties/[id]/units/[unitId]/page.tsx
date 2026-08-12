@@ -107,7 +107,8 @@ export default function UnitDetailPage() {
       if (imageFile) await uploadPropertyImage(updatedProperty.id, imageFile);
       return updatedProperty;
     },
-    onSuccess: async (property) => {
+    onSuccess: async (property, { input }) => {
+      const unitName = input.units.find((candidate) => candidate.id === unitId)?.name ?? property.name;
       setIsEditDrawerOpen(false);
       setEditInitialUnits([]);
       setPropertyImageFile(null);
@@ -117,7 +118,7 @@ export default function UnitDetailPage() {
         }),
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
       ]);
-      toast.success(entityUpdatedMessage("Unit", unit?.name ?? property.name));
+      toast.success(entityUpdatedMessage("Unit", unitName));
     },
   });
   const deletePropertyImageMutation = useMutation({
