@@ -64,6 +64,14 @@ function formatInvoiceStatus(invoice: { amountCents: number; balanceCents: numbe
   return formatLeaseStatus(invoice.status);
 }
 
+function getTenantName(lease: { tenant?: { firstName: string; lastName: string } | null }) {
+  return lease.tenant ? `${lease.tenant.firstName} ${lease.tenant.lastName}` : "Unassigned tenant";
+}
+
+function getLeaseInvoices<T>(lease: { invoices?: T[] }) {
+  return lease.invoices ?? [];
+}
+
 export default function IncomePage() {
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [groupByProperty, setGroupByProperty] = React.useState(true);
@@ -102,7 +110,7 @@ export default function IncomePage() {
         [
           property.name,
           lease.unitLabel,
-          `${lease.tenant.firstName} ${lease.tenant.lastName}`,
+          getTenantName(lease),
           formatLeaseStatus(lease.status),
         ].some((value) => value.toLowerCase().includes(normalizedSearch)),
       ),
@@ -112,7 +120,7 @@ export default function IncomePage() {
     property.incomeLeases.map((lease) => ({ property, lease })),
   );
   const ungroupedIncomeRows = incomeLeases.flatMap(({ property, lease }) => {
-    return lease.invoices.map((persistedInvoice) => ({
+    return getLeaseInvoices(lease).map((persistedInvoice) => ({
       property,
       lease,
       invoice: persistedInvoice,
@@ -271,8 +279,9 @@ export default function IncomePage() {
                           </TableRow>
                           {isExpanded
                             ? property.incomeLeases.map((lease) => {
-                                const tenantName = `${lease.tenant.firstName} ${lease.tenant.lastName}`;
-                                const invoices = lease.invoices.length ? lease.invoices : [null];
+                                const tenantName = getTenantName(lease);
+                                const persistedInvoices = getLeaseInvoices(lease);
+                                const invoices = persistedInvoices.length ? persistedInvoices : [null];
                                 return invoices.map((persistedInvoice) => {
                                   const invoice = persistedInvoice ?? getCurrentInvoice(lease);
                                   return (
@@ -381,7 +390,7 @@ export default function IncomePage() {
                             <div className="space-y-1">
                               <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
                               <p className="text-sm text-parcelis-gray">
-                                Unit {lease.unitLabel} · {lease.tenant.firstName} {lease.tenant.lastName}
+                                Unit {lease.unitLabel} · {getTenantName(lease)}
                               </p>
                             </div>
                           </TableCell>
