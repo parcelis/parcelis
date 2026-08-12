@@ -69,6 +69,7 @@ export function EditInvoiceDrawer({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["invoices"] });
       void queryClient.invalidateQueries({ queryKey: ["properties", "list"] });
+      void queryClient.invalidateQueries({ queryKey: ["activityEvents"] });
       onOpenChange(false);
     },
   });
@@ -199,7 +200,11 @@ export function EditInvoiceDrawer({
             <Button type="button" variant="secondary" onClick={requestClose}>
               Cancel
             </Button>
-            <Button className="min-w-40" disabled={update.isPending || subtotal < totalPaid} type="submit">
+            <Button
+              className="min-w-40"
+              disabled={update.isPending || subtotal <= 0 || subtotal < totalPaid}
+              type="submit"
+            >
               Save changes
             </Button>
           </DrawerFooter>

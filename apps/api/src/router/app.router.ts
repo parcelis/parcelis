@@ -129,6 +129,28 @@ async function recordMaintenanceStatusEvent(
   });
 }
 
+async function recordInvoiceActivity(
+  tx: Prisma.TransactionClient,
+  invoice: { id: number; invoiceNumber: number; propertyId: number },
+  action: string,
+  metadata?: Prisma.InputJsonValue,
+  actor?: { id: string | number; name: string },
+) {
+  await tx.activityEvent.create({
+    data: {
+      subjectType: ActivitySubjectType.invoice,
+      subjectId: invoice.id,
+      subjectLabel: `Invoice ${invoice.invoiceNumber}`,
+      subjectReference: `INV-${invoice.invoiceNumber.toString().padStart(7, "0")}`,
+      propertyId: invoice.propertyId,
+      action,
+      metadata,
+      actorId: actor ? String(actor.id) : null,
+      actorLabel: actor?.name ?? null,
+    },
+  });
+}
+
 function withPropertyNotes<T extends { legacyNotes: string | null }>(property: T) {
   return { ...property, notes: property.legacyNotes };
 }
@@ -268,6 +290,28 @@ function getTenantStatus(tenant: { archivedAt: Date | null; leases: Array<{ stat
   }
 
   return tenant.leases.some((lease) => lease.status === "active" || lease.status === "notice") ? "active" : "past";
+}
+
+function getInvoiceStatus(dueOn: Date, balanceCents: number) {
+  if (balanceCents === 0) return "paid" as const;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return dueOn < today ? ("overdue" as const) : ("open" as const);
+}
+
+async function synchronizeOverdueInvoices(prisma: PrismaClient | Prisma.TransactionClient) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  await Promise.all([
+    prisma.invoice.updateMany({
+      where: { status: "open", balanceCents: { gt: 0 }, dueOn: { lt: today } },
+      data: { status: "overdue" },
+    }),
+    prisma.invoice.updateMany({
+      where: { status: "overdue", OR: [{ balanceCents: 0 }, { dueOn: { gte: today } }] },
+      data: { status: "open" },
+    }),
+  ]);
 }
 
 async function generateInitialLeaseInvoices(
@@ -420,9 +464,13 @@ export const appRouter = router({
   properties: router({
     /** Lists up to 50 properties with units, lease metrics, and maintenance metrics. */
     list: publicProcedure.query(async ({ ctx }) => {
+      await synchronizeOverdueInvoices(ctx.prisma);
       const properties = await ctx.prisma.property.findMany({
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
+          invoices: {
+            select: { leaseId: true, balanceCents: true },
+          },
           leases: {
             select: {
               monthlyRentCents: true,
@@ -484,13 +532,25 @@ export const appRouter = router({
       });
 
       return Promise.all(
-        properties.map(async (property) => ({
-          ...withOperatingMetrics({
-            ...withPropertyNotes(property),
-            units: property.units.map(serializeUnit),
-          }),
-          imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
-        })),
+        properties.map(async ({ invoices, ...property }) => {
+          const balanceByLeaseId = new Map<number, number>();
+          invoices.forEach((invoice) => {
+            balanceByLeaseId.set(invoice.leaseId, (balanceByLeaseId.get(invoice.leaseId) ?? 0) + invoice.balanceCents);
+          });
+          return {
+            ...withOperatingMetrics({
+              ...withPropertyNotes({
+                ...property,
+                leases: property.leases.map((lease) => ({
+                  ...lease,
+                  amountOverdueCents: balanceByLeaseId.get(lease.id) ?? 0,
+                })),
+              }),
+              units: property.units.map(serializeUnit),
+            }),
+            imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
+          };
+        }),
       );
     }),
     /** Returns one property with its units, leases, and maintenance tickets. */
@@ -995,15 +1055,17 @@ export const appRouter = router({
     }),
   }),
   invoices: router({
-    list: publicProcedure.input(invoiceListInputSchema).query(({ ctx, input }) =>
-      ctx.prisma.invoice.findMany({
+    list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
+      await synchronizeOverdueInvoices(ctx.prisma);
+      return ctx.prisma.invoice.findMany({
         where: input.tenantId ? { tenantId: input.tenantId } : undefined,
         include: { lease: { select: { unitLabel: true } }, property: { select: { id: true, name: true } } },
         orderBy: { dueOn: "desc" },
-      }),
-    ),
-    byId: publicProcedure.input(invoiceByIdInputSchema).query(({ ctx, input }) =>
-      ctx.prisma.invoice.findUnique({
+      });
+    }),
+    byId: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
+      await synchronizeOverdueInvoices(ctx.prisma);
+      return ctx.prisma.invoice.findUnique({
         where: { id: input.id },
         include: {
           property: { select: { id: true, name: true } },
@@ -1015,8 +1077,8 @@ export const appRouter = router({
             include: { tenant: { select: { id: true, firstName: true, lastName: true } } },
           },
         },
-      }),
-    ),
+      });
+    }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       const lease = await ctx.prisma.lease.findUnique({
         where: { id: input.leaseId },
@@ -1027,98 +1089,178 @@ export const appRouter = router({
       }
 
       const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
+      if (amountCents <= 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "An invoice must have a positive total." });
+      }
       if (input.paidCents > amountCents) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid cannot exceed the invoice total." });
       }
       const dueOn = new Date(input.dueOn);
       dueOn.setHours(0, 0, 0, 0);
 
-      return ctx.prisma.invoice.create({
-        data: {
-          leaseId: lease.id,
-          propertyId: lease.propertyId,
-          tenantId: lease.tenantId,
-          periodStartsOn: dueOn,
-          periodEndsOn: dueOn,
-          dueOn,
-          amountCents,
-          balanceCents: amountCents - input.paidCents,
-          status: input.paidCents === amountCents ? "paid" : "open",
-          paidOn: input.paidCents === amountCents ? dueOn : null,
-          items: {
-            create: input.items.map((item) => ({
-              ...item,
-              description: item.description || null,
-              amountCents: item.quantity * item.rateCents,
-            })),
-          },
-        },
-        include: { items: true },
-      });
+      try {
+        return await ctx.prisma.$transaction(async (tx) => {
+          const existingInvoice = await tx.invoice.findUnique({
+            where: { leaseId_periodStartsOn: { leaseId: lease.id, periodStartsOn: dueOn } },
+            select: { invoiceNumber: true },
+          });
+          if (existingInvoice) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `An invoice already exists for this lease and billing date (INV-${existingInvoice.invoiceNumber.toString().padStart(7, "0")}).`,
+            });
+          }
+
+          const invoice = await tx.invoice.create({
+            data: {
+              leaseId: lease.id,
+              propertyId: lease.propertyId,
+              tenantId: lease.tenantId,
+              periodStartsOn: dueOn,
+              periodEndsOn: dueOn,
+              dueOn,
+              amountCents,
+              balanceCents: amountCents - input.paidCents,
+              status: getInvoiceStatus(dueOn, amountCents - input.paidCents),
+              paidOn: input.paidCents === amountCents ? dueOn : null,
+              items: {
+                create: input.items.map((item) => ({
+                  ...item,
+                  description: item.description || null,
+                  amountCents: item.quantity * item.rateCents,
+                })),
+              },
+            },
+            include: { items: true },
+          });
+          await recordInvoiceActivity(tx, invoice, "invoice.created");
+          return invoice;
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "An invoice already exists for this lease and billing date.",
+          });
+        }
+        throw error;
+      }
     }),
     recordPayment: publicProcedure.input(recordInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
-      const invoice = await ctx.prisma.invoice.findUniqueOrThrow({
-        where: { id: input.id },
-        select: { balanceCents: true, tenantId: true },
-      });
-      if (input.paidByTenantId !== invoice.tenantId) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Select a tenant assigned to this unit." });
-      }
-      if (input.amountCents > invoice.balanceCents) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Payment cannot exceed the remaining balance." });
-      }
-      const balanceCents = invoice.balanceCents - input.amountCents;
-      return ctx.prisma.$transaction(async (tx) => {
-        const payment = await tx.invoicePayment.create({
-          data: {
-            invoiceId: input.id,
-            tenantId: input.paidByTenantId,
-            amountCents: input.amountCents,
-            paymentMethod: input.paymentMethod,
-            paidOn: input.paidOn,
+      try {
+        return await ctx.prisma.$transaction(
+          async (tx) => {
+            const invoice = await tx.invoice.findUniqueOrThrow({
+              where: { id: input.id },
+              select: {
+                id: true,
+                invoiceNumber: true,
+                propertyId: true,
+                dueOn: true,
+                balanceCents: true,
+                tenantId: true,
+              },
+            });
+            if (input.paidByTenantId !== invoice.tenantId) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Select a tenant assigned to this unit." });
+            }
+            if (input.amountCents > invoice.balanceCents) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Payment cannot exceed the remaining balance." });
+            }
+            const balanceCents = invoice.balanceCents - input.amountCents;
+            const payment = await tx.invoicePayment.create({
+              data: {
+                invoiceId: input.id,
+                tenantId: input.paidByTenantId,
+                amountCents: input.amountCents,
+                paymentMethod: input.paymentMethod,
+                paidOn: input.paidOn,
+              },
+            });
+            const updatedInvoice = await tx.invoice.update({
+              where: { id: input.id },
+              data: {
+                balanceCents,
+                paidOn: balanceCents === 0 ? input.paidOn : null,
+                paidByTenantId: balanceCents === 0 ? input.paidByTenantId : null,
+                paymentMethod: balanceCents === 0 ? input.paymentMethod : null,
+                status: getInvoiceStatus(invoice.dueOn, balanceCents),
+              },
+            });
+            await recordInvoiceActivity(
+              tx,
+              updatedInvoice,
+              "invoice.payment_recorded",
+              {
+                amountCents: input.amountCents,
+                paymentMethod: input.paymentMethod,
+                paidOn: input.paidOn.toISOString(),
+                tenantId: input.paidByTenantId,
+              },
+              ctx.user,
+            );
+            return payment;
           },
-        });
-        await tx.invoice.update({
-          where: { id: input.id },
-          data: {
-            balanceCents,
-            paidOn: input.paidOn,
-            paidByTenantId: input.paidByTenantId,
-            paymentMethod: input.paymentMethod,
-            status: balanceCents === 0 ? "paid" : "open",
-          },
-        });
-        return payment;
-      });
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "This invoice changed while recording the payment. Please try again.",
+          });
+        }
+        throw error;
+      }
     }),
     update: publicProcedure.input(updateInvoiceInputSchema).mutation(async ({ ctx, input }) => {
-      const invoice = await ctx.prisma.invoice.findUniqueOrThrow({
-        where: { id: input.id },
-        select: { amountCents: true, balanceCents: true },
-      });
-      const paidCents = invoice.amountCents - invoice.balanceCents;
       const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
-      if (paidCents > amountCents) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invoice total cannot be lower than payments received." });
+      if (amountCents <= 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "An invoice must have a positive total." });
       }
-      return ctx.prisma.invoice.update({
-        where: { id: input.id },
-        data: {
-          dueOn: input.dueOn,
-          amountCents,
-          balanceCents: amountCents - paidCents,
-          status: amountCents === paidCents ? "paid" : "open",
-          items: {
-            deleteMany: {},
-            create: input.items.map((item) => ({
-              ...item,
-              description: item.description || null,
-              amountCents: item.quantity * item.rateCents,
-            })),
+      try {
+        return await ctx.prisma.$transaction(
+          async (tx) => {
+            const invoice = await tx.invoice.findUniqueOrThrow({
+              where: { id: input.id },
+              select: { amountCents: true, balanceCents: true },
+            });
+            const paidCents = invoice.amountCents - invoice.balanceCents;
+            if (paidCents > amountCents) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Invoice total cannot be lower than payments received.",
+              });
+            }
+            const updatedInvoice = await tx.invoice.update({
+              where: { id: input.id },
+              data: {
+                dueOn: input.dueOn,
+                amountCents,
+                balanceCents: amountCents - paidCents,
+                status: getInvoiceStatus(input.dueOn, amountCents - paidCents),
+                items: {
+                  deleteMany: {},
+                  create: input.items.map((item) => ({
+                    ...item,
+                    description: item.description || null,
+                    amountCents: item.quantity * item.rateCents,
+                  })),
+                },
+              },
+              include: { items: { orderBy: { id: "asc" } } },
+            });
+            await recordInvoiceActivity(tx, updatedInvoice, "invoice.updated");
+            return updatedInvoice;
           },
-        },
-        include: { items: { orderBy: { id: "asc" } } },
-      });
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+          throw new TRPCError({ code: "CONFLICT", message: "This invoice changed while saving. Please try again." });
+        }
+        throw error;
+      }
     }),
     delete: publicProcedure
       .input(deleteInvoiceInputSchema)
@@ -1131,7 +1273,7 @@ export const appRouter = router({
         });
         const invoice = await tx.invoice.findUniqueOrThrow({
           where: { id: payment.invoiceId },
-          select: { amountCents: true, balanceCents: true },
+          select: { amountCents: true, balanceCents: true, dueOn: true },
         });
         await tx.invoicePayment.delete({ where: { id: input.id } });
         const latestPayment = await tx.invoicePayment.findFirst({
@@ -1139,15 +1281,18 @@ export const appRouter = router({
           orderBy: [{ paidOn: "desc" }, { id: "desc" }],
         });
         const balanceCents = Math.min(invoice.amountCents, invoice.balanceCents + payment.amountCents);
-        await tx.invoice.update({
+        const updatedInvoice = await tx.invoice.update({
           where: { id: payment.invoiceId },
           data: {
             balanceCents,
-            status: balanceCents === 0 ? "paid" : "open",
-            paidOn: latestPayment?.paidOn ?? null,
-            paidByTenantId: latestPayment?.tenantId ?? null,
-            paymentMethod: latestPayment?.paymentMethod ?? null,
+            status: getInvoiceStatus(invoice.dueOn, balanceCents),
+            paidOn: balanceCents === 0 ? (latestPayment?.paidOn ?? null) : null,
+            paidByTenantId: balanceCents === 0 ? (latestPayment?.tenantId ?? null) : null,
+            paymentMethod: balanceCents === 0 ? (latestPayment?.paymentMethod ?? null) : null,
           },
+        });
+        await recordInvoiceActivity(tx, updatedInvoice, "invoice.payment_deleted", {
+          amountCents: payment.amountCents,
         });
         return { id: input.id };
       });

@@ -91,6 +91,7 @@ export function RecordPaymentDrawer({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["invoices"] });
       void queryClient.invalidateQueries({ queryKey: ["properties", "list"] });
+      void queryClient.invalidateQueries({ queryKey: ["activityEvents"] });
       onOpenChange(false);
     },
   });
