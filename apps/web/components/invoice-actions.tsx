@@ -27,6 +27,13 @@ export type InvoiceActionInvoice = {
   property: { name: string };
   tenant: { id: number; firstName: string; lastName: string };
   lease: { unitLabel: string; startsOn: Date | string; endsOn: Date | string | null };
+  payments: Array<{
+    id: number;
+    amountCents: number;
+    paidOn: Date | string;
+    paymentMethod: string;
+    tenant: { id: number; firstName: string; lastName: string };
+  }>;
 };
 
 export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
@@ -34,6 +41,7 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   const [paymentOpen, setPaymentOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const hasPayments = (invoice.payments ?? []).length > 0;
   const deleteInvoice = useMutation({
     mutationFn: () => apiClient.invoices.delete.mutate({ id: invoice.id }),
     onSuccess: () => router.push("/income"),
@@ -58,7 +66,7 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
           variant="secondary"
           onClick={() => setPaymentOpen(true)}
         >
-          <ReceiptText className="h-4 w-4" /> Record payment
+          <ReceiptText className="h-4 w-4" /> {hasPayments ? "Add payment" : "Record payment"}
         </Button>
         <Button size="sm" type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
           <Trash2 className="h-4 w-4" /> Delete

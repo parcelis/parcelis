@@ -194,6 +194,7 @@ export const recordInvoicePaymentInputSchema = z.object({
   amountCents: z.number().int().positive(),
   paidOn: z.coerce.date(),
   paidByTenantId: idSchema,
+  paymentMethod: z.enum(["cash", "money_order", "check", "cashiers_check", "paypal", "venmo", "zelle", "other"]),
 });
 export const updateInvoiceInputSchema = z.object({
   id: idSchema,
@@ -201,6 +202,7 @@ export const updateInvoiceInputSchema = z.object({
   items: z.array(invoiceItemInputSchema).min(1).max(50),
 });
 export const deleteInvoiceInputSchema = z.object({ id: idSchema });
+export const deleteInvoicePaymentInputSchema = z.object({ id: idSchema });
 
 export const createPropertyInputSchema = propertySchema.omit({
   id: true,

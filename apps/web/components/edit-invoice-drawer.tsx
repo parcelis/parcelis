@@ -3,6 +3,12 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Button,
   Drawer,
   DrawerClose,
@@ -75,6 +81,28 @@ export function EditInvoiceDrawer({
   return (
     <Drawer onOpenChange={(nextOpen) => (nextOpen ? onOpenChange(true) : requestClose())} open={open}>
       <DrawerContent size="md">
+        <AlertDialog onOpenChange={setDiscardOpen} open={discardOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Your changes will not be saved.</AlertDialogTitle>
+              <AlertDialogDescription>Discard your invoice edits and close this form?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setDiscardOpen(false)}>
+                Keep Editing
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setDiscardOpen(false);
+                  onOpenChange(false);
+                }}
+              >
+                Discard
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <DrawerHeader className="flex items-center gap-3">
           <DrawerClose />
           <DrawerTitle>Edit invoice</DrawerTitle>

@@ -2,10 +2,21 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Building2, CalendarDays, ChevronRight, FileText, UserRound } from "lucide-react";
-import { Button, Card, CardContent } from "@parcelis/ui";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Building2, CalendarDays, ChevronRight, FileText, Trash2, UserRound } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  Card,
+  CardContent,
+} from "@parcelis/ui";
 import { apiClient } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { InvoiceActions } from "../../../../components/invoice-actions";
@@ -27,6 +38,70 @@ function invoiceStatusClass(status: string) {
   if (status === "overdue") return "bg-red-100 text-red-700";
   if (status === "void") return "bg-parcelis-porcelain text-parcelis-gray";
   return "bg-parcelis-green/20 text-parcelis-charcoal";
+}
+
+function formatPaymentMethod(method: string) {
+  return method
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function DeletePaymentButton({ paymentId }: { paymentId: number }) {
+  const [open, setOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const queryClient = useQueryClient();
+  useEffect(() => setIsMounted(true), []);
+  const deletePayment = useMutation({
+    mutationFn: () => apiClient.invoices.deletePayment.mutate({ id: paymentId }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      void queryClient.invalidateQueries({ queryKey: ["properties", "list"] });
+      setOpen(false);
+    },
+  });
+  return (
+    <>
+      <Button
+        aria-label="Delete payment"
+        className="h-8 w-8 px-0"
+        size="sm"
+        type="button"
+        variant="ghost"
+        onClick={() => setOpen(true)}
+      >
+        <Trash2 className="h-4 w-4 text-red-600" />
+      </Button>
+      {isMounted
+        ? createPortal(
+            <AlertDialog onOpenChange={setOpen} open={open}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete payment?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. The payment amount will be restored to the invoice balance.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={deletePayment.isPending}
+                    type="button"
+                    variant="destructive"
+                    onClick={() => deletePayment.mutate()}
+                  >
+                    Delete payment
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>,
+            document.body,
+          )
+        : null}
+    </>
+  );
 }
 
 export default function InvoiceDetailPage() {
@@ -76,6 +151,7 @@ export default function InvoiceDetailPage() {
           ) : (
             (() => {
               const paidCents = Math.max(invoice.amountCents - invoice.balanceCents, 0);
+              const payments = invoice.payments ?? [];
               const invoiceLabel = `INV-${String(invoice.invoiceNumber).padStart(7, "0")}`;
               const items = invoice.items.length
                 ? invoice.items
@@ -91,7 +167,7 @@ export default function InvoiceDetailPage() {
                   ];
               return (
                 <div className="flex flex-col gap-5 lg:flex-row">
-                  <aside className="w-full max-w-[20rem] shrink-0">
+                  <aside className="w-full shrink-0 lg:w-60">
                     <Card className="lg:sticky lg:top-6 dark:bg-parcelis-slate">
                       <CardContent className="p-3">
                         <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
@@ -176,12 +252,20 @@ export default function InvoiceDetailPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div className="rounded-md bg-white/10 p-3">
+                          <p className="text-white/65">Invoice generated on</p>
+                          <p className="mt-1 font-semibold">{formatDate(invoice.createdAt)}</p>
+                        </div>
+                        <div className="rounded-md bg-white/10 p-3">
                           <p className="text-white/65">Due</p>
                           <p className="mt-1 font-semibold">{formatDate(invoice.dueOn)}</p>
                         </div>
                         <div className="rounded-md bg-white/10 p-3">
                           <p className="text-white/65">Balance</p>
                           <p className="mt-1 text-lg font-bold">{formatCurrency(invoice.balanceCents)}</p>
+                        </div>
+                        <div className="rounded-md bg-white/10 p-3">
+                          <p className="text-white/65">Reminders sent</p>
+                          <p className="mt-1 text-lg font-bold">0</p>
                         </div>
                       </div>
                     </section>
@@ -257,25 +341,71 @@ export default function InvoiceDetailPage() {
                           </table>
                         </div>
                       </section>
-                      <section className="grid gap-5 border-t border-parcelis-border bg-parcelis-porcelain/60 p-6 dark:bg-white/5 md:grid-cols-[1fr_20rem]">
+                      <section className="border-t border-parcelis-border bg-parcelis-porcelain/60 p-6 dark:bg-white/5">
                         <div>
-                          <h2 className="font-semibold text-parcelis-charcoal">Payment activity</h2>
-                          <p className="mt-2 text-sm text-parcelis-gray">
-                            No payments have been recorded for this invoice.
-                          </p>
+                          <div className="flex items-center gap-3">
+                            <h2 className="font-semibold text-parcelis-charcoal">Payment activity</h2>
+                            <span className="rounded-full bg-parcelis-green/20 px-2 py-0.5 text-xs font-semibold text-parcelis-charcoal">
+                              Payments received {payments.length}
+                            </span>
+                          </div>
+                          {payments.length ? (
+                            <div className="mt-3 overflow-x-auto">
+                              <table className="w-full min-w-[520px] text-sm">
+                                <thead className="text-left text-xs uppercase text-parcelis-gray">
+                                  <tr>
+                                    <th className="pb-2 font-semibold">Payer</th>
+                                    <th className="pb-2 font-semibold">Paid on</th>
+                                    <th className="pb-2 font-semibold">Method</th>
+                                    <th className="pb-2 text-right font-semibold">Amount</th>
+                                    <th className="w-10 pb-2" />
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {payments.map((payment) => (
+                                    <tr className="border-t border-parcelis-border" key={payment.id}>
+                                      <td className="py-3 font-medium text-parcelis-charcoal">
+                                        {payment.tenant.firstName} {payment.tenant.lastName}
+                                      </td>
+                                      <td className="py-3 text-parcelis-gray">{formatDate(payment.paidOn)}</td>
+                                      <td className="py-3 text-parcelis-gray">
+                                        {formatPaymentMethod(payment.paymentMethod)}
+                                      </td>
+                                      <td className="py-3 text-right font-semibold text-parcelis-charcoal">
+                                        {formatCurrency(payment.amountCents)}
+                                      </td>
+                                      <td className="py-2 pl-2 text-right">
+                                        <DeletePaymentButton paymentId={payment.id} />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-sm text-parcelis-gray">
+                              No payments have been recorded for this invoice.
+                            </p>
+                          )}
                         </div>
-                        <dl className="space-y-2 text-sm">
+                        <dl className="ml-auto mt-6 w-full max-w-xs space-y-2 rounded-md border border-parcelis-border bg-white p-4 text-sm dark:bg-parcelis-slate">
                           <div className="flex justify-between">
                             <dt className="text-parcelis-gray">Invoice total</dt>
-                            <dd className="font-semibold">{formatCurrency(invoice.amountCents)}</dd>
+                            <dd className="font-semibold text-parcelis-charcoal dark:text-white">
+                              {formatCurrency(invoice.amountCents)}
+                            </dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="text-parcelis-gray">Paid</dt>
-                            <dd className="font-semibold">{formatCurrency(paidCents)}</dd>
+                            <dd className="font-semibold text-parcelis-charcoal dark:text-white">
+                              {formatCurrency(paidCents)}
+                            </dd>
                           </div>
                           <div className="flex justify-between border-t border-parcelis-border pt-3 text-base">
-                            <dt className="font-semibold text-parcelis-charcoal">Remaining balance</dt>
-                            <dd className="font-bold text-parcelis-charcoal">{formatCurrency(invoice.balanceCents)}</dd>
+                            <dt className="font-semibold text-parcelis-charcoal dark:text-white">Remaining balance</dt>
+                            <dd className="font-bold text-parcelis-charcoal dark:text-white">
+                              {formatCurrency(invoice.balanceCents)}
+                            </dd>
                           </div>
                         </dl>
                       </section>

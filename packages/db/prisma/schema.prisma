@@ -229,6 +229,7 @@ model Tenant {
   leases              Lease[]
   invoices            Invoice[]
   paymentsMade        Invoice[]             @relation("InvoicePaidByTenant")
+  invoicePayments     InvoicePayment[]
   notes               Note[]
   maintenanceRequests MaintenanceTicket[]   @relation("MaintenanceRequesterTenant")
   createdAt           DateTime              @default(now())
@@ -329,7 +330,9 @@ model Invoice {
   balanceCents   Int
   status         InvoiceStatus @default(open)
   paidOn         DateTime?
+  paymentMethod  String?
   items          InvoiceItem[]
+  payments       InvoicePayment[]
   lease          Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
   property       Property      @relation(fields: [propertyId], references: [id])
   tenant         Tenant        @relation(fields: [tenantId], references: [id])
@@ -356,6 +359,21 @@ model InvoiceItem {
   updatedAt   DateTime @updatedAt
 
   @@index([invoiceId])
+}
+
+model InvoicePayment {
+  id             Int      @id @default(autoincrement())
+  invoiceId      Int
+  tenantId       Int
+  amountCents    Int
+  paymentMethod  String
+  paidOn         DateTime
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt      DateTime @default(now())
+
+  @@index([invoiceId, paidOn])
+  @@index([tenantId])
 }
 
 model MaintenanceTicket {

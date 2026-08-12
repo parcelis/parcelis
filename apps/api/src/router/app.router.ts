@@ -3,6 +3,7 @@ import {
   createPropertyInputSchema,
   createLeaseInputSchema,
   deleteInvoiceInputSchema,
+  deleteInvoicePaymentInputSchema,
   invoiceByIdInputSchema,
   invoiceListInputSchema,
   recordInvoicePaymentInputSchema,
@@ -1009,6 +1010,10 @@ export const appRouter = router({
           tenant: { select: { id: true, firstName: true, lastName: true } },
           lease: { select: { unitLabel: true, startsOn: true, endsOn: true } },
           items: { orderBy: { id: "asc" } },
+          payments: {
+            orderBy: { paidOn: "desc" },
+            include: { tenant: { select: { id: true, firstName: true, lastName: true } } },
+          },
         },
       }),
     ),
@@ -1054,20 +1059,36 @@ export const appRouter = router({
     recordPayment: publicProcedure.input(recordInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
       const invoice = await ctx.prisma.invoice.findUniqueOrThrow({
         where: { id: input.id },
-        select: { balanceCents: true },
+        select: { balanceCents: true, tenantId: true },
       });
+      if (input.paidByTenantId !== invoice.tenantId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Select a tenant assigned to this unit." });
+      }
       if (input.amountCents > invoice.balanceCents) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Payment cannot exceed the remaining balance." });
       }
       const balanceCents = invoice.balanceCents - input.amountCents;
-      return ctx.prisma.invoice.update({
-        where: { id: input.id },
-        data: {
-          balanceCents,
-          paidOn: input.paidOn,
-          paidByTenantId: input.paidByTenantId,
-          status: balanceCents === 0 ? "paid" : "open",
-        },
+      return ctx.prisma.$transaction(async (tx) => {
+        const payment = await tx.invoicePayment.create({
+          data: {
+            invoiceId: input.id,
+            tenantId: input.paidByTenantId,
+            amountCents: input.amountCents,
+            paymentMethod: input.paymentMethod,
+            paidOn: input.paidOn,
+          },
+        });
+        await tx.invoice.update({
+          where: { id: input.id },
+          data: {
+            balanceCents,
+            paidOn: input.paidOn,
+            paidByTenantId: input.paidByTenantId,
+            paymentMethod: input.paymentMethod,
+            status: balanceCents === 0 ? "paid" : "open",
+          },
+        });
+        return payment;
       });
     }),
     update: publicProcedure.input(updateInvoiceInputSchema).mutation(async ({ ctx, input }) => {
@@ -1102,6 +1123,35 @@ export const appRouter = router({
     delete: publicProcedure
       .input(deleteInvoiceInputSchema)
       .mutation(({ ctx, input }) => ctx.prisma.invoice.delete({ where: { id: input.id }, select: { id: true } })),
+    deletePayment: publicProcedure.input(deleteInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const payment = await tx.invoicePayment.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { invoiceId: true, amountCents: true },
+        });
+        const invoice = await tx.invoice.findUniqueOrThrow({
+          where: { id: payment.invoiceId },
+          select: { amountCents: true, balanceCents: true },
+        });
+        await tx.invoicePayment.delete({ where: { id: input.id } });
+        const latestPayment = await tx.invoicePayment.findFirst({
+          where: { invoiceId: payment.invoiceId },
+          orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+        });
+        const balanceCents = Math.min(invoice.amountCents, invoice.balanceCents + payment.amountCents);
+        await tx.invoice.update({
+          where: { id: payment.invoiceId },
+          data: {
+            balanceCents,
+            status: balanceCents === 0 ? "paid" : "open",
+            paidOn: latestPayment?.paidOn ?? null,
+            paidByTenantId: latestPayment?.tenantId ?? null,
+            paymentMethod: latestPayment?.paymentMethod ?? null,
+          },
+        });
+        return { id: input.id };
+      });
+    }),
   }),
   tags: router({
     list: publicProcedure.query(({ ctx }) =>

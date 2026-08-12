@@ -1,8 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Button,
   Drawer,
   DrawerClose,
@@ -14,9 +20,21 @@ import {
   Label,
   Select,
 } from "@parcelis/ui";
+import { Plus, Trash2 } from "lucide-react";
 import { apiClient } from "./api-client";
 import type { InvoiceActionInvoice } from "./invoice-actions";
 
+type PaymentEntry = { amount: string; method: string; paidOn: string; tenantId: string };
+const methods = [
+  ["cash", "Cash"],
+  ["money_order", "Money order"],
+  ["check", "Check"],
+  ["cashiers_check", "Cashier’s check"],
+  ["paypal", "PayPal"],
+  ["venmo", "Venmo"],
+  ["zelle", "Zelle"],
+  ["other", "Other"],
+] as const;
 function toCents(value: string) {
   const amount = Number.parseFloat(value);
   return Number.isFinite(amount) ? Math.max(Math.round(amount * 100), 0) : 0;
@@ -38,43 +56,84 @@ export function RecordPaymentDrawer({
   open: boolean;
 }) {
   const queryClient = useQueryClient();
-  const [amount, setAmount] = React.useState("");
-  const [paidByTenantId, setPaidByTenantId] = React.useState("");
-  const [paidOn, setPaidOn] = React.useState(new Date().toISOString().slice(0, 10));
-  const tenantsQuery = useQuery({ queryKey: ["tenants", "list"], queryFn: () => apiClient.tenants.list.query() });
+  const [entries, setEntries] = React.useState<PaymentEntry[]>([]);
+  const [snapshot, setSnapshot] = React.useState("");
+  const [discardOpen, setDiscardOpen] = React.useState(false);
+  const subject = invoice.items[0]?.description || invoice.items[0]?.item || "Invoice payment";
+  const createEntry = React.useCallback(
+    (): PaymentEntry => ({
+      amount: "",
+      method: "",
+      paidOn: new Date().toISOString().slice(0, 10),
+      tenantId: String(invoice.tenant.id),
+    }),
+    [invoice.tenant.id],
+  );
   React.useEffect(() => {
-    if (open) setPaidByTenantId(String(invoice.tenant.id));
-  }, [invoice.tenant.id, open]);
+    if (!open) return;
+    const next = [createEntry()];
+    setEntries(next);
+    setSnapshot(JSON.stringify(next));
+  }, [createEntry, open]);
+  const dirty = snapshot !== "" && snapshot !== JSON.stringify(entries);
   const payment = useMutation({
-    mutationFn: (input: Parameters<typeof apiClient.invoices.recordPayment.mutate>[0]) =>
-      apiClient.invoices.recordPayment.mutate(input),
+    mutationFn: async () => {
+      for (const entry of entries)
+        await apiClient.invoices.recordPayment.mutate({
+          id: invoice.id,
+          amountCents: toCents(entry.amount),
+          paidOn: new Date(`${entry.paidOn}T12:00:00`),
+          paidByTenantId: Number(entry.tenantId),
+          paymentMethod: entry.method as
+            "cash" | "money_order" | "check" | "cashiers_check" | "paypal" | "venmo" | "zelle" | "other",
+        });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["invoices"] });
       void queryClient.invalidateQueries({ queryKey: ["properties", "list"] });
-      setAmount("");
       onOpenChange(false);
     },
   });
+  const updateEntry = (index: number, update: Partial<PaymentEntry>) =>
+    setEntries((current) => current.map((entry, itemIndex) => (itemIndex === index ? { ...entry, ...update } : entry)));
+  const requestClose = () => (dirty ? setDiscardOpen(true) : onOpenChange(false));
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
+    <Drawer onOpenChange={(nextOpen) => (nextOpen ? onOpenChange(true) : requestClose())} open={open}>
       <DrawerContent size="md">
+        <AlertDialog onOpenChange={setDiscardOpen} open={discardOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Your changes will not be saved.</AlertDialogTitle>
+              <AlertDialogDescription>Discard this payment entry and close the form?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setDiscardOpen(false)}>
+                Keep Editing
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setDiscardOpen(false);
+                  onOpenChange(false);
+                }}
+              >
+                Discard
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <DrawerHeader className="flex items-center gap-3">
           <DrawerClose />
           <DrawerTitle>Record payment</DrawerTitle>
         </DrawerHeader>
         <form
-          className="flex flex-1 flex-col"
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={(event) => {
             event.preventDefault();
-            payment.mutate({
-              id: invoice.id,
-              amountCents: toCents(amount),
-              paidOn: new Date(`${paidOn}T12:00:00`),
-              paidByTenantId: Number(paidByTenantId),
-            });
+            payment.mutate();
           }}
         >
-          <div className="flex-1 space-y-4 p-6">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
             <section className="rounded-md bg-parcelis-charcoal p-4 text-white">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -83,57 +142,104 @@ export function RecordPaymentDrawer({
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Subject</p>
-                  <p className="mt-1 font-semibold">
-                    {invoice.property.name} · Unit {invoice.lease.unitLabel}
-                  </p>
+                  <p className="mt-1 font-semibold">{subject}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Due</p>
                   <p className="mt-1 font-semibold">{formatDate(invoice.dueOn)}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Paid</p>
-                  <p className="mt-1 font-semibold">{formatCurrency(invoice.amountCents - invoice.balanceCents)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Balance</p>
+                  <p className="mt-1 font-semibold">{formatCurrency(invoice.balanceCents)}</p>
                 </div>
               </div>
-              <div className="mt-4 flex justify-between border-t border-white/15 pt-3">
-                <span className="text-sm font-semibold text-white/70">Balance due</span>
-                <span className="text-lg font-bold text-parcelis-green">{formatCurrency(invoice.balanceCents)}</span>
-              </div>
             </section>
-            <Label className="gap-2">
-              Tenant who paid *
-              <Select required value={paidByTenantId} onChange={(event) => setPaidByTenantId(event.target.value)}>
-                <option value="">Select tenant</option>
-                {(tenantsQuery.data ?? []).map((tenant) => (
-                  <option key={tenant.id} value={tenant.id}>
-                    {tenant.firstName} {tenant.lastName}
-                  </option>
-                ))}
-              </Select>
-            </Label>
-            <Label className="gap-2">
-              Amount *
-              <Input
-                min="0.01"
-                required
-                step="0.01"
-                type="number"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-              />
-            </Label>
-            <Label className="gap-2">
-              Paid on *<Input required type="date" value={paidOn} onChange={(event) => setPaidOn(event.target.value)} />
-            </Label>
+            {entries.map((entry, index) => (
+              <section className="rounded-md border border-parcelis-border p-4" key={index}>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-semibold text-parcelis-charcoal">
+                    {entries.length > 1 ? `Payment ${index + 1}` : "Payment details"}
+                  </h3>
+                  {entries.length > 1 ? (
+                    <Button
+                      aria-label="Remove payment"
+                      className="h-8 w-8 px-0"
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setEntries((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Label className="gap-2">
+                    Tenant who paid *
+                    <Select
+                      required
+                      value={entry.tenantId}
+                      onChange={(event) => updateEntry(index, { tenantId: event.target.value })}
+                    >
+                      <option value={invoice.tenant.id}>
+                        {invoice.tenant.firstName} {invoice.tenant.lastName}
+                      </option>
+                    </Select>
+                  </Label>
+                  <Label className="gap-2">
+                    Payment method *
+                    <Select
+                      required
+                      value={entry.method}
+                      onChange={(event) => updateEntry(index, { method: event.target.value })}
+                    >
+                      <option value="">Select payment method</option>
+                      {methods.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </Select>
+                  </Label>
+                  <Label className="gap-2">
+                    Amount *
+                    <Input
+                      min="0.01"
+                      required
+                      step="0.01"
+                      type="number"
+                      value={entry.amount}
+                      onChange={(event) => updateEntry(index, { amount: event.target.value })}
+                    />
+                  </Label>
+                  <Label className="gap-2">
+                    Paid on *
+                    <Input
+                      required
+                      type="date"
+                      value={entry.paidOn}
+                      onChange={(event) => updateEntry(index, { paidOn: event.target.value })}
+                    />
+                  </Label>
+                </div>
+              </section>
+            ))}
+            <Button
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={() => setEntries((current) => [...current, createEntry()])}
+            >
+              <Plus className="h-4 w-4" /> Add additional payment
+            </Button>
             {payment.error ? <p className="text-sm text-red-700">{payment.error.message}</p> : null}
           </div>
           <DrawerFooter className="flex items-center justify-between">
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="secondary" onClick={requestClose}>
               Cancel
             </Button>
             <Button className="min-w-40" disabled={payment.isPending} type="submit">
-              Record payment
+              Record payment{entries.length > 1 ? "s" : ""}
             </Button>
           </DrawerFooter>
         </form>
