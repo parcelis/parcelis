@@ -64,8 +64,8 @@ function formatInvoiceStatus(invoice: { amountCents: number; balanceCents: numbe
   return formatLeaseStatus(invoice.status);
 }
 
-function getTenantName(lease: { tenant?: { firstName: string; lastName: string } | null }) {
-  return lease.tenant ? `${lease.tenant.firstName} ${lease.tenant.lastName}` : "Unassigned tenant";
+function getTenantName(lease: { tenant?: { firstName: string; lastName: string } | null }, fallbackName?: string) {
+  return lease.tenant ? `${lease.tenant.firstName} ${lease.tenant.lastName}` : (fallbackName ?? "Tenant unavailable");
 }
 
 function getLeaseInvoices<T>(lease: { invoices?: T[] }) {
@@ -83,7 +83,23 @@ export default function IncomePage() {
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
   });
+  const tenantsQuery = useQuery({
+    queryKey: queryKeys.tenants.list,
+    queryFn: () => apiClient.tenants.list.query(),
+  });
   const properties = propertiesQuery.data ?? [];
+  const tenantNamesByLease = React.useMemo(
+    () =>
+      new Map(
+        (tenantsQuery.data ?? []).flatMap((tenant) =>
+          tenant.leases.map((lease) => [
+            `${lease.property.id}:${lease.unitLabel}`,
+            `${tenant.firstName} ${tenant.lastName}`,
+          ]),
+        ),
+      ),
+    [tenantsQuery.data],
+  );
   const createInvoice = useMutation({
     mutationFn: (input: Parameters<typeof apiClient.invoices.createManual.mutate>[0]) =>
       apiClient.invoices.createManual.mutate(input),
@@ -110,7 +126,7 @@ export default function IncomePage() {
         [
           property.name,
           lease.unitLabel,
-          getTenantName(lease),
+          getTenantName(lease, tenantNamesByLease.get(`${property.id}:${lease.unitLabel}`)),
           formatLeaseStatus(lease.status),
         ].some((value) => value.toLowerCase().includes(normalizedSearch)),
       ),
@@ -279,7 +295,10 @@ export default function IncomePage() {
                           </TableRow>
                           {isExpanded
                             ? property.incomeLeases.map((lease) => {
-                                const tenantName = getTenantName(lease);
+                                const tenantName = getTenantName(
+                                  lease,
+                                  tenantNamesByLease.get(`${property.id}:${lease.unitLabel}`),
+                                );
                                 const persistedInvoices = getLeaseInvoices(lease);
                                 const invoices = persistedInvoices.length ? persistedInvoices : [null];
                                 return invoices.map((persistedInvoice) => {
@@ -390,7 +409,8 @@ export default function IncomePage() {
                             <div className="space-y-1">
                               <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
                               <p className="text-sm text-parcelis-gray">
-                                Unit {lease.unitLabel} · {getTenantName(lease)}
+                                Unit {lease.unitLabel} ·{" "}
+                                {getTenantName(lease, tenantNamesByLease.get(`${property.id}:${lease.unitLabel}`))}
                               </p>
                             </div>
                           </TableCell>
