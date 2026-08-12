@@ -2,8 +2,10 @@ import {
   createManualInvoiceInputSchema,
   createPropertyInputSchema,
   createLeaseInputSchema,
+  deleteInvoiceInputSchema,
   invoiceByIdInputSchema,
   invoiceListInputSchema,
+  recordInvoicePaymentInputSchema,
   activityEventListInputSchema,
   isActiveMaintenanceTicketStatus,
   createMaintenanceTicketInputSchema,
@@ -29,6 +31,7 @@ import {
   tenantImageUploadInputSchema,
   tenantNotesInputSchema,
   updateEmergencyContactInputSchema,
+  updateInvoiceInputSchema,
   updateTenantInputSchema,
   listUnitsInputSchema,
   type UnitDetailsInput,
@@ -1004,7 +1007,7 @@ export const appRouter = router({
         include: {
           property: { select: { id: true, name: true } },
           tenant: { select: { id: true, firstName: true, lastName: true } },
-          lease: { select: { unitLabel: true } },
+          lease: { select: { unitLabel: true, startsOn: true, endsOn: true } },
           items: { orderBy: { id: "asc" } },
         },
       }),
@@ -1048,6 +1051,57 @@ export const appRouter = router({
         include: { items: true },
       });
     }),
+    recordPayment: publicProcedure.input(recordInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
+      const invoice = await ctx.prisma.invoice.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { balanceCents: true },
+      });
+      if (input.amountCents > invoice.balanceCents) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Payment cannot exceed the remaining balance." });
+      }
+      const balanceCents = invoice.balanceCents - input.amountCents;
+      return ctx.prisma.invoice.update({
+        where: { id: input.id },
+        data: {
+          balanceCents,
+          paidOn: input.paidOn,
+          paidByTenantId: input.paidByTenantId,
+          status: balanceCents === 0 ? "paid" : "open",
+        },
+      });
+    }),
+    update: publicProcedure.input(updateInvoiceInputSchema).mutation(async ({ ctx, input }) => {
+      const invoice = await ctx.prisma.invoice.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { amountCents: true, balanceCents: true },
+      });
+      const paidCents = invoice.amountCents - invoice.balanceCents;
+      const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
+      if (paidCents > amountCents) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invoice total cannot be lower than payments received." });
+      }
+      return ctx.prisma.invoice.update({
+        where: { id: input.id },
+        data: {
+          dueOn: input.dueOn,
+          amountCents,
+          balanceCents: amountCents - paidCents,
+          status: amountCents === paidCents ? "paid" : "open",
+          items: {
+            deleteMany: {},
+            create: input.items.map((item) => ({
+              ...item,
+              description: item.description || null,
+              amountCents: item.quantity * item.rateCents,
+            })),
+          },
+        },
+        include: { items: { orderBy: { id: "asc" } } },
+      });
+    }),
+    delete: publicProcedure
+      .input(deleteInvoiceInputSchema)
+      .mutation(({ ctx, input }) => ctx.prisma.invoice.delete({ where: { id: input.id }, select: { id: true } })),
   }),
   tags: router({
     list: publicProcedure.query(({ ctx }) =>

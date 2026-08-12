@@ -8,6 +8,7 @@ import { ArrowLeft, Building2, CalendarDays, ChevronRight, FileText, UserRound }
 import { Button, Card, CardContent } from "@parcelis/ui";
 import { apiClient } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
+import { InvoiceActions } from "../../../../components/invoice-actions";
 import { Sidebar } from "../../../../components/sidebar";
 import { getInvoiceLink, getPropertyLink } from "../../../../lib/entity-links";
 
@@ -56,13 +57,14 @@ export default function InvoiceDetailPage() {
     <main className="min-h-screen bg-parcelis-porcelain dark:bg-parcelis-slate">
       <Sidebar active="income" />
       <section className="lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="flex min-h-16 items-center border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
+        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
           <Button asChild className="min-w-40" variant="secondary">
             <Link href="/income">
               <ArrowLeft className="h-4 w-4" />
               Income
             </Link>
           </Button>
+          {invoice ? <InvoiceActions invoice={invoice} /> : null}
         </header>
         <div className="parcelis-page-shell max-w-none">
           {invoiceQuery.isLoading ? (

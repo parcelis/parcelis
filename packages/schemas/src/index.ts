@@ -189,6 +189,18 @@ export const createManualInvoiceInputSchema = z.object({
   paidCents: z.number().int().nonnegative(),
   items: z.array(invoiceItemInputSchema).min(1).max(50),
 });
+export const recordInvoicePaymentInputSchema = z.object({
+  id: idSchema,
+  amountCents: z.number().int().positive(),
+  paidOn: z.coerce.date(),
+  paidByTenantId: idSchema,
+});
+export const updateInvoiceInputSchema = z.object({
+  id: idSchema,
+  dueOn: z.coerce.date(),
+  items: z.array(invoiceItemInputSchema).min(1).max(50),
+});
+export const deleteInvoiceInputSchema = z.object({ id: idSchema });
 
 export const createPropertyInputSchema = propertySchema.omit({
   id: true,
