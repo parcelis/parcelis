@@ -47,6 +47,8 @@ import {
   deleteUserInputSchema,
   switchOrganizationInputSchema,
   updateOrganizationInputSchema,
+  organizationAvatarUploadCompleteInputSchema,
+  organizationAvatarUploadInputSchema,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -60,6 +62,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
+  createOrganizationAvatarUploadUrl,
   createPropertyImageUploadUrl,
   createMaintenanceImageDownloadUrl,
   createMaintenanceImageUploadUrl,
@@ -410,10 +413,12 @@ export const appRouter = router({
         orderBy: { organization: { name: "asc" } },
       }),
     ),
-    active: organizationProcedure.query(({ ctx }) => ({
+    active: organizationProcedure.query(async ({ ctx }) => ({
       id: ctx.organization.organization.id,
       name: ctx.organization.organization.name,
       slug: ctx.organization.organization.slug,
+      avatarObjectKey: ctx.organization.organization.avatarObjectKey,
+      avatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.avatarObjectKey),
       role: ctx.organization.role,
     })),
     switch: publicProcedure.input(switchOrganizationInputSchema).mutation(async ({ ctx, input }) => {
@@ -431,6 +436,18 @@ export const appRouter = router({
         where: { id: ctx.organization.organizationId },
         data: { name: input.name },
         select: { id: true, name: true, slug: true },
+      });
+    }),
+    createAvatarUploadUrl: organizationProcedure.input(organizationAvatarUploadInputSchema).mutation(({ ctx, input }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      return createOrganizationAvatarUploadUrl(input.contentType, ctx.organization.organizationId);
+    }),
+    completeAvatarUpload: organizationProcedure.input(organizationAvatarUploadCompleteInputSchema).mutation(({ ctx, input }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      return ctx.prisma.organization.update({
+        where: { id: ctx.organization.organizationId },
+        data: { avatarObjectKey: input.objectKey },
+        select: { id: true, avatarObjectKey: true },
       });
     }),
   }),

@@ -94,6 +94,7 @@ model Organization {
   id                    Int                      @id @default(autoincrement())
   name                  String
   slug                  String                   @unique
+  avatarObjectKey       String?
   memberships           OrganizationMembership[]
   properties            Property[]
   tenants               Tenant[]

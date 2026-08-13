@@ -42,6 +42,13 @@ export const switchOrganizationInputSchema = z.object({ organizationId: idSchema
 export const updateOrganizationInputSchema = z.object({
   name: z.string().trim().min(2).max(100),
 });
+export const organizationAvatarUploadInputSchema = z.object({
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]),
+  fileName: z.string().trim().min(1).max(255),
+});
+export const organizationAvatarUploadCompleteInputSchema = z.object({
+  objectKey: z.string().min(1).max(500),
+});
 
 export const addressSchema = z.object({
   line1: z.string().min(1),

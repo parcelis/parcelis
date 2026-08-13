@@ -54,10 +54,27 @@ const imageExtensions = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+  "image/svg+xml": "svg",
+  "image/gif": "gif",
 } as const;
 
 export function createPropertyImageObjectKey(contentType: keyof typeof imageExtensions, propertyId: number) {
   return `properties/${propertyId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
+}
+
+export function createOrganizationAvatarObjectKey(contentType: keyof typeof imageExtensions, organizationId: number) {
+  return `organizations/${organizationId}/avatar/${randomUUID()}.${imageExtensions[contentType]}`;
+}
+
+export async function createOrganizationAvatarUploadUrl(contentType: keyof typeof imageExtensions, organizationId: number) {
+  const config = getObjectStorageConfig();
+  const objectKey = createOrganizationAvatarObjectKey(contentType, organizationId);
+  const uploadUrl = await getSignedUrl(
+    createObjectStorageClient(),
+    new PutObjectCommand({ Bucket: config.bucket, ContentType: contentType, Key: objectKey }),
+    { expiresIn: 10 * 60 },
+  );
+  return { objectKey, uploadUrl };
 }
 
 export async function createPropertyImageUploadUrl(contentType: keyof typeof imageExtensions, propertyId: number) {
