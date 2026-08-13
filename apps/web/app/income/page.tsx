@@ -78,6 +78,14 @@ function getLeaseInvoices<T>(lease: { invoices?: T[] }) {
 }
 
 export default function IncomePage() {
+  return (
+    <React.Suspense fallback={<LoadingState label="Loading income..." />}>
+      <IncomePageContent />
+    </React.Suspense>
+  );
+}
+
+function IncomePageContent() {
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [groupByProperty, setGroupByProperty] = React.useState(true);
   const [search, setSearch] = React.useState("");
