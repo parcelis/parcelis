@@ -27,7 +27,7 @@ const navItems = [
   { label: "Leases", href: "#", key: "leases", icon: ClipboardList },
   { label: "Tenants", href: "/tenants", key: "tenants", icon: Users },
   { label: "Maintenance", href: "/maintenance", key: "maintenance", icon: Wrench },
-  { label: "Accounting", href: "#", key: "accounting", icon: Banknote },
+  { label: "Income", href: "/income", key: "income", icon: Banknote },
   { label: "Settings", href: "/settings", key: "settings", icon: Settings },
 ] as const;
 

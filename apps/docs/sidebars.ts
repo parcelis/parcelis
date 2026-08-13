@@ -43,6 +43,7 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/app-functionality/unit-details",
             "platform-user-guide/app-functionality/property-details",
             "platform-user-guide/app-functionality/maintenance",
+            "platform-user-guide/app-functionality/income-dashboard",
             "platform-user-guide/app-functionality/add-a-tenant",
             "platform-user-guide/app-functionality/tenant-directory",
             "platform-user-guide/app-functionality/manage-a-tenant",
@@ -66,10 +67,7 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Deployment",
-      items: [
-        "getting-started/deploy-with-docker",
-        "getting-started/deploy-with-docker-compose",
-      ],
+      items: ["getting-started/deploy-with-docker", "getting-started/deploy-with-docker-compose"],
     },
     {
       type: "category",

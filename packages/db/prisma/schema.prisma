@@ -21,6 +21,13 @@ enum LeaseStatus {
   ended
 }
 
+enum InvoiceStatus {
+  open
+  overdue
+  paid
+  void
+}
+
 enum MaintenanceTicketStatus {
   new
   in_progress
@@ -127,6 +134,7 @@ model Property {
   status             PropertyStatus      @default(active)
   units              Unit[]
   leases             Lease[]
+  invoices           Invoice[]
   notes              Note[]
   maintenanceTickets MaintenanceTicket[]
   activityEvents     ActivityEvent[]
@@ -219,6 +227,9 @@ model Tenant {
   legacyNote          Note?                 @relation("TenantLegacyNote", fields: [id, legacyNoteId], references: [tenantId, id], onDelete: SetNull)
   emergencyContacts   EmergencyContact[]
   leases              Lease[]
+  invoices            Invoice[]
+  paymentsMade        Invoice[]             @relation("InvoicePaidByTenant")
+  invoicePayments     InvoicePayment[]
   notes               Note[]
   maintenanceRequests MaintenanceTicket[]   @relation("MaintenanceRequesterTenant")
   createdAt           DateTime              @default(now())
@@ -297,10 +308,73 @@ model Lease {
   status             LeaseStatus @default(draft)
   property           Property    @relation(fields: [propertyId], references: [id])
   tenant             Tenant      @relation(fields: [tenantId], references: [id])
+  invoices           Invoice[]
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
   @@index([propertyId])
+  @@index([tenantId])
+  @@unique([id, propertyId, tenantId])
+}
+
+model Invoice {
+  id             Int           @id @default(autoincrement())
+  invoiceNumber  Int           @unique @default(autoincrement())
+  leaseId        Int
+  propertyId     Int
+  tenantId       Int
+  paidByTenantId Int?
+  periodStartsOn DateTime
+  periodEndsOn   DateTime
+  dueOn          DateTime
+  amountCents    Int
+  balanceCents   Int
+  status         InvoiceStatus @default(open)
+  paidOn         DateTime?
+  paymentMethod  String?
+  items          InvoiceItem[]
+  payments       InvoicePayment[]
+  lease          Lease         @relation(fields: [leaseId, propertyId, tenantId], references: [id, propertyId, tenantId], onDelete: Cascade)
+  property       Property      @relation(fields: [propertyId], references: [id])
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  paidByTenant   Tenant?       @relation("InvoicePaidByTenant", fields: [paidByTenantId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([leaseId, periodStartsOn])
+  @@unique([id, tenantId])
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([paidByTenantId])
+}
+
+model InvoiceItem {
+  id          Int     @id @default(autoincrement())
+  invoiceId   Int
+  item        String
+  description String?
+  quantity    Int     @default(1)
+  rateCents   Int
+  amountCents Int
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([invoiceId])
+}
+
+model InvoicePayment {
+  id             Int      @id @default(autoincrement())
+  invoiceId      Int
+  tenantId       Int
+  amountCents    Int
+  paymentMethod  String
+  paidOn         DateTime
+  invoice        Invoice  @relation(fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt      DateTime @default(now())
+
+  @@index([invoiceId, paidOn])
   @@index([tenantId])
 }
 

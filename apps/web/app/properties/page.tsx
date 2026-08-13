@@ -76,6 +76,7 @@ import {
   entityDeletedMessage,
   entityUpdatedMessage,
 } from "../../components/toast-messages";
+import { getPropertyLink, getUnitLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -143,13 +144,16 @@ function getUnitRows(property: PropertyListItem) {
   }
 
   return Array.from(unitLabels, (unitLabel) => {
+    const unit = property.units.find((item) => item.name === unitLabel);
+    const unitLink = unit ? getUnitLink(property.id, unit.id) : null;
     const activeLease = leaseByUnit.get(unitLabel);
     const endsOn =
       activeLease?.endsOn !== null && activeLease?.endsOn !== undefined ? new Date(activeLease.endsOn) : null;
     const isExpiring = Boolean(endsOn && endsOn >= now && endsOn <= expiresBefore);
 
     return {
-      id: property.units.find((unit) => unit.name === unitLabel)?.id,
+      id: unit?.id,
+      link: unitLink,
       unitLabel,
       isOccupied: activeLease?.status === "active",
       monthlyRentCents: activeLease?.monthlyRentCents ?? 0,
@@ -193,7 +197,7 @@ function PropertyActionsMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem asChild>
-          <Link href={`/properties/${property.id}`}>
+          <Link href={getPropertyLink(property.id)}>
             <Eye className="h-4 w-4 text-parcelis-green" />
             View
           </Link>
@@ -230,16 +234,14 @@ function UnitActionsMenu({
   onDelete,
   onEdit,
   onNotes,
-  property,
   unit,
 }: {
   onDelete: () => void;
   onEdit: () => void;
   onNotes: () => void;
-  property: PropertyListItem;
   unit: UnitRow;
 }) {
-  const unitHref = unit.id ? `/properties/${property.id}/units/${unit.id}` : null;
+  const unitHref = unit.link;
 
   return (
     <DropdownMenu>
@@ -923,7 +925,7 @@ export default function PropertiesPage() {
                                 </button>
                                 <Link
                                   className="grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3"
-                                  href={`/properties/${property.id}`}
+                                  href={getPropertyLink(property.id)}
                                 >
                                   <div className="grid h-9 w-9 place-items-center rounded-md bg-parcelis-porcelain text-parcelis-charcoal">
                                     <Building2 className="h-4 w-4" />
@@ -1021,10 +1023,10 @@ export default function PropertiesPage() {
                                   key={`${property.id}-${unit.unitLabel}`}
                                 >
                                   <TableCell className="w-72 px-5 py-3">
-                                    {unit.id ? (
+                                    {unit.link ? (
                                       <Link
                                         className="grid grid-cols-[2rem_2.25rem_minmax(0,1fr)] items-center gap-3 rounded-md transition hover:text-parcelis-green"
-                                        href={`/properties/${property.id}/units/${unit.id}`}
+                                        href={unit.link}
                                       >
                                         <span aria-hidden="true" />
                                         <div className="grid h-8 w-8 place-items-center rounded-md bg-white text-parcelis-charcoal">
@@ -1107,7 +1109,6 @@ export default function PropertiesPage() {
                                         }
                                       }}
                                       onNotes={() => openNotes(property)}
-                                      property={property}
                                       unit={unit}
                                     />
                                   </TableCell>
