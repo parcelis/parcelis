@@ -16,6 +16,10 @@ export const apiClient = createTRPCProxyClient<AppRouter>({
 });
 
 export const queryKeys = {
+  organizations: {
+    active: ["organizations", "active"] as const,
+    list: ["organizations", "list"] as const,
+  },
   users: {
     list: ["users", "list"] as const,
   },

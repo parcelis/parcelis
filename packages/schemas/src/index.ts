@@ -37,6 +37,12 @@ export const userAccountStatusInputSchema = z.object({
 });
 export const deleteUserInputSchema = z.object({ id: idSchema });
 
+export const organizationMemberRoleSchema = z.enum(["owner", "administrator", "member"]);
+export const switchOrganizationInputSchema = z.object({ organizationId: idSchema });
+export const updateOrganizationInputSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+});
+
 export const addressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().optional(),

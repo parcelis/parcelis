@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,9 +17,9 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { ParcelisLogo } from "@parcelis/ui";
+import { ParcelisLogo, Select } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
-import { apiClient } from "./api-client";
+import { apiClient, queryKeys } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
 
 const navItems = [
@@ -47,6 +48,22 @@ export function Sidebar({ active }: SidebarProps) {
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const organizationsQuery = useQuery({
+    queryKey: queryKeys.organizations.list,
+    queryFn: () => apiClient.organizations.list.query(),
+  });
+  const activeOrganizationQuery = useQuery({
+    queryKey: queryKeys.organizations.active,
+    queryFn: () => apiClient.organizations.active.query(),
+  });
+  const switchOrganizationMutation = useMutation({
+    mutationFn: (organizationId: number) => apiClient.organizations.switch.mutate({ organizationId }),
+    onSuccess: () => {
+      queryClient.clear();
+      router.refresh();
+    },
+  });
 
   React.useEffect(() => {
     const saved = window.localStorage.getItem("parcelis-sidebar-collapsed") === "true";
@@ -134,6 +151,26 @@ export function Sidebar({ active }: SidebarProps) {
           );
         })}
       </nav>
+
+      {!isCollapsed && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
+        <div className="mb-4">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-parcelis-gray" htmlFor="organization-switcher">
+            Organization
+          </label>
+          <Select
+            disabled={switchOrganizationMutation.isPending}
+            id="organization-switcher"
+            onChange={(event) => switchOrganizationMutation.mutate(Number(event.target.value))}
+            value={activeOrganizationQuery.data?.id ?? ""}
+          >
+            {organizationsQuery.data.map(({ organization }) => (
+              <option key={organization.id} value={organization.id}>
+                {organization.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      ) : null}
 
       <button
         aria-label="Sign out"

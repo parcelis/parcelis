@@ -197,12 +197,12 @@ async function seedUnitsForProperty(property) {
   }
 }
 
-async function upsertLease(data) {
+async function upsertLease(organizationId, data) {
   const existing = await prisma.lease.findFirst({
     where: { propertyId: data.propertyId, unitLabel: data.unitLabel },
   });
 
-  return existing ? prisma.lease.update({ where: { id: existing.id }, data }) : prisma.lease.create({ data });
+  return existing ? prisma.lease.update({ where: { id: existing.id }, data }) : prisma.lease.create({ data: { ...data, organizationId } });
 }
 
 async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, payments = [] }) {
@@ -212,6 +212,7 @@ async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, p
     where: { leaseId_periodStartsOn: { leaseId: lease.id, periodStartsOn } },
     update: {},
     create: {
+      organizationId: lease.organizationId,
       leaseId: lease.id,
       propertyId: lease.propertyId,
       tenantId: lease.tenantId,
@@ -233,10 +234,7 @@ async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, p
         },
       },
       payments: {
-        create: payments.map((payment) => ({
-          ...payment,
-          tenantId: lease.tenantId,
-        })),
+        create: payments,
       },
     },
   });
@@ -244,6 +242,11 @@ async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, p
 
 async function main() {
   const administratorEmail = "admin@parcelis.dev";
+  const organization = await prisma.organization.upsert({
+    where: { slug: "default" },
+    update: { name: "Parcelis Property Management" },
+    create: { name: "Parcelis Property Management", slug: "default" },
+  });
   const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
 
   if (administrator) {
@@ -268,11 +271,18 @@ async function main() {
     });
   }
 
+  const seededAdministrator = await prisma.user.findUniqueOrThrow({ where: { email: administratorEmail } });
+  await prisma.organizationMembership.upsert({
+    where: { userId_organizationId: { userId: seededAdministrator.id, organizationId: organization.id } },
+    update: { role: "owner" },
+    create: { userId: seededAdministrator.id, organizationId: organization.id, role: "owner" },
+  });
+
   for (const [index, label] of utilityTypes.entries()) {
     await prisma.utilityType.upsert({
       where: { label },
       update: { sortOrder: (index + 1) * 10 },
-      create: { label, sortOrder: (index + 1) * 10 },
+      create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
     });
   }
 
@@ -280,7 +290,7 @@ async function main() {
     await prisma.amenityType.upsert({
       where: { label },
       update: { sortOrder: (index + 1) * 10 },
-      create: { label, sortOrder: (index + 1) * 10 },
+      create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
     });
   }
 
@@ -288,7 +298,7 @@ async function main() {
     await prisma.tag.upsert({
       where: { label },
       update: { sortOrder: (index + 1) * 10 },
-      create: { label, sortOrder: (index + 1) * 10 },
+      create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
     });
   }
 
@@ -300,7 +310,7 @@ async function main() {
     if (existing) {
       await prisma.property.update({
         where: { id: existing.id },
-        data: property,
+        data: { ...property, organizationId: organization.id },
       });
     } else {
       await prisma.property.create({
@@ -329,6 +339,7 @@ async function main() {
       insuranceStatus: "active",
     },
     create: {
+      organizationId: organization.id,
       firstName: "Maya",
       lastName: "Ellis",
       email: "maya.ellis@example.com",
@@ -347,6 +358,7 @@ async function main() {
       insuranceStatus: "not_on_file",
     },
     create: {
+      organizationId: organization.id,
       firstName: "Calvin",
       lastName: "Brooks",
       email: "calvin.brooks@example.com",
@@ -376,6 +388,7 @@ async function main() {
       insuranceStatus: "expired",
     },
     create: {
+      organizationId: organization.id,
       firstName: "Nora",
       lastName: "Patel",
       email: "nora.patel@example.com",
@@ -394,6 +407,7 @@ async function main() {
       insuranceStatus: "active",
     },
     create: {
+      organizationId: organization.id,
       firstName: "Elena",
       lastName: "Morris",
       email: "elena.morris@example.com",
@@ -413,6 +427,7 @@ async function main() {
       archivedAt: null,
     },
     create: {
+      organizationId: organization.id,
       firstName: "Darius",
       lastName: "Wright",
       email: "darius.wright@example.com",
@@ -432,6 +447,7 @@ async function main() {
       archivedAt: new Date("2026-01-15"),
     },
     create: {
+      organizationId: organization.id,
       firstName: "Simone",
       lastName: "Bell",
       email: "simone.bell@example.com",
@@ -443,7 +459,7 @@ async function main() {
   });
 
   const [mayaLease, elenaLease, calvinLease, noraLease] = await Promise.all([
-    upsertLease({
+    upsertLease(organization.id, {
       propertyId: hawthorne.id,
       tenantId: tenant.id,
       unitLabel: "4B",
@@ -453,7 +469,7 @@ async function main() {
       endsOn: new Date("2027-01-31"),
       status: "active",
     }),
-    upsertLease({
+    upsertLease(organization.id, {
       propertyId: hawthorne.id,
       tenantId: fourthTenant.id,
       unitLabel: "8A",
@@ -463,7 +479,7 @@ async function main() {
       endsOn: new Date("2027-05-31"),
       status: "active",
     }),
-    upsertLease({
+    upsertLease(organization.id, {
       propertyId: mariner.id,
       tenantId: secondTenant.id,
       unitLabel: "2A",
@@ -473,7 +489,7 @@ async function main() {
       endsOn: new Date("2026-09-15"),
       status: "active",
     }),
-    upsertLease({
+    upsertLease(organization.id, {
       propertyId: juniper.id,
       tenantId: thirdTenant.id,
       unitLabel: "7C",
@@ -483,7 +499,7 @@ async function main() {
       endsOn: new Date("2026-08-20"),
       status: "notice",
     }),
-    upsertLease({
+    upsertLease(organization.id, {
       propertyId: mariner.id,
       tenantId: pastTenant.id,
       unitLabel: "5C",
@@ -493,7 +509,7 @@ async function main() {
       endsOn: new Date("2025-02-28"),
       status: "ended",
     }),
-    upsertLease({
+    upsertLease(organization.id, {
       propertyId: hawthorne.id,
       tenantId: archivedTenant.id,
       unitLabel: "11D",
@@ -565,7 +581,7 @@ async function main() {
       prisma.maintenanceCategory.upsert({
         where: { label },
         update: { sortOrder },
-        create: { label, sortOrder },
+        create: { organizationId: organization.id, label, sortOrder },
       }),
     ),
   );
@@ -574,6 +590,7 @@ async function main() {
       where: { email: "avery.mitchell@hawthorneflats.example" },
       update: { firstName: "Avery", lastName: "Mitchell", phone: "615-555-0194" },
       create: {
+        organizationId: organization.id,
         firstName: "Avery",
         lastName: "Mitchell",
         email: "avery.mitchell@hawthorneflats.example",
@@ -584,6 +601,7 @@ async function main() {
       where: { email: "jordan.reyes@marinercourt.example" },
       update: { firstName: "Jordan", lastName: "Reyes", phone: "843-555-0127" },
       create: {
+        organizationId: organization.id,
         firstName: "Jordan",
         lastName: "Reyes",
         email: "jordan.reyes@marinercourt.example",
@@ -593,7 +611,7 @@ async function main() {
     prisma.landlord.upsert({
       where: { email: "priya.shah@juniperrow.example" },
       update: { firstName: "Priya", lastName: "Shah", phone: "512-555-0169" },
-      create: { firstName: "Priya", lastName: "Shah", email: "priya.shah@juniperrow.example", phone: "512-555-0169" },
+      create: { organizationId: organization.id, firstName: "Priya", lastName: "Shah", email: "priya.shah@juniperrow.example", phone: "512-555-0169" },
     }),
   ]);
 
@@ -641,7 +659,7 @@ async function main() {
         data: ticket,
       });
     } else {
-      await prisma.maintenanceTicket.create({ data: ticket });
+      await prisma.maintenanceTicket.create({ data: { ...ticket, organizationId: organization.id } });
     }
   }
 }

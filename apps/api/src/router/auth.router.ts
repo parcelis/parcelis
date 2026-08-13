@@ -43,9 +43,19 @@ export const authRouter = router({
 
     let user;
     try {
-      user = await ctx.prisma.user.create({
-        data: { email: input.email, passwordHash: await hashPassword(input.password) },
-        select: { id: true, email: true },
+      user = await ctx.prisma.$transaction(async (tx) => {
+        const createdUser = await tx.user.create({
+          data: { email: input.email, passwordHash: await hashPassword(input.password) },
+          select: { id: true, email: true },
+        });
+        const organization = await tx.organization.create({
+          data: { name: "My organization", slug: `organization-${createdUser.id}` },
+          select: { id: true },
+        });
+        await tx.organizationMembership.create({
+          data: { userId: createdUser.id, organizationId: organization.id, role: "owner" },
+        });
+        return createdUser;
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

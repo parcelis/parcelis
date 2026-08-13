@@ -36,6 +36,7 @@ import {
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { Sidebar } from "../../components/sidebar";
+import { SettingsRail } from "../../components/settings-rail";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -249,15 +250,16 @@ export default function SettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-            <h1 className="mt-5 text-3xl font-bold md:text-5xl">Users</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-              Review the accounts with access to Parcelis.
-            </p>
-          </section>
+          <div className="flex flex-col gap-6 md:flex-row">
+            <SettingsRail active="users" />
+            <div className="min-w-0 flex-1">
+              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
+                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Users</h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Review the accounts with access to Parcelis.</p>
+              </section>
 
-          <Card>
+              <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -338,7 +340,9 @@ export default function SettingsPage() {
                 </Table>
               )}
             </CardContent>
-          </Card>
+              </Card>
+            </div>
+          </div>
         </div>
       </section>
     </main>

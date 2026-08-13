@@ -84,6 +84,46 @@ enum UserAccountStatus {
   disabled
 }
 
+enum OrganizationMemberRole {
+  owner
+  administrator
+  member
+}
+
+model Organization {
+  id                    Int                      @id @default(autoincrement())
+  name                  String
+  slug                  String                   @unique
+  memberships           OrganizationMembership[]
+  properties            Property[]
+  tenants               Tenant[]
+  landlords             Landlord[]
+  tags                  Tag[]
+  utilityTypes          UtilityType[]
+  amenityTypes          AmenityType[]
+  maintenanceCategories MaintenanceCategory[]
+  leases                Lease[]
+  invoices              Invoice[]
+  maintenanceTickets    MaintenanceTicket[]
+  activityEvents        ActivityEvent[]
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+}
+
+model OrganizationMembership {
+  id             Int                    @id @default(autoincrement())
+  userId         Int
+  organizationId Int
+  role           OrganizationMemberRole @default(member)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId, role])
+}
+
 model User {
   id            Int               @id @default(autoincrement())
   name          String            @default("User")
@@ -95,6 +135,7 @@ model User {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   sessions      Session[]
+  organizationMemberships OrganizationMembership[]
 }
 
 model Session {
@@ -105,6 +146,7 @@ model Session {
   revokedAt DateTime?
   createdAt DateTime  @default(now())
   lastSeenAt DateTime @default(now())
+  activeOrganizationId Int?
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -113,6 +155,7 @@ model Session {
 
 model Property {
   id                 Int                 @id @default(autoincrement())
+  organizationId     Int
   name               String
   line1              String
   line2              String?
@@ -138,19 +181,25 @@ model Property {
   notes              Note[]
   maintenanceTickets MaintenanceTicket[]
   activityEvents     ActivityEvent[]
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
   @@unique([id, legacyNoteId])
+  @@index([organizationId])
 }
 
 model Tag {
   id         Int        @id @default(autoincrement())
+  organizationId Int
   label      String     @unique
   sortOrder  Int        @default(0)
   properties Property[]
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
 }
 
 model Unit {
@@ -176,20 +225,28 @@ model Unit {
 
 model UtilityType {
   id        Int           @id @default(autoincrement())
+  organizationId Int
   label     String        @unique
   sortOrder Int           @default(0)
   units     UnitUtility[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
 }
 
 model AmenityType {
   id        Int           @id @default(autoincrement())
+  organizationId Int
   label     String        @unique
   sortOrder Int           @default(0)
   units     UnitAmenity[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
 }
 
 model UnitUtility {
@@ -214,6 +271,7 @@ model UnitAmenity {
 
 model Tenant {
   id                  Int                   @id @default(autoincrement())
+  organizationId      Int
   firstName           String
   lastName            String
   email               String                @unique
@@ -234,12 +292,15 @@ model Tenant {
   maintenanceRequests MaintenanceTicket[]   @relation("MaintenanceRequesterTenant")
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@unique([id, legacyNoteId])
+  @@index([organizationId])
 }
 
 model Landlord {
   id                  Int                 @id @default(autoincrement())
+  organizationId      Int
   firstName           String
   lastName            String
   email               String              @unique
@@ -247,15 +308,22 @@ model Landlord {
   maintenanceRequests MaintenanceTicket[] @relation("MaintenanceRequesterLandlord")
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
 }
 
 model MaintenanceCategory {
   id        Int                 @id @default(autoincrement())
+  organizationId Int
   label     String              @unique
   sortOrder Int                 @default(0)
   tickets   MaintenanceTicket[]
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
 }
 
 model Note {
@@ -298,6 +366,7 @@ model EmergencyContact {
 
 model Lease {
   id                 Int         @id @default(autoincrement())
+  organizationId     Int
   propertyId         Int
   tenantId           Int
   unitLabel          String
@@ -311,14 +380,17 @@ model Lease {
   invoices           Invoice[]
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([propertyId])
   @@index([tenantId])
   @@unique([id, propertyId, tenantId])
+  @@index([organizationId])
 }
 
 model Invoice {
   id             Int           @id @default(autoincrement())
+  organizationId Int
   invoiceNumber  Int           @unique @default(autoincrement())
   leaseId        Int
   propertyId     Int
@@ -340,12 +412,14 @@ model Invoice {
   paidByTenant   Tenant?       @relation("InvoicePaidByTenant", fields: [paidByTenantId], references: [id])
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@unique([leaseId, periodStartsOn])
   @@unique([id, tenantId])
   @@index([propertyId])
   @@index([tenantId])
   @@index([paidByTenantId])
+  @@index([organizationId])
 }
 
 model InvoiceItem {
@@ -380,6 +454,7 @@ model InvoicePayment {
 
 model MaintenanceTicket {
   id                    Int                       @id @default(autoincrement())
+  organizationId        Int
   ticketNumber          Int                       @unique @default(autoincrement())
   propertyId            Int
   unitLabel             String?
@@ -405,16 +480,19 @@ model MaintenanceTicket {
   notes                 Note[]
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
+  organization          Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([propertyId])
   @@index([status])
   @@index([categoryId])
   @@index([requestedByTenantId])
   @@index([requestedByLandlordId])
+  @@index([organizationId])
 }
 
 model ActivityEvent {
   id             Int                     @id @default(autoincrement())
+  organizationId Int
   subjectType    ActivitySubjectType
   subjectId      Int
   subjectLabel   String
@@ -428,10 +506,12 @@ model ActivityEvent {
   metadata       Json?
   property       Property?               @relation(fields: [propertyId], references: [id], onDelete: SetNull)
   createdAt      DateTime                @default(now())
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([subjectType, subjectId, createdAt, id])
   @@index([propertyId, createdAt, id])
   @@index([action, createdAt])
+  @@index([organizationId, createdAt])
 }
 
 model MaintenanceAttachment {

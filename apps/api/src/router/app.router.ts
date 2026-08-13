@@ -45,6 +45,8 @@ import {
   updateUserInputSchema,
   userAccountStatusInputSchema,
   deleteUserInputSchema,
+  switchOrganizationInputSchema,
+  updateOrganizationInputSchema,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -69,8 +71,8 @@ import {
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
-import { requireAdministrator } from "../modules/authorization";
-import { protectedProcedure as publicProcedure, router } from "./trpc";
+import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
+import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 
 const propertySelect = {
   id: true,
@@ -110,7 +112,7 @@ function maintenanceStatusAction(previousStatus: MaintenanceTicketStatus, nextSt
 
 async function recordMaintenanceStatusEvent(
   tx: Prisma.TransactionClient,
-  ticket: { id: number; propertyId: number; ticketNumber: number; title: string },
+  ticket: { id: number; organizationId: number; propertyId: number; ticketNumber: number; title: string },
   previousStatus: MaintenanceTicketStatus,
   nextStatus: MaintenanceTicketStatus,
 ) {
@@ -118,6 +120,7 @@ async function recordMaintenanceStatusEvent(
 
   await tx.activityEvent.create({
     data: {
+      organizationId: ticket.organizationId,
       subjectType: ActivitySubjectType.maintenance_ticket,
       subjectId: ticket.id,
       subjectLabel: ticket.title,
@@ -132,13 +135,14 @@ async function recordMaintenanceStatusEvent(
 
 async function recordInvoiceActivity(
   tx: Prisma.TransactionClient,
-  invoice: { id: number; invoiceNumber: number; propertyId: number },
+  invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number },
   action: string,
   metadata?: Prisma.InputJsonValue,
   actor?: { id: string | number; name: string },
 ) {
   await tx.activityEvent.create({
     data: {
+      organizationId: invoice.organizationId,
       subjectType: ActivitySubjectType.invoice,
       subjectId: invoice.id,
       subjectLabel: `Invoice ${invoice.invoiceNumber}`,
@@ -321,6 +325,7 @@ async function generateInitialLeaseInvoices(
     id: number;
     propertyId: number;
     tenantId: number;
+    organizationId: number;
     monthlyRentCents: number;
     startsOn: Date;
     endsOn: Date | null;
@@ -337,6 +342,7 @@ async function generateInitialLeaseInvoices(
           where: { leaseId_periodStartsOn: { leaseId: lease.id, periodStartsOn } },
           update: {},
           create: {
+            organizationId: lease.organizationId,
             leaseId: lease.id,
             propertyId: lease.propertyId,
             tenantId: lease.tenantId,
@@ -393,6 +399,41 @@ async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Pris
 
 export const appRouter = router({
   auth: authRouter,
+  organizations: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.organizationMembership.findMany({
+        where: { userId: ctx.user.id },
+        select: {
+          role: true,
+          organization: { select: { id: true, name: true, slug: true } },
+        },
+        orderBy: { organization: { name: "asc" } },
+      }),
+    ),
+    active: organizationProcedure.query(({ ctx }) => ({
+      id: ctx.organization.organization.id,
+      name: ctx.organization.organization.name,
+      slug: ctx.organization.organization.slug,
+      role: ctx.organization.role,
+    })),
+    switch: publicProcedure.input(switchOrganizationInputSchema).mutation(async ({ ctx, input }) => {
+      const membership = await ctx.prisma.organizationMembership.findUnique({
+        where: { userId_organizationId: { userId: ctx.user.id, organizationId: input.organizationId } },
+        select: { organizationId: true },
+      });
+      if (!membership) throw new TRPCError({ code: "FORBIDDEN", message: "Organization access is required." });
+      await ctx.prisma.session.update({ where: { id: ctx.session.id }, data: { activeOrganizationId: membership.organizationId } });
+      return { organizationId: membership.organizationId };
+    }),
+    update: organizationProcedure.input(updateOrganizationInputSchema).mutation(({ ctx, input }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      return ctx.prisma.organization.update({
+        where: { id: ctx.organization.organizationId },
+        data: { name: input.name },
+        select: { id: true, name: true, slug: true },
+      });
+    }),
+  }),
   users: router({
     /** Lists accounts that can access this workspace. */
     list: publicProcedure.query(({ ctx }) => {
@@ -467,6 +508,7 @@ export const appRouter = router({
     list: publicProcedure.query(async ({ ctx }) => {
       await synchronizeOverdueInvoices(ctx.prisma);
       const properties = await ctx.prisma.property.findMany({
+        where: { organizationId: ctx.organization.organizationId },
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
           invoices: {
@@ -643,6 +685,7 @@ export const appRouter = router({
         const initialProperty = await tx.property.create({
           select: propertySelect,
           data: {
+            organizationId: ctx.organization.organizationId,
             name: input.name,
             line1: input.address.line1,
             line2: input.address.line2 ?? null,
@@ -823,6 +866,7 @@ export const appRouter = router({
     /** Lists tenants with their most recent lease first. */
     list: publicProcedure.query(async ({ ctx }) => {
       const tenants = await ctx.prisma.tenant.findMany({
+        where: { organizationId: ctx.organization.organizationId },
         include: {
           emergencyContacts: {
             orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
@@ -937,6 +981,7 @@ export const appRouter = router({
 
       return ctx.prisma.tenant.create({
         data: {
+          organizationId: ctx.organization.organizationId,
           firstName: input.firstName,
           lastName: input.lastName,
           email: input.email,
@@ -1037,7 +1082,7 @@ export const appRouter = router({
             if (existingLease) {
               throw new TRPCError({ code: "CONFLICT", message: "The selected unit already has an active lease." });
             }
-            const lease = await tx.lease.create({ data: input });
+            const lease = await tx.lease.create({ data: { ...input, organizationId: ctx.organization.organizationId } });
             if (input.status === LeaseStatus.active || input.status === LeaseStatus.notice) {
               await tx.property.update({
                 where: { id: input.propertyId },
@@ -1081,7 +1126,7 @@ export const appRouter = router({
     list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
       await synchronizeOverdueInvoices(ctx.prisma);
       return ctx.prisma.invoice.findMany({
-        where: input.tenantId ? { tenantId: input.tenantId } : undefined,
+        where: { organizationId: ctx.organization.organizationId, ...(input.tenantId ? { tenantId: input.tenantId } : {}) },
         include: { lease: { select: { unitLabel: true } }, property: { select: { id: true, name: true } } },
         orderBy: { dueOn: "desc" },
       });
@@ -1136,6 +1181,7 @@ export const appRouter = router({
 
           const invoice = await tx.invoice.create({
             data: {
+              organizationId: ctx.organization.organizationId,
               leaseId: lease.id,
               propertyId: lease.propertyId,
               tenantId: lease.tenantId,
@@ -1397,13 +1443,14 @@ export const appRouter = router({
   tags: router({
     list: publicProcedure.query(({ ctx }) =>
       ctx.prisma.tag.findMany({
+        where: { organizationId: ctx.organization.organizationId },
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
       }),
     ),
     create: publicProcedure.input(createTagInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.tag.create({
-        data: { label: input.label },
+        data: { organizationId: ctx.organization.organizationId, label: input.label },
         select: { id: true, label: true, sortOrder: true },
       }),
     ),
@@ -1411,6 +1458,7 @@ export const appRouter = router({
   maintenanceCategories: router({
     list: publicProcedure.query(({ ctx }) =>
       ctx.prisma.maintenanceCategory.findMany({
+        where: { organizationId: ctx.organization.organizationId },
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
       }),
@@ -1419,6 +1467,7 @@ export const appRouter = router({
   landlords: router({
     list: publicProcedure.query(({ ctx }) =>
       ctx.prisma.landlord.findMany({
+        where: { organizationId: ctx.organization.organizationId },
         orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
         select: { id: true, firstName: true, lastName: true, email: true },
       }),
@@ -1427,7 +1476,7 @@ export const appRouter = router({
   maintenance: router({
     list: publicProcedure.query(({ ctx }) =>
       ctx.prisma.maintenanceTicket.findMany({
-        where: { archivedAt: null },
+        where: { organizationId: ctx.organization.organizationId, archivedAt: null },
         orderBy: [{ openedOn: "desc" }, { id: "desc" }],
         include: {
           category: { select: { id: true, label: true } },
@@ -1480,9 +1529,9 @@ export const appRouter = router({
       return attachment;
     }),
     updateStatus: publicProcedure.input(updateMaintenanceTicketStatusInputSchema).mutation(async ({ ctx, input }) => {
-      const currentTicket = await ctx.prisma.maintenanceTicket.findUniqueOrThrow({
-        where: { id: input.id },
-        select: { id: true, propertyId: true, ticketNumber: true, title: true, status: true },
+      const currentTicket = await ctx.prisma.maintenanceTicket.findFirstOrThrow({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+        select: { id: true, organizationId: true, propertyId: true, ticketNumber: true, title: true, status: true },
       });
 
       if (input.status === "resolved") {
@@ -1611,6 +1660,7 @@ export const appRouter = router({
 
       return ctx.prisma.maintenanceTicket.create({
         data: {
+          organizationId: ctx.organization.organizationId,
           propertyId: input.propertyId,
           title: input.ticketTitle,
           description: input.description || null,
