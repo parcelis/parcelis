@@ -2,6 +2,7 @@ import { z } from "zod";
 import { LeaseStatus } from "@parcelis/db";
 
 const idSchema = z.coerce.number().int().positive();
+const maxDatabaseInteger = 2_147_483_647;
 
 export const authCredentialsInputSchema = z.object({
   email: z
@@ -172,22 +173,34 @@ export const leaseSchema = z.object({
   status: leaseStatusSchema,
 });
 
-export const createLeaseInputSchema = leaseSchema.omit({ id: true });
+export const createLeaseInputSchema = leaseSchema
+  .omit({ id: true })
+  .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
+    message: "Lease end date must be on or after the start date.",
+    path: ["endsOn"],
+  });
 export const invoiceByIdInputSchema = z.object({ id: idSchema });
 export const invoiceListInputSchema = z.object({ tenantId: idSchema.optional() });
 export const invoiceItemInputSchema = z.object({
   item: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).optional(),
-  quantity: z.number().int().positive(),
-  rateCents: z.number().int().nonnegative(),
+  quantity: z.number().int().positive().max(maxDatabaseInteger),
+  rateCents: z.number().int().nonnegative().max(maxDatabaseInteger),
 });
+const invoiceItemsSchema = z
+  .array(invoiceItemInputSchema)
+  .min(1)
+  .max(50)
+  .refine((items) => items.reduce((total, item) => total + item.quantity * item.rateCents, 0) <= maxDatabaseInteger, {
+    message: "Invoice total exceeds the maximum supported amount.",
+  });
 export const createManualInvoiceInputSchema = z.object({
   propertyId: idSchema,
   leaseId: idSchema,
   tenantId: idSchema,
   dueOn: z.coerce.date(),
-  paidCents: z.number().int().nonnegative(),
-  items: z.array(invoiceItemInputSchema).min(1).max(50),
+  paidCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+  items: invoiceItemsSchema,
 });
 export const recordInvoicePaymentInputSchema = z.object({
   id: idSchema,
@@ -196,10 +209,17 @@ export const recordInvoicePaymentInputSchema = z.object({
   paidByTenantId: idSchema,
   paymentMethod: z.enum(["cash", "money_order", "check", "cashiers_check", "paypal", "venmo", "zelle", "other"]),
 });
+export const recordInvoicePaymentsInputSchema = z.object({
+  id: idSchema,
+  payments: z
+    .array(recordInvoicePaymentInputSchema.omit({ id: true }))
+    .min(1)
+    .max(50),
+});
 export const updateInvoiceInputSchema = z.object({
   id: idSchema,
   dueOn: z.coerce.date(),
-  items: z.array(invoiceItemInputSchema).min(1).max(50),
+  items: invoiceItemsSchema,
 });
 export const deleteInvoiceInputSchema = z.object({ id: idSchema });
 export const deleteInvoicePaymentInputSchema = z.object({ id: idSchema });

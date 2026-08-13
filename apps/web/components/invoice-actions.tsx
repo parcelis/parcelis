@@ -83,6 +83,7 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
             <AlertDialogTitle>Delete invoice?</AlertDialogTitle>
             <AlertDialogDescription>This permanently removes the invoice and its charge lines.</AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteInvoice.error ? <p className="text-sm text-red-700">{deleteInvoice.error.message}</p> : null}
           <AlertDialogFooter>
             <Button type="button" variant="secondary" onClick={() => setDeleteOpen(false)}>
               Cancel

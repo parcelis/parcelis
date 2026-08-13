@@ -43,7 +43,13 @@ function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
+    new Date(value),
+  );
+}
+function getLocalDate() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 export function RecordPaymentDrawer({
@@ -64,7 +70,7 @@ export function RecordPaymentDrawer({
     (): PaymentEntry => ({
       amount: "",
       method: "",
-      paidOn: new Date().toISOString().slice(0, 10),
+      paidOn: getLocalDate(),
       tenantId: String(invoice.tenant.id),
     }),
     [invoice.tenant.id],
@@ -76,18 +82,20 @@ export function RecordPaymentDrawer({
     setSnapshot(JSON.stringify(next));
   }, [createEntry, open]);
   const dirty = snapshot !== "" && snapshot !== JSON.stringify(entries);
+  const paymentTotalCents = entries.reduce((total, entry) => total + toCents(entry.amount), 0);
+  const paymentTotalExceedsBalance = paymentTotalCents > invoice.balanceCents;
   const payment = useMutation({
-    mutationFn: async () => {
-      for (const entry of entries)
-        await apiClient.invoices.recordPayment.mutate({
-          id: invoice.id,
+    mutationFn: () =>
+      apiClient.invoices.recordPayments.mutate({
+        id: invoice.id,
+        payments: entries.map((entry) => ({
           amountCents: toCents(entry.amount),
-          paidOn: new Date(`${entry.paidOn}T12:00:00`),
+          paidOn: new Date(`${entry.paidOn}T00:00:00.000Z`),
           paidByTenantId: Number(entry.tenantId),
           paymentMethod: entry.method as
             "cash" | "money_order" | "check" | "cashiers_check" | "paypal" | "venmo" | "zelle" | "other",
-        });
-    },
+        })),
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["invoices"] });
       void queryClient.invalidateQueries({ queryKey: ["properties", "list"] });
@@ -95,6 +103,10 @@ export function RecordPaymentDrawer({
       onOpenChange(false);
     },
   });
+  const { reset: resetPayment } = payment;
+  React.useEffect(() => {
+    if (open) resetPayment();
+  }, [open, resetPayment]);
   const updateEntry = (index: number, update: Partial<PaymentEntry>) =>
     setEntries((current) => current.map((entry, itemIndex) => (itemIndex === index ? { ...entry, ...update } : entry)));
   const requestClose = () => (dirty ? setDiscardOpen(true) : onOpenChange(false));
@@ -155,6 +167,16 @@ export function RecordPaymentDrawer({
                 </div>
               </div>
             </section>
+            <div className="flex items-center justify-between rounded-md border border-parcelis-border px-4 py-3 text-sm">
+              <span className="text-parcelis-gray">Payment total</span>
+              <span
+                className={
+                  paymentTotalExceedsBalance ? "font-semibold text-red-700" : "font-semibold text-parcelis-charcoal"
+                }
+              >
+                {formatCurrency(paymentTotalCents)} of {formatCurrency(invoice.balanceCents)}
+              </span>
+            </div>
             {entries.map((entry, index) => (
               <section className="rounded-md border border-parcelis-border p-4" key={index}>
                 <div className="mb-4 flex items-center justify-between">
@@ -239,7 +261,7 @@ export function RecordPaymentDrawer({
             <Button type="button" variant="secondary" onClick={requestClose}>
               Cancel
             </Button>
-            <Button className="min-w-40" disabled={payment.isPending} type="submit">
+            <Button className="min-w-40" disabled={payment.isPending || paymentTotalExceedsBalance} type="submit">
               Record payment{entries.length > 1 ? "s" : ""}
             </Button>
           </DrawerFooter>

@@ -53,7 +53,8 @@ type InvoiceDrawerProps = {
 };
 
 function getToday() {
-  return new Date().toISOString().slice(0, 10);
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function toCents(value: string) {
@@ -67,7 +68,9 @@ function formatCurrency(cents: number) {
 
 function formatDate(value: Date | string | null) {
   if (!value) return "No end date";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
+    new Date(value),
+  );
 }
 
 const initialLine: InvoiceLine = { item: "Rent", description: "", quantity: "1", rate: "" };
@@ -109,7 +112,7 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
       propertyId: property.id,
       leaseId: lease.id,
       tenantId: lease.tenant.id,
-      dueOn: new Date(`${dueOn}T12:00:00`),
+      dueOn: new Date(`${dueOn}T00:00:00.000Z`),
       paidCents,
       items: lines.map((line) => ({
         item: line.item.trim(),

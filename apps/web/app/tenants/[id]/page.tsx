@@ -184,9 +184,7 @@ export default function TenantDetailPage() {
     },
   });
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
-  const currentInvoice = currentLease?.invoices.find(
-    (invoice) => invoice.status === "open" || invoice.status === "overdue",
-  );
+  const currentInvoice = currentLease?.invoices[0];
   const overdueCents = currentInvoice?.balanceCents ?? 0;
   const currentInvoiceCents = currentInvoice?.amountCents ?? 0;
   const rentCollectedCents = Math.max(currentInvoiceCents - overdueCents, 0);

@@ -44,16 +44,21 @@ function formatLeaseStatus(status: string) {
 }
 
 function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
+    new Date(value),
+  );
 }
 
 function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number }) {
   const now = new Date();
-  const dueOn = new Date(now.getFullYear(), now.getMonth(), 1);
+  const dueOn = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
 
   return {
+    amountCents: lease.monthlyRentCents,
+    balanceCents: lease.amountOverdueCents || lease.monthlyRentCents,
     dueOn,
     id: `INV-${dueOn.getFullYear()}-${String(dueOn.getMonth() + 1).padStart(2, "0")}`,
+    paidOn: null,
     status: lease.amountOverdueCents > 0 ? "Overdue" : "Current",
   };
 }
@@ -64,8 +69,8 @@ function formatInvoiceStatus(invoice: { amountCents: number; balanceCents: numbe
   return formatLeaseStatus(invoice.status);
 }
 
-function getTenantName(lease: { tenant?: { firstName: string; lastName: string } | null }, fallbackName?: string) {
-  return lease.tenant ? `${lease.tenant.firstName} ${lease.tenant.lastName}` : (fallbackName ?? "Tenant unavailable");
+function getTenantName(lease: { tenant: { firstName: string; lastName: string } }) {
+  return `${lease.tenant.firstName} ${lease.tenant.lastName}`;
 }
 
 function getLeaseInvoices<T>(lease: { invoices?: T[] }) {
@@ -83,23 +88,7 @@ export default function IncomePage() {
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
   });
-  const tenantsQuery = useQuery({
-    queryKey: queryKeys.tenants.list,
-    queryFn: () => apiClient.tenants.list.query(),
-  });
   const properties = propertiesQuery.data ?? [];
-  const tenantNamesByLease = React.useMemo(
-    () =>
-      new Map(
-        (tenantsQuery.data ?? []).flatMap((tenant) =>
-          tenant.leases.map((lease) => [
-            `${lease.property.id}:${lease.unitLabel}`,
-            `${tenant.firstName} ${tenant.lastName}`,
-          ]),
-        ),
-      ),
-    [tenantsQuery.data],
-  );
   const createInvoice = useMutation({
     mutationFn: (input: Parameters<typeof apiClient.invoices.createManual.mutate>[0]) =>
       apiClient.invoices.createManual.mutate(input),
@@ -123,12 +112,9 @@ export default function IncomePage() {
     .map((property) => ({
       ...property,
       incomeLeases: property.incomeLeases.filter((lease) =>
-        [
-          property.name,
-          lease.unitLabel,
-          getTenantName(lease, tenantNamesByLease.get(`${property.id}:${lease.unitLabel}`)),
-          formatLeaseStatus(lease.status),
-        ].some((value) => value.toLowerCase().includes(normalizedSearch)),
+        [property.name, lease.unitLabel, getTenantName(lease), formatLeaseStatus(lease.status)].some((value) =>
+          value.toLowerCase().includes(normalizedSearch),
+        ),
       ),
     }))
     .filter((property) => property.incomeLeases.length > 0);
@@ -136,10 +122,11 @@ export default function IncomePage() {
     property.incomeLeases.map((lease) => ({ property, lease })),
   );
   const ungroupedIncomeRows = incomeLeases.flatMap(({ property, lease }) => {
-    return getLeaseInvoices(lease).map((persistedInvoice) => ({
+    const persistedInvoices = getLeaseInvoices(lease);
+    return (persistedInvoices.length ? persistedInvoices : [null]).map((persistedInvoice) => ({
       property,
       lease,
-      invoice: persistedInvoice,
+      invoice: persistedInvoice ?? getCurrentInvoice(lease),
       persistedInvoice,
     }));
   });
@@ -295,10 +282,7 @@ export default function IncomePage() {
                           </TableRow>
                           {isExpanded
                             ? property.incomeLeases.map((lease) => {
-                                const tenantName = getTenantName(
-                                  lease,
-                                  tenantNamesByLease.get(`${property.id}:${lease.unitLabel}`),
-                                );
+                                const tenantName = getTenantName(lease);
                                 const persistedInvoices = getLeaseInvoices(lease);
                                 const invoices = persistedInvoices.length ? persistedInvoices : [null];
                                 return invoices.map((persistedInvoice) => {
@@ -334,7 +318,9 @@ export default function IncomePage() {
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
                                         {formatDate(invoice.dueOn)}
                                       </TableCell>
-                                      <TableCell className="px-5 py-3 text-sm text-parcelis-gray">—</TableCell>
+                                      <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
+                                        {persistedInvoice?.paidOn ? formatDate(persistedInvoice.paidOn) : "—"}
+                                      </TableCell>
                                       <TableCell className="px-5 py-3 text-sm font-medium text-parcelis-charcoal">
                                         {persistedInvoice ? (
                                           <span>INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}</span>
@@ -343,7 +329,7 @@ export default function IncomePage() {
                                         )}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                        {invoice.status}
+                                        {persistedInvoice ? formatInvoiceStatus(persistedInvoice) : invoice.status}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
                                         {formatCurrency(
@@ -351,7 +337,9 @@ export default function IncomePage() {
                                         )}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
-                                        —
+                                        {persistedInvoice
+                                          ? formatCurrency(persistedInvoice.amountCents - persistedInvoice.balanceCents)
+                                          : "—"}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
                                         —
@@ -393,24 +381,25 @@ export default function IncomePage() {
                     {ungroupedIncomeRows.map(({ property, lease, invoice, persistedInvoice }) => {
                       return (
                         <TableRow
-                          className="cursor-pointer border-t border-parcelis-border hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
+                          className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
                           key={invoice.id}
-                          onClick={() => router.push(getInvoiceLink(invoice.id))}
+                          onClick={() => {
+                            if (persistedInvoice) router.push(getInvoiceLink(persistedInvoice.id));
+                          }}
                           onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
+                            if (persistedInvoice && (event.key === "Enter" || event.key === " ")) {
                               event.preventDefault();
-                              router.push(getInvoiceLink(invoice.id));
+                              router.push(getInvoiceLink(persistedInvoice.id));
                             }
                           }}
-                          role="link"
-                          tabIndex={0}
+                          role={persistedInvoice ? "link" : undefined}
+                          tabIndex={persistedInvoice ? 0 : undefined}
                         >
                           <TableCell className="px-5 py-4">
                             <div className="space-y-1">
                               <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
                               <p className="text-sm text-parcelis-gray">
-                                Unit {lease.unitLabel} ·{" "}
-                                {getTenantName(lease, tenantNamesByLease.get(`${property.id}:${lease.unitLabel}`))}
+                                Unit {lease.unitLabel} · {getTenantName(lease)}
                               </p>
                             </div>
                           </TableCell>
@@ -422,7 +411,9 @@ export default function IncomePage() {
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             <span className="font-medium text-parcelis-charcoal">
-                              INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                              {persistedInvoice
+                                ? `INV-${String(persistedInvoice.invoiceNumber).padStart(7, "0")}`
+                                : invoice.id}
                             </span>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">

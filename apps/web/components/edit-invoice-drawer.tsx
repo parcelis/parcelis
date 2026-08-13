@@ -29,8 +29,14 @@ function toCents(value: string) {
 }
 function formatDate(value: Date | string | null) {
   return value
-    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
+    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
+        new Date(value),
+      )
     : "No end date";
+}
+function toDateInput(value: Date | string) {
+  const date = new Date(value);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
 export function EditInvoiceDrawer({
@@ -49,7 +55,7 @@ export function EditInvoiceDrawer({
   const [discardOpen, setDiscardOpen] = React.useState(false);
   React.useEffect(() => {
     if (!open) return;
-    const nextDueOn = new Date(invoice.dueOn).toISOString().slice(0, 10);
+    const nextDueOn = toDateInput(invoice.dueOn);
     const nextLines = invoice.items.map((item) => ({
       item: item.item,
       description: item.description ?? "",
@@ -114,7 +120,7 @@ export function EditInvoiceDrawer({
             event.preventDefault();
             update.mutate({
               id: invoice.id,
-              dueOn: new Date(`${dueOn}T12:00:00`),
+              dueOn: new Date(`${dueOn}T00:00:00.000Z`),
               items: lines.map((line) => ({
                 item: line.item,
                 description: line.description || undefined,

@@ -37,7 +37,9 @@ function formatCurrency(cents: number) {
 }
 
 function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
+    new Date(value),
+  );
 }
 
 function invoiceStatusClass(status: string) {
@@ -126,6 +128,7 @@ function DeletePaymentButton({ paymentId }: { paymentId: number }) {
                     This action cannot be undone. The payment amount will be restored to the invoice balance.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                {deletePayment.error ? <p className="text-sm text-red-700">{deletePayment.error.message}</p> : null}
                 <AlertDialogFooter>
                   <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
                     Cancel
@@ -195,6 +198,21 @@ export default function InvoiceDetailPage() {
         <div className="parcelis-page-shell max-w-none">
           {invoiceQuery.isLoading ? (
             <LoadingState label="Loading invoice…" />
+          ) : invoiceQuery.error ? (
+            <Card>
+              <CardContent>
+                Unable to load this invoice. Please try again.
+                <Button
+                  className="ml-3"
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                  onClick={() => invoiceQuery.refetch()}
+                >
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
           ) : !invoice ? (
             <Card>
               <CardContent>Invoice not found.</CardContent>
@@ -314,10 +332,6 @@ export default function InvoiceDetailPage() {
                           <div className="rounded-md bg-white/10 p-3">
                             <p className="text-white/65">Balance</p>
                             <p className="mt-1 text-lg font-bold">{formatCurrency(invoice.balanceCents)}</p>
-                          </div>
-                          <div className="rounded-md bg-white/10 p-3">
-                            <p className="text-white/65">Reminders sent</p>
-                            <p className="mt-1 text-lg font-bold">0</p>
                           </div>
                         </div>
                       </section>
