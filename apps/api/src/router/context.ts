@@ -13,15 +13,36 @@ export function createContext(prisma: PrismaService) {
             revokedAt: null,
             user: { accountStatus: "active" },
           },
-          include: { user: { select: { id: true, name: true, email: true, role: true, accountStatus: true } } },
+          include: { user: { select: { id: true, name: true, email: true, role: true, accountStatus: true, defaultOrganizationId: true } } },
         })
       : null;
 
+    const requestedOrganizationSlug = opts.req.headers["x-parcelis-organization-slug"];
+    const organizationSlug = Array.isArray(requestedOrganizationSlug) ? requestedOrganizationSlug[0] : requestedOrganizationSlug;
     const organization = session
-      ? await prisma.organizationMembership.findFirst({
+      ? session.user.role === "administrator"
+        ? await prisma.organization
+            .findFirst({
+              where: organizationSlug
+                ? { slug: organizationSlug }
+                : { id: session.user.defaultOrganizationId ?? session.activeOrganizationId ?? undefined },
+              orderBy: { createdAt: "asc" },
+            })
+            .then((activeOrganization) =>
+              activeOrganization
+                ? { organizationId: activeOrganization.id, role: "administrator" as const, organization: activeOrganization }
+                : null,
+            )
+        : await prisma.organizationMembership.findFirst({
           where: {
             userId: session.userId,
-            ...(session.activeOrganizationId ? { organizationId: session.activeOrganizationId } : {}),
+            ...(organizationSlug
+              ? { organization: { slug: organizationSlug } }
+              : session.user.defaultOrganizationId
+                ? { organizationId: session.user.defaultOrganizationId }
+                : session.activeOrganizationId
+                  ? { organizationId: session.activeOrganizationId }
+                  : {}),
           },
           include: { organization: true },
           orderBy: { createdAt: "asc" },

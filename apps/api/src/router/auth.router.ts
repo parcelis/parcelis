@@ -55,6 +55,7 @@ export const authRouter = router({
         await tx.organizationMembership.create({
           data: { userId: createdUser.id, organizationId: organization.id, role: "owner" },
         });
+        await tx.user.update({ where: { id: createdUser.id }, data: { defaultOrganizationId: organization.id } });
         return createdUser;
       });
     } catch (error) {

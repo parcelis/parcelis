@@ -403,16 +403,23 @@ async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Pris
 export const appRouter = router({
   auth: authRouter,
   organizations: router({
-    list: publicProcedure.query(({ ctx }) =>
-      ctx.prisma.organizationMembership.findMany({
+    list: publicProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role === "administrator") {
+        const organizations = await ctx.prisma.organization.findMany({
+          select: { id: true, name: true, slug: true },
+          orderBy: { name: "asc" },
+        });
+        return organizations.map((organization) => ({ organization, role: "administrator" as const }));
+      }
+      return ctx.prisma.organizationMembership.findMany({
         where: { userId: ctx.user.id },
         select: {
           role: true,
           organization: { select: { id: true, name: true, slug: true } },
         },
         orderBy: { organization: { name: "asc" } },
-      }),
-    ),
+      });
+    }),
     active: organizationProcedure.query(async ({ ctx }) => ({
       id: ctx.organization.organization.id,
       name: ctx.organization.organization.name,
@@ -426,15 +433,19 @@ export const appRouter = router({
         where: { userId_organizationId: { userId: ctx.user.id, organizationId: input.organizationId } },
         select: { organizationId: true },
       });
-      if (!membership) throw new TRPCError({ code: "FORBIDDEN", message: "Organization access is required." });
-      await ctx.prisma.session.update({ where: { id: ctx.session.id }, data: { activeOrganizationId: membership.organizationId } });
-      return { organizationId: membership.organizationId };
+      if (!membership && ctx.user.role !== "administrator") throw new TRPCError({ code: "FORBIDDEN", message: "Organization access is required." });
+      const organizationId = membership?.organizationId ?? input.organizationId;
+      await ctx.prisma.$transaction([
+        ctx.prisma.session.update({ where: { id: ctx.session.id }, data: { activeOrganizationId: organizationId } }),
+        ctx.prisma.user.update({ where: { id: ctx.user.id }, data: { defaultOrganizationId: organizationId } }),
+      ]);
+      return { organizationId };
     }),
     update: organizationProcedure.input(updateOrganizationInputSchema).mutation(({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
       return ctx.prisma.organization.update({
         where: { id: ctx.organization.organizationId },
-        data: { name: input.name },
+        data: { name: input.name, slug: input.slug },
         select: { id: true, name: true, slug: true },
       });
     }),

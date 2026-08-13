@@ -277,6 +277,7 @@ async function main() {
     update: { role: "owner" },
     create: { userId: seededAdministrator.id, organizationId: organization.id, role: "owner" },
   });
+  await prisma.user.update({ where: { id: seededAdministrator.id }, data: { defaultOrganizationId: organization.id } });
 
   for (const [index, label] of utilityTypes.entries()) {
     await prisma.utilityType.upsert({

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
   Building2,
@@ -48,6 +48,7 @@ export function Sidebar({ active }: SidebarProps) {
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const organizationsQuery = useQuery({
     queryKey: queryKeys.organizations.list,
@@ -59,9 +60,11 @@ export function Sidebar({ active }: SidebarProps) {
   });
   const switchOrganizationMutation = useMutation({
     mutationFn: (organizationId: number) => apiClient.organizations.switch.mutate({ organizationId }),
-    onSuccess: () => {
+    onSuccess: async ({ organizationId }) => {
+      const membership = organizationsQuery.data?.find(({ organization }) => organization.id === organizationId);
       queryClient.clear();
-      router.refresh();
+      if (membership) router.replace(`/o/${membership.organization.slug}`);
+      else router.refresh();
     },
   });
 
@@ -70,6 +73,13 @@ export function Sidebar({ active }: SidebarProps) {
     setIsCollapsed(saved);
     setSidebarWidth(saved);
   }, []);
+
+  React.useEffect(() => {
+    const organization = activeOrganizationQuery.data;
+    if (organization && !pathname.startsWith(`/o/${organization.slug}`)) {
+      router.replace(`/o/${organization.slug}${pathname === "/" ? "" : pathname}`);
+    }
+  }, [activeOrganizationQuery.data, pathname, router]);
 
   function toggleSidebar() {
     setIsCollapsed((current) => {
@@ -131,7 +141,27 @@ export function Sidebar({ active }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="mt-8 flex-1 space-y-1 text-sm font-medium text-parcelis-gray">
+      {!isCollapsed && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
+        <div className="mt-6">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-parcelis-gray" htmlFor="organization-switcher">
+            Organization
+          </label>
+          <Select
+            disabled={switchOrganizationMutation.isPending}
+            id="organization-switcher"
+            onChange={(event) => switchOrganizationMutation.mutate(Number(event.target.value))}
+            value={activeOrganizationQuery.data?.id ?? ""}
+          >
+            {organizationsQuery.data.map(({ organization }) => (
+              <option key={organization.id} value={organization.id}>
+                {organization.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      ) : null}
+
+      <nav className="mt-6 flex-1 space-y-1 text-sm font-medium text-parcelis-gray">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.key === active;
@@ -151,26 +181,6 @@ export function Sidebar({ active }: SidebarProps) {
           );
         })}
       </nav>
-
-      {!isCollapsed && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
-        <div className="mb-4">
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-parcelis-gray" htmlFor="organization-switcher">
-            Organization
-          </label>
-          <Select
-            disabled={switchOrganizationMutation.isPending}
-            id="organization-switcher"
-            onChange={(event) => switchOrganizationMutation.mutate(Number(event.target.value))}
-            value={activeOrganizationQuery.data?.id ?? ""}
-          >
-            {organizationsQuery.data.map(({ organization }) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-      ) : null}
 
       <button
         aria-label="Sign out"

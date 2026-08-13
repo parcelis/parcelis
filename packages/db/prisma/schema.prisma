@@ -107,6 +107,7 @@ model Organization {
   invoices              Invoice[]
   maintenanceTickets    MaintenanceTicket[]
   activityEvents        ActivityEvent[]
+  defaultUsers          User[]                   @relation("UserDefaultOrganization")
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
 }
@@ -133,10 +134,14 @@ model User {
   role          UserRole          @default(member)
   accountStatus UserAccountStatus @default(active)
   passwordHash  String
+  defaultOrganizationId Int?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   sessions      Session[]
   organizationMemberships OrganizationMembership[]
+  defaultOrganization Organization? @relation("UserDefaultOrganization", fields: [defaultOrganizationId], references: [id], onDelete: SetNull)
+
+  @@index([defaultOrganizationId])
 }
 
 model Session {

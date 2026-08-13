@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const sessionCookieName = "parcelis_session";
+const organizationCookieName = "parcelis-organization-slug";
 const isAuthenticationDisabled =
   process.env.AUTH_DISABLED === "true" && ["development", "test"].includes(process.env.NODE_ENV ?? "");
 
@@ -27,12 +28,32 @@ async function hasValidSession(request: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
-  if (isAuthenticationDisabled) return NextResponse.next();
-  if (await hasValidSession(request)) return NextResponse.next();
+  if (request.headers.get("x-parcelis-internal-rewrite") === "1") return NextResponse.next();
 
-  return redirectToLogin(request);
+  if (!isAuthenticationDisabled && !(await hasValidSession(request))) return redirectToLogin(request);
+
+  const { pathname } = request.nextUrl;
+  if (pathname.startsWith("/o/")) {
+    const [, , slug, ...path] = pathname.split("/");
+    if (!slug) return NextResponse.redirect(new URL("/", request.url));
+
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-parcelis-internal-rewrite", "1");
+    const response = NextResponse.rewrite(new URL(`/${path.join("/")}`, request.url), {
+      request: { headers: requestHeaders },
+    });
+    response.cookies.set(organizationCookieName, slug, { path: "/", sameSite: "lax" });
+    return response;
+  }
+
+  const organizationSlug = request.cookies.get(organizationCookieName)?.value;
+  if (organizationSlug) {
+    return NextResponse.redirect(new URL(`/o/${organizationSlug}${pathname === "/" ? "" : pathname}`, request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/maintenance/:path*", "/properties/:path*", "/settings/:path*", "/tenants/:path*"],
+  matcher: ["/", "/o/:path*", "/income/:path*", "/maintenance/:path*", "/properties/:path*", "/settings/:path*", "/tenants/:path*"],
 };

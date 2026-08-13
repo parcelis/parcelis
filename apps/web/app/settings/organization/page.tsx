@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../components/api-client";
@@ -16,6 +17,8 @@ const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 export default function OrganizationSettingsPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
   const activeOrganizationQuery = useQuery({
     queryKey: queryKeys.organizations.active,
     queryFn: () => apiClient.organizations.active.query(),
@@ -25,14 +28,20 @@ export default function OrganizationSettingsPage() {
     queryFn: () => apiClient.organizations.list.query(),
   });
   const [name, setName] = React.useState("");
+  const [slug, setSlug] = React.useState("");
   React.useEffect(() => {
-    if (activeOrganizationQuery.data) setName(activeOrganizationQuery.data.name);
+    if (activeOrganizationQuery.data) {
+      setName(activeOrganizationQuery.data.name);
+      setSlug(activeOrganizationQuery.data.slug);
+    }
   }, [activeOrganizationQuery.data]);
   const saveOrganizationDetails = useMutation({
-    mutationFn: (organizationName: string) => apiClient.organizations.update.mutate({ name: organizationName }),
-    onSuccess: async () => {
+    mutationFn: ({ name, slug }: { name: string; slug: string }) => apiClient.organizations.update.mutate({ name, slug }),
+    onSuccess: async (organization) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active });
       await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.list });
+      const suffix = pathname.replace(/^\/o\/[^/]+/, "");
+      router.replace(`/o/${organization.slug}${suffix}`);
     },
   });
   const uploadOrganizationAvatar = useMutation({
@@ -100,7 +109,7 @@ export default function OrganizationSettingsPage() {
                       className="flex max-w-xl flex-col gap-5"
                       onSubmit={(event) => {
                         event.preventDefault();
-                        saveOrganizationDetails.mutate(name);
+                        saveOrganizationDetails.mutate({ name, slug });
                       }}
                     >
                       <Label>
@@ -118,6 +127,14 @@ export default function OrganizationSettingsPage() {
                       <Label>
                         Organization name
                         <Input className="mt-1" onChange={(event) => setName(event.target.value)} required value={name} />
+                      </Label>
+                      <Label>
+                        Organization URL
+                        <div className="mt-1 flex items-center rounded-md border border-parcelis-border bg-white focus-within:border-parcelis-green">
+                          <span className="border-r border-parcelis-border px-3 py-2 text-sm text-parcelis-gray">/o/</span>
+                          <Input className="border-0" onChange={(event) => setSlug(event.target.value.toLowerCase())} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required value={slug} />
+                        </div>
+                        <span className="mt-1 block text-xs text-parcelis-gray">Lowercase letters, numbers, and hyphens only.</span>
                       </Label>
                       <Button className="min-w-40 self-start" disabled={saveOrganizationDetails.isPending} type="submit">Save organization</Button>
                     </form>

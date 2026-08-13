@@ -41,6 +41,12 @@ export const organizationMemberRoleSchema = z.enum(["owner", "administrator", "m
 export const switchOrganizationInputSchema = z.object({ organizationId: idSchema });
 export const updateOrganizationInputSchema = z.object({
   name: z.string().trim().min(2).max(100),
+  slug: z
+    .string()
+    .trim()
+    .min(3)
+    .max(50)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
 });
 export const organizationAvatarUploadInputSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]),
