@@ -49,6 +49,18 @@ function invoiceStatusClass(status: string) {
   return "bg-parcelis-green/20 text-parcelis-charcoal";
 }
 
+function getInvoiceStamp(invoice: { amountCents: number; balanceCents: number; status: string }) {
+  if (invoice.status === "void") return { label: "Canceled", className: "border-slate-400 text-slate-400" };
+  if (invoice.status === "paid" || invoice.balanceCents === 0) {
+    return { label: "Paid", className: "border-emerald-500 text-emerald-500" };
+  }
+  if (invoice.balanceCents < invoice.amountCents) {
+    return { label: "Partially Paid", className: "border-amber-500 text-amber-500" };
+  }
+  if (invoice.status === "overdue") return { label: "Overdue", className: "border-red-600 text-red-600" };
+  return null;
+}
+
 function formatPaymentMethod(method: string) {
   return method
     .split("_")
@@ -222,6 +234,7 @@ export default function InvoiceDetailPage() {
               const paidCents = Math.max(invoice.amountCents - invoice.balanceCents, 0);
               const payments = invoice.payments ?? [];
               const invoiceLabel = `INV-${String(invoice.invoiceNumber).padStart(7, "0")}`;
+              const stamp = getInvoiceStamp(invoice);
               const items = invoice.items.length
                 ? invoice.items
                 : [
@@ -307,7 +320,14 @@ export default function InvoiceDetailPage() {
                     </Card>
                   </aside>
                   <div className="min-w-0 flex-1 space-y-5">
-                    <Card className="overflow-hidden dark:bg-parcelis-slate dark:text-parcelis-porcelain">
+                    <Card className="relative overflow-hidden dark:bg-parcelis-slate dark:text-parcelis-porcelain">
+                      {stamp ? (
+                        <div
+                          className={`pointer-events-none absolute left-1/2 top-12 z-10 -translate-x-1/2 select-none rotate-[-12deg] rounded-lg border-4 px-5 py-1.5 text-3xl font-black uppercase tracking-widest opacity-80 ${stamp.className}`}
+                        >
+                          {stamp.label}
+                        </div>
+                      ) : null}
                       <section className="grid gap-6 bg-parcelis-charcoal p-6 text-white md:grid-cols-[1.2fr_1fr] md:p-8">
                         <div>
                           <div className="flex items-center gap-3 text-parcelis-green">
