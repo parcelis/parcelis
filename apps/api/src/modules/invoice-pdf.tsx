@@ -67,9 +67,9 @@ const styles = StyleSheet.create({
   },
   statusPaid: {
     alignSelf: "flex-start",
-    backgroundColor: "#d1fae5",
+    backgroundColor: "#d9edc7",
     borderRadius: 4,
-    color: "#065f46",
+    color: "#101c29",
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
     marginTop: 8,
