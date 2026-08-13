@@ -323,7 +323,12 @@ export default function IncomePage() {
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm font-medium text-parcelis-charcoal">
                                         {persistedInvoice ? (
-                                          <span>INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}</span>
+                                          <Link
+                                            className="text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
+                                            href={getInvoiceLink(persistedInvoice.id)}
+                                          >
+                                            INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                                          </Link>
                                         ) : (
                                           invoice.id
                                         )}
@@ -410,11 +415,16 @@ export default function IncomePage() {
                             {invoice.paidOn ? formatDate(invoice.paidOn) : "—"}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            <span className="font-medium text-parcelis-charcoal">
-                              {persistedInvoice
-                                ? `INV-${String(persistedInvoice.invoiceNumber).padStart(7, "0")}`
-                                : invoice.id}
-                            </span>
+                            {persistedInvoice ? (
+                              <Link
+                                className="font-medium text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
+                                href={getInvoiceLink(persistedInvoice.id)}
+                              >
+                                INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                              </Link>
+                            ) : (
+                              <span className="font-medium text-parcelis-charcoal">{invoice.id}</span>
+                            )}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             <span className="font-medium text-parcelis-charcoal">{lease.unitLabel}</span>

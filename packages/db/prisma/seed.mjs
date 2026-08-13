@@ -205,6 +205,43 @@ async function upsertLease(data) {
   return existing ? prisma.lease.update({ where: { id: existing.id }, data }) : prisma.lease.create({ data });
 }
 
+async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, payments = [] }) {
+  const paidOn = balanceCents === 0 ? (payments.at(-1)?.paidOn ?? periodStartsOn) : null;
+
+  await prisma.invoice.upsert({
+    where: { leaseId_periodStartsOn: { leaseId: lease.id, periodStartsOn } },
+    update: {},
+    create: {
+      leaseId: lease.id,
+      propertyId: lease.propertyId,
+      tenantId: lease.tenantId,
+      paidByTenantId: balanceCents === 0 ? lease.tenantId : null,
+      periodStartsOn,
+      periodEndsOn: new Date(Date.UTC(periodStartsOn.getUTCFullYear(), periodStartsOn.getUTCMonth() + 1, 0)),
+      dueOn: periodStartsOn,
+      amountCents,
+      balanceCents,
+      status: balanceCents === 0 ? "paid" : "overdue",
+      paidOn,
+      paymentMethod: balanceCents === 0 ? (payments.at(-1)?.paymentMethod ?? null) : null,
+      items: {
+        create: {
+          item: "Rent",
+          description: `Rent for ${periodStartsOn.toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}`,
+          rateCents: amountCents,
+          amountCents,
+        },
+      },
+      payments: {
+        create: payments.map((payment) => ({
+          ...payment,
+          tenantId: lease.tenantId,
+        })),
+      },
+    },
+  });
+}
+
 async function main() {
   const administratorEmail = "admin@parcelis.dev";
   const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
@@ -405,7 +442,7 @@ async function main() {
     },
   });
 
-  await Promise.all([
+  const [mayaLease, elenaLease, calvinLease, noraLease] = await Promise.all([
     upsertLease({
       propertyId: hawthorne.id,
       tenantId: tenant.id,
@@ -465,6 +502,47 @@ async function main() {
       startsOn: new Date("2023-06-01"),
       endsOn: new Date("2024-05-31"),
       status: "ended",
+    }),
+  ]);
+
+  const july = new Date("2026-07-01T00:00:00.000Z");
+  const august = new Date("2026-08-01T00:00:00.000Z");
+  await Promise.all([
+    seedInvoice({
+      lease: mayaLease,
+      periodStartsOn: july,
+      amountCents: mayaLease.monthlyRentCents,
+      balanceCents: 0,
+      payments: [
+        { amountCents: mayaLease.monthlyRentCents, paymentMethod: "ach", paidOn: new Date("2026-07-01T00:00:00.000Z") },
+      ],
+    }),
+    seedInvoice({
+      lease: mayaLease,
+      periodStartsOn: august,
+      amountCents: mayaLease.monthlyRentCents,
+      balanceCents: mayaLease.monthlyRentCents,
+    }),
+    seedInvoice({
+      lease: elenaLease,
+      periodStartsOn: august,
+      amountCents: elenaLease.monthlyRentCents,
+      balanceCents: 32500,
+      payments: [{ amountCents: 165000, paymentMethod: "credit_card", paidOn: new Date("2026-08-03T00:00:00.000Z") }],
+    }),
+    seedInvoice({
+      lease: calvinLease,
+      periodStartsOn: august,
+      amountCents: calvinLease.monthlyRentCents,
+      balanceCents: 82500,
+      payments: [{ amountCents: 133500, paymentMethod: "ach", paidOn: new Date("2026-08-02T00:00:00.000Z") }],
+    }),
+    seedInvoice({
+      lease: noraLease,
+      periodStartsOn: august,
+      amountCents: noraLease.monthlyRentCents,
+      balanceCents: 125000,
+      payments: [{ amountCents: 114500, paymentMethod: "check", paidOn: new Date("2026-08-04T00:00:00.000Z") }],
     }),
   ]);
 
