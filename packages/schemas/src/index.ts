@@ -379,18 +379,14 @@ export const propertyStatusInputSchema = z.object({
 
 export const propertyImageUploadInputSchema = z.object({
   id: idSchema,
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
 });
 
 export const propertyImageUploadCompleteInputSchema = z
   .object({
     id: idSchema,
-    objectKey: z.string().regex(/^properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
-  })
-  .refine(({ id, objectKey }) => objectKey.startsWith(`properties/${id}/images/`), {
-    message: "The image must belong to the selected property.",
-    path: ["objectKey"],
+    objectKey: z.string().regex(/^organizations\/\d+\/properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp|svg|gif)$/),
   });
 
 export type Address = z.infer<typeof addressSchema>;

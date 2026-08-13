@@ -14,7 +14,7 @@ type ImageUploadPanelProps = {
   onDelete: () => void;
   onImageChange: (file: File | null) => void;
   onValidationErrorChange?: (error: string | null) => void;
-  title: string;
+  title?: string;
 };
 
 export function ImageUploadPanel({
@@ -34,7 +34,7 @@ export function ImageUploadPanel({
 
   return (
     <section className="w-full">
-      <h3 className="text-xl font-bold text-parcelis-charcoal dark:text-white">{title}</h3>
+      {title ? <h3 className="text-xl font-bold text-parcelis-charcoal dark:text-white">{title}</h3> : null}
       <div className="mx-auto w-full max-w-xs">
         <input
           accept={acceptedImageTypes.join(",")}

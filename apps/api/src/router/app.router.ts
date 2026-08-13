@@ -677,12 +677,16 @@ export const appRouter = router({
       await ctx.prisma.property.findUniqueOrThrow({
         where: { id: input.id },
       });
-      return createPropertyImageUploadUrl(input.contentType, input.id);
+      return createPropertyImageUploadUrl(input.contentType, ctx.organization.organizationId, input.id);
     }),
     /** Records a successfully uploaded image and removes the previous object. */
     completeImageUpload: publicProcedure
       .input(propertyImageUploadCompleteInputSchema)
       .mutation(async ({ ctx, input }) => {
+        const expectedObjectKeyPrefix = `organizations/${ctx.organization.organizationId}/properties/${input.id}/images/`;
+        if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected property." });
+        }
         const currentProperty = await ctx.prisma.property.findUniqueOrThrow({
           where: { id: input.id },
           select: { imageObjectKey: true },
@@ -962,7 +966,7 @@ export const appRouter = router({
     /** Creates a short-lived URL for uploading a tenant image to MinIO. */
     createImageUploadUrl: publicProcedure.input(tenantImageUploadInputSchema).mutation(async ({ ctx, input }) => {
       await ctx.prisma.tenant.findUniqueOrThrow({ where: { id: input.id } });
-      return createTenantImageUploadUrl(input.contentType, input.id);
+      return createTenantImageUploadUrl(input.contentType, ctx.organization.organizationId, input.id);
     }),
     /** Records a successfully uploaded tenant image and removes the previous object. */
     completeImageUpload: publicProcedure
@@ -1550,7 +1554,7 @@ export const appRouter = router({
     }),
     createImageUploadUrl: publicProcedure.input(maintenanceImageUploadInputSchema).mutation(async ({ ctx, input }) => {
       await ctx.prisma.maintenanceTicket.findUniqueOrThrow({ where: { id: input.id }, select: { id: true } });
-      return createMaintenanceImageUploadUrl(input.contentType, input.id);
+      return createMaintenanceImageUploadUrl(input.contentType, ctx.organization.organizationId, input.id);
     }),
     completeImageUpload: publicProcedure.input(maintenanceImageUploadCompleteInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.maintenanceAttachment.create({

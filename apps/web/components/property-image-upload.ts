@@ -1,6 +1,6 @@
 import { apiClient } from "./api-client";
 
-const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]);
 
 export function isSupportedPropertyImage(file: File) {
   return supportedImageTypes.has(file.type);
@@ -8,12 +8,12 @@ export function isSupportedPropertyImage(file: File) {
 
 export async function uploadPropertyImage(propertyId: number, file: File) {
   if (!isSupportedPropertyImage(file)) {
-    throw new Error("Choose a JPG, PNG, or WebP image.");
+    throw new Error("Choose a GIF, JPG, PNG, SVG, or WebP image.");
   }
 
   const { objectKey, uploadUrl } =
     await apiClient.properties.createImageUploadUrl.mutate({
-      contentType: file.type as "image/jpeg" | "image/png" | "image/webp",
+      contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/svg+xml" | "image/gif",
       fileName: file.name,
       id: propertyId,
     });

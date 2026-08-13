@@ -58,8 +58,8 @@ const imageExtensions = {
   "image/gif": "gif",
 } as const;
 
-export function createPropertyImageObjectKey(contentType: keyof typeof imageExtensions, propertyId: number) {
-  return `properties/${propertyId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
+export function createPropertyImageObjectKey(contentType: keyof typeof imageExtensions, organizationId: number, propertyId: number) {
+  return `organizations/${organizationId}/properties/${propertyId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
 export function createOrganizationAvatarObjectKey(contentType: keyof typeof imageExtensions, organizationId: number) {
@@ -77,9 +77,9 @@ export async function createOrganizationAvatarUploadUrl(contentType: keyof typeo
   return { objectKey, uploadUrl };
 }
 
-export async function createPropertyImageUploadUrl(contentType: keyof typeof imageExtensions, propertyId: number) {
+export async function createPropertyImageUploadUrl(contentType: keyof typeof imageExtensions, organizationId: number, propertyId: number) {
   const config = getObjectStorageConfig();
-  const objectKey = createPropertyImageObjectKey(contentType, propertyId);
+  const objectKey = createPropertyImageObjectKey(contentType, organizationId, propertyId);
   const uploadUrl = await getSignedUrl(
     createObjectStorageClient(),
     new PutObjectCommand({
@@ -109,13 +109,13 @@ export async function deletePropertyImageObject(objectKey: string) {
   await createObjectStorageClient().send(new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey }));
 }
 
-export function createTenantImageObjectKey(contentType: keyof typeof imageExtensions, tenantId: number) {
-  return `tenants/${tenantId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
+export function createTenantImageObjectKey(contentType: keyof typeof imageExtensions, organizationId: number, tenantId: number) {
+  return `organizations/${organizationId}/tenants/${tenantId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createTenantImageUploadUrl(contentType: keyof typeof imageExtensions, tenantId: number) {
+export async function createTenantImageUploadUrl(contentType: keyof typeof imageExtensions, organizationId: number, tenantId: number) {
   const config = getObjectStorageConfig();
-  const objectKey = createTenantImageObjectKey(contentType, tenantId);
+  const objectKey = createTenantImageObjectKey(contentType, organizationId, tenantId);
   const uploadUrl = await getSignedUrl(
     createObjectStorageClient(),
     new PutObjectCommand({
@@ -132,13 +132,13 @@ export async function createTenantImageUploadUrl(contentType: keyof typeof image
 export const createTenantImageDownloadUrl = createPropertyImageDownloadUrl;
 export const deleteTenantImageObject = deletePropertyImageObject;
 
-export function createMaintenanceImageObjectKey(contentType: keyof typeof imageExtensions, ticketId: number) {
-  return `maintenance/${ticketId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
+export function createMaintenanceImageObjectKey(contentType: keyof typeof imageExtensions, organizationId: number, ticketId: number) {
+  return `organizations/${organizationId}/maintenance/${ticketId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createMaintenanceImageUploadUrl(contentType: keyof typeof imageExtensions, ticketId: number) {
+export async function createMaintenanceImageUploadUrl(contentType: keyof typeof imageExtensions, organizationId: number, ticketId: number) {
   const config = getObjectStorageConfig();
-  const objectKey = createMaintenanceImageObjectKey(contentType, ticketId);
+  const objectKey = createMaintenanceImageObjectKey(contentType, organizationId, ticketId);
   const uploadUrl = await getSignedUrl(
     createObjectStorageClient(),
     new PutObjectCommand({ Bucket: config.bucket, ContentType: contentType, Key: objectKey }),
