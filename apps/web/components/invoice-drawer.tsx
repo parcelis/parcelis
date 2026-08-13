@@ -14,6 +14,7 @@ import {
   Label,
   Select,
 } from "@parcelis/ui";
+import { formatDate, getLocalDateInput } from "../lib/date";
 
 type InvoiceLine = {
   description: string;
@@ -52,11 +53,6 @@ type InvoiceDrawerProps = {
   properties: IncomeProperty[];
 };
 
-function getToday() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 function toCents(value: string) {
   const amount = Number.parseFloat(value);
   return Number.isFinite(amount) ? Math.max(Math.round(amount * 100), 0) : 0;
@@ -66,20 +62,13 @@ function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
-function formatDate(value: Date | string | null) {
-  if (!value) return "No end date";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
-    new Date(value),
-  );
-}
-
 const initialLine: InvoiceLine = { item: "Rent", description: "", quantity: "1", rate: "" };
 
 export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, properties }: InvoiceDrawerProps) {
   const [propertyId, setPropertyId] = React.useState("");
   const [unitId, setUnitId] = React.useState("");
   const [leaseId, setLeaseId] = React.useState("");
-  const [dueOn, setDueOn] = React.useState(getToday());
+  const [dueOn, setDueOn] = React.useState(getLocalDateInput());
   const [paid, setPaid] = React.useState("0");
   const [lines, setLines] = React.useState<InvoiceLine[]>([{ ...initialLine }]);
 
@@ -95,7 +84,7 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
       setPropertyId("");
       setUnitId("");
       setLeaseId("");
-      setDueOn(getToday());
+      setDueOn(getLocalDateInput());
       setPaid("0");
       setLines([{ ...initialLine }]);
     }
@@ -189,7 +178,7 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
                     <option value="">Select lease</option>
                     {leases.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {formatDate(item.startsOn)} – {formatDate(item.endsOn)}
+                        {formatDate(item.startsOn)} – {item.endsOn ? formatDate(item.endsOn) : "No end date"}
                       </option>
                     ))}
                   </Select>

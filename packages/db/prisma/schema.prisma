@@ -314,6 +314,7 @@ model Lease {
 
   @@index([propertyId])
   @@index([tenantId])
+  @@unique([id, propertyId, tenantId])
 }
 
 model Invoice {
@@ -333,7 +334,7 @@ model Invoice {
   paymentMethod  String?
   items          InvoiceItem[]
   payments       InvoicePayment[]
-  lease          Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  lease          Lease         @relation(fields: [leaseId, propertyId, tenantId], references: [id, propertyId, tenantId], onDelete: Cascade)
   property       Property      @relation(fields: [propertyId], references: [id])
   tenant         Tenant        @relation(fields: [tenantId], references: [id])
   paidByTenant   Tenant?       @relation("InvoicePaidByTenant", fields: [paidByTenantId], references: [id])
@@ -341,6 +342,7 @@ model Invoice {
   updatedAt      DateTime      @updatedAt
 
   @@unique([leaseId, periodStartsOn])
+  @@unique([id, tenantId])
   @@index([propertyId])
   @@index([tenantId])
   @@index([paidByTenantId])
@@ -368,7 +370,7 @@ model InvoicePayment {
   amountCents    Int
   paymentMethod  String
   paidOn         DateTime
-  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice        Invoice  @relation(fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Cascade)
   tenant         Tenant   @relation(fields: [tenantId], references: [id])
   createdAt      DateTime @default(now())
 

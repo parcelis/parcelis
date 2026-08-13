@@ -296,13 +296,13 @@ function getTenantStatus(tenant: { archivedAt: Date | null; leases: Array<{ stat
 function getInvoiceStatus(dueOn: Date, balanceCents: number) {
   if (balanceCents === 0) return "paid" as const;
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
   return dueOn < today ? ("overdue" as const) : ("open" as const);
 }
 
 async function synchronizeOverdueInvoices(prisma: PrismaClient | Prisma.TransactionClient) {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
   await Promise.all([
     prisma.invoice.updateMany({
       where: { status: "open", balanceCents: { gt: 0 }, dueOn: { lt: today } },
@@ -1252,7 +1252,9 @@ export const appRouter = router({
               throw new TRPCError({ code: "BAD_REQUEST", message: "Payments cannot exceed the remaining balance." });
             }
             const balanceCents = invoice.balanceCents - paymentTotalCents;
-            const finalPayment = input.payments.at(-1)!;
+            const latestPayment = input.payments.reduce((latest, payment) =>
+              payment.paidOn >= latest.paidOn ? payment : latest,
+            );
             const payments = [];
             for (const payment of input.payments) {
               payments.push(
@@ -1271,9 +1273,9 @@ export const appRouter = router({
               where: { id: input.id },
               data: {
                 balanceCents,
-                paidOn: balanceCents === 0 ? finalPayment.paidOn : null,
-                paidByTenantId: balanceCents === 0 ? finalPayment.paidByTenantId : null,
-                paymentMethod: balanceCents === 0 ? finalPayment.paymentMethod : null,
+                paidOn: balanceCents === 0 ? latestPayment.paidOn : null,
+                paidByTenantId: balanceCents === 0 ? latestPayment.paidByTenantId : null,
+                paymentMethod: balanceCents === 0 ? latestPayment.paymentMethod : null,
                 status: getInvoiceStatus(invoice.dueOn, balanceCents),
               },
             });

@@ -23,6 +23,7 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 import { apiClient } from "./api-client";
 import type { InvoiceActionInvoice } from "./invoice-actions";
+import { formatDate, getLocalDateInput } from "../lib/date";
 
 type PaymentEntry = { amount: string; method: string; paidOn: string; tenantId: string };
 const methods = [
@@ -42,16 +43,6 @@ function toCents(value: string) {
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
-function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
-    new Date(value),
-  );
-}
-function getLocalDate() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 export function RecordPaymentDrawer({
   invoice,
   onOpenChange,
@@ -70,7 +61,7 @@ export function RecordPaymentDrawer({
     (): PaymentEntry => ({
       amount: "",
       method: "",
-      paidOn: getLocalDate(),
+      paidOn: getLocalDateInput(),
       tenantId: String(invoice.tenant.id),
     }),
     [invoice.tenant.id],

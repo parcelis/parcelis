@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, ChevronRight, DoorOpen, Plus, Search } from "lucide-react";
 import {
@@ -51,13 +51,13 @@ function formatDate(value: Date | string) {
 
 function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number }) {
   const now = new Date();
-  const dueOn = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+  const dueOn = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   return {
     amountCents: lease.monthlyRentCents,
     balanceCents: lease.amountOverdueCents || lease.monthlyRentCents,
     dueOn,
-    id: `INV-${dueOn.getFullYear()}-${String(dueOn.getMonth() + 1).padStart(2, "0")}`,
+    id: `INV-${dueOn.getUTCFullYear()}-${String(dueOn.getUTCMonth() + 1).padStart(2, "0")}`,
     paidOn: null,
     status: lease.amountOverdueCents > 0 ? "Overdue" : "Current",
   };
@@ -83,7 +83,10 @@ export default function IncomePage() {
   const [search, setSearch] = React.useState("");
   const [isInvoiceDrawerOpen, setIsInvoiceDrawerOpen] = React.useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const tenantId = Number(searchParams.get("tenantId"));
+  const selectedTenantId = Number.isInteger(tenantId) && tenantId > 0 ? tenantId : null;
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -99,10 +102,19 @@ export default function IncomePage() {
     },
   });
   const incomeProperties = properties
-    .map((property) => ({
-      ...property,
-      incomeLeases: property.leases.filter((lease) => lease.status === "active" || lease.status === "notice"),
-    }))
+    .map((property) => {
+      const incomeLeases = property.leases.filter(
+        (lease) =>
+          (lease.status === "active" || lease.status === "notice") &&
+          (selectedTenantId === null || lease.tenant.id === selectedTenantId),
+      );
+      return {
+        ...property,
+        incomeLeases,
+        amountOverdueCents: incomeLeases.reduce((total, lease) => total + lease.amountOverdueCents, 0),
+        monthlyRentCents: incomeLeases.reduce((total, lease) => total + lease.monthlyRentCents, 0),
+      };
+    })
     .filter((property) => property.incomeLeases.length > 0);
   const scheduledIncomeCents = incomeProperties.reduce((total, property) => total + property.monthlyRentCents, 0);
   const overdueCents = incomeProperties.reduce((total, property) => total + property.amountOverdueCents, 0);
@@ -342,12 +354,12 @@ export default function IncomePage() {
                                         )}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
+                                        —
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
                                         {persistedInvoice
                                           ? formatCurrency(persistedInvoice.amountCents - persistedInvoice.balanceCents)
                                           : "—"}
-                                      </TableCell>
-                                      <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
-                                        —
                                       </TableCell>
                                       <TableCell
                                         className={`px-5 py-3 text-right text-sm font-semibold ${lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
@@ -387,7 +399,7 @@ export default function IncomePage() {
                       return (
                         <TableRow
                           className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
-                          key={invoice.id}
+                          key={persistedInvoice ? persistedInvoice.id : `${lease.id}-current`}
                           onClick={() => {
                             if (persistedInvoice) router.push(getInvoiceLink(persistedInvoice.id));
                           }}

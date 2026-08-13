@@ -21,24 +21,13 @@ import {
 } from "@parcelis/ui";
 import { apiClient } from "./api-client";
 import type { InvoiceActionInvoice } from "./invoice-actions";
+import { formatDate, toUtcDateInput } from "../lib/date";
 
 type Line = { item: string; description: string; quantity: string; rate: string };
 function toCents(value: string) {
   const amount = Number.parseFloat(value);
   return Number.isFinite(amount) ? Math.max(Math.round(amount * 100), 0) : 0;
 }
-function formatDate(value: Date | string | null) {
-  return value
-    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
-        new Date(value),
-      )
-    : "No end date";
-}
-function toDateInput(value: Date | string) {
-  const date = new Date(value);
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
-}
-
 export function EditInvoiceDrawer({
   invoice,
   onOpenChange,
@@ -55,7 +44,7 @@ export function EditInvoiceDrawer({
   const [discardOpen, setDiscardOpen] = React.useState(false);
   React.useEffect(() => {
     if (!open) return;
-    const nextDueOn = toDateInput(invoice.dueOn);
+    const nextDueOn = toUtcDateInput(invoice.dueOn);
     const nextLines = invoice.items.map((item) => ({
       item: item.item,
       description: item.description ?? "",
@@ -146,7 +135,7 @@ export function EditInvoiceDrawer({
                   Term / lease
                   <Input
                     readOnly
-                    value={`${formatDate(invoice.lease.startsOn)} – ${formatDate(invoice.lease.endsOn)}`}
+                    value={`${formatDate(invoice.lease.startsOn)} – ${invoice.lease.endsOn ? formatDate(invoice.lease.endsOn) : "No end date"}`}
                   />
                 </Label>
                 <Label className="gap-2">

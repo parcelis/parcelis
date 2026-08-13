@@ -30,16 +30,11 @@ import { apiClient } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { InvoiceActions } from "../../../../components/invoice-actions";
 import { Sidebar } from "../../../../components/sidebar";
+import { formatDate } from "../../../../lib/date";
 import { getInvoiceLink, getPropertyLink } from "../../../../lib/entity-links";
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-}
-
-function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(
-    new Date(value),
-  );
 }
 
 function invoiceStatusClass(status: string) {
@@ -321,13 +316,6 @@ export default function InvoiceDetailPage() {
                   </aside>
                   <div className="min-w-0 flex-1 space-y-5">
                     <Card className="relative overflow-hidden dark:bg-parcelis-slate dark:text-parcelis-porcelain">
-                      {stamp ? (
-                        <div
-                          className={`pointer-events-none absolute left-1/2 top-12 z-10 -translate-x-1/2 select-none rotate-[-12deg] rounded-lg border-4 px-5 py-1.5 text-3xl font-black uppercase tracking-widest opacity-80 ${stamp.className}`}
-                        >
-                          {stamp.label}
-                        </div>
-                      ) : null}
                       <section className="grid gap-6 bg-parcelis-charcoal p-6 text-white md:grid-cols-[1.2fr_1fr] md:p-8">
                         <div>
                           <div className="flex items-center gap-3 text-parcelis-green">
@@ -339,6 +327,15 @@ export default function InvoiceDetailPage() {
                             Unit {invoice.lease.unitLabel} · {formatDate(invoice.periodStartsOn)} —{" "}
                             {formatDate(invoice.periodEndsOn)}
                           </p>
+                          {stamp ? (
+                            <div className="mt-5 flex justify-center md:justify-start">
+                              <div
+                                className={`pointer-events-none select-none rotate-[-12deg] rounded-lg border-4 px-5 py-1.5 text-3xl font-black uppercase tracking-widest opacity-80 ${stamp.className}`}
+                              >
+                                {stamp.label}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div className="rounded-md bg-white/10 p-3">

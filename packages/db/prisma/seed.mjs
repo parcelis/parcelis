@@ -514,7 +514,7 @@ async function main() {
       amountCents: mayaLease.monthlyRentCents,
       balanceCents: 0,
       payments: [
-        { amountCents: mayaLease.monthlyRentCents, paymentMethod: "ach", paidOn: new Date("2026-07-01T00:00:00.000Z") },
+        { amountCents: mayaLease.monthlyRentCents, paymentMethod: "other", paidOn: new Date("2026-07-01T00:00:00.000Z") },
       ],
     }),
     seedInvoice({
@@ -528,14 +528,14 @@ async function main() {
       periodStartsOn: august,
       amountCents: elenaLease.monthlyRentCents,
       balanceCents: 32500,
-      payments: [{ amountCents: 165000, paymentMethod: "credit_card", paidOn: new Date("2026-08-03T00:00:00.000Z") }],
+      payments: [{ amountCents: 165000, paymentMethod: "other", paidOn: new Date("2026-08-03T00:00:00.000Z") }],
     }),
     seedInvoice({
       lease: calvinLease,
       periodStartsOn: august,
       amountCents: calvinLease.monthlyRentCents,
       balanceCents: 82500,
-      payments: [{ amountCents: 133500, paymentMethod: "ach", paidOn: new Date("2026-08-02T00:00:00.000Z") }],
+      payments: [{ amountCents: 133500, paymentMethod: "other", paidOn: new Date("2026-08-02T00:00:00.000Z") }],
     }),
     seedInvoice({
       lease: noraLease,
