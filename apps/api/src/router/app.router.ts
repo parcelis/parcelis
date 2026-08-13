@@ -442,13 +442,35 @@ export const appRouter = router({
       requireOrganizationAdministrator(ctx.organization.role);
       return createOrganizationAvatarUploadUrl(input.contentType, ctx.organization.organizationId);
     }),
-    completeAvatarUpload: organizationProcedure.input(organizationAvatarUploadCompleteInputSchema).mutation(({ ctx, input }) => {
+    completeAvatarUpload: organizationProcedure.input(organizationAvatarUploadCompleteInputSchema).mutation(async ({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
-      return ctx.prisma.organization.update({
+      const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
+        where: { id: ctx.organization.organizationId },
+        select: { avatarObjectKey: true },
+      });
+      const organization = await ctx.prisma.organization.update({
         where: { id: ctx.organization.organizationId },
         data: { avatarObjectKey: input.objectKey },
         select: { id: true, avatarObjectKey: true },
       });
+      if (currentOrganization.avatarObjectKey && currentOrganization.avatarObjectKey !== input.objectKey) {
+        await deletePropertyImageObject(currentOrganization.avatarObjectKey);
+      }
+      return organization;
+    }),
+    deleteAvatar: organizationProcedure.mutation(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
+        where: { id: ctx.organization.organizationId },
+        select: { avatarObjectKey: true },
+      });
+      const organization = await ctx.prisma.organization.update({
+        where: { id: ctx.organization.organizationId },
+        data: { avatarObjectKey: null },
+        select: { id: true, avatarObjectKey: true },
+      });
+      if (currentOrganization.avatarObjectKey) await deletePropertyImageObject(currentOrganization.avatarObjectKey);
+      return organization;
     }),
   }),
   users: router({

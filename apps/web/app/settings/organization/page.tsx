@@ -3,12 +3,13 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { Building2, Upload } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
 import { SettingsRail } from "../../../components/settings-rail";
 import { Sidebar } from "../../../components/sidebar";
+import { ImageUploadPanel } from "../../../components/image-upload-panel";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -24,7 +25,6 @@ export default function OrganizationSettingsPage() {
     queryFn: () => apiClient.organizations.list.query(),
   });
   const [name, setName] = React.useState("");
-  const avatarInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => {
     if (activeOrganizationQuery.data) setName(activeOrganizationQuery.data.name);
   }, [activeOrganizationQuery.data]);
@@ -48,6 +48,10 @@ export default function OrganizationSettingsPage() {
       if (!response.ok) throw new Error("The organization avatar could not be uploaded.");
       await apiClient.organizations.completeAvatarUpload.mutate({ objectKey });
     },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active }),
+  });
+  const removeOrganizationAvatar = useMutation({
+    mutationFn: () => apiClient.organizations.deleteAvatar.mutate(),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active }),
   });
 
@@ -99,28 +103,18 @@ export default function OrganizationSettingsPage() {
                         saveOrganizationDetails.mutate(name);
                       }}
                     >
-                      <div className="flex flex-col gap-3">
-                        <div className="grid h-64 w-64 shrink-0 place-items-center overflow-hidden rounded-md border border-parcelis-border bg-parcelis-porcelain text-parcelis-green">
-                          {activeOrganizationQuery.data?.avatarUrl ? <img alt="Organization avatar" className="h-full w-full object-cover" src={activeOrganizationQuery.data.avatarUrl} /> : <Building2 className="h-7 w-7" />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-parcelis-charcoal">Avatar</p>
-                          <input
-                            accept="image/jpeg,image/png,image/webp,image/svg+xml,image/gif"
-                            className="sr-only"
-                            onChange={(event) => {
-                              const file = event.target.files?.[0];
-                              if (file) uploadOrganizationAvatar.mutate(file);
-                              event.currentTarget.value = "";
-                            }}
-                            ref={avatarInputRef}
-                            type="file"
-                          />
-                          <Button className="mt-3" disabled={uploadOrganizationAvatar.isPending} onClick={() => avatarInputRef.current?.click()} type="button" variant="secondary">
-                            <Upload className="h-4 w-4" /> {uploadOrganizationAvatar.isPending ? "Uploading…" : "Upload avatar"}
-                          </Button>
-                        </div>
-                      </div>
+                      <Label>
+                        Avatar
+                      </Label>
+                      <ImageUploadPanel
+                        acceptedImageDescription="JPG, PNG, WebP, SVG, or GIF"
+                        acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
+                        alt="Organization avatar"
+                        imagePreviewUrl={activeOrganizationQuery.data?.avatarUrl ?? null}
+                        isDeletePending={removeOrganizationAvatar.isPending}
+                        onDelete={() => removeOrganizationAvatar.mutate()}
+                        onImageChange={(file) => file && uploadOrganizationAvatar.mutate(file)}
+                      />
                       <Label>
                         Organization name
                         <Input className="mt-1" onChange={(event) => setName(event.target.value)} required value={name} />
@@ -141,6 +135,7 @@ export default function OrganizationSettingsPage() {
                     </dl>
                   ) : null}
                   {uploadOrganizationAvatar.error ? <p className="mt-3 text-sm font-medium text-red-700">{uploadOrganizationAvatar.error.message}</p> : null}
+                  {removeOrganizationAvatar.error ? <p className="mt-3 text-sm font-medium text-red-700">{removeOrganizationAvatar.error.message}</p> : null}
                   {saveOrganizationDetails.error ? <p className="mt-3 text-sm font-medium text-red-700">{saveOrganizationDetails.error.message}</p> : null}
                 </CardContent>
               </Card>

@@ -3,10 +3,12 @@
 import * as React from "react";
 import { ImagePlus, Replace, Trash2 } from "lucide-react";
 
-const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const defaultSupportedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"] as const;
 
 type ImageUploadPanelProps = {
   alt: string;
+  acceptedImageDescription?: string;
+  acceptedImageTypes?: readonly string[];
   imagePreviewUrl: string | null;
   isDeletePending?: boolean;
   onDelete: () => void;
@@ -17,6 +19,8 @@ type ImageUploadPanelProps = {
 
 export function ImageUploadPanel({
   alt,
+  acceptedImageDescription = "JPG, PNG, WebP, SVG, or GIF",
+  acceptedImageTypes = defaultSupportedImageTypes,
   imagePreviewUrl,
   isDeletePending = false,
   onDelete,
@@ -26,18 +30,19 @@ export function ImageUploadPanel({
 }: ImageUploadPanelProps) {
   const imageInputRef = React.useRef<HTMLInputElement | null>(null);
   const [validationError, setValidationError] = React.useState<string | null>(null);
+  const acceptedTypes = new Set(acceptedImageTypes);
 
   return (
     <section className="w-full">
       <h3 className="text-xl font-bold text-parcelis-charcoal dark:text-white">{title}</h3>
       <div className="mx-auto w-full max-w-xs">
         <input
-          accept="image/jpeg,image/png,image/webp"
+          accept={acceptedImageTypes.join(",")}
           className="sr-only"
           onChange={(event) => {
             const file = event.target.files?.[0] ?? null;
-            if (file && !supportedImageTypes.has(file.type)) {
-              const error = "Choose a JPG, PNG, or WebP image.";
+            if (file && !acceptedTypes.has(file.type)) {
+              const error = `Choose a ${acceptedImageDescription} image.`;
               setValidationError(error);
               onValidationErrorChange?.(error);
             } else {
@@ -61,7 +66,7 @@ export function ImageUploadPanel({
             <>
               <ImagePlus className="h-6 w-6 text-parcelis-green" />
               <span className="mt-3 text-sm font-semibold text-parcelis-charcoal dark:text-white">Upload image</span>
-              <span className="mt-1 px-3 text-xs text-parcelis-gray">JPG, PNG, or WebP</span>
+              <span className="mt-1 px-3 text-xs text-parcelis-gray">{acceptedImageDescription}</span>
             </>
           )}
         </button>
