@@ -315,7 +315,7 @@ async function main() {
       });
     } else {
       await prisma.property.create({
-        data: property,
+        data: { ...property, organizationId: organization.id },
       });
     }
   }
