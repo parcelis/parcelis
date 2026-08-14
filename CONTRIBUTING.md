@@ -70,8 +70,9 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm dev` uses the Parcelis host-port block and chooses the next open port when a default is busy.
+`pnpm dev` stops existing host listeners on the configured web, docs, and API ports before starting the development stack. It then chooses the next open port only if a port remains unavailable.
 It starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job automatically; Docker must be running.
+Use `pnpm dev:services:refresh` to recreate nginx, PostgreSQL, and MinIO while preserving their Docker volumes; it also reruns MinIO initialization.
 It reads the root `.env` so the web, API, and database connection use the same port configuration.
 Use nginx as the local entry point: web is `http://localhost`, docs are
 `http://localhost/docs/`, and the REST API is `http://localhost/api/v1`.

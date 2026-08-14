@@ -6,11 +6,25 @@ config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env") })
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  skipTrailingSlashRedirect: true,
   transpilePackages: ["@parcelis/ui", "@parcelis/schemas"],
   async rewrites() {
     const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:40010";
+    const docsUrl = process.env.DOCS_INTERNAL_URL || `http://localhost:${process.env.DOCS_PORT || "40000"}`;
 
     return [
+      {
+        source: "/docs",
+        destination: `${docsUrl}/docs/`,
+      },
+      {
+        source: "/docs/",
+        destination: `${docsUrl}/docs/`,
+      },
+      {
+        source: "/docs/:path*",
+        destination: `${docsUrl}/docs/:path*`,
+      },
       {
         source: "/trpc/:path*",
         destination: `${apiUrl}/trpc/:path*`,
