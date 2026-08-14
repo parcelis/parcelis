@@ -14,6 +14,8 @@ import { ImageUploadPanel } from "../../../components/image-upload-panel";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
+type AvatarVariant = "light" | "dark";
+type AvatarChanges = Partial<Record<AvatarVariant, File | null>>;
 
 export default function OrganizationSettingsPage() {
   const queryClient = useQueryClient();
@@ -29,6 +31,27 @@ export default function OrganizationSettingsPage() {
   });
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
+  const [avatarChanges, setAvatarChanges] = React.useState<AvatarChanges>({});
+  const lightAvatarPreviewUrl = React.useMemo(
+    () => (avatarChanges.light ? URL.createObjectURL(avatarChanges.light) : null),
+    [avatarChanges.light],
+  );
+  const darkAvatarPreviewUrl = React.useMemo(
+    () => (avatarChanges.dark ? URL.createObjectURL(avatarChanges.dark) : null),
+    [avatarChanges.dark],
+  );
+  React.useEffect(
+    () => () => {
+      if (lightAvatarPreviewUrl) URL.revokeObjectURL(lightAvatarPreviewUrl);
+    },
+    [lightAvatarPreviewUrl],
+  );
+  React.useEffect(
+    () => () => {
+      if (darkAvatarPreviewUrl) URL.revokeObjectURL(darkAvatarPreviewUrl);
+    },
+    [darkAvatarPreviewUrl],
+  );
   React.useEffect(() => {
     if (activeOrganizationQuery.data) {
       setName(activeOrganizationQuery.data.name);
@@ -36,35 +59,43 @@ export default function OrganizationSettingsPage() {
     }
   }, [activeOrganizationQuery.data]);
   const saveOrganizationDetails = useMutation({
-    mutationFn: ({ name, slug }: { name: string; slug: string }) => apiClient.organizations.update.mutate({ name, slug }),
+    mutationFn: async ({ name, slug, avatarChanges }: { name: string; slug: string; avatarChanges: AvatarChanges }) => {
+      const organization = await apiClient.organizations.update.mutate({ name, slug });
+      await Promise.all(
+        (Object.entries(avatarChanges) as Array<[AvatarVariant, File | null]>).map(async ([variant, file]) => {
+          if (file === null) return apiClient.organizations.deleteAvatar.mutate({ variant });
+          const { objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
+            contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/svg+xml" | "image/gif",
+            fileName: file.name,
+            variant,
+          });
+          const response = await fetch(uploadUrl, {
+            body: file,
+            headers: { "Content-Type": file.type },
+            method: "PUT",
+          });
+          if (!response.ok) throw new Error("The organization avatar could not be uploaded.");
+          await apiClient.organizations.completeAvatarUpload.mutate({ objectKey, variant });
+        }),
+      );
+      return organization;
+    },
     onSuccess: async (organization) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.list });
-      const suffix = pathname.replace(/^\/o\/[^/]+/, "");
-      router.replace(`/o/${organization.slug}${suffix}`);
+      setAvatarChanges({});
+      queryClient.setQueryData(queryKeys.organizations.active, (current: typeof activeOrganizationQuery.data) =>
+        current ? { ...current, ...organization } : current,
+      );
+      queryClient.setQueryData(queryKeys.organizations.list, (current: typeof accessibleOrganizationsQuery.data) =>
+        current?.map((membership) =>
+          membership.organization.id === organization.id
+            ? { ...membership, organization: { ...membership.organization, ...organization } }
+            : membership,
+        ),
+      );
+      const suffix = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
+      router.replace(`/o/${organization.slug}${suffix === "/" ? "" : suffix}`);
     },
   });
-  const uploadOrganizationAvatar = useMutation({
-    mutationFn: async ({ file, variant }: { file: File; variant: "light" | "dark" }) => {
-      if (!new Set(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]).has(file.type)) {
-        throw new Error("Choose a JPG, PNG, WebP, SVG, or GIF image.");
-      }
-      const { objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
-        contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/svg+xml" | "image/gif",
-        fileName: file.name,
-        variant,
-      });
-      const response = await fetch(uploadUrl, { body: file, headers: { "Content-Type": file.type }, method: "PUT" });
-      if (!response.ok) throw new Error("The organization avatar could not be uploaded.");
-      await apiClient.organizations.completeAvatarUpload.mutate({ objectKey, variant });
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active }),
-  });
-  const removeOrganizationAvatar = useMutation({
-    mutationFn: (variant: "light" | "dark") => apiClient.organizations.deleteAvatar.mutate({ variant }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active }),
-  });
-
   return (
     <main className="flex-1">
       <Sidebar active="settings" />
@@ -87,7 +118,9 @@ export default function OrganizationSettingsPage() {
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
                 <h1 className="mt-5 text-3xl font-bold md:text-5xl">Organization</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Manage this business’s workspace details.</p>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
+                  Manage this business’s workspace details.
+                </p>
               </section>
 
               <Card>
@@ -107,26 +140,30 @@ export default function OrganizationSettingsPage() {
                     <p className="text-sm font-medium text-red-700">{activeOrganizationQuery.error.message}</p>
                   ) : (
                     <form
-                      className="flex max-w-xl flex-col gap-5"
+                      className="flex max-w-xl flex-col gap-12"
                       onSubmit={(event) => {
                         event.preventDefault();
-                        saveOrganizationDetails.mutate({ name, slug });
+                        saveOrganizationDetails.mutate({ name, slug, avatarChanges });
                       }}
                     >
-                      <Label>
-                      Organization Avatar
-                      </Label>
-                      <div className="flex flex-col gap-5 sm:flex-row">
+                      <Label>Organization Avatar</Label>
+                      <div className="flex flex-col gap-20 sm:flex-row">
                         <div className="min-w-0 flex-1">
                           <Label>Light mode avatar</Label>
                           <ImageUploadPanel
                             acceptedImageDescription="JPG, PNG, WebP, SVG, or GIF"
                             acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
                             alt="Light mode organization avatar"
-                            imagePreviewUrl={activeOrganizationQuery.data?.avatarUrl ?? null}
-                            isDeletePending={removeOrganizationAvatar.isPending}
-                            onDelete={() => removeOrganizationAvatar.mutate("light")}
-                            onImageChange={(file) => file && uploadOrganizationAvatar.mutate({ file, variant: "light" })}
+                            imagePreviewUrl={
+                              avatarChanges.light === null
+                                ? null
+                                : (lightAvatarPreviewUrl ?? activeOrganizationQuery.data?.avatarUrl ?? null)
+                            }
+                            isDeletePending={saveOrganizationDetails.isPending}
+                            onDelete={() => setAvatarChanges((current) => ({ ...current, light: null }))}
+                            onImageChange={(file) =>
+                              file && setAvatarChanges((current) => ({ ...current, light: file }))
+                            }
                           />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -135,43 +172,58 @@ export default function OrganizationSettingsPage() {
                             acceptedImageDescription="JPG, PNG, WebP, SVG, or GIF"
                             acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
                             alt="Dark mode organization avatar"
-                            imagePreviewUrl={activeOrganizationQuery.data?.darkAvatarUrl ?? null}
-                            isDeletePending={removeOrganizationAvatar.isPending}
-                            onDelete={() => removeOrganizationAvatar.mutate("dark")}
-                            onImageChange={(file) => file && uploadOrganizationAvatar.mutate({ file, variant: "dark" })}
+                            imagePreviewUrl={
+                              avatarChanges.dark === null
+                                ? null
+                                : (darkAvatarPreviewUrl ?? activeOrganizationQuery.data?.darkAvatarUrl ?? null)
+                            }
+                            isDeletePending={saveOrganizationDetails.isPending}
+                            onDelete={() => setAvatarChanges((current) => ({ ...current, dark: null }))}
+                            onImageChange={(file) =>
+                              file && setAvatarChanges((current) => ({ ...current, dark: file }))
+                            }
                           />
                         </div>
                       </div>
                       <Label>
                         Organization name
-                        <Input className="mt-1" onChange={(event) => setName(event.target.value)} required value={name} />
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setName(event.target.value)}
+                          required
+                          value={name}
+                        />
                       </Label>
                       <Label>
                         Organization URL
                         <div className="mt-1 flex items-center rounded-md border border-parcelis-border bg-white focus-within:border-parcelis-green">
-                          <span className="border-r border-parcelis-border px-3 py-2 text-sm text-parcelis-gray">/o/</span>
-                          <Input className="border-0" onChange={(event) => setSlug(event.target.value.toLowerCase())} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required value={slug} />
+                          <span className="border-r border-parcelis-border px-3 py-2 text-sm text-parcelis-gray">
+                            /o/
+                          </span>
+                          <Input
+                            className="border-0"
+                            onChange={(event) => setSlug(event.target.value.toLowerCase())}
+                            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                            required
+                            value={slug}
+                          />
                         </div>
-                        <span className="mt-1 block text-xs text-parcelis-gray">Lowercase letters, numbers, and hyphens only.</span>
+                        <span className="mt-1 block text-xs text-parcelis-gray">
+                          Lowercase letters, numbers, and hyphens only.
+                        </span>
                       </Label>
-                      <Button className="min-w-40 self-start" disabled={saveOrganizationDetails.isPending} type="submit">Save organization</Button>
+                      <Button
+                        className="min-w-40 self-start"
+                        disabled={saveOrganizationDetails.isPending}
+                        type="submit"
+                      >
+                        Update organization
+                      </Button>
                     </form>
                   )}
-                  {activeOrganizationQuery.data ? (
-                    <dl className="mt-6 grid gap-4 border-t border-parcelis-border pt-5 text-sm sm:grid-cols-2">
-                      <div>
-                        <dt className="font-medium text-parcelis-gray">Organization</dt>
-                        <dd className="mt-1 font-semibold text-parcelis-charcoal">{activeOrganizationQuery.data.name}</dd>
-                      </div>
-                      <div>
-                        <dt className="font-medium text-parcelis-gray">Your role</dt>
-                        <dd className="mt-1 font-semibold capitalize text-parcelis-charcoal">{activeOrganizationQuery.data.role}</dd>
-                      </div>
-                    </dl>
+                  {saveOrganizationDetails.error ? (
+                    <p className="mt-3 text-sm font-medium text-red-700">{saveOrganizationDetails.error.message}</p>
                   ) : null}
-                  {uploadOrganizationAvatar.error ? <p className="mt-3 text-sm font-medium text-red-700">{uploadOrganizationAvatar.error.message}</p> : null}
-                  {removeOrganizationAvatar.error ? <p className="mt-3 text-sm font-medium text-red-700">{removeOrganizationAvatar.error.message}</p> : null}
-                  {saveOrganizationDetails.error ? <p className="mt-3 text-sm font-medium text-red-700">{saveOrganizationDetails.error.message}</p> : null}
                 </CardContent>
               </Card>
 
