@@ -49,6 +49,7 @@ import {
   updateOrganizationInputSchema,
   organizationAvatarUploadCompleteInputSchema,
   organizationAvatarUploadInputSchema,
+  deleteOrganizationAvatarInputSchema,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -426,6 +427,8 @@ export const appRouter = router({
       slug: ctx.organization.organization.slug,
       avatarObjectKey: ctx.organization.organization.avatarObjectKey,
       avatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.avatarObjectKey),
+      darkAvatarObjectKey: ctx.organization.organization.darkAvatarObjectKey,
+      darkAvatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.darkAvatarObjectKey),
       role: ctx.organization.role,
     })),
     switch: publicProcedure.input(switchOrganizationInputSchema).mutation(async ({ ctx, input }) => {
@@ -451,36 +454,40 @@ export const appRouter = router({
     }),
     createAvatarUploadUrl: organizationProcedure.input(organizationAvatarUploadInputSchema).mutation(({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
-      return createOrganizationAvatarUploadUrl(input.contentType, ctx.organization.organizationId);
+      return createOrganizationAvatarUploadUrl(input.contentType, ctx.organization.organizationId, input.variant);
     }),
     completeAvatarUpload: organizationProcedure.input(organizationAvatarUploadCompleteInputSchema).mutation(async ({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
       const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
         where: { id: ctx.organization.organizationId },
-        select: { avatarObjectKey: true },
+        select: { avatarObjectKey: true, darkAvatarObjectKey: true },
       });
+      const avatarField = input.variant === "dark" ? "darkAvatarObjectKey" : "avatarObjectKey";
+      const previousObjectKey = currentOrganization[avatarField];
       const organization = await ctx.prisma.organization.update({
         where: { id: ctx.organization.organizationId },
-        data: { avatarObjectKey: input.objectKey },
-        select: { id: true, avatarObjectKey: true },
+        data: { [avatarField]: input.objectKey },
+        select: { id: true, avatarObjectKey: true, darkAvatarObjectKey: true },
       });
-      if (currentOrganization.avatarObjectKey && currentOrganization.avatarObjectKey !== input.objectKey) {
-        await deletePropertyImageObject(currentOrganization.avatarObjectKey);
+      if (previousObjectKey && previousObjectKey !== input.objectKey) {
+        await deletePropertyImageObject(previousObjectKey);
       }
       return organization;
     }),
-    deleteAvatar: organizationProcedure.mutation(async ({ ctx }) => {
+    deleteAvatar: organizationProcedure.input(deleteOrganizationAvatarInputSchema).mutation(async ({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
       const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
         where: { id: ctx.organization.organizationId },
-        select: { avatarObjectKey: true },
+        select: { avatarObjectKey: true, darkAvatarObjectKey: true },
       });
+      const avatarField = input.variant === "dark" ? "darkAvatarObjectKey" : "avatarObjectKey";
+      const objectKey = currentOrganization[avatarField];
       const organization = await ctx.prisma.organization.update({
         where: { id: ctx.organization.organizationId },
-        data: { avatarObjectKey: null },
-        select: { id: true, avatarObjectKey: true },
+        data: { [avatarField]: null },
+        select: { id: true, avatarObjectKey: true, darkAvatarObjectKey: true },
       });
-      if (currentOrganization.avatarObjectKey) await deletePropertyImageObject(currentOrganization.avatarObjectKey);
+      if (objectKey) await deletePropertyImageObject(objectKey);
       return organization;
     }),
   }),

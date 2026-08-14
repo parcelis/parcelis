@@ -95,6 +95,7 @@ model Organization {
   name                  String
   slug                  String                   @unique
   avatarObjectKey       String?
+  darkAvatarObjectKey   String?
   memberships           OrganizationMembership[]
   properties            Property[]
   tenants               Tenant[]

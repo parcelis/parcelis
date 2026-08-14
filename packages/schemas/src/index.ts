@@ -51,10 +51,13 @@ export const updateOrganizationInputSchema = z.object({
 export const organizationAvatarUploadInputSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
+  variant: z.enum(["light", "dark"]),
 });
 export const organizationAvatarUploadCompleteInputSchema = z.object({
   objectKey: z.string().min(1).max(500),
+  variant: z.enum(["light", "dark"]),
 });
+export const deleteOrganizationAvatarInputSchema = z.object({ variant: z.enum(["light", "dark"]) });
 
 export const addressSchema = z.object({
   line1: z.string().min(1),

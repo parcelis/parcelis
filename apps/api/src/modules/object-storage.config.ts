@@ -62,13 +62,21 @@ export function createPropertyImageObjectKey(contentType: keyof typeof imageExte
   return `organizations/${organizationId}/properties/${propertyId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export function createOrganizationAvatarObjectKey(contentType: keyof typeof imageExtensions, organizationId: number) {
-  return `organizations/${organizationId}/avatar/${randomUUID()}.${imageExtensions[contentType]}`;
+export function createOrganizationAvatarObjectKey(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  variant: "light" | "dark",
+) {
+  return `organizations/${organizationId}/avatar/${variant}/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createOrganizationAvatarUploadUrl(contentType: keyof typeof imageExtensions, organizationId: number) {
+export async function createOrganizationAvatarUploadUrl(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  variant: "light" | "dark",
+) {
   const config = getObjectStorageConfig();
-  const objectKey = createOrganizationAvatarObjectKey(contentType, organizationId);
+  const objectKey = createOrganizationAvatarObjectKey(contentType, organizationId, variant);
   const uploadUrl = await getSignedUrl(
     createObjectStorageClient(),
     new PutObjectCommand({ Bucket: config.bucket, ContentType: contentType, Key: objectKey }),

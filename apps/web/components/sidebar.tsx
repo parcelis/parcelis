@@ -143,30 +143,56 @@ export function Sidebar({ active }: SidebarProps) {
 
       {!isCollapsed && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
         <div className="mt-6">
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-parcelis-gray" htmlFor="organization-switcher">
-            Organization
-          </label>
-          <Select
-            disabled={switchOrganizationMutation.isPending}
-            id="organization-switcher"
-            onChange={(event) => switchOrganizationMutation.mutate(Number(event.target.value))}
-            value={activeOrganizationQuery.data?.id ?? ""}
+          {organizationsQuery.data.length > 1 ? (
+            <>
+              <label
+                className="mb-1 block text-xs font-semibold uppercase tracking-wide text-parcelis-gray"
+                htmlFor="organization-switcher"
+              >
+                Organization
+              </label>
+              <Select
+                disabled={switchOrganizationMutation.isPending}
+                id="organization-switcher"
+                onChange={(event) => switchOrganizationMutation.mutate(Number(event.target.value))}
+                value={activeOrganizationQuery.data?.id ?? ""}
+              >
+                {organizationsQuery.data.map(({ organization }) => (
+                  <option key={organization.id} value={organization.id}>
+                    {organization.name}
+                  </option>
+                ))}
+              </Select>
+            </>
+          ) : null}
+          <div
+            className={`mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-parcelis-border bg-parcelis-porcelain text-parcelis-green dark:bg-parcelis-charcoal ${
+              organizationsQuery.data.length > 1 ? "mt-3" : ""
+            }`}
           >
-            {organizationsQuery.data.map(({ organization }) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name}
-              </option>
-            ))}
-          </Select>
-          <div className="mt-3 flex aspect-[4/3] w-full items-center justify-center overflow-hidden text-parcelis-green">
             {activeOrganizationQuery.data?.avatarUrl ? (
               <img
                 alt={`${activeOrganizationQuery.data.name} logo`}
-                className="h-full w-full object-contain p-3"
+                className="h-full w-full object-contain p-4 dark:hidden"
                 src={activeOrganizationQuery.data.avatarUrl}
               />
             ) : (
-              <Building2 className="h-7 w-7" />
+              <Building2 className="h-7 w-7 dark:hidden" />
+            )}
+            {activeOrganizationQuery.data?.darkAvatarUrl ? (
+              <img
+                alt={`${activeOrganizationQuery.data.name} dark mode logo`}
+                className="hidden h-full w-full object-contain p-4 dark:block"
+                src={activeOrganizationQuery.data.darkAvatarUrl}
+              />
+            ) : activeOrganizationQuery.data?.avatarUrl ? (
+              <img
+                alt={`${activeOrganizationQuery.data.name} logo`}
+                className="hidden h-full w-full object-contain p-4 dark:block"
+                src={activeOrganizationQuery.data.avatarUrl}
+              />
+            ) : (
+              <Building2 className="hidden h-7 w-7 dark:block" />
             )}
           </div>
         </div>

@@ -45,22 +45,23 @@ export default function OrganizationSettingsPage() {
     },
   });
   const uploadOrganizationAvatar = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, variant }: { file: File; variant: "light" | "dark" }) => {
       if (!new Set(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]).has(file.type)) {
         throw new Error("Choose a JPG, PNG, WebP, SVG, or GIF image.");
       }
       const { objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
         contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/svg+xml" | "image/gif",
         fileName: file.name,
+        variant,
       });
       const response = await fetch(uploadUrl, { body: file, headers: { "Content-Type": file.type }, method: "PUT" });
       if (!response.ok) throw new Error("The organization avatar could not be uploaded.");
-      await apiClient.organizations.completeAvatarUpload.mutate({ objectKey });
+      await apiClient.organizations.completeAvatarUpload.mutate({ objectKey, variant });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active }),
   });
   const removeOrganizationAvatar = useMutation({
-    mutationFn: () => apiClient.organizations.deleteAvatar.mutate(),
+    mutationFn: (variant: "light" | "dark") => apiClient.organizations.deleteAvatar.mutate({ variant }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active }),
   });
 
@@ -113,17 +114,34 @@ export default function OrganizationSettingsPage() {
                       }}
                     >
                       <Label>
-                        Avatar
+                      Organization Avatar
                       </Label>
-                      <ImageUploadPanel
-                        acceptedImageDescription="JPG, PNG, WebP, SVG, or GIF"
-                        acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
-                        alt="Organization avatar"
-                        imagePreviewUrl={activeOrganizationQuery.data?.avatarUrl ?? null}
-                        isDeletePending={removeOrganizationAvatar.isPending}
-                        onDelete={() => removeOrganizationAvatar.mutate()}
-                        onImageChange={(file) => file && uploadOrganizationAvatar.mutate(file)}
-                      />
+                      <div className="flex flex-col gap-5 sm:flex-row">
+                        <div className="min-w-0 flex-1">
+                          <Label>Light mode avatar</Label>
+                          <ImageUploadPanel
+                            acceptedImageDescription="JPG, PNG, WebP, SVG, or GIF"
+                            acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
+                            alt="Light mode organization avatar"
+                            imagePreviewUrl={activeOrganizationQuery.data?.avatarUrl ?? null}
+                            isDeletePending={removeOrganizationAvatar.isPending}
+                            onDelete={() => removeOrganizationAvatar.mutate("light")}
+                            onImageChange={(file) => file && uploadOrganizationAvatar.mutate({ file, variant: "light" })}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <Label>Dark mode avatar</Label>
+                          <ImageUploadPanel
+                            acceptedImageDescription="JPG, PNG, WebP, SVG, or GIF"
+                            acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
+                            alt="Dark mode organization avatar"
+                            imagePreviewUrl={activeOrganizationQuery.data?.darkAvatarUrl ?? null}
+                            isDeletePending={removeOrganizationAvatar.isPending}
+                            onDelete={() => removeOrganizationAvatar.mutate("dark")}
+                            onImageChange={(file) => file && uploadOrganizationAvatar.mutate({ file, variant: "dark" })}
+                          />
+                        </div>
+                      </div>
                       <Label>
                         Organization name
                         <Input className="mt-1" onChange={(event) => setName(event.target.value)} required value={name} />
