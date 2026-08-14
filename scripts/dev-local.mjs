@@ -10,9 +10,60 @@ if (existsSync(envPath)) {
   process.loadEnvFile(envPath);
 }
 
-const apiPort = await findOpenPort(process.env.API_PORT ?? 40010);
-const appPort = await findOpenPort(process.env.APP_PORT ?? process.env.PORT ?? 30000);
-const docsPort = await findOpenPort(process.env.DOCS_PORT ?? 40000);
+const requestedApiPort = Number(process.env.API_PORT ?? 40010);
+const requestedAppPort = Number(process.env.APP_PORT ?? process.env.PORT ?? 30000);
+const requestedDocsPort = Number(process.env.DOCS_PORT ?? 40000);
+
+function getListenerProcessIds(port) {
+  try {
+    return execFileSync("lsof", ["-tiTCP:" + port, "-sTCP:LISTEN"], {
+      encoding: "utf8",
+    })
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map(Number);
+  } catch (error) {
+    if (error?.status === 1) return [];
+    throw error;
+  }
+}
+
+function isRunning(processId) {
+  try {
+    process.kill(processId, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function stopListener(port) {
+  if (process.platform === "win32") return;
+
+  const processIds = getListenerProcessIds(port);
+  if (!processIds.length) return;
+
+  for (const processId of processIds) {
+    process.kill(processId, "SIGTERM");
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  for (const processId of processIds) {
+    if (isRunning(processId)) {
+      process.kill(processId, "SIGKILL");
+    }
+  }
+
+  console.log(`[parcelis] Stopped existing listener on port ${port}`);
+}
+
+await Promise.all([requestedAppPort, requestedDocsPort, requestedApiPort].map(stopListener));
+
+const apiPort = await findOpenPort(requestedApiPort);
+const appPort = await findOpenPort(requestedAppPort);
+const docsPort = await findOpenPort(requestedDocsPort);
 const proxyPort = process.env.PROXY_PORT ?? 80;
 const proxyOrigin = Number(proxyPort) === 80 ? "http://localhost" : `http://localhost:${proxyPort}`;
 const postgresPort = process.env.POSTGRES_PORT ?? 54320;
@@ -86,6 +137,7 @@ const processes = [
       NEXT_PUBLIC_DARK_BRAND_LOGO_URL: darkBrandLogoUrl,
       PORT: String(appPort),
       API_INTERNAL_URL: `http://localhost:${apiPort}`,
+      DOCS_INTERNAL_URL: `http://localhost:${docsPort}`,
       NEXT_PUBLIC_API_URL: "",
     },
   },

@@ -8,6 +8,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "node scripts/dev-local.mjs",
+    "dev:services:refresh": "node scripts/refresh-dev-services.mjs",
     "dev:turbo": "turbo dev --parallel",
     "postinstall": "pnpm db:generate",
     "lint": "turbo lint",

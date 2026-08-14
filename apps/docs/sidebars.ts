@@ -57,6 +57,7 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/navigation-and-preferences/sidebar",
             "platform-user-guide/navigation-and-preferences/organization-settings",
             "platform-user-guide/navigation-and-preferences/users",
+            "platform-user-guide/navigation-and-preferences/notifications",
             "platform-user-guide/navigation-and-preferences/collapse-navigation",
             "platform-user-guide/navigation-and-preferences/theme",
             "platform-user-guide/navigation-and-preferences/keyboard-shortcuts",
