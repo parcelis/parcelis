@@ -74,7 +74,7 @@ export function Sidebar({ active }: SidebarProps) {
 
   React.useEffect(() => {
     const organization = activeOrganizationQuery.data;
-    if (organization && !pathname.startsWith(`/o/${organization.slug}`)) {
+    if (organization && !window.location.pathname.startsWith(`/o/${organization.slug}`)) {
       const routePath = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
       router.replace(`/o/${organization.slug}${routePath === "/" ? "" : routePath}`);
     }

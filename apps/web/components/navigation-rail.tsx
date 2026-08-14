@@ -11,7 +11,7 @@ type NavigationRailProps = {
 
 export function NavigationRail({ children, title }: NavigationRailProps) {
   return (
-    <aside className="w-full shrink-0 lg:w-60">
+    <aside className="w-full shrink-0 md:w-60">
       <Card className="lg:sticky lg:top-6 dark:bg-parcelis-slate">
         <CardContent className="p-3">
           <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">{title}</p>
@@ -26,7 +26,7 @@ type NavigationRailGroupProps = {
   children: React.ReactNode;
   defaultOpen?: boolean;
   icon?: LucideIcon;
-  label: React.ReactNode;
+  label: string;
 };
 
 export function NavigationRailGroup({ children, defaultOpen = true, icon: Icon, label }: NavigationRailGroupProps) {
@@ -37,7 +37,7 @@ export function NavigationRailGroup({ children, defaultOpen = true, icon: Icon, 
       <div className="flex items-center gap-1 rounded-md hover:bg-parcelis-porcelain">
         <button
           aria-expanded={isOpen}
-          aria-label={`${typeof label === "string" ? label : "Section"} settings`}
+          aria-label={`Toggle ${label}`}
           className="grid h-8 w-8 place-items-center text-parcelis-gray"
           onClick={() => setIsOpen((current) => !current)}
           type="button"

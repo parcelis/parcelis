@@ -41,6 +41,18 @@ export function ImageUploadPanel({
       : previewBackground === "dark"
         ? "bg-parcelis-charcoal"
         : "bg-parcelis-porcelain/50 dark:bg-parcelis-charcoal/55";
+  const emptyStateTitleClassName =
+    previewBackground === "dark"
+      ? "text-white"
+      : previewBackground === "light"
+        ? "text-parcelis-charcoal dark:!text-parcelis-charcoal"
+        : "text-parcelis-charcoal dark:text-white";
+  const emptyStateDescriptionClassName =
+    previewBackground === "dark"
+      ? "text-parcelis-porcelain"
+      : previewBackground === "light"
+        ? "text-parcelis-gray dark:!text-parcelis-gray"
+        : "text-parcelis-gray";
 
   return (
     <section className="w-full">
@@ -68,7 +80,6 @@ export function ImageUploadPanel({
         <button
           className={`mt-3 flex aspect-[4/3] w-full flex-col items-center justify-center overflow-hidden rounded-md border border-dashed border-parcelis-border text-center transition hover:border-parcelis-green ${previewSurfaceClassName}`}
           onClick={() => imageInputRef.current?.click()}
-          style={previewBackground === "light" ? { backgroundColor: "#ffffff" } : undefined}
           type="button"
         >
           {imagePreviewUrl ? (
@@ -80,12 +91,10 @@ export function ImageUploadPanel({
           ) : (
             <>
               <ImagePlus className="h-6 w-6 text-parcelis-green" />
-              <span
-                className={`mt-3 text-sm font-semibold ${previewBackground === "dark" ? "text-white" : "text-parcelis-charcoal dark:text-white"}`}
-              >
+              <span className={`mt-3 text-sm font-semibold ${emptyStateTitleClassName}`}>
                 Upload image
               </span>
-              <span className="mt-1 px-3 text-xs text-parcelis-gray">{acceptedImageDescription}</span>
+              <span className={`mt-1 px-3 text-xs ${emptyStateDescriptionClassName}`}>{acceptedImageDescription}</span>
             </>
           )}
         </button>

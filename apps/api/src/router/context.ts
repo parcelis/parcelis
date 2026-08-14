@@ -25,7 +25,7 @@ export function createContext(prisma: PrismaService) {
             .findFirst({
               where: organizationSlug
                 ? { slug: organizationSlug }
-                : { id: session.user.defaultOrganizationId ?? session.activeOrganizationId ?? undefined },
+                : { id: session.activeOrganizationId ?? session.user.defaultOrganizationId ?? undefined },
               orderBy: { createdAt: "asc" },
             })
             .then((activeOrganization) =>
@@ -38,10 +38,10 @@ export function createContext(prisma: PrismaService) {
             userId: session.userId,
             ...(organizationSlug
               ? { organization: { slug: organizationSlug } }
-              : session.user.defaultOrganizationId
-                ? { organizationId: session.user.defaultOrganizationId }
-                : session.activeOrganizationId
-                  ? { organizationId: session.activeOrganizationId }
+            : session.activeOrganizationId
+                ? { organizationId: session.activeOrganizationId }
+                : session.user.defaultOrganizationId
+                  ? { organizationId: session.user.defaultOrganizationId }
                   : {}),
           },
           include: { organization: true },

@@ -29,6 +29,10 @@ export default function OrganizationSettingsPage() {
     queryKey: queryKeys.organizations.list,
     queryFn: () => apiClient.organizations.list.query(),
   });
+  const currentUserQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () => apiClient.auth.me.query(),
+  });
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
   const [avatarChanges, setAvatarChanges] = React.useState<AvatarChanges>({});
@@ -58,6 +62,8 @@ export default function OrganizationSettingsPage() {
       setSlug(activeOrganizationQuery.data.slug);
     }
   }, [activeOrganizationQuery.data]);
+  const canManageOrganization = ["owner", "administrator"].includes(activeOrganizationQuery.data?.role ?? "");
+  const canManageUsers = currentUserQuery.data?.user.role === "administrator";
   const saveOrganizationDetails = useMutation({
     mutationFn: async ({ name, slug, avatarChanges }: { name: string; slug: string; avatarChanges: AvatarChanges }) => {
       const organization = await apiClient.organizations.update.mutate({ name, slug });
@@ -113,7 +119,7 @@ export default function OrganizationSettingsPage() {
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="organization" />
+            <SettingsRail active="organization" canManageUsers={canManageUsers} />
             <div className="min-w-0 flex-1">
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
@@ -138,7 +144,7 @@ export default function OrganizationSettingsPage() {
                     <LoadingState label="Loading organization…" />
                   ) : activeOrganizationQuery.error ? (
                     <p className="text-sm font-medium text-red-700">{activeOrganizationQuery.error.message}</p>
-                  ) : (
+                  ) : canManageOrganization ? (
                     <form
                       className="flex max-w-xl flex-col gap-12"
                       onSubmit={(event) => {
@@ -224,6 +230,18 @@ export default function OrganizationSettingsPage() {
                         Update organization
                       </Button>
                     </form>
+                  ) : (
+                    <div className="max-w-xl space-y-4 text-sm">
+                      <p className="text-parcelis-gray">You have view-only access to this organization’s settings.</p>
+                      <div>
+                        <p className="font-medium text-parcelis-charcoal">Organization name</p>
+                        <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.name}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-parcelis-charcoal">Organization URL</p>
+                        <p className="mt-1 text-parcelis-gray">/o/{activeOrganizationQuery.data?.slug}</p>
+                      </div>
+                    </div>
                   )}
                   {saveOrganizationDetails.error ? (
                     <p className="mt-3 text-sm font-medium text-red-700">{saveOrganizationDetails.error.message}</p>

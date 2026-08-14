@@ -28,9 +28,9 @@ async function hasValidSession(request: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
-  if (request.headers.get("x-parcelis-internal-rewrite") === "1") return NextResponse.next();
-
   if (!isAuthenticationDisabled && !(await hasValidSession(request))) return redirectToLogin(request);
+
+  if (request.headers.get("x-parcelis-internal-rewrite") === "1") return NextResponse.next();
 
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/o/")) {
@@ -39,7 +39,9 @@ export async function proxy(request: NextRequest) {
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-parcelis-internal-rewrite", "1");
-    const response = NextResponse.rewrite(new URL(`/${path.join("/")}`, request.url), {
+    const rewriteUrl = new URL(`/${path.join("/")}`, request.url);
+    rewriteUrl.search = request.nextUrl.search;
+    const response = NextResponse.rewrite(rewriteUrl, {
       request: { headers: requestHeaders },
     });
     response.cookies.set(organizationCookieName, slug, { path: "/", sameSite: "lax" });
@@ -48,12 +50,22 @@ export async function proxy(request: NextRequest) {
 
   const organizationSlug = request.cookies.get(organizationCookieName)?.value;
   if (organizationSlug) {
-    return NextResponse.redirect(new URL(`/o/${organizationSlug}${pathname === "/" ? "" : pathname}`, request.url));
+    const redirectUrl = new URL(`/o/${organizationSlug}${pathname === "/" ? "" : pathname}`, request.url);
+    redirectUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(redirectUrl);
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/o/:path*", "/income/:path*", "/maintenance/:path*", "/properties/:path*", "/settings/:path*", "/tenants/:path*"],
+  matcher: [
+    "/",
+    "/o/:path*",
+    "/income/:path*",
+    "/maintenance/:path*",
+    "/properties/:path*",
+    "/settings/:path*",
+    "/tenants/:path*",
+  ],
 };

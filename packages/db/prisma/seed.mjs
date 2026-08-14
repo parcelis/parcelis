@@ -116,7 +116,7 @@ function getDemoUnitDetails(property, unitName, index, leaseRentCents) {
 
 async function seedUnitsForProperty(property) {
   const leases = await prisma.lease.findMany({
-    where: { propertyId: property.id },
+    where: { organizationId: property.organizationId, propertyId: property.id },
     select: {
       monthlyRentCents: true,
       unitLabel: true,
@@ -160,11 +160,11 @@ async function seedUnitsForProperty(property) {
     ].filter(Boolean);
     const [utilities, amenities] = await Promise.all([
       prisma.utilityType.findMany({
-        where: { label: { in: utilityLabels } },
+        where: { organizationId: property.organizationId, label: { in: utilityLabels } },
         select: { id: true },
       }),
       prisma.amenityType.findMany({
-        where: { label: { in: amenityLabels } },
+        where: { organizationId: property.organizationId, label: { in: amenityLabels } },
         select: { id: true },
       }),
     ]);
@@ -199,7 +199,7 @@ async function seedUnitsForProperty(property) {
 
 async function upsertLease(organizationId, data) {
   const existing = await prisma.lease.findFirst({
-    where: { propertyId: data.propertyId, unitLabel: data.unitLabel },
+    where: { organizationId, propertyId: data.propertyId, unitLabel: data.unitLabel },
   });
 
   return existing ? prisma.lease.update({ where: { id: existing.id }, data }) : prisma.lease.create({ data: { ...data, organizationId } });
@@ -281,7 +281,7 @@ async function main() {
 
   for (const [index, label] of utilityTypes.entries()) {
     await prisma.utilityType.upsert({
-      where: { label },
+      where: { organizationId_label: { organizationId: organization.id, label } },
       update: { sortOrder: (index + 1) * 10 },
       create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
     });
@@ -289,7 +289,7 @@ async function main() {
 
   for (const [index, label] of amenityTypes.entries()) {
     await prisma.amenityType.upsert({
-      where: { label },
+      where: { organizationId_label: { organizationId: organization.id, label } },
       update: { sortOrder: (index + 1) * 10 },
       create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
     });
@@ -297,7 +297,7 @@ async function main() {
 
   for (const [index, label] of propertyTags.entries()) {
     await prisma.tag.upsert({
-      where: { label },
+      where: { organizationId_label: { organizationId: organization.id, label } },
       update: { sortOrder: (index + 1) * 10 },
       create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
     });
@@ -305,7 +305,7 @@ async function main() {
 
   for (const property of properties) {
     const existing = await prisma.property.findFirst({
-      where: { name: property.name },
+      where: { organizationId: organization.id, name: property.name },
     });
 
     if (existing) {
@@ -321,17 +321,17 @@ async function main() {
   }
 
   const hawthorne = await prisma.property.findFirstOrThrow({
-    where: { name: "Hawthorne Flats" },
+    where: { organizationId: organization.id, name: "Hawthorne Flats" },
   });
   const mariner = await prisma.property.findFirstOrThrow({
-    where: { name: "Mariner Court" },
+    where: { organizationId: organization.id, name: "Mariner Court" },
   });
   const juniper = await prisma.property.findFirstOrThrow({
-    where: { name: "Juniper Row" },
+    where: { organizationId: organization.id, name: "Juniper Row" },
   });
 
   const tenant = await prisma.tenant.upsert({
-    where: { email: "maya.ellis@example.com" },
+    where: { organizationId_email: { organizationId: organization.id, email: "maya.ellis@example.com" } },
     update: {
       firstName: "Maya",
       lastName: "Ellis",
@@ -350,7 +350,7 @@ async function main() {
     },
   });
   const secondTenant = await prisma.tenant.upsert({
-    where: { email: "calvin.brooks@example.com" },
+    where: { organizationId_email: { organizationId: organization.id, email: "calvin.brooks@example.com" } },
     update: {
       firstName: "Calvin",
       lastName: "Brooks",
@@ -380,7 +380,7 @@ async function main() {
   });
 
   const thirdTenant = await prisma.tenant.upsert({
-    where: { email: "nora.patel@example.com" },
+    where: { organizationId_email: { organizationId: organization.id, email: "nora.patel@example.com" } },
     update: {
       firstName: "Nora",
       lastName: "Patel",
@@ -399,7 +399,7 @@ async function main() {
     },
   });
   const fourthTenant = await prisma.tenant.upsert({
-    where: { email: "elena.morris@example.com" },
+    where: { organizationId_email: { organizationId: organization.id, email: "elena.morris@example.com" } },
     update: {
       firstName: "Elena",
       lastName: "Morris",
@@ -418,7 +418,7 @@ async function main() {
     },
   });
   const pastTenant = await prisma.tenant.upsert({
-    where: { email: "darius.wright@example.com" },
+    where: { organizationId_email: { organizationId: organization.id, email: "darius.wright@example.com" } },
     update: {
       firstName: "Darius",
       lastName: "Wright",
@@ -438,7 +438,7 @@ async function main() {
     },
   });
   const archivedTenant = await prisma.tenant.upsert({
-    where: { email: "simone.bell@example.com" },
+    where: { organizationId_email: { organizationId: organization.id, email: "simone.bell@example.com" } },
     update: {
       firstName: "Simone",
       lastName: "Bell",
@@ -580,7 +580,7 @@ async function main() {
   await Promise.all(
     maintenanceCategories.map((label, sortOrder) =>
       prisma.maintenanceCategory.upsert({
-        where: { label },
+        where: { organizationId_label: { organizationId: organization.id, label } },
         update: { sortOrder },
         create: { organizationId: organization.id, label, sortOrder },
       }),
@@ -588,7 +588,7 @@ async function main() {
   );
   await Promise.all([
     prisma.landlord.upsert({
-      where: { email: "avery.mitchell@hawthorneflats.example" },
+      where: { organizationId_email: { organizationId: organization.id, email: "avery.mitchell@hawthorneflats.example" } },
       update: { firstName: "Avery", lastName: "Mitchell", phone: "615-555-0194" },
       create: {
         organizationId: organization.id,
@@ -599,7 +599,7 @@ async function main() {
       },
     }),
     prisma.landlord.upsert({
-      where: { email: "jordan.reyes@marinercourt.example" },
+      where: { organizationId_email: { organizationId: organization.id, email: "jordan.reyes@marinercourt.example" } },
       update: { firstName: "Jordan", lastName: "Reyes", phone: "843-555-0127" },
       create: {
         organizationId: organization.id,
@@ -610,7 +610,7 @@ async function main() {
       },
     }),
     prisma.landlord.upsert({
-      where: { email: "priya.shah@juniperrow.example" },
+      where: { organizationId_email: { organizationId: organization.id, email: "priya.shah@juniperrow.example" } },
       update: { firstName: "Priya", lastName: "Shah", phone: "512-555-0169" },
       create: { organizationId: organization.id, firstName: "Priya", lastName: "Shah", email: "priya.shah@juniperrow.example", phone: "512-555-0169" },
     }),
@@ -651,7 +651,7 @@ async function main() {
 
   for (const ticket of tickets) {
     const existing = await prisma.maintenanceTicket.findFirst({
-      where: { propertyId: ticket.propertyId, title: ticket.title },
+      where: { organizationId: organization.id, propertyId: ticket.propertyId, title: ticket.title },
     });
 
     if (existing) {

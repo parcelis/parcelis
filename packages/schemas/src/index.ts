@@ -323,9 +323,9 @@ export const maintenanceImageUploadCompleteInputSchema = z
     id: idSchema,
     fileName: z.string().trim().min(1).max(255),
     contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-    objectKey: z.string().regex(/^maintenance\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+    objectKey: z.string().regex(/^organizations\/\d+\/maintenance\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
   })
-  .refine(({ id, objectKey }) => objectKey.startsWith(`maintenance/${id}/images/`), {
+  .refine(({ id, objectKey }) => new RegExp(`^organizations/\\d+/maintenance/${id}/images/`).test(objectKey), {
     message: "The image must belong to the selected maintenance ticket.",
     path: ["objectKey"],
   });
@@ -344,7 +344,7 @@ export const tenantImageUploadInputSchema = z.object({
 export const tenantImageUploadCompleteInputSchema = z
   .object({
     id: idSchema,
-    objectKey: z.string().regex(/^tenants\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+    objectKey: z.string().regex(/^organizations\/\d+\/tenants\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
   })
   .strict();
 
