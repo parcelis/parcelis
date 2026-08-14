@@ -35,6 +35,7 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
+import { PageRail } from "../../components/page-rail";
 import { Sidebar } from "../../components/sidebar";
 import { SettingsRail } from "../../components/settings-rail";
 
@@ -108,6 +109,8 @@ export default function SettingsPage() {
     queryFn: () => apiClient.users.list.query(),
   });
   const users = usersQuery.data ?? [];
+  const activeUsers = users.filter((user) => user.accountStatus === "active").length;
+  const disabledUsers = users.length - activeUsers;
   const [editUser, setEditUser] = React.useState<UserListItem | null>(null);
   const [disableUser, setDisableUser] = React.useState<UserListItem | null>(null);
   const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
@@ -253,11 +256,18 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-6 md:flex-row">
             <SettingsRail active="users" />
             <div className="min-w-0 flex-1">
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Users</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Review the accounts with access to Parcelis.</p>
-              </section>
+              <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
+                <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">
+                  <div className="rounded-md bg-white/10 p-3">
+                    <div className="text-2xl font-bold text-white">{activeUsers}</div>
+                    Active accounts
+                  </div>
+                  <div className="rounded-md bg-white/10 p-3">
+                    <div className="text-2xl font-bold text-white">{disabledUsers}</div>
+                    Disabled accounts
+                  </div>
+                </div>
+              </PageRail>
 
               <Card>
             <CardHeader>

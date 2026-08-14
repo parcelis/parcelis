@@ -22,6 +22,7 @@ import {
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { InvoiceDrawer } from "../../components/invoice-drawer";
+import { PageRail } from "../../components/page-rail";
 import { Sidebar } from "../../components/sidebar";
 import { getInvoiceLink } from "../../lib/entity-links";
 
@@ -178,14 +179,11 @@ function IncomePageContent() {
           </Button>
         </header>
         <div className="parcelis-page-shell">
-          <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Income</p>
-              <h1 className="mt-5 text-3xl font-bold md:text-5xl">Income dashboard</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                Monitor scheduled rent and overdue balances across your portfolio.
-              </p>
-            </div>
+          <PageRail
+            description="Monitor scheduled rent and overdue balances across your portfolio."
+            eyebrow="Income"
+            title="Income dashboard"
+          >
             <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-3 md:min-w-[420px]">
               <div className="rounded-md bg-white/10 p-3">
                 <div className="text-2xl font-bold text-white">{formatCurrency(scheduledIncomeCents)}</div>
@@ -200,7 +198,7 @@ function IncomePageContent() {
                 Overdue balance
               </div>
             </div>
-          </section>
+          </PageRail>
 
           <Card>
             <CardHeader>

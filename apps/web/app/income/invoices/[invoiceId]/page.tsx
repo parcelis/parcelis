@@ -29,6 +29,7 @@ import {
 import { apiClient } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { InvoiceActions } from "../../../../components/invoice-actions";
+import { NavigationRail } from "../../../../components/navigation-rail";
 import { Sidebar } from "../../../../components/sidebar";
 import { formatDate } from "../../../../lib/date";
 import { getInvoiceLink, getPropertyLink } from "../../../../lib/entity-links";
@@ -244,76 +245,67 @@ export default function InvoiceDetailPage() {
                   ];
               return (
                 <div className="flex flex-col gap-5 lg:flex-row">
-                  <aside className="w-full shrink-0 lg:w-60">
-                    <Card className="lg:sticky lg:top-6 dark:bg-parcelis-slate">
-                      <CardContent className="p-3">
-                        <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
-                          Properties
-                        </p>
-                        <div className="space-y-1">
-                          {Array.from(
-                            invoiceRows.reduce((groups, item) => {
-                              const group = groups.get(item.property.id) ?? {
-                                name: item.property.name,
-                                invoices: [] as typeof invoiceRows,
-                              };
-                              group.invoices.push(item);
-                              groups.set(item.property.id, group);
-                              return groups;
-                            }, new Map<number, { name: string; invoices: typeof invoiceRows }>()),
-                          ).map(([propertyId, property]) => (
-                            <div key={propertyId}>
-                              <div className="flex items-center gap-1 rounded-md hover:bg-parcelis-porcelain">
-                                <button
-                                  aria-label={`Toggle ${property.name} invoices`}
-                                  className="grid h-8 w-8 place-items-center text-parcelis-gray"
-                                  onClick={() => toggleProperty(propertyId)}
-                                  type="button"
-                                >
-                                  <ChevronRight
-                                    className={`h-4 w-4 transition-transform ${collapsedPropertyIds.has(propertyId) ? "" : "rotate-90"}`}
-                                  />
-                                </button>
-                                <Link
-                                  className="min-w-0 flex-1 py-2 pr-2 text-sm font-semibold text-parcelis-charcoal"
-                                  href={getPropertyLink(propertyId)}
-                                >
-                                  {property.name}
-                                </Link>
-                              </div>
-                              {collapsedPropertyIds.has(propertyId) ? null : (
-                                <div className="ml-3 border-l border-parcelis-border pl-2">
-                                  {Array.from(
-                                    property.invoices.reduce((groups, item) => {
-                                      const rows = groups.get(item.lease.unitLabel) ?? [];
-                                      rows.push(item);
-                                      groups.set(item.lease.unitLabel, rows);
-                                      return groups;
-                                    }, new Map<string, typeof property.invoices>()),
-                                  ).map(([unitLabel, invoices]) => (
-                                    <div className="py-1" key={unitLabel}>
-                                      <p className="px-2 py-1 text-xs font-semibold text-parcelis-gray">
-                                        Unit {unitLabel}
-                                      </p>
-                                      {invoices.map((item) => (
-                                        <Link
-                                          className={`block rounded-md px-2 py-1.5 text-xs font-medium ${item.id === invoice.id ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`}
-                                          href={getInvoiceLink(item.id)}
-                                          key={item.id}
-                                        >
-                                          INV-{String(item.invoiceNumber).padStart(7, "0")}
-                                        </Link>
-                                      ))}
-                                    </div>
+                  <NavigationRail title="Properties">
+                    <div className="space-y-1">
+                      {Array.from(
+                        invoiceRows.reduce((groups, item) => {
+                          const group = groups.get(item.property.id) ?? {
+                            name: item.property.name,
+                            invoices: [] as typeof invoiceRows,
+                          };
+                          group.invoices.push(item);
+                          groups.set(item.property.id, group);
+                          return groups;
+                        }, new Map<number, { name: string; invoices: typeof invoiceRows }>()),
+                      ).map(([propertyId, property]) => (
+                        <div key={propertyId}>
+                          <div className="flex items-center gap-1 rounded-md hover:bg-parcelis-porcelain">
+                            <button
+                              aria-label={`Toggle ${property.name} invoices`}
+                              className="grid h-8 w-8 place-items-center text-parcelis-gray"
+                              onClick={() => toggleProperty(propertyId)}
+                              type="button"
+                            >
+                              <ChevronRight
+                                className={`h-4 w-4 transition-transform ${collapsedPropertyIds.has(propertyId) ? "" : "rotate-90"}`}
+                              />
+                            </button>
+                            <Link
+                              className="min-w-0 flex-1 py-2 pr-2 text-sm font-semibold text-parcelis-charcoal"
+                              href={getPropertyLink(propertyId)}
+                            >
+                              {property.name}
+                            </Link>
+                          </div>
+                          {collapsedPropertyIds.has(propertyId) ? null : (
+                            <div className="ml-3 border-l border-parcelis-border pl-2">
+                              {Array.from(
+                                property.invoices.reduce((groups, item) => {
+                                  const rows = groups.get(item.lease.unitLabel) ?? [];
+                                  rows.push(item);
+                                  groups.set(item.lease.unitLabel, rows);
+                                  return groups;
+                                }, new Map<string, typeof property.invoices>()),
+                              ).map(([unitLabel, invoices]) => (
+                                <div className="py-1" key={unitLabel}>
+                                  <p className="px-2 py-1 text-xs font-semibold text-parcelis-gray">Unit {unitLabel}</p>
+                                  {invoices.map((item) => (
+                                    <Link
+                                      className={`block rounded-md px-2 py-1.5 text-xs font-medium ${item.id === invoice.id ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`}
+                                      href={getInvoiceLink(item.id)}
+                                      key={item.id}
+                                    >
+                                      INV-{String(item.invoiceNumber).padStart(7, "0")}
+                                    </Link>
                                   ))}
                                 </div>
-                              )}
+                              ))}
                             </div>
-                          ))}
+                          )}
                         </div>
-                      </CardContent>
-                    </Card>
-                  </aside>
+                      ))}
+                    </div>
+                  </NavigationRail>
                   <div className="min-w-0 flex-1 space-y-5">
                     <Card className="relative overflow-hidden dark:bg-parcelis-slate dark:text-parcelis-porcelain">
                       <section className="grid gap-6 bg-parcelis-charcoal p-6 text-white md:grid-cols-[1.2fr_1fr] md:p-8">
