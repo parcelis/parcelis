@@ -24,10 +24,10 @@ import { apiClient } from "./api-client";
 import type { InvoiceActionInvoice } from "./invoice-actions";
 import { formatDate, toUtcDateInput } from "../lib/date";
 
-type Line = { item: string; description: string; quantity: string; rate: string };
+type Line = { id: string; item: string; description: string; quantity: string; rate: string };
 
 function createLine(): Line {
-  return { item: "", description: "", quantity: "1", rate: "" };
+  return { id: crypto.randomUUID(), item: "", description: "", quantity: "1", rate: "" };
 }
 
 function toCents(value: string) {
@@ -53,6 +53,7 @@ export function EditInvoiceDrawer({
     const nextDueOn = toUtcDateInput(invoice.dueOn);
     const nextLines = invoice.items.length
       ? invoice.items.map((item) => ({
+          id: crypto.randomUUID(),
           item: item.item,
           description: item.description ?? "",
           quantity: String(item.quantity),
@@ -178,7 +179,7 @@ export function EditInvoiceDrawer({
               {lines.map((line, index) => (
                 <div
                   className="grid gap-3 rounded-md border border-parcelis-border p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_5rem_7rem_2rem] md:items-center"
-                  key={index}
+                  key={line.id}
                 >
                   <Label className="gap-2 md:contents">
                     <span className="md:sr-only">Item</span>
