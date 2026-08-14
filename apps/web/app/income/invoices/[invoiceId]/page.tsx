@@ -38,7 +38,7 @@ function formatCurrency(cents: number) {
 }
 
 function invoiceStatusClass(status: string) {
-  if (status === "paid") return "bg-emerald-100 text-emerald-800";
+  if (status === "paid") return "bg-parcelis-green text-parcelis-charcoal";
   if (status === "overdue") return "bg-red-100 text-red-700";
   if (status === "void") return "bg-parcelis-porcelain text-parcelis-gray";
   return "bg-parcelis-green/20 text-parcelis-charcoal";
@@ -47,7 +47,7 @@ function invoiceStatusClass(status: string) {
 function getInvoiceStamp(invoice: { amountCents: number; balanceCents: number; status: string }) {
   if (invoice.status === "void") return { label: "Canceled", className: "border-slate-400 text-slate-400" };
   if (invoice.status === "paid" || invoice.balanceCents === 0) {
-    return { label: "Paid", className: "border-emerald-500 text-emerald-500" };
+    return { label: "Paid", className: "border-parcelis-green text-parcelis-green" };
   }
   if (invoice.balanceCents < invoice.amountCents) {
     return { label: "Partially Paid", className: "border-amber-500 text-amber-500" };
@@ -388,7 +388,7 @@ export default function InvoiceDetailPage() {
                             <span
                               className={`mt-3 inline-flex rounded-md px-2.5 py-1 text-sm font-semibold ${invoiceStatusClass(invoice.status)}`}
                             >
-                              {invoice.status}
+                              {invoice.status.toUpperCase()}
                             </span>
                           </div>
                         </section>
