@@ -16,7 +16,6 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { ParcelisLogo } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
 import { apiClient } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
@@ -43,20 +42,22 @@ function setSidebarWidth(collapsed: boolean) {
 }
 
 export function Sidebar({ active }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const router = useRouter();
 
   React.useEffect(() => {
     const saved = window.localStorage.getItem("parcelis-sidebar-collapsed") === "true";
-    setIsCollapsed(saved);
+    setIsSidebarCollapsed(saved);
     setSidebarWidth(saved);
   }, []);
 
   function toggleSidebar() {
-    setIsCollapsed((current) => {
+    setIsSidebarCollapsed((current) => {
       const next = !current;
+      setIsSidebarHovered(false);
       window.localStorage.setItem("parcelis-sidebar-collapsed", String(next));
       setSidebarWidth(next);
       return next;
@@ -79,16 +80,43 @@ export function Sidebar({ active }: SidebarProps) {
     }
   }
 
+  const isSidebarExpanded = !isSidebarCollapsed || isSidebarHovered;
+
   return (
-    <aside className="fixed inset-y-0 left-0 hidden w-[var(--parcelis-sidebar-width)] border-r border-parcelis-border bg-white px-4 py-6 transition-[width] duration-200 lg:flex lg:flex-col">
+    <aside
+      className={`fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r border-parcelis-border bg-white px-4 py-6 transition-[width] duration-200 lg:flex lg:flex-col ${
+        isSidebarExpanded ? "w-64" : "w-20"
+      }`}
+      onMouseEnter={() => {
+        if (isSidebarCollapsed) setIsSidebarHovered(true);
+      }}
+      onMouseLeave={() => setIsSidebarHovered(false)}
+    >
       <div className="flex items-center justify-between gap-2">
-        {isCollapsed ? (
-          <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
+        {!isSidebarExpanded ? (
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden">
+            <Image
+              alt="Parcelis"
+              className="h-full w-full object-cover dark:hidden"
+              height={1042}
+              priority
+              src="/brand/parcelis-dark-lettermark.svg"
+              width={730}
+            />
+            <Image
+              alt="Parcelis"
+              className="hidden h-full w-full object-cover dark:block"
+              height={1042}
+              priority
+              src="/brand/parcelis-light-lettermark.svg"
+              width={730}
+            />
+          </div>
         ) : (
           <Link aria-label="Parcelis portfolio" className="min-w-0" href="/">
             <Image
               alt="Parcelis"
-              className="h-auto w-40 dark:hidden"
+              className="h-auto w-32 dark:hidden"
               height={159}
               priority
               src="/brand/parcelis-light-banner.png"
@@ -96,7 +124,7 @@ export function Sidebar({ active }: SidebarProps) {
             />
             <Image
               alt="Parcelis"
-              className="hidden h-auto w-40 dark:block"
+              className="hidden h-auto w-32 dark:block"
               height={159}
               priority
               src="/brand/parcelis-dark-banner.png"
@@ -105,12 +133,12 @@ export function Sidebar({ active }: SidebarProps) {
           </Link>
         )}
         <button
-          aria-label={isCollapsed ? "Expand navigation" : "Collapse navigation"}
-          className="grid h-9 w-9 place-items-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
+          aria-label={isSidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
           onClick={toggleSidebar}
           type="button"
         >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {isSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
 
@@ -123,13 +151,13 @@ export function Sidebar({ active }: SidebarProps) {
               aria-label={item.label}
               className={`flex h-10 items-center gap-3 rounded-md px-3 ${
                 isActive ? "bg-parcelis-charcoal text-white" : "hover:bg-parcelis-porcelain"
-              } ${isCollapsed ? "justify-center" : ""}`}
+              } ${!isSidebarExpanded ? "justify-center" : ""}`}
               href={item.href}
               key={item.key}
-              title={isCollapsed ? item.label : undefined}
+              title={!isSidebarExpanded ? item.label : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {isCollapsed ? null : <span className="truncate">{item.label}</span>}
+              {!isSidebarExpanded ? null : <span className="min-w-0 truncate whitespace-nowrap">{item.label}</span>}
             </Link>
           );
         })}
@@ -137,14 +165,16 @@ export function Sidebar({ active }: SidebarProps) {
 
       <button
         aria-label="Sign out"
-        className={`mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain ${isCollapsed ? "justify-center" : ""}`}
+        className={`mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain ${!isSidebarExpanded ? "justify-center" : ""}`}
         disabled={isSigningOut}
         onClick={signOut}
-        title={isCollapsed ? "Sign out" : undefined}
+        title={!isSidebarExpanded ? "Sign out" : undefined}
         type="button"
       >
         <LogOut className="h-4 w-4 shrink-0" />
-        {isCollapsed ? null : <span>{isSigningOut ? "Signing out…" : "Sign out"}</span>}
+        {!isSidebarExpanded ? null : (
+          <span className="min-w-0 truncate whitespace-nowrap">{isSigningOut ? "Signing out…" : "Sign out"}</span>
+        )}
       </button>
       {signOutError ? (
         <p className="mb-4 text-xs text-red-700" role="alert">
@@ -152,7 +182,7 @@ export function Sidebar({ active }: SidebarProps) {
         </p>
       ) : null}
       <div className="border-t border-parcelis-border pt-4">
-        <ThemeSelector compact={isCollapsed} />
+        <ThemeSelector compact={!isSidebarExpanded} />
       </div>
     </aside>
   );
