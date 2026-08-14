@@ -75,7 +75,7 @@ appRouter procedure
              PostgreSQL
 ```
 
-The web app creates a typed tRPC proxy client in `apps/web/components/api-client.ts`. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies Nest's `PrismaService` to every procedure.
+The web app creates a typed tRPC proxy client in `apps/web/components/api-client.ts`. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies Nest's `PrismaService`, authenticated user and session, and the active organization to every procedure.
 
 The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
 
@@ -87,6 +87,8 @@ Client-side server state uses TanStack Query. Query keys are centralized next to
 
 Use `@parcelis/ui` for reusable controls. New cross-screen controls belong in `packages/ui/src/components`; feature-specific forms and state helpers belong under `apps/web/components`.
 
+The expanded sidebar shows the active organization and, for users with access to more than one, provides an organization switcher. Organization settings in `apps/web/app/settings/organization` manage the organization name, slug, and light and dark avatar images.
+
 ## API
 
 The NestJS application starts in `apps/api/src/main.ts`. `AppModule` mounts:
@@ -96,13 +98,21 @@ The NestJS application starts in `apps/api/src/main.ts`. `AppModule` mounts:
 
 Object storage is configured in `apps/api/src/modules/object-storage.config.ts`. The API generates signed download and upload URLs for private property and tenant images; the browser uploads directly to object storage after receiving a signed URL.
 
-At present, the API context contains Prisma only and the routers use `publicProcedure`. Authentication, authorization, and organization scoping should be introduced at the context/procedure layer before treating the API as multi-tenant or internet-facing.
+The API context resolves the active organization from the `x-parcelis-organization-slug` request header, the user's default organization, or the session's active organization. `organizationProcedure` requires that context and operational queries and writes filter or persist its organization ID. Organization administrators can update organization details and avatars; application administrators can access every organization.
 
 ## Data model
 
 Prisma models live in `packages/db/prisma/schema.prisma`. The operational model centers on:
 
 ```text
+Organization
+  |- OrganizationMembership -> User
+  |- Property
+  |- Tenant
+  |- Lease
+  |- Invoice
+  `- MaintenanceTicket
+
 Property
   |- Unit
   |    |- UnitUtility -> UtilityType
@@ -119,10 +129,11 @@ Tenant
   `- Note
 ```
 
+- An organization owns operational records. Membership gives a user access to an organization and records the organization-level role; users also retain a default organization and sessions retain an active organization.
 - A property holds its address, operational status, contacts, units, leases, tags, and maintenance tickets.
 - A lease connects a tenant to a property unit label and holds rent, balance, dates, and lease status.
 - Notes belong to exactly one property, unit, or tenant.
-- Property and tenant images are stored as object keys in PostgreSQL; the image bytes live in object storage.
+- Organization, property, and tenant images are stored as object keys in PostgreSQL; the image bytes live in object storage. Object keys are partitioned by organization.
 
 Schema changes require a new migration in `packages/db/prisma/migrations`. Do not edit an existing migration after it has been applied. Run `pnpm db:generate` after schema changes and `pnpm db:migrate` to apply migrations locally.
 

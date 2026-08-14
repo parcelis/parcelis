@@ -55,6 +55,7 @@ const sidebars: SidebarsConfig = {
           label: "Navigation And Preferences",
           items: [
             "platform-user-guide/navigation-and-preferences/sidebar",
+            "platform-user-guide/navigation-and-preferences/organization-settings",
             "platform-user-guide/navigation-and-preferences/users",
             "platform-user-guide/navigation-and-preferences/collapse-navigation",
             "platform-user-guide/navigation-and-preferences/theme",
