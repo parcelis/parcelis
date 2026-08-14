@@ -168,7 +168,7 @@ export function Sidebar({ active }: SidebarProps) {
         </button>
       </div>
 
-      {!isSidebarCollapsed && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
+      {isSidebarExpanded && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
         <div className="mt-6">
           {organizationsQuery.data.length > 1 ? (
             <>
