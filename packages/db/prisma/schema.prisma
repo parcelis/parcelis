@@ -427,7 +427,7 @@ model Invoice {
   lease          Lease         @relation("InvoiceLease", fields: [organizationId, leaseId, propertyId, tenantId], references: [organizationId, id, propertyId, tenantId], onDelete: Cascade)
   property       Property      @relation("InvoiceProperty", fields: [organizationId, propertyId], references: [organizationId, id])
   tenant         Tenant        @relation("InvoiceTenant", fields: [organizationId, tenantId], references: [organizationId, id])
-  paidByTenant   Tenant?       @relation("InvoicePaidByTenant", fields: [organizationId, paidByTenantId], references: [organizationId, id])
+  paidByTenant   Tenant?       @relation("InvoicePaidByTenant", fields: [organizationId, paidByTenantId], references: [organizationId, id], onDelete: SetNull)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
@@ -491,9 +491,9 @@ model MaintenanceTicket {
   dueOn                 DateTime?
   archivedAt            DateTime?
   property              Property                  @relation(fields: [organizationId, propertyId], references: [organizationId, id])
-  category              MaintenanceCategory?      @relation(fields: [organizationId, categoryId], references: [organizationId, id])
-  requestedByTenant     Tenant?                   @relation("MaintenanceRequesterTenant", fields: [organizationId, requestedByTenantId], references: [organizationId, id])
-  requestedByLandlord   Landlord?                 @relation("MaintenanceRequesterLandlord", fields: [organizationId, requestedByLandlordId], references: [organizationId, id])
+  category              MaintenanceCategory?      @relation(fields: [organizationId, categoryId], references: [organizationId, id], onDelete: SetNull)
+  requestedByTenant     Tenant?                   @relation("MaintenanceRequesterTenant", fields: [organizationId, requestedByTenantId], references: [organizationId, id], onDelete: SetNull)
+  requestedByLandlord   Landlord?                 @relation("MaintenanceRequesterLandlord", fields: [organizationId, requestedByLandlordId], references: [organizationId, id], onDelete: SetNull)
   units                 MaintenanceTicketUnit[]
   attachments           MaintenanceAttachment[]
   notes                 Note[]
