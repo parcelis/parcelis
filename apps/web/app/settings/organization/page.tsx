@@ -65,7 +65,7 @@ export default function OrganizationSettingsPage() {
         (Object.entries(avatarChanges) as Array<[AvatarVariant, File | null]>).map(async ([variant, file]) => {
           if (file === null) return apiClient.organizations.deleteAvatar.mutate({ variant });
           const { objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
-            contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/svg+xml" | "image/gif",
+            contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
             fileName: file.name,
             variant,
           });
@@ -151,8 +151,8 @@ export default function OrganizationSettingsPage() {
                         <div className="min-w-0 flex-1">
                           <Label>Light mode avatar</Label>
                           <ImageUploadPanel
-                            acceptedImageDescription="JPG, PNG, WebP, SVG, or GIF"
-                            acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
+                            acceptedImageDescription="JPG, PNG, WebP, or GIF"
+                            acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/gif"]}
                             alt="Light mode organization avatar"
                             imagePreviewUrl={
                               avatarChanges.light === null
@@ -164,13 +164,15 @@ export default function OrganizationSettingsPage() {
                             onImageChange={(file) =>
                               file && setAvatarChanges((current) => ({ ...current, light: file }))
                             }
+                            previewBackground="light"
+                            previewImageFit="contain"
                           />
                         </div>
                         <div className="min-w-0 flex-1">
                           <Label>Dark mode avatar</Label>
                           <ImageUploadPanel
-                            acceptedImageDescription="JPG, PNG, WebP, SVG, or GIF"
-                            acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
+                            acceptedImageDescription="JPG, PNG, WebP, or GIF"
+                            acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/gif"]}
                             alt="Dark mode organization avatar"
                             imagePreviewUrl={
                               avatarChanges.dark === null
@@ -182,6 +184,8 @@ export default function OrganizationSettingsPage() {
                             onImageChange={(file) =>
                               file && setAvatarChanges((current) => ({ ...current, dark: file }))
                             }
+                            previewBackground="dark"
+                            previewImageFit="contain"
                           />
                         </div>
                       </div>

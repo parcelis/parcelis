@@ -18,11 +18,9 @@ export function getObjectStorageConfig(): ObjectStorageConfig {
     accessKeyId: process.env.S3_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio",
     bucket: process.env.S3_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images",
     endpoint,
-    publicEndpoint:
-      process.env.S3_PUBLIC_ENDPOINT ?? process.env.NEXT_PUBLIC_S3_URL ?? endpoint,
+    publicEndpoint: process.env.S3_PUBLIC_ENDPOINT ?? process.env.NEXT_PUBLIC_S3_URL ?? endpoint,
     region: process.env.S3_REGION ?? "us-east-1",
-    secretAccessKey:
-      process.env.S3_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret",
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? process.env.MINIO_ROOT_PASSWORD ?? "parcelis-minio-secret",
   };
 }
 
@@ -54,11 +52,14 @@ const imageExtensions = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
-  "image/svg+xml": "svg",
   "image/gif": "gif",
 } as const;
 
-export function createPropertyImageObjectKey(contentType: keyof typeof imageExtensions, organizationId: number, propertyId: number) {
+export function createPropertyImageObjectKey(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  propertyId: number,
+) {
   return `organizations/${organizationId}/properties/${propertyId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
@@ -85,7 +86,11 @@ export async function createOrganizationAvatarUploadUrl(
   return { objectKey, uploadUrl };
 }
 
-export async function createPropertyImageUploadUrl(contentType: keyof typeof imageExtensions, organizationId: number, propertyId: number) {
+export async function createPropertyImageUploadUrl(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  propertyId: number,
+) {
   const config = getObjectStorageConfig();
   const objectKey = createPropertyImageObjectKey(contentType, organizationId, propertyId);
   const uploadUrl = await getSignedUrl(
@@ -117,11 +122,19 @@ export async function deletePropertyImageObject(objectKey: string) {
   await createObjectStorageClient().send(new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey }));
 }
 
-export function createTenantImageObjectKey(contentType: keyof typeof imageExtensions, organizationId: number, tenantId: number) {
+export function createTenantImageObjectKey(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  tenantId: number,
+) {
   return `organizations/${organizationId}/tenants/${tenantId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createTenantImageUploadUrl(contentType: keyof typeof imageExtensions, organizationId: number, tenantId: number) {
+export async function createTenantImageUploadUrl(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  tenantId: number,
+) {
   const config = getObjectStorageConfig();
   const objectKey = createTenantImageObjectKey(contentType, organizationId, tenantId);
   const uploadUrl = await getSignedUrl(
@@ -140,11 +153,19 @@ export async function createTenantImageUploadUrl(contentType: keyof typeof image
 export const createTenantImageDownloadUrl = createPropertyImageDownloadUrl;
 export const deleteTenantImageObject = deletePropertyImageObject;
 
-export function createMaintenanceImageObjectKey(contentType: keyof typeof imageExtensions, organizationId: number, ticketId: number) {
+export function createMaintenanceImageObjectKey(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  ticketId: number,
+) {
   return `organizations/${organizationId}/maintenance/${ticketId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createMaintenanceImageUploadUrl(contentType: keyof typeof imageExtensions, organizationId: number, ticketId: number) {
+export async function createMaintenanceImageUploadUrl(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  ticketId: number,
+) {
   const config = getObjectStorageConfig();
   const objectKey = createMaintenanceImageObjectKey(contentType, organizationId, ticketId);
   const uploadUrl = await getSignedUrl(

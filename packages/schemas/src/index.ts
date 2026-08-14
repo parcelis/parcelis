@@ -49,7 +49,7 @@ export const updateOrganizationInputSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
 });
 export const organizationAvatarUploadInputSchema = z.object({
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
   variant: z.enum(["light", "dark"]),
 });
@@ -388,15 +388,14 @@ export const propertyStatusInputSchema = z.object({
 
 export const propertyImageUploadInputSchema = z.object({
   id: idSchema,
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
 });
 
-export const propertyImageUploadCompleteInputSchema = z
-  .object({
-    id: idSchema,
-    objectKey: z.string().regex(/^organizations\/\d+\/properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp|svg|gif)$/),
-  });
+export const propertyImageUploadCompleteInputSchema = z.object({
+  id: idSchema,
+  objectKey: z.string().regex(/^organizations\/\d+\/properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
+});
 
 export type Address = z.infer<typeof addressSchema>;
 export type Property = z.infer<typeof propertySchema>;

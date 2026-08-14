@@ -760,8 +760,8 @@ export function PropertyDrawer({
                 </aside>
 
                 <ImageUploadPanel
-                  acceptedImageDescription="GIF, JPG, PNG, SVG, or WebP"
-                  acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"]}
+                  acceptedImageDescription="GIF, JPG, PNG, or WebP"
+                  acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/gif"]}
                   alt="Selected property"
                   imagePreviewUrl={imagePreviewUrl}
                   isDeletePending={isImageDeletePending}
