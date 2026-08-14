@@ -158,6 +158,17 @@ export function Sidebar({ active }: SidebarProps) {
               </option>
             ))}
           </Select>
+          <div className="mt-3 flex aspect-[4/3] w-full items-center justify-center overflow-hidden text-parcelis-green">
+            {activeOrganizationQuery.data?.avatarUrl ? (
+              <img
+                alt={`${activeOrganizationQuery.data.name} logo`}
+                className="h-full w-full object-contain p-3"
+                src={activeOrganizationQuery.data.avatarUrl}
+              />
+            ) : (
+              <Building2 className="h-7 w-7" />
+            )}
+          </div>
         </div>
       ) : null}
 
