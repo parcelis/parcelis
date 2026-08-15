@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import * as argon2 from "argon2";
+import { randomBytes } from "node:crypto";
 
 const prisma = new PrismaClient();
 
@@ -202,7 +203,9 @@ async function upsertLease(organizationId, data) {
     where: { organizationId, propertyId: data.propertyId, unitLabel: data.unitLabel },
   });
 
-  return existing ? prisma.lease.update({ where: { id: existing.id }, data }) : prisma.lease.create({ data: { ...data, organizationId } });
+  return existing
+    ? prisma.lease.update({ where: { id: existing.id }, data })
+    : prisma.lease.create({ data: { ...data, organizationId } });
 }
 
 async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, payments = [] }) {
@@ -242,11 +245,25 @@ async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, p
 
 async function main() {
   const administratorEmail = "admin@parcelis.dev";
-  const organization = await prisma.organization.upsert({
-    where: { slug: "default" },
-    update: { name: "Parcelis Property Management" },
-    create: { name: "Parcelis Property Management", slug: "default" },
-  });
+  const organizationName = "Parcelis Property Management";
+  const existingOrganization =
+    (await prisma.organization.findUnique({ where: { slug: "default" } })) ??
+    (await prisma.organization.findFirst({ where: { name: organizationName } }));
+  const organizationSlug =
+    existingOrganization && /^[a-f0-9]{20}$/.test(existingOrganization.slug)
+      ? existingOrganization.slug
+      : randomBytes(10).toString("hex");
+  const organization = existingOrganization
+    ? await prisma.organization.update({
+        where: { id: existingOrganization.id },
+        data: {
+          name: organizationName,
+          slug: organizationSlug,
+        },
+      })
+    : await prisma.organization.create({
+        data: { name: organizationName, slug: organizationSlug },
+      });
   const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
 
   if (administrator) {
@@ -531,7 +548,11 @@ async function main() {
       amountCents: mayaLease.monthlyRentCents,
       balanceCents: 0,
       payments: [
-        { amountCents: mayaLease.monthlyRentCents, paymentMethod: "other", paidOn: new Date("2026-07-01T00:00:00.000Z") },
+        {
+          amountCents: mayaLease.monthlyRentCents,
+          paymentMethod: "other",
+          paidOn: new Date("2026-07-01T00:00:00.000Z"),
+        },
       ],
     }),
     seedInvoice({
@@ -588,7 +609,9 @@ async function main() {
   );
   await Promise.all([
     prisma.landlord.upsert({
-      where: { organizationId_email: { organizationId: organization.id, email: "avery.mitchell@hawthorneflats.example" } },
+      where: {
+        organizationId_email: { organizationId: organization.id, email: "avery.mitchell@hawthorneflats.example" },
+      },
       update: { firstName: "Avery", lastName: "Mitchell", phone: "615-555-0194" },
       create: {
         organizationId: organization.id,
@@ -612,7 +635,13 @@ async function main() {
     prisma.landlord.upsert({
       where: { organizationId_email: { organizationId: organization.id, email: "priya.shah@juniperrow.example" } },
       update: { firstName: "Priya", lastName: "Shah", phone: "512-555-0169" },
-      create: { organizationId: organization.id, firstName: "Priya", lastName: "Shah", email: "priya.shah@juniperrow.example", phone: "512-555-0169" },
+      create: {
+        organizationId: organization.id,
+        firstName: "Priya",
+        lastName: "Shah",
+        email: "priya.shah@juniperrow.example",
+        phone: "512-555-0169",
+      },
     }),
   ]);
 
