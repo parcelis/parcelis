@@ -37,6 +37,28 @@ export const userAccountStatusInputSchema = z.object({
 });
 export const deleteUserInputSchema = z.object({ id: idSchema });
 
+export const organizationMemberRoleSchema = z.enum(["owner", "administrator", "member"]);
+export const switchOrganizationInputSchema = z.object({ organizationId: idSchema });
+export const updateOrganizationInputSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  slug: z
+    .string()
+    .trim()
+    .min(3)
+    .max(50)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
+});
+export const organizationAvatarUploadInputSchema = z.object({
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  fileName: z.string().trim().min(1).max(255),
+  variant: z.enum(["light", "dark"]),
+});
+export const organizationAvatarUploadCompleteInputSchema = z.object({
+  objectKey: z.string().regex(/^organizations\/\d+\/avatar\/(light|dark)\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
+  variant: z.enum(["light", "dark"]),
+});
+export const deleteOrganizationAvatarInputSchema = z.object({ variant: z.enum(["light", "dark"]) });
+
 export const addressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().optional(),
@@ -293,17 +315,17 @@ export const activityEventListInputSchema = z
   });
 export const maintenanceImageUploadInputSchema = z.object({
   id: idSchema,
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
 });
 export const maintenanceImageUploadCompleteInputSchema = z
   .object({
     id: idSchema,
     fileName: z.string().trim().min(1).max(255),
-    contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-    objectKey: z.string().regex(/^maintenance\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+    contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+    objectKey: z.string().regex(/^organizations\/\d+\/maintenance\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
   })
-  .refine(({ id, objectKey }) => objectKey.startsWith(`maintenance/${id}/images/`), {
+  .refine(({ id, objectKey }) => new RegExp(`^organizations/\\d+/maintenance/${id}/images/`).test(objectKey), {
     message: "The image must belong to the selected maintenance ticket.",
     path: ["objectKey"],
   });
@@ -315,14 +337,14 @@ export const tenantByIdInputSchema = z.object({
 
 export const tenantImageUploadInputSchema = z.object({
   id: idSchema,
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
 });
 
 export const tenantImageUploadCompleteInputSchema = z
   .object({
     id: idSchema,
-    objectKey: z.string().regex(/^tenants\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+    objectKey: z.string().regex(/^organizations\/\d+\/tenants\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
   })
   .strict();
 
@@ -366,19 +388,14 @@ export const propertyStatusInputSchema = z.object({
 
 export const propertyImageUploadInputSchema = z.object({
   id: idSchema,
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
 });
 
-export const propertyImageUploadCompleteInputSchema = z
-  .object({
-    id: idSchema,
-    objectKey: z.string().regex(/^properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
-  })
-  .refine(({ id, objectKey }) => objectKey.startsWith(`properties/${id}/images/`), {
-    message: "The image must belong to the selected property.",
-    path: ["objectKey"],
-  });
+export const propertyImageUploadCompleteInputSchema = z.object({
+  id: idSchema,
+  objectKey: z.string().regex(/^organizations\/\d+\/properties\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
+});
 
 export type Address = z.infer<typeof addressSchema>;
 export type Property = z.infer<typeof propertySchema>;

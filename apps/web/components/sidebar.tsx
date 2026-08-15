@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
   Building2,
@@ -16,8 +17,9 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
+import { Select } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
-import { apiClient } from "./api-client";
+import { apiClient, queryKeys } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
 
 const navItems = [
@@ -30,9 +32,6 @@ const navItems = [
   { label: "Settings", href: "/settings", key: "settings", icon: Settings },
 ] as const;
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
-
 type SidebarProps = {
   active: (typeof navItems)[number]["key"];
 };
@@ -41,18 +40,55 @@ function setSidebarWidth(collapsed: boolean) {
   document.documentElement.style.setProperty("--parcelis-sidebar-width", collapsed ? "5rem" : "16rem");
 }
 
+function isOrganizationAccessError(error: Error | null) {
+  if (!error || !("data" in error) || typeof error.data !== "object" || !error.data) return false;
+  return "code" in error.data && error.data.code === "FORBIDDEN";
+}
+
 export function Sidebar({ active }: SidebarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const organizationsQuery = useQuery({
+    queryKey: queryKeys.organizations.list,
+    queryFn: () => apiClient.organizations.list.query(),
+  });
+  const activeOrganizationQuery = useQuery({
+    queryKey: [...queryKeys.organizations.active, pathname],
+    queryFn: () => apiClient.organizations.active.query(),
+  });
+  const switchOrganizationMutation = useMutation({
+    mutationFn: (organizationId: number) => apiClient.organizations.switch.mutate({ organizationId }),
+    onSuccess: async ({ organizationId }) => {
+      const membership = organizationsQuery.data?.find(({ organization }) => organization.id === organizationId);
+      queryClient.clear();
+      if (membership) router.replace(`/o/${membership.organization.slug}`);
+      else router.refresh();
+    },
+  });
 
   React.useEffect(() => {
     const saved = window.localStorage.getItem("parcelis-sidebar-collapsed") === "true";
     setIsSidebarCollapsed(saved);
     setSidebarWidth(saved);
   }, []);
+
+  React.useEffect(() => {
+    const organization = activeOrganizationQuery.data;
+    if (organization && !window.location.pathname.startsWith(`/o/${organization.slug}`)) {
+      const routePath = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
+      router.replace(`/o/${organization.slug}${routePath === "/" ? "" : routePath}`);
+    }
+    if (isOrganizationAccessError(activeOrganizationQuery.error) && pathname.startsWith("/o/")) {
+      document.cookie = "parcelis-organization-slug=; path=/; max-age=0; samesite=lax";
+      router.replace("/");
+      router.refresh();
+    }
+  }, [activeOrganizationQuery.data, activeOrganizationQuery.error, pathname, router]);
 
   function toggleSidebar() {
     setIsSidebarCollapsed((current) => {
@@ -142,7 +178,69 @@ export function Sidebar({ active }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="mt-8 flex-1 space-y-1 text-sm font-medium text-parcelis-gray">
+      {isSidebarExpanded && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
+        <div className="mt-6">
+          {organizationsQuery.data.length > 1 ? (
+            <>
+              <label
+                className="mb-1 block text-xs font-semibold uppercase tracking-wide text-parcelis-gray"
+                htmlFor="organization-switcher"
+              >
+                Organization
+              </label>
+              <Select
+                disabled={switchOrganizationMutation.isPending}
+                id="organization-switcher"
+                onChange={(event) => switchOrganizationMutation.mutate(Number(event.target.value))}
+                value={activeOrganizationQuery.data?.id ?? ""}
+              >
+                {organizationsQuery.data.map(({ organization }) => (
+                  <option key={organization.id} value={organization.id}>
+                    {organization.name}
+                  </option>
+                ))}
+              </Select>
+              {switchOrganizationMutation.error ? (
+                <p className="mt-2 text-sm font-medium text-red-700" role="alert">
+                  {switchOrganizationMutation.error.message}
+                </p>
+              ) : null}
+            </>
+          ) : null}
+          <div
+            className={`mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-parcelis-border bg-parcelis-porcelain text-parcelis-green dark:bg-parcelis-charcoal ${
+              organizationsQuery.data.length > 1 ? "mt-3" : ""
+            }`}
+          >
+            {activeOrganizationQuery.data?.avatarUrl ? (
+              <img
+                alt={`${activeOrganizationQuery.data.name} logo`}
+                className="h-full w-full object-contain p-4 dark:hidden"
+                src={activeOrganizationQuery.data.avatarUrl}
+              />
+            ) : (
+              <Building2 className="h-7 w-7 dark:hidden" />
+            )}
+            {activeOrganizationQuery.data?.darkAvatarUrl ? (
+              <img
+                alt={`${activeOrganizationQuery.data.name} dark mode logo`}
+                className="hidden h-full w-full object-contain p-4 dark:block"
+                src={activeOrganizationQuery.data.darkAvatarUrl}
+              />
+            ) : activeOrganizationQuery.data?.avatarUrl ? (
+              <img
+                alt={`${activeOrganizationQuery.data.name} logo`}
+                className="hidden h-full w-full object-contain p-4 dark:block"
+                src={activeOrganizationQuery.data.avatarUrl}
+              />
+            ) : (
+              <Building2 className="hidden h-7 w-7 dark:block" />
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      <nav className="mt-6 flex-1 space-y-1 text-sm font-medium text-parcelis-gray">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.key === active;

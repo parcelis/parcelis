@@ -1,1 +1,1 @@
-{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"notes":{"type":"string"}}}}}}}
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"notes":{"type":"string","maxLength":5000}}}}}}}

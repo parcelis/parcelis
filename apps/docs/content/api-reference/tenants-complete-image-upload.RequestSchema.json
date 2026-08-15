@@ -1,1 +1,21 @@
-{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"objectKey":{"type":"string","pattern":"^tenants\\/\\d+\\/images\\/[a-f0-9-]+\\.(jpg|png|webp)$"}},"required":["objectKey"],"additionalProperties":false}}}}}
+{
+  "title": "Body",
+  "body": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "objectKey": {
+              "type": "string",
+              "pattern": "^organizations\\/\\d+\\/tenants\\/\\d+\\/images\\/[a-f0-9-]+\\.(jpg|png|webp|gif)$"
+            }
+          },
+          "required": ["objectKey"],
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

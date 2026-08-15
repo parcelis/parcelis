@@ -12,3 +12,8 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
   if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sign in is required to complete this action." });
   return next({ ctx: { ...ctx, session, user: session.user } });
 });
+
+export const organizationProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!ctx.organization) throw new TRPCError({ code: "FORBIDDEN", message: "Organization access is required." });
+  return next({ ctx: { ...ctx, organization: ctx.organization } });
+});

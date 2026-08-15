@@ -3,7 +3,17 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { EllipsisVertical, Mail, Pencil, Phone, ShieldCheck, Trash2, UserRoundCheck, UserRoundX, Users } from "lucide-react";
+import {
+  EllipsisVertical,
+  Mail,
+  Pencil,
+  Phone,
+  ShieldCheck,
+  Trash2,
+  UserRoundCheck,
+  UserRoundX,
+  Users,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -35,7 +45,9 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
+import { PageRail } from "../../components/page-rail";
 import { Sidebar } from "../../components/sidebar";
+import { SettingsRail } from "../../components/settings-rail";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -88,7 +100,11 @@ function UserActionsMenu({
           Edit
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onToggleAccountStatus}>
-          {isDisabled ? <UserRoundCheck className="h-4 w-4 text-parcelis-green" /> : <UserRoundX className="h-4 w-4 text-parcelis-green" />}
+          {isDisabled ? (
+            <UserRoundCheck className="h-4 w-4 text-parcelis-green" />
+          ) : (
+            <UserRoundX className="h-4 w-4 text-parcelis-green" />
+          )}
           {isDisabled ? "Enable" : "Disable"}
         </DropdownMenuItem>
         <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
@@ -102,11 +118,17 @@ function UserActionsMenu({
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () => apiClient.auth.me.query(),
+  });
   const usersQuery = useQuery({
     queryKey: queryKeys.users.list,
     queryFn: () => apiClient.users.list.query(),
   });
   const users = usersQuery.data ?? [];
+  const activeUsers = usersQuery.data?.filter((user) => user.accountStatus === "active").length;
+  const disabledUsers = usersQuery.data?.filter((user) => user.accountStatus === "disabled").length;
   const [editUser, setEditUser] = React.useState<UserListItem | null>(null);
   const [disableUser, setDisableUser] = React.useState<UserListItem | null>(null);
   const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
@@ -117,7 +139,8 @@ export default function SettingsPage() {
     role: "member",
   });
   const updateUserMutation = useMutation({
-    mutationFn: (input: UserFormState & { id: number }) => apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
+    mutationFn: (input: UserFormState & { id: number }) =>
+      apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
     onSuccess: async () => {
       setEditUser(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
@@ -168,25 +191,47 @@ export default function SettingsPage() {
             <div className="grid gap-4">
               <Label>
                 Name
-                <Input className="mt-1" onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} required value={editForm.name} />
+                <Input
+                  className="mt-1"
+                  onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
+                  required
+                  value={editForm.name}
+                />
               </Label>
               <Label>
                 Email
-                <Input className="mt-1" onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} required type="email" value={editForm.email} />
+                <Input
+                  className="mt-1"
+                  onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
+                  required
+                  type="email"
+                  value={editForm.email}
+                />
               </Label>
               <Label>
                 Phone
-                <Input className="mt-1" onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} type="tel" value={editForm.phone} />
+                <Input
+                  className="mt-1"
+                  onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })}
+                  type="tel"
+                  value={editForm.phone}
+                />
               </Label>
               <Label>
                 Role
-                <Select className="mt-1" onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })} value={editForm.role}>
+                <Select
+                  className="mt-1"
+                  onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })}
+                  value={editForm.role}
+                >
                   <option value="administrator">Administrator</option>
                   <option value="member">Member</option>
                 </Select>
               </Label>
             </div>
-            {updateUserMutation.error ? <p className="text-sm font-medium text-red-700">{updateUserMutation.error.message}</p> : null}
+            {updateUserMutation.error ? (
+              <p className="text-sm font-medium text-red-700">{updateUserMutation.error.message}</p>
+            ) : null}
             <div className="flex items-center justify-between gap-3">
               <Button onClick={() => setEditUser(null)} type="button" variant="secondary">
                 Cancel
@@ -201,7 +246,9 @@ export default function SettingsPage() {
       <AlertDialog onOpenChange={(open) => !open && setDisableUser(null)} open={Boolean(disableUser)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{disableUser?.accountStatus === "disabled" ? "Enable user?" : "Disable user?"}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {disableUser?.accountStatus === "disabled" ? "Enable user?" : "Disable user?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {disableUser?.accountStatus === "disabled"
                 ? `${disableUser.name} will be able to sign in again.`
@@ -209,10 +256,18 @@ export default function SettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button onClick={() => setDisableUser(null)} type="button" variant="secondary">Cancel</Button>
+            <Button onClick={() => setDisableUser(null)} type="button" variant="secondary">
+              Cancel
+            </Button>
             <Button
               disabled={updateAccountStatusMutation.isPending}
-              onClick={() => disableUser && updateAccountStatusMutation.mutate({ id: disableUser.id, accountStatus: disableUser.accountStatus === "disabled" ? "active" : "disabled" })}
+              onClick={() =>
+                disableUser &&
+                updateAccountStatusMutation.mutate({
+                  id: disableUser.id,
+                  accountStatus: disableUser.accountStatus === "disabled" ? "active" : "disabled",
+                })
+              }
               type="button"
             >
               {disableUser?.accountStatus === "disabled" ? "Enable" : "Disable"}
@@ -225,12 +280,20 @@ export default function SettingsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete user?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes {deleteUser?.name}{"'s"} account and active sessions.
+              This permanently deletes {deleteUser?.name}
+              {"'s"} account and active sessions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button onClick={() => setDeleteUser(null)} type="button" variant="secondary">Cancel</Button>
-            <Button disabled={deleteUserMutation.isPending} onClick={() => deleteUser && deleteUserMutation.mutate(deleteUser.id)} type="button" variant="destructive">
+            <Button onClick={() => setDeleteUser(null)} type="button" variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={deleteUserMutation.isPending}
+              onClick={() => deleteUser && deleteUserMutation.mutate(deleteUser.id)}
+              type="button"
+              variant="destructive"
+            >
               Delete
             </Button>
           </AlertDialogFooter>
@@ -249,96 +312,118 @@ export default function SettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-            <h1 className="mt-5 text-3xl font-bold md:text-5xl">Users</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-              Review the accounts with access to Parcelis.
-            </p>
-          </section>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-semibold text-parcelis-charcoal">User accounts</h2>
-                  <p className="mt-1 text-sm text-parcelis-gray">
-                    {users.length} {users.length === 1 ? "account" : "accounts"} created
-                  </p>
+          <div className="flex flex-col gap-6 md:flex-row">
+            <SettingsRail active="users" canManageUsers={currentUserQuery.data?.user.role === "administrator"} />
+            <div className="min-w-0 flex-1">
+              <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
+                <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">
+                  <div className="rounded-md bg-white/10 p-3">
+                    <div className="text-2xl font-bold text-white">{activeUsers ?? "—"}</div>
+                    Active accounts
+                  </div>
+                  <div className="rounded-md bg-white/10 p-3">
+                    <div className="text-2xl font-bold text-white">{disabledUsers ?? "—"}</div>
+                    Disabled accounts
+                  </div>
                 </div>
-                <Users className="h-5 w-5 text-parcelis-green" />
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto p-0">
-              {usersQuery.isLoading ? (
-                <LoadingState label="Loading users…" />
-              ) : usersQuery.error ? (
-                <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
-              ) : users.length === 0 ? (
-                <div className="min-h-48 p-5 text-sm text-parcelis-gray">No user accounts yet.</div>
-              ) : (
-                <Table className="min-w-[1080px] border-collapse text-left">
-                  <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
-                    <TableRow className="border-0">
-                      <TableHead className="px-5 py-3 font-semibold">User</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Email</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
-                      <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60" key={user.id}>
-                        <TableCell className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
-                              <Users className="h-4 w-4" />
-                            </div>
-                            <span className="font-semibold text-parcelis-charcoal">{user.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                          <a className="flex items-center gap-2 hover:text-parcelis-charcoal" href={`mailto:${user.email}`}>
-                            <Mail className="h-4 w-4 text-parcelis-green" />
-                            {user.email}
-                          </a>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                          {user.phone ? (
-                            <a className="flex items-center gap-2 hover:text-parcelis-charcoal" href={`tel:${user.phone}`}>
-                              <Phone className="h-4 w-4 text-parcelis-green" />
-                              {user.phone}
-                            </a>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
-                          {formatLabel(user.role)}
-                        </TableCell>
-                        <TableCell className="px-5 py-4">
-                          <Badge className="w-fit" variant={user.accountStatus === "active" ? "default" : "secondary"}>
-                            <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-                            {formatLabel(user.accountStatus)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-right">
-                          <UserActionsMenu
-                            onDelete={() => setDeleteUser(user)}
-                            onEdit={() => openEdit(user)}
-                            onToggleAccountStatus={() => setDisableUser(user)}
-                            user={user}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+              </PageRail>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h2 className="font-semibold text-parcelis-charcoal">User accounts</h2>
+                      <p className="mt-1 text-sm text-parcelis-gray">
+                        {users.length} {users.length === 1 ? "account" : "accounts"} created
+                      </p>
+                    </div>
+                    <Users className="h-5 w-5 text-parcelis-green" />
+                  </div>
+                </CardHeader>
+                <CardContent className="overflow-x-auto p-0">
+                  {usersQuery.isLoading ? (
+                    <LoadingState label="Loading users…" />
+                  ) : usersQuery.error ? (
+                    <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
+                  ) : users.length === 0 ? (
+                    <div className="min-h-48 p-5 text-sm text-parcelis-gray">No user accounts yet.</div>
+                  ) : (
+                    <Table className="min-w-[1080px] border-collapse text-left">
+                      <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                        <TableRow className="border-0">
+                          <TableHead className="px-5 py-3 font-semibold">User</TableHead>
+                          <TableHead className="px-5 py-3 font-semibold">Email</TableHead>
+                          <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
+                          <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
+                          <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
+                          <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((user) => (
+                          <TableRow
+                            className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
+                            key={user.id}
+                          >
+                            <TableCell className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
+                                  <Users className="h-4 w-4" />
+                                </div>
+                                <span className="font-semibold text-parcelis-charcoal">{user.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                              <a
+                                className="flex items-center gap-2 hover:text-parcelis-charcoal"
+                                href={`mailto:${user.email}`}
+                              >
+                                <Mail className="h-4 w-4 text-parcelis-green" />
+                                {user.email}
+                              </a>
+                            </TableCell>
+                            <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                              {user.phone ? (
+                                <a
+                                  className="flex items-center gap-2 hover:text-parcelis-charcoal"
+                                  href={`tel:${user.phone}`}
+                                >
+                                  <Phone className="h-4 w-4 text-parcelis-green" />
+                                  {user.phone}
+                                </a>
+                              ) : (
+                                "—"
+                              )}
+                            </TableCell>
+                            <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
+                              {formatLabel(user.role)}
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
+                              <Badge
+                                className="w-fit"
+                                variant={user.accountStatus === "active" ? "default" : "secondary"}
+                              >
+                                <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                                {formatLabel(user.accountStatus)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="px-5 py-4 text-right">
+                              <UserActionsMenu
+                                onDelete={() => setDeleteUser(user)}
+                                onEdit={() => openEdit(user)}
+                                onToggleAccountStatus={() => setDisableUser(user)}
+                                user={user}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </section>
     </main>

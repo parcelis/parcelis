@@ -50,6 +50,10 @@ Keep your properties, units, tenants, maintenance, and day-to-day operations org
 
 Give every team member visibility into what needs attention, who owns it, and what has already been completed. Parcelis keeps operational work clear, accountable, and moving forward.
 
+### Work in the right organization
+
+Keep each organization's properties, tenants, leases, income, and maintenance records separate. Team members can switch between the organizations they are allowed to access.
+
 ### Manage tenants with confidence
 
 Maintain a complete view of each tenant alongside the property information, requests, and activity that matter—so your team always has the context to respond quickly.
