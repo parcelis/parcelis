@@ -22,7 +22,7 @@ export default function OrganizationSettingsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const activeOrganizationQuery = useQuery({
-    queryKey: queryKeys.organizations.active,
+    queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
   });
   const accessibleOrganizationsQuery = useQuery({
@@ -88,7 +88,6 @@ export default function OrganizationSettingsPage() {
     },
     onSuccess: async (organization) => {
       setAvatarChanges({});
-      await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active });
       queryClient.setQueryData(queryKeys.organizations.list, (current: typeof accessibleOrganizationsQuery.data) =>
         current?.map((membership) =>
           membership.organization.id === organization.id

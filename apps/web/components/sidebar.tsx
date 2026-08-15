@@ -40,6 +40,11 @@ function setSidebarWidth(collapsed: boolean) {
   document.documentElement.style.setProperty("--parcelis-sidebar-width", collapsed ? "5rem" : "16rem");
 }
 
+function isOrganizationAccessError(error: Error | null) {
+  if (!error || !("data" in error) || typeof error.data !== "object" || !error.data) return false;
+  return "code" in error.data && error.data.code === "FORBIDDEN";
+}
+
 export function Sidebar({ active }: SidebarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
@@ -78,12 +83,12 @@ export function Sidebar({ active }: SidebarProps) {
       const routePath = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
       router.replace(`/o/${organization.slug}${routePath === "/" ? "" : routePath}`);
     }
-    if (activeOrganizationQuery.isError && pathname.startsWith("/o/")) {
+    if (isOrganizationAccessError(activeOrganizationQuery.error) && pathname.startsWith("/o/")) {
       document.cookie = "parcelis-organization-slug=; path=/; max-age=0; samesite=lax";
       router.replace("/");
       router.refresh();
     }
-  }, [activeOrganizationQuery.data, activeOrganizationQuery.isError, pathname, router]);
+  }, [activeOrganizationQuery.data, activeOrganizationQuery.error, pathname, router]);
 
   function toggleSidebar() {
     setIsSidebarCollapsed((current) => {
@@ -196,7 +201,9 @@ export function Sidebar({ active }: SidebarProps) {
                 ))}
               </Select>
               {switchOrganizationMutation.error ? (
-                <p className="mt-2 text-sm font-medium text-red-700">{switchOrganizationMutation.error.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-700" role="alert">
+                  {switchOrganizationMutation.error.message}
+                </p>
               ) : null}
             </>
           ) : null}

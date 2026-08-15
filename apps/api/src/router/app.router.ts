@@ -429,8 +429,12 @@ async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Pris
   }
 }
 
-async function assertOrganizationOwnersCanBeRemoved(prisma: PrismaClient | Prisma.TransactionClient, userId: number) {
-  const soleOwnerMembership = await prisma.organizationMembership.findFirst({
+async function transferSoleOrganizationOwnership(
+  prisma: PrismaClient | Prisma.TransactionClient,
+  userId: number,
+  recoveryOwnerId: number,
+) {
+  const soleOwnerMemberships = await prisma.organizationMembership.findMany({
     where: {
       userId,
       role: "owner",
@@ -440,14 +444,23 @@ async function assertOrganizationOwnersCanBeRemoved(prisma: PrismaClient | Prism
         },
       },
     },
-    select: { organization: { select: { name: true } } },
+    select: { organizationId: true },
   });
-  if (soleOwnerMembership) {
+  if (soleOwnerMemberships.length > 0 && userId === recoveryOwnerId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Transfer ownership of ${soleOwnerMembership.organization.name} before deleting this user.`,
+      message: "A sole organization owner cannot delete their own account.",
     });
   }
+  await Promise.all(
+    soleOwnerMemberships.map(({ organizationId }) =>
+      prisma.organizationMembership.upsert({
+        where: { userId_organizationId: { userId: recoveryOwnerId, organizationId } },
+        create: { userId: recoveryOwnerId, organizationId, role: "owner" },
+        update: { role: "owner" },
+      }),
+    ),
+  );
 }
 
 export const appRouter = router({
@@ -619,7 +632,7 @@ export const appRouter = router({
       return ctx.prisma.$transaction(
         async (tx) => {
           await assertActiveAdministratorCanBeRemoved(tx, input.id);
-          await assertOrganizationOwnersCanBeRemoved(tx, input.id);
+          await transferSoleOrganizationOwnership(tx, input.id, ctx.user.id);
           return tx.user.delete({ where: { id: input.id }, select: { id: true } });
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
