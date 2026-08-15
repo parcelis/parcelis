@@ -96,7 +96,12 @@ export default function OrganizationSettingsPage() {
         ),
       );
       const suffix = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
-      router.replace(`/o/${organization.slug}${suffix === "/" ? "" : suffix}`);
+      const nextPathname = `/o/${organization.slug}${suffix === "/" ? "" : suffix}`;
+      if (nextPathname === pathname) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active });
+      } else {
+        router.replace(nextPathname);
+      }
     },
   });
   return (
