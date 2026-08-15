@@ -94,6 +94,7 @@ model Organization {
   id                    Int                      @id @default(autoincrement())
   name                  String
   slug                  String                   @unique
+  seedKey               String?                  @unique
   avatarObjectKey       String?
   darkAvatarObjectKey   String?
   memberships           OrganizationMembership[]
@@ -492,8 +493,8 @@ model MaintenanceTicket {
   archivedAt            DateTime?
   property              Property                  @relation(fields: [organizationId, propertyId], references: [organizationId, id])
   category              MaintenanceCategory?      @relation(fields: [organizationId, categoryId], references: [organizationId, id], onDelete: SetNull)
-  requestedByTenant     Tenant?                   @relation("MaintenanceRequesterTenant", fields: [organizationId, requestedByTenantId], references: [organizationId, id], onDelete: SetNull)
-  requestedByLandlord   Landlord?                 @relation("MaintenanceRequesterLandlord", fields: [organizationId, requestedByLandlordId], references: [organizationId, id], onDelete: SetNull)
+  requestedByTenant     Tenant?                   @relation("MaintenanceRequesterTenant", fields: [organizationId, requestedByTenantId], references: [organizationId, id], onDelete: Restrict)
+  requestedByLandlord   Landlord?                 @relation("MaintenanceRequesterLandlord", fields: [organizationId, requestedByLandlordId], references: [organizationId, id], onDelete: Restrict)
   units                 MaintenanceTicketUnit[]
   attachments           MaintenanceAttachment[]
   notes                 Note[]

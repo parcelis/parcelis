@@ -1261,6 +1261,10 @@ export const appRouter = router({
             }),
           ),
         );
+        await tx.maintenanceTicket.updateMany({
+          where: { requestedByTenantId: input.id },
+          data: { requestedByType: null, requestedByTenantId: null },
+        });
         await tx.tenant.delete({ where: { id: input.id } });
       });
     }),
@@ -1763,6 +1767,29 @@ export const appRouter = router({
       await ctx.prisma.maintenanceTicket.findFirstOrThrow({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
       });
+      const [property, category] = await Promise.all([
+        ctx.prisma.property.findFirst({
+          where: { id: input.propertyId, organizationId: ctx.organization.organizationId },
+          select: { id: true },
+        }),
+        ctx.prisma.maintenanceCategory.findFirst({
+          where: { id: input.categoryId, organizationId: ctx.organization.organizationId },
+          select: { id: true },
+        }),
+      ]);
+      if (!property) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selected property must belong to the active organization.",
+        });
+      }
+      if (!category) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selected category must belong to the active organization.",
+        });
+      }
+
       const priority = input.isUrgent ? "urgent" : input.priority;
       const units = await ctx.prisma.unit.findMany({
         where: {
@@ -1772,7 +1799,40 @@ export const appRouter = router({
         },
         select: { id: true, name: true },
       });
-      if (units.length !== input.unitIds.length) throw new Error("Selected units must belong to the chosen property.");
+      if (units.length !== input.unitIds.length) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Selected units must belong to the chosen property." });
+      }
+
+      if (input.requestedByType === "tenant") {
+        const tenantLease = await ctx.prisma.lease.findFirst({
+          where: {
+            tenantId: input.requestedById,
+            propertyId: input.propertyId,
+            organizationId: ctx.organization.organizationId,
+            unitLabel: input.unitIds.length ? { in: units.map((unit) => unit.name) } : undefined,
+            status: { in: ["active", "notice"] },
+          },
+          select: { id: true },
+        });
+        if (!tenantLease) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "The selected tenant is not assigned to the selected unit.",
+          });
+        }
+      } else {
+        const landlord = await ctx.prisma.landlord.findFirst({
+          where: { id: input.requestedById, organizationId: ctx.organization.organizationId },
+          select: { id: true },
+        });
+        if (!landlord) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Selected landlord must belong to the active organization.",
+          });
+        }
+      }
+
       return ctx.prisma.maintenanceTicket.update({
         where: { id: input.id },
         data: {

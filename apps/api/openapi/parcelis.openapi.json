@@ -279,7 +279,8 @@
                     "type": "string"
                   },
                   "notes": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 5000
                   },
                   "unitCount": {
                     "type": "integer",
@@ -664,7 +665,8 @@
                     "type": "string"
                   },
                   "notes": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 5000
                   },
                   "unitCount": {
                     "type": "integer",
@@ -955,7 +957,8 @@
                     "enum": [
                       "image/jpeg",
                       "image/png",
-                      "image/webp"
+                      "image/webp",
+                      "image/gif"
                     ]
                   },
                   "fileName": {
@@ -1069,7 +1072,7 @@
                 "properties": {
                   "objectKey": {
                     "type": "string",
-                    "pattern": "^properties\\/\\d+\\/images\\/[a-f0-9-]+\\.(jpg|png|webp)$"
+                    "pattern": "^organizations\\/\\d+\\/properties\\/\\d+\\/images\\/[a-f0-9-]+\\.(jpg|png|webp|gif)$"
                   }
                 },
                 "required": [
@@ -1545,7 +1548,8 @@
                 "type": "object",
                 "properties": {
                   "notes": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 5000
                   }
                 }
               }
@@ -1776,7 +1780,7 @@
                 "properties": {
                   "objectKey": {
                     "type": "string",
-                    "pattern": "^tenants\\/\\d+\\/images\\/[a-f0-9-]+\\.(jpg|png|webp)$"
+                    "pattern": "^organizations\\/\\d+\\/tenants\\/\\d+\\/images\\/[a-f0-9-]+\\.(jpg|png|webp)$"
                   }
                 },
                 "required": [

@@ -246,23 +246,20 @@ async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, p
 async function main() {
   const administratorEmail = "admin@parcelis.dev";
   const organizationName = "Parcelis Property Management";
-  const existingOrganization =
-    (await prisma.organization.findUnique({ where: { slug: "default" } })) ??
-    (await prisma.organization.findFirst({ where: { name: organizationName } }));
-  const organizationSlug =
-    existingOrganization && /^[a-f0-9]{20}$/.test(existingOrganization.slug)
-      ? existingOrganization.slug
-      : randomBytes(10).toString("hex");
+  const organizationSeedKey = "parcelis-demo";
+  const existingOrganization = await prisma.organization.findUnique({
+    where: { seedKey: organizationSeedKey },
+  });
   const organization = existingOrganization
     ? await prisma.organization.update({
         where: { id: existingOrganization.id },
         data: {
           name: organizationName,
-          slug: organizationSlug,
+          ...(existingOrganization.slug === "default" ? { slug: randomBytes(10).toString("hex") } : {}),
         },
       })
     : await prisma.organization.create({
-        data: { name: organizationName, slug: organizationSlug },
+        data: { name: organizationName, slug: randomBytes(10).toString("hex"), seedKey: organizationSeedKey },
       });
   const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
 
