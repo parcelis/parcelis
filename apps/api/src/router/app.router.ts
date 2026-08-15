@@ -244,6 +244,15 @@ async function validateUnitOptionIds(
   organizationId: number,
   units: Array<Pick<UnitDetailsInput, "amenityTypeIds" | "utilityTypeIds">>,
 ) {
+  if (
+    units.some(
+      (unit) =>
+        new Set(unit.amenityTypeIds).size !== unit.amenityTypeIds.length ||
+        new Set(unit.utilityTypeIds).size !== unit.utilityTypeIds.length,
+    )
+  ) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "A unit option can only be selected once." });
+  }
   const amenityTypeIds = units.flatMap((unit) => unit.amenityTypeIds);
   const utilityTypeIds = units.flatMap((unit) => unit.utilityTypeIds);
   const [amenityCount, utilityCount] = await Promise.all([
@@ -251,7 +260,10 @@ async function validateUnitOptionIds(
     prisma.utilityType.count({ where: { id: { in: utilityTypeIds }, organizationId } }),
   ]);
   if (amenityCount !== new Set(amenityTypeIds).size || utilityCount !== new Set(utilityTypeIds).size) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Selected unit options must belong to the active organization." });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Selected unit options must belong to the active organization.",
+    });
   }
 }
 
@@ -417,6 +429,27 @@ async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Pris
   }
 }
 
+async function assertOrganizationOwnersCanBeRemoved(prisma: PrismaClient | Prisma.TransactionClient, userId: number) {
+  const soleOwnerMembership = await prisma.organizationMembership.findFirst({
+    where: {
+      userId,
+      role: "owner",
+      organization: {
+        memberships: {
+          none: { userId: { not: userId }, role: "owner" },
+        },
+      },
+    },
+    select: { organization: { select: { name: true } } },
+  });
+  if (soleOwnerMembership) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Transfer ownership of ${soleOwnerMembership.organization.name} before deleting this user.`,
+    });
+  }
+}
+
 export const appRouter = router({
   auth: authRouter,
   organizations: router({
@@ -454,6 +487,13 @@ export const appRouter = router({
       });
       if (!membership && ctx.user.role !== "administrator")
         throw new TRPCError({ code: "FORBIDDEN", message: "Organization access is required." });
+      if (!membership) {
+        const organization = await ctx.prisma.organization.findUnique({
+          where: { id: input.organizationId },
+          select: { id: true },
+        });
+        if (!organization) throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found." });
+      }
       const organizationId = membership?.organizationId ?? input.organizationId;
       await ctx.prisma.session.update({
         where: { id: ctx.session.id },
@@ -461,13 +501,20 @@ export const appRouter = router({
       });
       return { organizationId };
     }),
-    update: organizationProcedure.input(updateOrganizationInputSchema).mutation(({ ctx, input }) => {
+    update: organizationProcedure.input(updateOrganizationInputSchema).mutation(async ({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
-      return ctx.prisma.organization.update({
-        where: { id: ctx.organization.organizationId },
-        data: { name: input.name, slug: input.slug },
-        select: { id: true, name: true, slug: true },
-      });
+      try {
+        return await ctx.prisma.organization.update({
+          where: { id: ctx.organization.organizationId },
+          data: { name: input.name, slug: input.slug },
+          select: { id: true, name: true, slug: true },
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw new TRPCError({ code: "CONFLICT", message: "An organization already uses this slug." });
+        }
+        throw error;
+      }
     }),
     createAvatarUploadUrl: organizationProcedure
       .input(organizationAvatarUploadInputSchema)
@@ -572,6 +619,7 @@ export const appRouter = router({
       return ctx.prisma.$transaction(
         async (tx) => {
           await assertActiveAdministratorCanBeRemoved(tx, input.id);
+          await assertOrganizationOwnersCanBeRemoved(tx, input.id);
           return tx.user.delete({ where: { id: input.id }, select: { id: true } });
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

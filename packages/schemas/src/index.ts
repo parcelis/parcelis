@@ -54,7 +54,7 @@ export const organizationAvatarUploadInputSchema = z.object({
   variant: z.enum(["light", "dark"]),
 });
 export const organizationAvatarUploadCompleteInputSchema = z.object({
-  objectKey: z.string().min(1).max(500),
+  objectKey: z.string().regex(/^organizations\/\d+\/avatar\/(light|dark)\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
   variant: z.enum(["light", "dark"]),
 });
 export const deleteOrganizationAvatarInputSchema = z.object({ variant: z.enum(["light", "dark"]) });
@@ -315,15 +315,15 @@ export const activityEventListInputSchema = z
   });
 export const maintenanceImageUploadInputSchema = z.object({
   id: idSchema,
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
 });
 export const maintenanceImageUploadCompleteInputSchema = z
   .object({
     id: idSchema,
     fileName: z.string().trim().min(1).max(255),
-    contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-    objectKey: z.string().regex(/^organizations\/\d+\/maintenance\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+    contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+    objectKey: z.string().regex(/^organizations\/\d+\/maintenance\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
   })
   .refine(({ id, objectKey }) => new RegExp(`^organizations/\\d+/maintenance/${id}/images/`).test(objectKey), {
     message: "The image must belong to the selected maintenance ticket.",
@@ -337,14 +337,14 @@ export const tenantByIdInputSchema = z.object({
 
 export const tenantImageUploadInputSchema = z.object({
   id: idSchema,
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
   fileName: z.string().trim().min(1).max(255),
 });
 
 export const tenantImageUploadCompleteInputSchema = z
   .object({
     id: idSchema,
-    objectKey: z.string().regex(/^organizations\/\d+\/tenants\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp)$/),
+    objectKey: z.string().regex(/^organizations\/\d+\/tenants\/\d+\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
   })
   .strict();
 

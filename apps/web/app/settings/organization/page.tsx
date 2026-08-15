@@ -66,7 +66,6 @@ export default function OrganizationSettingsPage() {
   const canManageUsers = currentUserQuery.data?.user.role === "administrator";
   const saveOrganizationDetails = useMutation({
     mutationFn: async ({ name, slug, avatarChanges }: { name: string; slug: string; avatarChanges: AvatarChanges }) => {
-      const organization = await apiClient.organizations.update.mutate({ name, slug });
       await Promise.all(
         (Object.entries(avatarChanges) as Array<[AvatarVariant, File | null]>).map(async ([variant, file]) => {
           if (file === null) return apiClient.organizations.deleteAvatar.mutate({ variant });
@@ -84,13 +83,12 @@ export default function OrganizationSettingsPage() {
           await apiClient.organizations.completeAvatarUpload.mutate({ objectKey, variant });
         }),
       );
+      const organization = await apiClient.organizations.update.mutate({ name, slug });
       return organization;
     },
     onSuccess: async (organization) => {
       setAvatarChanges({});
-      queryClient.setQueryData(queryKeys.organizations.active, (current: typeof activeOrganizationQuery.data) =>
-        current ? { ...current, ...organization } : current,
-      );
+      await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active });
       queryClient.setQueryData(queryKeys.organizations.list, (current: typeof accessibleOrganizationsQuery.data) =>
         current?.map((membership) =>
           membership.organization.id === organization.id

@@ -53,7 +53,7 @@ export function Sidebar({ active }: SidebarProps) {
     queryFn: () => apiClient.organizations.list.query(),
   });
   const activeOrganizationQuery = useQuery({
-    queryKey: queryKeys.organizations.active,
+    queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
   });
   const switchOrganizationMutation = useMutation({
@@ -78,7 +78,12 @@ export function Sidebar({ active }: SidebarProps) {
       const routePath = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
       router.replace(`/o/${organization.slug}${routePath === "/" ? "" : routePath}`);
     }
-  }, [activeOrganizationQuery.data, pathname, router]);
+    if (activeOrganizationQuery.isError && pathname.startsWith("/o/")) {
+      document.cookie = "parcelis-organization-slug=; path=/; max-age=0; samesite=lax";
+      router.replace("/");
+      router.refresh();
+    }
+  }, [activeOrganizationQuery.data, activeOrganizationQuery.isError, pathname, router]);
 
   function toggleSidebar() {
     setIsSidebarCollapsed((current) => {
@@ -190,6 +195,9 @@ export function Sidebar({ active }: SidebarProps) {
                   </option>
                 ))}
               </Select>
+              {switchOrganizationMutation.error ? (
+                <p className="mt-2 text-sm font-medium text-red-700">{switchOrganizationMutation.error.message}</p>
+              ) : null}
             </>
           ) : null}
           <div

@@ -110,6 +110,7 @@ model Organization {
   maintenanceTickets    MaintenanceTicket[]
   activityEvents        ActivityEvent[]
   defaultUsers          User[]                   @relation("UserDefaultOrganization")
+  activeSessions        Session[]                @relation("SessionActiveOrganization")
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
 }
@@ -156,8 +157,10 @@ model Session {
   lastSeenAt DateTime @default(now())
   activeOrganizationId Int?
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganization Organization? @relation("SessionActiveOrganization", fields: [activeOrganizationId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([activeOrganizationId])
   @@index([expiresAt])
 }
 

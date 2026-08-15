@@ -127,8 +127,8 @@ export default function SettingsPage() {
     queryFn: () => apiClient.users.list.query(),
   });
   const users = usersQuery.data ?? [];
-  const activeUsers = users.filter((user) => user.accountStatus === "active").length;
-  const disabledUsers = users.length - activeUsers;
+  const activeUsers = usersQuery.data?.filter((user) => user.accountStatus === "active").length;
+  const disabledUsers = usersQuery.data?.filter((user) => user.accountStatus === "disabled").length;
   const [editUser, setEditUser] = React.useState<UserListItem | null>(null);
   const [disableUser, setDisableUser] = React.useState<UserListItem | null>(null);
   const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
@@ -318,11 +318,11 @@ export default function SettingsPage() {
               <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
                 <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">
                   <div className="rounded-md bg-white/10 p-3">
-                    <div className="text-2xl font-bold text-white">{activeUsers}</div>
+                    <div className="text-2xl font-bold text-white">{activeUsers ?? "—"}</div>
                     Active accounts
                   </div>
                   <div className="rounded-md bg-white/10 p-3">
-                    <div className="text-2xl font-bold text-white">{disabledUsers}</div>
+                    <div className="text-2xl font-bold text-white">{disabledUsers ?? "—"}</div>
                     Disabled accounts
                   </div>
                 </div>

@@ -11,7 +11,7 @@ type NavigationRailProps = {
 
 export function NavigationRail({ children, title }: NavigationRailProps) {
   return (
-    <aside className="w-full shrink-0 md:w-60">
+    <aside aria-label={title} className="w-full shrink-0 md:w-60">
       <Card className="lg:sticky lg:top-6 dark:bg-parcelis-slate">
         <CardContent className="p-3">
           <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">{title}</p>
