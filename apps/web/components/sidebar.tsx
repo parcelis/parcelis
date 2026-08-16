@@ -11,13 +11,23 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  CircleUserRound,
   Home,
   LogOut,
   Settings,
   Users,
   Wrench,
 } from "lucide-react";
-import { Select } from "@parcelis/ui";
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarLabel,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarTrigger,
+  Select,
+} from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
 import { apiClient, queryKeys } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
@@ -56,6 +66,10 @@ export function Sidebar({ active }: SidebarProps) {
   const organizationsQuery = useQuery({
     queryKey: queryKeys.organizations.list,
     queryFn: () => apiClient.organizations.list.query(),
+  });
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
   });
   const activeOrganizationQuery = useQuery({
     queryKey: [...queryKeys.organizations.active, pathname],
@@ -261,27 +275,44 @@ export function Sidebar({ active }: SidebarProps) {
         })}
       </nav>
 
-      <button
-        aria-label="Sign out"
-        className={`mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain ${!isSidebarExpanded ? "justify-center" : ""}`}
-        disabled={isSigningOut}
-        onClick={signOut}
-        title={!isSidebarExpanded ? "Sign out" : undefined}
-        type="button"
-      >
-        <LogOut className="h-4 w-4 shrink-0" />
-        {!isSidebarExpanded ? null : (
-          <span className="min-w-0 truncate whitespace-nowrap">{isSigningOut ? "Signing out…" : "Sign out"}</span>
-        )}
-      </button>
-      {signOutError ? (
-        <p className="mb-4 text-xs text-red-700" role="alert">
-          {signOutError}
-        </p>
-      ) : null}
-      <div className="border-t border-parcelis-border pt-4">
-        <ThemeSelector compact={!isSidebarExpanded} />
-      </div>
+      <Menubar className="mt-auto">
+        <MenubarMenu>
+          <MenubarTrigger asChild>
+            <button
+              aria-label="Open account menu"
+              className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain ${!isSidebarExpanded ? "justify-center" : ""}`}
+              title={!isSidebarExpanded ? "My Account" : undefined}
+              type="button"
+            >
+              <CircleUserRound className="h-4 w-4 shrink-0" />
+              {!isSidebarExpanded ? null : <span className="min-w-0 truncate whitespace-nowrap">My Account</span>}
+            </button>
+          </MenubarTrigger>
+          <MenubarContent align="start" className="w-60" side="right">
+            <MenubarLabel className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold">My Account</span>
+              <span className="truncate text-xs font-normal text-parcelis-gray">
+                {currentUserQuery.data?.user.name || currentUserQuery.data?.user.email || "Loading account…"}
+              </span>
+            </MenubarLabel>
+            <MenubarSeparator />
+            <div className="px-3 py-2">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">Theme</p>
+              <ThemeSelector />
+            </div>
+            <MenubarSeparator />
+            {signOutError ? (
+              <p className="px-3 py-2 text-xs text-red-700" role="alert">
+                {signOutError}
+              </p>
+            ) : null}
+            <MenubarItem disabled={isSigningOut} onSelect={signOut}>
+              <LogOut className="h-4 w-4 shrink-0" />
+              {isSigningOut ? "Signing out…" : "Sign out"}
+            </MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+      </Menubar>
     </aside>
   );
 }
