@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { FaDiscord, FaGithub } from "react-icons/fa";
 import {
   Banknote,
   BookOpen,
@@ -15,6 +16,7 @@ import {
   ClipboardList,
   CircleUserRound,
   KeyRound,
+  Lightbulb,
   Home,
   LogOut,
   Settings,
@@ -422,7 +424,6 @@ export function Sidebar({ active }: SidebarProps) {
               <KeyRound className="h-4 w-4 shrink-0" />
               Change password
             </MenubarItem>
-            <MenubarSeparator />
             <MenubarItem asChild>
               <a href="/docs/" rel="noopener noreferrer" target="_blank">
                 <BookOpen className="h-4 w-4 shrink-0" />
@@ -430,10 +431,28 @@ export function Sidebar({ active }: SidebarProps) {
               </a>
             </MenubarItem>
             <MenubarSeparator />
-            <div className="px-3 py-2">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">Theme</p>
-              <ThemeSelector />
-            </div>
+            <MenubarItem asChild>
+              <a href="https://github.com/parcelis/parcelis" rel="noopener noreferrer" target="_blank">
+                <FaGithub className="h-4 w-4 shrink-0" />
+                GitHub
+              </a>
+            </MenubarItem>
+            <MenubarItem asChild>
+              <a href="https://discord.gg/4XYkWmVpWH" rel="noopener noreferrer" target="_blank">
+                <FaDiscord className="h-4 w-4 shrink-0" />
+                Discord Community
+              </a>
+            </MenubarItem>
+            <MenubarItem asChild>
+              <a
+                href="https://github.com/parcelis/parcelis/issues/new?template=feature_request.yml"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <Lightbulb className="h-4 w-4 shrink-0" />
+                Request a feature
+              </a>
+            </MenubarItem>
             <MenubarSeparator />
             {signOutError ? (
               <p className="px-3 py-2 text-xs text-red-700" role="alert">
@@ -444,6 +463,11 @@ export function Sidebar({ active }: SidebarProps) {
               <LogOut className="h-4 w-4 shrink-0" />
               {isSigningOut ? "Signing out…" : "Sign out"}
             </MenubarItem>
+            <MenubarSeparator />
+            <div className="px-3 py-2">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">Theme</p>
+              <ThemeSelector />
+            </div>
           </MenubarContent>
         </MenubarMenu>
         </Menubar>
