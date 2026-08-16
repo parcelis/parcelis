@@ -1,5 +1,5 @@
 name: Create Kanban card on issue approval
-run-name: Create Kanban card for issue  '#'${{ github.event.issue.number }} ':' ${{ github.event.issue.title }}
+run-name: "Create Kanban card for issue '#'${{ github.event.issue.number }} ': ' ${{ github.event.issue.title }}"
 
 on:
   issues:
