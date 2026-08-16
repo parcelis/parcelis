@@ -45,10 +45,10 @@ jobs:
           )
 
           if [ -n "$existing_card" ]; then
-            echo "Kan card already exists: $existing_card"
+            echo "Kan card already exists: https://kan.bn/cards/$existing_card"
             exit 0
           fi
-
+          
           payload=$(jq -n \
             --arg title "$ISSUE_TITLE" \
             --arg description "$description" \
