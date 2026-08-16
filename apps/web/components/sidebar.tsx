@@ -27,14 +27,12 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Label,
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarLabel,
-  MenubarMenu,
-  MenubarSeparator,
-  MenubarTrigger,
   PasswordInput,
   Select,
 } from "@parcelis/ui";
@@ -80,6 +78,7 @@ function isOrganizationAccessError(error: Error | null) {
 export function Sidebar({ active }: SidebarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
@@ -161,7 +160,7 @@ export function Sidebar({ active }: SidebarProps) {
     }
   }
 
-  const isSidebarExpanded = !isSidebarCollapsed || isSidebarHovered;
+  const isSidebarExpanded = !isSidebarCollapsed || isSidebarHovered || isAccountMenuOpen;
 
   return (
     <aside
@@ -394,9 +393,8 @@ export function Sidebar({ active }: SidebarProps) {
             </div>
           </form>
         </DialogContent>
-        <Menubar className="mt-auto">
-        <MenubarMenu>
-          <MenubarTrigger asChild>
+        <DropdownMenu onOpenChange={setIsAccountMenuOpen} open={isAccountMenuOpen}>
+          <DropdownMenuTrigger asChild>
             <button
               aria-label="Open account menu"
               className={`group flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain ${!isSidebarExpanded ? "justify-center" : ""}`}
@@ -411,39 +409,39 @@ export function Sidebar({ active }: SidebarProps) {
                 </>
               )}
             </button>
-          </MenubarTrigger>
-          <MenubarContent align="start" className="w-60" side="right">
-            <MenubarLabel className="flex flex-col gap-0.5">
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-60" side="right">
+            <div className="flex flex-col gap-0.5 px-3 py-2">
               <span className="text-sm font-semibold">My Account</span>
               <span className="truncate text-xs font-normal text-parcelis-gray">
                 {currentUserQuery.data?.user.name || currentUserQuery.data?.user.email || "Loading account…"}
               </span>
-            </MenubarLabel>
-            <MenubarSeparator />
-            <MenubarItem onSelect={() => setIsChangePasswordOpen(true)}>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setIsChangePasswordOpen(true)}>
               <KeyRound className="h-4 w-4 shrink-0" />
               Change password
-            </MenubarItem>
-            <MenubarItem asChild>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <a href="/docs/" rel="noopener noreferrer" target="_blank">
                 <BookOpen className="h-4 w-4 shrink-0" />
                 Documentation Site
               </a>
-            </MenubarItem>
-            <MenubarSeparator />
-            <MenubarItem asChild>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
               <a href="https://github.com/parcelis/parcelis" rel="noopener noreferrer" target="_blank">
                 <FaGithub className="h-4 w-4 shrink-0" />
                 GitHub
               </a>
-            </MenubarItem>
-            <MenubarItem asChild>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <a href="https://discord.gg/4XYkWmVpWH" rel="noopener noreferrer" target="_blank">
                 <FaDiscord className="h-4 w-4 shrink-0" />
                 Discord Community
               </a>
-            </MenubarItem>
-            <MenubarItem asChild>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <a
                 href="https://github.com/parcelis/parcelis/issues/new?template=feature_request.yml"
                 rel="noopener noreferrer"
@@ -452,25 +450,30 @@ export function Sidebar({ active }: SidebarProps) {
                 <Lightbulb className="h-4 w-4 shrink-0" />
                 Request a feature
               </a>
-            </MenubarItem>
-            <MenubarSeparator />
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {signOutError ? (
               <p className="px-3 py-2 text-xs text-red-700" role="alert">
                 {signOutError}
               </p>
             ) : null}
-            <MenubarItem disabled={isSigningOut} onSelect={signOut}>
+            <DropdownMenuItem
+              disabled={isSigningOut}
+              onSelect={(event) => {
+                event.preventDefault();
+                void signOut();
+              }}
+            >
               <LogOut className="h-4 w-4 shrink-0" />
               {isSigningOut ? "Signing out…" : "Sign out"}
-            </MenubarItem>
-            <MenubarSeparator />
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <div className="px-3 py-2">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">Theme</p>
               <ThemeSelector />
             </div>
-          </MenubarContent>
-        </MenubarMenu>
-        </Menubar>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </Dialog>
     </aside>
   );
