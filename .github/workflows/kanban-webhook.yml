@@ -7,7 +7,7 @@ on:
 jobs:
   create-kan-card:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'approved: Ready for development'
+    if: github.event.label.name == 'ready for development'
 
     steps:
       - name: Create Kan.bn card
