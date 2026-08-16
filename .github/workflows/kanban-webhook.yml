@@ -1,19 +1,8 @@
-name: Create Kan card on issue approval
-
-on:
-  issues:
-    types: [labeled]
-
-jobs:
-  create-kan-card:
-    runs-on: ubuntu-latest
-    if: github.event.label.name == 'ready for development'
-
-    steps:
-      - name: Create Kan.bn card
+      - name: Create Kan card
         env:
-          KAN_API_KEY: ${{ secrets.KANBAN_API_TOKEN }}
+          KAN_API_KEY: ${{ secrets.KANBAN_API_KEY }}
           KAN_LIST_PUBLIC_ID: ${{ secrets.KAN_LIST_PUBLIC_ID }}
+          KAN_BOARD_PUBLIC_ID: 9e7iyh7zc345
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -26,6 +15,21 @@ jobs:
             --arg url "$ISSUE_URL" \
             --arg body "$ISSUE_BODY" \
             '"GitHub issue: \($repo)#\($number)\n\($url)\n\n\($body)"')
+
+          existing_card=$(
+            curl --fail-with-body --silent --show-error \
+              --header "Authorization: Bearer $KAN_API_KEY" \
+              "https://kan.bn/api/v1/boards/$KAN_BOARD_PUBLIC_ID" |
+              jq -r --arg issueUrl "$ISSUE_URL" '
+                [.lists[]?.cards[]? | select((.description // "") | contains($issueUrl)) | .publicId]
+                | first // empty
+              '
+          )
+
+          if [ -n "$existing_card" ]; then
+            echo "Kan card already exists: $existing_card"
+            exit 0
+          fi
 
           payload=$(jq -n \
             --arg title "$ISSUE_TITLE" \
