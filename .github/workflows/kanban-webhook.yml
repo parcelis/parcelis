@@ -1,0 +1,49 @@
+name: Create Kan card on issue approval
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  create-kan-card:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'approved: Ready for development'
+
+    steps:
+      - name: Create Kan.bn card
+        env:
+          KAN_API_KEY: ${{ secrets.KAN_API_KEY }}
+          KAN_LIST_PUBLIC_ID: ${{ secrets.KAN_LIST_PUBLIC_ID }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          description=$(jq -n -r \
+            --arg repo "$REPOSITORY" \
+            --arg number "$ISSUE_NUMBER" \
+            --arg url "$ISSUE_URL" \
+            --arg body "$ISSUE_BODY" \
+            '"GitHub issue: \($repo)#\($number)\n\($url)\n\n\($body)"')
+
+          payload=$(jq -n \
+            --arg title "$ISSUE_TITLE" \
+            --arg description "$description" \
+            --arg listPublicId "$KAN_LIST_PUBLIC_ID" \
+            '{
+              title: $title,
+              description: $description,
+              listPublicId: $listPublicId,
+              labelPublicIds: [],
+              memberPublicIds: [],
+              position: "end",
+              dueDate: null
+            }')
+
+          curl --fail-with-body \
+            --request POST \
+            --url "https://kan.bn/api/v1/cards" \
+            --header "Authorization: Bearer $KAN_API_KEY" \
+            --header "Content-Type: application/json" \
+            --data "$payload"
