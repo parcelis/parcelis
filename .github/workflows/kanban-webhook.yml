@@ -1,21 +1,21 @@
-name: Create Kan.bn card on issue approval
-run-name: Create Kan card for issue #${{ github.event.issue.number }}
+name: Create Kanban card on issue approval
+run-name: Create Kanban card for issue #${{ github.event.issue.number }}
 
 on:
   issues:
     types: [labeled]
 
 jobs:
-  create-kan-card:
+  create-kanban-card:
     runs-on: ubuntu-latest
     if: github.event.label.name == 'ready for development'
 
     steps:
-      - name: Create Kan card
+      - name: Create Kanban card
         env:
           KAN_API_KEY: ${{ secrets.KANBAN_API_KEY }}
           KAN_LIST_PUBLIC_ID: ${{ secrets.KAN_LIST_PUBLIC_ID }}
-          KAN_BOARD_PUBLIC_ID: 9e7iyh7zc345
+          KAN_BOARD_PUBLIC_ID: ${{ secrets.KAN_BOARD_PUBLIC_ID }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
