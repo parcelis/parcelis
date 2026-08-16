@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
+  BookOpen,
   Building2,
   ChevronLeft,
   ChevronRight,
@@ -301,6 +302,13 @@ export function Sidebar({ active }: SidebarProps) {
                 {currentUserQuery.data?.user.name || currentUserQuery.data?.user.email || "Loading account…"}
               </span>
             </MenubarLabel>
+            <MenubarSeparator />
+            <MenubarItem asChild>
+              <a href="/docs/" rel="noopener noreferrer" target="_blank">
+                <BookOpen className="h-4 w-4 shrink-0" />
+                Documentation Site
+              </a>
+            </MenubarItem>
             <MenubarSeparator />
             <div className="px-3 py-2">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">Theme</p>
