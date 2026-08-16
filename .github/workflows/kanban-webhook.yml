@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Create Kanban card
         env:
-          KAN_API_KEY: ${{ secrets.KANBAN_API_KEY }}
+          KAN_API_KEY: ${{ secrets.KAN_API_KEY }}
           KAN_LIST_PUBLIC_ID: ${{ secrets.KAN_LIST_PUBLIC_ID }}
           KAN_BOARD_PUBLIC_ID: ${{ secrets.KAN_BOARD_PUBLIC_ID }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
