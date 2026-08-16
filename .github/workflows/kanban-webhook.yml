@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Create Kan.bn card
         env:
-          KAN_API_KEY: ${{ secrets.KAN_API_KEY }}
+          KAN_API_KEY: ${{ secrets.KANBAN_API_TOKEN }}
           KAN_LIST_PUBLIC_ID: ${{ secrets.KAN_LIST_PUBLIC_ID }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
