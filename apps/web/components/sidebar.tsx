@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ClipboardList,
   CircleUserRound,
+  KeyRound,
   Home,
   LogOut,
   Settings,
@@ -21,6 +22,10 @@ import {
   Wrench,
 } from "lucide-react";
 import {
+  Button,
+  Dialog,
+  DialogContent,
+  Label,
   Menubar,
   MenubarContent,
   MenubarItem,
@@ -28,6 +33,7 @@ import {
   MenubarMenu,
   MenubarSeparator,
   MenubarTrigger,
+  PasswordInput,
   Select,
 } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
@@ -48,6 +54,18 @@ type SidebarProps = {
   active: (typeof navItems)[number]["key"];
 };
 
+type ChangePasswordForm = {
+  currentPassword: string;
+  newPassword: string;
+  reenterPassword: string;
+};
+
+const initialChangePasswordForm: ChangePasswordForm = {
+  currentPassword: "",
+  newPassword: "",
+  reenterPassword: "",
+};
+
 function setSidebarWidth(collapsed: boolean) {
   document.documentElement.style.setProperty("--parcelis-sidebar-width", collapsed ? "5rem" : "16rem");
 }
@@ -62,6 +80,8 @@ export function Sidebar({ active }: SidebarProps) {
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+  const [changePasswordForm, setChangePasswordForm] = React.useState<ChangePasswordForm>(initialChangePasswordForm);
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -76,6 +96,13 @@ export function Sidebar({ active }: SidebarProps) {
   const activeOrganizationQuery = useQuery({
     queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
+  });
+  const changePasswordMutation = useMutation({
+    mutationFn: (input: ChangePasswordForm) => apiClient.auth.changePassword.mutate(input),
+    onSuccess: () => {
+      setChangePasswordForm(initialChangePasswordForm);
+      setIsChangePasswordOpen(false);
+    },
   });
   const switchOrganizationMutation = useMutation({
     mutationFn: (organizationId: number) => apiClient.organizations.switch.mutate({ organizationId }),
@@ -277,7 +304,95 @@ export function Sidebar({ active }: SidebarProps) {
         })}
       </nav>
 
-      <Menubar className="mt-auto">
+      <Dialog
+        onOpenChange={(open) => {
+          setIsChangePasswordOpen(open);
+          if (!open) {
+            setChangePasswordForm(initialChangePasswordForm);
+            changePasswordMutation.reset();
+          }
+        }}
+        open={isChangePasswordOpen}
+      >
+        <DialogContent>
+          <form
+            className="grid gap-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (changePasswordForm.newPassword === changePasswordForm.reenterPassword) {
+                changePasswordMutation.mutate(changePasswordForm);
+              }
+            }}
+          >
+            <div>
+              <h2 className="text-lg font-bold text-parcelis-charcoal">Change password</h2>
+              <p className="mt-1 text-sm text-parcelis-gray">Use at least 12 characters for your new password.</p>
+            </div>
+            <div className="grid gap-4">
+              <Label>
+                Current password
+                <PasswordInput
+                  autoComplete="current-password"
+                  className="mt-1"
+                  onChange={(event) => setChangePasswordForm({ ...changePasswordForm, currentPassword: event.target.value })}
+                  required
+                  value={changePasswordForm.currentPassword}
+                />
+              </Label>
+              <Label>
+                New password
+                <PasswordInput
+                  autoComplete="new-password"
+                  className="mt-1"
+                  minLength={12}
+                  onChange={(event) => setChangePasswordForm({ ...changePasswordForm, newPassword: event.target.value })}
+                  required
+                  value={changePasswordForm.newPassword}
+                />
+              </Label>
+              <Label>
+                Re-enter new password
+                <PasswordInput
+                  aria-describedby={
+                    changePasswordForm.reenterPassword && changePasswordForm.newPassword !== changePasswordForm.reenterPassword
+                      ? "password-match-error"
+                      : undefined
+                  }
+                  autoComplete="new-password"
+                  className="mt-1"
+                  minLength={12}
+                  onChange={(event) => setChangePasswordForm({ ...changePasswordForm, reenterPassword: event.target.value })}
+                  required
+                  value={changePasswordForm.reenterPassword}
+                />
+              </Label>
+            </div>
+            {changePasswordForm.reenterPassword && changePasswordForm.newPassword !== changePasswordForm.reenterPassword ? (
+              <p className="text-sm font-medium text-red-700" id="password-match-error" role="alert">
+                New passwords do not match.
+              </p>
+            ) : null}
+            {changePasswordMutation.error ? (
+              <p className="text-sm font-medium text-red-700" role="alert">
+                {changePasswordMutation.error.message}
+              </p>
+            ) : null}
+            <div className="flex items-center justify-between gap-3">
+              <Button onClick={() => setIsChangePasswordOpen(false)} type="button" variant="secondary">
+                Cancel
+              </Button>
+              <Button
+                disabled={
+                  changePasswordMutation.isPending || changePasswordForm.newPassword !== changePasswordForm.reenterPassword
+                }
+                type="submit"
+              >
+                {changePasswordMutation.isPending ? "Updating…" : "Update password"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+        <Menubar className="mt-auto">
         <MenubarMenu>
           <MenubarTrigger asChild>
             <button
@@ -303,6 +418,11 @@ export function Sidebar({ active }: SidebarProps) {
               </span>
             </MenubarLabel>
             <MenubarSeparator />
+            <MenubarItem onSelect={() => setIsChangePasswordOpen(true)}>
+              <KeyRound className="h-4 w-4 shrink-0" />
+              Change password
+            </MenubarItem>
+            <MenubarSeparator />
             <MenubarItem asChild>
               <a href="/docs/" rel="noopener noreferrer" target="_blank">
                 <BookOpen className="h-4 w-4 shrink-0" />
@@ -326,7 +446,8 @@ export function Sidebar({ active }: SidebarProps) {
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
-      </Menubar>
+        </Menubar>
+      </Dialog>
     </aside>
   );
 }

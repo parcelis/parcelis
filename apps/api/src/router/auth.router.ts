@@ -1,4 +1,4 @@
-import { authLoginInputSchema, authRegisterInputSchema } from "@parcelis/schemas";
+import { authLoginInputSchema, authRegisterInputSchema, changePasswordInputSchema } from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -87,6 +87,22 @@ export const authRouter = router({
     await createSession(ctx, user.id);
     clearLoginRateLimit(rateLimitKey);
     return { user: { id: user.id, email: user.email } };
+  }),
+
+  changePassword: protectedProcedure.input(changePasswordInputSchema).mutation(async ({ ctx, input }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.user.id },
+      select: { passwordHash: true },
+    });
+    if (!user || !(await verifyPassword(user.passwordHash, input.currentPassword))) {
+      throw invalidCredentials;
+    }
+
+    await ctx.prisma.user.update({
+      where: { id: ctx.user.id },
+      data: { passwordHash: await hashPassword(input.newPassword) },
+    });
+    return { success: true };
   }),
 
   logout: publicProcedure.mutation(async ({ ctx }) => {

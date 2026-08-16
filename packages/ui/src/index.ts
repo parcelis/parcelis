@@ -11,6 +11,7 @@ export * from "./components/input";
 export * from "./components/label";
 export * from "./components/logo";
 export * from "./components/menubar";
+export * from "./components/password-input";
 export * from "./components/popover";
 export * from "./components/select";
 export * from "./components/table";

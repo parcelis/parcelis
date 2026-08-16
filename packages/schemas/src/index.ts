@@ -16,6 +16,16 @@ export const authCredentialsInputSchema = z.object({
 
 export const authLoginInputSchema = authCredentialsInputSchema;
 export const authRegisterInputSchema = authCredentialsInputSchema;
+export const changePasswordInputSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(1024),
+    newPassword: z.string().min(12).max(1024),
+    reenterPassword: z.string().min(12).max(1024),
+  })
+  .refine((input) => input.newPassword === input.reenterPassword, {
+    message: "New passwords do not match.",
+    path: ["reenterPassword"],
+  });
 
 export const userRoleSchema = z.enum(["administrator", "member"]);
 export const userAccountStatusSchema = z.enum(["active", "disabled"]);
