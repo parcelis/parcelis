@@ -32,20 +32,49 @@ jobs:
             --arg number "$ISSUE_NUMBER" \
             --arg url "$ISSUE_URL" \
             --arg body "$ISSUE_BODY" \
-            '"GitHub issue: \($repo)#\($number)\n\($url)\n\n\($body)"')
+            --arg title "$ISSUE_TITLE" \
+            '"[\($repo)#\($number)](\($url))\n\n\($body)\n\n**\($title)**"')
 
           existing_card=$(
             curl --fail-with-body --silent --show-error \
               --header "Authorization: Bearer $KAN_API_KEY" \
               "https://kan.bn/api/v1/boards/$KAN_BOARD_PUBLIC_ID" |
-              jq -r --arg issueUrl "$ISSUE_URL" '
-                [.lists[]?.cards[]? | select((.description // "") | contains($issueUrl)) | .publicId]
+              jq -r --arg issueTitle "$ISSUE_TITLE" --arg issueUrl "$ISSUE_URL" '
+                [
+                  .lists[]?.cards[]?
+                  | select(.title == $issueTitle or ((.description // "") | contains($issueUrl)))
+                  | .publicId
+                ]
                 | first // empty
               '
           )
 
           if [ -n "$existing_card" ]; then
-            echo "Kan card already exists: https://kan.bn/cards/$existing_card"
+            card=$(curl --fail-with-body --silent --show-error \
+              --header "Authorization: Bearer $KAN_API_KEY" \
+              "https://kan.bn/api/v1/cards/$existing_card")
+
+            has_issue_link=$(jq -r --arg issueUrl "$ISSUE_URL" '
+              [
+                (.description // ""),
+                (.activities[]?.comment?.comment // "")
+              ]
+              | any(.[]; contains($issueUrl))
+            ' <<< "$card")
+
+            if [ "$has_issue_link" != "true" ]; then
+              curl --fail-with-body --silent --show-error \
+                --request POST \
+                --url "https://kan.bn/api/v1/cards/$existing_card/comments" \
+                --header "Authorization: Bearer $KAN_API_KEY" \
+                --header "Content-Type: application/json" \
+                --data "$(jq -n --arg comment "$description" '{comment: $comment}')"
+
+              echo "Added the GitHub issue link to the existing Kan card."
+            else
+              echo "Kan card already contains the GitHub issue link."
+            fi
+
             exit 0
           fi
           
