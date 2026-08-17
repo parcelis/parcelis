@@ -47,15 +47,15 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import { apiClient, queryKeys } from "../../../components/api-client";
-import { deleteTenantImage, uploadTenantImage } from "../../../components/tenant-image-upload";
-import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../components/tenant-drawer";
-import { LoadingState } from "../../../components/loading-state";
-import { NotesDrawer } from "../../../components/notes-drawer";
-import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
-import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
-import { entityUpdatedMessage } from "../../../components/toast-messages";
-import { getInvoiceLink, getPropertyLink, getTenantInvoicesLink } from "../../../lib/entity-links";
+import { apiClient, queryKeys } from "../../../../components/api-client";
+import { deleteTenantImage, uploadTenantImage } from "../../../../components/tenant-image-upload";
+import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../../components/tenant-drawer";
+import { LoadingState } from "../../../../components/loading-state";
+import { NotesDrawer } from "../../../../components/notes-drawer";
+import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
+import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
+import { entityUpdatedMessage } from "../../../../components/toast-messages";
+import { getInvoiceLink, getPropertyLink, getTenantInvoicesLink } from "../../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;

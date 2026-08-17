@@ -26,12 +26,12 @@ import {
   Card,
   CardContent,
 } from "@parcelis/ui";
-import { apiClient } from "../../../../components/api-client";
-import { LoadingState } from "../../../../components/loading-state";
-import { InvoiceActions } from "../../../../components/invoice-actions";
-import { NavigationRail } from "../../../../components/navigation-rail";
-import { formatDate } from "../../../../lib/date";
-import { getInvoiceLink, getPropertyLink } from "../../../../lib/entity-links";
+import { apiClient } from "../../../../../components/api-client";
+import { LoadingState } from "../../../../../components/loading-state";
+import { InvoiceActions } from "../../../../../components/invoice-actions";
+import { NavigationRail } from "../../../../../components/navigation-rail";
+import { formatDate } from "../../../../../lib/date";
+import { getInvoiceLink, getPropertyLink } from "../../../../../lib/entity-links";
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);

@@ -90,9 +90,6 @@ function isOrganizationAccessError(error: Error | null) {
 
 export function Sidebar() {
   const pathname = usePathname();
-
-  if (pathname.startsWith("/login")) return null;
-
   return <SidebarContent active={activeNavigation(pathname)} />;
 }
 
@@ -142,7 +139,7 @@ function SidebarContent({ active }: SidebarProps) {
     },
   });
 
-  React.useLayoutEffect(() => {
+  React.useEffect(() => {
     const saved = window.localStorage.getItem("parcelis-sidebar-collapsed") === "true";
     setIsSidebarCollapsed(saved);
     setSidebarWidth(saved);
@@ -199,7 +196,7 @@ function SidebarContent({ active }: SidebarProps) {
       }}
       onMouseLeave={() => setIsSidebarHovered(false)}
     >
-      <div className={`flex items-center gap-2 ${isSidebarExpanded ? "justify-between" : "justify-center"}`}>
+      <div className={`flex items-center gap-2 ${isSidebarExpanded ? "justify-between" : "flex-col"}`}>
         {!isSidebarExpanded ? (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center">
             <Image
@@ -239,20 +236,20 @@ function SidebarContent({ active }: SidebarProps) {
             />
           </Link>
         )}
-        {isSidebarExpanded ? (
-          <button
-            aria-label={isSidebarCollapsed ? "Pin navigation open" : "Collapse navigation"}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
-            onClick={toggleSidebar}
-            type="button"
-          >
-            {isSidebarCollapsed ? (
-              <ArrowRightToLine className="h-4 w-4" />
-            ) : (
-              <ArrowLeftToLine className="h-4 w-4" />
-            )}
-          </button>
-        ) : null}
+        <button
+          aria-label={
+            isSidebarCollapsed
+              ? isSidebarExpanded
+                ? "Pin navigation open"
+                : "Expand navigation"
+              : "Collapse navigation"
+          }
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
+          onClick={toggleSidebar}
+          type="button"
+        >
+          {isSidebarCollapsed ? <ArrowRightToLine className="h-4 w-4" /> : <ArrowLeftToLine className="h-4 w-4" />}
+        </button>
       </div>
 
       {isSidebarExpanded && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
