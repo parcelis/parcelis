@@ -48,7 +48,15 @@ export function clearLoginRateLimit(key: string) {
 
 export function getLoginRateLimitKey(ip: string | undefined, email: string) {
   const normalizedEmail = email.trim().toLowerCase();
+  return getRateLimitKey(ip, normalizedEmail);
+}
+
+export function getPasswordChangeRateLimitKey(ip: string | undefined, userId: number) {
+  return getRateLimitKey(ip, `password-change:${userId}`);
+}
+
+function getRateLimitKey(ip: string | undefined, identifier: string) {
   return createHash("sha256")
-    .update(`${ip ?? "unknown"}\0${normalizedEmail}`)
+    .update(`${ip ?? "unknown"}\0${identifier}`)
     .digest("base64url");
 }

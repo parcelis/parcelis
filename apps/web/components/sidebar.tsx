@@ -105,6 +105,11 @@ export function Sidebar({ active }: SidebarProps) {
       setIsChangePasswordOpen(false);
     },
   });
+  const closeChangePasswordDialog = () => {
+    setIsChangePasswordOpen(false);
+    setChangePasswordForm(initialChangePasswordForm);
+    changePasswordMutation.reset();
+  };
   const switchOrganizationMutation = useMutation({
     mutationFn: (organizationId: number) => apiClient.organizations.switch.mutate({ organizationId }),
     onSuccess: async ({ organizationId }) => {
@@ -307,15 +312,12 @@ export function Sidebar({ active }: SidebarProps) {
 
       <Dialog
         onOpenChange={(open) => {
-          setIsChangePasswordOpen(open);
-          if (!open) {
-            setChangePasswordForm(initialChangePasswordForm);
-            changePasswordMutation.reset();
-          }
+          if (open) setIsChangePasswordOpen(true);
+          else closeChangePasswordDialog();
         }}
         open={isChangePasswordOpen}
       >
-        <DialogContent>
+        <DialogContent aria-labelledby="change-password-title">
           <form
             className="grid gap-5"
             onSubmit={(event) => {
@@ -326,7 +328,9 @@ export function Sidebar({ active }: SidebarProps) {
             }}
           >
             <div>
-              <h2 className="text-lg font-bold text-parcelis-charcoal">Change password</h2>
+              <h2 className="text-lg font-bold text-parcelis-charcoal" id="change-password-title">
+                Change password
+              </h2>
               <p className="mt-1 text-sm text-parcelis-gray">Use at least 12 characters for your new password.</p>
             </div>
             <div className="grid gap-4">
@@ -387,7 +391,7 @@ export function Sidebar({ active }: SidebarProps) {
               </p>
             ) : null}
             <div className="flex items-center justify-between gap-3">
-              <Button onClick={() => setIsChangePasswordOpen(false)} type="button" variant="secondary">
+              <Button onClick={closeChangePasswordDialog} type="button" variant="secondary">
                 Cancel
               </Button>
               <Button

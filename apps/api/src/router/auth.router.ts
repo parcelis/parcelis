@@ -11,7 +11,12 @@ import {
   verifyPassword,
   isAuthenticationDisabled,
 } from "../modules/auth";
-import { clearLoginRateLimit, consumeLoginRateLimit, getLoginRateLimitKey } from "../modules/login-rate-limit";
+import {
+  clearLoginRateLimit,
+  consumeLoginRateLimit,
+  getLoginRateLimitKey,
+  getPasswordChangeRateLimitKey,
+} from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
 
@@ -90,18 +95,25 @@ export const authRouter = router({
   }),
 
   changePassword: protectedProcedure.input(changePasswordInputSchema).mutation(async ({ ctx, input }) => {
+    const rateLimitKey = getPasswordChangeRateLimitKey(ctx.req.ip, ctx.user.id);
+    consumeLoginRateLimit(rateLimitKey);
     const user = await ctx.prisma.user.findUnique({
       where: { id: ctx.user.id },
       select: { passwordHash: true },
     });
     if (!user || !(await verifyPassword(user.passwordHash, input.currentPassword))) {
-      throw invalidCredentials;
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect." });
     }
 
-    await ctx.prisma.user.update({
-      where: { id: ctx.user.id },
-      data: { passwordHash: await hashPassword(input.newPassword) },
-    });
+    const passwordHash = await hashPassword(input.newPassword);
+    await ctx.prisma.$transaction([
+      ctx.prisma.user.update({ where: { id: ctx.user.id }, data: { passwordHash } }),
+      ctx.prisma.session.updateMany({
+        where: { userId: ctx.user.id, id: { not: ctx.session.id }, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+    clearLoginRateLimit(rateLimitKey);
     return { success: true };
   }),
 
