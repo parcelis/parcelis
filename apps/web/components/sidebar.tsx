@@ -335,7 +335,9 @@ export function Sidebar({ active }: SidebarProps) {
                 <PasswordInput
                   autoComplete="current-password"
                   className="mt-1"
-                  onChange={(event) => setChangePasswordForm({ ...changePasswordForm, currentPassword: event.target.value })}
+                  onChange={(event) =>
+                    setChangePasswordForm({ ...changePasswordForm, currentPassword: event.target.value })
+                  }
                   required
                   value={changePasswordForm.currentPassword}
                 />
@@ -346,7 +348,9 @@ export function Sidebar({ active }: SidebarProps) {
                   autoComplete="new-password"
                   className="mt-1"
                   minLength={12}
-                  onChange={(event) => setChangePasswordForm({ ...changePasswordForm, newPassword: event.target.value })}
+                  onChange={(event) =>
+                    setChangePasswordForm({ ...changePasswordForm, newPassword: event.target.value })
+                  }
                   required
                   value={changePasswordForm.newPassword}
                 />
@@ -355,20 +359,24 @@ export function Sidebar({ active }: SidebarProps) {
                 Re-enter new password
                 <PasswordInput
                   aria-describedby={
-                    changePasswordForm.reenterPassword && changePasswordForm.newPassword !== changePasswordForm.reenterPassword
+                    changePasswordForm.reenterPassword &&
+                    changePasswordForm.newPassword !== changePasswordForm.reenterPassword
                       ? "password-match-error"
                       : undefined
                   }
                   autoComplete="new-password"
                   className="mt-1"
                   minLength={12}
-                  onChange={(event) => setChangePasswordForm({ ...changePasswordForm, reenterPassword: event.target.value })}
+                  onChange={(event) =>
+                    setChangePasswordForm({ ...changePasswordForm, reenterPassword: event.target.value })
+                  }
                   required
                   value={changePasswordForm.reenterPassword}
                 />
               </Label>
             </div>
-            {changePasswordForm.reenterPassword && changePasswordForm.newPassword !== changePasswordForm.reenterPassword ? (
+            {changePasswordForm.reenterPassword &&
+            changePasswordForm.newPassword !== changePasswordForm.reenterPassword ? (
               <p className="text-sm font-medium text-red-700" id="password-match-error" role="alert">
                 New passwords do not match.
               </p>
@@ -384,7 +392,8 @@ export function Sidebar({ active }: SidebarProps) {
               </Button>
               <Button
                 disabled={
-                  changePasswordMutation.isPending || changePasswordForm.newPassword !== changePasswordForm.reenterPassword
+                  changePasswordMutation.isPending ||
+                  changePasswordForm.newPassword !== changePasswordForm.reenterPassword
                 }
                 type="submit"
               >
@@ -397,7 +406,7 @@ export function Sidebar({ active }: SidebarProps) {
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Open account menu"
-              className={`group flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain ${!isSidebarExpanded ? "justify-center" : ""}`}
+              className={`group flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain dark:data-[state=open]:bg-parcelis-charcoal/70 ${!isSidebarExpanded ? "justify-center" : ""}`}
               title={!isSidebarExpanded ? "My Account" : undefined}
               type="button"
             >
