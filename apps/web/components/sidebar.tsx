@@ -106,6 +106,7 @@ export function Sidebar({ active }: SidebarProps) {
     },
   });
   const closeChangePasswordDialog = () => {
+    if (changePasswordMutation.isPending) return;
     setIsChangePasswordOpen(false);
     setChangePasswordForm(initialChangePasswordForm);
     changePasswordMutation.reset();
@@ -390,8 +391,18 @@ export function Sidebar({ active }: SidebarProps) {
                 {changePasswordMutation.error.message}
               </p>
             ) : null}
+            {changePasswordMutation.isPending ? (
+              <p className="text-sm text-parcelis-gray" role="status">
+                Your password update is in progress and cannot be canceled.
+              </p>
+            ) : null}
             <div className="flex items-center justify-between gap-3">
-              <Button onClick={closeChangePasswordDialog} type="button" variant="secondary">
+              <Button
+                disabled={changePasswordMutation.isPending}
+                onClick={closeChangePasswordDialog}
+                type="button"
+                variant="secondary"
+              >
                 Cancel
               </Button>
               <Button
