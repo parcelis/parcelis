@@ -80,7 +80,7 @@ function activeNavigation(pathname: string): SidebarProps["active"] {
 }
 
 function setSidebarWidth(collapsed: boolean) {
-  document.documentElement.style.setProperty("--parcelis-sidebar-width", collapsed ? "5rem" : "16rem");
+  document.documentElement.style.setProperty("--parcelis-sidebar-width", collapsed ? "4rem" : "16rem");
 }
 
 function isOrganizationAccessError(error: Error | null) {
@@ -189,7 +189,7 @@ function SidebarContent({ active }: SidebarProps) {
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r border-parcelis-border bg-white py-6 transition-[width,padding] duration-200 lg:flex lg:flex-col ${
-        isSidebarExpanded ? "w-64 px-4" : "w-20 px-1"
+        isSidebarExpanded ? "w-64 px-4" : "w-16 px-1"
       }`}
       onMouseEnter={() => {
         if (isSidebarCollapsed) setIsSidebarHovered(true);
@@ -236,20 +236,16 @@ function SidebarContent({ active }: SidebarProps) {
             />
           </Link>
         )}
-        <button
-          aria-label={
-            isSidebarCollapsed
-              ? isSidebarExpanded
-                ? "Pin navigation open"
-                : "Expand navigation"
-              : "Collapse navigation"
-          }
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
-          onClick={toggleSidebar}
-          type="button"
-        >
-          {isSidebarCollapsed ? <ArrowRightToLine className="h-4 w-4" /> : <ArrowLeftToLine className="h-4 w-4" />}
-        </button>
+        {isSidebarExpanded ? (
+          <button
+            aria-label={isSidebarCollapsed ? "Pin navigation open" : "Collapse navigation"}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
+            onClick={toggleSidebar}
+            type="button"
+          >
+            {isSidebarCollapsed ? <ArrowRightToLine className="h-4 w-4" /> : <ArrowLeftToLine className="h-4 w-4" />}
+          </button>
+        ) : null}
       </div>
 
       {isSidebarExpanded && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
