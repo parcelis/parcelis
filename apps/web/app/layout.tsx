@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppFooter } from "../components/app-footer";
+import { Sidebar } from "../components/sidebar";
 import { ShortcutProvider } from "../components/shortcut-provider";
 import { TrpcProvider } from "../components/trpc-provider";
 import { ThemeProvider } from "../components/theme-provider";
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <ShortcutProvider>
             <TrpcProvider>
               <div className="flex min-h-[100svh] flex-col">
+                <Sidebar />
                 {children}
                 <AppFooter />
               </div>

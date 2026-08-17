@@ -23,7 +23,6 @@ import { apiClient, queryKeys } from "../../components/api-client";
 import { LoadingState } from "../../components/loading-state";
 import { InvoiceDrawer } from "../../components/invoice-drawer";
 import { PageRail } from "../../components/page-rail";
-import { Sidebar } from "../../components/sidebar";
 import { getInvoiceLink } from "../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -163,7 +162,6 @@ function IncomePageContent() {
 
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
-      <Sidebar active="income" />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8 dark:bg-parcelis-slate/90">
           <div className="flex items-center gap-2">

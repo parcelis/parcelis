@@ -47,7 +47,6 @@ import {
 } from "../../../../../components/property-drawer";
 import { getPropertyFormState, getUnitFormStates } from "../../../../../components/property-drawer-state";
 import { LoadingState } from "../../../../../components/loading-state";
-import { Sidebar } from "../../../../../components/sidebar";
 import { NotesDrawer } from "../../../../../components/notes-drawer";
 import { entityUpdatedMessage } from "../../../../../components/toast-messages";
 import { StickyNotePlusIcon } from "../../../../../components/sticky-note-plus-icon";
@@ -178,7 +177,6 @@ export default function UnitDetailPage() {
 
   return (
     <main className="flex-1">
-      <Sidebar active="properties" />
       <PropertyDrawer
         cancelDescription="Are you sure you'd like to cancel editing?"
         drawerTitle="Edit Property"

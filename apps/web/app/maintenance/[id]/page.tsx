@@ -41,7 +41,6 @@ import {
 import { isActiveMaintenanceTicketStatus, isTerminalMaintenanceTicketStatus } from "@parcelis/schemas";
 import { apiClient } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
-import { Sidebar } from "../../../components/sidebar";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { MaintenanceDrawer } from "../../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../../components/maintenance-image-upload";
@@ -195,7 +194,6 @@ export default function MaintenanceTicketPage() {
     : false;
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
-      <Sidebar active="maintenance" />
       <NotesDrawer
         maintenanceSummary={
           ticket

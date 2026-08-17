@@ -42,7 +42,6 @@ import { deletePropertyImage, uploadPropertyImage } from "../../../components/pr
 import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
-import { Sidebar } from "../../../components/sidebar";
 import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../components/toast-messages";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../lib/entity-links";
@@ -187,7 +186,6 @@ export default function PropertyDetailPage() {
 
   return (
     <main className="flex-1">
-      <Sidebar active="properties" />
       <PropertyDrawer
         cancelDescription="Are you sure you'd like to cancel editing?"
         drawerTitle="Edit Property"

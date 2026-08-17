@@ -11,7 +11,6 @@ import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from
 import { apiClient, queryKeys } from "../components/api-client";
 import { LoadingState } from "../components/loading-state";
 import { uploadPropertyImage } from "../components/property-image-upload";
-import { Sidebar } from "../components/sidebar";
 import { entityCreatedMessage } from "../components/toast-messages";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -64,7 +63,6 @@ export default function Page() {
 
   return (
     <main className="flex-1">
-      <Sidebar active="portfolio" />
       <PropertyDrawer
         error={createProperty.error}
         form={form}

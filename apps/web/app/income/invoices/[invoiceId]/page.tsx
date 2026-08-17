@@ -30,7 +30,6 @@ import { apiClient } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { InvoiceActions } from "../../../../components/invoice-actions";
 import { NavigationRail } from "../../../../components/navigation-rail";
-import { Sidebar } from "../../../../components/sidebar";
 import { formatDate } from "../../../../lib/date";
 import { getInvoiceLink, getPropertyLink } from "../../../../lib/entity-links";
 
@@ -192,7 +191,6 @@ export default function InvoiceDetailPage() {
 
   return (
     <main className="min-h-screen bg-parcelis-porcelain dark:bg-parcelis-slate">
-      <Sidebar active="income" />
       <section className="lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="flex min-h-16 items-center justify-between gap-4 border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
           <Button asChild className="min-w-40" variant="secondary">

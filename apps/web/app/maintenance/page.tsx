@@ -55,7 +55,6 @@ import { LoadingState } from "../../components/loading-state";
 import { MaintenanceDrawer } from "../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
 import { NotesDrawer } from "../../components/notes-drawer";
-import { Sidebar } from "../../components/sidebar";
 import { entityArchivedMessage, entityCreatedMessage, entityDeletedMessage } from "../../components/toast-messages";
 import { getMaintenanceLink } from "../../lib/entity-links";
 
@@ -259,7 +258,6 @@ export default function MaintenancePage() {
 
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
-      <Sidebar active="maintenance" />
       <MaintenanceDrawer
         error={createTicket.error}
         isPending={createTicket.isPending}

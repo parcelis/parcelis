@@ -7,6 +7,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FaDiscord, FaGithub } from "react-icons/fa";
 import {
+  ArrowLeftToLine,
+  ArrowRightToLine,
   Banknote,
   BookOpen,
   Building2,
@@ -66,6 +68,17 @@ const initialChangePasswordForm: ChangePasswordForm = {
   reenterPassword: "",
 };
 
+function activeNavigation(pathname: string): SidebarProps["active"] {
+  const path = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
+
+  if (path.startsWith("/properties")) return "properties";
+  if (path.startsWith("/tenants")) return "tenants";
+  if (path.startsWith("/maintenance")) return "maintenance";
+  if (path.startsWith("/income")) return "income";
+  if (path.startsWith("/settings")) return "settings";
+  return "portfolio";
+}
+
 function setSidebarWidth(collapsed: boolean) {
   document.documentElement.style.setProperty("--parcelis-sidebar-width", collapsed ? "5rem" : "16rem");
 }
@@ -75,7 +88,15 @@ function isOrganizationAccessError(error: Error | null) {
   return "code" in error.data && error.data.code === "FORBIDDEN";
 }
 
-export function Sidebar({ active }: SidebarProps) {
+export function Sidebar() {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/login")) return null;
+
+  return <SidebarContent active={activeNavigation(pathname)} />;
+}
+
+function SidebarContent({ active }: SidebarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = React.useState(false);
@@ -121,7 +142,7 @@ export function Sidebar({ active }: SidebarProps) {
     },
   });
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const saved = window.localStorage.getItem("parcelis-sidebar-collapsed") === "true";
     setIsSidebarCollapsed(saved);
     setSidebarWidth(saved);
@@ -170,23 +191,23 @@ export function Sidebar({ active }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r border-parcelis-border bg-white px-4 py-6 transition-[width] duration-200 lg:flex lg:flex-col ${
-        isSidebarExpanded ? "w-64" : "w-20"
+      className={`fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r border-parcelis-border bg-white py-6 transition-[width,padding] duration-200 lg:flex lg:flex-col ${
+        isSidebarExpanded ? "w-64 px-4" : "w-20 px-1"
       }`}
       onMouseEnter={() => {
         if (isSidebarCollapsed) setIsSidebarHovered(true);
       }}
       onMouseLeave={() => setIsSidebarHovered(false)}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className={`flex items-center gap-2 ${isSidebarExpanded ? "justify-between" : "justify-center"}`}>
         {!isSidebarExpanded ? (
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center">
             <Image
               alt="Parcelis"
               className="h-full w-full object-cover dark:hidden"
               height={1042}
               priority
-              src="/brand/parcelis-dark-lettermark.svg"
+              src="/brand/parcelis-light-lettermark.svg"
               width={730}
             />
             <Image
@@ -194,7 +215,7 @@ export function Sidebar({ active }: SidebarProps) {
               className="hidden h-full w-full object-cover dark:block"
               height={1042}
               priority
-              src="/brand/parcelis-light-lettermark.svg"
+              src="/brand/parcelis-dark-lettermark.svg"
               width={730}
             />
           </div>
@@ -218,14 +239,20 @@ export function Sidebar({ active }: SidebarProps) {
             />
           </Link>
         )}
-        <button
-          aria-label={isSidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
-          onClick={toggleSidebar}
-          type="button"
-        >
-          {isSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        {isSidebarExpanded ? (
+          <button
+            aria-label={isSidebarCollapsed ? "Pin navigation open" : "Collapse navigation"}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
+            onClick={toggleSidebar}
+            type="button"
+          >
+            {isSidebarCollapsed ? (
+              <ArrowRightToLine className="h-4 w-4" />
+            ) : (
+              <ArrowLeftToLine className="h-4 w-4" />
+            )}
+          </button>
+        ) : null}
       </div>
 
       {isSidebarExpanded && organizationsQuery.data && organizationsQuery.data.length > 0 ? (
