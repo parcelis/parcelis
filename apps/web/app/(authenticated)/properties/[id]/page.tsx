@@ -35,17 +35,16 @@ import {
   initialPropertyFormState,
   type PropertyFormState,
   type UnitDetailsFormState,
-} from "../../../components/property-drawer";
-import { getPropertyFormState, getUnitFormStates } from "../../../components/property-drawer-state";
-import { apiClient, queryKeys } from "../../../components/api-client";
-import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
-import { LoadingState } from "../../../components/loading-state";
-import { NotesDrawer } from "../../../components/notes-drawer";
-import { EntityLifecycleControls } from "../../../components/entity-lifecycle-controls";
-import { Sidebar } from "../../../components/sidebar";
-import { StickyNotePlusIcon } from "../../../components/sticky-note-plus-icon";
-import { entityUpdatedMessage } from "../../../components/toast-messages";
-import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../lib/entity-links";
+} from "../../../../components/property-drawer";
+import { getPropertyFormState, getUnitFormStates } from "../../../../components/property-drawer-state";
+import { apiClient, queryKeys } from "../../../../components/api-client";
+import { deletePropertyImage, uploadPropertyImage } from "../../../../components/property-image-upload";
+import { LoadingState } from "../../../../components/loading-state";
+import { NotesDrawer } from "../../../../components/notes-drawer";
+import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
+import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
+import { entityUpdatedMessage } from "../../../../components/toast-messages";
+import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -187,7 +186,6 @@ export default function PropertyDetailPage() {
 
   return (
     <main className="flex-1">
-      <Sidebar active="properties" />
       <PropertyDrawer
         cancelDescription="Are you sure you'd like to cancel editing?"
         drawerTitle="Edit Property"

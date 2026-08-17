@@ -48,20 +48,19 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import { apiClient, queryKeys } from "../../components/api-client";
-import { LoadingState } from "../../components/loading-state";
-import { NotesDrawer } from "../../components/notes-drawer";
-import { Sidebar } from "../../components/sidebar";
-import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../components/tenant-drawer";
-import { deleteTenantImage, uploadTenantImage } from "../../components/tenant-image-upload";
+import { apiClient, queryKeys } from "../../../components/api-client";
+import { LoadingState } from "../../../components/loading-state";
+import { NotesDrawer } from "../../../components/notes-drawer";
+import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../components/tenant-drawer";
+import { deleteTenantImage, uploadTenantImage } from "../../../components/tenant-image-upload";
 import {
   entityArchivedMessage,
   entityCreatedMessage,
   entityDeletedMessage,
   entityReactivatedMessage,
   entityUpdatedMessage,
-} from "../../components/toast-messages";
-import { getTenantLink } from "../../lib/entity-links";
+} from "../../../components/toast-messages";
+import { getTenantLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -334,7 +333,6 @@ export default function TenantsPage() {
 
   return (
     <main className="flex-1">
-      <Sidebar active="tenants" />
       <AlertDialog onOpenChange={(open) => !open && setArchiveTenant(null)} open={Boolean(archiveTenant)}>
         <AlertDialogContent>
           <AlertDialogHeader>

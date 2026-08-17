@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-import { AppFooter } from "../components/app-footer";
-import { ShortcutProvider } from "../components/shortcut-provider";
-import { TrpcProvider } from "../components/trpc-provider";
 import { ThemeProvider } from "../components/theme-provider";
-import { ToastProvider } from "../components/toast-provider";
 import "@parcelis/ui/styles.css";
 import "./globals.css";
 
@@ -17,15 +13,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <ShortcutProvider>
-            <TrpcProvider>
-              <div className="flex min-h-[100svh] flex-col">
-                {children}
-                <AppFooter />
-              </div>
-              <ToastProvider />
-            </TrpcProvider>
-          </ShortcutProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>

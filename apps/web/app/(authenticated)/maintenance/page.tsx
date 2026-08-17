@@ -50,14 +50,13 @@ import {
   isTerminalMaintenanceTicketStatus,
   maintenanceTicketStatuses,
 } from "@parcelis/schemas";
-import { apiClient } from "../../components/api-client";
-import { LoadingState } from "../../components/loading-state";
-import { MaintenanceDrawer } from "../../components/maintenance-drawer";
-import { uploadMaintenanceImage } from "../../components/maintenance-image-upload";
-import { NotesDrawer } from "../../components/notes-drawer";
-import { Sidebar } from "../../components/sidebar";
-import { entityArchivedMessage, entityCreatedMessage, entityDeletedMessage } from "../../components/toast-messages";
-import { getMaintenanceLink } from "../../lib/entity-links";
+import { apiClient } from "../../../components/api-client";
+import { LoadingState } from "../../../components/loading-state";
+import { MaintenanceDrawer } from "../../../components/maintenance-drawer";
+import { uploadMaintenanceImage } from "../../../components/maintenance-image-upload";
+import { NotesDrawer } from "../../../components/notes-drawer";
+import { entityArchivedMessage, entityCreatedMessage, entityDeletedMessage } from "../../../components/toast-messages";
+import { getMaintenanceLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -259,7 +258,6 @@ export default function MaintenancePage() {
 
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
-      <Sidebar active="maintenance" />
       <MaintenanceDrawer
         error={createTicket.error}
         isPending={createTicket.isPending}

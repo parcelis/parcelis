@@ -39,13 +39,12 @@ import {
   Textarea,
 } from "@parcelis/ui";
 import { isActiveMaintenanceTicketStatus, isTerminalMaintenanceTicketStatus } from "@parcelis/schemas";
-import { apiClient } from "../../../components/api-client";
-import { LoadingState } from "../../../components/loading-state";
-import { Sidebar } from "../../../components/sidebar";
-import { NotesDrawer } from "../../../components/notes-drawer";
-import { MaintenanceDrawer } from "../../../components/maintenance-drawer";
-import { uploadMaintenanceImage } from "../../../components/maintenance-image-upload";
-import { entityUpdatedMessage } from "../../../components/toast-messages";
+import { apiClient } from "../../../../components/api-client";
+import { LoadingState } from "../../../../components/loading-state";
+import { NotesDrawer } from "../../../../components/notes-drawer";
+import { MaintenanceDrawer } from "../../../../components/maintenance-drawer";
+import { uploadMaintenanceImage } from "../../../../components/maintenance-image-upload";
+import { entityUpdatedMessage } from "../../../../components/toast-messages";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -195,7 +194,6 @@ export default function MaintenanceTicketPage() {
     : false;
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
-      <Sidebar active="maintenance" />
       <NotesDrawer
         maintenanceSummary={
           ticket

@@ -7,12 +7,11 @@ import { Building2, CalendarClock, CircleDollarSign, ClipboardCheck, Plus, Searc
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
 import type { CreatePropertyInput } from "@parcelis/schemas";
-import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../components/property-drawer";
-import { apiClient, queryKeys } from "../components/api-client";
-import { LoadingState } from "../components/loading-state";
-import { uploadPropertyImage } from "../components/property-image-upload";
-import { Sidebar } from "../components/sidebar";
-import { entityCreatedMessage } from "../components/toast-messages";
+import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../../components/property-drawer";
+import { apiClient, queryKeys } from "../../components/api-client";
+import { LoadingState } from "../../components/loading-state";
+import { uploadPropertyImage } from "../../components/property-image-upload";
+import { entityCreatedMessage } from "../../components/toast-messages";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -64,7 +63,6 @@ export default function Page() {
 
   return (
     <main className="flex-1">
-      <Sidebar active="portfolio" />
       <PropertyDrawer
         error={createProperty.error}
         form={form}
