@@ -5,19 +5,37 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { FaDiscord, FaGithub } from "react-icons/fa";
 import {
   Banknote,
+  BookOpen,
   Building2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   ClipboardList,
+  CircleUserRound,
+  KeyRound,
+  Lightbulb,
   Home,
   LogOut,
   Settings,
   Users,
   Wrench,
 } from "lucide-react";
-import { Select } from "@parcelis/ui";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Label,
+  PasswordInput,
+  Select,
+} from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
 import { apiClient, queryKeys } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
@@ -36,6 +54,18 @@ type SidebarProps = {
   active: (typeof navItems)[number]["key"];
 };
 
+type ChangePasswordForm = {
+  currentPassword: string;
+  newPassword: string;
+  reenterPassword: string;
+};
+
+const initialChangePasswordForm: ChangePasswordForm = {
+  currentPassword: "",
+  newPassword: "",
+  reenterPassword: "",
+};
+
 function setSidebarWidth(collapsed: boolean) {
   document.documentElement.style.setProperty("--parcelis-sidebar-width", collapsed ? "5rem" : "16rem");
 }
@@ -48,8 +78,11 @@ function isOrganizationAccessError(error: Error | null) {
 export function Sidebar({ active }: SidebarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+  const [changePasswordForm, setChangePasswordForm] = React.useState<ChangePasswordForm>(initialChangePasswordForm);
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -57,10 +90,27 @@ export function Sidebar({ active }: SidebarProps) {
     queryKey: queryKeys.organizations.list,
     queryFn: () => apiClient.organizations.list.query(),
   });
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
   const activeOrganizationQuery = useQuery({
     queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
   });
+  const changePasswordMutation = useMutation({
+    mutationFn: (input: ChangePasswordForm) => apiClient.auth.changePassword.mutate(input),
+    onSuccess: () => {
+      setChangePasswordForm(initialChangePasswordForm);
+      setIsChangePasswordOpen(false);
+    },
+  });
+  const closeChangePasswordDialog = () => {
+    if (changePasswordMutation.isPending) return;
+    setIsChangePasswordOpen(false);
+    setChangePasswordForm(initialChangePasswordForm);
+    changePasswordMutation.reset();
+  };
   const switchOrganizationMutation = useMutation({
     mutationFn: (organizationId: number) => apiClient.organizations.switch.mutate({ organizationId }),
     onSuccess: async ({ organizationId }) => {
@@ -116,7 +166,7 @@ export function Sidebar({ active }: SidebarProps) {
     }
   }
 
-  const isSidebarExpanded = !isSidebarCollapsed || isSidebarHovered;
+  const isSidebarExpanded = !isSidebarCollapsed || isSidebarHovered || isAccountMenuOpen;
 
   return (
     <aside
@@ -261,27 +311,194 @@ export function Sidebar({ active }: SidebarProps) {
         })}
       </nav>
 
-      <button
-        aria-label="Sign out"
-        className={`mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain ${!isSidebarExpanded ? "justify-center" : ""}`}
-        disabled={isSigningOut}
-        onClick={signOut}
-        title={!isSidebarExpanded ? "Sign out" : undefined}
-        type="button"
+      <Dialog
+        onOpenChange={(open) => {
+          if (open) setIsChangePasswordOpen(true);
+          else closeChangePasswordDialog();
+        }}
+        open={isChangePasswordOpen}
       >
-        <LogOut className="h-4 w-4 shrink-0" />
-        {!isSidebarExpanded ? null : (
-          <span className="min-w-0 truncate whitespace-nowrap">{isSigningOut ? "Signing out…" : "Sign out"}</span>
-        )}
-      </button>
-      {signOutError ? (
-        <p className="mb-4 text-xs text-red-700" role="alert">
-          {signOutError}
-        </p>
-      ) : null}
-      <div className="border-t border-parcelis-border pt-4">
-        <ThemeSelector compact={!isSidebarExpanded} />
-      </div>
+        <DialogContent aria-labelledby="change-password-title">
+          <form
+            className="grid gap-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (changePasswordForm.newPassword === changePasswordForm.reenterPassword) {
+                changePasswordMutation.mutate(changePasswordForm);
+              }
+            }}
+          >
+            <div>
+              <h2 className="text-lg font-bold text-parcelis-charcoal" id="change-password-title">
+                Change password
+              </h2>
+              <p className="mt-1 text-sm text-parcelis-gray">Use at least 12 characters for your new password.</p>
+            </div>
+            <div className="grid gap-4">
+              <Label>
+                Current password
+                <PasswordInput
+                  autoComplete="current-password"
+                  className="mt-1"
+                  onChange={(event) =>
+                    setChangePasswordForm({ ...changePasswordForm, currentPassword: event.target.value })
+                  }
+                  required
+                  value={changePasswordForm.currentPassword}
+                />
+              </Label>
+              <Label>
+                New password
+                <PasswordInput
+                  autoComplete="new-password"
+                  className="mt-1"
+                  minLength={12}
+                  onChange={(event) =>
+                    setChangePasswordForm({ ...changePasswordForm, newPassword: event.target.value })
+                  }
+                  required
+                  value={changePasswordForm.newPassword}
+                />
+              </Label>
+              <Label>
+                Re-enter new password
+                <PasswordInput
+                  aria-describedby={
+                    changePasswordForm.reenterPassword &&
+                    changePasswordForm.newPassword !== changePasswordForm.reenterPassword
+                      ? "password-match-error"
+                      : undefined
+                  }
+                  autoComplete="new-password"
+                  className="mt-1"
+                  minLength={12}
+                  onChange={(event) =>
+                    setChangePasswordForm({ ...changePasswordForm, reenterPassword: event.target.value })
+                  }
+                  required
+                  value={changePasswordForm.reenterPassword}
+                />
+              </Label>
+            </div>
+            {changePasswordForm.reenterPassword &&
+            changePasswordForm.newPassword !== changePasswordForm.reenterPassword ? (
+              <p className="text-sm font-medium text-red-700" id="password-match-error" role="alert">
+                New passwords do not match.
+              </p>
+            ) : null}
+            {changePasswordMutation.error ? (
+              <p className="text-sm font-medium text-red-700" role="alert">
+                {changePasswordMutation.error.message}
+              </p>
+            ) : null}
+            {changePasswordMutation.isPending ? (
+              <p className="text-sm text-parcelis-gray" role="status">
+                Your password update is in progress and cannot be canceled.
+              </p>
+            ) : null}
+            <div className="flex items-center justify-between gap-3">
+              <Button
+                disabled={changePasswordMutation.isPending}
+                onClick={closeChangePasswordDialog}
+                type="button"
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={
+                  changePasswordMutation.isPending ||
+                  changePasswordForm.newPassword !== changePasswordForm.reenterPassword
+                }
+                type="submit"
+              >
+                {changePasswordMutation.isPending ? "Updating…" : "Update password"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+        <DropdownMenu onOpenChange={setIsAccountMenuOpen} open={isAccountMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label="Open account menu"
+              className={`group flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain dark:data-[state=open]:bg-parcelis-charcoal/70 ${!isSidebarExpanded ? "justify-center" : ""}`}
+              title={!isSidebarExpanded ? "My Account" : undefined}
+              type="button"
+            >
+              <CircleUserRound className="h-4 w-4 shrink-0" />
+              {!isSidebarExpanded ? null : (
+                <>
+                  <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left">My Account</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+                </>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-60" side="right">
+            <div className="flex flex-col gap-0.5 px-3 py-2">
+              <span className="text-sm font-semibold">My Account</span>
+              <span className="truncate text-xs font-normal text-parcelis-gray">
+                {currentUserQuery.data?.user.name || currentUserQuery.data?.user.email || "Loading account…"}
+              </span>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setIsChangePasswordOpen(true)}>
+              <KeyRound className="h-4 w-4 shrink-0" />
+              Change password
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="/docs/" rel="noopener noreferrer" target="_blank">
+                <BookOpen className="h-4 w-4 shrink-0" />
+                Documentation Site
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a href="https://github.com/parcelis/parcelis" rel="noopener noreferrer" target="_blank">
+                <FaGithub className="h-4 w-4 shrink-0" />
+                GitHub
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="https://discord.gg/4XYkWmVpWH" rel="noopener noreferrer" target="_blank">
+                <FaDiscord className="h-4 w-4 shrink-0" />
+                Discord Community
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a
+                href="https://github.com/parcelis/parcelis/issues/new?template=feature_request.yml"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <Lightbulb className="h-4 w-4 shrink-0" />
+                Request a feature
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {signOutError ? (
+              <p className="px-3 py-2 text-xs text-red-700" role="alert">
+                {signOutError}
+              </p>
+            ) : null}
+            <DropdownMenuItem
+              disabled={isSigningOut}
+              onSelect={(event) => {
+                event.preventDefault();
+                void signOut();
+              }}
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              {isSigningOut ? "Signing out…" : "Sign out"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <div className="px-3 py-2">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">Theme</p>
+              <ThemeSelector />
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Dialog>
     </aside>
   );
 }

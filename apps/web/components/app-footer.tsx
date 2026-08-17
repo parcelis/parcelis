@@ -1,6 +1,5 @@
 "use client";
 
-import { BookOpen, ExternalLink } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export function AppFooter() {
@@ -22,16 +21,6 @@ export function AppFooter() {
         </span>
         <div className="flex flex-wrap items-center gap-4">
           <span className="leading-none">The open-source platform for property management.</span>
-          <a
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-parcelis-border bg-white px-2.5 font-medium leading-none text-parcelis-charcoal transition hover:border-parcelis-green hover:text-parcelis-green dark:bg-parcelis-slate"
-            href="/docs/"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            Documentation Site
-            <ExternalLink className="h-3 w-3" />
-          </a>
         </div>
       </div>
     </footer>

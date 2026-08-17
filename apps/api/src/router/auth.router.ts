@@ -1,4 +1,4 @@
-import { authLoginInputSchema, authRegisterInputSchema } from "@parcelis/schemas";
+import { authLoginInputSchema, authRegisterInputSchema, changePasswordInputSchema } from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -11,7 +11,12 @@ import {
   verifyPassword,
   isAuthenticationDisabled,
 } from "../modules/auth";
-import { clearLoginRateLimit, consumeLoginRateLimit, getLoginRateLimitKey } from "../modules/login-rate-limit";
+import {
+  clearLoginRateLimit,
+  consumeLoginRateLimit,
+  getLoginRateLimitKey,
+  getPasswordChangeRateLimitKey,
+} from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
 
@@ -87,6 +92,29 @@ export const authRouter = router({
     await createSession(ctx, user.id);
     clearLoginRateLimit(rateLimitKey);
     return { user: { id: user.id, email: user.email } };
+  }),
+
+  changePassword: protectedProcedure.input(changePasswordInputSchema).mutation(async ({ ctx, input }) => {
+    const rateLimitKey = getPasswordChangeRateLimitKey(ctx.req.ip, ctx.user.id);
+    consumeLoginRateLimit(rateLimitKey);
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.user.id },
+      select: { passwordHash: true },
+    });
+    if (!user || !(await verifyPassword(user.passwordHash, input.currentPassword))) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect." });
+    }
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await ctx.prisma.$transaction([
+      ctx.prisma.user.update({ where: { id: ctx.user.id }, data: { passwordHash } }),
+      ctx.prisma.session.updateMany({
+        where: { userId: ctx.user.id, id: { not: ctx.session.id }, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+    clearLoginRateLimit(rateLimitKey);
+    return { success: true };
   }),
 
   logout: publicProcedure.mutation(async ({ ctx }) => {
