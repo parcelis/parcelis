@@ -54,7 +54,6 @@ export function setSessionCookie(response: Response, token: string) {
   response.cookie(sessionCookieName, token, {
     ...getCookieOptions(),
     httpOnly: true,
-    secure: true,
     maxAge: sessionDurationMs,
   });
 }
