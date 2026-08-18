@@ -1,13 +1,9 @@
-import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Document, Image, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
 
-const parcelisLightBanner = `data:image/png;base64,${readFileSync(
-  resolve(__dirname, "../../../web/public/brand/parcelis-light-banner.png"),
-).toString("base64")}`;
-const parcelisLightBackground = `data:image/png;base64,${readFileSync(
-  resolve(__dirname, "../../../web/public/brand/parcelis-light-background.png"),
-).toString("base64")}`;
+const parcelisLightBannerPath = resolve(__dirname, "../../../web/public/brand/parcelis-fullmark-light.png");
+const parcelisLightBackgroundPath = resolve(__dirname, "../../../web/public/brand/parcelis-light-background.png");
 
 export type InvoicePdfInvoice = {
   amountCents: number;
@@ -53,6 +49,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   brandBanner: { height: 36, width: 130 },
+  brandName: { color: "#101c29", fontFamily: "Helvetica-Bold", fontSize: 22, height: 36 },
   invoiceLabel: { fontSize: 22, fontFamily: "Helvetica-Bold", textAlign: "right" },
   statusLate: {
     alignSelf: "flex-start",
@@ -77,6 +74,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   muted: { color: "#586273", marginTop: 4 },
+  tagline: { color: "#586273", fontFamily: "Helvetica-Bold", marginTop: 4 },
   details: { flexDirection: "row", gap: 24, marginTop: 30 },
   detailColumn: { flex: 1 },
   eyebrow: { color: "#586273", fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 1, textTransform: "uppercase" },
@@ -135,7 +133,23 @@ function getInvoiceStatus(invoice: Pick<InvoicePdfInvoice, "balanceCents" | "sta
   return null;
 }
 
-function InvoicePdfDocument({ invoice }: { invoice: InvoicePdfInvoice }) {
+async function loadBrandImage(path: string) {
+  try {
+    return `data:image/png;base64,${(await readFile(path)).toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+function InvoicePdfDocument({
+  brandBanner,
+  headerBackground,
+  invoice,
+}: {
+  brandBanner: string | null;
+  headerBackground: string | null;
+  invoice: InvoicePdfInvoice;
+}) {
   const invoiceLabel = `INV-${String(invoice.invoiceNumber).padStart(7, "0")}`;
   const paidCents = Math.max(invoice.amountCents - invoice.balanceCents, 0);
   const status = getInvoiceStatus(invoice);
@@ -147,10 +161,10 @@ function InvoicePdfDocument({ invoice }: { invoice: InvoicePdfInvoice }) {
     <Document author="Parcelis" title={`Invoice ${invoiceLabel}`}>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
-          <Image src={parcelisLightBackground} style={styles.headerBackground} />
+          {headerBackground ? <Image src={headerBackground} style={styles.headerBackground} /> : null}
           <View>
-            <Image src={parcelisLightBanner} style={styles.brandBanner} />
-            <Text style={styles.muted}>The open-source platform for property management.</Text>
+            {brandBanner ? <Image src={brandBanner} style={styles.brandBanner} /> : <Text style={styles.brandName}>Parcelis</Text>}
+            <Text style={styles.tagline}>The open-source platform for property management.</Text>
           </View>
           <View>
             <Text style={styles.invoiceLabel}>INVOICE</Text>
@@ -242,6 +256,10 @@ function InvoicePdfDocument({ invoice }: { invoice: InvoicePdfInvoice }) {
   );
 }
 
-export function renderInvoicePdf(invoice: InvoicePdfInvoice) {
-  return renderToBuffer(<InvoicePdfDocument invoice={invoice} />);
+export async function renderInvoicePdf(invoice: InvoicePdfInvoice) {
+  const [brandBanner, headerBackground] = await Promise.all([
+    loadBrandImage(parcelisLightBannerPath),
+    loadBrandImage(parcelisLightBackgroundPath),
+  ]);
+  return renderToBuffer(<InvoicePdfDocument brandBanner={brandBanner} headerBackground={headerBackground} invoice={invoice} />);
 }

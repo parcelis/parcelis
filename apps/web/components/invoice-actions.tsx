@@ -61,6 +61,8 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
       const url = URL.createObjectURL(blob);
       previewWindow.location.href = url;
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      previewWindow.close();
     } finally {
       setIsOpeningPdf(false);
     }
