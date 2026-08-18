@@ -109,7 +109,7 @@
 
 ## Gotchas
 
-- This repo uses `pnpm@10.28.2`; avoid npm or yarn lockfile changes.
+- This repo uses `pnpm@11.20.0`; avoid npm or yarn lockfile changes.
 - `postinstall` runs Prisma client generation.
 - Docker Compose maps local dependencies to the documented default host ports.
 - `minio-init` is expected to exit after creating buckets and uploading brand assets.

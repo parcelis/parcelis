@@ -31,7 +31,7 @@
   "devDependencies": {
     "@parcelis/config": "workspace:*",
     "@tailwindcss/postcss": "4.3.3",
-    "@types/node": "^22.7.4",
+    "@types/node": "24.13.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "postcss": "^8.5.26",
