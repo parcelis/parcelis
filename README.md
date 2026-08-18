@@ -40,45 +40,50 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br /><br />
 
-## 🧩 Features
+### 🧩 Features
 
-### Run your rentals in one place
+#### Manage your portfolio in one place
 
-Keep your properties, units, tenants, maintenance, and day-to-day operations organized in one shared workspace—without juggling spreadsheets, email threads, and separate tools.
+Track properties, units, tenants, leases, maintenance, and income in a shared workspace—without relying on disconnected spreadsheets and tools.
 
-### Keep your team on the same page
+#### See your portfolio at a glance
 
-Give every team member visibility into what needs attention, who owns it, and what has already been completed. Parcelis keeps operational work clear, accountable, and moving forward.
+Start with a dashboard for occupancy, properties, active leases, monthly rent, priority work, and a property snapshot.
 
-### Work in the right organization
+#### Organize properties and units
 
-Keep each organization's properties, tenants, leases, income, and maintenance records separate. Team members can switch between the organizations they are allowed to access.
+Create and manage properties, units, contacts, tags, photos, notes, occupancy, and lease information. Archive records when they are no longer part of your active workflow without losing their history.
 
-### Manage tenants with confidence
+#### Keep complete tenant records
 
-Maintain a complete view of each tenant alongside the property information, requests, and activity that matter—so your team always has the context to respond quickly.
+Maintain tenant contact details, emergency contacts, insurance and account status, images, notes, lease history, current balances, and related invoices in one place.
 
-### Stay ahead of maintenance
+#### Manage leases and rent income
 
-Create, assign, track, and resolve maintenance tickets in one place. Keep residents informed, coordinate work internally, and make sure important issues do not slip through the cracks.
+Connect tenants to units with lease terms and monthly rent. Review rent roll and overdue balances, create itemized invoices, and record payments to keep income activity current.
 
-### Bring everyday operations into the app
+#### Stay on top of maintenance
 
-Tenant questions, repair needs, follow-ups, and other operational tasks happen every day. Parcelis gives your team a simple way to capture, manage, and close the loop on that work.
+Create, search, filter, group, and manage maintenance tickets across your portfolio. Track priority, category, requester, unit, entry consent, photos, notes, and the full ticket lifecycle from new to closed or canceled.
 
-### Built for growing portfolios
+#### Work across organizations
 
-Whether you manage a handful of homes or a growing portfolio, Parcelis gives your team a consistent operational system that scales with the way you work.
+Keep properties, tenants, leases, invoices, and maintenance records separate by organization. Authorized users can switch between the organizations they can access.
 
-### Collect rent
+#### Keep operational context attached to the work
 
-Coming soon. Give tenants a straightforward way to pay rent while keeping payment activity connected to the rest of your rental operations.
+Add internal notes to properties, tenants, and maintenance tickets so important details stay connected to the relevant record.
 
-### Handle non-maintenance requests
+#### Built for growing portfolios
 
-Coming soon. Manage questions, move-in needs, access requests, and other tenant needs alongside maintenance—so every request has a clear owner and outcome.
+Parcelis supports a consistent operating workflow whether you manage a few homes or a growing portfolio.
 
-Parcelis is the operating system for rental teams—bringing properties, tenants, maintenance, and everyday requests into one place.
+#### Coming soon
+
+- Tenant-facing online rent payments
+- Non-maintenance requests, including move-in, access, and general tenant requests
+
+Parcelis is an open-source operating system for rental teams—bringing portfolio, tenant, maintenance, lease, and income workflows into one place.
 
 ## Technology
 
@@ -89,24 +94,25 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 ---
 
 <p align="left">
-  <a href="https://www.typescriptlang.org"><img src="https://shields.io/badge/TypeScript-3178C6?logo=TypeScript&logoColor=FFF&style=flat-square" alt="TypeScript"></a>
-  <a href="https://prisma.io"><img width="122" height="20" src="http://made-with.prisma.io/indigo.svg" alt="Made with Prisma" /></a>
-  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/tailwindcss-0F172A?&logo=tailwindcss" alt="Tailwind CSS"></a>
-  <a href=""><img src="" alt=""></a>
-  <a href=""><img src="" alt=""></a>
-  <a href=""><img src="" alt=""></a>
-  <a href=""><img src="" alt=""></a>
-  <a href=""><img src="" alt=""></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white&style=flat-square" alt="Next.js"></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB&style=flat-square" alt="React"></a>
+  <a href="https://nestjs.com/"><img src="https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white&style=flat-square" alt="NestJS"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white&style=flat-square" alt="TypeScript"></a>
+  <a href="https://www.prisma.io/"><img src="https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white&style=flat-square" alt="Prisma"></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white&style=flat-square" alt="PostgreSQL"></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white&style=flat-square" alt="Tailwind CSS"></a>
 </p>
 
-- [TypeScript](https://www.typescriptlang.org/) - Language
-- [Prisma](https://www.prisma.io/) - ORM
-- [Tailwind CSS](https://tailwindcss.com/) - CSS
-- [shadcn/ui](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/) - Component Library
-- [tRPC](https://trpc.io/) - API
-- [Biome](https://biomejs.dev/) - Linting & Formatting
-- [Docusaurus](https://docusaurus.io/) - Documentation
-- [TanStack Hotkeys](https://tanstack.com/hotkeys/latest) - Keyboard Shortcuts
+| Area | Technology |
+| --- | --- |
+| Web app | [Next.js](https://nextjs.org/) and [React](https://react.dev/) |
+| API | [NestJS](https://nestjs.com/), [Express](https://expressjs.com/), and [tRPC](https://trpc.io/) |
+| Data and validation | [PostgreSQL](https://www.postgresql.org/), [Prisma](https://www.prisma.io/), and [Zod](https://zod.dev/) |
+| Object storage | [MinIO](https://min.io/) with the S3-compatible AWS SDK |
+| Interface | [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), and [Lucide](https://lucide.dev/) |
+| Documentation | [Docusaurus](https://docusaurus.io/) and [MDX](https://mdxjs.com/) |
+| Tooling | [TypeScript](https://www.typescriptlang.org/), [pnpm](https://pnpm.io/), [Turborepo](https://turbo.build/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) |
+| Local services and deployment | [Docker Compose](https://docs.docker.com/compose/) |
 
 ## Contributing
 
