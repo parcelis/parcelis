@@ -16,3 +16,6 @@ overrides:
 packages:
   - "apps/*"
   - "packages/*"
+
+patchedDependencies:
+  postman-code-generators@2.1.1: patches/postman-code-generators@2.1.1.patch

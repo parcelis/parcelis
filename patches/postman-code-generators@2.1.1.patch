@@ -1,0 +1,28 @@
+diff --git a/npm/deepinstall.js b/npm/deepinstall.js
+index 802d838636fb07dbf5d63e0e4173bca492c4a713..46a677e1f5180cb74ea57d5857055b445d923331 100644
+--- a/npm/deepinstall.js
++++ b/npm/deepinstall.js
+@@ -1,7 +1,7 @@
+ var shell = require('shelljs'),
+   path = require('path'),
+   async = require('async'),
+-  { detect, getNpmVersion } = require('detect-package-manager'),
++  { getNpmVersion } = require('detect-package-manager'),
+   pm,
+   ver,
+   command,
+@@ -19,11 +19,9 @@ getSubfolders = (folder) => {
+ 
+ async.series([
+   function (next) {
+-    detect().then((res) => {
+-      pm = res;
+-      console.log('Detected package manager: ' + pm);
+-      return next();
+-    });
++    pm = 'pnpm';
++    console.log('Detected package manager: ' + pm);
++    return next();
+   },
+   function (next) {
+     getNpmVersion(pm).then((res) => {
