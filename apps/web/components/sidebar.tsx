@@ -152,7 +152,7 @@ function SidebarContent({ active }: SidebarProps) {
       router.replace(`/o/${organization.slug}${routePath === "/" ? "" : routePath}`);
     }
     if (isOrganizationAccessError(activeOrganizationQuery.error) && pathname.startsWith("/o/")) {
-      document.cookie = "parcelis-organization-slug=; path=/; max-age=0; samesite=lax";
+      document.cookie = "parcelis-organization-slug=; path=/; max-age=0; samesite=lax; secure";
       router.replace("/");
       router.refresh();
     }
