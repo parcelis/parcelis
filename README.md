@@ -40,19 +40,19 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br /><br />
 
-### 🧩 Features
+# 🧩 Features
 
-#### Manage your portfolio in one place
+### Manage your portfolio in one place
 
 Track properties, units, tenants, leases, maintenance, and income in a shared workspace—without relying on disconnected spreadsheets and tools.
 
-#### See your portfolio at a glance
+### See your portfolio at a glance
 
 Start with a dashboard for occupancy, properties, active leases, monthly rent, priority work, and a property snapshot.
 
 ![alt text](image-5.png)
 
-#### Organize properties and units
+### Organize properties and units
 
 Create and manage properties, units, contacts, tags, photos, notes, occupancy, and lease information. Archive records when they are no longer part of your active workflow without losing their history.
 
@@ -60,28 +60,28 @@ Create and manage properties, units, contacts, tags, photos, notes, occupancy, a
 ![alt text](image-7.png)
 ![alt text](image-8.png)
 
-#### Keep complete tenant records
+### Keep complete tenant records
 
 Maintain tenant contact details, emergency contacts, insurance and account status, images, notes, lease history, current balances, and related invoices in one place.
 
 ![alt text](image-9.png)
 ![alt text](image-13.png)
 
-#### Manage leases and rent income
+### Manage leases and rent income
 
 Connect tenants to units with lease terms and monthly rent. Review rent roll and overdue balances, create itemized invoices, and record payments to keep income activity current.
 
 ![alt text](image-11.png)
 ![alt text](image-12.png)
 
-#### Stay on top of maintenance
+### Stay on top of maintenance
 
 Create, search, filter, group, and manage maintenance tickets across your portfolio. Track priority, category, requester, unit, entry consent, photos, notes, and the full ticket lifecycle from new to closed or canceled.
 
 ![alt text](image-14.png)
 ![alt text](image-15.png)
 
-#### Keep operational context attached to the work
+### Keep operational context attached to the work
 
 Add internal notes to properties, tenants, and maintenance tickets so important details stay connected to the relevant record.
 
@@ -90,11 +90,11 @@ Add internal notes to properties, tenants, and maintenance tickets so important 
 ![
   
 ](image-18.png)
-#### Built for growing portfolios
+### Built for growing portfolios
 
 Parcelis supports a consistent operating workflow whether you manage a few homes or a growing portfolio.
 
-#### Coming soon
+### Coming soon
 
 - Tenant-facing online rent payments
 - Non-maintenance requests, including move-in, access, and general tenant requests
