@@ -36,7 +36,7 @@ When adding or removing a direct dependency, update the relevant package manifes
 
 | Area       | Dependency                                                                                             | Purpose                                                              |
 | ---------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Data       | [Prisma](https://www.prisma.io/)                                                                       | Database schema, migrations, generated client, and seeding.          |
+| Data       | [Prisma](https://www.prisma.io/) with [pg](https://node-postgres.com/)                                | Database schema, migrations, generated client, seeding, and PostgreSQL connectivity. |
 | Data       | [PostgreSQL](https://www.postgresql.org/)                                                              | Primary relational database.                                         |
 | Validation | `@parcelis/db`                                                                                         | Supplies database enum values to shared validation schemas.          |
 | Validation | [Zod](https://zod.dev/)                                                                                | Shared API input schemas and TypeScript types.                       |
@@ -56,7 +56,7 @@ When adding or removing a direct dependency, update the relevant package manifes
 | Code quality   | [ESLint](https://eslint.org/), `typescript-eslint`, and React/Next ESLint plugins           | Linting for TypeScript, React, and Next.js.                 |
 | Formatting     | [Prettier](https://prettier.io/)                                                            | Source-code formatting.                                     |
 | Commits        | [Commitlint](https://commitlint.js.org/)                                                    | Conventional Commit validation.                             |
-| CSS build      | [PostCSS](https://postcss.org/) and [Autoprefixer](https://github.com/postcss/autoprefixer) | CSS transformation and browser-prefixing.                   |
+| CSS build      | [PostCSS](https://postcss.org/) and [Tailwind CSS](https://tailwindcss.com/)                | Tailwind v4 CSS transformation and browser-prefixing.       |
 | Containers     | [Docker Compose](https://docs.docker.com/compose/)                                          | Local multi-service development environment.                |
 | Database admin | [pgAdmin](https://www.pgadmin.org/)                                                         | Local PostgreSQL table browser and query tool.              |
 | Docs hosting   | [Caddy](https://caddyserver.com/)                                                           | Serves the static Docusaurus build in the docs container.   |
