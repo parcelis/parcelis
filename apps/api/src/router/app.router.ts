@@ -1604,8 +1604,8 @@ export const appRouter = router({
     }),
     pdf: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
       await synchronizeOverdueInvoices(ctx.prisma);
-      const invoice = await ctx.prisma.invoice.findUnique({
-        where: { id: input.id },
+      const invoice = await ctx.prisma.invoice.findFirst({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
         include: {
           property: {
             select: { name: true, line1: true, line2: true, city: true, region: true, postalCode: true },
