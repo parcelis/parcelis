@@ -50,45 +50,45 @@ Track properties, units, tenants, leases, maintenance, and income in a shared wo
 
 Start with a dashboard for occupancy, properties, active leases, monthly rent, priority work, and a property snapshot.
 
-<img src="image-19.png" alt="Dashboard overview" width="800" />
+<img src="assets/readme/image-19.png" alt="Dashboard overview" width="800" />
 
 ### Organize properties and units
 
 Create and manage properties, units, contacts, tags, photos, notes, occupancy, and lease information. Archive records when they are no longer part of your active workflow without losing their history.
 
-<img src="image-20.png" alt="Property management" width="800" />
-<img src="image-21.png" alt="Unit management" width="800" />
-<img src="image-22.png" alt="Property details" width="800" />
+<img src="assets/readme/image-20.png" alt="Property management" width="800" />
+<img src="assets/readme/image-21.png" alt="Unit management" width="800" />
+<img src="assets/readme/image-22.png" alt="Property details" width="800" />
 
 ### Keep complete tenant records
 
 Maintain tenant contact details, emergency contacts, insurance and account status, images, notes, lease history, current balances, and related invoices in one place.
 
-<img src="image-23.png" alt="Tenant records" width="800" />
-<img src="image-24.png" alt="Tenant details" width="800" />
+<img src="assets/readme/image-23.png" alt="Tenant records" width="800" />
+<img src="assets/readme/image-24.png" alt="Tenant details" width="800" />
 
 ### Manage leases and rent income
 
 Connect tenants to units with lease terms and monthly rent. Review rent roll and overdue balances, create itemized invoices, and record payments to keep income activity current.
 
-<img src="image-25.png" alt="Lease management" width="800" />
-<img src="image-26.png" alt="Rent income" width="800" />
+<img src="assets/readme/image-25.png" alt="Lease management" width="800" />
+<img src="assets/readme/image-26.png" alt="Rent income" width="800" />
 
 ### Stay on top of maintenance
 
 Create, search, filter, group, and manage maintenance tickets across your portfolio. Track priority, category, requester, unit, entry consent, photos, notes, and the full ticket lifecycle from new to closed or canceled.
 
-<img src="image-27.png" alt="Maintenance tickets" width="800" />
-<img src="image-28.png" alt="Maintenance ticket details" width="800" />
-<img src="image-29.png" alt="Maintenance ticket workflow" width="800" />
+<img src="assets/readme/image-27.png" alt="Maintenance tickets" width="800" />
+<img src="assets/readme/image-28.png" alt="Maintenance ticket details" width="800" />
+<img src="assets/readme/image-29.png" alt="Maintenance ticket workflow" width="800" />
 
 ### Keep operational context attached to the work
 
 Add internal notes to properties, tenants, and maintenance tickets so important details stay connected to the relevant record.
 
-<img src="image-30.png" alt="Property notes" width="800" />
-<img src="image-31.png" alt="Tenant notes" width="800" />
-<img src="image-32.png" alt="Maintenance notes" width="800" />
+<img src="assets/readme/image-30.png" alt="Property notes" width="800" />
+<img src="assets/readme/image-31.png" alt="Tenant notes" width="800" />
+<img src="assets/readme/image-32.png" alt="Maintenance notes" width="800" />
 
 ### Built for growing portfolios
 
