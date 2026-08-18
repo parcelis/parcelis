@@ -8,7 +8,7 @@ import { PrismaService } from "./prisma.service";
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TrpcMiddleware).forRoutes("trpc", "trpc/*");
-    consumer.apply(OpenApiMiddleware).forRoutes("api/v1", "api/v1/*");
+    consumer.apply(TrpcMiddleware).forRoutes("trpc", "trpc/*splat");
+    consumer.apply(OpenApiMiddleware).forRoutes("api/v1", "api/v1/*splat");
   }
 }
