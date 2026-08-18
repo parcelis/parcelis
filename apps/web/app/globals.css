@@ -37,13 +37,6 @@ body {
     rgb(var(--parcelis-charcoal));
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
 .dark .bg-white {
   background-color: rgb(var(--parcelis-slate));
 }

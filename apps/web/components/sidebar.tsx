@@ -445,7 +445,7 @@ function SidebarContent({ active }: SidebarProps) {
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Open account menu"
-              className={`group flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain dark:data-[state=open]:bg-parcelis-charcoal/70 ${!isSidebarExpanded ? "justify-center" : ""}`}
+              className={`group mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain dark:data-[state=open]:bg-parcelis-charcoal/70 ${!isSidebarExpanded ? "justify-center" : ""}`}
               title={!isSidebarExpanded ? "My Account" : undefined}
               type="button"
             >
