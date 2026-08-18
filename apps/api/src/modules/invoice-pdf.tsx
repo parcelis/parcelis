@@ -1,9 +1,18 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { Document, Image, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 const parcelisLightBannerPath = resolve(__dirname, "../../../web/public/brand/parcelis-fullmark-light.png");
 const parcelisLightBackgroundPath = resolve(__dirname, "../../../web/public/brand/parcelis-light-background.png");
+
+Font.register({
+  family: "Inter",
+  src: require.resolve("@fontsource/inter/files/inter-latin-400-normal.woff"),
+});
+Font.register({
+  family: "Inter-Bold",
+  src: require.resolve("@fontsource/inter/files/inter-latin-700-normal.woff"),
+});
 
 export type InvoicePdfInvoice = {
   amountCents: number;
@@ -29,7 +38,7 @@ export type InvoicePdfInvoice = {
 };
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: "#FFFFFF", color: "#101c29", fontFamily: "Helvetica", fontSize: 10, padding: 48 },
+  page: { backgroundColor: "#FFFFFF", color: "#101c29", fontFamily: "Inter", fontSize: 10, padding: 48 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -49,14 +58,14 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   brandBanner: { height: 36, width: 130 },
-  brandName: { color: "#101c29", fontFamily: "Helvetica-Bold", fontSize: 22, height: 36 },
-  invoiceLabel: { fontSize: 22, fontFamily: "Helvetica-Bold", textAlign: "right" },
+  brandName: { color: "#101c29", fontFamily: "Inter-Bold", fontSize: 22, height: 36 },
+  invoiceLabel: { fontSize: 22, fontFamily: "Inter-Bold", textAlign: "right" },
   statusLate: {
     alignSelf: "flex-start",
     backgroundColor: "#fee2e2",
     borderRadius: 4,
     color: "#b91c1c",
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Inter-Bold",
     fontSize: 10,
     marginTop: 8,
     paddingHorizontal: 10,
@@ -67,20 +76,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#d9edc7",
     borderRadius: 4,
     color: "#101c29",
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Inter-Bold",
     fontSize: 10,
     marginTop: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   muted: { color: "#586273", marginTop: 4 },
-  tagline: { color: "#586273", fontFamily: "Helvetica-Bold", marginTop: 4 },
+  tagline: { color: "#586273", fontFamily: "Inter-Bold", marginTop: 4 },
   details: { flexDirection: "row", gap: 24, marginTop: 30 },
   detailColumn: { flex: 1 },
-  eyebrow: { color: "#586273", fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 1, textTransform: "uppercase" },
+  eyebrow: { color: "#586273", fontSize: 8, fontFamily: "Inter-Bold", letterSpacing: 1, textTransform: "uppercase" },
   detailText: { fontSize: 11, lineHeight: 1.5, marginTop: 8 },
   table: { marginTop: 36 },
-  tableHeader: { backgroundColor: "#101c29", color: "#ffffff", flexDirection: "row", fontFamily: "Helvetica-Bold", padding: 10 },
+  tableHeader: { backgroundColor: "#101c29", color: "#ffffff", flexDirection: "row", fontFamily: "Inter-Bold", padding: 10 },
   row: { borderBottomColor: "#dce1dc", borderBottomWidth: 1, flexDirection: "row", padding: 10 },
   item: { width: 90 },
   description: { flex: 1 },
@@ -90,25 +99,25 @@ const styles = StyleSheet.create({
   amount: { textAlign: "right", width: 75 },
   payments: { marginTop: 26 },
   paymentHeading: { alignItems: "center", flexDirection: "row", gap: 8, marginBottom: 10 },
-  paymentHeader: { color: "#101c29", fontFamily: "Helvetica-Bold", fontSize: 12 },
+  paymentHeader: { color: "#101c29", fontFamily: "Inter-Bold", fontSize: 12 },
   paymentCount: {
     backgroundColor: "#d9edc7",
     borderRadius: 10,
     color: "#101c29",
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Inter-Bold",
     fontSize: 8,
     paddingHorizontal: 7,
     paddingVertical: 3,
   },
-  paymentTableHeader: { borderBottomColor: "#dce1dc", borderBottomWidth: 1, color: "#586273", flexDirection: "row", fontFamily: "Helvetica-Bold", fontSize: 8, paddingBottom: 7 },
+  paymentTableHeader: { borderBottomColor: "#dce1dc", borderBottomWidth: 1, color: "#586273", flexDirection: "row", fontFamily: "Inter-Bold", fontSize: 8, paddingBottom: 7 },
   paymentRow: { borderBottomColor: "#dce1dc", borderBottomWidth: 1, flexDirection: "row", paddingVertical: 8 },
   payer: { flex: 1 },
   paidOn: { color: "#586273", width: 95 },
   method: { color: "#586273", width: 95 },
-  paymentAmount: { fontFamily: "Helvetica-Bold", textAlign: "right", width: 75 },
+  paymentAmount: { fontFamily: "Inter-Bold", textAlign: "right", width: 75 },
   totals: { alignSelf: "flex-end", marginTop: 24, width: 200 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 },
-  balance: { borderTopColor: "#101c29", borderTopWidth: 1, fontFamily: "Helvetica-Bold", fontSize: 13, marginTop: 5, paddingTop: 10 },
+  balance: { borderTopColor: "#101c29", borderTopWidth: 1, fontFamily: "Inter-Bold", fontSize: 13, marginTop: 5, paddingTop: 10 },
   footer: { bottom: 38, color: "#586273", fontSize: 8, left: 48, position: "absolute", right: 48, textAlign: "center" },
 });
 
