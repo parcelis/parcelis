@@ -224,7 +224,7 @@ function SidebarContent({ active }: SidebarProps) {
           <Link aria-label="Parcelis portfolio" className="min-w-0" href="/">
             <Image
               alt="Parcelis"
-              className="h-auto w-32 dark:hidden"
+              className="h-10 w-auto max-w-full object-contain dark:hidden"
               height={2500}
               priority
               src="/brand/parcelis-fullmark-light.svg"
@@ -232,7 +232,7 @@ function SidebarContent({ active }: SidebarProps) {
             />
             <Image
               alt="Parcelis"
-              className="hidden h-auto w-32 dark:block"
+              className="hidden h-10 w-auto max-w-full object-contain dark:block"
               height={2500}
               priority
               src="/brand/parcelis-fullmark-dark.svg"
