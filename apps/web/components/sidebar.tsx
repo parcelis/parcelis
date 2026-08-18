@@ -188,7 +188,7 @@ function SidebarContent({ active }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r border-parcelis-border bg-white py-6 transition-[width,padding] duration-200 lg:flex lg:flex-col ${
+      className={`fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r border-parcelis-border bg-white transition-[width,padding] duration-200 lg:flex lg:flex-col ${
         isSidebarExpanded ? "w-64 px-4" : "w-16 px-1"
       }`}
       onMouseEnter={() => {
@@ -196,7 +196,11 @@ function SidebarContent({ active }: SidebarProps) {
       }}
       onMouseLeave={() => setIsSidebarHovered(false)}
     >
-      <div className={`flex items-center gap-2 ${isSidebarExpanded ? "justify-between" : "flex-col"}`}>
+      <div
+        className={`flex min-h-16 items-center gap-2 ${
+          isSidebarExpanded ? "justify-between" : "flex-col justify-center"
+        }`}
+      >
         {!isSidebarExpanded ? (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center">
             <Image
@@ -221,18 +225,18 @@ function SidebarContent({ active }: SidebarProps) {
             <Image
               alt="Parcelis"
               className="h-auto w-32 dark:hidden"
-              height={159}
+              height={2500}
               priority
-              src="/brand/parcelis-light-banner.png"
-              width={488}
+              src="/brand/parcelis-fullmark-light.svg"
+              width={9792}
             />
             <Image
               alt="Parcelis"
               className="hidden h-auto w-32 dark:block"
-              height={159}
+              height={2500}
               priority
-              src="/brand/parcelis-dark-banner.png"
-              width={488}
+              src="/brand/parcelis-fullmark-dark.svg"
+              width={9792}
             />
           </Link>
         )}
