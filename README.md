@@ -50,30 +50,46 @@ Track properties, units, tenants, leases, maintenance, and income in a shared wo
 
 Start with a dashboard for occupancy, properties, active leases, monthly rent, priority work, and a property snapshot.
 
+![alt text](image-5.png)
+
 #### Organize properties and units
 
 Create and manage properties, units, contacts, tags, photos, notes, occupancy, and lease information. Archive records when they are no longer part of your active workflow without losing their history.
+
+![alt text](image-6.png)
+![alt text](image-7.png)
+![alt text](image-8.png)
 
 #### Keep complete tenant records
 
 Maintain tenant contact details, emergency contacts, insurance and account status, images, notes, lease history, current balances, and related invoices in one place.
 
+![alt text](image-9.png)
+![alt text](image-13.png)
+
 #### Manage leases and rent income
 
 Connect tenants to units with lease terms and monthly rent. Review rent roll and overdue balances, create itemized invoices, and record payments to keep income activity current.
+
+![alt text](image-11.png)
+![alt text](image-12.png)
 
 #### Stay on top of maintenance
 
 Create, search, filter, group, and manage maintenance tickets across your portfolio. Track priority, category, requester, unit, entry consent, photos, notes, and the full ticket lifecycle from new to closed or canceled.
 
-#### Work across organizations
-
-Keep properties, tenants, leases, invoices, and maintenance records separate by organization. Authorized users can switch between the organizations they can access.
+![alt text](image-14.png)
+![alt text](image-15.png)
 
 #### Keep operational context attached to the work
 
 Add internal notes to properties, tenants, and maintenance tickets so important details stay connected to the relevant record.
 
+![alt text](image-16.png)
+![alt text](image-17.png)
+![
+  
+](image-18.png)
 #### Built for growing portfolios
 
 Parcelis supports a consistent operating workflow whether you manage a few homes or a growing portfolio.
@@ -82,6 +98,8 @@ Parcelis supports a consistent operating workflow whether you manage a few homes
 
 - Tenant-facing online rent payments
 - Non-maintenance requests, including move-in, access, and general tenant requests
+- Keep properties, tenants, leases, invoices, and maintenance records separate by organization. Authorized users can switch between the organizations they can access.
+
 
 Parcelis is an open-source operating system for rental teams—bringing portfolio, tenant, maintenance, lease, and income workflows into one place.
 
