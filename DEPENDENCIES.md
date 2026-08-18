@@ -1,70 +1,49 @@
 # Parcelis dependencies
 
-This is the human-readable inventory of technologies used directly by Parcelis.
-Package manifests and `pnpm-lock.yaml` remain the source of truth for exact and transitive versions.
+This is a high-level inventory of the technologies Parcelis intentionally uses. Package manifests are the source of truth for direct dependencies, and `pnpm-lock.yaml` records exact resolved and transitive versions.
 
-When adding or removing a direct dependency, update the relevant package manifest and this file in the same change.
+When adding or removing a primary technology or service, update this file in the same change.
 
-## Applications
+## Application platform
 
-| Area    | Dependency                                                                                                                                                                                     | Purpose                                                                                |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Web     | [Next.js](https://nextjs.org/)                                                                                                                                                                 | React application framework and App Router.                                            |
-| Web     | [React](https://react.dev/) and React DOM                                                                                                                                                      | Web UI runtime.                                                                        |
-| Web     | [TanStack Query](https://tanstack.com/query)                                                                                                                                                   | Server-state fetching, caching, and mutations.                                         |
-| Web     | [TanStack Hotkeys](https://tanstack.com/hotkeys)                                                                                                                                               | Application keyboard shortcuts.                                                        |
-| Web     | [Sonner](https://sonner.emilkowal.ski/)                                                                                                                                                        | Toast notifications for completed operational actions.                                 |
-| Web/API | [tRPC](https://trpc.io/)                                                                                                                                                                       | Type-safe communication between the web app and API.                                   |
-| Web     | [Zod](https://zod.dev/)                                                                                                                                                                        | Shared client-side input validation.                                                   |
-| Web/UI  | [Lucide React v1](https://lucide.dev/)                                                                                                                                                         | Interface icons.                                                                       |
-| Web     | [React Icons](https://react-icons.github.io/react-icons/)                                                                                                                                      | GitHub and Discord brand icons.                                                        |
-| API     | [NestJS](https://nestjs.com/)                                                                                                                                                                  | API application framework.                                                             |
-| API     | [Express](https://expressjs.com/)                                                                                                                                                              | HTTP server platform used by NestJS.                                                   |
-| API     | [tRPC OpenAPI](https://trpc.io/docs/openapi)                                                                                                                                                   | Generates an OpenAPI specification from the tRPC router.                               |
-| API     | [RxJS](https://rxjs.dev/)                                                                                                                                                                      | Reactive primitives used by NestJS.                                                    |
-| API     | [cors](https://github.com/expressjs/cors) and [reflect-metadata](https://github.com/rbuckton/reflect-metadata)                                                                                 | Cross-origin request handling and NestJS decorator metadata.                           |
-| API     | [dotenv](https://github.com/motdotla/dotenv)                                                                                                                                                   | Environment variable loading.                                                          |
-| API     | [AWS SDK for JavaScript v3](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/)                                                                                                           | Presigned S3-compatible upload and download URLs for MinIO property and tenant images. |
-| Docs    | [Docusaurus](https://docusaurus.io/)                                                                                                                                                           | Documentation site framework.                                                          |
-| Docs    | [Docusaurus Faster](https://docusaurus.io/docs/advanced/rspack) and [SWC](https://swc.rs/)                                                                                                     | Compiles documentation JavaScript, including the OpenAPI theme.                        |
-| Docs    | [MDX](https://mdxjs.com/)                                                                                                                                                                      | JSX-enabled documentation content.                                                     |
-| Docs    | [docusaurus-plugin-copy-page-button](https://github.com/portdeveloper/docusaurus-plugin-copy-page-button)                                                                                      | Copies a documentation page as Markdown and provides related AI-tool actions.          |
-| Docs    | [docusaurus-plugin-openapi-docs](https://github.com/PaloAltoNetworks/docusaurus-openapi-docs) and [docusaurus-theme-openapi-docs](https://github.com/PaloAltoNetworks/docusaurus-openapi-docs) | Generates and renders API reference pages from OpenAPI specifications.                 |
-| Docs    | [docusaurus-plugin-sass](https://github.com/eguled/docusaurus-plugin-sass) and [Sass](https://sass-lang.com/)                                                                                  | Compiles the OpenAPI theme's Sass styles.                                              |
+| Technology | Purpose |
+| --- | --- |
+| [Next.js](https://nextjs.org/) and [React](https://react.dev/) | Main Parcelis web app. |
+| [NestJS](https://nestjs.com/), [Express](https://expressjs.com/), and [tRPC](https://trpc.io/) | API and communication between the web app and backend. |
+| [Docusaurus](https://docusaurus.io/) | Documentation site and API reference. |
+| [Markdown](https://daringfireball.net/projects/markdown/) and [MDX](https://mdxjs.com/) | Documentation content. |
 
-## Shared packages
+## Data and storage
 
-| Area       | Dependency                                                                                             | Purpose                                                              |
-| ---------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Data       | [Prisma](https://www.prisma.io/) with [pg](https://node-postgres.com/)                                | Database schema, migrations, generated client, seeding, and PostgreSQL connectivity. |
-| Data       | [PostgreSQL](https://www.postgresql.org/)                                                              | Primary relational database.                                         |
-| Validation | `@parcelis/db`                                                                                         | Supplies database enum values to shared validation schemas.          |
-| Validation | [Zod](https://zod.dev/)                                                                                | Shared API input schemas and TypeScript types.                       |
-| UI         | [Radix UI](https://www.radix-ui.com/)                                                                  | Accessible checkbox, dialog, dropdown, popover, and slot primitives. |
-| UI         | [class-variance-authority](https://cva.style/)                                                         | Component variant definitions.                                       |
-| UI         | [clsx](https://github.com/lukeed/clsx) and [tailwind-merge](https://github.com/dcastil/tailwind-merge) | Conditional and conflict-safe Tailwind class composition.            |
-| UI         | [Tailwind CSS](https://tailwindcss.com/)                                                               | Utility-first styling.                                               |
+| Technology | Purpose |
+| --- | --- |
+| [Prisma](https://www.prisma.io/) and [PostgreSQL](https://www.postgresql.org/) | Database schema, migrations, and application data. |
+| [MinIO](https://min.io/) | Local S3-compatible object storage for images and assets. |
+| [Zod](https://zod.dev/) | Shared validation for application data. |
+
+## Interface
+
+| Technology | Purpose |
+| --- | --- |
+| [Tailwind CSS](https://tailwindcss.com/) | Application styling. |
+| [Radix UI](https://www.radix-ui.com/) | Accessible building blocks for interface components. |
+| [Lucide](https://lucide.dev/) | Interface icons. |
 
 ## Development and delivery
 
-| Area           | Dependency                                                                                  | Purpose                                                     |
-| -------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Workspace      | [pnpm](https://pnpm.io/)                                                                    | Package manager and monorepo workspace support.             |
-| Workspace      | [Turborepo](https://turbo.build/)                                                           | Cached orchestration for build, lint, and typecheck tasks.  |
-| Runtime        | [Node.js](https://nodejs.org/)                                                              | JavaScript runtime; the development containers use Node 22. |
-| Language       | [TypeScript](https://www.typescriptlang.org/)                                               | Type checking and application language.                     |
-| Code quality   | [ESLint](https://eslint.org/), `typescript-eslint`, and React/Next ESLint plugins           | Linting for TypeScript, React, and Next.js.                 |
-| Formatting     | [Prettier](https://prettier.io/)                                                            | Source-code formatting.                                     |
-| Commits        | [Commitlint](https://commitlint.js.org/)                                                    | Conventional Commit validation.                             |
-| CSS build      | [PostCSS](https://postcss.org/) and [Tailwind CSS](https://tailwindcss.com/)                | Tailwind v4 CSS transformation and browser-prefixing.       |
-| Containers     | [Docker Compose](https://docs.docker.com/compose/)                                          | Local multi-service development environment.                |
-| Database admin | [pgAdmin](https://www.pgadmin.org/)                                                         | Local PostgreSQL table browser and query tool.              |
-| Docs hosting   | [Caddy](https://caddyserver.com/)                                                           | Serves the static Docusaurus build in the docs container.   |
-| Object storage | [MinIO](https://min.io/)                                                                    | Local S3-compatible object storage.                         |
+| Technology | Purpose |
+| --- | --- |
+| [Node.js 24.19.0](https://nodejs.org/) | JavaScript runtime. |
+| [pnpm 11](https://pnpm.io/) | Package management and workspace support. |
+| [Turborepo](https://turbo.build/) | Builds, linting, and type checking across the monorepo. |
+| [TypeScript](https://www.typescriptlang.org/) | Application language and type checking. |
+| [ESLint](https://eslint.org/) and [Prettier](https://prettier.io/) | Code linting and formatting. |
+| [Docker Compose](https://docs.docker.com/compose/) | Local infrastructure and production-style deployment. |
+| [pgAdmin](https://www.pgadmin.org/) | Local PostgreSQL administration. |
 
 ## Version tracking
 
-Direct JavaScript dependency versions are declared in these manifests:
+Direct JavaScript dependencies are declared in:
 
 - Root tooling: `package.json`
 - Web: `apps/web/package.json`

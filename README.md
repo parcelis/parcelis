@@ -3,7 +3,7 @@
 </p>
 Parcelis (PAR-suhl-iss) is an open-source property management platform for landlords, small operators, and local property teams.
 
-<h3 align="center">
+<h4 align="center">
   ,🚀
   <a href="http://kan.bn/dothuxv6abhw/parcelis-roadmap">Roadmap</a>
     <span>&nbsp; &nbsp; &nbsp; · &nbsp; &nbsp; &nbsp;</span>
@@ -80,19 +80,6 @@ Coming soon. Manage questions, move-in needs, access requests, and other tenant 
 
 Parcelis is the operating system for rental teams—bringing properties, tenants, maintenance, and everyday requests into one place.
 
-## Apps
-
-- `apps/web`: Next.js App Router frontend.
-- `apps/api`: NestJS backend exposing a tRPC router.
-- `apps/docs`: Docusaurus documentation site for platform and contributor guides.
-
-## Packages
-
-- `packages/ui`: shared Parcelis UI primitives and brand components.
-- `packages/schemas`: shared Zod schemas for frontend and backend contracts.
-- `packages/db`: Prisma schema, migrations, and database client exports.
-- `packages/config`: shared TypeScript, ESLint, and Prettier configuration.
-
 ## Technology
 
 Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEPENDENCIES.md) for the maintained technology inventory and each tool's role.
@@ -121,40 +108,28 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 - [Docusaurus](https://docusaurus.io/) - Documentation
 - [TanStack Hotkeys](https://tanstack.com/hotkeys/latest) - Keyboard Shortcuts
 
-## Deployment
-
-Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/app`, `parcelis/docs`, and `parcelis/proxy`. The production Compose file starts the web/API application, docs site, PostgreSQL, and MinIO together, with the `migrate` and `minio-init` containers running once to prepare the database and object storage before the main services start.
-
-Before publishing the first release, configure these GitHub repository values:
-
-- Secret: `DOCKERHUB_USERNAME` — the Docker Hub username used for publishing.
-- Secret: `DOCKERHUB_TOKEN` — a Docker Hub access token with permission to push to the `parcelis` organization.
-
-For a production deployment:
-
-1. Copy `.env.production.example` to `.env.production`.
-2. Replace the placeholder values with your real hostnames and secrets, especially `PARCELIS_VERSION`, `WEB_ORIGIN`, `AUTH_COOKIE_DOMAIN`, `AUTH_COOKIE_SECURE`, and the MinIO/S3 settings.
-3. Pull the published images and start the stack:
-
-```bash
-docker compose --env-file .env.production pull
-docker compose --env-file .env.production up -d --remove-orphans
-```
-
-4. Review the startup logs if needed:
-
-```bash
-docker compose --env-file .env.production logs -f app-service migrate-service minio-init-service
-```
-
-Set `PARCELIS_VERSION` to a release tag such as `v0.4.1`; do not rely on `latest` for a production deployment. The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `APP_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
-
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, contributor expectations,
-and the Conventional Commit format enforced for pull requests.
+Every contribution is appreciated, from bug reports to pull requests. Before implementing a new feature or changing the API, please open an issue so the approach can be discussed first. See [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, contributor expectations, and the Conventional Commit format enforced for pull requests.
+
+### Not sure where to start?
+
+Browse [good first issues](https://github.com/parcelis/parcelis/labels/good%20first%20issue) for approachable contributions.
+
+### How the repository is organized
+
+Parcelis is a pnpm/Turbo monorepo. At a high level, it contains:
+
+- [`apps/web`](apps/web): the main Parcelis web app.
+- [`apps/api`](apps/api): the service that handles app data and requests.
+- [`apps/docs`](apps/docs): the Parcelis documentation site.
+- [`packages/ui`](packages/ui): reusable interface components and branding.
+- [`packages/schemas`](packages/schemas): shared rules for validating app data.
+- [`packages/db`](packages/db): database definitions, updates, and access code.
+- [`packages/config`](packages/config): shared development-tool configuration.
+
+For detailed local setup and contributor workflows, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licensing
-
 Parcelis is licensed under the GNU Affero General Public License version 3. See
 [LICENSING.md](LICENSING.md) for details.
