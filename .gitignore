@@ -10,3 +10,4 @@ coverage
 *.log
 *.tsbuildinfo
 .DS_Store
+packages/db/src/generated
