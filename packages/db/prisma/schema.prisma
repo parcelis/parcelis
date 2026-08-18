@@ -97,6 +97,12 @@ model Organization {
   seedKey               String?                  @unique
   avatarObjectKey       String?
   darkAvatarObjectKey   String?
+  addressLine1          String?
+  addressLine2          String?
+  city                  String?
+  state                 String?
+  postalCode            String?
+  phone                 String?
   memberships           OrganizationMembership[]
   properties            Property[]
   tenants               Tenant[]

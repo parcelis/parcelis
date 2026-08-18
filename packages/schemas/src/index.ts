@@ -57,6 +57,12 @@ export const updateOrganizationInputSchema = z.object({
     .min(3)
     .max(50)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
+  addressLine1: z.string().trim().max(255).nullable(),
+  addressLine2: z.string().trim().max(255).nullable(),
+  city: z.string().trim().max(100).nullable(),
+  state: z.string().trim().max(2).nullable(),
+  postalCode: z.string().trim().max(20).nullable(),
+  phone: z.string().trim().max(50).nullable(),
 });
 export const organizationAvatarUploadInputSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),

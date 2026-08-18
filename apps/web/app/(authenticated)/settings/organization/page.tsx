@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } from "@parcelis/ui";
+import { Badge, Button, Card, CardContent, CardHeader, FieldLabel, Input, Label, ParcelisLogo } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
@@ -34,6 +34,12 @@ export default function OrganizationSettingsPage() {
   });
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
+  const [addressLine1, setAddressLine1] = React.useState("");
+  const [addressLine2, setAddressLine2] = React.useState("");
+  const [city, setCity] = React.useState("");
+  const [state, setState] = React.useState("");
+  const [postalCode, setPostalCode] = React.useState("");
+  const [phone, setPhone] = React.useState("");
   const [avatarChanges, setAvatarChanges] = React.useState<AvatarChanges>({});
   const lightAvatarPreviewUrl = React.useMemo(
     () => (avatarChanges.light ? URL.createObjectURL(avatarChanges.light) : null),
@@ -59,12 +65,38 @@ export default function OrganizationSettingsPage() {
     if (activeOrganizationQuery.data) {
       setName(activeOrganizationQuery.data.name);
       setSlug(activeOrganizationQuery.data.slug);
+      setAddressLine1(activeOrganizationQuery.data.addressLine1 ?? "");
+      setAddressLine2(activeOrganizationQuery.data.addressLine2 ?? "");
+      setCity(activeOrganizationQuery.data.city ?? "");
+      setState(activeOrganizationQuery.data.state ?? "");
+      setPostalCode(activeOrganizationQuery.data.postalCode ?? "");
+      setPhone(activeOrganizationQuery.data.phone ?? "");
     }
   }, [activeOrganizationQuery.data]);
   const canManageOrganization = ["owner", "administrator"].includes(activeOrganizationQuery.data?.role ?? "");
   const canManageUsers = currentUserQuery.data?.user.role === "administrator";
   const saveOrganizationDetails = useMutation({
-    mutationFn: async ({ name, slug, avatarChanges }: { name: string; slug: string; avatarChanges: AvatarChanges }) => {
+    mutationFn: async ({
+      name,
+      slug,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      phone,
+      avatarChanges,
+    }: {
+      name: string;
+      slug: string;
+      addressLine1: string;
+      addressLine2: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      phone: string;
+      avatarChanges: AvatarChanges;
+    }) => {
       await Promise.all(
         (Object.entries(avatarChanges) as Array<[AvatarVariant, File | null]>).map(async ([variant, file]) => {
           if (file === null) return apiClient.organizations.deleteAvatar.mutate({ variant });
@@ -82,7 +114,16 @@ export default function OrganizationSettingsPage() {
           await apiClient.organizations.completeAvatarUpload.mutate({ objectKey, variant });
         }),
       );
-      const organization = await apiClient.organizations.update.mutate({ name, slug });
+      const organization = await apiClient.organizations.update.mutate({
+        name,
+        slug,
+        addressLine1: addressLine1 || null,
+        addressLine2: addressLine2 || null,
+        city: city || null,
+        state: state || null,
+        postalCode: postalCode || null,
+        phone: phone || null,
+      });
       return organization;
     },
     onSuccess: async (organization) => {
@@ -149,7 +190,17 @@ export default function OrganizationSettingsPage() {
                       className="flex max-w-xl flex-col gap-12"
                       onSubmit={(event) => {
                         event.preventDefault();
-                        saveOrganizationDetails.mutate({ name, slug, avatarChanges });
+                        saveOrganizationDetails.mutate({
+                          name,
+                          slug,
+                          addressLine1,
+                          addressLine2,
+                          city,
+                          state,
+                          postalCode,
+                          phone,
+                          avatarChanges,
+                        });
                       }}
                     >
                       <Label>Organization Avatar</Label>
@@ -222,6 +273,57 @@ export default function OrganizationSettingsPage() {
                           Lowercase letters, numbers, and hyphens only.
                         </span>
                       </Label>
+                      <fieldset className="space-y-4">
+                        <legend className="text-sm font-medium text-parcelis-charcoal">Organization address</legend>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Label className="sm:col-span-2">
+                            <FieldLabel>Address line 1</FieldLabel>
+                            <Input
+                              className="mt-1"
+                              onChange={(event) => setAddressLine1(event.target.value)}
+                              value={addressLine1}
+                            />
+                          </Label>
+                          <Label className="sm:col-span-2">
+                            <FieldLabel>Address line 2</FieldLabel>
+                            <Input
+                              className="mt-1"
+                              onChange={(event) => setAddressLine2(event.target.value)}
+                              value={addressLine2}
+                            />
+                          </Label>
+                          <Label>
+                            <FieldLabel>City</FieldLabel>
+                            <Input className="mt-1" onChange={(event) => setCity(event.target.value)} value={city} />
+                          </Label>
+                          <Label>
+                            <FieldLabel>State</FieldLabel>
+                            <Input
+                              className="mt-1"
+                              maxLength={2}
+                              onChange={(event) => setState(event.target.value.toUpperCase())}
+                              value={state}
+                            />
+                          </Label>
+                          <Label className="sm:col-span-2">
+                            <FieldLabel>Postal code</FieldLabel>
+                            <Input
+                              className="mt-1"
+                              onChange={(event) => setPostalCode(event.target.value)}
+                              value={postalCode}
+                            />
+                          </Label>
+                        </div>
+                      </fieldset>
+                      <Label>
+                        Organization phone number
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setPhone(event.target.value)}
+                          type="tel"
+                          value={phone}
+                        />
+                      </Label>
                       <Button
                         className="min-w-40 self-start"
                         disabled={saveOrganizationDetails.isPending}
@@ -240,6 +342,30 @@ export default function OrganizationSettingsPage() {
                       <div>
                         <p className="font-medium text-parcelis-charcoal">Organization URL</p>
                         <p className="mt-1 text-parcelis-gray">/o/{activeOrganizationQuery.data?.slug}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-parcelis-charcoal">Organization address</p>
+                        <p className="mt-1 text-parcelis-gray">
+                          {[
+                            activeOrganizationQuery.data?.addressLine1,
+                            activeOrganizationQuery.data?.addressLine2,
+                            [
+                              activeOrganizationQuery.data?.city,
+                              activeOrganizationQuery.data?.state,
+                              activeOrganizationQuery.data?.postalCode,
+                            ]
+                              .filter(Boolean)
+                              .join(", "),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "Not provided"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-parcelis-charcoal">Organization phone number</p>
+                        <p className="mt-1 text-parcelis-gray">
+                          {activeOrganizationQuery.data?.phone ?? "Not provided"}
+                        </p>
                       </div>
                     </div>
                   )}

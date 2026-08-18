@@ -491,6 +491,12 @@ export const appRouter = router({
       avatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.avatarObjectKey),
       darkAvatarObjectKey: ctx.organization.organization.darkAvatarObjectKey,
       darkAvatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.darkAvatarObjectKey),
+      addressLine1: ctx.organization.organization.addressLine1,
+      addressLine2: ctx.organization.organization.addressLine2,
+      city: ctx.organization.organization.city,
+      state: ctx.organization.organization.state,
+      postalCode: ctx.organization.organization.postalCode,
+      phone: ctx.organization.organization.phone,
       role: ctx.organization.role,
     })),
     switch: publicProcedure.input(switchOrganizationInputSchema).mutation(async ({ ctx, input }) => {
@@ -519,8 +525,18 @@ export const appRouter = router({
       try {
         return await ctx.prisma.organization.update({
           where: { id: ctx.organization.organizationId },
-          data: { name: input.name, slug: input.slug },
-          select: { id: true, name: true, slug: true },
+          data: input,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            addressLine1: true,
+            addressLine2: true,
+            city: true,
+            state: true,
+            postalCode: true,
+            phone: true,
+          },
         });
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
