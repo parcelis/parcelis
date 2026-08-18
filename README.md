@@ -50,46 +50,44 @@ Track properties, units, tenants, leases, maintenance, and income in a shared wo
 
 Start with a dashboard for occupancy, properties, active leases, monthly rent, priority work, and a property snapshot.
 
-![alt text](image-5.png)
+<img src="image-5.png" alt="Dashboard overview" width="960" />
 
 ### Organize properties and units
 
 Create and manage properties, units, contacts, tags, photos, notes, occupancy, and lease information. Archive records when they are no longer part of your active workflow without losing their history.
 
-![alt text](image-6.png)
-![alt text](image-7.png)
-![alt text](image-8.png)
+<img src="image-6.png" alt="Property management" width="960" />
+<img src="image-7.png" alt="Unit management" width="960" />
+<img src="image-8.png" alt="Property details" width="960" />
 
 ### Keep complete tenant records
 
 Maintain tenant contact details, emergency contacts, insurance and account status, images, notes, lease history, current balances, and related invoices in one place.
 
-![alt text](image-9.png)
-![alt text](image-13.png)
+<img src="image-9.png" alt="Tenant records" width="960" />
+<img src="image-13.png" alt="Tenant details" width="960" />
 
 ### Manage leases and rent income
 
 Connect tenants to units with lease terms and monthly rent. Review rent roll and overdue balances, create itemized invoices, and record payments to keep income activity current.
 
-![alt text](image-11.png)
-![alt text](image-12.png)
+<img src="image-11.png" alt="Lease management" width="960" />
+<img src="image-12.png" alt="Rent income" width="960" />
 
 ### Stay on top of maintenance
 
 Create, search, filter, group, and manage maintenance tickets across your portfolio. Track priority, category, requester, unit, entry consent, photos, notes, and the full ticket lifecycle from new to closed or canceled.
 
-![alt text](image-14.png)
-![alt text](image-15.png)
+<img src="image-14.png" alt="Maintenance tickets" width="960" />
+<img src="image-15.png" alt="Maintenance ticket details" width="960" />
 
 ### Keep operational context attached to the work
 
 Add internal notes to properties, tenants, and maintenance tickets so important details stay connected to the relevant record.
 
-![alt text](image-16.png)
-![alt text](image-17.png)
-![
-  
-](image-18.png)
+<img src="image-16.png" alt="Property notes" width="960" />
+<img src="image-17.png" alt="Tenant notes" width="960" />
+<img src="image-18.png" alt="Maintenance notes" width="960" />
 ### Built for growing portfolios
 
 Parcelis supports a consistent operating workflow whether you manage a few homes or a growing portfolio.
