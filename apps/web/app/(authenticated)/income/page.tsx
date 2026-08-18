@@ -341,7 +341,7 @@ function IncomePageContent() {
                                         {persistedInvoice ? (
                                           <Link
                                             className="text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
-                                            href={getInvoiceLink(persistedInvoice.id)}
+                                            href={getInvoiceLink(encodeURIComponent(String(persistedInvoice.id)))}
                                           >
                                             INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
                                           </Link>

@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@parcelis/db": "workspace:*",
-    "zod": "^4.2.1"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@parcelis/config": "workspace:*",

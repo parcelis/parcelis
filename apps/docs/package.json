@@ -18,20 +18,20 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "docusaurus-plugin-copy-page-button": "^0.8.4",
-    "docusaurus-plugin-openapi-docs": "^5.1.2",
+    "docusaurus-plugin-openapi-docs": "^5.2.0",
     "docusaurus-plugin-sass": "^0.2.6",
-    "docusaurus-theme-openapi-docs": "^5.1.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "sass": "^1.101.7"
+    "docusaurus-theme-openapi-docs": "^5.2.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sass": "^1.102.0"
   },
   "devDependencies": {
     "@docusaurus/plugin-content-docs": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
     "@types/node": "^22.7.4",
-    "@types/react": "19.1.0",
-    "@types/react-dom": "19.1.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
     "typescript": "^5.6.2"
   }
 }
