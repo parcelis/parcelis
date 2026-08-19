@@ -1623,8 +1623,19 @@ export const appRouter = router({
       if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
 
       const organizationLogo = await getObjectBuffer(ctx.organization.organization.avatarObjectKey);
+      const organization = {
+        addressLine1: ctx.organization.organization.addressLine1,
+        addressLine2: ctx.organization.organization.addressLine2,
+        city: ctx.organization.organization.city,
+        region: ctx.organization.organization.region,
+        postalCode: ctx.organization.organization.postalCode,
+        phone: ctx.organization.organization.phone,
+      };
       const fileName = `invoice-${String(invoice.invoiceNumber).padStart(7, "0")}.pdf`;
-      return { contentBase64: (await renderInvoicePdf(invoice, organizationLogo)).toString("base64"), fileName };
+      return {
+        contentBase64: (await renderInvoicePdf(invoice, organizationLogo, organization)).toString("base64"),
+        fileName,
+      };
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       const lease = await ctx.prisma.lease.findFirst({
