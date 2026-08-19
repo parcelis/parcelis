@@ -5,6 +5,15 @@ import { Document, Font, Image, Page, renderToBuffer, StyleSheet, Text, View } f
 const parcelisLightBannerPath = resolve(__dirname, "../../../web/public/brand/parcelis-fullmark-light.png");
 const parcelisLightBackgroundPath = resolve(__dirname, "../../../web/public/brand/parcelis-light-background.png");
 
+// Mirrors packages/ui/src/styles.css custom properties. react-pdf renders server-side with its
+// own StyleSheet and can't read CSS custom properties, so the token values are duplicated here.
+const colors = {
+  border: "#dce1dc",
+  charcoal: "#101c29",
+  gray: "#586273",
+  white: "#ffffff",
+};
+
 Font.register({
   family: "Inter",
   src: require.resolve("@fontsource/inter/files/inter-latin-400-normal.woff"),
@@ -38,7 +47,7 @@ export type InvoicePdfInvoice = {
 };
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: "#FFFFFF", color: "#101c29", fontFamily: "Inter", fontSize: 10, padding: 48 },
+  page: { backgroundColor: colors.white, color: colors.charcoal, fontFamily: "Inter", fontSize: 10, padding: 48 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -57,8 +66,8 @@ const styles = StyleSheet.create({
     top: 0,
     width: "100%",
   },
-  brandBanner: { height: 36, width: 130 },
-  brandName: { color: "#101c29", fontFamily: "Inter-Bold", fontSize: 22, height: 36 },
+  brandBanner: { height: 52, objectFit: "contain", width: 130 },
+  brandName: { color: colors.charcoal, fontFamily: "Inter-Bold", fontSize: 22, height: 36 },
   invoiceLabel: { fontSize: 22, fontFamily: "Inter-Bold", textAlign: "right" },
   statusLate: {
     alignSelf: "flex-start",
@@ -75,50 +84,61 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     backgroundColor: "#d9edc7",
     borderRadius: 4,
-    color: "#101c29",
+    color: colors.charcoal,
     fontFamily: "Inter-Bold",
     fontSize: 10,
     marginTop: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  muted: { color: "#586273", marginTop: 4 },
-  tagline: { color: "#586273", fontFamily: "Inter-Bold", marginTop: 4 },
+  muted: { color: colors.gray, marginTop: 4 },
+  tagline: { color: colors.gray, fontFamily: "Inter-Bold", marginTop: 4 },
   details: { flexDirection: "row", gap: 24, marginTop: 30 },
   detailColumn: { flex: 1 },
-  eyebrow: { color: "#586273", fontSize: 8, fontFamily: "Inter-Bold", letterSpacing: 1, textTransform: "uppercase" },
+  eyebrow: { color: colors.gray, fontSize: 8, fontFamily: "Inter-Bold", letterSpacing: 1, textTransform: "uppercase" },
   detailText: { fontSize: 11, lineHeight: 1.5, marginTop: 8 },
   table: { marginTop: 36 },
-  tableHeader: { backgroundColor: "#101c29", color: "#ffffff", flexDirection: "row", fontFamily: "Inter-Bold", padding: 10 },
-  row: { borderBottomColor: "#dce1dc", borderBottomWidth: 1, flexDirection: "row", padding: 10 },
+  tableHeader: { backgroundColor: colors.charcoal, color: colors.white, flexDirection: "row", fontFamily: "Inter-Bold", padding: 10 },
+  row: { borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: "row", padding: 10 },
   item: { width: 90 },
   description: { flex: 1 },
-  descriptionText: { color: "#586273", flex: 1 },
+  descriptionText: { color: colors.gray, flex: 1 },
   quantity: { textAlign: "right", width: 40 },
   rate: { textAlign: "right", width: 70 },
   amount: { textAlign: "right", width: 75 },
   payments: { marginTop: 26 },
   paymentHeading: { alignItems: "center", flexDirection: "row", gap: 8, marginBottom: 10 },
-  paymentHeader: { color: "#101c29", fontFamily: "Inter-Bold", fontSize: 12 },
+  paymentHeader: { color: colors.charcoal, fontFamily: "Inter-Bold", fontSize: 12 },
   paymentCount: {
     backgroundColor: "#d9edc7",
     borderRadius: 10,
-    color: "#101c29",
+    color: colors.charcoal,
     fontFamily: "Inter-Bold",
     fontSize: 8,
     paddingHorizontal: 7,
     paddingVertical: 3,
   },
-  paymentTableHeader: { borderBottomColor: "#dce1dc", borderBottomWidth: 1, color: "#586273", flexDirection: "row", fontFamily: "Inter-Bold", fontSize: 8, paddingBottom: 7 },
-  paymentRow: { borderBottomColor: "#dce1dc", borderBottomWidth: 1, flexDirection: "row", paddingVertical: 8 },
+  paymentTableHeader: { borderBottomColor: colors.border, borderBottomWidth: 1, color: colors.gray, flexDirection: "row", fontFamily: "Inter-Bold", fontSize: 8, paddingBottom: 7 },
+  paymentRow: { borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: "row", paddingVertical: 8 },
   payer: { flex: 1 },
-  paidOn: { color: "#586273", width: 95 },
-  method: { color: "#586273", width: 95 },
+  paidOn: { color: colors.gray, width: 95 },
+  method: { color: colors.gray, width: 95 },
   paymentAmount: { fontFamily: "Inter-Bold", textAlign: "right", width: 75 },
   totals: { alignSelf: "flex-end", marginTop: 24, width: 200 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 },
-  balance: { borderTopColor: "#101c29", borderTopWidth: 1, fontFamily: "Inter-Bold", fontSize: 13, marginTop: 5, paddingTop: 10 },
-  footer: { bottom: 38, color: "#586273", fontSize: 8, left: 48, position: "absolute", right: 48, textAlign: "center" },
+  balance: { borderTopColor: colors.charcoal, borderTopWidth: 1, fontFamily: "Inter-Bold", fontSize: 13, marginTop: 5, paddingTop: 10 },
+  thankYou: { color: colors.gray, fontSize: 8, marginTop: 30, textAlign: "center" },
+  footer: {
+    bottom: 10,
+    color: colors.gray,
+    fontSize: 8,
+    left: 48,
+    position: "absolute",
+    right: 48,
+    textAlign: "center",
+  },
+  issuedThrough: { color: colors.gray, fontSize: 8 },
+  issuedThroughSignature: { alignSelf: "center", height: 24, marginTop: -4, objectFit: "contain", width: 94 },
 });
 
 function formatCurrency(cents: number) {
@@ -154,10 +174,12 @@ function InvoicePdfDocument({
   brandBanner,
   headerBackground,
   invoice,
+  organizationLogo,
 }: {
   brandBanner: string | null;
   headerBackground: string | null;
   invoice: InvoicePdfInvoice;
+  organizationLogo: string | null;
 }) {
   const invoiceLabel = `INV-${String(invoice.invoiceNumber).padStart(7, "0")}`;
   const paidCents = Math.max(invoice.amountCents - invoice.balanceCents, 0);
@@ -165,6 +187,7 @@ function InvoicePdfDocument({
   const items = invoice.items.length
     ? invoice.items
     : [{ description: null, item: "Rent", quantity: 1, rateCents: invoice.amountCents }];
+  const isWhiteLabeled = Boolean(organizationLogo);
 
   return (
     <Document author="Parcelis" title={`Invoice ${invoiceLabel}`}>
@@ -172,8 +195,16 @@ function InvoicePdfDocument({
         <View style={styles.header}>
           {headerBackground ? <Image src={headerBackground} style={styles.headerBackground} /> : null}
           <View>
-            {brandBanner ? <Image src={brandBanner} style={styles.brandBanner} /> : <Text style={styles.brandName}>Parcelis</Text>}
-            <Text style={styles.tagline}>The open-source platform for property management.</Text>
+            {organizationLogo ? (
+              <Image src={organizationLogo} style={styles.brandBanner} />
+            ) : brandBanner ? (
+              <Image src={brandBanner} style={styles.brandBanner} />
+            ) : (
+              <Text style={styles.brandName}>Parcelis</Text>
+            )}
+            {isWhiteLabeled ? null : (
+              <Text style={styles.tagline}>The open-source platform for property management.</Text>
+            )}
           </View>
           <View>
             <Text style={styles.invoiceLabel}>INVOICE</Text>
@@ -259,16 +290,34 @@ function InvoicePdfDocument({
             <Text>{formatCurrency(invoice.balanceCents)}</Text>
           </View>
         </View>
-        <Text fixed style={styles.footer}>Thank you for your prompt payment.</Text>
+        <Text style={styles.thankYou}>Thank you for your prompt payment.</Text>
+        {isWhiteLabeled ? (
+          <View fixed style={styles.footer}>
+            <Text style={styles.issuedThrough}>Issued with</Text>
+            {brandBanner ? <Image src={brandBanner} style={styles.issuedThroughSignature} /> : null}
+          </View>
+        ) : null}
       </Page>
     </Document>
   );
 }
 
-export async function renderInvoicePdf(invoice: InvoicePdfInvoice) {
+export type InvoicePdfOrganizationLogo = { buffer: Buffer; contentType: string } | null;
+
+export async function renderInvoicePdf(invoice: InvoicePdfInvoice, organizationLogoAsset: InvoicePdfOrganizationLogo = null) {
   const [brandBanner, headerBackground] = await Promise.all([
     loadBrandImage(parcelisLightBannerPath),
     loadBrandImage(parcelisLightBackgroundPath),
   ]);
-  return renderToBuffer(<InvoicePdfDocument brandBanner={brandBanner} headerBackground={headerBackground} invoice={invoice} />);
+  const organizationLogo = organizationLogoAsset
+    ? `data:${organizationLogoAsset.contentType};base64,${organizationLogoAsset.buffer.toString("base64")}`
+    : null;
+  return renderToBuffer(
+    <InvoicePdfDocument
+      brandBanner={brandBanner}
+      headerBackground={headerBackground}
+      invoice={invoice}
+      organizationLogo={organizationLogo}
+    />,
+  );
 }

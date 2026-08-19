@@ -117,6 +117,25 @@ export async function createPropertyImageDownloadUrl(objectKey: string | null) {
   });
 }
 
+export async function getObjectBuffer(objectKey: string | null) {
+  if (!objectKey) {
+    return null;
+  }
+
+  try {
+    const config = getObjectStorageConfig();
+    const response = await createObjectStorageClient().send(
+      new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }),
+    );
+    if (!response.Body) return null;
+
+    const bytes = await response.Body.transformToByteArray();
+    return { buffer: Buffer.from(bytes), contentType: response.ContentType ?? "image/png" };
+  } catch {
+    return null;
+  }
+}
+
 export async function deletePropertyImageObject(objectKey: string) {
   const config = getObjectStorageConfig();
   await createObjectStorageClient().send(new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey }));
