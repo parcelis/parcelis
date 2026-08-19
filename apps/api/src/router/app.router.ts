@@ -72,6 +72,7 @@ import {
   createTenantImageDownloadUrl,
   createTenantImageUploadUrl,
   deleteTenantImageObject,
+  getObjectBuffer,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
@@ -1415,8 +1416,9 @@ export const appRouter = router({
       });
       if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
 
+      const organizationLogo = await getObjectBuffer(ctx.organization.organization.avatarObjectKey);
       const fileName = `invoice-${String(invoice.invoiceNumber).padStart(7, "0")}.pdf`;
-      return { contentBase64: (await renderInvoicePdf(invoice)).toString("base64"), fileName };
+      return { contentBase64: (await renderInvoicePdf(invoice, organizationLogo)).toString("base64"), fileName };
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       const lease = await ctx.prisma.lease.findFirst({
