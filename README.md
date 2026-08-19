@@ -166,5 +166,5 @@ Parcelis exists to push rental and property‑management software into a better 
 <br />
 <br />
 <a href="https://github.com/parcelis/parcelis/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=parcelis/parcelis" />
+  <img src="https://contrib.rocks/image?repo=parcelis/parcelis" alt="Project contributors" />
 </a>
