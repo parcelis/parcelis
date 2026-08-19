@@ -1,6 +1,20 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { Document, Font, Image, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
+import {
+  Defs,
+  Document,
+  Font,
+  Image,
+  LinearGradient,
+  Page,
+  Rect,
+  renderToBuffer,
+  Stop,
+  StyleSheet,
+  Svg,
+  Text,
+  View,
+} from "@react-pdf/renderer";
 
 const parcelisLightBannerPath = resolve(__dirname, "../../../web/public/brand/parcelis-fullmark-light.png");
 const parcelisLightBackgroundPath = resolve(__dirname, "../../../web/public/brand/parcelis-light-background.png");
@@ -70,6 +84,15 @@ const styles = StyleSheet.create({
     height: "100%",
     left: 0,
     objectFit: "cover",
+    position: "absolute",
+    right: 0,
+    top: 0,
+    width: "100%",
+  },
+  headerBackgroundFade: {
+    bottom: 0,
+    height: "100%",
+    left: 0,
     position: "absolute",
     right: 0,
     top: 0,
@@ -146,7 +169,13 @@ const styles = StyleSheet.create({
     right: 48,
     textAlign: "center",
   },
-  organizationContact: { color: colors.gray, fontSize: 8, marginBottom: 22, textAlign: "center" },
+  organizationContact: {
+    color: colors.gray,
+    fontSize: 8,
+    marginBottom: 22,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
   issuedThrough: { color: colors.gray, fontSize: 8 },
   issuedThroughSignature: { alignSelf: "center", height: 24, marginTop: -4, objectFit: "contain", width: 94 },
 });
@@ -218,7 +247,21 @@ function InvoicePdfDocument({
     <Document author="Parcelis" title={`Invoice ${invoiceLabel}`}>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
-          {headerBackground ? <Image src={headerBackground} style={styles.headerBackground} /> : null}
+          {headerBackground ? (
+            <>
+              <Image src={headerBackground} style={styles.headerBackground} />
+              <Svg style={styles.headerBackgroundFade} viewBox="0 0 100 100" preserveAspectRatio="none">
+                <Defs>
+                  <LinearGradient id="headerBackgroundFade" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0" stopColor={colors.white} stopOpacity={0} />
+                    <Stop offset="0.5" stopColor={colors.white} stopOpacity={0.625} />
+                    <Stop offset="1" stopColor={colors.white} stopOpacity={1} />
+                  </LinearGradient>
+                </Defs>
+                <Rect x={0} y={0} width={100} height={100} fill="url(#headerBackgroundFade)" />
+              </Svg>
+            </>
+          ) : null}
           <View>
             {organizationLogo ? (
               <Image src={organizationLogo} style={styles.brandBanner} />
