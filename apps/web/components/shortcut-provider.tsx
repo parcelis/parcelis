@@ -3,6 +3,7 @@
 import * as React from "react";
 import { HotkeysProvider, useHotkey, type RegisterableHotkey, type UseHotkeyOptions } from "@tanstack/react-hotkeys";
 import { useTheme } from "./theme-provider";
+import { shortcuts } from "./shortcuts";
 
 export type ShortcutKey = RegisterableHotkey;
 
@@ -27,17 +28,13 @@ export function ShortcutProvider({ children }: { children: React.ReactNode }) {
 function ThemeShortcuts() {
   const { resolvedMode, setMode } = useTheme();
 
-  useShortcut("Mod+Shift+D", () => {
+  useShortcut(shortcuts.toggleDarkMode.keys, () => {
     setMode(resolvedMode === "dark" ? "light" : "dark");
   });
 
   return null;
 }
 
-export function useShortcut(
-  shortcut: RegisterableHotkey,
-  handler: () => void,
-  options?: UseHotkeyOptions,
-) {
+export function useShortcut(shortcut: RegisterableHotkey, handler: () => void, options?: UseHotkeyOptions) {
   useHotkey(shortcut, handler, options);
 }
