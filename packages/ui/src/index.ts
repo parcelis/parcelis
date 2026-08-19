@@ -9,6 +9,7 @@ export * from "./components/drawer";
 export * from "./components/dialog";
 export * from "./components/dropdown-menu";
 export * from "./components/input";
+export * from "./components/kbd";
 export * from "./components/label";
 export * from "./components/logo";
 export * from "./components/password-input";

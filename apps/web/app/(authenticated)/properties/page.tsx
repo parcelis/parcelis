@@ -69,6 +69,7 @@ import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
 import { useShortcut } from "../../../components/shortcut-provider";
+import { shortcuts } from "../../../components/shortcuts";
 import {
   entityArchivedMessage,
   entityCreatedMessage,
@@ -416,7 +417,7 @@ export default function PropertiesPage() {
   const [notesPropertyId, setNotesPropertyId] = React.useState<number | null>(null);
   const [form, setForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
-  useShortcut("/", () => searchInputRef.current?.focus(), {
+  useShortcut(shortcuts.focusSearch.keys, () => searchInputRef.current?.focus(), {
     enabled: !isFormOpen,
   });
 

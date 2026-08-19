@@ -18,6 +18,7 @@ import {
   ClipboardList,
   CircleUserRound,
   KeyRound,
+  Keyboard,
   Lightbulb,
   Home,
   LogOut,
@@ -34,11 +35,14 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Kbd,
+  KbdGroup,
   Label,
   PasswordInput,
   Select,
 } from "@parcelis/ui";
 import { useShortcut } from "./shortcut-provider";
+import { isMacPlatform, shortcutKeyParts, shortcutList, shortcuts } from "./shortcuts";
 import { apiClient, queryKeys } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
 
@@ -101,6 +105,11 @@ function SidebarContent({ active }: SidebarProps) {
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const [changePasswordForm, setChangePasswordForm] = React.useState<ChangePasswordForm>(initialChangePasswordForm);
+  const [isShortcutsOpen, setIsShortcutsOpen] = React.useState(false);
+  const [isMac, setIsMac] = React.useState(false);
+  React.useEffect(() => {
+    setIsMac(isMacPlatform());
+  }, []);
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -168,7 +177,7 @@ function SidebarContent({ active }: SidebarProps) {
     });
   }
 
-  useShortcut("Mod+B", toggleSidebar);
+  useShortcut(shortcuts.toggleSidebar.keys, toggleSidebar);
 
   async function signOut() {
     setSignOutError(null);
@@ -441,88 +450,119 @@ function SidebarContent({ active }: SidebarProps) {
             </div>
           </form>
         </DialogContent>
-        <DropdownMenu onOpenChange={setIsAccountMenuOpen} open={isAccountMenuOpen}>
-          <DropdownMenuTrigger asChild>
-            <button
-              aria-label="Open account menu"
-              className={`group mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain dark:data-[state=open]:bg-parcelis-charcoal/70 ${!isSidebarExpanded ? "justify-center" : ""}`}
-              title={!isSidebarExpanded ? "My Account" : undefined}
-              type="button"
-            >
-              <CircleUserRound className="h-4 w-4 shrink-0" />
-              {!isSidebarExpanded ? null : (
-                <>
-                  <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left">My Account</span>
-                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
-                </>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-60" side="right">
-            <div className="flex flex-col gap-0.5 px-3 py-2">
-              <span className="text-sm font-semibold">My Account</span>
-              <span className="truncate text-xs font-normal text-parcelis-gray">
-                {currentUserQuery.data?.user.name || currentUserQuery.data?.user.email || "Loading account…"}
-              </span>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setIsChangePasswordOpen(true)}>
-              <KeyRound className="h-4 w-4 shrink-0" />
-              Change password
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a href="/docs/" rel="noopener noreferrer" target="_blank">
-                <BookOpen className="h-4 w-4 shrink-0" />
-                Documentation Site
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="https://github.com/parcelis/parcelis" rel="noopener noreferrer" target="_blank">
-                <FaGithub className="h-4 w-4 shrink-0" />
-                GitHub
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a href="https://discord.gg/4XYkWmVpWH" rel="noopener noreferrer" target="_blank">
-                <FaDiscord className="h-4 w-4 shrink-0" />
-                Discord Community
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a
-                href="https://github.com/parcelis/parcelis/issues/new?template=feature_request.yml"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                <Lightbulb className="h-4 w-4 shrink-0" />
-                Request a feature
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {signOutError ? (
-              <p className="px-3 py-2 text-xs text-red-700" role="alert">
-                {signOutError}
-              </p>
-            ) : null}
-            <DropdownMenuItem
-              disabled={isSigningOut}
-              onSelect={(event) => {
-                event.preventDefault();
-                void signOut();
-              }}
-            >
-              <LogOut className="h-4 w-4 shrink-0" />
-              {isSigningOut ? "Signing out…" : "Sign out"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <div className="px-3 py-2">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">Theme</p>
-              <ThemeSelector />
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </Dialog>
+
+      <Dialog onOpenChange={setIsShortcutsOpen} open={isShortcutsOpen}>
+        <DialogContent aria-labelledby="keyboard-shortcuts-title" className="max-w-md gap-6">
+          <div>
+            <h2 className="text-lg font-bold text-parcelis-charcoal" id="keyboard-shortcuts-title">
+              Keyboard shortcuts
+            </h2>
+            <p className="mt-1.5 text-sm text-parcelis-gray">Speed up common actions with these shortcuts.</p>
+          </div>
+          <ul className="mt-2 divide-y divide-parcelis-border rounded-md border border-parcelis-border">
+            {shortcutList.map((shortcut) => (
+              <li className="flex items-center justify-between gap-6 px-4 py-3.5" key={shortcut.description}>
+                <span className="text-sm text-parcelis-charcoal">{shortcut.description}</span>
+                <KbdGroup>
+                  {shortcutKeyParts(shortcut.keys, isMac).map((key, index) => (
+                    <React.Fragment key={key}>
+                      {index > 0 ? <span className="text-xs text-parcelis-gray">+</span> : null}
+                      <Kbd>{key}</Kbd>
+                    </React.Fragment>
+                  ))}
+                </KbdGroup>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
+
+      <DropdownMenu onOpenChange={setIsAccountMenuOpen} open={isAccountMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            aria-label="Open account menu"
+            className={`group mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain dark:data-[state=open]:bg-parcelis-charcoal/70 ${!isSidebarExpanded ? "justify-center" : ""}`}
+            title={!isSidebarExpanded ? "My Account" : undefined}
+            type="button"
+          >
+            <CircleUserRound className="h-4 w-4 shrink-0" />
+            {!isSidebarExpanded ? null : (
+              <>
+                <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left">My Account</span>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+              </>
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-60" side="right">
+          <div className="flex flex-col gap-0.5 px-3 py-2">
+            <span className="text-sm font-semibold">My Account</span>
+            <span className="truncate text-xs font-normal text-parcelis-gray">
+              {currentUserQuery.data?.user.name || currentUserQuery.data?.user.email || "Loading account…"}
+            </span>
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setIsChangePasswordOpen(true)}>
+            <KeyRound className="h-4 w-4 shrink-0" />
+            Change password
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setIsShortcutsOpen(true)}>
+            <Keyboard className="h-4 w-4 shrink-0" />
+            Keyboard shortcuts
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <a href="/docs/" rel="noopener noreferrer" target="_blank">
+              <BookOpen className="h-4 w-4 shrink-0" />
+              Documentation Site
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <a href="https://github.com/parcelis/parcelis" rel="noopener noreferrer" target="_blank">
+              <FaGithub className="h-4 w-4 shrink-0" />
+              GitHub
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <a href="https://discord.gg/4XYkWmVpWH" rel="noopener noreferrer" target="_blank">
+              <FaDiscord className="h-4 w-4 shrink-0" />
+              Discord Community
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <a
+              href="https://github.com/parcelis/parcelis/issues/new?template=feature_request.yml"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Lightbulb className="h-4 w-4 shrink-0" />
+              Request a feature
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {signOutError ? (
+            <p className="px-3 py-2 text-xs text-red-700" role="alert">
+              {signOutError}
+            </p>
+          ) : null}
+          <DropdownMenuItem
+            disabled={isSigningOut}
+            onSelect={(event) => {
+              event.preventDefault();
+              void signOut();
+            }}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            {isSigningOut ? "Signing out…" : "Sign out"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <div className="px-3 py-2">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">Theme</p>
+            <ThemeSelector />
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </aside>
   );
 }
