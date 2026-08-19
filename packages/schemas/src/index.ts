@@ -49,6 +49,13 @@ export const deleteUserInputSchema = z.object({ id: idSchema });
 
 export const organizationMemberRoleSchema = z.enum(["owner", "administrator", "member"]);
 export const switchOrganizationInputSchema = z.object({ organizationId: idSchema });
+export const organizationAddressSchema = z.object({
+  line1: z.string().trim().max(255).optional(),
+  line2: z.string().trim().max(255).optional(),
+  city: z.string().trim().max(100).optional(),
+  region: z.string().trim().max(2).optional(),
+  postalCode: z.string().trim().max(20).optional(),
+});
 export const updateOrganizationInputSchema = z.object({
   name: z.string().trim().min(2).max(100),
   slug: z
@@ -57,6 +64,8 @@ export const updateOrganizationInputSchema = z.object({
     .min(3)
     .max(50)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
+  address: organizationAddressSchema.nullable(),
+  phone: z.string().trim().max(50).nullable(),
 });
 export const organizationAvatarUploadInputSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
