@@ -16,7 +16,7 @@ const config: Config = {
         "parcelis-green-hover": "rgb(var(--parcelis-green-hover) / <alpha-value>)"
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui"],
+        sans: ["var(--font-inter)", "ui-sans-serif", "system-ui"],
         serif: ["Georgia", "ui-serif", "serif"]
       }
     }

@@ -55,6 +55,21 @@ Pull requests validate every commit message in CI. If the repository uses squash
 
 Keep changes focused, run the relevant checks, and update user-facing documentation with workflow changes.
 
+### Repository structure
+
+Apps:
+
+- `apps/web`: Next.js App Router frontend.
+- `apps/api`: NestJS backend exposing a tRPC router.
+- `apps/docs`: Docusaurus documentation site for platform and contributor guides.
+
+Packages:
+
+- `packages/ui`: shared Parcelis UI primitives and brand components.
+- `packages/schemas`: shared Zod schemas for frontend and backend contracts.
+- `packages/db`: Prisma schema, migrations, and database client exports.
+- `packages/config`: shared TypeScript, ESLint, and Prettier configuration.
+
 ### Local development
 
 Install dependencies and run the apps on your machine with hot reload:
@@ -70,29 +85,49 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm dev` stops existing host listeners on the configured web, docs, and API ports before starting the development stack. It then chooses the next open port only if a port remains unavailable.
-It starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job automatically; Docker must be running.
-Use `pnpm dev:services:refresh` to recreate nginx, PostgreSQL, and MinIO while preserving their Docker volumes; it also reruns MinIO initialization.
-It reads the root `.env` so the web, API, and database connection use the same port configuration.
-Use nginx as the local entry point: web is `http://localhost`, docs are
-`http://localhost/docs/`, and the REST API is `http://localhost/api/v1`.
-The host processes remain available on web `http://localhost:30000`, docs
-`http://localhost:40000`, and API `http://localhost:40010`. PostgreSQL is on
-`localhost:54320`, pgAdmin is on
-`http://localhost:8000`, MinIO `http://localhost:9001`, and the MinIO console
-`http://localhost:9010`.
-pgAdmin is available at `http://localhost:8000` with the default login
-`admin@parcelis.dev` / `parcelis`; the Parcelis database is preconfigured.
-When connecting to it for the first time, use the database password `parcelis`.
-If `DATABASE_URL` is not set, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
-If a previous dev run is still watching files, stop it with `Ctrl+C` before
-starting another one.
-Prisma commands load the root `.env` automatically when run through `pnpm db:*`.
-Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first
-`pnpm db:seed`; it creates the local administrator account without replacing an existing password.
-After pulling schema changes, run `pnpm db:migrate && pnpm db:seed` to apply new
-columns and refresh demo operating metrics such as overdue balances, lease
-expirations, and unit-level maintenance tickets.
+#### What `pnpm dev` starts
+
+`pnpm dev` starts the web, API, and docs apps with hot reload. It also starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
+
+Use nginx as the normal local entry point:
+
+| Service | URL |
+| --- | --- |
+| Web app | `http://localhost` |
+| Documentation | `http://localhost/docs/` |
+| API | `http://localhost/api/v1` |
+
+The host processes and local services are also available directly:
+
+| Service | Address |
+| --- | --- |
+| Web app | `http://localhost:30000` |
+| Docs | `http://localhost:40000` |
+| API | `http://localhost:40010` |
+| PostgreSQL | `localhost:54320` |
+| pgAdmin | `http://localhost:8000` |
+| MinIO API | `http://localhost:9001` |
+| MinIO console | `http://localhost:9010` |
+
+#### Local database
+
+Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `DATABASE_URL` is unset, the API uses `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
+
+pgAdmin is available at `http://localhost:8000` with `admin@parcelis.dev` / `parcelis`. The Parcelis database is preconfigured; use `parcelis` as its password when connecting for the first time.
+
+Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first `pnpm db:seed`. It creates the local administrator account without replacing an existing password.
+
+After pulling schema changes, run:
+
+```bash
+pnpm db:migrate
+pnpm db:seed
+```
+
+#### Useful commands
+
+- `pnpm dev:services:refresh`: recreate nginx, PostgreSQL, and MinIO while preserving their volumes, then rerun MinIO initialization.
+- Stop an existing app watcher with `Ctrl+C` before starting another `pnpm dev` process.
 
 ### Docker Compose
 
@@ -113,6 +148,8 @@ The development stack provides the nginx proxy and local dependencies. `pnpm dev
 
 #### Production-style deployment
 
+Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/app`, `parcelis/docs`, and `parcelis/proxy`.
+
 Copy `.env.production.example` to `.env.production`, replace every placeholder, and set `PARCELIS_VERSION` to a release tag such as `v0.4.1` rather than using `latest`.
 
 ```bash
@@ -121,6 +158,7 @@ docker compose --env-file .env.production up -d --remove-orphans
 ```
 
 The Compose stack runs the database migration job and MinIO provisioning before the application services become available. The `migrate` and `minio-init` containers exit after that initialization work; MinIO continues running and the app/docs services remain up. Put a TLS reverse proxy in front of the exposed web, docs, and object-storage endpoints configured in `.env.production`.
+The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `APP_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
 
 For logs and cleanup:
 
@@ -134,55 +172,39 @@ docker compose --env-file .env.production logs -f
 
 ### Object storage
 
-Parcelis uses MinIO for local S3-compatible image storage. Docker Compose starts
-MinIO on `http://localhost:9001`, opens the console at `http://localhost:9010`,
-and creates a private `parcelis-images` bucket through the `minio-init` service.
-It also creates a public-read `parcelis-assets` bucket and uploads the brand
-logos to `brand/parcelis-light.png` and `brand/parcelis-dark.png`. The
-`minio-init` container exits after the buckets are ready.
+Parcelis uses MinIO for local image storage. Docker Compose starts the service and the one-time `minio-init` job, which exits after preparing the buckets.
 
-Default local credentials are:
+| Service or bucket | Address or purpose |
+| --- | --- |
+| MinIO API | `http://localhost:9001` |
+| MinIO console | `http://localhost:9010` |
+| `parcelis-images` | Private property and tenant images |
+| `parcelis-assets` | Public brand assets, including `brand/parcelis-light.png` and `brand/parcelis-dark.png` |
 
-```bash
-MINIO_ROOT_USER=parcelis-minio
-MINIO_ROOT_PASSWORD=parcelis-minio-secret
-```
+#### Using storage in the apps
 
-The API reads S3-compatible settings from `OBJECT_STORAGE_*` env vars, while the
-web app can use `NEXT_PUBLIC_S3_URL` for public asset URLs.
-`NEXT_PUBLIC_BRAND_LOGO_URL` points at the MinIO-hosted Parcelis logo.
-The responsive navigation and login banners are bundled with the web app as
-`/brand/parcelis-light-banner.png` and `/brand/parcelis-dark-banner.png`.
+- The API reads S3-compatible settings from `OBJECT_STORAGE_*` environment variables.
+- The web app can use `NEXT_PUBLIC_S3_URL` for public asset URLs and `NEXT_PUBLIC_BRAND_LOGO_URL` for the MinIO-hosted logo.
+- The responsive navigation and login banners are bundled with the web app at `/brand/parcelis-light-banner.png` and `/brand/parcelis-dark-banner.png`.
 
-Property images are stored under
-`properties/{propertyId}/images/{imageId}.{extension}`. Tenant images use
-`tenants/{tenantId}/images/{imageId}.{extension}`. Both use the private
-`parcelis-images` bucket and short-lived signed URLs.
+#### Image paths
 
-For Docker Compose, host ports are configured with `APP_PORT`, `API_PORT`, `POSTGRES_PORT`,
-`PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
+Property images use `properties/{propertyId}/images/{imageId}.{extension}`. Tenant images use `tenants/{tenantId}/images/{imageId}.{extension}`. Both are stored in the private `parcelis-images` bucket and served with short-lived signed URLs.
+
+#### Custom ports
+
+Override local host ports with `APP_PORT`, `API_PORT`, `DOCS_PORT`, `POSTGRES_PORT`, `PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
 
 ```bash
 APP_PORT=43200 API_PORT=43202 DOCS_PORT=43201 POSTGRES_PORT=43203 PGADMIN_PORT=43204 MINIO_API_PORT=43205 MINIO_CONSOLE_PORT=43206 docker compose -f docker-compose-dev.yml up
 ```
 
-The Compose services retain their standard internal ports, but map to the
-the local ports listed above by default. Set the corresponding
-environment variables to override individual host ports.
+The containers keep their standard internal ports. Set only the variables you need to change.
 
 If Docker reports that its predefined address pools have been fully subnetted,
 Parcelis uses a fixed `10.88.0.0/24` development network. If that subnet is also
 busy on your machine, run `docker network ls` and change the subnet in
 `docker-compose.yml`, or remove unused Docker networks with `docker network prune`.
-
-### API reference
-
-The API reference is generated from the tRPC router. Regenerate the OpenAPI specification and Docusaurus pages after changing API procedures or shared schemas:
-
-```bash
-pnpm --filter @parcelis/api generate:openapi
-pnpm --filter @parcelis/docs generate:api
-```
 
 ### UI components
 

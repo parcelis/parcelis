@@ -3,7 +3,7 @@
 </p>
 Parcelis (PAR-suhl-iss) is an open-source property management platform for landlords, small operators, and local property teams.
 
-<h3 align="center">
+<h4 align="center">
   ,🚀
   <a href="http://kan.bn/dothuxv6abhw/parcelis-roadmap">Roadmap</a>
     <span>&nbsp; &nbsp; &nbsp; · &nbsp; &nbsp; &nbsp;</span>
@@ -40,58 +40,68 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br /><br />
 
-## 🧩 Features
+# 🧩 Features
 
-### Run your rentals in one place
+### Manage your portfolio in one place
 
-Keep your properties, units, tenants, maintenance, and day-to-day operations organized in one shared workspace—without juggling spreadsheets, email threads, and separate tools.
+Track properties, units, tenants, leases, maintenance, and income in a shared workspace—without relying on disconnected spreadsheets and tools.
 
-### Keep your team on the same page
+### See your portfolio at a glance
 
-Give every team member visibility into what needs attention, who owns it, and what has already been completed. Parcelis keeps operational work clear, accountable, and moving forward.
+Start with a dashboard for occupancy, properties, active leases, monthly rent, priority work, and a property snapshot.
 
-### Work in the right organization
+<img src="assets/readme/image-19.png" alt="Dashboard overview" width="800" />
 
-Keep each organization's properties, tenants, leases, income, and maintenance records separate. Team members can switch between the organizations they are allowed to access.
+### Organize properties and units
 
-### Manage tenants with confidence
+Create and manage properties, units, contacts, tags, photos, notes, occupancy, and lease information. Archive records when they are no longer part of your active workflow without losing their history.
 
-Maintain a complete view of each tenant alongside the property information, requests, and activity that matter—so your team always has the context to respond quickly.
+<img src="assets/readme/image-20.png" alt="Property management" width="800" />
+<img src="assets/readme/image-21.png" alt="Unit management" width="800" />
+<img src="assets/readme/image-22.png" alt="Property details" width="800" />
 
-### Stay ahead of maintenance
+### Keep complete tenant records
 
-Create, assign, track, and resolve maintenance tickets in one place. Keep residents informed, coordinate work internally, and make sure important issues do not slip through the cracks.
+Maintain tenant contact details, emergency contacts, insurance and account status, images, notes, lease history, current balances, and related invoices in one place.
 
-### Bring everyday operations into the app
+<img src="assets/readme/image-23.png" alt="Tenant records" width="800" />
+<img src="assets/readme/image-24.png" alt="Tenant details" width="800" />
 
-Tenant questions, repair needs, follow-ups, and other operational tasks happen every day. Parcelis gives your team a simple way to capture, manage, and close the loop on that work.
+### Manage leases and rent income
+
+Connect tenants to units with lease terms and monthly rent. Review rent roll and overdue balances, create itemized invoices, and record payments to keep income activity current.
+
+<img src="assets/readme/image-25.png" alt="Lease management" width="800" />
+<img src="assets/readme/image-26.png" alt="Rent income" width="800" />
+
+### Stay on top of maintenance
+
+Create, search, filter, group, and manage maintenance tickets across your portfolio. Track priority, category, requester, unit, entry consent, photos, notes, and the full ticket lifecycle from new to closed or canceled.
+
+<img src="assets/readme/image-27.png" alt="Maintenance tickets" width="800" />
+<img src="assets/readme/image-28.png" alt="Maintenance ticket details" width="800" />
+<img src="assets/readme/image-29.png" alt="Maintenance ticket workflow" width="800" />
+
+### Keep operational context attached to the work
+
+Add internal notes to properties, tenants, and maintenance tickets so important details stay connected to the relevant record.
+
+<img src="assets/readme/image-30.png" alt="Property notes" width="800" />
+<img src="assets/readme/image-31.png" alt="Tenant notes" width="800" />
+<img src="assets/readme/image-32.png" alt="Maintenance notes" width="800" />
 
 ### Built for growing portfolios
 
-Whether you manage a handful of homes or a growing portfolio, Parcelis gives your team a consistent operational system that scales with the way you work.
+Parcelis supports a consistent operating workflow whether you manage a few homes or a growing portfolio.
 
-### Collect rent
+### Coming soon
 
-Coming soon. Give tenants a straightforward way to pay rent while keeping payment activity connected to the rest of your rental operations.
+- Tenant-facing online rent payments
+- Non-maintenance requests, including move-in, access, and general tenant requests
+- Keep properties, tenants, leases, invoices, and maintenance records separate by organization. Authorized users can switch between the organizations they can access.
 
-### Handle non-maintenance requests
 
-Coming soon. Manage questions, move-in needs, access requests, and other tenant needs alongside maintenance—so every request has a clear owner and outcome.
-
-Parcelis is the operating system for rental teams—bringing properties, tenants, maintenance, and everyday requests into one place.
-
-## Apps
-
-- `apps/web`: Next.js App Router frontend.
-- `apps/api`: NestJS backend exposing a tRPC router.
-- `apps/docs`: Docusaurus documentation site for platform and contributor guides.
-
-## Packages
-
-- `packages/ui`: shared Parcelis UI primitives and brand components.
-- `packages/schemas`: shared Zod schemas for frontend and backend contracts.
-- `packages/db`: Prisma schema, migrations, and database client exports.
-- `packages/config`: shared TypeScript, ESLint, and Prettier configuration.
+Parcelis is an open-source operating system for rental teams—bringing portfolio, tenant, maintenance, lease, and income workflows into one place.
 
 ## Technology
 
@@ -102,59 +112,48 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 ---
 
 <p align="left">
-  <a href="https://www.typescriptlang.org"><img src="https://shields.io/badge/TypeScript-3178C6?logo=TypeScript&logoColor=FFF&style=flat-square" alt="TypeScript"></a>
-  <a href="https://prisma.io"><img width="122" height="20" src="http://made-with.prisma.io/indigo.svg" alt="Made with Prisma" /></a>
-  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/tailwindcss-0F172A?&logo=tailwindcss" alt="Tailwind CSS"></a>
-  <a href=""><img src="" alt=""></a>
-  <a href=""><img src="" alt=""></a>
-  <a href=""><img src="" alt=""></a>
-  <a href=""><img src="" alt=""></a>
-  <a href=""><img src="" alt=""></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white&style=flat-square" alt="Next.js"></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB&style=flat-square" alt="React"></a>
+  <a href="https://nestjs.com/"><img src="https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white&style=flat-square" alt="NestJS"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white&style=flat-square" alt="TypeScript"></a>
+  <a href="https://www.prisma.io/"><img src="https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white&style=flat-square" alt="Prisma"></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white&style=flat-square" alt="PostgreSQL"></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white&style=flat-square" alt="Tailwind CSS"></a>
 </p>
 
-- [TypeScript](https://www.typescriptlang.org/) - Language
-- [Prisma](https://www.prisma.io/) - ORM
-- [Tailwind CSS](https://tailwindcss.com/) - CSS
-- [shadcn/ui](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/) - Component Library
-- [tRPC](https://trpc.io/) - API
-- [Biome](https://biomejs.dev/) - Linting & Formatting
-- [Docusaurus](https://docusaurus.io/) - Documentation
-- [TanStack Hotkeys](https://tanstack.com/hotkeys/latest) - Keyboard Shortcuts
-
-## Deployment
-
-Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/app`, `parcelis/docs`, and `parcelis/proxy`. The production Compose file starts the web/API application, docs site, PostgreSQL, and MinIO together, with the `migrate` and `minio-init` containers running once to prepare the database and object storage before the main services start.
-
-Before publishing the first release, configure these GitHub repository values:
-
-- Secret: `DOCKERHUB_USERNAME` — the Docker Hub username used for publishing.
-- Secret: `DOCKERHUB_TOKEN` — a Docker Hub access token with permission to push to the `parcelis` organization.
-
-For a production deployment:
-
-1. Copy `.env.production.example` to `.env.production`.
-2. Replace the placeholder values with your real hostnames and secrets, especially `PARCELIS_VERSION`, `WEB_ORIGIN`, `AUTH_COOKIE_DOMAIN`, `AUTH_COOKIE_SECURE`, and the MinIO/S3 settings.
-3. Pull the published images and start the stack:
-
-```bash
-docker compose --env-file .env.production pull
-docker compose --env-file .env.production up -d --remove-orphans
-```
-
-4. Review the startup logs if needed:
-
-```bash
-docker compose --env-file .env.production logs -f app-service migrate-service minio-init-service
-```
-
-Set `PARCELIS_VERSION` to a release tag such as `v0.4.1`; do not rely on `latest` for a production deployment. The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `APP_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
+| Area | Technology |
+| --- | --- |
+| Web app | [Next.js](https://nextjs.org/) and [React](https://react.dev/) |
+| API | [NestJS](https://nestjs.com/), [Express](https://expressjs.com/), and [tRPC](https://trpc.io/) |
+| Data and validation | [PostgreSQL](https://www.postgresql.org/), [Prisma](https://www.prisma.io/), and [Zod](https://zod.dev/) |
+| Object storage | [MinIO](https://min.io/) with the S3-compatible AWS SDK |
+| Interface | [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), and [Lucide](https://lucide.dev/) |
+| Documentation | [Docusaurus](https://docusaurus.io/) and [MDX](https://mdxjs.com/) |
+| Tooling | [TypeScript](https://www.typescriptlang.org/), [pnpm](https://pnpm.io/), [Turborepo](https://turbo.build/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) |
+| Local services and deployment | [Docker Compose](https://docs.docker.com/compose/) |
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, contributor expectations,
-and the Conventional Commit format enforced for pull requests.
+Every contribution is appreciated, from bug reports to pull requests. Before implementing a new feature or changing the API, please open an issue so the approach can be discussed first. See [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, contributor expectations, and the Conventional Commit format enforced for pull requests.
+
+### Not sure where to start?
+
+Browse [good first issues](https://github.com/parcelis/parcelis/labels/good%20first%20issue) for approachable contributions.
+
+### How the repository is organized
+
+Parcelis is a pnpm/Turbo monorepo. At a high level, it contains:
+
+- [`apps/web`](apps/web): the main Parcelis web app.
+- [`apps/api`](apps/api): the service that handles app data and requests.
+- [`apps/docs`](apps/docs): the Parcelis documentation site.
+- [`packages/ui`](packages/ui): reusable interface components and branding.
+- [`packages/schemas`](packages/schemas): shared rules for validating app data.
+- [`packages/db`](packages/db): database definitions, updates, and access code.
+- [`packages/config`](packages/config): shared development-tool configuration.
+
+For detailed local setup and contributor workflows, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licensing
-
 Parcelis is licensed under the GNU Affero General Public License version 3. See
 [LICENSING.md](LICENSING.md) for details.

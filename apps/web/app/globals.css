@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+@source "../../packages/ui/src";
 
 @layer components {
   .parcelis-page-shell {
@@ -24,6 +24,7 @@ html.dark {
 body {
   min-height: 100vh;
   margin: 0;
+  font-family: var(--font-inter), ui-sans-serif, system-ui;
   color: rgb(var(--parcelis-charcoal));
   background:
     linear-gradient(180deg, rgb(var(--parcelis-charcoal) / 0.04), rgb(var(--parcelis-porcelain) / 0) 320px),
@@ -35,13 +36,6 @@ body {
   background:
     linear-gradient(180deg, rgb(var(--parcelis-green) / 0.08), rgb(var(--parcelis-charcoal) / 0) 340px),
     rgb(var(--parcelis-charcoal));
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
 }
 
 .dark .bg-white {

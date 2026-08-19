@@ -152,7 +152,7 @@ function SidebarContent({ active }: SidebarProps) {
       router.replace(`/o/${organization.slug}${routePath === "/" ? "" : routePath}`);
     }
     if (isOrganizationAccessError(activeOrganizationQuery.error) && pathname.startsWith("/o/")) {
-      document.cookie = "parcelis-organization-slug=; path=/; max-age=0; samesite=lax";
+      document.cookie = "parcelis-organization-slug=; path=/; max-age=0; samesite=lax; secure";
       router.replace("/");
       router.refresh();
     }
@@ -188,7 +188,7 @@ function SidebarContent({ active }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r border-parcelis-border bg-white py-6 transition-[width,padding] duration-200 lg:flex lg:flex-col ${
+      className={`fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r border-parcelis-border bg-white transition-[width,padding] duration-200 lg:flex lg:flex-col ${
         isSidebarExpanded ? "w-64 px-4" : "w-16 px-1"
       }`}
       onMouseEnter={() => {
@@ -196,7 +196,11 @@ function SidebarContent({ active }: SidebarProps) {
       }}
       onMouseLeave={() => setIsSidebarHovered(false)}
     >
-      <div className={`flex items-center gap-2 ${isSidebarExpanded ? "justify-between" : "flex-col"}`}>
+      <div
+        className={`flex min-h-16 items-center gap-2 ${
+          isSidebarExpanded ? "justify-between" : "flex-col justify-center"
+        }`}
+      >
         {!isSidebarExpanded ? (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center">
             <Image
@@ -220,19 +224,19 @@ function SidebarContent({ active }: SidebarProps) {
           <Link aria-label="Parcelis portfolio" className="min-w-0" href="/">
             <Image
               alt="Parcelis"
-              className="h-auto w-32 dark:hidden"
-              height={159}
+              className="h-10 w-auto max-w-full object-contain dark:hidden"
+              height={2500}
               priority
-              src="/brand/parcelis-light-banner.png"
-              width={488}
+              src="/brand/parcelis-fullmark-light.svg"
+              width={9792}
             />
             <Image
               alt="Parcelis"
-              className="hidden h-auto w-32 dark:block"
-              height={159}
+              className="hidden h-10 w-auto max-w-full object-contain dark:block"
+              height={2500}
               priority
-              src="/brand/parcelis-dark-banner.png"
-              width={488}
+              src="/brand/parcelis-fullmark-dark.svg"
+              width={9792}
             />
           </Link>
         )}
@@ -441,7 +445,7 @@ function SidebarContent({ active }: SidebarProps) {
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Open account menu"
-              className={`group flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain dark:data-[state=open]:bg-parcelis-charcoal/70 ${!isSidebarExpanded ? "justify-center" : ""}`}
+              className={`group mb-4 flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-parcelis-gray hover:bg-parcelis-porcelain data-[state=open]:bg-parcelis-porcelain dark:data-[state=open]:bg-parcelis-charcoal/70 ${!isSidebarExpanded ? "justify-center" : ""}`}
               title={!isSidebarExpanded ? "My Account" : undefined}
               type="button"
             >

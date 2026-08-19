@@ -4,12 +4,81 @@ title: Contributor Setup
 sidebar_label: Contributor Setup
 ---
 
-Parcelis is organized as a pnpm workspace. Install dependencies, generate the Prisma client, then run the development tasks. `pnpm dev` starts the required local Docker services automatically.
+Parcelis is a pnpm/Turbo monorepo. This guide gets the web app, API, documentation site, and local services running on your machine.
+
+## Requirements
+
+| Tool | Required version |
+| --- | --- |
+| Node.js | 24.19.0 |
+| pnpm | 11 |
+| Docker Desktop | Current stable release |
+
+Confirm your local runtime before continuing:
+
+```bash
+node --version
+pnpm --version
+```
+
+## First-time setup
 
 ```bash
 pnpm install
 cp .env.example .env
+# Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
 docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
+pnpm db:migrate
+pnpm db:seed
 pnpm dev
 ```
+
+`pnpm dev` runs the web app, API, and documentation site with hot reload. Docker provides nginx, PostgreSQL, pgAdmin, MinIO, and the one-time MinIO initialization job.
+
+## Local URLs
+
+Use nginx as the usual entry point:
+
+| Service | URL |
+| --- | --- |
+| Web app | `http://localhost` |
+| Documentation | `http://localhost/docs/` |
+| API | `http://localhost/api/v1` |
+
+The apps and services are also available directly:
+
+| Service | Address |
+| --- | --- |
+| Web app | `http://localhost:30000` |
+| Docs | `http://localhost:40000` |
+| API | `http://localhost:40010` |
+| PostgreSQL | `localhost:54320` |
+| pgAdmin | `http://localhost:8000` |
+| MinIO API | `http://localhost:9001` |
+| MinIO console | `http://localhost:9010` |
+
+pgAdmin uses `admin@parcelis.dev` / `parcelis`. The local Parcelis database is preconfigured; its password is `parcelis`.
+
+## Database workflow
+
+Prisma commands run through `pnpm db:*` load the root `.env`. If `DATABASE_URL` is unset, Parcelis uses `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
+
+After pulling schema changes, run:
+
+```bash
+pnpm db:migrate
+pnpm db:seed
+```
+
+## Useful commands
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm dev:services:refresh
+```
+
+`pnpm dev:services:refresh` recreates nginx, PostgreSQL, and MinIO while preserving their volumes, then reruns MinIO initialization. Stop an existing app watcher with `Ctrl+C` before starting another `pnpm dev` process.
+
+For the complete contributor workflow, including commit conventions and production-style deployment, see the [contributing guide](https://github.com/parcelis/parcelis/blob/main/CONTRIBUTING.md).

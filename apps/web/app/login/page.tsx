@@ -78,16 +78,16 @@ export default function LoginPage() {
           <Image
             alt="Parcelis"
             className="hidden h-auto w-56 lg:block dark:hidden"
-            height={159}
-            src="/brand/parcelis-light-banner.png"
-            width={488}
+            height={2500}
+            src="/brand/parcelis-fullmark-light.svg"
+            width={9792}
           />
           <Image
             alt="Parcelis"
             className="hidden h-auto w-56 lg:dark:block"
-            height={159}
-            src="/brand/parcelis-dark-banner.png"
-            width={488}
+            height={2500}
+            src="/brand/parcelis-fullmark-dark.svg"
+            width={9792}
           />
           <button
             className="flex h-10 w-10 items-center justify-center rounded-md border border-parcelis-charcoal/20 bg-white/50 text-parcelis-charcoal transition hover:bg-white/80 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
@@ -133,16 +133,16 @@ export default function LoginPage() {
             <Image
               alt="Parcelis"
               className="mx-auto mb-6 h-auto w-full max-w-[12rem] dark:hidden"
-              height={159}
-              src="/brand/parcelis-light-banner.png"
-              width={488}
+              height={2500}
+              src="/brand/parcelis-fullmark-light.svg"
+              width={9792}
             />
             <Image
               alt="Parcelis"
               className="mx-auto mb-6 hidden h-auto w-full max-w-[12rem] dark:block"
-              height={159}
-              src="/brand/parcelis-dark-banner.png"
-              width={488}
+              height={2500}
+              src="/brand/parcelis-fullmark-dark.svg"
+              width={9792}
             />
             <div className="text-center">
               <h2 id="sign-in-title" className="m-0 text-2xl font-semibold tracking-[-0.035em]">

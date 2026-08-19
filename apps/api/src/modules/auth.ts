@@ -53,6 +53,7 @@ export function getSessionToken(request: Request) {
 export function setSessionCookie(response: Response, token: string) {
   response.cookie(sessionCookieName, token, {
     ...getCookieOptions(),
+    httpOnly: true,
     maxAge: sessionDurationMs,
   });
 }
