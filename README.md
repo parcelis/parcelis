@@ -157,3 +157,14 @@ For detailed local setup and contributor workflows, see [CONTRIBUTING.md](CONTRI
 ## Licensing
 Parcelis is licensed under the GNU Affero General Public License version 3. See
 [LICENSING.md](LICENSING.md) for details.
+<br />
+<br />
+<br />
+<br />
+## Thank you to our contributors!
+Parcelis exists to push rental and property‑management software into a better future. Your involvement strengthens the platform and the community behind it. Thanks for helping shape what comes next.
+<br />
+<br />
+<a href="https://github.com/parcelis/parcelis/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=parcelis/parcelis" />
+</a>
