@@ -491,11 +491,13 @@ export const appRouter = router({
       avatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.avatarObjectKey),
       darkAvatarObjectKey: ctx.organization.organization.darkAvatarObjectKey,
       darkAvatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.darkAvatarObjectKey),
-      addressLine1: ctx.organization.organization.addressLine1,
-      addressLine2: ctx.organization.organization.addressLine2,
-      city: ctx.organization.organization.city,
-      state: ctx.organization.organization.state,
-      postalCode: ctx.organization.organization.postalCode,
+      address: {
+        line1: ctx.organization.organization.addressLine1,
+        line2: ctx.organization.organization.addressLine2,
+        city: ctx.organization.organization.city,
+        region: ctx.organization.organization.region,
+        postalCode: ctx.organization.organization.postalCode,
+      },
       phone: ctx.organization.organization.phone,
       role: ctx.organization.role,
     })),
@@ -523,9 +525,18 @@ export const appRouter = router({
     update: organizationProcedure.input(updateOrganizationInputSchema).mutation(async ({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
       try {
-        return await ctx.prisma.organization.update({
+        const organization = await ctx.prisma.organization.update({
           where: { id: ctx.organization.organizationId },
-          data: input,
+          data: {
+            name: input.name,
+            slug: input.slug,
+            addressLine1: input.address?.line1 || null,
+            addressLine2: input.address?.line2 || null,
+            city: input.address?.city || null,
+            region: input.address?.region || null,
+            postalCode: input.address?.postalCode || null,
+            phone: input.phone,
+          },
           select: {
             id: true,
             name: true,
@@ -533,11 +544,21 @@ export const appRouter = router({
             addressLine1: true,
             addressLine2: true,
             city: true,
-            state: true,
+            region: true,
             postalCode: true,
             phone: true,
           },
         });
+        return {
+          ...organization,
+          address: {
+            line1: organization.addressLine1,
+            line2: organization.addressLine2,
+            city: organization.city,
+            region: organization.region,
+            postalCode: organization.postalCode,
+          },
+        };
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
           throw new TRPCError({ code: "CONFLICT", message: "An organization already uses this slug." });

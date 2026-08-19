@@ -5,7 +5,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardHeader, FieldLabel, Input, Label, ParcelisLogo } from "@parcelis/ui";
+import {
+  AddressField,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Input,
+  Label,
+  ParcelisLogo,
+} from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
@@ -34,12 +44,23 @@ export default function OrganizationSettingsPage() {
   });
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
-  const [addressLine1, setAddressLine1] = React.useState("");
-  const [addressLine2, setAddressLine2] = React.useState("");
-  const [city, setCity] = React.useState("");
-  const [state, setState] = React.useState("");
-  const [postalCode, setPostalCode] = React.useState("");
+  const [addressForm, setAddressForm] = React.useState({
+    line1: "",
+    line2: "",
+    city: "",
+    region: "",
+    postalCode: "",
+  });
+  const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
   const [phone, setPhone] = React.useState("");
+  const updateAddressField = React.useCallback((field: keyof typeof addressForm, value: string) => {
+    setAddressForm((current) => ({ ...current, [field]: value }));
+  }, []);
+  const addressLines = [
+    addressForm.line1,
+    addressForm.line2,
+    [addressForm.city, addressForm.region, addressForm.postalCode].filter(Boolean).join(" "),
+  ].filter(Boolean);
   const [avatarChanges, setAvatarChanges] = React.useState<AvatarChanges>({});
   const lightAvatarPreviewUrl = React.useMemo(
     () => (avatarChanges.light ? URL.createObjectURL(avatarChanges.light) : null),
@@ -65,11 +86,13 @@ export default function OrganizationSettingsPage() {
     if (activeOrganizationQuery.data) {
       setName(activeOrganizationQuery.data.name);
       setSlug(activeOrganizationQuery.data.slug);
-      setAddressLine1(activeOrganizationQuery.data.addressLine1 ?? "");
-      setAddressLine2(activeOrganizationQuery.data.addressLine2 ?? "");
-      setCity(activeOrganizationQuery.data.city ?? "");
-      setState(activeOrganizationQuery.data.state ?? "");
-      setPostalCode(activeOrganizationQuery.data.postalCode ?? "");
+      setAddressForm({
+        line1: activeOrganizationQuery.data.address.line1 ?? "",
+        line2: activeOrganizationQuery.data.address.line2 ?? "",
+        city: activeOrganizationQuery.data.address.city ?? "",
+        region: activeOrganizationQuery.data.address.region ?? "",
+        postalCode: activeOrganizationQuery.data.address.postalCode ?? "",
+      });
       setPhone(activeOrganizationQuery.data.phone ?? "");
     }
   }, [activeOrganizationQuery.data]);
@@ -79,21 +102,13 @@ export default function OrganizationSettingsPage() {
     mutationFn: async ({
       name,
       slug,
-      addressLine1,
-      addressLine2,
-      city,
-      state,
-      postalCode,
+      address,
       phone,
       avatarChanges,
     }: {
       name: string;
       slug: string;
-      addressLine1: string;
-      addressLine2: string;
-      city: string;
-      state: string;
-      postalCode: string;
+      address: { line1: string; line2: string; city: string; region: string; postalCode: string };
       phone: string;
       avatarChanges: AvatarChanges;
     }) => {
@@ -114,14 +129,19 @@ export default function OrganizationSettingsPage() {
           await apiClient.organizations.completeAvatarUpload.mutate({ objectKey, variant });
         }),
       );
+      const hasAddress = Object.values(address).some((value) => value.trim().length > 0);
       const organization = await apiClient.organizations.update.mutate({
         name,
         slug,
-        addressLine1: addressLine1 || null,
-        addressLine2: addressLine2 || null,
-        city: city || null,
-        state: state || null,
-        postalCode: postalCode || null,
+        address: hasAddress
+          ? {
+              line1: address.line1 || undefined,
+              line2: address.line2 || undefined,
+              city: address.city || undefined,
+              region: address.region || undefined,
+              postalCode: address.postalCode || undefined,
+            }
+          : null,
         phone: phone || null,
       });
       return organization;
@@ -193,11 +213,10 @@ export default function OrganizationSettingsPage() {
                         saveOrganizationDetails.mutate({
                           name,
                           slug,
-                          addressLine1,
-                          addressLine2,
-                          city,
-                          state,
-                          postalCode,
+                          address: {
+                            ...addressForm,
+                            region: addressForm.region.toUpperCase(),
+                          },
                           phone,
                           avatarChanges,
                         });
@@ -273,48 +292,15 @@ export default function OrganizationSettingsPage() {
                           Lowercase letters, numbers, and hyphens only.
                         </span>
                       </Label>
-                      <fieldset className="space-y-4">
-                        <legend className="text-sm font-medium text-parcelis-charcoal">Organization address</legend>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <Label className="sm:col-span-2">
-                            <FieldLabel>Address line 1</FieldLabel>
-                            <Input
-                              className="mt-1"
-                              onChange={(event) => setAddressLine1(event.target.value)}
-                              value={addressLine1}
-                            />
-                          </Label>
-                          <Label className="sm:col-span-2">
-                            <FieldLabel>Address line 2</FieldLabel>
-                            <Input
-                              className="mt-1"
-                              onChange={(event) => setAddressLine2(event.target.value)}
-                              value={addressLine2}
-                            />
-                          </Label>
-                          <Label>
-                            <FieldLabel>City</FieldLabel>
-                            <Input className="mt-1" onChange={(event) => setCity(event.target.value)} value={city} />
-                          </Label>
-                          <Label>
-                            <FieldLabel>State</FieldLabel>
-                            <Input
-                              className="mt-1"
-                              maxLength={2}
-                              onChange={(event) => setState(event.target.value.toUpperCase())}
-                              value={state}
-                            />
-                          </Label>
-                          <Label className="sm:col-span-2">
-                            <FieldLabel>Postal code</FieldLabel>
-                            <Input
-                              className="mt-1"
-                              onChange={(event) => setPostalCode(event.target.value)}
-                              value={postalCode}
-                            />
-                          </Label>
-                        </div>
-                      </fieldset>
+                      <AddressField
+                        addressLines={addressLines}
+                        ariaLabel="Show organization address details"
+                        label="Organization Address"
+                        onChange={updateAddressField}
+                        onOpenChange={setIsAddressPopoverOpen}
+                        open={isAddressPopoverOpen}
+                        values={addressForm}
+                      />
                       <Label>
                         Organization phone number
                         <Input
@@ -347,12 +333,12 @@ export default function OrganizationSettingsPage() {
                         <p className="font-medium text-parcelis-charcoal">Organization address</p>
                         <p className="mt-1 text-parcelis-gray">
                           {[
-                            activeOrganizationQuery.data?.addressLine1,
-                            activeOrganizationQuery.data?.addressLine2,
+                            activeOrganizationQuery.data?.address.line1,
+                            activeOrganizationQuery.data?.address.line2,
                             [
-                              activeOrganizationQuery.data?.city,
-                              activeOrganizationQuery.data?.state,
-                              activeOrganizationQuery.data?.postalCode,
+                              activeOrganizationQuery.data?.address.city,
+                              activeOrganizationQuery.data?.address.region,
+                              activeOrganizationQuery.data?.address.postalCode,
                             ]
                               .filter(Boolean)
                               .join(", "),

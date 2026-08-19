@@ -99,7 +99,7 @@ model Organization {
   addressLine1          String?
   addressLine2          String?
   city                  String?
-  state                 String?
+  region                String?
   postalCode            String?
   phone                 String?
   memberships           OrganizationMembership[]
