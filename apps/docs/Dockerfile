@@ -7,6 +7,7 @@ RUN corepack enable
 
 FROM base AS dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
 COPY apps/docs/package.json apps/docs/package.json
 RUN pnpm install --frozen-lockfile --filter @parcelis/docs...
 
