@@ -48,6 +48,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
 import { useShortcut, type ShortcutKey } from "./shortcut-provider";
+import { shortcuts } from "./shortcuts";
 import { ImageUploadPanel } from "./image-upload-panel";
 
 export type PropertyFormState = {
@@ -178,7 +179,7 @@ export function PropertyDrawer({
   onSubmit,
   open,
   submitLabel = "Create Property",
-  toggleShortcut = "Mod+Shift+P",
+  toggleShortcut = shortcuts.togglePropertyDrawer.keys,
   unitHref,
 }: PropertyDrawerProps) {
   const [imagePreviewUrl, setImagePreviewUrl] = React.useState(imageUrl);
@@ -263,7 +264,7 @@ export function PropertyDrawer({
   const tags = tagsQuery.data ?? [];
   const selectedTags = tags.filter((tag) => propertyTagIds.includes(tag.id));
   const unitPendingRemoval = units.find((unit) => unit.id === unitPendingRemovalId) ?? null;
-  useShortcut("Mod+Enter", () => runPrimaryAction(), {
+  useShortcut(shortcuts.submitForm.keys, () => runPrimaryAction(), {
     enabled: open && canSubmit && !isPending,
   });
   useShortcut(
