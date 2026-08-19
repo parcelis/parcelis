@@ -45,6 +45,12 @@ export function AddressField({
             aria-label={label}
             className="cursor-pointer pr-10"
             onClick={() => onOpenChange(true)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onOpenChange(true);
+              }
+            }}
             placeholder="123 Main Street"
             readOnly
             required={required && !formattedAddress}

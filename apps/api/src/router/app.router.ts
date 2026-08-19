@@ -535,7 +535,7 @@ export const appRouter = router({
             city: input.address?.city || null,
             region: input.address?.region || null,
             postalCode: input.address?.postalCode || null,
-            phone: input.phone,
+            phone: input.phone?.trim() || null,
           },
           select: {
             id: true,

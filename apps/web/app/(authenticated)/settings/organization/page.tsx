@@ -142,7 +142,7 @@ export default function OrganizationSettingsPage() {
               postalCode: address.postalCode || undefined,
             }
           : null,
-        phone: phone || null,
+        phone: phone.trim() || null,
       });
       return organization;
     },
@@ -305,6 +305,7 @@ export default function OrganizationSettingsPage() {
                         Organization phone number
                         <Input
                           className="mt-1"
+                          maxLength={50}
                           onChange={(event) => setPhone(event.target.value)}
                           type="tel"
                           value={phone}
