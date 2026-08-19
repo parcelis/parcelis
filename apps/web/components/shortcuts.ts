@@ -1,8 +1,8 @@
-import type { RegisterableHotkey } from "@tanstack/react-hotkeys";
+import type { Hotkey } from "@tanstack/react-hotkeys";
 
 export type ShortcutDefinition = {
   description: string;
-  keys: RegisterableHotkey;
+  keys: Hotkey;
 };
 
 export const shortcuts = {
@@ -24,9 +24,9 @@ const KEY_LABELS: Record<string, { mac: string; other: string }> = {
 
 export function isMacPlatform() {
   if (typeof navigator === "undefined") return false;
-  return /Mac|iPhone|iPad/.test(navigator.platform ?? navigator.userAgent);
+  return /Mac|iPhone|iPad/.test(navigator.userAgent);
 }
 
-export function shortcutKeyParts(keys: RegisterableHotkey, isMac: boolean): string[] {
-  return (keys as string).split("+").map((key) => KEY_LABELS[key]?.[isMac ? "mac" : "other"] ?? key);
+export function shortcutKeyParts(keys: Hotkey, isMac: boolean): string[] {
+  return keys.split("+").map((key) => KEY_LABELS[key]?.[isMac ? "mac" : "other"] ?? key);
 }
