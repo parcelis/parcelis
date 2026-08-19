@@ -44,6 +44,15 @@ export type InvoicePdfInvoice = {
   property: { name: string; line1: string; line2: string | null; city: string; region: string; postalCode: string };
   status: string;
   tenant: { firstName: string; lastName: string };
+};  
+
+export type InvoicePdfOrganizationDetails = {
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  region: string | null;
+  postalCode: string | null;
+  phone: string | null;
 };
 
 const styles = StyleSheet.create({
@@ -137,6 +146,7 @@ const styles = StyleSheet.create({
     right: 48,
     textAlign: "center",
   },
+  organizationContact: { color: colors.gray, fontSize: 8, marginBottom: 22, textAlign: "center" },
   issuedThrough: { color: colors.gray, fontSize: 8 },
   issuedThroughSignature: { alignSelf: "center", height: 24, marginTop: -4, objectFit: "contain", width: 94 },
 });
@@ -162,6 +172,18 @@ function getInvoiceStatus(invoice: Pick<InvoicePdfInvoice, "balanceCents" | "sta
   return null;
 }
 
+function getOrganizationContactLine(organization: InvoicePdfOrganizationDetails | null) {
+  if (!organization) return null;
+
+  const cityStateZip = [[organization.city, organization.region].filter(Boolean).join(", "), organization.postalCode]
+    .filter(Boolean)
+    .join(" ");
+  const address = [organization.addressLine1, organization.addressLine2, cityStateZip].filter(Boolean).join(", ");
+  const parts = [address, organization.phone].filter((part): part is string => Boolean(part));
+
+  return parts.length ? parts.join("   •   ") : null;
+}
+
 async function loadBrandImage(path: string) {
   try {
     return `data:image/png;base64,${(await readFile(path)).toString("base64")}`;
@@ -174,11 +196,13 @@ function InvoicePdfDocument({
   brandBanner,
   headerBackground,
   invoice,
+  organization,
   organizationLogo,
 }: {
   brandBanner: string | null;
   headerBackground: string | null;
   invoice: InvoicePdfInvoice;
+  organization: InvoicePdfOrganizationDetails | null;
   organizationLogo: string | null;
 }) {
   const invoiceLabel = `INV-${String(invoice.invoiceNumber).padStart(7, "0")}`;
@@ -188,6 +212,7 @@ function InvoicePdfDocument({
     ? invoice.items
     : [{ description: null, item: "Rent", quantity: 1, rateCents: invoice.amountCents }];
   const isWhiteLabeled = Boolean(organizationLogo);
+  const organizationContactLine = getOrganizationContactLine(organization);
 
   return (
     <Document author="Parcelis" title={`Invoice ${invoiceLabel}`}>
@@ -293,6 +318,9 @@ function InvoicePdfDocument({
         <Text style={styles.thankYou}>Thank you for your prompt payment.</Text>
         {isWhiteLabeled ? (
           <View fixed style={styles.footer}>
+            {organizationContactLine ? (
+              <Text style={styles.organizationContact}>{organizationContactLine}</Text>
+            ) : null}
             <Text style={styles.issuedThrough}>Issued with</Text>
             {brandBanner ? <Image src={brandBanner} style={styles.issuedThroughSignature} /> : null}
           </View>
@@ -304,7 +332,11 @@ function InvoicePdfDocument({
 
 export type InvoicePdfOrganizationLogo = { buffer: Buffer; contentType: string } | null;
 
-export async function renderInvoicePdf(invoice: InvoicePdfInvoice, organizationLogoAsset: InvoicePdfOrganizationLogo = null) {
+export async function renderInvoicePdf(
+  invoice: InvoicePdfInvoice,
+  organizationLogoAsset: InvoicePdfOrganizationLogo = null,
+  organization: InvoicePdfOrganizationDetails | null = null,
+) {
   const [brandBanner, headerBackground] = await Promise.all([
     loadBrandImage(parcelisLightBannerPath),
     loadBrandImage(parcelisLightBackgroundPath),
@@ -317,6 +349,7 @@ export async function renderInvoicePdf(invoice: InvoicePdfInvoice, organizationL
       brandBanner={brandBanner}
       headerBackground={headerBackground}
       invoice={invoice}
+      organization={organization}
       organizationLogo={organizationLogo}
     />,
   );
