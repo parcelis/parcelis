@@ -9,6 +9,8 @@ jobs:
   create-kanban-card:
     runs-on: ubuntu-latest
     if: github.event.label.name == 'ready for development'
+    permissions:
+      issues: write
 
     steps:
       - name: Create Kanban card
@@ -16,6 +18,7 @@ jobs:
           KAN_API_KEY: ${{ secrets.KANBAN_API_KEY }}
           KAN_LIST_PUBLIC_ID: ${{ secrets.KAN_LIST_PUBLIC_ID }}
           KAN_BOARD_PUBLIC_ID: ${{ secrets.KAN_BOARD_PUBLIC_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -98,3 +101,25 @@ jobs:
             --header "Authorization: Bearer $KAN_API_KEY" \
             --header "Content-Type: application/json" \
             --data "$payload"
+
+          kan_board_url="https://kan.bn/boards/$KAN_BOARD_PUBLIC_ID"
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://api.github.com/repos/$REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --data "$(jq -n --arg boardUrl "$kan_board_url" \
+              '{body: "Kanban card created: [view on the Kan board](\($boardUrl))"}')"
+
+          updated_body=$(jq -n -r \
+            --arg body "$ISSUE_BODY" \
+            --arg boardUrl "$kan_board_url" \
+            '"\($body)\n\n---\n\nKanban card: [view on the Kan board](\($boardUrl))"')
+
+          curl --fail-with-body --silent --show-error \
+            --request PATCH \
+            --url "https://api.github.com/repos/$REPOSITORY/issues/$ISSUE_NUMBER" \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --data "$(jq -n --arg body "$updated_body" '{body: $body}')"
