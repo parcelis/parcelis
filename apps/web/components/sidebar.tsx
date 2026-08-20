@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ClipboardList,
   CircleUserRound,
+  FileText,
   KeyRound,
   Keyboard,
   Lightbulb,
@@ -51,6 +52,7 @@ const navItems = [
   { label: "Properties", href: "/properties", key: "properties", icon: Building2 },
   { label: "Leases", href: "#", key: "leases", icon: ClipboardList },
   { label: "Tenants", href: "/tenants", key: "tenants", icon: Users },
+  { label: "Applications", href: "/applications", key: "applications", icon: FileText },
   { label: "Maintenance", href: "/maintenance", key: "maintenance", icon: Wrench },
   { label: "Income", href: "/income", key: "income", icon: Banknote },
   { label: "Settings", href: "/settings", key: "settings", icon: Settings },
@@ -77,6 +79,7 @@ function activeNavigation(pathname: string): SidebarProps["active"] {
 
   if (path.startsWith("/properties")) return "properties";
   if (path.startsWith("/tenants")) return "tenants";
+  if (path.startsWith("/applications")) return "applications";
   if (path.startsWith("/maintenance")) return "maintenance";
   if (path.startsWith("/income")) return "income";
   if (path.startsWith("/settings")) return "settings";

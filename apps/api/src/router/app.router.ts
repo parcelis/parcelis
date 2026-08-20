@@ -10,6 +10,13 @@ import {
   recordInvoicePaymentsInputSchema,
   activityEventListInputSchema,
   isActiveMaintenanceTicketStatus,
+  applicationByIdInputSchema,
+  applicationStatusInputSchema,
+  createApplicationInputSchema,
+  reorderApplicationStatusesInputSchema,
+  setApplicationStatusInputSchema,
+  updateApplicationInputSchema,
+  updateApplicationStatusInputSchema,
   createMaintenanceTicketInputSchema,
   maintenanceAttachmentByIdInputSchema,
   maintenanceImageUploadCompleteInputSchema,
@@ -1723,6 +1730,159 @@ export const appRouter = router({
         select: { id: true, firstName: true, lastName: true, email: true },
       }),
     ),
+  }),
+  applicationStatuses: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.applicationStatus.findMany({
+        where: { organizationId: ctx.organization.organizationId },
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: { id: true, label: true, sortOrder: true, isActive: true },
+      }),
+    ),
+    create: publicProcedure.input(applicationStatusInputSchema).mutation(({ ctx, input }) =>
+      ctx.prisma.applicationStatus.create({
+        data: { organizationId: ctx.organization.organizationId, ...input },
+      }),
+    ),
+    update: publicProcedure.input(updateApplicationStatusInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.applicationStatus.findFirstOrThrow({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+        select: { id: true },
+      });
+      const { id, ...data } = input;
+      return ctx.prisma.applicationStatus.update({ where: { id }, data });
+    }),
+    reorder: publicProcedure.input(reorderApplicationStatusesInputSchema).mutation(async ({ ctx, input }) => {
+      const statuses = await ctx.prisma.applicationStatus.findMany({
+        where: { id: { in: input.ids }, organizationId: ctx.organization.organizationId },
+        select: { id: true },
+      });
+      if (statuses.length !== input.ids.length) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "All statuses must belong to the active organization." });
+      }
+      return ctx.prisma.$transaction(
+        input.ids.map((id, sortOrder) => ctx.prisma.applicationStatus.update({ where: { id }, data: { sortOrder } })),
+      );
+    }),
+  }),
+  applications: router({
+    list: publicProcedure.query(({ ctx }) =>
+      ctx.prisma.application.findMany({
+        where: { organizationId: ctx.organization.organizationId, archivedAt: null },
+        orderBy: [{ submittedOn: "desc" }, { id: "desc" }],
+        include: {
+          property: { select: { id: true, name: true } },
+          applicant: true,
+          status: { select: { id: true, label: true } },
+        },
+      }),
+    ),
+    byId: publicProcedure.input(applicationByIdInputSchema).query(({ ctx, input }) =>
+      ctx.prisma.application.findFirst({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+        include: {
+          property: { select: { id: true, name: true, city: true, region: true } },
+          applicant: true,
+          status: { select: { id: true, label: true } },
+        },
+      }),
+    ),
+    create: publicProcedure.input(createApplicationInputSchema).mutation(async ({ ctx, input }) => {
+      const [property, status] = await Promise.all([
+        ctx.prisma.property.findFirst({
+          where: { id: input.propertyId, organizationId: ctx.organization.organizationId },
+          select: { id: true },
+        }),
+        ctx.prisma.applicationStatus.findFirst({
+          where: { id: input.statusId, organizationId: ctx.organization.organizationId },
+          select: { id: true },
+        }),
+      ]);
+      if (!property) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selected property must belong to the active organization.",
+        });
+      }
+      if (!status) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Selected status must belong to the active organization." });
+      }
+
+      const applicant = await ctx.prisma.applicant.upsert({
+        where: {
+          organizationId_email: { organizationId: ctx.organization.organizationId, email: input.applicant.email },
+        },
+        update: input.applicant,
+        create: { organizationId: ctx.organization.organizationId, ...input.applicant },
+      });
+
+      return ctx.prisma.application.create({
+        data: {
+          organizationId: ctx.organization.organizationId,
+          propertyId: input.propertyId,
+          statusId: input.statusId,
+          annualIncomeCents: input.annualIncomeCents,
+          applicantId: applicant.id,
+        },
+      });
+    }),
+    update: publicProcedure.input(updateApplicationInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.application.findFirstOrThrow({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+        select: { id: true, applicantId: true },
+      });
+      const [property, status] = await Promise.all([
+        ctx.prisma.property.findFirst({
+          where: { id: input.propertyId, organizationId: ctx.organization.organizationId },
+          select: { id: true },
+        }),
+        ctx.prisma.applicationStatus.findFirst({
+          where: { id: input.statusId, organizationId: ctx.organization.organizationId },
+          select: { id: true },
+        }),
+      ]);
+      if (!property) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selected property must belong to the active organization.",
+        });
+      }
+      if (!status) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Selected status must belong to the active organization." });
+      }
+
+      const applicant = await ctx.prisma.applicant.upsert({
+        where: {
+          organizationId_email: { organizationId: ctx.organization.organizationId, email: input.applicant.email },
+        },
+        update: input.applicant,
+        create: { organizationId: ctx.organization.organizationId, ...input.applicant },
+      });
+
+      return ctx.prisma.application.update({
+        where: { id: input.id },
+        data: {
+          propertyId: input.propertyId,
+          statusId: input.statusId,
+          annualIncomeCents: input.annualIncomeCents,
+          applicantId: applicant.id,
+        },
+      });
+    }),
+    updateStatus: publicProcedure.input(setApplicationStatusInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.application.findFirstOrThrow({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+        select: { id: true },
+      });
+      const status = await ctx.prisma.applicationStatus.findFirst({
+        where: { id: input.statusId, organizationId: ctx.organization.organizationId },
+        select: { id: true },
+      });
+      if (!status) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Selected status must belong to the active organization." });
+      }
+      return ctx.prisma.application.update({ where: { id: input.id }, data: { statusId: input.statusId } });
+    }),
   }),
   maintenance: router({
     list: publicProcedure.query(({ ctx }) =>

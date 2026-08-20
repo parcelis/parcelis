@@ -110,6 +110,9 @@ model Organization {
   utilityTypes          UtilityType[]
   amenityTypes          AmenityType[]
   maintenanceCategories MaintenanceCategory[]
+  applicationStatuses   ApplicationStatus[]
+  applicants            Applicant[]
+  applications          Application[]
   leases                Lease[]
   invoices              Invoice[]
   maintenanceTickets    MaintenanceTicket[]
@@ -197,6 +200,7 @@ model Property {
   notes              Note[]
   maintenanceTickets MaintenanceTicket[]
   activityEvents     ActivityEvent[]
+  applications       Application[]
   organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
@@ -349,6 +353,61 @@ model MaintenanceCategory {
 
   @@unique([organizationId, id])
   @@unique([organizationId, label])
+  @@index([organizationId])
+}
+
+model ApplicationStatus {
+  id             Int           @id @default(autoincrement())
+  organizationId Int
+  label          String
+  sortOrder      Int           @default(0)
+  isActive       Boolean       @default(true)
+  applications   Application[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, label])
+  @@index([organizationId])
+}
+
+model Applicant {
+  id             Int           @id @default(autoincrement())
+  organizationId Int
+  firstName      String
+  lastName       String
+  email          String
+  phone          String?
+  applications   Application[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, email])
+  @@index([organizationId])
+}
+
+model Application {
+  id                Int               @id @default(autoincrement())
+  organizationId    Int
+  propertyId        Int
+  applicantId       Int
+  statusId          Int
+  annualIncomeCents Int
+  submittedOn       DateTime          @default(now())
+  archivedAt        DateTime?
+  property          Property          @relation(fields: [organizationId, propertyId], references: [organizationId, id])
+  applicant         Applicant         @relation(fields: [organizationId, applicantId], references: [organizationId, id])
+  status            ApplicationStatus @relation(fields: [organizationId, statusId], references: [organizationId, id], onDelete: Restrict)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([propertyId])
+  @@index([applicantId])
+  @@index([statusId])
   @@index([organizationId])
 }
 

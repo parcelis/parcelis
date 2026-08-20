@@ -319,6 +319,37 @@ export const updateMaintenanceTicketStatusInputSchema = z.object({
   noteBody: z.string().trim().min(1).max(5000).optional(),
   status: maintenanceTicketStatusSchema,
 });
+
+export const applicationStatusInputSchema = z.object({
+  label: z.string().trim().min(1).max(100),
+  sortOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+export const updateApplicationStatusInputSchema = applicationStatusInputSchema.extend({ id: idSchema });
+export const applicationStatusByIdInputSchema = z.object({ id: idSchema });
+export const reorderApplicationStatusesInputSchema = z.object({
+  ids: z.array(idSchema).min(1),
+});
+
+export const applicantSchema = z.object({
+  firstName: z.string().trim().min(1),
+  lastName: z.string().trim().min(1),
+  email: z.string().trim().email(),
+  phone: z.string().trim().optional(),
+});
+export const createApplicationInputSchema = z.object({
+  propertyId: idSchema,
+  statusId: idSchema,
+  annualIncomeCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+  applicant: applicantSchema,
+});
+export const updateApplicationInputSchema = createApplicationInputSchema.extend({ id: idSchema });
+export const applicationByIdInputSchema = z.object({ id: idSchema });
+export const setApplicationStatusInputSchema = z.object({
+  id: idSchema,
+  statusId: idSchema,
+});
+
 export const activitySubjectTypes = ["maintenance_ticket", "tenant", "property", "invoice"] as const;
 export const activitySubjectTypeSchema = z.enum(activitySubjectTypes);
 export const activityEventListInputSchema = z
