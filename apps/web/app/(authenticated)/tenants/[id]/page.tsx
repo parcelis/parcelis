@@ -377,16 +377,17 @@ export default function TenantDetailPage() {
         <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>
           <DialogContent
             aria-label={`${tenant.firstName} ${tenant.lastName} image`}
-            className="w-fit max-w-[90vw] place-items-center border-0 bg-transparent p-0 shadow-none [&>button]:right-3 [&>button]:top-3 [&>button]:grid [&>button]:h-8 [&>button]:w-8 [&>button]:place-items-center [&>button]:rounded-md [&>button]:border [&>button]:border-parcelis-border [&>button]:bg-white [&>button]:p-0 [&>button]:!text-slate-900 [&>button]:opacity-100 [&>button:hover]:bg-parcelis-porcelain [&>button:hover]:!text-slate-950"
+            className="w-[90vw] max-w-none border-0 bg-transparent p-0 shadow-none [&>button]:right-3 [&>button]:top-3 [&>button]:grid [&>button]:h-8 [&>button]:w-8 [&>button]:place-items-center [&>button]:rounded-md [&>button]:border [&>button]:border-parcelis-border [&>button]:bg-white [&>button]:p-0 [&>button]:!text-slate-900 [&>button]:opacity-100 [&>button:hover]:bg-parcelis-porcelain [&>button:hover]:!text-slate-950"
           >
-            <Image
-              alt={`${tenant.firstName} ${tenant.lastName}`}
-              className="max-h-[85vh] max-w-[90vw] rounded-md object-contain"
-              src={tenant.imageUrl}
-              height={1200}
-              unoptimized
-              width={1200}
-            />
+            <div className="relative h-[85vh] w-full">
+              <Image
+                alt={`${tenant.firstName} ${tenant.lastName}`}
+                className="rounded-md object-contain"
+                fill
+                sizes="90vw"
+                src={tenant.imageUrl}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       ) : null}
@@ -594,17 +595,16 @@ export default function TenantDetailPage() {
                     {tenant.imageUrl ? (
                       <button
                         aria-label={`View ${tenant.firstName} ${tenant.lastName} image`}
-                        className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/10 text-parcelis-green transition hover:ring-2 hover:ring-parcelis-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green"
+                        className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/10 text-parcelis-green transition hover:ring-2 hover:ring-parcelis-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green"
                         onClick={() => setIsImagePreviewOpen(true)}
                         type="button"
                       >
                         <Image
                           alt={`${tenant.firstName} ${tenant.lastName}`}
-                          className="h-full w-full rounded-full object-cover"
+                          className="rounded-full object-cover"
+                          fill
+                          sizes="112px"
                           src={tenant.imageUrl}
-                          height={112}
-                          unoptimized
-                          width={112}
                         />
                       </button>
                     ) : (

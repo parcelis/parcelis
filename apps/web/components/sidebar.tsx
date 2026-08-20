@@ -299,7 +299,6 @@ function SidebarContent({ active }: SidebarProps) {
                 className="h-full w-full object-contain p-4 dark:hidden"
                 src={activeOrganizationQuery.data.avatarUrl}
                 height={64}
-                unoptimized
                 width={64}
               />
             ) : (
@@ -311,7 +310,6 @@ function SidebarContent({ active }: SidebarProps) {
                 className="hidden h-full w-full object-contain p-4 dark:block"
                 src={activeOrganizationQuery.data.darkAvatarUrl}
                 height={64}
-                unoptimized
                 width={64}
               />
             ) : activeOrganizationQuery.data?.avatarUrl ? (
@@ -320,7 +318,6 @@ function SidebarContent({ active }: SidebarProps) {
                 className="hidden h-full w-full object-contain p-4 dark:block"
                 src={activeOrganizationQuery.data.avatarUrl}
                 height={64}
-                unoptimized
                 width={64}
               />
             ) : (

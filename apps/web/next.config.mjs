@@ -4,10 +4,24 @@ import { fileURLToPath } from "node:url";
 
 config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env") });
 
+const objectStorageUrl = new URL(
+  process.env.S3_PUBLIC_ENDPOINT ?? process.env.NEXT_PUBLIC_S3_URL ?? "http://localhost:9001",
+);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   skipTrailingSlashRedirect: true,
   transpilePackages: ["@parcelis/ui", "@parcelis/schemas"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: objectStorageUrl.protocol.replace(":", ""),
+        hostname: objectStorageUrl.hostname,
+        port: objectStorageUrl.port,
+        pathname: `${objectStorageUrl.pathname.replace(/\/$/, "")}/**`,
+      },
+    ],
+  },
   async rewrites() {
     const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:40010";
     const docsUrl = process.env.DOCS_INTERNAL_URL || `http://localhost:${process.env.DOCS_PORT || "40000"}`;

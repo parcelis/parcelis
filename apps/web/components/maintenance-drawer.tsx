@@ -479,7 +479,6 @@ export function MaintenanceDrawer({
                               className="h-14 w-14 rounded object-cover"
                               src={attachment.imageUrl}
                               height={56}
-                              unoptimized
                               width={56}
                             />
                           ) : null}
