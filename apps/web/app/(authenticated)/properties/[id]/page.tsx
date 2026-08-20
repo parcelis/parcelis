@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -236,10 +237,13 @@ export default function PropertyDetailPage() {
             aria-label={`${property.name} property image`}
             className="w-fit max-w-[90vw] place-items-center border-0 bg-transparent p-0 shadow-none [&>button]:right-3 [&>button]:top-3 [&>button]:grid [&>button]:h-8 [&>button]:w-8 [&>button]:place-items-center [&>button]:rounded-md [&>button]:border [&>button]:border-parcelis-border [&>button]:bg-white [&>button]:p-0 [&>button]:!text-slate-900 [&>button]:opacity-100 [&>button:hover]:bg-parcelis-porcelain [&>button:hover]:!text-slate-950"
           >
-            <img
+            <Image
               alt={`${property.name} property`}
               className="max-h-[85vh] max-w-[90vw] rounded-md object-contain"
               src={property.imageUrl}
+              height={1200}
+              unoptimized
+              width={1600}
             />
           </DialogContent>
         </Dialog>
@@ -376,10 +380,13 @@ export default function PropertyDetailPage() {
                           onClick={() => setIsImagePreviewOpen(true)}
                           type="button"
                         >
-                          <img
+                          <Image
                             alt={`${property.name} property`}
                             className="h-full w-full object-cover transition duration-200 hover:scale-[1.02]"
                             src={property.imageUrl}
+                            height={480}
+                            unoptimized
+                            width={640}
                           />
                         </button>
                       </div>

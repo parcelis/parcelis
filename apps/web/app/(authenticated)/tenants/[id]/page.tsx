@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -378,10 +379,13 @@ export default function TenantDetailPage() {
             aria-label={`${tenant.firstName} ${tenant.lastName} image`}
             className="w-fit max-w-[90vw] place-items-center border-0 bg-transparent p-0 shadow-none [&>button]:right-3 [&>button]:top-3 [&>button]:grid [&>button]:h-8 [&>button]:w-8 [&>button]:place-items-center [&>button]:rounded-md [&>button]:border [&>button]:border-parcelis-border [&>button]:bg-white [&>button]:p-0 [&>button]:!text-slate-900 [&>button]:opacity-100 [&>button:hover]:bg-parcelis-porcelain [&>button:hover]:!text-slate-950"
           >
-            <img
+            <Image
               alt={`${tenant.firstName} ${tenant.lastName}`}
               className="max-h-[85vh] max-w-[90vw] rounded-md object-contain"
               src={tenant.imageUrl}
+              height={1200}
+              unoptimized
+              width={1200}
             />
           </DialogContent>
         </Dialog>
@@ -594,10 +598,13 @@ export default function TenantDetailPage() {
                         onClick={() => setIsImagePreviewOpen(true)}
                         type="button"
                       >
-                        <img
+                        <Image
                           alt={`${tenant.firstName} ${tenant.lastName}`}
                           className="h-full w-full rounded-full object-cover"
                           src={tenant.imageUrl}
+                          height={112}
+                          unoptimized
+                          width={112}
                         />
                       </button>
                     ) : (

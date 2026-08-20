@@ -139,6 +139,9 @@ export function NotesDrawer({
       await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
     },
   });
+  const { reset: resetCreateNote } = createNote;
+  const { reset: resetUpdateNote } = updateNote;
+  const { reset: resetDeleteNote } = deleteNote;
   const isMutationPending = createNote.isPending || updateNote.isPending || deleteNote.isPending;
 
   const resetTransientState = React.useCallback(() => {
@@ -147,10 +150,10 @@ export function NotesDrawer({
     setEditingNoteId(null);
     setEditDraft("");
     setNotePendingDeletion(null);
-    createNote.reset();
-    updateNote.reset();
-    deleteNote.reset();
-  }, [createNote.reset, deleteNote.reset, updateNote.reset]);
+    resetCreateNote();
+    resetUpdateNote();
+    resetDeleteNote();
+  }, [resetCreateNote, resetDeleteNote, resetUpdateNote]);
 
   React.useEffect(() => {
     if (!open && wasOpen.current) {

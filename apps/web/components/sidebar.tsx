@@ -12,8 +12,6 @@ import {
   Banknote,
   BookOpen,
   Building2,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   ClipboardList,
   CircleUserRound,
@@ -296,25 +294,34 @@ function SidebarContent({ active }: SidebarProps) {
             }`}
           >
             {activeOrganizationQuery.data?.avatarUrl ? (
-              <img
+              <Image
                 alt={`${activeOrganizationQuery.data.name} logo`}
                 className="h-full w-full object-contain p-4 dark:hidden"
                 src={activeOrganizationQuery.data.avatarUrl}
+                height={64}
+                unoptimized
+                width={64}
               />
             ) : (
               <Building2 className="h-7 w-7 dark:hidden" />
             )}
             {activeOrganizationQuery.data?.darkAvatarUrl ? (
-              <img
+              <Image
                 alt={`${activeOrganizationQuery.data.name} dark mode logo`}
                 className="hidden h-full w-full object-contain p-4 dark:block"
                 src={activeOrganizationQuery.data.darkAvatarUrl}
+                height={64}
+                unoptimized
+                width={64}
               />
             ) : activeOrganizationQuery.data?.avatarUrl ? (
-              <img
+              <Image
                 alt={`${activeOrganizationQuery.data.name} logo`}
                 className="hidden h-full w-full object-contain p-4 dark:block"
                 src={activeOrganizationQuery.data.avatarUrl}
+                height={64}
+                unoptimized
+                width={64}
               />
             ) : (
               <Building2 className="hidden h-7 w-7 dark:block" />

@@ -1,7 +1,5 @@
 "use client";
 
-import { BookOpen, ExternalLink } from "lucide-react";
-
 export function AppFooter() {
   return (
     <footer className="border-t border-parcelis-border bg-white/80 px-4 py-1 text-xs text-parcelis-gray backdrop-blur dark:bg-parcelis-slate/80 lg:ml-[var(--parcelis-sidebar-width)] lg:px-8">

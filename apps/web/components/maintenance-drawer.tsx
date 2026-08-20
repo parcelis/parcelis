@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import {
   AirVent,
   Bath,
@@ -472,11 +473,16 @@ export function MaintenanceDrawer({
                           className="flex items-center gap-3 rounded-md border border-parcelis-border bg-white p-3 dark:bg-parcelis-slate"
                           key={attachment.id}
                         >
-                          <img
-                            alt={attachment.fileName}
-                            className="h-14 w-14 rounded object-cover"
-                            src={attachment.imageUrl ?? undefined}
-                          />
+                          {attachment.imageUrl ? (
+                            <Image
+                              alt={attachment.fileName}
+                              className="h-14 w-14 rounded object-cover"
+                              src={attachment.imageUrl}
+                              height={56}
+                              unoptimized
+                              width={56}
+                            />
+                          ) : null}
                           <div className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium text-parcelis-charcoal dark:text-white">
                               {attachment.fileName}
@@ -501,10 +507,13 @@ export function MaintenanceDrawer({
                           className="flex items-center gap-3 rounded-md border border-parcelis-border bg-white p-3 dark:bg-parcelis-slate"
                           key={attachment.previewUrl}
                         >
-                          <img
+                          <Image
                             alt="Selected attachment"
                             className="h-14 w-14 rounded object-cover"
                             src={attachment.previewUrl}
+                            height={56}
+                            unoptimized
+                            width={56}
                           />
                           <span className="min-w-0 flex-1 truncate text-sm font-medium text-parcelis-charcoal dark:text-white">
                             {attachment.file.name}

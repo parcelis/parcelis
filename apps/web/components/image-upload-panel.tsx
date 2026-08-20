@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ImagePlus, Replace, Trash2 } from "lucide-react";
+import Image from "next/image";
 
 const defaultSupportedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 
@@ -83,10 +84,13 @@ export function ImageUploadPanel({
           type="button"
         >
           {imagePreviewUrl ? (
-            <img
+            <Image
               alt={alt}
               className={`h-full w-full ${previewImageFit === "contain" ? "object-contain p-4" : "object-cover"}`}
               src={imagePreviewUrl}
+              height={256}
+              unoptimized
+              width={256}
             />
           ) : (
             <>
