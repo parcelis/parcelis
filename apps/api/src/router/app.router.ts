@@ -424,6 +424,30 @@ function getEmergencyContact(input: {
   };
 }
 
+function getApplicantData(applicant: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  dateOfBirth?: Date;
+  employment?: string;
+  address: { line1: string; line2?: string; city: string; region: string; postalCode: string };
+}) {
+  return {
+    firstName: applicant.firstName,
+    lastName: applicant.lastName,
+    email: applicant.email,
+    phone: applicant.phone,
+    dateOfBirth: applicant.dateOfBirth,
+    employment: applicant.employment,
+    addressLine1: applicant.address.line1,
+    addressLine2: applicant.address.line2,
+    city: applicant.address.city,
+    region: applicant.address.region,
+    postalCode: applicant.address.postalCode,
+  };
+}
+
 async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Prisma.TransactionClient, userId: number) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, accountStatus: true } });
   if (user?.role !== "administrator" || user.accountStatus !== "active") return;
@@ -1812,8 +1836,8 @@ export const appRouter = router({
         where: {
           organizationId_email: { organizationId: ctx.organization.organizationId, email: input.applicant.email },
         },
-        update: input.applicant,
-        create: { organizationId: ctx.organization.organizationId, ...input.applicant },
+        update: getApplicantData(input.applicant),
+        create: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
       });
 
       return ctx.prisma.application.create({
@@ -1822,6 +1846,7 @@ export const appRouter = router({
           propertyId: input.propertyId,
           statusId: input.statusId,
           annualIncomeCents: input.annualIncomeCents,
+          requestedMoveInDate: input.requestedMoveInDate,
           applicantId: applicant.id,
         },
       });
@@ -1855,8 +1880,8 @@ export const appRouter = router({
         where: {
           organizationId_email: { organizationId: ctx.organization.organizationId, email: input.applicant.email },
         },
-        update: input.applicant,
-        create: { organizationId: ctx.organization.organizationId, ...input.applicant },
+        update: getApplicantData(input.applicant),
+        create: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
       });
 
       return ctx.prisma.application.update({
@@ -1865,6 +1890,7 @@ export const appRouter = router({
           propertyId: input.propertyId,
           statusId: input.statusId,
           annualIncomeCents: input.annualIncomeCents,
+          requestedMoveInDate: input.requestedMoveInDate,
           applicantId: applicant.id,
         },
       });
@@ -1882,6 +1908,24 @@ export const appRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Selected status must belong to the active organization." });
       }
       return ctx.prisma.application.update({ where: { id: input.id }, data: { statusId: input.statusId } });
+    }),
+    archive: publicProcedure.input(applicationByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.application.findFirstOrThrow({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+      });
+      return ctx.prisma.application.update({ where: { id: input.id }, data: { archivedAt: new Date() } });
+    }),
+    reactivate: publicProcedure.input(applicationByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.application.findFirstOrThrow({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+      });
+      return ctx.prisma.application.update({ where: { id: input.id }, data: { archivedAt: null } });
+    }),
+    delete: publicProcedure.input(applicationByIdInputSchema).mutation(async ({ ctx, input }) => {
+      await ctx.prisma.application.findFirstOrThrow({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+      });
+      await ctx.prisma.application.delete({ where: { id: input.id } });
     }),
   }),
   maintenance: router({
@@ -2264,6 +2308,7 @@ export const appRouter = router({
             { tenant: { organizationId: ctx.organization.organizationId } },
             { unit: { property: { organizationId: ctx.organization.organizationId } } },
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
+            { application: { organizationId: ctx.organization.organizationId } },
           ],
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -2285,6 +2330,10 @@ export const appRouter = router({
         await ctx.prisma.unit.findFirstOrThrow({
           where: { id: input.unitId, property: { organizationId: ctx.organization.organizationId } },
         });
+      } else if ("applicationId" in input) {
+        await ctx.prisma.application.findFirstOrThrow({
+          where: { id: input.applicationId, organizationId: ctx.organization.organizationId },
+        });
       } else {
         await ctx.prisma.maintenanceTicket.findFirstOrThrow({
           where: { id: input.maintenanceTicketId, organizationId: ctx.organization.organizationId },
@@ -2305,6 +2354,7 @@ export const appRouter = router({
             { tenant: { organizationId: ctx.organization.organizationId } },
             { unit: { property: { organizationId: ctx.organization.organizationId } } },
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
+            { application: { organizationId: ctx.organization.organizationId } },
           ],
         },
       });
@@ -2347,6 +2397,7 @@ export const appRouter = router({
             { tenant: { organizationId: ctx.organization.organizationId } },
             { unit: { property: { organizationId: ctx.organization.organizationId } } },
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
+            { application: { organizationId: ctx.organization.organizationId } },
           ],
         },
       });

@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { Building2, ChevronRight } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Building2, ChevronRight, Plus } from "lucide-react";
 import {
   Badge,
   Button,
@@ -19,10 +20,12 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
+import type { CreateApplicationInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../components/api-client";
+import { ApplicationDrawer } from "../../../components/application-drawer";
 import { LoadingState } from "../../../components/loading-state";
-import { PageRail } from "../../../components/page-rail";
 import { SearchGroupToolbar } from "../../../components/search-group-toolbar";
+import { entityCreatedMessage } from "../../../components/toast-messages";
 import { getApplicationLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -62,13 +65,41 @@ function ApplicationsPageContent() {
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [groupByProperty, setGroupByProperty] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const applicationsQuery = useQuery({
     queryKey: queryKeys.applications.list,
     queryFn: () => apiClient.applications.list.query(),
   });
+  const propertiesQuery = useQuery({
+    queryKey: queryKeys.properties.list,
+    queryFn: () => apiClient.properties.list.query(),
+  });
+  const statusesQuery = useQuery({
+    queryKey: queryKeys.applicationStatuses.list,
+    queryFn: () => apiClient.applicationStatuses.list.query(),
+  });
+  const createApplication = useMutation({
+    mutationFn: (input: CreateApplicationInput) => apiClient.applications.create.mutate(input),
+    onSuccess: async (_application, variables) => {
+      setIsDrawerOpen(false);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.applications.list });
+      toast.success(
+        entityCreatedMessage("Application", `${variables.applicant.firstName} ${variables.applicant.lastName}`),
+      );
+    },
+  });
   const applications = applicationsQuery.data ?? [];
+  const properties = propertiesQuery.data ?? [];
+  const statuses = statusesQuery.data ?? [];
+  const totalApplications = applications.length;
+  const forReviewCount = applications.filter((application) => application.status.label === "For Review").length;
+  const approvedCount = applications.filter((application) => application.status.label === "Approved").length;
+  const rejectedCount = applications.filter((application) =>
+    ["Rejected", "Declined"].includes(application.status.label),
+  ).length;
 
   const normalizedSearch = search.trim().toLowerCase();
   const filteredApplications = applications.filter((application) =>
@@ -104,9 +135,9 @@ function ApplicationsPageContent() {
   }
 
   return (
-    <main className="min-h-screen bg-parcelis-porcelain">
+    <main className="flex-1">
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8 dark:bg-parcelis-slate/90">
+        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
@@ -115,13 +146,27 @@ function ApplicationsPageContent() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
+          <Button className="min-w-40" onClick={() => setIsDrawerOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Application
+          </Button>
         </header>
         <div className="parcelis-page-shell">
-          <PageRail
-            description="Track applicant status across your portfolio, from initial review through lease creation."
-            eyebrow="Applications"
-            title="Applications dashboard"
-          />
+          <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Applications</p>
+              <h1 className="mt-5 text-3xl font-bold md:text-5xl">Applications dashboard</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
+                Track applicant status across your portfolio, from initial review through lease creation.
+              </p>
+            </div>
+            <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
+              <Metric label="Total" value={totalApplications} />
+              <Metric label="For Review" value={forReviewCount} />
+              <Metric label="Approved" value={approvedCount} />
+              <Metric label="Rejected" value={rejectedCount} />
+            </div>
+          </section>
 
           <Card>
             <CardHeader>
@@ -198,7 +243,7 @@ function ApplicationsPageContent() {
                           {isExpanded
                             ? property.applications.map((application) => (
                                 <TableRow
-                                  className="cursor-pointer border-t border-parcelis-border bg-parcelis-porcelain/45 hover:bg-parcelis-porcelain/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
+                                  className="cursor-pointer border-t border-parcelis-border bg-parcelis-porcelain/45 hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
                                   key={application.id}
                                   onClick={() => router.push(getApplicationLink(application.id))}
                                   onKeyDown={(event) => {
@@ -275,7 +320,27 @@ function ApplicationsPageContent() {
             </CardContent>
           </Card>
         </div>
+        <ApplicationDrawer
+          drawerTitle="New Application"
+          error={createApplication.error}
+          isPending={createApplication.isPending}
+          onOpenChange={setIsDrawerOpen}
+          onSubmit={(input) => createApplication.mutate(input)}
+          open={isDrawerOpen}
+          properties={properties}
+          statuses={statuses}
+          submitLabel="Create Application"
+        />
       </section>
     </main>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md bg-white/10 p-3">
+      <div className="text-2xl font-bold text-white">{value}</div>
+      {label}
+    </div>
   );
 }
