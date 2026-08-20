@@ -72,11 +72,13 @@ import {
   createTenantImageDownloadUrl,
   createTenantImageUploadUrl,
   deleteTenantImageObject,
+  getObjectBuffer,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
+import { renderInvoicePdf } from "../modules/invoice-pdf";
 
 const propertySelect = {
   id: true,
@@ -1394,6 +1396,40 @@ export const appRouter = router({
           },
         },
       });
+    }),
+    pdf: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
+      await synchronizeOverdueInvoices(ctx.prisma);
+      const invoice = await ctx.prisma.invoice.findFirst({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+        include: {
+          property: {
+            select: { name: true, line1: true, line2: true, city: true, region: true, postalCode: true },
+          },
+          tenant: { select: { firstName: true, lastName: true } },
+          lease: { select: { unitLabel: true } },
+          items: { orderBy: { id: "asc" } },
+          payments: {
+            orderBy: { paidOn: "desc" },
+            include: { tenant: { select: { firstName: true, lastName: true } } },
+          },
+        },
+      });
+      if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
+
+      const organizationLogo = await getObjectBuffer(ctx.organization.organization.avatarObjectKey);
+      const organization = {
+        addressLine1: ctx.organization.organization.addressLine1,
+        addressLine2: ctx.organization.organization.addressLine2,
+        city: ctx.organization.organization.city,
+        region: ctx.organization.organization.region,
+        postalCode: ctx.organization.organization.postalCode,
+        phone: ctx.organization.organization.phone,
+      };
+      const fileName = `invoice-${String(invoice.invoiceNumber).padStart(7, "0")}.pdf`;
+      return {
+        contentBase64: (await renderInvoicePdf(invoice, organizationLogo, organization)).toString("base64"),
+        fileName,
+      };
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       const lease = await ctx.prisma.lease.findFirst({
