@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ChevronRight, Phone, UserRound } from "lucide-react";
+import Image from "next/image";
 import {
   Button,
   Drawer,
@@ -131,10 +132,13 @@ export function TenantDrawer({
               <div className="grid gap-4 rounded-lg border border-parcelis-border bg-parcelis-charcoal p-4 text-white md:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem] md:items-center dark:bg-parcelis-slate">
                 <div className="grid h-12 w-12 place-items-center rounded-md bg-white/10 text-parcelis-green">
                   {imagePreviewUrl ? (
-                    <img
+                    <Image
                       alt="Selected tenant"
                       className="h-full w-full rounded-md object-cover"
                       src={imagePreviewUrl}
+                      height={48}
+                      unoptimized
+                      width={48}
                     />
                   ) : (
                     <UserRound className="h-5 w-5" />

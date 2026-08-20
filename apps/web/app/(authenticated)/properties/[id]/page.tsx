@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -234,13 +235,18 @@ export default function PropertyDetailPage() {
         <Dialog onOpenChange={setIsImagePreviewOpen} open={isImagePreviewOpen}>
           <DialogContent
             aria-label={`${property.name} property image`}
-            className="w-fit max-w-[90vw] place-items-center border-0 bg-transparent p-0 shadow-none [&>button]:right-3 [&>button]:top-3 [&>button]:grid [&>button]:h-8 [&>button]:w-8 [&>button]:place-items-center [&>button]:rounded-md [&>button]:border [&>button]:border-parcelis-border [&>button]:bg-white [&>button]:p-0 [&>button]:!text-slate-900 [&>button]:opacity-100 [&>button:hover]:bg-parcelis-porcelain [&>button:hover]:!text-slate-950"
+            className="w-[90vw] max-w-none border-0 bg-transparent p-0 shadow-none [&>button]:right-3 [&>button]:top-3 [&>button]:grid [&>button]:h-8 [&>button]:w-8 [&>button]:place-items-center [&>button]:rounded-md [&>button]:border [&>button]:border-parcelis-border [&>button]:bg-white [&>button]:p-0 [&>button]:!text-slate-900 [&>button]:opacity-100 [&>button:hover]:bg-parcelis-porcelain [&>button:hover]:!text-slate-950"
           >
-            <img
-              alt={`${property.name} property`}
-              className="max-h-[85vh] max-w-[90vw] rounded-md object-contain"
-              src={property.imageUrl}
-            />
+            <div className="relative h-[85vh] w-full">
+              <Image
+                alt={`${property.name} property`}
+                className="rounded-md object-contain"
+                fill
+                sizes="90vw"
+                src={property.imageUrl}
+                unoptimized
+              />
+            </div>
           </DialogContent>
         </Dialog>
       ) : null}
@@ -372,14 +378,17 @@ export default function PropertyDetailPage() {
                       <div className="flex flex-1 items-center md:w-full md:justify-end">
                         <button
                           aria-label={`View ${property.name} property image`}
-                          className="h-32 w-full overflow-hidden rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green"
+                          className="relative h-32 w-full overflow-hidden rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green"
                           onClick={() => setIsImagePreviewOpen(true)}
                           type="button"
                         >
-                          <img
+                          <Image
                             alt={`${property.name} property`}
-                            className="h-full w-full object-cover transition duration-200 hover:scale-[1.02]"
+                            className="object-cover transition duration-200 hover:scale-[1.02]"
+                            fill
+                            sizes="(min-width: 768px) 208px, 100vw"
                             src={property.imageUrl}
+                            unoptimized
                           />
                         </button>
                       </div>
