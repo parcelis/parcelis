@@ -386,6 +386,7 @@ export default function TenantDetailPage() {
                 fill
                 sizes="90vw"
                 src={tenant.imageUrl}
+                unoptimized
               />
             </div>
           </DialogContent>
@@ -605,6 +606,7 @@ export default function TenantDetailPage() {
                           fill
                           sizes="112px"
                           src={tenant.imageUrl}
+                          unoptimized
                         />
                       </button>
                     ) : (

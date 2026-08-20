@@ -511,6 +511,7 @@ export default function MaintenanceTicketPage() {
                                 className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
                                 src={attachment.imageUrl}
                                 height={160}
+                                unoptimized
                                 width={160}
                               />
                               <span className="absolute inset-x-0 bottom-0 truncate bg-parcelis-charcoal/75 px-2 py-1 text-left text-xs font-medium text-white">
@@ -707,6 +708,7 @@ export default function MaintenanceTicketPage() {
                   fill
                   sizes="(min-width: 1024px) 896px, 90vw"
                   src={activeAttachment.imageUrl}
+                  unoptimized
                 />
               </div>
               <div className="flex items-center justify-between gap-3">

@@ -244,6 +244,7 @@ export default function PropertyDetailPage() {
                 fill
                 sizes="90vw"
                 src={property.imageUrl}
+                unoptimized
               />
             </div>
           </DialogContent>
@@ -387,6 +388,7 @@ export default function PropertyDetailPage() {
                             fill
                             sizes="(min-width: 768px) 208px, 100vw"
                             src={property.imageUrl}
+                            unoptimized
                           />
                         </button>
                       </div>
