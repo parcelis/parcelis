@@ -1,4 +1,4 @@
-type EntityLabel = "Property" | "Tenant" | "Maintenance" | "Invoice" | "Unit";
+type EntityLabel = "Property" | "Tenant" | "Maintenance" | "Invoice" | "Unit" | "Application";
 
 export function entityCreatedMessage(entity: EntityLabel, name: string) {
   return `${entity} “${name}” has been created.`;
