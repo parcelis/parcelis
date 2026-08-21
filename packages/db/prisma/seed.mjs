@@ -605,28 +605,6 @@ async function main() {
       }),
     ),
   );
-
-  const applicationStatusLabels = [
-    "For Review",
-    "Pending",
-    "Approved",
-    "Lease Created",
-    "Rejected",
-    "Declined",
-    "Expired",
-  ];
-  const applicationStatuses = await Promise.all(
-    applicationStatusLabels.map((label, sortOrder) =>
-      prisma.applicationStatus.upsert({
-        where: { organizationId_label: { organizationId: organization.id, label } },
-        update: { sortOrder },
-        create: { organizationId: organization.id, label, sortOrder },
-      }),
-    ),
-  );
-  const applicationStatusByLabel = Object.fromEntries(
-    applicationStatuses.map((status) => [status.label, status]),
-  );
   await Promise.all([
     prisma.landlord.upsert({
       where: {
@@ -710,77 +688,6 @@ async function main() {
       });
     } else {
       await prisma.maintenanceTicket.create({ data: { ...ticket, organizationId: organization.id } });
-    }
-  }
-
-  const applications = [
-    {
-      propertyId: hawthorne.id,
-      statusLabel: "For Review",
-      annualIncomeCents: 7800000,
-      applicant: { firstName: "Devon", lastName: "Kingsley", email: "devon.kingsley@example.com", phone: "615-555-0142" },
-    },
-    {
-      propertyId: hawthorne.id,
-      statusLabel: "Approved",
-      annualIncomeCents: 9200000,
-      applicant: { firstName: "Marisol", lastName: "Ibarra", email: "marisol.ibarra@example.com", phone: "615-555-0198" },
-    },
-    {
-      propertyId: mariner.id,
-      statusLabel: "Pending",
-      annualIncomeCents: 6600000,
-      applicant: { firstName: "Theo", lastName: "Whitfield", email: "theo.whitfield@example.com", phone: "843-555-0163" },
-    },
-    {
-      propertyId: mariner.id,
-      statusLabel: "Lease Created",
-      annualIncomeCents: 8400000,
-      applicant: { firstName: "Priya", lastName: "Anand", email: "priya.anand@example.com", phone: "843-555-0111" },
-    },
-    {
-      propertyId: juniper.id,
-      statusLabel: "Rejected",
-      annualIncomeCents: 4800000,
-      applicant: { firstName: "Grant", lastName: "Osei", email: "grant.osei@example.com", phone: "512-555-0176" },
-    },
-    {
-      propertyId: juniper.id,
-      statusLabel: "Expired",
-      annualIncomeCents: 7100000,
-      applicant: { firstName: "Lena", lastName: "Vogel", email: "lena.vogel@example.com", phone: "512-555-0159" },
-    },
-  ];
-
-  for (const application of applications) {
-    const applicant = await prisma.applicant.upsert({
-      where: {
-        organizationId_email: { organizationId: organization.id, email: application.applicant.email },
-      },
-      update: application.applicant,
-      create: { organizationId: organization.id, ...application.applicant },
-    });
-    const status = applicationStatusByLabel[application.statusLabel];
-
-    const existing = await prisma.application.findFirst({
-      where: { organizationId: organization.id, propertyId: application.propertyId, applicantId: applicant.id },
-    });
-
-    if (existing) {
-      await prisma.application.update({
-        where: { id: existing.id },
-        data: { statusId: status.id, annualIncomeCents: application.annualIncomeCents },
-      });
-    } else {
-      await prisma.application.create({
-        data: {
-          organizationId: organization.id,
-          propertyId: application.propertyId,
-          applicantId: applicant.id,
-          statusId: status.id,
-          annualIncomeCents: application.annualIncomeCents,
-        },
-      });
     }
   }
 }

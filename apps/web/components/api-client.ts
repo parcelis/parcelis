@@ -52,11 +52,4 @@ export const queryKeys = {
   tags: {
     list: ["tags", "list"] as const,
   },
-  applications: {
-    list: ["applications", "list"] as const,
-    byId: (id: number) => ["applications", "byId", id] as const,
-  },
-  applicationStatuses: {
-    list: ["applicationStatuses", "list"] as const,
-  },
 };

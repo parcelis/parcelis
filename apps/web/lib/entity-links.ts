@@ -21,7 +21,3 @@ export function getInvoiceLink(invoiceId: number | string) {
 export function getMaintenanceLink(ticketId: number) {
   return `/maintenance/${ticketId}`;
 }
-
-export function getApplicationLink(applicationId: number) {
-  return `/applications/${applicationId}`;
-}
