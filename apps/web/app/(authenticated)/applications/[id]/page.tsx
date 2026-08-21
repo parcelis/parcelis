@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
-import type { CreateApplicationInput } from "@parcelis/schemas";
+import type { UpdateApplicationInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { ApplicationDrawer } from "../../../../components/application-drawer";
 import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
@@ -46,14 +46,23 @@ function formatDate(value: Date | string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
+function formatDateOnly(value: Date | string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
+
 function getAge(dateOfBirth: Date | string | null) {
   if (!dateOfBirth) return "Not reported";
   const birthDate = new Date(dateOfBirth);
   const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
   const birthdayHasPassed =
-    today.getMonth() > birthDate.getMonth() ||
-    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+    today.getUTCMonth() > birthDate.getUTCMonth() ||
+    (today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() >= birthDate.getUTCDate());
   if (!birthdayHasPassed) age -= 1;
   return age >= 0 ? `${age} years old` : "Not reported";
 }
@@ -93,7 +102,7 @@ export default function ApplicationDetailPage() {
     queryFn: () => apiClient.applicationStatuses.list.query(),
   });
   const updateApplication = useMutation({
-    mutationFn: (input: CreateApplicationInput) => apiClient.applications.update.mutate({ ...input, id }),
+    mutationFn: (input: Omit<UpdateApplicationInput, "id">) => apiClient.applications.update.mutate({ ...input, id }),
     onSuccess: async (_application, variables) => {
       setIsEditOpen(false);
       await Promise.all([
@@ -121,6 +130,19 @@ export default function ApplicationDetailPage() {
   const approvedStatus = statuses.find((status) => status.label.toLowerCase() === "approved");
   const deniedStatus = statuses.find((status) => ["rejected", "denied"].includes(status.label.toLowerCase()));
   const applicantName = application ? `${application.applicant.firstName} ${application.applicant.lastName}` : "";
+  const initialValues = React.useMemo(
+    () =>
+      application
+        ? {
+            propertyId: application.property.id,
+            statusId: application.status.id,
+            annualIncomeCents: application.annualIncomeCents,
+            requestedMoveInDate: application.requestedMoveInDate,
+            applicant: application.applicant,
+          }
+        : undefined,
+    [application],
+  );
 
   return (
     <main className="flex-1">
@@ -173,7 +195,10 @@ export default function ApplicationDetailPage() {
               onReactivate={() => apiClient.applications.reactivate.mutate({ id })}
               onReactivateSuccess={async () => {
                 toast.success(entityReactivatedMessage("Application", applicantName));
-                await queryClient.invalidateQueries({ queryKey: queryKeys.applications.byId(id) });
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: queryKeys.applications.byId(id) }),
+                  queryClient.invalidateQueries({ queryKey: queryKeys.applications.list }),
+                ]);
               }}
             />
             <Button
@@ -256,7 +281,7 @@ export default function ApplicationDetailPage() {
                       <ApplicationHeroStat
                         icon={CalendarCheck}
                         label="Requested Move In"
-                        value={application.requestedMoveInDate ? formatDate(application.requestedMoveInDate) : "Not set"}
+                        value={application.requestedMoveInDate ? formatDateOnly(application.requestedMoveInDate) : "Not set"}
                       />
                     </div>
                   </div>
@@ -273,7 +298,7 @@ export default function ApplicationDetailPage() {
                         <>
                           <p>{getAge(application.applicant.dateOfBirth)}</p>
                           <p className="mt-1 text-xs font-medium text-parcelis-gray">
-                            Born {formatDate(application.applicant.dateOfBirth)}
+                            Born {formatDateOnly(application.applicant.dateOfBirth)}
                           </p>
                         </>
                       ) : (
@@ -338,7 +363,7 @@ export default function ApplicationDetailPage() {
                     <ApplicationDetail label="Submitted" value={formatDate(application.submittedOn)} />
                     <ApplicationDetail
                       label="Requested move-in"
-                      value={application.requestedMoveInDate ? formatDate(application.requestedMoveInDate) : "Not set"}
+                      value={application.requestedMoveInDate ? formatDateOnly(application.requestedMoveInDate) : "Not set"}
                     />
                   </CardContent>
                 </Card>
@@ -367,13 +392,7 @@ export default function ApplicationDetailPage() {
           <ApplicationDrawer
             drawerTitle="Edit Application"
             error={updateApplication.error}
-            initialValues={{
-              propertyId: application.property.id,
-              statusId: application.status.id,
-              annualIncomeCents: application.annualIncomeCents,
-              requestedMoveInDate: application.requestedMoveInDate,
-              applicant: application.applicant,
-            }}
+            initialValues={initialValues}
             isPending={updateApplication.isPending}
             onOpenChange={setIsEditOpen}
             onSubmit={(input) => updateApplication.mutate(input)}

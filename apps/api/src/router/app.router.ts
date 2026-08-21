@@ -428,23 +428,23 @@ function getApplicantData(applicant: {
   firstName: string;
   lastName: string;
   email: string;
-  phone?: string;
-  dateOfBirth?: Date;
-  employment?: string;
-  address: { line1: string; line2?: string; city: string; region: string; postalCode: string };
+  phone?: string | null;
+  dateOfBirth?: Date | null;
+  employment?: string | null;
+  address?: { line1: string; line2?: string | null; city: string; region: string; postalCode: string };
 }) {
   return {
     firstName: applicant.firstName,
     lastName: applicant.lastName,
     email: applicant.email,
-    phone: applicant.phone,
-    dateOfBirth: applicant.dateOfBirth,
-    employment: applicant.employment,
-    addressLine1: applicant.address.line1,
-    addressLine2: applicant.address.line2,
-    city: applicant.address.city,
-    region: applicant.address.region,
-    postalCode: applicant.address.postalCode,
+    phone: applicant.phone ?? null,
+    dateOfBirth: applicant.dateOfBirth ?? null,
+    employment: applicant.employment ?? null,
+    addressLine1: applicant.address?.line1 ?? null,
+    addressLine2: applicant.address?.line2 ?? null,
+    city: applicant.address?.city ?? null,
+    region: applicant.address?.region ?? null,
+    postalCode: applicant.address?.postalCode ?? null,
   };
 }
 
@@ -1829,15 +1829,14 @@ export const appRouter = router({
         });
       }
       if (!status) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Selected status must belong to the active organization." });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selected status must belong to the active organization.",
+        });
       }
 
-      const applicant = await ctx.prisma.applicant.upsert({
-        where: {
-          organizationId_email: { organizationId: ctx.organization.organizationId, email: input.applicant.email },
-        },
-        update: getApplicantData(input.applicant),
-        create: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
+      const applicant = await ctx.prisma.applicant.create({
+        data: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
       });
 
       return ctx.prisma.application.create({
@@ -1852,7 +1851,7 @@ export const appRouter = router({
       });
     }),
     update: publicProcedure.input(updateApplicationInputSchema).mutation(async ({ ctx, input }) => {
-      await ctx.prisma.application.findFirstOrThrow({
+      const application = await ctx.prisma.application.findFirstOrThrow({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         select: { id: true, applicantId: true },
       });
@@ -1873,16 +1872,22 @@ export const appRouter = router({
         });
       }
       if (!status) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Selected status must belong to the active organization." });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selected status must belong to the active organization.",
+        });
       }
 
-      const applicant = await ctx.prisma.applicant.upsert({
-        where: {
-          organizationId_email: { organizationId: ctx.organization.organizationId, email: input.applicant.email },
-        },
-        update: getApplicantData(input.applicant),
-        create: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
+      const applicantData = getApplicantData(input.applicant);
+      const applicantUsageCount = await ctx.prisma.application.count({
+        where: { organizationId: ctx.organization.organizationId, applicantId: application.applicantId },
       });
+      const applicant =
+        applicantUsageCount > 1
+          ? await ctx.prisma.applicant.create({
+              data: { organizationId: ctx.organization.organizationId, ...applicantData },
+            })
+          : await ctx.prisma.applicant.update({ where: { id: application.applicantId }, data: applicantData });
 
       return ctx.prisma.application.update({
         where: { id: input.id },
@@ -1905,7 +1910,10 @@ export const appRouter = router({
         select: { id: true },
       });
       if (!status) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Selected status must belong to the active organization." });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selected status must belong to the active organization.",
+        });
       }
       return ctx.prisma.application.update({ where: { id: input.id }, data: { statusId: input.statusId } });
     }),

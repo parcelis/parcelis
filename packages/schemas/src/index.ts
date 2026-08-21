@@ -80,7 +80,7 @@ export const deleteOrganizationAvatarInputSchema = z.object({ variant: z.enum(["
 
 export const addressSchema = z.object({
   line1: z.string().min(1),
-  line2: z.string().optional(),
+  line2: z.string().nullable().optional(),
   city: z.string().min(1),
   region: z.string().min(2).max(2),
   postalCode: z.string().min(5),
@@ -337,16 +337,16 @@ export const applicantSchema = z.object({
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
   email: z.string().trim().email(),
-  phone: z.string().trim().optional(),
-  dateOfBirth: z.coerce.date().optional(),
-  employment: z.string().trim().max(160).optional(),
-  address: addressSchema,
+  phone: z.string().trim().nullable().optional(),
+  dateOfBirth: z.coerce.date().nullable().optional(),
+  employment: z.string().trim().max(160).nullable().optional(),
+  address: addressSchema.optional(),
 });
 export const createApplicationInputSchema = z.object({
   propertyId: idSchema,
   statusId: idSchema,
   annualIncomeCents: z.number().int().nonnegative().max(maxDatabaseInteger),
-  requestedMoveInDate: z.coerce.date().optional(),
+  requestedMoveInDate: z.coerce.date().nullable().optional(),
   applicant: applicantSchema,
 });
 export const updateApplicationInputSchema = createApplicationInputSchema.extend({ id: idSchema });

@@ -16,7 +16,7 @@ import {
   Select,
 } from "@parcelis/ui";
 import type { AddressFieldValues } from "@parcelis/ui";
-import type { CreateApplicationInput } from "@parcelis/schemas";
+import type { CreateApplicationInput, UpdateApplicationInput } from "@parcelis/schemas";
 import { toUtcDateInput } from "../lib/date";
 
 type ApplicationDrawerInitialValues = {
@@ -45,7 +45,7 @@ type ApplicationDrawerProps = {
   initialValues?: ApplicationDrawerInitialValues;
   isPending: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (input: CreateApplicationInput) => void;
+  onSubmit: (input: CreateApplicationInput | Omit<UpdateApplicationInput, "id">) => void;
   open: boolean;
   properties: Array<{ id: number; name: string }>;
   statuses: Array<{ id: number; label: string }>;
@@ -88,9 +88,15 @@ export function ApplicationDrawer({
 }: ApplicationDrawerProps) {
   const [form, setForm] = React.useState<ApplicationFormState>(() => toFormState(initialValues));
   const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
+  const [addressError, setAddressError] = React.useState<string | null>(null);
+  const previousOpenRef = React.useRef(open);
 
   React.useEffect(() => {
-    if (open) setForm(toFormState(initialValues));
+    if (open && !previousOpenRef.current) {
+      setForm(toFormState(initialValues));
+      setAddressError(null);
+    }
+    previousOpenRef.current = open;
   }, [open, initialValues]);
 
   function updateField<Key extends keyof ApplicationFormState>(field: Key, value: ApplicationFormState[Key]) {
@@ -98,6 +104,7 @@ export function ApplicationDrawer({
   }
 
   function updateAddressField(field: keyof AddressFieldValues, value: string) {
+    setAddressError(null);
     if (field === "line1") updateField("addressLine1", value);
     else if (field === "line2") updateField("addressLine2", value);
     else updateField(field, value);
@@ -108,25 +115,36 @@ export function ApplicationDrawer({
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const address = {
+      line1: form.addressLine1.trim(),
+      line2: form.addressLine2.trim() || null,
+      city: form.city.trim(),
+      region: form.region.trim().toUpperCase(),
+      postalCode: form.postalCode.trim(),
+    };
+    const hasAddress = Object.values(address).some(Boolean);
+    const hasCompleteAddress =
+      Boolean(address.line1) && Boolean(address.city) && address.region.length === 2 && address.postalCode.length >= 5;
+
+    if ((!initialValues && !hasCompleteAddress) || (hasAddress && !hasCompleteAddress)) {
+      setAddressError("Enter an address line, city, two-letter state, and postal code.");
+      setIsAddressPopoverOpen(true);
+      return;
+    }
+
     onSubmit({
       propertyId: Number(form.propertyId),
       statusId: Number(form.statusId),
       annualIncomeCents: Math.round(Number(form.annualIncomeCents || 0) * 100),
-      requestedMoveInDate: form.requestedMoveInDate ? new Date(`${form.requestedMoveInDate}T00:00:00.000Z`) : undefined,
+      requestedMoveInDate: form.requestedMoveInDate ? new Date(`${form.requestedMoveInDate}T00:00:00.000Z`) : null,
       applicant: {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
-        phone: form.phone.trim() || undefined,
-        dateOfBirth: form.dateOfBirth ? new Date(`${form.dateOfBirth}T00:00:00.000Z`) : undefined,
-        employment: form.employment.trim() || undefined,
-        address: {
-          line1: form.addressLine1.trim(),
-          line2: form.addressLine2.trim() || undefined,
-          city: form.city.trim(),
-          region: form.region.trim().toUpperCase(),
-          postalCode: form.postalCode.trim(),
-        },
+        phone: form.phone.trim() || null,
+        dateOfBirth: form.dateOfBirth ? new Date(`${form.dateOfBirth}T00:00:00.000Z`) : null,
+        employment: form.employment.trim() || null,
+        ...(hasCompleteAddress ? { address } : {}),
       },
     });
   }
@@ -259,6 +277,7 @@ export function ApplicationDrawer({
                     postalCode: form.postalCode,
                   }}
                 />
+                {addressError ? <p className="text-sm font-medium text-red-700 md:col-span-2">{addressError}</p> : null}
               </div>
             </section>
             {error ? <p className="mt-5 text-sm font-medium text-red-700">{error.message}</p> : null}

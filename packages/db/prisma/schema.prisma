@@ -392,8 +392,8 @@ model Applicant {
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@unique([organizationId, id])
-  @@unique([organizationId, email])
   @@index([organizationId])
+  @@index([organizationId, email])
 }
 
 model Application {
@@ -404,7 +404,7 @@ model Application {
   statusId            Int
   annualIncomeCents   Int
   submittedOn         DateTime          @default(now())
-  requestedMoveInDate DateTime?
+  requestedMoveInDate DateTime? @db.Date
   archivedAt          DateTime?
   property            Property          @relation(fields: [organizationId, propertyId], references: [organizationId, id])
   applicant           Applicant         @relation(fields: [organizationId, applicantId], references: [organizationId, id])

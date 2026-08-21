@@ -44,13 +44,17 @@ function getApplicantName(application: { applicant: { firstName: string; lastNam
 }
 
 function statusBadgeClass(label: string) {
-  const normalized = label.toLowerCase();
+  const normalized = normalizeApplicationStatusLabel(label);
   if (normalized === "approved" || normalized === "lease created") return "bg-emerald-500/15 text-emerald-700";
   if (normalized === "for review") return "bg-sky-500/15 text-sky-700";
   if (normalized === "pending") return "bg-amber-500/15 text-amber-700";
-  if (normalized === "rejected" || normalized === "declined") return "bg-red-500/15 text-red-700";
+  if (["rejected", "declined", "denied"].includes(normalized)) return "bg-red-500/15 text-red-700";
   if (normalized === "expired") return "bg-parcelis-porcelain text-parcelis-gray";
   return "bg-parcelis-porcelain text-parcelis-gray";
+}
+
+function normalizeApplicationStatusLabel(label: string) {
+  return label.trim().toLowerCase();
 }
 
 export default function ApplicationsPage() {
@@ -93,12 +97,18 @@ function ApplicationsPageContent() {
   });
   const applications = applicationsQuery.data ?? [];
   const properties = propertiesQuery.data ?? [];
-  const statuses = statusesQuery.data ?? [];
+  const statuses = (statusesQuery.data ?? []).filter((status) => status.isActive);
+  const optionsError = propertiesQuery.error ?? statusesQuery.error;
+  const areOptionsReady = propertiesQuery.isSuccess && statusesQuery.isSuccess;
   const totalApplications = applications.length;
-  const forReviewCount = applications.filter((application) => application.status.label === "For Review").length;
-  const approvedCount = applications.filter((application) => application.status.label === "Approved").length;
+  const forReviewCount = applications.filter(
+    (application) => normalizeApplicationStatusLabel(application.status.label) === "for review",
+  ).length;
+  const approvedCount = applications.filter(
+    (application) => normalizeApplicationStatusLabel(application.status.label) === "approved",
+  ).length;
   const rejectedCount = applications.filter((application) =>
-    ["Rejected", "Declined"].includes(application.status.label),
+    ["rejected", "declined", "denied"].includes(normalizeApplicationStatusLabel(application.status.label)),
   ).length;
 
   const normalizedSearch = search.trim().toLowerCase();
@@ -146,12 +156,17 @@ function ApplicationsPageContent() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button className="min-w-40" onClick={() => setIsDrawerOpen(true)}>
+          <Button className="min-w-40" disabled={!areOptionsReady} onClick={() => setIsDrawerOpen(true)}>
             <Plus className="h-4 w-4" />
             Application
           </Button>
         </header>
         <div className="parcelis-page-shell">
+          {optionsError ? (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+              Unable to load the property or status options required to create an application. Please try again.
+            </div>
+          ) : null}
           <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Applications</p>
@@ -322,10 +337,12 @@ function ApplicationsPageContent() {
         </div>
         <ApplicationDrawer
           drawerTitle="New Application"
-          error={createApplication.error}
+          error={createApplication.error ?? optionsError}
           isPending={createApplication.isPending}
           onOpenChange={setIsDrawerOpen}
-          onSubmit={(input) => createApplication.mutate(input)}
+          onSubmit={(input) => {
+            if (input.applicant.address) createApplication.mutate(input);
+          }}
           open={isDrawerOpen}
           properties={properties}
           statuses={statuses}
