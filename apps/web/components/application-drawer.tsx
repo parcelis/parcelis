@@ -126,7 +126,7 @@ export function ApplicationDrawer({
     const hasCompleteAddress =
       Boolean(address.line1) && Boolean(address.city) && address.region.length === 2 && address.postalCode.length >= 5;
 
-    if (hasAddress && !hasCompleteAddress) {
+    if ((!initialValues && !hasCompleteAddress) || (hasAddress && !hasCompleteAddress)) {
       setAddressError("Enter an address line, city, two-letter state, and postal code.");
       setIsAddressPopoverOpen(true);
       return;
