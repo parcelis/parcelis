@@ -25,8 +25,9 @@ export function SearchGroupToolbar({
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <label className="flex h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray sm:min-w-72">
-        <Search className="h-4 w-4" />
+        <Search aria-hidden="true" className="h-4 w-4" />
         <Input
+          aria-label={searchPlaceholder}
           className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 focus:border-transparent"
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={searchPlaceholder}

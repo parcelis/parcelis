@@ -50,7 +50,9 @@ export default function ApplicationDetailPage() {
   });
 
   const application = applicationQuery.data;
-  const statuses = statusesQuery.data ?? [];
+  const statuses = (statusesQuery.data ?? []).filter(
+    (status) => status.isActive || status.id === application?.status.id,
+  );
 
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
@@ -71,6 +73,13 @@ export default function ApplicationDetailPage() {
         <div className="parcelis-page-shell">
           {applicationQuery.isLoading ? (
             <LoadingState label="Loading application…" />
+          ) : applicationQuery.error ? (
+            <div className="flex min-h-48 flex-col items-start gap-3 text-sm font-medium text-red-700">
+              <p>Unable to load this application. Please try again.</p>
+              <Button onClick={() => applicationQuery.refetch()} type="button" variant="secondary">
+                Retry
+              </Button>
+            </div>
           ) : !application ? (
             <p className="text-sm text-parcelis-gray">Application not found.</p>
           ) : (
@@ -98,18 +107,29 @@ export default function ApplicationDetailPage() {
                   </div>
                   <div className="w-full lg:w-72">
                     <p className="mb-2 text-xs font-medium uppercase tracking-wide text-white/70">Status</p>
-                    <Select
-                      className="border-white/20 bg-white/10 text-white"
-                      disabled={updateStatus.isPending}
-                      onChange={(event) => updateStatus.mutate(Number(event.target.value))}
-                      value={application.status.id}
-                    >
-                      {statuses.map((status) => (
-                        <option key={status.id} value={status.id}>
-                          {status.label}
-                        </option>
-                      ))}
-                    </Select>
+                    {statusesQuery.isLoading ? (
+                      <p className="text-sm text-white/75">Loading statuses…</p>
+                    ) : statusesQuery.error ? (
+                      <div className="flex flex-col items-start gap-2">
+                        <p className="text-sm text-red-200">Unable to load statuses.</p>
+                        <Button onClick={() => statusesQuery.refetch()} type="button" variant="secondary">
+                          Retry
+                        </Button>
+                      </div>
+                    ) : (
+                      <Select
+                        className="border-white/20 bg-white/10 text-white"
+                        disabled={updateStatus.isPending}
+                        onChange={(event) => updateStatus.mutate(Number(event.target.value))}
+                        value={application.status.id}
+                      >
+                        {statuses.map((status) => (
+                          <option key={status.id} value={status.id}>
+                            {status.label}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
                   </div>
                 </div>
               </section>

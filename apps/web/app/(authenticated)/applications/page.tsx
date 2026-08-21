@@ -51,11 +51,7 @@ function statusBadgeClass(label: string) {
 }
 
 export default function ApplicationsPage() {
-  return (
-    <React.Suspense fallback={<LoadingState label="Loading applications..." />}>
-      <ApplicationsPageContent />
-    </React.Suspense>
-  );
+  return <ApplicationsPageContent />;
 }
 
 function ApplicationsPageContent() {
@@ -77,7 +73,7 @@ function ApplicationsPageContent() {
     ),
   );
 
-  const groupedProperties = React.useMemo(() => {
+  const groupedProperties = (() => {
     const groups = new Map<number, { id: number; name: string; applications: typeof filteredApplications }>();
     for (const application of filteredApplications) {
       const group = groups.get(application.property.id);
@@ -92,7 +88,7 @@ function ApplicationsPageContent() {
       }
     }
     return Array.from(groups.values());
-  }, [filteredApplications]);
+  })();
 
   function toggleProperty(propertyId: number) {
     setExpandedPropertyIds((current) => {
