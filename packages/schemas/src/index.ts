@@ -80,7 +80,7 @@ export const deleteOrganizationAvatarInputSchema = z.object({ variant: z.enum(["
 
 export const addressSchema = z.object({
   line1: z.string().min(1),
-  line2: z.string().optional(),
+  line2: z.string().nullable().optional(),
   city: z.string().min(1),
   region: z.string().min(2).max(2),
   postalCode: z.string().min(5),
@@ -148,11 +148,13 @@ const propertyNoteSubjectSchema = z.object({ propertyId: idSchema }).strict();
 const unitNoteSubjectSchema = z.object({ unitId: idSchema }).strict();
 const tenantNoteSubjectSchema = z.object({ tenantId: idSchema }).strict();
 const maintenanceTicketNoteSubjectSchema = z.object({ maintenanceTicketId: idSchema }).strict();
+const applicationNoteSubjectSchema = z.object({ applicationId: idSchema }).strict();
 const noteSubjectSchemas = [
   propertyNoteSubjectSchema,
   unitNoteSubjectSchema,
   tenantNoteSubjectSchema,
   maintenanceTicketNoteSubjectSchema,
+  applicationNoteSubjectSchema,
 ] as const;
 
 export const noteSubjectInputSchema = z.union(noteSubjectSchemas);
@@ -340,12 +342,16 @@ export const applicantSchema = z.object({
     .email()
     .max(254)
     .transform((email) => email.toLowerCase()),
-  phone: z.string().trim().optional(),
+  phone: z.string().trim().nullable().optional(),
+  dateOfBirth: z.coerce.date().nullable().optional(),
+  employment: z.string().trim().max(160).nullable().optional(),
+  address: addressSchema.optional(),
 });
 export const createApplicationInputSchema = z.object({
   propertyId: idSchema,
   statusId: idSchema,
   annualIncomeCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+  requestedMoveInDate: z.coerce.date().nullable().optional(),
   applicant: applicantSchema,
 });
 export const updateApplicationInputSchema = createApplicationInputSchema.extend({ id: idSchema });
@@ -466,6 +472,8 @@ export type Lease = z.infer<typeof leaseSchema>;
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;
 export type UpdatePropertyInput = z.infer<typeof updatePropertyInputSchema>;
 export type CreateMaintenanceTicketInput = z.infer<typeof createMaintenanceTicketInputSchema>;
+export type CreateApplicationInput = z.infer<typeof createApplicationInputSchema>;
+export type UpdateApplicationInput = z.infer<typeof updateApplicationInputSchema>;
 export type MaintenanceImageUploadInput = z.infer<typeof maintenanceImageUploadInputSchema>;
 export type MaintenanceImageUploadCompleteInput = z.infer<typeof maintenanceImageUploadCompleteInputSchema>;
 export type PropertyImageUploadInput = z.infer<typeof propertyImageUploadInputSchema>;
@@ -475,7 +483,5 @@ export type UpdateApplicationStatusInput = z.infer<typeof updateApplicationStatu
 export type ApplicationStatusByIdInput = z.infer<typeof applicationStatusByIdInputSchema>;
 export type ReorderApplicationStatusesInput = z.infer<typeof reorderApplicationStatusesInputSchema>;
 export type Applicant = z.infer<typeof applicantSchema>;
-export type CreateApplicationInput = z.infer<typeof createApplicationInputSchema>;
-export type UpdateApplicationInput = z.infer<typeof updateApplicationInputSchema>;
 export type ApplicationByIdInput = z.infer<typeof applicationByIdInputSchema>;
 export type SetApplicationStatusInput = z.infer<typeof setApplicationStatusInputSchema>;

@@ -718,58 +718,128 @@ async function main() {
       propertyId: hawthorne.id,
       statusLabel: "For Review",
       annualIncomeCents: 7800000,
-      applicant: { firstName: "Devon", lastName: "Kingsley", email: "devon.kingsley@example.com", phone: "615-555-0142" },
+      submittedOn: new Date("2026-08-10T09:00:00.000Z"),
+      requestedMoveInDate: new Date("2026-09-01"),
+      applicant: {
+        firstName: "Devon",
+        lastName: "Kingsley",
+        email: "devon.kingsley@example.com",
+        phone: "615-555-0142",
+        addressLine1: "412 Willow Street",
+        city: "Nashville",
+        region: "TN",
+        postalCode: "37203",
+      },
     },
     {
       propertyId: hawthorne.id,
       statusLabel: "Approved",
       annualIncomeCents: 9200000,
-      applicant: { firstName: "Marisol", lastName: "Ibarra", email: "marisol.ibarra@example.com", phone: "615-555-0198" },
+      submittedOn: new Date("2026-07-28T10:15:00.000Z"),
+      requestedMoveInDate: new Date("2026-08-15"),
+      applicant: {
+        firstName: "Marisol",
+        lastName: "Ibarra",
+        email: "marisol.ibarra@example.com",
+        phone: "615-555-0198",
+        addressLine1: "89 Cedar Lane",
+        city: "Nashville",
+        region: "TN",
+        postalCode: "37206",
+      },
     },
     {
       propertyId: mariner.id,
       statusLabel: "Pending",
       annualIncomeCents: 6600000,
-      applicant: { firstName: "Theo", lastName: "Whitfield", email: "theo.whitfield@example.com", phone: "843-555-0163" },
+      submittedOn: new Date("2026-08-02T14:30:00.000Z"),
+      requestedMoveInDate: new Date("2026-09-15"),
+      applicant: {
+        firstName: "Theo",
+        lastName: "Whitfield",
+        email: "theo.whitfield@example.com",
+        phone: "843-555-0163",
+        addressLine1: "27 Harbor Row",
+        city: "Charleston",
+        region: "SC",
+        postalCode: "29401",
+      },
     },
     {
       propertyId: mariner.id,
       statusLabel: "Lease Created",
       annualIncomeCents: 8400000,
-      applicant: { firstName: "Priya", lastName: "Anand", email: "priya.anand@example.com", phone: "843-555-0111" },
+      submittedOn: new Date("2026-07-12T11:00:00.000Z"),
+      requestedMoveInDate: new Date("2026-08-01"),
+      applicant: {
+        firstName: "Priya",
+        lastName: "Anand",
+        email: "priya.anand@example.com",
+        phone: "843-555-0111",
+        addressLine1: "150 Battery Street",
+        city: "Charleston",
+        region: "SC",
+        postalCode: "29403",
+      },
     },
     {
       propertyId: juniper.id,
       statusLabel: "Rejected",
       annualIncomeCents: 4800000,
-      applicant: { firstName: "Grant", lastName: "Osei", email: "grant.osei@example.com", phone: "512-555-0176" },
+      submittedOn: new Date("2026-08-05T13:45:00.000Z"),
+      requestedMoveInDate: new Date("2026-08-20"),
+      applicant: {
+        firstName: "Grant",
+        lastName: "Osei",
+        email: "grant.osei@example.com",
+        phone: "512-555-0176",
+        addressLine1: "76 Congress Ave",
+        city: "Austin",
+        region: "TX",
+        postalCode: "78701",
+      },
     },
     {
       propertyId: juniper.id,
       statusLabel: "Expired",
       annualIncomeCents: 7100000,
-      applicant: { firstName: "Lena", lastName: "Vogel", email: "lena.vogel@example.com", phone: "512-555-0159" },
+      submittedOn: new Date("2026-06-18T08:30:00.000Z"),
+      requestedMoveInDate: new Date("2026-07-01"),
+      applicant: {
+        firstName: "Lena",
+        lastName: "Vogel",
+        email: "lena.vogel@example.com",
+        phone: "512-555-0159",
+        addressLine1: "230 South Lamar",
+        city: "Austin",
+        region: "TX",
+        postalCode: "78704",
+      },
     },
   ];
 
   for (const application of applications) {
-    const applicant = await prisma.applicant.upsert({
-      where: {
-        organizationId_email: { organizationId: organization.id, email: application.applicant.email },
-      },
-      update: application.applicant,
-      create: { organizationId: organization.id, ...application.applicant },
-    });
-    const status = applicationStatusByLabel[application.statusLabel];
-
     const existing = await prisma.application.findFirst({
-      where: { organizationId: organization.id, propertyId: application.propertyId, applicantId: applicant.id },
+      where: {
+        organizationId: organization.id,
+        propertyId: application.propertyId,
+        submittedOn: application.submittedOn,
+      },
     });
+    const applicant = existing
+      ? await prisma.applicant.update({ where: { id: existing.applicantId }, data: application.applicant })
+      : await prisma.applicant.create({ data: { organizationId: organization.id, ...application.applicant } });
+    const status = applicationStatusByLabel[application.statusLabel];
 
     if (existing) {
       await prisma.application.update({
         where: { id: existing.id },
-        data: { statusId: status.id, annualIncomeCents: application.annualIncomeCents },
+        data: {
+          statusId: status.id,
+          annualIncomeCents: application.annualIncomeCents,
+          submittedOn: application.submittedOn,
+          requestedMoveInDate: application.requestedMoveInDate,
+        },
       });
     } else {
       await prisma.application.create({
@@ -779,6 +849,8 @@ async function main() {
           applicantId: applicant.id,
           statusId: status.id,
           annualIncomeCents: application.annualIncomeCents,
+          submittedOn: application.submittedOn,
+          requestedMoveInDate: application.requestedMoveInDate,
         },
       });
     }

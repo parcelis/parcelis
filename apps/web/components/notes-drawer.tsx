@@ -40,7 +40,12 @@ import {
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
 
-type NoteSubject = { propertyId: number } | { unitId: number } | { tenantId: number } | { maintenanceTicketId: number };
+type NoteSubject =
+  | { propertyId: number }
+  | { unitId: number }
+  | { tenantId: number }
+  | { maintenanceTicketId: number }
+  | { applicationId: number };
 type NotesTab = "notes" | "files";
 
 const tabs: { value: NotesTab; label: string }[] = [

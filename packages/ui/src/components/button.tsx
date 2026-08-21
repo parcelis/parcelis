@@ -14,6 +14,7 @@ const buttonVariants = cva(
         ghost: "text-parcelis-charcoal hover:bg-parcelis-porcelain",
         destructive:
           "border border-red-700 bg-white text-red-700 hover:bg-red-50 focus-visible:outline-red-700 dark:hover:bg-red-950/40",
+        danger: "bg-red-700 text-white hover:bg-red-800 focus-visible:outline-red-700",
       },
       size: {
         sm: "h-8 px-3 text-xs",
