@@ -344,7 +344,7 @@ export default function ApplicationDetailPage() {
                 </Card>
               </div>
               <section className="mt-5">
-                <div className="mt-4 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-4 flex flex-wrap gap-5">
                   <ApplicationReviewCard
                     description="Employment records and work history."
                     title="Employment History"
@@ -425,7 +425,7 @@ function ApplicationDetail({ label, value }: { label: string; value: string }) {
 
 function ApplicationReviewCard({ description, title }: { description: string; title: string }) {
   return (
-    <Card>
+    <Card className="w-full md:w-[calc((100%-1.25rem)/2)]">
       <CardHeader>
         <h3 className="font-semibold text-parcelis-charcoal">{title}</h3>
       </CardHeader>
