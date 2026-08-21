@@ -23,6 +23,7 @@ import {
 import type { CreateApplicationInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { ApplicationDrawer } from "../../../components/application-drawer";
+import { ApplicationsRail } from "../../../components/applications-rail";
 import { LoadingState } from "../../../components/loading-state";
 import { SearchGroupToolbar } from "../../../components/search-group-toolbar";
 import { entityCreatedMessage } from "../../../components/toast-messages";
@@ -158,179 +159,182 @@ function ApplicationsPageContent() {
             Application
           </Button>
         </header>
-        <div className="parcelis-page-shell">
-          {optionsError ? (
-            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-              Unable to load the property or status options required to create an application. Please try again.
-            </div>
-          ) : null}
-          <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Applications</p>
-              <h1 className="mt-5 text-3xl font-bold md:text-5xl">Applications dashboard</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                Track applicant status across your portfolio, from initial review through lease creation.
-              </p>
-            </div>
-            <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
-              <Metric label="Total" value={totalApplications} />
-              <Metric label="For Review" value={forReviewCount} />
-              <Metric label="Approved" value={approvedCount} />
-              <Metric label="Rejected" value={rejectedCount} />
-            </div>
-          </section>
-
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="font-semibold text-parcelis-charcoal">
-                    {groupByProperty ? "Applications by property" : "All applications"}
-                  </h2>
-                  <p className="mt-1 text-sm text-parcelis-gray">
-                    {groupByProperty
-                      ? "Applications grouped by the property they were submitted for."
-                      : "Applications listed by applicant."}
-                  </p>
-                </div>
-                <SearchGroupToolbar
-                  groupBy={groupByProperty}
-                  groupedLabel="Grouped By Property"
-                  onSearchChange={setSearch}
-                  onToggleGroupBy={() => setGroupByProperty((grouped) => !grouped)}
-                  search={search}
-                  searchPlaceholder="Search status, applicant, property"
-                  ungroupedLabel="Not Grouped"
-                />
+        <div className="parcelis-page-shell flex flex-col gap-5 lg:flex-row">
+          <ApplicationsRail active="applications" />
+          <div className="min-w-0 flex-1">
+            {optionsError ? (
+              <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+                Unable to load the property or status options required to create an application. Please try again.
               </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto p-0">
-              {applicationsQuery.isLoading ? (
-                <LoadingState label="Loading applications…" />
-              ) : applicationsQuery.error ? (
-                <div className="min-h-48 p-5 text-sm font-medium text-red-700">
-                  Unable to load applications. Please try again.
+            ) : null}
+            <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Applications</p>
+                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Applications dashboard</h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
+                  Track applicant status across your portfolio, from initial review through lease creation.
+                </p>
+              </div>
+              <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
+                <Metric label="Total" value={totalApplications} />
+                <Metric label="For Review" value={forReviewCount} />
+                <Metric label="Approved" value={approvedCount} />
+                <Metric label="Rejected" value={rejectedCount} />
+              </div>
+            </section>
+
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">
+                      {groupByProperty ? "Applications by property" : "All applications"}
+                    </h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      {groupByProperty
+                        ? "Applications grouped by the property they were submitted for."
+                        : "Applications listed by applicant."}
+                    </p>
+                  </div>
+                  <SearchGroupToolbar
+                    groupBy={groupByProperty}
+                    groupedLabel="Grouped By Property"
+                    onSearchChange={setSearch}
+                    onToggleGroupBy={() => setGroupByProperty((grouped) => !grouped)}
+                    search={search}
+                    searchPlaceholder="Search status, applicant, property"
+                    ungroupedLabel="Not Grouped"
+                  />
                 </div>
-              ) : filteredApplications.length === 0 ? (
-                <div className="min-h-48 p-5 text-sm text-parcelis-gray">
-                  {applications.length === 0
-                    ? "No applications have been submitted yet."
-                    : "No applications match your search."}
-                </div>
-              ) : groupByProperty ? (
-                <Table className="min-w-[900px] border-collapse text-left">
-                  <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
-                    <TableRow className="border-0">
-                      <TableHead className="w-[35%] px-5 py-3 font-semibold">Property</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Status</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Applicant Name</TableHead>
-                      <TableHead className="px-5 py-3 text-right font-semibold">Annual Income</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {groupedProperties.map((property) => {
-                      const isExpanded = expandedPropertyIds.has(property.id);
-                      return (
-                        <React.Fragment key={property.id}>
-                          <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">
-                            <TableCell className="px-5 py-4" colSpan={4}>
-                              <button
-                                className="flex items-center gap-3 font-semibold text-parcelis-charcoal"
-                                onClick={() => toggleProperty(property.id)}
-                                type="button"
-                              >
-                                <span className="grid h-8 w-8 place-items-center rounded-md border border-parcelis-border">
-                                  <ChevronRight
-                                    className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-                                  />
-                                </span>
-                                <Building2 className="h-4 w-4 text-parcelis-green" />
-                                {property.name}
-                                <span className="text-sm font-medium text-parcelis-gray">
-                                  ({property.applications.length})
-                                </span>
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                          {isExpanded
-                            ? property.applications.map((application) => (
-                                <TableRow
-                                  className="cursor-pointer border-t border-parcelis-border bg-parcelis-porcelain/45 hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
-                                  key={application.id}
-                                  onClick={() => router.push(getApplicationLink(application.id))}
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter" || event.key === " ") {
-                                      event.preventDefault();
-                                      router.push(getApplicationLink(application.id));
-                                    }
-                                  }}
-                                  role="link"
-                                  tabIndex={0}
-                                >
-                                  <TableCell className="px-5 py-3" />
-                                  <TableCell className="px-5 py-3">
-                                    <Badge className={statusBadgeClass(application.status.label)} variant="secondary">
-                                      {application.status.label}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="px-5 py-3 font-medium text-parcelis-charcoal">
-                                    {getApplicantName(application)}
-                                  </TableCell>
-                                  <TableCell className="px-5 py-3 text-right font-semibold text-parcelis-charcoal">
-                                    {formatCurrency(application.annualIncomeCents)}
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            : null}
-                        </React.Fragment>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              ) : (
-                <Table className="min-w-[900px] border-collapse text-left">
-                  <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
-                    <TableRow className="border-0">
-                      <TableHead className="px-5 py-3 font-semibold">Status</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Applicant Name</TableHead>
-                      <TableHead className="px-5 py-3 font-semibold">Property</TableHead>
-                      <TableHead className="px-5 py-3 text-right font-semibold">Annual Income</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredApplications.map((application) => (
-                      <TableRow
-                        className="cursor-pointer border-t border-parcelis-border hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
-                        key={application.id}
-                        onClick={() => router.push(getApplicationLink(application.id))}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            router.push(getApplicationLink(application.id));
-                          }
-                        }}
-                        role="link"
-                        tabIndex={0}
-                      >
-                        <TableCell className="px-5 py-4">
-                          <Badge className={statusBadgeClass(application.status.label)} variant="secondary">
-                            {application.status.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 font-medium text-parcelis-charcoal">
-                          {getApplicantName(application)}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-parcelis-gray">{application.property.name}</TableCell>
-                        <TableCell className="px-5 py-4 text-right font-semibold text-parcelis-charcoal">
-                          {formatCurrency(application.annualIncomeCents)}
-                        </TableCell>
+              </CardHeader>
+              <CardContent className="overflow-x-auto p-0">
+                {applicationsQuery.isLoading ? (
+                  <LoadingState label="Loading applications…" />
+                ) : applicationsQuery.error ? (
+                  <div className="min-h-48 p-5 text-sm font-medium text-red-700">
+                    Unable to load applications. Please try again.
+                  </div>
+                ) : filteredApplications.length === 0 ? (
+                  <div className="min-h-48 p-5 text-sm text-parcelis-gray">
+                    {applications.length === 0
+                      ? "No applications have been submitted yet."
+                      : "No applications match your search."}
+                  </div>
+                ) : groupByProperty ? (
+                  <Table className="min-w-[900px] border-collapse text-left">
+                    <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                      <TableRow className="border-0">
+                        <TableHead className="w-[35%] px-5 py-3 font-semibold">Property</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Status</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Applicant Name</TableHead>
+                        <TableHead className="px-5 py-3 text-right font-semibold">Annual Income</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {groupedProperties.map((property) => {
+                        const isExpanded = expandedPropertyIds.has(property.id);
+                        return (
+                          <React.Fragment key={property.id}>
+                            <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">
+                              <TableCell className="px-5 py-4" colSpan={4}>
+                                <button
+                                  className="flex items-center gap-3 font-semibold text-parcelis-charcoal"
+                                  onClick={() => toggleProperty(property.id)}
+                                  type="button"
+                                >
+                                  <span className="grid h-8 w-8 place-items-center rounded-md border border-parcelis-border">
+                                    <ChevronRight
+                                      className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                                    />
+                                  </span>
+                                  <Building2 className="h-4 w-4 text-parcelis-green" />
+                                  {property.name}
+                                  <span className="text-sm font-medium text-parcelis-gray">
+                                    ({property.applications.length})
+                                  </span>
+                                </button>
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded
+                              ? property.applications.map((application) => (
+                                  <TableRow
+                                    className="cursor-pointer border-t border-parcelis-border bg-parcelis-porcelain/45 hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
+                                    key={application.id}
+                                    onClick={() => router.push(getApplicationLink(application.id))}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter" || event.key === " ") {
+                                        event.preventDefault();
+                                        router.push(getApplicationLink(application.id));
+                                      }
+                                    }}
+                                    role="link"
+                                    tabIndex={0}
+                                  >
+                                    <TableCell className="px-5 py-3" />
+                                    <TableCell className="px-5 py-3">
+                                      <Badge className={statusBadgeClass(application.status.label)} variant="secondary">
+                                        {application.status.label}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="px-5 py-3 font-medium text-parcelis-charcoal">
+                                      {getApplicantName(application)}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-3 text-right font-semibold text-parcelis-charcoal">
+                                      {formatCurrency(application.annualIncomeCents)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              : null}
+                          </React.Fragment>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <Table className="min-w-[900px] border-collapse text-left">
+                    <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                      <TableRow className="border-0">
+                        <TableHead className="px-5 py-3 font-semibold">Status</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Applicant Name</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Property</TableHead>
+                        <TableHead className="px-5 py-3 text-right font-semibold">Annual Income</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredApplications.map((application) => (
+                        <TableRow
+                          className="cursor-pointer border-t border-parcelis-border hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
+                          key={application.id}
+                          onClick={() => router.push(getApplicationLink(application.id))}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              router.push(getApplicationLink(application.id));
+                            }
+                          }}
+                          role="link"
+                          tabIndex={0}
+                        >
+                          <TableCell className="px-5 py-4">
+                            <Badge className={statusBadgeClass(application.status.label)} variant="secondary">
+                              {application.status.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 font-medium text-parcelis-charcoal">
+                            {getApplicantName(application)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-parcelis-gray">{application.property.name}</TableCell>
+                          <TableCell className="px-5 py-4 text-right font-semibold text-parcelis-charcoal">
+                            {formatCurrency(application.annualIncomeCents)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
         <ApplicationDrawer
           drawerTitle="New Application"
