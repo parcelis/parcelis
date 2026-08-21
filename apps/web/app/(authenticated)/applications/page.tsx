@@ -167,7 +167,7 @@ function ApplicationsPageContent() {
                 Unable to load the property or status options required to create an application. Please try again.
               </div>
             ) : null}
-            <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
+            <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white 2xl:flex-row 2xl:items-end 2xl:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Applications</p>
                 <h1 className="mt-5 text-3xl font-bold md:text-5xl">Applications dashboard</h1>
@@ -175,7 +175,7 @@ function ApplicationsPageContent() {
                   Track applicant status across your portfolio, from initial review through lease creation.
                 </p>
               </div>
-              <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
+              <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 2xl:min-w-[540px]">
                 <Metric label="Total" value={totalApplications} />
                 <Metric label="For Review" value={forReviewCount} />
                 <Metric label="Approved" value={approvedCount} />
