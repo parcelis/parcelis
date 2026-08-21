@@ -8,7 +8,9 @@ const items = [
   { href: "/applications/request-sent", icon: Send, key: "request-sent", label: "Request sent" },
 ] as const;
 
-export function ApplicationsRail({ active }: { active: (typeof items)[number]["key"] }) {
+export type ApplicationsRailActive = (typeof items)[number]["key"];
+
+export function ApplicationsRail({ active }: { active: ApplicationsRailActive }) {
   return (
     <NavigationRail title="Applications">
       <nav aria-label="Applications navigation" className="space-y-1">
