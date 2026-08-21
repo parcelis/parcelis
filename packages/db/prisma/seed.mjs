@@ -718,6 +718,7 @@ async function main() {
       propertyId: hawthorne.id,
       statusLabel: "For Review",
       annualIncomeCents: 7800000,
+      submittedOn: new Date("2026-08-10T09:00:00.000Z"),
       requestedMoveInDate: new Date("2026-09-01"),
       applicant: {
         firstName: "Devon",
@@ -734,6 +735,7 @@ async function main() {
       propertyId: hawthorne.id,
       statusLabel: "Approved",
       annualIncomeCents: 9200000,
+      submittedOn: new Date("2026-07-28T10:15:00.000Z"),
       requestedMoveInDate: new Date("2026-08-15"),
       applicant: {
         firstName: "Marisol",
@@ -750,6 +752,7 @@ async function main() {
       propertyId: mariner.id,
       statusLabel: "Pending",
       annualIncomeCents: 6600000,
+      submittedOn: new Date("2026-08-02T14:30:00.000Z"),
       requestedMoveInDate: new Date("2026-09-15"),
       applicant: {
         firstName: "Theo",
@@ -766,6 +769,7 @@ async function main() {
       propertyId: mariner.id,
       statusLabel: "Lease Created",
       annualIncomeCents: 8400000,
+      submittedOn: new Date("2026-07-12T11:00:00.000Z"),
       requestedMoveInDate: new Date("2026-08-01"),
       applicant: {
         firstName: "Priya",
@@ -782,6 +786,7 @@ async function main() {
       propertyId: juniper.id,
       statusLabel: "Rejected",
       annualIncomeCents: 4800000,
+      submittedOn: new Date("2026-08-05T13:45:00.000Z"),
       requestedMoveInDate: new Date("2026-08-20"),
       applicant: {
         firstName: "Grant",
@@ -798,6 +803,7 @@ async function main() {
       propertyId: juniper.id,
       statusLabel: "Expired",
       annualIncomeCents: 7100000,
+      submittedOn: new Date("2026-06-18T08:30:00.000Z"),
       requestedMoveInDate: new Date("2026-07-01"),
       applicant: {
         firstName: "Lena",
@@ -813,17 +819,17 @@ async function main() {
   ];
 
   for (const application of applications) {
-    const existingApplicant = await prisma.applicant.findFirst({
-      where: { organizationId: organization.id, email: application.applicant.email },
+    const existing = await prisma.application.findFirst({
+      where: {
+        organizationId: organization.id,
+        propertyId: application.propertyId,
+        submittedOn: application.submittedOn,
+      },
     });
-    const applicant = existingApplicant
-      ? await prisma.applicant.update({ where: { id: existingApplicant.id }, data: application.applicant })
+    const applicant = existing
+      ? await prisma.applicant.update({ where: { id: existing.applicantId }, data: application.applicant })
       : await prisma.applicant.create({ data: { organizationId: organization.id, ...application.applicant } });
     const status = applicationStatusByLabel[application.statusLabel];
-
-    const existing = await prisma.application.findFirst({
-      where: { organizationId: organization.id, propertyId: application.propertyId, applicantId: applicant.id },
-    });
 
     if (existing) {
       await prisma.application.update({
@@ -831,6 +837,7 @@ async function main() {
         data: {
           statusId: status.id,
           annualIncomeCents: application.annualIncomeCents,
+          submittedOn: application.submittedOn,
           requestedMoveInDate: application.requestedMoveInDate,
         },
       });
@@ -842,6 +849,7 @@ async function main() {
           applicantId: applicant.id,
           statusId: status.id,
           annualIncomeCents: application.annualIncomeCents,
+          submittedOn: application.submittedOn,
           requestedMoveInDate: application.requestedMoveInDate,
         },
       });
