@@ -126,7 +126,9 @@ export default function ApplicationDetailPage() {
 
   const application = applicationQuery.data;
   const properties = propertiesQuery.data ?? [];
-  const statuses = statusesQuery.data ?? [];
+  const statuses = (statusesQuery.data ?? []).filter(
+    (status) => status.isActive || status.id === application?.status.id,
+  );
   const approvedStatus = statuses.find((status) => status.label.toLowerCase() === "approved");
   const deniedStatus = statuses.find((status) => ["rejected", "denied"].includes(status.label.toLowerCase()));
   const applicantName = application ? `${application.applicant.firstName} ${application.applicant.lastName}` : "";
@@ -224,6 +226,13 @@ export default function ApplicationDetailPage() {
         <div className="parcelis-page-shell">
           {applicationQuery.isLoading ? (
             <LoadingState label="Loading application…" />
+          ) : applicationQuery.error ? (
+            <div className="flex min-h-48 flex-col items-start gap-3 text-sm font-medium text-red-700">
+              <p>Unable to load this application. Please try again.</p>
+              <Button onClick={() => applicationQuery.refetch()} type="button" variant="secondary">
+                Retry
+              </Button>
+            </div>
           ) : !application ? (
             <p className="text-sm text-parcelis-gray">Application not found.</p>
           ) : (

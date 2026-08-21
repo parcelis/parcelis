@@ -324,19 +324,24 @@ export const updateMaintenanceTicketStatusInputSchema = z.object({
 
 export const applicationStatusInputSchema = z.object({
   label: z.string().trim().min(1).max(100),
-  sortOrder: z.number().int().optional(),
+  sortOrder: z.number().int().nonnegative().optional(),
   isActive: z.boolean().optional(),
 });
 export const updateApplicationStatusInputSchema = applicationStatusInputSchema.extend({ id: idSchema });
 export const applicationStatusByIdInputSchema = z.object({ id: idSchema });
 export const reorderApplicationStatusesInputSchema = z.object({
-  ids: z.array(idSchema).min(1),
+  ids: z.array(idSchema).min(1).max(100),
 });
 
 export const applicantSchema = z.object({
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
-  email: z.string().trim().email(),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
   phone: z.string().trim().nullable().optional(),
   dateOfBirth: z.coerce.date().nullable().optional(),
   employment: z.string().trim().max(160).nullable().optional(),
@@ -473,3 +478,10 @@ export type MaintenanceImageUploadInput = z.infer<typeof maintenanceImageUploadI
 export type MaintenanceImageUploadCompleteInput = z.infer<typeof maintenanceImageUploadCompleteInputSchema>;
 export type PropertyImageUploadInput = z.infer<typeof propertyImageUploadInputSchema>;
 export type PropertyImageUploadCompleteInput = z.infer<typeof propertyImageUploadCompleteInputSchema>;
+export type ApplicationStatusInput = z.infer<typeof applicationStatusInputSchema>;
+export type UpdateApplicationStatusInput = z.infer<typeof updateApplicationStatusInputSchema>;
+export type ApplicationStatusByIdInput = z.infer<typeof applicationStatusByIdInputSchema>;
+export type ReorderApplicationStatusesInput = z.infer<typeof reorderApplicationStatusesInputSchema>;
+export type Applicant = z.infer<typeof applicantSchema>;
+export type ApplicationByIdInput = z.infer<typeof applicationByIdInputSchema>;
+export type SetApplicationStatusInput = z.infer<typeof setApplicationStatusInputSchema>;
