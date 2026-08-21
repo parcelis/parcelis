@@ -59,10 +59,10 @@ function getAge(dateOfBirth: Date | string | null) {
   if (!dateOfBirth) return "Not reported";
   const birthDate = new Date(dateOfBirth);
   const today = new Date();
-  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  let age = today.getFullYear() - birthDate.getUTCFullYear();
   const birthdayHasPassed =
-    today.getUTCMonth() > birthDate.getUTCMonth() ||
-    (today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() >= birthDate.getUTCDate());
+    today.getMonth() > birthDate.getUTCMonth() ||
+    (today.getMonth() === birthDate.getUTCMonth() && today.getDate() >= birthDate.getUTCDate());
   if (!birthdayHasPassed) age -= 1;
   return age >= 0 ? `${age} years old` : "Not reported";
 }

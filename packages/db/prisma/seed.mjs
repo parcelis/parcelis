@@ -813,13 +813,12 @@ async function main() {
   ];
 
   for (const application of applications) {
-    const applicant = await prisma.applicant.upsert({
-      where: {
-        organizationId_email: { organizationId: organization.id, email: application.applicant.email },
-      },
-      update: application.applicant,
-      create: { organizationId: organization.id, ...application.applicant },
+    const existingApplicant = await prisma.applicant.findFirst({
+      where: { organizationId: organization.id, email: application.applicant.email },
     });
+    const applicant = existingApplicant
+      ? await prisma.applicant.update({ where: { id: existingApplicant.id }, data: application.applicant })
+      : await prisma.applicant.create({ data: { organizationId: organization.id, ...application.applicant } });
     const status = applicationStatusByLabel[application.statusLabel];
 
     const existing = await prisma.application.findFirst({

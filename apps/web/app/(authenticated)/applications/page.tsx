@@ -99,7 +99,8 @@ function ApplicationsPageContent() {
   const properties = propertiesQuery.data ?? [];
   const statuses = (statusesQuery.data ?? []).filter((status) => status.isActive);
   const optionsError = propertiesQuery.error ?? statusesQuery.error;
-  const areOptionsReady = propertiesQuery.isSuccess && statusesQuery.isSuccess;
+  const areOptionsReady =
+    propertiesQuery.isSuccess && statusesQuery.isSuccess && properties.length > 0 && statuses.length > 0;
   const totalApplications = applications.length;
   const forReviewCount = applications.filter(
     (application) => normalizeApplicationStatusLabel(application.status.label) === "for review",
@@ -340,9 +341,7 @@ function ApplicationsPageContent() {
           error={createApplication.error ?? optionsError}
           isPending={createApplication.isPending}
           onOpenChange={setIsDrawerOpen}
-          onSubmit={(input) => {
-            if (input.applicant.address) createApplication.mutate(input);
-          }}
+          onSubmit={(input) => createApplication.mutate(input)}
           open={isDrawerOpen}
           properties={properties}
           statuses={statuses}

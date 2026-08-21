@@ -1835,26 +1835,24 @@ export const appRouter = router({
         });
       }
 
-      const applicant = await ctx.prisma.applicant.create({
-        data: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
-      });
+      return ctx.prisma.$transaction(async (tx) => {
+        const applicant = await tx.applicant.create({
+          data: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
+        });
 
-      return ctx.prisma.application.create({
-        data: {
-          organizationId: ctx.organization.organizationId,
-          propertyId: input.propertyId,
-          statusId: input.statusId,
-          annualIncomeCents: input.annualIncomeCents,
-          requestedMoveInDate: input.requestedMoveInDate,
-          applicantId: applicant.id,
-        },
+        return tx.application.create({
+          data: {
+            organizationId: ctx.organization.organizationId,
+            propertyId: input.propertyId,
+            statusId: input.statusId,
+            annualIncomeCents: input.annualIncomeCents,
+            requestedMoveInDate: input.requestedMoveInDate,
+            applicantId: applicant.id,
+          },
+        });
       });
     }),
     update: publicProcedure.input(updateApplicationInputSchema).mutation(async ({ ctx, input }) => {
-      const application = await ctx.prisma.application.findFirstOrThrow({
-        where: { id: input.id, organizationId: ctx.organization.organizationId },
-        select: { id: true, applicantId: true },
-      });
       const [property, status] = await Promise.all([
         ctx.prisma.property.findFirst({
           where: { id: input.propertyId, organizationId: ctx.organization.organizationId },
@@ -1879,25 +1877,31 @@ export const appRouter = router({
       }
 
       const applicantData = getApplicantData(input.applicant);
-      const applicantUsageCount = await ctx.prisma.application.count({
-        where: { organizationId: ctx.organization.organizationId, applicantId: application.applicantId },
-      });
-      const applicant =
-        applicantUsageCount > 1
-          ? await ctx.prisma.applicant.create({
-              data: { organizationId: ctx.organization.organizationId, ...applicantData },
-            })
-          : await ctx.prisma.applicant.update({ where: { id: application.applicantId }, data: applicantData });
+      return ctx.prisma.$transaction(async (tx) => {
+        const application = await tx.application.findFirstOrThrow({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          select: { applicantId: true },
+        });
+        const applicantUsageCount = await tx.application.count({
+          where: { organizationId: ctx.organization.organizationId, applicantId: application.applicantId },
+        });
+        const applicant =
+          applicantUsageCount > 1
+            ? await tx.applicant.create({
+                data: { organizationId: ctx.organization.organizationId, ...applicantData },
+              })
+            : await tx.applicant.update({ where: { id: application.applicantId }, data: applicantData });
 
-      return ctx.prisma.application.update({
-        where: { id: input.id },
-        data: {
-          propertyId: input.propertyId,
-          statusId: input.statusId,
-          annualIncomeCents: input.annualIncomeCents,
-          requestedMoveInDate: input.requestedMoveInDate,
-          applicantId: applicant.id,
-        },
+        return tx.application.update({
+          where: { id: input.id },
+          data: {
+            propertyId: input.propertyId,
+            statusId: input.statusId,
+            annualIncomeCents: input.annualIncomeCents,
+            requestedMoveInDate: input.requestedMoveInDate,
+            applicantId: applicant.id,
+          },
+        });
       });
     }),
     updateStatus: publicProcedure.input(setApplicationStatusInputSchema).mutation(async ({ ctx, input }) => {
@@ -1930,10 +1934,20 @@ export const appRouter = router({
       return ctx.prisma.application.update({ where: { id: input.id }, data: { archivedAt: null } });
     }),
     delete: publicProcedure.input(applicationByIdInputSchema).mutation(async ({ ctx, input }) => {
-      await ctx.prisma.application.findFirstOrThrow({
-        where: { id: input.id, organizationId: ctx.organization.organizationId },
+      await ctx.prisma.$transaction(async (tx) => {
+        const application = await tx.application.findFirstOrThrow({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          select: { applicantId: true },
+        });
+        await tx.application.delete({ where: { id: input.id } });
+        await tx.applicant.deleteMany({
+          where: {
+            id: application.applicantId,
+            organizationId: ctx.organization.organizationId,
+            applications: { none: {} },
+          },
+        });
       });
-      await ctx.prisma.application.delete({ where: { id: input.id } });
     }),
   }),
   maintenance: router({
