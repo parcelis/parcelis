@@ -333,7 +333,11 @@ function getTenantStatus(tenant: { archivedAt: Date | null; leases: Array<{ leas
     return "archived";
   }
 
-  return tenant.leases.some((leaseTenant) => leaseTenant.lease.status === "active" || leaseTenant.lease.status === "notice") ? "active" : "past";
+  return tenant.leases.some(
+    (leaseTenant) => leaseTenant.lease.status === "active" || leaseTenant.lease.status === "notice",
+  )
+    ? "active"
+    : "past";
 }
 
 function getInvoiceStatus(dueOn: Date, balanceCents: number) {
@@ -675,23 +679,23 @@ export const appRouter = router({
         where: { organizationId: ctx.organization.organizationId },
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
-          invoices: {
-            select: { leaseId: true, balanceCents: true },
-          },
           leases: {
             select: {
               monthlyRentCents: true,
               id: true,
               startsOn: true,
-              amountOverdueCents: true,
               endsOn: true,
               status: true,
-              unitLabel: true,
-              tenant: {
+              unit: { select: { name: true } },
+              tenants: {
                 select: {
-                  firstName: true,
-                  id: true,
-                  lastName: true,
+                  tenant: {
+                    select: {
+                      firstName: true,
+                      id: true,
+                      lastName: true,
+                    },
+                  },
                 },
               },
               invoices: {
@@ -738,22 +742,32 @@ export const appRouter = router({
       });
 
       return Promise.all(
-        properties.map(async ({ invoices, ...property }) => {
-          const balanceByLeaseId = new Map<number, number>();
-          invoices.forEach((invoice) => {
-            balanceByLeaseId.set(invoice.leaseId, (balanceByLeaseId.get(invoice.leaseId) ?? 0) + invoice.balanceCents);
+        properties.map(async (property) => {
+          const leases = property.leases.flatMap((lease) => {
+            const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
+            const firstTenant = lease.tenants[0]?.tenant;
+            if (!firstTenant) return [];
+            const amountOverdueCents = invoices.reduce((sum, inv) => sum + inv.balanceCents, 0);
+            return [
+              {
+                ...leaseData,
+                unitLabel: lease.unit.name,
+                tenant: firstTenant,
+                tenants: lease.tenants.map(({ tenant }) => tenant),
+                invoices,
+                amountOverdueCents,
+              },
+            ];
+          });
+          const result = withOperatingMetrics({
+            ...withPropertyNotes({
+              ...property,
+              leases,
+            }),
+            units: property.units.map(serializeUnit),
           });
           return {
-            ...withOperatingMetrics({
-              ...withPropertyNotes({
-                ...property,
-                leases: property.leases.map((lease) => ({
-                  ...lease,
-                  amountOverdueCents: balanceByLeaseId.get(lease.id) ?? 0,
-                })),
-              }),
-              units: property.units.map(serializeUnit),
-            }),
+            ...result,
             imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
           };
         }),
@@ -770,6 +784,7 @@ export const appRouter = router({
             include: {
               tenants: { include: { tenant: true } },
               unit: true,
+              invoices: { select: { balanceCents: true } },
             },
           },
           maintenanceTickets: {
@@ -791,10 +806,26 @@ export const appRouter = router({
 
       if (!property) return null;
 
-      const { units: rawUnits, ...propertyData } = property;
+      const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
+
+      const leases = rawLeases.flatMap((lease) => {
+        const { tenants: _tenants, unit: _unit, invoices: _invoices, ...leaseData } = lease;
+        const firstTenant = lease.tenants[0]?.tenant;
+        if (!firstTenant) return [];
+        const amountOverdueCents = lease.invoices.reduce((sum, inv) => sum + inv.balanceCents, 0);
+        return [
+          {
+            ...leaseData,
+            unitLabel: lease.unit.name,
+            tenant: firstTenant,
+            tenants: lease.tenants.map(({ tenant }) => tenant),
+            amountOverdueCents,
+          },
+        ];
+      });
 
       return {
-        ...withPropertyNotes(propertyData),
+        ...withPropertyNotes({ ...propertyData, leases }),
         units: rawUnits.map(serializeUnit),
         unitStatuses,
         imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
@@ -1073,7 +1104,17 @@ export const appRouter = router({
           leases: {
             include: {
               lease: {
-                select: { id: true, startsOn: true, status: true },
+                select: {
+                  id: true,
+                  startsOn: true,
+                  status: true,
+                  endsOn: true,
+                  monthlyRentCents: true,
+                  propertyId: true,
+                  unitId: true,
+                  unit: { select: { name: true } },
+                  property: { select: { id: true, name: true } },
+                },
               },
             },
           },
@@ -1085,6 +1126,11 @@ export const appRouter = router({
       return Promise.all(
         tenants.map(async (tenant) => ({
           ...tenant,
+          leases: tenant.leases.map(({ lease }) => ({
+            ...lease,
+            unitLabel: lease.unit.name,
+            property: lease.property,
+          })),
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
           tenantStatus: getTenantStatus(tenant),
         })),
@@ -1101,20 +1147,46 @@ export const appRouter = router({
           leases: {
             include: {
               lease: {
-                select: { id: true, startsOn: true, status: true },
+                select: {
+                  id: true,
+                  startsOn: true,
+                  endsOn: true,
+                  status: true,
+                  monthlyRentCents: true,
+                  unitId: true,
+                  propertyId: true,
+                  unit: { select: { name: true } },
+                  property: { select: { id: true, name: true } },
+                  invoices: {
+                    select: {
+                      id: true,
+                      status: true,
+                      dueOn: true,
+                      amountCents: true,
+                      paidOn: true,
+                      balanceCents: true,
+                      invoiceNumber: true,
+                    },
+                  },
+                },
               },
             },
           },
         },
       });
 
-      return tenant
-        ? {
-            ...tenant,
-            imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
-            tenantStatus: getTenantStatus(tenant),
-          }
-        : null;
+      if (!tenant) return null;
+
+      return {
+        ...tenant,
+        leases: tenant.leases.map(({ lease }) => ({
+          ...lease,
+          unitLabel: lease.unit.name,
+          property: lease.property,
+        })),
+        imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
+        tenantStatus: getTenantStatus(tenant),
+      };
     }),
     /** Creates a short-lived URL for uploading a tenant image to MinIO. */
     createImageUploadUrl: publicProcedure.input(tenantImageUploadInputSchema).mutation(async ({ ctx, input }) => {
@@ -1408,23 +1480,31 @@ export const appRouter = router({
   invoices: router({
     list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
       await synchronizeOverdueInvoices(ctx.prisma);
-      return ctx.prisma.invoice.findMany({
+      const invoices = await ctx.prisma.invoice.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
           ...(input.tenantId ? { tenantId: input.tenantId } : {}),
         },
-        include: { lease: { select: { unit: { select: { name: true } } } }, property: { select: { id: true, name: true } } },
+        include: {
+          lease: { select: { unit: { select: { name: true } } } },
+          property: { select: { id: true, name: true } },
+        },
         orderBy: { dueOn: "desc" },
       });
+
+      return invoices.map(({ lease, ...invoice }) => ({
+        ...invoice,
+        lease: { unitLabel: lease.unit.name },
+      }));
     }),
     byId: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
       await synchronizeOverdueInvoices(ctx.prisma);
-      return ctx.prisma.invoice.findFirst({
+      const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         include: {
           property: { select: { id: true, name: true } },
           tenant: { select: { id: true, firstName: true, lastName: true } },
-          lease: { select: { unitLabel: true, startsOn: true, endsOn: true } },
+          lease: { select: { startsOn: true, endsOn: true, unit: { select: { name: true } } } },
           items: { orderBy: { id: "asc" } },
           payments: {
             orderBy: { paidOn: "desc" },
@@ -1432,6 +1512,17 @@ export const appRouter = router({
           },
         },
       });
+
+      if (!invoice) return null;
+
+      return {
+        ...invoice,
+        lease: {
+          startsOn: invoice.lease.startsOn,
+          endsOn: invoice.lease.endsOn,
+          unitLabel: invoice.lease.unit.name,
+        },
+      };
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       const lease = await ctx.prisma.lease.findFirst({
@@ -2550,11 +2641,7 @@ export const appRouter = router({
 
         // Generate invoices if requested
         if (generateInvoices) {
-          const firstPeriod = new Date(
-            createdLease.startsOn.getFullYear(),
-            createdLease.startsOn.getMonth(),
-            1,
-          );
+          const firstPeriod = new Date(createdLease.startsOn.getFullYear(), createdLease.startsOn.getMonth(), 1);
           const periods = [firstPeriod];
           let current = new Date(firstPeriod);
 
@@ -2566,16 +2653,8 @@ export const appRouter = router({
           }
 
           for (const periodStartsOn of periods) {
-            const periodEndsOn = new Date(
-              periodStartsOn.getFullYear(),
-              periodStartsOn.getMonth() + 1,
-              0,
-            );
-            const dueOn = new Date(
-              periodStartsOn.getFullYear(),
-              periodStartsOn.getMonth(),
-              1,
-            );
+            const periodEndsOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0);
+            const dueOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth(), 1);
 
             for (const tenant of tenants) {
               await tx.invoice.create({

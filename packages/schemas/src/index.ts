@@ -262,6 +262,35 @@ export const recordInvoicePaymentsInputSchema = z.object({
     .min(1)
     .max(50),
 });
+
+export const invoiceActionInvoiceSchema = z.object({
+  id: idSchema,
+  invoiceNumber: z.number(),
+  amountCents: z.number().int().nonnegative(),
+  balanceCents: z.number().int().nonnegative(),
+  dueOn: z.union([z.date(), z.string()]),
+  items: z.array(
+    z.object({
+      id: idSchema,
+      item: z.string(),
+      description: z.string().nullable(),
+      quantity: z.number().int(),
+      rateCents: z.number().int(),
+    }),
+  ),
+  property: z.object({ name: z.string() }),
+  tenant: z.object({ id: idSchema, firstName: z.string(), lastName: z.string() }),
+  lease: z.object({ unitLabel: z.string(), startsOn: z.union([z.date(), z.string()]), endsOn: z.union([z.date(), z.string(), z.null()]) }),
+  payments: z.array(
+    z.object({
+      id: idSchema,
+      amountCents: z.number().int(),
+      paidOn: z.union([z.date(), z.string()]),
+      paymentMethod: z.string(),
+      tenant: z.object({ id: idSchema, firstName: z.string(), lastName: z.string() }),
+    }),
+  ),
+});
 export const updateInvoiceInputSchema = z.object({
   id: idSchema,
   dueOn: z.coerce.date(),
