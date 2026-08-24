@@ -89,6 +89,7 @@ export default function LeasesPage() {
       [
         lease.property.name,
         lease.unitLabel,
+        `Unit ${lease.unitLabel}`,
         ...lease.tenants.map((tenant) => `${tenant.firstName} ${tenant.lastName}`),
       ].some((value) => value.toLowerCase().includes(query))
     );
