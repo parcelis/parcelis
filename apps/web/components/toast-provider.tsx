@@ -1,10 +1,21 @@
 "use client";
 
+import * as React from "react";
 import { Toaster } from "sonner";
-import { useTheme } from "./theme-provider";
+import { useTheme } from "next-themes";
 
 export function ToastProvider() {
-  const { resolvedMode } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
 
-  return <Toaster position="top-center" theme={resolvedMode} />;
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  return (
+    <Toaster
+      position="top-center"
+      theme={(mounted ? (resolvedTheme as "light" | "dark" | undefined) : "light") ?? "light"}
+    />
+  );
 }
