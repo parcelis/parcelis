@@ -48,7 +48,7 @@ import { ThemeSelector } from "./theme-selector";
 const navItems = [
   { label: "Portfolio", href: "/", key: "portfolio", icon: Home },
   { label: "Properties", href: "/properties", key: "properties", icon: Building2 },
-  { label: "Leases", href: "#", key: "leases", icon: ClipboardList },
+  { label: "Leases", href: "/leases", key: "leases", icon: ClipboardList },
   { label: "Tenants", href: "/tenants", key: "tenants", icon: Users },
   { label: "Applications", href: "/applications", key: "applications", icon: FileText },
   { label: "Maintenance", href: "/maintenance", key: "maintenance", icon: Wrench },
@@ -72,10 +72,12 @@ const initialChangePasswordForm: ChangePasswordForm = {
   reenterPassword: "",
 };
 
+// Determines the active navigation item based on the current pathname.
 function activeNavigation(pathname: string): SidebarProps["active"] {
   const path = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
 
   if (path.startsWith("/properties")) return "properties";
+  if (path.startsWith("/leases")) return "leases";
   if (path.startsWith("/tenants")) return "tenants";
   if (path.startsWith("/applications")) return "applications";
   if (path.startsWith("/maintenance")) return "maintenance";
@@ -84,6 +86,7 @@ function activeNavigation(pathname: string): SidebarProps["active"] {
   return "portfolio";
 }
 
+// Sets the sidebar width based on whether it is collapsed or expanded.
 function setSidebarWidth(collapsed: boolean) {
   document.documentElement.style.setProperty("--parcelis-sidebar-width", collapsed ? "4rem" : "16rem");
 }
@@ -93,11 +96,13 @@ function isOrganizationAccessError(error: Error | null) {
   return "code" in error.data && error.data.code === "FORBIDDEN";
 }
 
+// Renders the sidebar component with the active navigation item highlighted.
 export function Sidebar() {
   const pathname = usePathname();
   return <SidebarContent active={activeNavigation(pathname)} />;
 }
 
+// Renders the content of the sidebar, including navigation items and account menu.
 function SidebarContent({ active }: SidebarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
