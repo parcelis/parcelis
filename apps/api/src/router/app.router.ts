@@ -2483,6 +2483,114 @@ export const appRouter = router({
       });
     }),
   }),
+  leases: router({
+    /** Creates a new lease with tenants and optionally generates invoices. */
+    create: publicProcedure.input(createLeaseInputSchema).mutation(async ({ ctx, input }) => {
+      const { propertyId, unitId, tenantIds, generateInvoices, ...leaseData } = input;
+
+      // Verify property exists
+      await ctx.prisma.property.findFirstOrThrow({
+        where: { id: propertyId, organizationId: ctx.organization.organizationId },
+      });
+
+      // Verify unit exists and belongs to the property
+      await ctx.prisma.unit.findFirstOrThrow({
+        where: { id: unitId, propertyId },
+      });
+
+      // Verify all tenants exist
+      const tenants = await ctx.prisma.tenant.findMany({
+        where: {
+          id: { in: tenantIds },
+          organizationId: ctx.organization.organizationId,
+        },
+      });
+
+      if (tenants.length !== tenantIds.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "One or more tenants not found.",
+        });
+      }
+
+      // Create lease with tenants in a transaction
+      const lease = await ctx.prisma.$transaction(async (tx) => {
+        const createdLease = await tx.lease.create({
+          data: {
+            organizationId: ctx.organization.organizationId,
+            propertyId,
+            unitId,
+            ...leaseData,
+            tenants: {
+              create: tenantIds.map((tenantId) => ({ tenantId })),
+            },
+          },
+          include: {
+            tenants: { include: { tenant: true } },
+          },
+        });
+
+        // Generate invoices if requested
+        if (generateInvoices) {
+          const firstPeriod = new Date(
+            createdLease.startsOn.getFullYear(),
+            createdLease.startsOn.getMonth(),
+            1,
+          );
+          const periods = [firstPeriod];
+          let current = new Date(firstPeriod);
+
+          while (createdLease.endsOn === null || current < createdLease.endsOn) {
+            current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+            if (createdLease.endsOn === null || current <= createdLease.endsOn) {
+              periods.push(new Date(current));
+            }
+          }
+
+          for (const periodStartsOn of periods) {
+            const periodEndsOn = new Date(
+              periodStartsOn.getFullYear(),
+              periodStartsOn.getMonth() + 1,
+              0,
+            );
+            const dueOn = new Date(
+              periodStartsOn.getFullYear(),
+              periodStartsOn.getMonth(),
+              1,
+            );
+
+            for (const tenant of tenants) {
+              await tx.invoice.create({
+                data: {
+                  organizationId: ctx.organization.organizationId,
+                  leaseId: createdLease.id,
+                  propertyId,
+                  tenantId: tenant.id,
+                  periodStartsOn,
+                  periodEndsOn,
+                  dueOn,
+                  amountCents: createdLease.monthlyRentCents,
+                  balanceCents: createdLease.monthlyRentCents,
+                  items: {
+                    create: {
+                      item: "Rent",
+                      quantity: 1,
+                      rateCents: createdLease.monthlyRentCents,
+                      amountCents: createdLease.monthlyRentCents,
+                    },
+                  },
+                },
+              });
+            }
+          }
+        }
+
+        return createdLease;
+      });
+
+      return lease;
+    }),
+  }),
   units: router({
     /** Lists units, optionally filtered to a property. */
     list: publicProcedure.input(listUnitsInputSchema).query(async ({ ctx, input }) => {

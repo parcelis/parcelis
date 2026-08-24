@@ -208,8 +208,7 @@ export const leaseStatusSchema = z.enum(LeaseStatus);
 export const leaseSchema = z.object({
   id: idSchema,
   propertyId: idSchema,
-  tenantId: idSchema,
-  unitLabel: z.string().min(1),
+  unitId: idSchema,
   monthlyRentCents: z.number().int().positive(),
   startsOn: z.coerce.date(),
   endsOn: z.coerce.date().nullable(),
@@ -218,6 +217,10 @@ export const leaseSchema = z.object({
 
 export const createLeaseInputSchema = leaseSchema
   .omit({ id: true })
+  .extend({
+    tenantIds: z.array(idSchema).min(1).max(50),
+    generateInvoices: z.boolean().default(false),
+  })
   .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
