@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -15,9 +16,16 @@ type ThemeSelectorProps = {
 
 export function ThemeSelector({ compact = false }: ThemeSelectorProps) {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const activeTheme = mounted ? theme : undefined;
 
   if (compact) {
-    const currentTheme = themes.find((t) => t.mode === theme) ?? themes[0]!;
+    const currentTheme = themes.find((t) => t.mode === activeTheme) ?? themes[0]!;
     const currentThemeIndex = themes.indexOf(currentTheme);
     const nextTheme = themes[(currentThemeIndex + 1) % themes.length]!;
     const Icon = currentTheme.icon;
@@ -44,9 +52,11 @@ export function ThemeSelector({ compact = false }: ThemeSelectorProps) {
       {themes.map(({ mode: themeMode, label, icon: Icon }) => (
         <button
           aria-label={`${label} theme`}
-          aria-pressed={theme === themeMode}
+          aria-pressed={activeTheme === themeMode}
           className={`grid h-8 w-8 place-items-center rounded text-xs font-semibold ${
-            theme === themeMode ? "bg-white text-parcelis-charcoal shadow-sm" : "text-parcelis-gray hover:bg-white/60"
+            activeTheme === themeMode
+              ? "bg-white text-parcelis-charcoal shadow-sm"
+              : "text-parcelis-gray hover:bg-white/60"
           }`}
           key={themeMode}
           onClick={() => setTheme(themeMode)}
