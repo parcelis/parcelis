@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { HotkeysProvider, useHotkey, type RegisterableHotkey, type UseHotkeyOptions } from "@tanstack/react-hotkeys";
-import { useTheme } from "./theme-provider";
+import { useTheme } from "next-themes";
 import { shortcuts } from "./shortcuts";
 
 export type ShortcutKey = RegisterableHotkey;
@@ -26,10 +26,10 @@ export function ShortcutProvider({ children }: { children: React.ReactNode }) {
 }
 
 function ThemeShortcuts() {
-  const { resolvedMode, setMode } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   useShortcut(shortcuts.toggleDarkMode.keys, () => {
-    setMode(resolvedMode === "dark" ? "light" : "dark");
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   });
 
   return null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useTheme } from "./theme-provider";
+import { useTheme } from "next-themes";
 
 const themes = [
   { mode: "light", label: "Light", icon: Sun },
@@ -14,10 +14,10 @@ type ThemeSelectorProps = {
 };
 
 export function ThemeSelector({ compact = false }: ThemeSelectorProps) {
-  const { mode, setMode } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   if (compact) {
-    const currentTheme = themes.find((theme) => theme.mode === mode) ?? themes[0]!;
+    const currentTheme = themes.find((t) => t.mode === theme) ?? themes[0]!;
     const currentThemeIndex = themes.indexOf(currentTheme);
     const nextTheme = themes[(currentThemeIndex + 1) % themes.length]!;
     const Icon = currentTheme.icon;
@@ -26,7 +26,7 @@ export function ThemeSelector({ compact = false }: ThemeSelectorProps) {
       <button
         aria-label="Cycle theme"
         className="grid h-10 w-full place-items-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
-        onClick={() => setMode(nextTheme.mode)}
+        onClick={() => setTheme(nextTheme.mode)}
         title={`Theme: ${currentTheme.label}`}
         type="button"
       >
@@ -44,12 +44,12 @@ export function ThemeSelector({ compact = false }: ThemeSelectorProps) {
       {themes.map(({ mode: themeMode, label, icon: Icon }) => (
         <button
           aria-label={`${label} theme`}
-          aria-pressed={mode === themeMode}
+          aria-pressed={theme === themeMode}
           className={`grid h-8 w-8 place-items-center rounded text-xs font-semibold ${
-            mode === themeMode ? "bg-white text-parcelis-charcoal shadow-sm" : "text-parcelis-gray hover:bg-white/60"
+            theme === themeMode ? "bg-white text-parcelis-charcoal shadow-sm" : "text-parcelis-gray hover:bg-white/60"
           }`}
           key={themeMode}
-          onClick={() => setMode(themeMode)}
+          onClick={() => setTheme(themeMode)}
           title={label}
           type="button"
         >

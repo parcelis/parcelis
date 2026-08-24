@@ -6,7 +6,7 @@ import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, Moon, Sun, UsersRoun
 import * as React from "react";
 import { flushSync } from "react-dom";
 import { Button, Input } from "@parcelis/ui";
-import { useTheme } from "../../components/theme-provider";
+import { useTheme } from "next-themes";
 import { apiClient } from "../../components/api-client";
 
 const benefits = [
@@ -30,8 +30,13 @@ export default function LoginPage() {
   const [isLoadingApp, setIsLoadingApp] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [destination, setDestination] = React.useState("/");
-  const { resolvedMode, setMode } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     const nextPath = new URLSearchParams(window.location.search).get("next");
@@ -92,10 +97,10 @@ export default function LoginPage() {
           <button
             className="flex h-10 w-10 items-center justify-center rounded-md border border-parcelis-charcoal/20 bg-white/50 text-parcelis-charcoal transition hover:bg-white/80 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
             type="button"
-            aria-label={resolvedMode === "dark" ? "Use light theme" : "Use dark theme"}
-            onClick={() => setMode(resolvedMode === "dark" ? "light" : "dark")}
+            aria-label={mounted && resolvedTheme === "dark" ? "Use light theme" : "Use dark theme"}
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           >
-            {resolvedMode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {mounted && resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
         </header>
 

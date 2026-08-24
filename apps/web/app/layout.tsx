@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { ThemeProvider } from "../components/theme-provider";
+import { ThemeProvider } from "next-themes";
 import "@parcelis/ui/styles.css";
 import "./globals.css";
 
@@ -15,7 +15,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body>
-        <ThemeProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" storageKey="parcelis-theme">
           {children}
         </ThemeProvider>
       </body>
