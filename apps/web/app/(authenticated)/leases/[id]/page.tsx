@@ -10,12 +10,18 @@ import {
   CalendarDays,
   CalendarRange,
   CircleDollarSign,
+  ClipboardEdit,
   DoorOpen,
+  PenLine,
+  RefreshCw,
+  UserRoundCog,
   UserRound,
+  XCircle,
 } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
+import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -78,7 +84,7 @@ export default function LeaseDetailPage() {
   return (
     <main className="flex-1">
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="sticky top-0 z-10 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-parcelis-border bg-white/90 px-4 py-3 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
             <div className="lg:hidden">
               <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
@@ -88,6 +94,32 @@ export default function LeaseDetailPage() {
                 <ArrowLeft className="h-4 w-4" />
                 Leases
               </Link>
+            </Button>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button className="min-w-40" variant="secondary">
+              <RefreshCw className="h-4 w-4" />
+              Renew Lease
+            </Button>
+            <Button className="min-w-40" variant="secondary">
+              <UserRoundCog className="h-4 w-4" />
+              Edit Tenants
+            </Button>
+            <Button className="min-w-40" variant="secondary">
+              <StickyNotePlusIcon />
+              Notes
+            </Button>
+            <Button className="min-w-40" variant="danger">
+              <XCircle className="h-4 w-4" />
+              Terminate
+            </Button>
+            <Button className="min-w-40" variant="secondary">
+              <ClipboardEdit className="h-4 w-4" />
+              Initiate Damage Report
+            </Button>
+            <Button className="min-w-40" variant="primary">
+              <PenLine className="h-4 w-4" />
+              Edit Lease
             </Button>
           </div>
         </header>
