@@ -24,7 +24,7 @@ import { LeaseDrawer } from "../../../components/lease-drawer";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
 import { toast } from "sonner";
-import { getPropertyLink, getTenantLink } from "../../../lib/entity-links";
+import { getLeaseLink, getPropertyLink, getTenantLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -227,7 +227,7 @@ export default function LeasesPage() {
                 <Table className="min-w-[1060px] border-collapse text-left">
                   <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
                     <TableRow className="border-0">
-                      <TableHead className="w-64 px-5 py-3 font-semibold">Property / unit</TableHead>
+                      <TableHead className="w-64 px-5 py-3 font-semibold">Lease</TableHead>
                       <TableHead className="w-64 px-5 py-3 font-semibold">Residents</TableHead>
                       <TableHead className="w-36 px-5 py-3 font-semibold">Term</TableHead>
                       <TableHead className="w-36 px-5 py-3 font-semibold">Monthly rent</TableHead>
@@ -243,11 +243,13 @@ export default function LeasesPage() {
                         <TableCell className="px-5 py-4">
                           <Link
                             className="font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                            href={getPropertyLink(lease.property.id)}
+                            href={getLeaseLink(lease.id)}
                           >
-                            {lease.property.name}
+                            Lease #{lease.id}
                           </Link>
-                          <p className="mt-1 text-sm text-parcelis-gray">Unit {lease.unitLabel}</p>
+                          <p className="mt-1 text-sm text-parcelis-gray">
+                            {lease.property.name} · Unit {lease.unitLabel}
+                          </p>
                         </TableCell>
                         <TableCell className="px-5 py-4">
                           {lease.tenants.map((tenant) => (
