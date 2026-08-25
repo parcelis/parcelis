@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -22,6 +23,7 @@ import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/u
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
+import { TenantRecordDrawer } from "../../../../components/tenant-record-drawer";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -71,6 +73,7 @@ function dueDay(value: Date | string | undefined) {
 export default function LeaseDetailPage() {
   const params = useParams<{ id: string }>();
   const leaseId = Number(params.id);
+  const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -217,8 +220,12 @@ export default function LeaseDetailPage() {
                     {leaseRecord.tenants.map((tenant) => (
                       <Link
                         className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
-                        href={getTenantLink(tenant.id)}
                         key={tenant.id}
+                        href={getTenantLink(tenant.id)}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setSelectedTenantId(tenant.id);
+                        }}
                       >
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-parcelis-porcelain text-parcelis-green">
                           <UserRound className="h-4 w-4" />
@@ -235,6 +242,14 @@ export default function LeaseDetailPage() {
           )}
         </div>
       </section>
+      <TenantRecordDrawer
+        onOpenChange={(open) => {
+          if (!open) setSelectedTenantId(null);
+        }}
+        open={selectedTenantId !== null}
+        relatedTenants={leaseRecord?.tenants ?? []}
+        tenantId={selectedTenantId}
+      />
     </main>
   );
 }
