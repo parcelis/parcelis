@@ -117,7 +117,7 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
           <DrawerHeader className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <DrawerClose />
-              <DrawerTitle>Tenant Record</DrawerTitle>
+              <DrawerTitle>Tenant Lease Record</DrawerTitle>
             </div>
             {tenantId ? (
               <Button className="min-w-40" onClick={openEditDrawer} variant="primary">
