@@ -243,6 +243,7 @@ model Unit {
   updatedAt          DateTime                @updatedAt
 
   @@unique([propertyId, name])
+  @@unique([propertyId, id])
   @@index([propertyId])
 }
 
@@ -472,7 +473,7 @@ model Lease {
   endsOn           DateTime?
   status           LeaseStatus  @default(draft)
   property         Property     @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id])
-  unit             Unit         @relation(fields: [unitId], references: [id])
+  unit             Unit         @relation(fields: [propertyId, unitId], references: [propertyId, id])
   tenants          LeaseTenant[]
   invoices         Invoice[]    @relation("InvoiceLease")
   createdAt        DateTime     @default(now())
@@ -482,16 +483,20 @@ model Lease {
   @@index([propertyId])
   @@index([unitId])
   @@index([organizationId])
+  @@unique([organizationId, id])
+  @@unique([organizationId, id, propertyId])
 }
 
 model LeaseTenant {
-  leaseId   Int
-  tenantId  Int
-  lease     Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
-  tenant    Tenant   @relation("LeaseTenant", fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  organizationId Int
+  leaseId        Int
+  tenantId       Int
+  lease          Lease     @relation(fields: [organizationId, leaseId], references: [organizationId, id], onDelete: Cascade)
+  tenant         Tenant    @relation("LeaseTenant", fields: [organizationId, tenantId], references: [organizationId, id], onDelete: Cascade)
+  invoices       Invoice[] @relation("InvoiceLeaseTenant")
+  createdAt      DateTime  @default(now())
 
-  @@id([leaseId, tenantId])
+  @@id([organizationId, leaseId, tenantId])
   @@index([tenantId])
 }
 
@@ -512,16 +517,18 @@ model Invoice {
   paidOn         DateTime?
   paymentMethod  String?
   items          InvoiceItem[]
-  payments       InvoicePayment[]
-  lease          Lease            @relation("InvoiceLease", fields: [leaseId], references: [id], onDelete: Cascade)
-  property       Property         @relation("InvoiceProperty", fields: [propertyId], references: [id])
-  tenant         Tenant           @relation("InvoiceTenant", fields: [tenantId], references: [id])
-  paidByTenant   Tenant?          @relation("InvoicePaidByTenant", fields: [paidByTenantId], references: [id], onDelete: SetNull)
+  payments       InvoicePayment[]   @relation("InvoicePaymentInvoice")
+  lease          Lease              @relation("InvoiceLease", fields: [organizationId, leaseId, propertyId], references: [organizationId, id, propertyId], onDelete: Cascade)
+  property       Property           @relation("InvoiceProperty", fields: [organizationId, propertyId], references: [organizationId, id])
+  tenant         Tenant             @relation("InvoiceTenant", fields: [organizationId, tenantId], references: [organizationId, id])
+  paidByTenant   Tenant?            @relation("InvoicePaidByTenant", fields: [organizationId, paidByTenantId], references: [organizationId, id], onDelete: SetNull)
+  leaseTenant    LeaseTenant        @relation("InvoiceLeaseTenant", fields: [organizationId, leaseId, tenantId], references: [organizationId, leaseId, tenantId])
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@unique([leaseId, tenantId, periodStartsOn])
+  @@unique([id, tenantId])
   @@index([leaseId])
   @@index([propertyId])
   @@index([tenantId])
@@ -551,7 +558,7 @@ model InvoicePayment {
   amountCents   Int
   paymentMethod String
   paidOn        DateTime
-  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice       Invoice  @relation("InvoicePaymentInvoice", fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Cascade)
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
   createdAt     DateTime @default(now())
 

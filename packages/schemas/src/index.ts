@@ -219,12 +219,15 @@ export const createLeaseInputSchema = leaseSchema
   .omit({ id: true })
   .extend({
     tenantIds: z.array(idSchema).min(1).max(50),
-    generateInvoices: z.boolean().default(false),
   })
   .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
   });
+
+export const createLeaseWithInvoicesInputSchema = createLeaseInputSchema.extend({
+  generateInvoices: z.boolean().default(false),
+});
 export const invoiceByIdInputSchema = z.object({ id: idSchema });
 export const invoiceListInputSchema = z.object({ tenantId: idSchema.optional() });
 export const invoiceItemInputSchema = z.object({
@@ -280,7 +283,11 @@ export const invoiceActionInvoiceSchema = z.object({
   ),
   property: z.object({ name: z.string() }),
   tenant: z.object({ id: idSchema, firstName: z.string(), lastName: z.string() }),
-  lease: z.object({ unitLabel: z.string(), startsOn: z.union([z.date(), z.string()]), endsOn: z.union([z.date(), z.string(), z.null()]) }),
+  lease: z.object({
+    unitLabel: z.string(),
+    startsOn: z.union([z.date(), z.string()]),
+    endsOn: z.union([z.date(), z.string(), z.null()]),
+  }),
   payments: z.array(
     z.object({
       id: idSchema,

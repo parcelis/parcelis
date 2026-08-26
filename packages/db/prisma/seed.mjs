@@ -210,7 +210,7 @@ async function upsertLease(organizationId, data) {
   if (tenantIds && tenantIds.length > 0) {
     await prisma.leaseTenant.deleteMany({ where: { leaseId: lease.id } });
     await prisma.leaseTenant.createMany({
-      data: tenantIds.map((tenantId) => ({ leaseId: lease.id, tenantId })),
+      data: tenantIds.map((tenantId) => ({ organizationId, leaseId: lease.id, tenantId })),
       skipDuplicates: true,
     });
   }
@@ -556,6 +556,12 @@ async function main() {
       endsOn: new Date("2024-05-31"),
       status: "ended",
     }),
+  ]);
+
+  await Promise.all([
+    seedUnitsForProperty(hawthorne, ["4B", "8A", "11D"]),
+    seedUnitsForProperty(mariner, ["2A", "5C"]),
+    seedUnitsForProperty(juniper, ["7C"]),
   ]);
 
   const july = new Date("2026-07-01T00:00:00.000Z");
