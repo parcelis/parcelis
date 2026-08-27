@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Filter, Plus, Search, UserRound } from "lucide-react";
+import { Building2, CalendarClock, Filter, Plus, Search, UserRound } from "lucide-react";
 import {
   Button,
   Card,
@@ -67,6 +67,7 @@ export default function LeasesPage() {
   const [draftFilters, setDraftFilters] = React.useState<LeaseFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = React.useState<LeaseFilters>(initialFilters);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [groupByProperty, setGroupByProperty] = React.useState(false);
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -83,7 +84,7 @@ export default function LeasesPage() {
     property.leases.map((lease) => ({ ...lease, property })),
   );
   const filteredLeases = leases.filter((lease) => {
-    const query = search.toLowerCase();
+    const query = search.trim().toLowerCase();
     return (
       (appliedFilters.status === "all" || lease.status === appliedFilters.status) &&
       [
@@ -102,6 +103,14 @@ export default function LeasesPage() {
     return days >= 0 && days <= 90;
   });
   const activeFilterCount = appliedFilters.status === "all" ? 0 : 1;
+  const groupedLeases = Array.from(
+    filteredLeases.reduce((groups, lease) => {
+      const group = groups.get(lease.property.id) ?? { name: lease.property.name, leases: [] as typeof filteredLeases };
+      group.leases.push(lease);
+      groups.set(lease.property.id, group);
+      return groups;
+    }, new Map<number, { name: string; leases: typeof filteredLeases }>()),
+  );
 
   function applyFilters() {
     setAppliedFilters(draftFilters);
@@ -180,6 +189,9 @@ export default function LeasesPage() {
                     Filters
                     {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
                   </Button>
+                  <Button onClick={() => setGroupByProperty((grouped) => !grouped)} type="button" variant="secondary">
+                    {groupByProperty ? "Grouped By Property" : "Not Grouped"}
+                  </Button>
                 </div>
                 {isFilterOpen ? (
                   <div className="absolute right-0 top-full z-20 mt-3 w-full max-w-sm rounded-lg border border-parcelis-border bg-white p-5 shadow-lg">
@@ -235,49 +247,22 @@ export default function LeasesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLeases.map((lease) => (
-                      <TableRow
-                        className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
-                        key={lease.id}
-                      >
-                        <TableCell className="px-5 py-4">
-                          <Link
-                            className="font-semibold text-parcelis-charcoal hover:text-parcelis-green"
-                            href={getLeaseLink(lease.id)}
+                    {groupByProperty
+                      ? groupedLeases.flatMap(([propertyId, group]) => [
+                          <TableRow
+                            className="border-t border-parcelis-border bg-parcelis-porcelain/45"
+                            key={`property-${propertyId}`}
                           >
-                            Lease #{lease.id}
-                          </Link>
-                          <p className="mt-1 text-sm text-parcelis-gray">
-                            {lease.property.name} · Unit {lease.unitLabel}
-                          </p>
-                        </TableCell>
-                        <TableCell className="px-5 py-4">
-                          {lease.tenants.map((tenant) => (
-                            <Link
-                              className="mb-1 flex items-center gap-2 text-sm font-medium text-parcelis-charcoal hover:text-parcelis-green"
-                              href={getTenantLink(tenant.id)}
-                              key={tenant.id}
-                            >
-                              <UserRound className="h-4 w-4 text-parcelis-green" />
-                              {tenant.firstName} {tenant.lastName}
-                            </Link>
-                          ))}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                          <p>{formatDate(lease.startsOn)}</p>
-                          <p className="mt-1">to {formatDate(lease.endsOn)}</p>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 font-semibold text-parcelis-charcoal">
-                          {formatCurrency(lease.monthlyRentCents)}
-                        </TableCell>
-                        <TableCell className="px-5 py-4">
-                          <span className={`inline-flex items-center gap-2 font-semibold ${statusClass(lease.status)}`}>
-                            <CalendarClock className="h-4 w-4" />
-                            {formatStatus(lease.status)}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                            <TableCell className="px-5 py-3 font-semibold text-parcelis-charcoal" colSpan={5}>
+                              <span className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-parcelis-green" />
+                                {group.name} ({group.leases.length})
+                              </span>
+                            </TableCell>
+                          </TableRow>,
+                          ...group.leases.map((lease) => <LeaseRow key={lease.id} lease={lease} />),
+                        ])
+                      : filteredLeases.map((lease) => <LeaseRow key={lease.id} lease={lease} />)}
                   </TableBody>
                 </Table>
               )}
@@ -286,6 +271,52 @@ export default function LeasesPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+type LeaseRowProps = {
+  lease: Awaited<ReturnType<typeof apiClient.properties.list.query>>[number]["leases"][number] & {
+    property: Awaited<ReturnType<typeof apiClient.properties.list.query>>[number];
+  };
+};
+
+function LeaseRow({ lease }: LeaseRowProps) {
+  return (
+    <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">
+      <TableCell className="px-5 py-4">
+        <Link className="font-semibold text-parcelis-charcoal hover:text-parcelis-green" href={getLeaseLink(lease.id)}>
+          Lease #{lease.id}
+        </Link>
+        <p className="mt-1 text-sm text-parcelis-gray">
+          {lease.property.name} · Unit {lease.unitLabel}
+        </p>
+      </TableCell>
+      <TableCell className="px-5 py-4">
+        {lease.tenants.map((tenant) => (
+          <Link
+            className="mb-1 flex items-center gap-2 text-sm font-medium text-parcelis-charcoal hover:text-parcelis-green"
+            href={getTenantLink(tenant.id)}
+            key={tenant.id}
+          >
+            <UserRound className="h-4 w-4 text-parcelis-green" />
+            {tenant.firstName} {tenant.lastName}
+          </Link>
+        ))}
+      </TableCell>
+      <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+        <p>{formatDate(lease.startsOn)}</p>
+        <p className="mt-1">to {formatDate(lease.endsOn)}</p>
+      </TableCell>
+      <TableCell className="px-5 py-4 font-semibold text-parcelis-charcoal">
+        {formatCurrency(lease.monthlyRentCents)}
+      </TableCell>
+      <TableCell className="px-5 py-4">
+        <span className={`inline-flex items-center gap-2 font-semibold ${statusClass(lease.status)}`}>
+          <CalendarClock className="h-4 w-4" />
+          {formatStatus(lease.status)}
+        </span>
+      </TableCell>
+    </TableRow>
   );
 }
 

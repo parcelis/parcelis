@@ -76,6 +76,7 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(variables.input.id) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
       ]);
       toast.success(entityUpdatedMessage("Tenant", `${variables.input.firstName} ${variables.input.lastName}`));
     },
@@ -182,8 +183,7 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
                   </Card>
                 </section>
 
-                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <RecordMetric label="Auto Pay" value="Not enrolled" />
+                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <RecordMetric label="Late Payments" value={String(latePayments.length)} />
                   <RecordMetric label="Total Amount Paid" value={formatCurrency(totalAmountPaid)} />
                   <RecordMetric label="Tenant Since" value={formatDate(tenant.createdAt)} />
