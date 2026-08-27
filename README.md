@@ -129,7 +129,7 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 | Object storage | [MinIO](https://min.io/) with the S3-compatible AWS SDK |
 | Interface | [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), and [Lucide](https://lucide.dev/) |
 | Documentation | [Docusaurus](https://docusaurus.io/) and [MDX](https://mdxjs.com/) |
-| Tooling | [TypeScript](https://www.typescriptlang.org/), [pnpm](https://pnpm.io/), [Turborepo](https://turbo.build/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) |
+| Tooling | [TypeScript](https://www.typescriptlang.org/), [pnpm](https://pnpm.io/), [Turborepo](https://turbo.build/), [Playwright](https://playwright.dev/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) |
 | Local services and deployment | [Docker Compose](https://docs.docker.com/compose/) |
 
 ## Contributing

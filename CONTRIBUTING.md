@@ -126,6 +126,26 @@ pnpm db:seed
 - `pnpm dev:services:refresh`: recreate nginx, PostgreSQL, and MinIO while preserving their volumes, then rerun MinIO initialization.
 - Stop an existing app watcher with `Ctrl+C` before starting another `pnpm dev` process.
 
+### End-to-end tests
+
+Parcelis uses Playwright for browser-level tests. Install Chromium once after installing dependencies:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+Run the suite with `pnpm test:e2e`. It starts the web app automatically unless `PLAYWRIGHT_TEST_BASE_URL` points to an existing environment. Use `pnpm test:e2e:ui` to run tests in Playwright UI mode.
+
+Place tests in `tests/e2e`. Cover a changed user workflow with stable role, label, or text locators and assertions that verify the user-visible outcome. Do not commit `playwright-report` or `test-results`.
+
+To record an initial test draft, start the web app and run:
+
+```bash
+pnpm exec playwright codegen http://localhost:30000
+```
+
+Review generated code before committing it; replace fragile selectors and add outcome-based assertions.
+
 ### Docker Compose
 
 Parcelis uses two Compose workflows:
