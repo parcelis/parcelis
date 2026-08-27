@@ -37,7 +37,7 @@ FOREIGN KEY ("organizationId", "tenantId") REFERENCES "Tenant"("organizationId",
 ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_organizationId_paidByTenantId_fkey"
 FOREIGN KEY ("organizationId", "paidByTenantId") REFERENCES "Tenant"("organizationId", "id") ON DELETE SET NULL ("paidByTenantId") ON UPDATE CASCADE;
 ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_organizationId_leaseId_tenantId_fkey"
-FOREIGN KEY ("organizationId", "leaseId", "tenantId") REFERENCES "LeaseTenant"("organizationId", "leaseId", "tenantId") ON DELETE RESTRICT ON UPDATE CASCADE;
+FOREIGN KEY ("organizationId", "leaseId", "tenantId") REFERENCES "LeaseTenant"("organizationId", "leaseId", "tenantId") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- A payment's tenant must match its invoice tenant.
 CREATE UNIQUE INDEX "Invoice_id_tenantId_key" ON "Invoice"("id", "tenantId");

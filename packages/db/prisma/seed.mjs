@@ -116,6 +116,25 @@ function getDemoUnitDetails(property, unitName, index, leaseRentCents) {
   };
 }
 
+async function seedRequiredUnits(property, requiredUnitNames) {
+  for (const [index, unitName] of requiredUnitNames.entries()) {
+    const unitDetails = getDemoUnitDetails(property, unitName, index);
+    await prisma.unit.upsert({
+      where: {
+        propertyId_name: {
+          propertyId: property.id,
+          name: unitName,
+        },
+      },
+      update: {},
+      create: {
+        propertyId: property.id,
+        ...unitDetails,
+      },
+    });
+  }
+}
+
 async function seedUnitsForProperty(property, requiredUnitNames = []) {
   const leases = await prisma.lease.findMany({
     where: { organizationId: property.organizationId, propertyId: property.id },
@@ -357,9 +376,9 @@ async function main() {
   });
 
   await Promise.all([
-    seedUnitsForProperty(hawthorne, ["4B", "8A", "11D"]),
-    seedUnitsForProperty(mariner, ["2A", "5C"]),
-    seedUnitsForProperty(juniper, ["7C"]),
+    seedRequiredUnits(hawthorne, ["4B", "8A", "11D"]),
+    seedRequiredUnits(mariner, ["2A", "5C"]),
+    seedRequiredUnits(juniper, ["7C"]),
   ]);
 
   const tenant = await prisma.tenant.upsert({

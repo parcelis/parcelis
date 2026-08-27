@@ -109,6 +109,7 @@ const propertySelect = {
 } as const;
 
 const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(LeaseStatus)];
+const openEndedLeaseInvoiceHorizonMonths = 12;
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
   return unitType === "Commercial" ? UnitType.commercial : UnitType.residential;
@@ -2614,113 +2615,124 @@ export const appRouter = router({
     /** Creates a new lease with tenants and optionally generates invoices. */
     create: publicProcedure.input(createLeaseWithInvoicesInputSchema).mutation(async ({ ctx, input }) => {
       const { propertyId, unitId, tenantIds, generateInvoices, ...leaseData } = input;
-      try {
-        return await ctx.prisma.$transaction(
-          async (tx) => {
-            const property = await tx.property.findFirstOrThrow({
-              where: { id: propertyId, organizationId: ctx.organization.organizationId },
-            });
-            await tx.unit.findFirstOrThrow({ where: { id: unitId, propertyId } });
-            const tenants = await tx.tenant.findMany({
-              where: { id: { in: tenantIds }, organizationId: ctx.organization.organizationId },
-            });
-            if (tenants.length !== tenantIds.length) {
-              throw new TRPCError({ code: "NOT_FOUND", message: "One or more tenants not found." });
-            }
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          return await ctx.prisma.$transaction(
+            async (tx) => {
+              const property = await tx.property.findFirstOrThrow({
+                where: { id: propertyId, organizationId: ctx.organization.organizationId },
+              });
+              await tx.unit.findFirstOrThrow({ where: { id: unitId, propertyId } });
+              const tenants = await tx.tenant.findMany({
+                where: { id: { in: tenantIds }, organizationId: ctx.organization.organizationId },
+              });
+              if (tenants.length !== tenantIds.length) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "One or more tenants not found." });
+              }
 
-            if (leaseData.status === LeaseStatus.active || leaseData.status === LeaseStatus.notice) {
-              const existingLease = await tx.lease.findFirst({
-                where: {
+              if (leaseData.status === LeaseStatus.active || leaseData.status === LeaseStatus.notice) {
+                const existingLease = await tx.lease.findFirst({
+                  where: {
+                    propertyId,
+                    unitId,
+                    status: { in: [LeaseStatus.active, LeaseStatus.notice] },
+                  },
+                  select: { id: true },
+                });
+                if (existingLease) {
+                  throw new TRPCError({ code: "CONFLICT", message: "The selected unit already has an active lease." });
+                }
+              }
+
+              const createdLease = await tx.lease.create({
+                data: {
+                  organizationId: ctx.organization.organizationId,
                   propertyId,
                   unitId,
-                  status: { in: [LeaseStatus.active, LeaseStatus.notice] },
-                },
-                select: { id: true },
-              });
-              if (existingLease) {
-                throw new TRPCError({ code: "CONFLICT", message: "The selected unit already has an active lease." });
-              }
-            }
-
-            const createdLease = await tx.lease.create({
-              data: {
-                organizationId: ctx.organization.organizationId,
-                propertyId,
-                unitId,
-                ...leaseData,
-                tenants: {
-                  create: tenantIds.map((tenantId) => ({
-                    organizationId: ctx.organization.organizationId,
-                    tenantId,
-                  })),
-                },
-              },
-              include: {
-                tenants: { include: { tenant: true } },
-              },
-            });
-
-            if (leaseData.status === LeaseStatus.active || leaseData.status === LeaseStatus.notice) {
-              await tx.property.update({
-                where: { id: propertyId },
-                data: { occupiedUnits: property.occupiedUnits + 1 },
-              });
-            }
-
-            if (generateInvoices) {
-              const firstPeriod = new Date(createdLease.startsOn.getFullYear(), createdLease.startsOn.getMonth(), 1);
-              const periods = [firstPeriod];
-              let current = new Date(firstPeriod);
-              const invoiceThrough =
-                createdLease.endsOn ?? new Date(firstPeriod.getFullYear(), firstPeriod.getMonth() + 11, 1);
-
-              while (current < invoiceThrough) {
-                current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-                if (current <= invoiceThrough) {
-                  periods.push(new Date(current));
-                }
-              }
-
-              for (const periodStartsOn of periods) {
-                const periodEndsOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0);
-                const dueOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth(), 1);
-
-                for (const tenant of tenants) {
-                  await tx.invoice.create({
-                    data: {
+                  ...leaseData,
+                  tenants: {
+                    create: tenantIds.map((tenantId) => ({
                       organizationId: ctx.organization.organizationId,
-                      leaseId: createdLease.id,
-                      propertyId,
-                      tenantId: tenant.id,
-                      periodStartsOn,
-                      periodEndsOn,
-                      dueOn,
-                      amountCents: createdLease.monthlyRentCents,
-                      balanceCents: createdLease.monthlyRentCents,
-                      items: {
-                        create: {
-                          item: "Rent",
-                          quantity: 1,
-                          rateCents: createdLease.monthlyRentCents,
-                          amountCents: createdLease.monthlyRentCents,
+                      tenantId,
+                    })),
+                  },
+                },
+                include: {
+                  tenants: { include: { tenant: true } },
+                },
+              });
+
+              if (leaseData.status === LeaseStatus.active || leaseData.status === LeaseStatus.notice) {
+                await tx.property.update({
+                  where: { id: propertyId },
+                  data: { occupiedUnits: property.occupiedUnits + 1 },
+                });
+              }
+
+              if (generateInvoices) {
+                const firstPeriod = new Date(createdLease.startsOn.getFullYear(), createdLease.startsOn.getMonth(), 1);
+                const periods = [firstPeriod];
+                let current = new Date(firstPeriod);
+                const invoiceThrough =
+                  createdLease.endsOn ??
+                  new Date(
+                    firstPeriod.getFullYear(),
+                    firstPeriod.getMonth() + openEndedLeaseInvoiceHorizonMonths - 1,
+                    1,
+                  );
+
+                while (current < invoiceThrough) {
+                  current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+                  if (current <= invoiceThrough) {
+                    periods.push(new Date(current));
+                  }
+                }
+
+                for (const periodStartsOn of periods) {
+                  const periodEndsOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0);
+                  const dueOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth(), 1);
+
+                  for (const tenant of tenants) {
+                    await tx.invoice.create({
+                      data: {
+                        organizationId: ctx.organization.organizationId,
+                        leaseId: createdLease.id,
+                        propertyId,
+                        tenantId: tenant.id,
+                        periodStartsOn,
+                        periodEndsOn,
+                        dueOn,
+                        amountCents: createdLease.monthlyRentCents,
+                        balanceCents: createdLease.monthlyRentCents,
+                        items: {
+                          create: {
+                            item: "Rent",
+                            quantity: 1,
+                            rateCents: createdLease.monthlyRentCents,
+                            amountCents: createdLease.monthlyRentCents,
+                          },
                         },
                       },
-                    },
-                  });
+                    });
+                  }
                 }
               }
-            }
 
-            return createdLease;
-          },
-          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-        );
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
-          throw new TRPCError({ code: "CONFLICT", message: "The selected unit changed. Please try again." });
+              return createdLease;
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034")) {
+            throw error;
+          }
         }
-        throw error;
       }
+
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "The lease could not be created because related data changed. Please try again.",
+      });
     }),
   }),
   units: router({
