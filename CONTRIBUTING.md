@@ -8,6 +8,12 @@ By submitting a contribution, you accept the [Contributor License Agreement](CLA
 Parcelis use and relicense contributions while you retain ownership. If you contribute for an
 organization, ensure that you are authorized to accept the agreement on its behalf.
 
+## Issues
+
+Search existing issues before opening a new one. Use the matching GitHub issue form for feature
+requests, bug reports, or documentation changes, and complete its required fields. For new
+features, wait for maintainer approval before opening a pull request.
+
 ## Commit messages
 
 Parcelis uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Write commit subjects in this form:
