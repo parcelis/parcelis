@@ -37,6 +37,7 @@ When adding or removing a primary technology or service, update this file in the
 | [pnpm 11](https://pnpm.io/) | Package management and workspace support. |
 | [Turborepo](https://turbo.build/) | Builds, linting, and type checking across the monorepo. |
 | [TypeScript](https://www.typescriptlang.org/) | Application language and type checking. |
+| [Playwright](https://playwright.dev/) | End-to-end browser testing for critical web workflows. |
 | [ESLint](https://eslint.org/) and [Prettier](https://prettier.io/) | Code linting and formatting. |
 | [Docker Compose](https://docs.docker.com/compose/) | Local infrastructure and production-style deployment. |
 | [pgAdmin](https://www.pgadmin.org/) | Local PostgreSQL administration. |

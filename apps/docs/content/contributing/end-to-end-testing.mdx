@@ -1,0 +1,59 @@
+---
+id: end-to-end-testing
+title: End-to-End Testing
+---
+
+Parcelis uses [Playwright](https://playwright.dev/) to verify important user workflows in a real browser. It complements Zod validation, API tests, and database constraints by checking the complete browser-to-application flow.
+
+## Run the test suite
+
+Install Chromium once after installing repository dependencies:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+Run the end-to-end suite:
+
+```bash
+pnpm test:e2e
+```
+
+The command starts the web app automatically at `http://127.0.0.1:30000`. To test an existing environment instead, set `PLAYWRIGHT_TEST_BASE_URL`:
+
+```bash
+PLAYWRIGHT_TEST_BASE_URL=http://127.0.0.1:30000 pnpm test:e2e
+```
+
+Use Playwright UI mode while developing a test:
+
+```bash
+pnpm test:e2e:ui
+```
+
+## Write a test
+
+Store end-to-end tests in `tests/e2e`. Test the outcome a user sees, using accessible locators such as roles, labels, and names. Keep each test independent so it can run in any order.
+
+```ts
+import { expect, test } from "@playwright/test";
+
+test("loads the sign-in page", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+});
+```
+
+Add or update a test when a change affects a critical user workflow. Prefer assertions about the workflow result over implementation details. Playwright saves failure diagnostics in `test-results` and reports in `playwright-report`; both are ignored by Git.
+
+## Record a starting point
+
+Playwright Codegen can record browser actions and generate an initial TypeScript test. Start the web app, then run:
+
+```bash
+pnpm exec playwright codegen http://localhost:30000
+```
+
+Treat generated code as a draft. Replace positional or CSS selectors with accessible locators, remove incidental steps, and add assertions that prove the expected result.
