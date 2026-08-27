@@ -154,16 +154,21 @@ export default function TenantDetailPage() {
     },
   });
   const createLease = useMutation({
-    mutationFn: () =>
-      apiClient.tenants.createLease.mutate({
+    mutationFn: () => {
+      const property = (propertiesQuery.data ?? []).find((item) => item.id === Number(leaseForm.propertyId));
+      const unit = property?.units.find((item) => item.name === leaseForm.unitLabel);
+      if (!unit) throw new Error("Select a unit belonging to the chosen property.");
+
+      return apiClient.tenants.createLease.mutate({
         endsOn: leaseForm.endsOn ? new Date(leaseForm.endsOn) : null,
         monthlyRentCents: Math.round(Number(leaseForm.monthlyRent) * 100),
         propertyId: Number(leaseForm.propertyId),
         startsOn: new Date(leaseForm.startsOn),
         status: leaseForm.status as "active" | "draft" | "notice" | "ended",
-        tenantId,
-        unitLabel: leaseForm.unitLabel,
-      }),
+        tenantIds: [tenantId],
+        unitId: unit.id,
+      });
+    },
     onSuccess: async () => {
       setIsLeaseDialogOpen(false);
       setLeaseForm({ endsOn: "", monthlyRent: "", propertyId: "", startsOn: "", status: "active", unitLabel: "" });

@@ -208,8 +208,7 @@ export const leaseStatusSchema = z.enum(LeaseStatus);
 export const leaseSchema = z.object({
   id: idSchema,
   propertyId: idSchema,
-  tenantId: idSchema,
-  unitLabel: z.string().min(1),
+  unitId: idSchema,
   monthlyRentCents: z.number().int().positive(),
   startsOn: z.coerce.date(),
   endsOn: z.coerce.date().nullable(),
@@ -218,10 +217,17 @@ export const leaseSchema = z.object({
 
 export const createLeaseInputSchema = leaseSchema
   .omit({ id: true })
+  .extend({
+    tenantIds: z.array(idSchema).min(1).max(50),
+  })
   .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
   });
+
+export const createLeaseWithInvoicesInputSchema = createLeaseInputSchema.extend({
+  generateInvoices: z.boolean().default(false),
+});
 export const invoiceByIdInputSchema = z.object({ id: idSchema });
 export const invoiceListInputSchema = z.object({ tenantId: idSchema.optional() });
 export const invoiceItemInputSchema = z.object({
@@ -258,6 +264,39 @@ export const recordInvoicePaymentsInputSchema = z.object({
     .array(recordInvoicePaymentInputSchema.omit({ id: true }))
     .min(1)
     .max(50),
+});
+
+export const invoiceActionInvoiceSchema = z.object({
+  id: idSchema,
+  invoiceNumber: z.number(),
+  amountCents: z.number().int().nonnegative(),
+  balanceCents: z.number().int().nonnegative(),
+  dueOn: z.union([z.date(), z.string()]),
+  items: z.array(
+    z.object({
+      id: idSchema,
+      item: z.string(),
+      description: z.string().nullable(),
+      quantity: z.number().int(),
+      rateCents: z.number().int(),
+    }),
+  ),
+  property: z.object({ name: z.string() }),
+  tenant: z.object({ id: idSchema, firstName: z.string(), lastName: z.string() }),
+  lease: z.object({
+    unitLabel: z.string(),
+    startsOn: z.union([z.date(), z.string()]),
+    endsOn: z.union([z.date(), z.string(), z.null()]),
+  }),
+  payments: z.array(
+    z.object({
+      id: idSchema,
+      amountCents: z.number().int(),
+      paidOn: z.union([z.date(), z.string()]),
+      paymentMethod: z.string(),
+      tenant: z.object({ id: idSchema, firstName: z.string(), lastName: z.string() }),
+    }),
+  ),
 });
 export const updateInvoiceInputSchema = z.object({
   id: idSchema,

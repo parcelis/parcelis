@@ -116,19 +116,16 @@ function getDemoUnitDetails(property, unitName, index, leaseRentCents) {
   };
 }
 
-async function seedUnitsForProperty(property) {
+async function seedUnitsForProperty(property, requiredUnitNames = []) {
   const leases = await prisma.lease.findMany({
     where: { organizationId: property.organizationId, propertyId: property.id },
     select: {
       monthlyRentCents: true,
-      unitLabel: true,
+      unit: { select: { name: true } },
     },
   });
-  const leaseRentByUnit = new Map(leases.map((lease) => [lease.unitLabel, lease.monthlyRentCents]));
-  const unitNames = getDemoUnitNames(
-    property,
-    leases.map((lease) => lease.unitLabel),
-  );
+  const leaseRentByUnit = new Map(leases.map((lease) => [lease.unit.name, lease.monthlyRentCents]));
+  const unitNames = getDemoUnitNames(property, [...requiredUnitNames, ...leases.map((lease) => lease.unit.name)]);
 
   await prisma.unit.deleteMany({
     where: {
@@ -200,27 +197,41 @@ async function seedUnitsForProperty(property) {
 }
 
 async function upsertLease(organizationId, data) {
+  const { tenantIds, unitId, ...leaseData } = data;
+
   const existing = await prisma.lease.findFirst({
-    where: { organizationId, propertyId: data.propertyId, unitLabel: data.unitLabel },
+    where: { organizationId, propertyId: data.propertyId, unitId },
   });
 
-  return existing
-    ? prisma.lease.update({ where: { id: existing.id }, data })
-    : prisma.lease.create({ data: { ...data, organizationId } });
+  const lease = existing
+    ? await prisma.lease.update({ where: { id: existing.id }, data: { ...leaseData, unitId } })
+    : await prisma.lease.create({ data: { ...leaseData, unitId, organizationId } });
+
+  if (tenantIds && tenantIds.length > 0) {
+    await prisma.leaseTenant.deleteMany({ where: { leaseId: lease.id } });
+    await prisma.leaseTenant.createMany({
+      data: tenantIds.map((tenantId) => ({ organizationId, leaseId: lease.id, tenantId })),
+      skipDuplicates: true,
+    });
+  }
+
+  return lease;
 }
 
-async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, payments = [] }) {
+async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balanceCents, payments = [] }) {
   const paidOn = balanceCents === 0 ? (payments.at(-1)?.paidOn ?? periodStartsOn) : null;
 
   await prisma.invoice.upsert({
-    where: { leaseId_periodStartsOn: { leaseId: lease.id, periodStartsOn } },
+    where: {
+      leaseId_tenantId_periodStartsOn: { leaseId: lease.id, tenantId, periodStartsOn },
+    },
     update: {},
     create: {
       organizationId: lease.organizationId,
       leaseId: lease.id,
       propertyId: lease.propertyId,
-      tenantId: lease.tenantId,
-      paidByTenantId: balanceCents === 0 ? lease.tenantId : null,
+      tenantId,
+      paidByTenantId: balanceCents === 0 ? tenantId : null,
       periodStartsOn,
       periodEndsOn: new Date(Date.UTC(periodStartsOn.getUTCFullYear(), periodStartsOn.getUTCMonth() + 1, 0)),
       dueOn: periodStartsOn,
@@ -238,7 +249,7 @@ async function seedInvoice({ lease, periodStartsOn, amountCents, balanceCents, p
         },
       },
       payments: {
-        create: payments,
+        create: payments.map((payment) => ({ ...payment, tenantId })),
       },
     },
   });
@@ -344,6 +355,12 @@ async function main() {
   const juniper = await prisma.property.findFirstOrThrow({
     where: { organizationId: organization.id, name: "Juniper Row" },
   });
+
+  await Promise.all([
+    seedUnitsForProperty(hawthorne, ["4B", "8A", "11D"]),
+    seedUnitsForProperty(mariner, ["2A", "5C"]),
+    seedUnitsForProperty(juniper, ["7C"]),
+  ]);
 
   const tenant = await prisma.tenant.upsert({
     where: { organizationId_email: { organizationId: organization.id, email: "maya.ellis@example.com" } },
@@ -474,67 +491,77 @@ async function main() {
     },
   });
 
+  const units = await prisma.unit.findMany({
+    where: { propertyId: { in: [hawthorne.id, mariner.id, juniper.id] } },
+    select: { id: true, propertyId: true, name: true },
+  });
+  const getUnitId = (propertyId, name) => {
+    const unit = units.find((item) => item.propertyId === propertyId && item.name === name);
+    if (!unit) throw new Error(`Missing demo unit ${name} for property ${propertyId}`);
+    return unit.id;
+  };
+
   const [mayaLease, elenaLease, calvinLease, noraLease] = await Promise.all([
     upsertLease(organization.id, {
       propertyId: hawthorne.id,
-      tenantId: tenant.id,
-      unitLabel: "4B",
+      tenantIds: [tenant.id],
+      unitId: getUnitId(hawthorne.id, "4B"),
       monthlyRentCents: 184500,
-      amountOverdueCents: 0,
       startsOn: new Date("2026-02-01"),
       endsOn: new Date("2027-01-31"),
       status: "active",
     }),
     upsertLease(organization.id, {
       propertyId: hawthorne.id,
-      tenantId: fourthTenant.id,
-      unitLabel: "8A",
+      tenantIds: [fourthTenant.id],
+      unitId: getUnitId(hawthorne.id, "8A"),
       monthlyRentCents: 197500,
-      amountOverdueCents: 32500,
       startsOn: new Date("2026-06-01"),
       endsOn: new Date("2027-05-31"),
       status: "active",
     }),
     upsertLease(organization.id, {
       propertyId: mariner.id,
-      tenantId: secondTenant.id,
-      unitLabel: "2A",
+      tenantIds: [secondTenant.id],
+      unitId: getUnitId(mariner.id, "2A"),
       monthlyRentCents: 216000,
-      amountOverdueCents: 82500,
       startsOn: new Date("2025-10-01"),
       endsOn: new Date("2026-09-15"),
       status: "active",
     }),
     upsertLease(organization.id, {
       propertyId: juniper.id,
-      tenantId: thirdTenant.id,
-      unitLabel: "7C",
+      tenantIds: [thirdTenant.id],
+      unitId: getUnitId(juniper.id, "7C"),
       monthlyRentCents: 239500,
-      amountOverdueCents: 125000,
       startsOn: new Date("2025-09-01"),
       endsOn: new Date("2026-08-20"),
       status: "notice",
     }),
     upsertLease(organization.id, {
       propertyId: mariner.id,
-      tenantId: pastTenant.id,
-      unitLabel: "5C",
+      tenantIds: [pastTenant.id],
+      unitId: getUnitId(mariner.id, "5C"),
       monthlyRentCents: 189500,
-      amountOverdueCents: 0,
       startsOn: new Date("2024-03-01"),
       endsOn: new Date("2025-02-28"),
       status: "ended",
     }),
     upsertLease(organization.id, {
       propertyId: hawthorne.id,
-      tenantId: archivedTenant.id,
-      unitLabel: "11D",
+      tenantIds: [archivedTenant.id],
+      unitId: getUnitId(hawthorne.id, "11D"),
       monthlyRentCents: 176500,
-      amountOverdueCents: 0,
       startsOn: new Date("2023-06-01"),
       endsOn: new Date("2024-05-31"),
       status: "ended",
     }),
+  ]);
+
+  await Promise.all([
+    seedUnitsForProperty(hawthorne, ["4B", "8A", "11D"]),
+    seedUnitsForProperty(mariner, ["2A", "5C"]),
+    seedUnitsForProperty(juniper, ["7C"]),
   ]);
 
   const july = new Date("2026-07-01T00:00:00.000Z");
@@ -542,6 +569,7 @@ async function main() {
   await Promise.all([
     seedInvoice({
       lease: mayaLease,
+      tenantId: tenant.id,
       periodStartsOn: july,
       amountCents: mayaLease.monthlyRentCents,
       balanceCents: 0,
@@ -555,12 +583,14 @@ async function main() {
     }),
     seedInvoice({
       lease: mayaLease,
+      tenantId: tenant.id,
       periodStartsOn: august,
       amountCents: mayaLease.monthlyRentCents,
       balanceCents: mayaLease.monthlyRentCents,
     }),
     seedInvoice({
       lease: elenaLease,
+      tenantId: fourthTenant.id,
       periodStartsOn: august,
       amountCents: elenaLease.monthlyRentCents,
       balanceCents: 32500,
@@ -568,6 +598,7 @@ async function main() {
     }),
     seedInvoice({
       lease: calvinLease,
+      tenantId: secondTenant.id,
       periodStartsOn: august,
       amountCents: calvinLease.monthlyRentCents,
       balanceCents: 82500,
@@ -575,14 +606,13 @@ async function main() {
     }),
     seedInvoice({
       lease: noraLease,
+      tenantId: thirdTenant.id,
       periodStartsOn: august,
       amountCents: noraLease.monthlyRentCents,
       balanceCents: 125000,
       payments: [{ amountCents: 114500, paymentMethod: "check", paidOn: new Date("2026-08-04T00:00:00.000Z") }],
     }),
   ]);
-
-  await Promise.all([seedUnitsForProperty(hawthorne), seedUnitsForProperty(mariner), seedUnitsForProperty(juniper)]);
 
   const maintenanceCategories = [
     "A/C",
@@ -624,9 +654,7 @@ async function main() {
       }),
     ),
   );
-  const applicationStatusByLabel = Object.fromEntries(
-    applicationStatuses.map((status) => [status.label, status]),
-  );
+  const applicationStatusByLabel = Object.fromEntries(applicationStatuses.map((status) => [status.label, status]));
   await Promise.all([
     prisma.landlord.upsert({
       where: {
