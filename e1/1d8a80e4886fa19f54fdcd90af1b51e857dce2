@@ -1,0 +1,29 @@
+apps/web/components/invoice-detail-view.tsx
+  s_5fda7f93dc618b::t_0899699e2b09fc 5,575
+  s_5fda7f93dc618b::t_3bc58905989de7 1-4,6-574,576-581
+apps/web/app/(authenticated)/income/invoices/[invoiceId]/page.tsx
+  s_5fda7f93dc618b::t_92c0d293c0c5e7 3-4,7,9-11
+packages/ui/src/components/drawer.tsx
+  s_5fda7f93dc618b::t_35f13c0ed0c311 22,49-50
+  s_5fda7f93dc618b::t_0899699e2b09fc 41-43,55-56,64-65,67
+apps/web/components/invoice-record-drawer.tsx
+  s_5fda7f93dc618b::t_92c0d293c0c5e7 4
+apps/api/src/router/app.router.ts
+  s_5fda7f93dc618b::t_35f13c0ed0c311 2648
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e11d8a80e4886fa19f54fdcd90af1b51e857dce2",
+  "prompts": {},
+  "sessions": {
+    "s_5fda7f93dc618b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0437c-7877-7442-85b7-e8a1f6e81974",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
