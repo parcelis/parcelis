@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Download, Pencil, ReceiptText, Trash2 } from "lucide-react";
+import { Eye, Pencil, ReceiptText, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -11,10 +11,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   Button,
+  Dialog,
+  DialogContent,
 } from "@parcelis/ui";
 import { useRouter } from "next/navigation";
 import { apiClient } from "./api-client";
 import { EditInvoiceDrawer } from "./edit-invoice-drawer";
+import { InvoicePdfViewer } from "./invoice-pdf-viewer";
 import { RecordPaymentDrawer } from "./record-payment-drawer";
 
 export type InvoiceActionInvoice = {
@@ -41,6 +44,7 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   const [paymentOpen, setPaymentOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [pdfPreview, setPdfPreview] = React.useState<{ fileName: string; url: string } | null>(null);
   const [isOpeningPdf, setIsOpeningPdf] = React.useState(false);
   const hasPayments = (invoice.payments ?? []).length > 0;
   const deleteInvoice = useMutation({
@@ -48,21 +52,21 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
     onSuccess: () => router.push("/income"),
   });
 
-  async function openInvoicePdf() {
-    const previewWindow = window.open("", "_blank");
-    if (!previewWindow) return;
+  React.useEffect(() => {
+    return () => {
+      if (pdfPreview) URL.revokeObjectURL(pdfPreview.url);
+    };
+  }, [pdfPreview]);
 
-    previewWindow.opener = null;
+  async function previewInvoicePdf() {
     setIsOpeningPdf(true);
     try {
       const result = await apiClient.invoices.pdf.query({ id: invoice.id });
       const bytes = Uint8Array.from(atob(result.contentBase64), (character) => character.charCodeAt(0));
       const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      previewWindow.location.href = url;
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setPdfPreview({ fileName: result.fileName, url: URL.createObjectURL(blob) });
     } catch {
-      previewWindow.close();
+      setPdfPreview(null);
     } finally {
       setIsOpeningPdf(false);
     }
@@ -71,8 +75,8 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   return (
     <>
       <div className="flex flex-wrap justify-end gap-2 print:hidden">
-        <Button disabled={isOpeningPdf} size="sm" type="button" variant="secondary" onClick={openInvoicePdf}>
-          <Download className="h-4 w-4" /> {isOpeningPdf ? "Preparing..." : "Open PDF"}
+        <Button disabled={isOpeningPdf} size="sm" type="button" variant="secondary" onClick={previewInvoicePdf}>
+          <Eye className="h-4 w-4" /> {isOpeningPdf ? "Preparing..." : "Preview PDF"}
         </Button>
         <Button disabled size="sm" title="Coming soon" type="button" variant="secondary">
           Send reminder
@@ -98,6 +102,26 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
       </div>
       <RecordPaymentDrawer invoice={invoice} open={paymentOpen} onOpenChange={setPaymentOpen} />
       <EditInvoiceDrawer invoice={invoice} open={editOpen} onOpenChange={setEditOpen} />
+      <Dialog
+        open={Boolean(pdfPreview)}
+        onOpenChange={(open) => {
+          if (!open) setPdfPreview(null);
+        }}
+      >
+        <DialogContent
+          aria-labelledby="invoice-pdf-preview-title"
+          className="h-[90vh] min-w-0 max-w-6xl grid-rows-[minmax(0,1fr)] gap-0 overflow-hidden p-0"
+        >
+          <h2 className="sr-only" id="invoice-pdf-preview-title">
+            Invoice PDF preview
+          </h2>
+          {pdfPreview ? (
+            <div className="h-full min-h-0 min-w-0 max-w-full overflow-hidden">
+              <InvoicePdfViewer fileName={pdfPreview.fileName} source={pdfPreview.url} />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
       <AlertDialog onOpenChange={setDeleteOpen} open={deleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

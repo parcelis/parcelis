@@ -12,6 +12,18 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@embedpdf/core": "^2.15.0",
+    "@embedpdf/engines": "^2.15.0",
+    "@embedpdf/pdfium": "^2.15.0",
+    "@embedpdf/plugin-document-manager": "^2.15.0",
+    "@embedpdf/plugin-export": "^2.15.0",
+    "@embedpdf/plugin-fullscreen": "^2.15.0",
+    "@embedpdf/plugin-print": "^2.15.0",
+    "@embedpdf/plugin-render": "^2.15.0",
+    "@embedpdf/plugin-scroll": "^2.15.0",
+    "@embedpdf/plugin-tiling": "^2.15.0",
+    "@embedpdf/plugin-viewport": "^2.15.0",
+    "@embedpdf/plugin-zoom": "^2.15.0",
     "@parcelis/api": "workspace:*",
     "@parcelis/schemas": "workspace:*",
     "@parcelis/ui": "workspace:*",
