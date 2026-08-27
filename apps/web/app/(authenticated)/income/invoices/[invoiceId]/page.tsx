@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -158,9 +158,16 @@ function DeletePaymentButton({ paymentId }: { paymentId: number }) {
   );
 }
 
-export default function InvoiceDetailPage() {
+type InvoiceDetailViewProps = {
+  embedded?: boolean;
+  invoiceId?: number;
+};
+
+export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoiceId }: InvoiceDetailViewProps) {
   const params = useParams<{ invoiceId: string }>();
-  const invoiceId = Number(params.invoiceId);
+  const searchParams = useSearchParams();
+  const invoiceId = providedInvoiceId ?? Number(params.invoiceId);
+  const isEmbedded = embedded || searchParams.get("embedded") === "1";
   const invoiceQuery = useQuery({
     queryKey: ["invoices", "byId", invoiceId],
     queryFn: () => apiClient.invoices.byId.query({ id: invoiceId }),
@@ -191,17 +198,19 @@ export default function InvoiceDetailPage() {
 
   return (
     <main className="min-h-screen bg-parcelis-porcelain dark:bg-parcelis-slate">
-      <section className="lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
-          <Button asChild className="min-w-40" variant="secondary">
-            <Link href="/income">
-              <ArrowLeft className="h-4 w-4" />
-              Income
-            </Link>
-          </Button>
-          {invoice ? <InvoiceActions invoice={invoice} /> : null}
-        </header>
-        <div className="parcelis-page-shell max-w-none">
+      <section className={isEmbedded ? "" : "lg:pl-[var(--parcelis-sidebar-width)]"}>
+        {isEmbedded ? null : (
+          <header className="flex min-h-16 items-center justify-between gap-4 border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
+            <Button asChild className="min-w-40" variant="secondary">
+              <Link href="/income">
+                <ArrowLeft className="h-4 w-4" />
+                Income
+              </Link>
+            </Button>
+            {invoice ? <InvoiceActions invoice={invoice} /> : null}
+          </header>
+        )}
+        <div className={isEmbedded ? "p-0" : "parcelis-page-shell max-w-none"}>
           {invoiceQuery.isLoading ? (
             <LoadingState label="Loading invoice…" />
           ) : invoiceQuery.error ? (
@@ -243,67 +252,71 @@ export default function InvoiceDetailPage() {
                   ];
               return (
                 <div className="flex flex-col gap-5 lg:flex-row">
-                  <NavigationRail title="Properties">
-                    <div className="space-y-1">
-                      {Array.from(
-                        invoiceRows.reduce((groups, item) => {
-                          const group = groups.get(item.property.id) ?? {
-                            name: item.property.name,
-                            invoices: [] as typeof invoiceRows,
-                          };
-                          group.invoices.push(item);
-                          groups.set(item.property.id, group);
-                          return groups;
-                        }, new Map<number, { name: string; invoices: typeof invoiceRows }>()),
-                      ).map(([propertyId, property]) => (
-                        <div key={propertyId}>
-                          <div className="flex items-center gap-1 rounded-md hover:bg-parcelis-porcelain">
-                            <button
-                              aria-label={`Toggle ${property.name} invoices`}
-                              className="grid h-8 w-8 place-items-center text-parcelis-gray"
-                              onClick={() => toggleProperty(propertyId)}
-                              type="button"
-                            >
-                              <ChevronRight
-                                className={`h-4 w-4 transition-transform ${collapsedPropertyIds.has(propertyId) ? "" : "rotate-90"}`}
-                              />
-                            </button>
-                            <Link
-                              className="min-w-0 flex-1 py-2 pr-2 text-sm font-semibold text-parcelis-charcoal"
-                              href={getPropertyLink(propertyId)}
-                            >
-                              {property.name}
-                            </Link>
-                          </div>
-                          {collapsedPropertyIds.has(propertyId) ? null : (
-                            <div className="ml-3 border-l border-parcelis-border pl-2">
-                              {Array.from(
-                                property.invoices.reduce((groups, item) => {
-                                  const rows = groups.get(item.lease.unitLabel) ?? [];
-                                  rows.push(item);
-                                  groups.set(item.lease.unitLabel, rows);
-                                  return groups;
-                                }, new Map<string, typeof property.invoices>()),
-                              ).map(([unitLabel, invoices]) => (
-                                <div className="py-1" key={unitLabel}>
-                                  <p className="px-2 py-1 text-xs font-semibold text-parcelis-gray">Unit {unitLabel}</p>
-                                  {invoices.map((item) => (
-                                    <Link
-                                      className={`block rounded-md px-2 py-1.5 text-xs font-medium ${item.id === invoice.id ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`}
-                                      href={getInvoiceLink(item.id)}
-                                      key={item.id}
-                                    >
-                                      INV-{String(item.invoiceNumber).padStart(7, "0")}
-                                    </Link>
-                                  ))}
-                                </div>
-                              ))}
+                  {isEmbedded ? null : (
+                    <NavigationRail title="Properties">
+                      <div className="space-y-1">
+                        {Array.from(
+                          invoiceRows.reduce((groups, item) => {
+                            const group = groups.get(item.property.id) ?? {
+                              name: item.property.name,
+                              invoices: [] as typeof invoiceRows,
+                            };
+                            group.invoices.push(item);
+                            groups.set(item.property.id, group);
+                            return groups;
+                          }, new Map<number, { name: string; invoices: typeof invoiceRows }>()),
+                        ).map(([propertyId, property]) => (
+                          <div key={propertyId}>
+                            <div className="flex items-center gap-1 rounded-md hover:bg-parcelis-porcelain">
+                              <button
+                                aria-label={`Toggle ${property.name} invoices`}
+                                className="grid h-8 w-8 place-items-center text-parcelis-gray"
+                                onClick={() => toggleProperty(propertyId)}
+                                type="button"
+                              >
+                                <ChevronRight
+                                  className={`h-4 w-4 transition-transform ${collapsedPropertyIds.has(propertyId) ? "" : "rotate-90"}`}
+                                />
+                              </button>
+                              <Link
+                                className="min-w-0 flex-1 py-2 pr-2 text-sm font-semibold text-parcelis-charcoal"
+                                href={getPropertyLink(propertyId)}
+                              >
+                                {property.name}
+                              </Link>
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </NavigationRail>
+                            {collapsedPropertyIds.has(propertyId) ? null : (
+                              <div className="ml-3 border-l border-parcelis-border pl-2">
+                                {Array.from(
+                                  property.invoices.reduce((groups, item) => {
+                                    const rows = groups.get(item.lease.unitLabel) ?? [];
+                                    rows.push(item);
+                                    groups.set(item.lease.unitLabel, rows);
+                                    return groups;
+                                  }, new Map<string, typeof property.invoices>()),
+                                ).map(([unitLabel, invoices]) => (
+                                  <div className="py-1" key={unitLabel}>
+                                    <p className="px-2 py-1 text-xs font-semibold text-parcelis-gray">
+                                      Unit {unitLabel}
+                                    </p>
+                                    {invoices.map((item) => (
+                                      <Link
+                                        className={`block rounded-md px-2 py-1.5 text-xs font-medium ${item.id === invoice.id ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`}
+                                        href={getInvoiceLink(item.id)}
+                                        key={item.id}
+                                      >
+                                        INV-{String(item.invoiceNumber).padStart(7, "0")}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </NavigationRail>
+                  )}
                   <div className="min-w-0 flex-1 space-y-5">
                     <Card className="relative overflow-hidden dark:bg-parcelis-slate dark:text-parcelis-porcelain">
                       <section className="grid gap-6 bg-parcelis-charcoal p-6 text-white md:grid-cols-[1.2fr_1fr] md:p-8">
@@ -552,4 +565,8 @@ export default function InvoiceDetailPage() {
       </section>
     </main>
   );
+}
+
+export default function InvoiceDetailPage() {
+  return <InvoiceDetailView />;
 }

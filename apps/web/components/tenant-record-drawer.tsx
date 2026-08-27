@@ -25,9 +25,10 @@ import {
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "./tenant-drawer";
+import { InvoiceRecordDrawer } from "./invoice-record-drawer";
 import { uploadTenantImage } from "./tenant-image-upload";
 import { entityUpdatedMessage } from "./toast-messages";
-import { getInvoiceLink, getTenantLink } from "../lib/entity-links";
+import { getTenantLink } from "../lib/entity-links";
 
 type RelatedTenant = {
   id: number;
@@ -56,6 +57,7 @@ function formatDate(value: Date | string | null) {
 
 export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantId }: TenantRecordDrawerProps) {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const [tenantForm, setTenantForm] = useState<TenantFormState>(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
@@ -113,7 +115,12 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
 
   return (
     <>
-      <Drawer onOpenChange={onOpenChange} open={open}>
+      <Drawer
+        onOpenChange={(nextOpen) => {
+          if (nextOpen || selectedInvoiceId === null) onOpenChange(nextOpen);
+        }}
+        open={open}
+      >
         <DrawerContent size="lg">
           <DrawerHeader className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -249,12 +256,13 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
                               <TableCell>{formatDate(invoice.dueOn)}</TableCell>
                               <TableCell>{formatCurrency(invoice.amountCents)}</TableCell>
                               <TableCell className="text-right">
-                                <Link
+                                <button
                                   className="font-semibold text-parcelis-green hover:underline"
-                                  href={getInvoiceLink(invoice.id)}
+                                  onClick={() => setSelectedInvoiceId(invoice.id)}
+                                  type="button"
                                 >
                                   View
-                                </Link>
+                                </button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -288,6 +296,13 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
         }}
         open={isEditDrawerOpen}
         submitLabel="Save Changes"
+      />
+      <InvoiceRecordDrawer
+        invoiceId={selectedInvoiceId}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setSelectedInvoiceId(null);
+        }}
+        open={selectedInvoiceId !== null}
       />
     </>
   );
