@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL ?? "http://127.0.0.1:30000";
+const port = process.env.PORT ?? "30000";
+const localBaseURL = `http://127.0.0.1:${port}`;
+const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL ?? localBaseURL;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -17,7 +19,8 @@ export default defineConfig({
     ? undefined
     : {
         command: "pnpm --filter @parcelis/web dev:fixed",
-        url: baseURL,
+        env: { PORT: port },
+        url: localBaseURL,
         reuseExistingServer: !process.env.CI,
       },
   projects: [
