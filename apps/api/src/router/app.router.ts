@@ -981,6 +981,23 @@ export const appRouter = router({
         const submittedExistingUnitIds = input.units
           .map((unit) => unit.id)
           .filter((unitId): unitId is number => Boolean(unitId && existingUnitIds.has(unitId)));
+        const removedUnitIds = existingUnits
+          .map((unit) => unit.id)
+          .filter((unitId) => !submittedExistingUnitIds.includes(unitId));
+
+        if (removedUnitIds.length > 0) {
+          const [lease, maintenanceTicket, note] = await Promise.all([
+            tx.lease.findFirst({ where: { unitId: { in: removedUnitIds } }, select: { id: true } }),
+            tx.maintenanceTicketUnit.findFirst({ where: { unitId: { in: removedUnitIds } }, select: { ticketId: true } }),
+            tx.note.findFirst({ where: { unitId: { in: removedUnitIds } }, select: { id: true } }),
+          ]);
+          if (lease || maintenanceTicket || note) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "Units with history cannot be deleted. Retain the unit to preserve its records.",
+            });
+          }
+        }
 
         await tx.unit.deleteMany({
           where: {
@@ -1052,12 +1069,31 @@ export const appRouter = router({
         })
         .then(withPropertyNotes);
     }),
-    /** Permanently deletes a property and its related operational records. */
+    /** Permanently deletes a property without financial history and its related operational records. */
     delete: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
       const property = await ctx.prisma.property.findFirstOrThrow({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         select: propertySelect,
       });
+
+      const [lease, invoice, application, maintenanceTicket, note, unitNote, activityEvent] = await Promise.all([
+        ctx.prisma.lease.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+        ctx.prisma.invoice.findFirst({
+          where: { organizationId: ctx.organization.organizationId, propertyId: input.id },
+          select: { id: true },
+        }),
+        ctx.prisma.application.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+        ctx.prisma.maintenanceTicket.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+        ctx.prisma.note.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+        ctx.prisma.note.findFirst({ where: { unit: { propertyId: input.id } }, select: { id: true } }),
+        ctx.prisma.activityEvent.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+      ]);
+      if (lease || invoice || application || maintenanceTicket || note || unitNote || activityEvent) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Properties with history cannot be deleted. Archive the property instead.",
+        });
+      }
 
       await ctx.prisma.$transaction([
         ctx.prisma.maintenanceTicket.deleteMany({
@@ -2824,7 +2860,7 @@ export const appRouter = router({
 
       return serializeUnit(unit);
     }),
-    /** Deletes a unit by its ID. */
+    /** Deletes a unit without lease, maintenance, or note history. */
     delete: publicProcedure.input(unitByIdInputSchema).mutation(async ({ ctx, input }) => {
       const unit = await ctx.prisma.unit.findFirstOrThrow({
         where: { id: input.id, property: { organizationId: ctx.organization.organizationId } },
@@ -2837,6 +2873,18 @@ export const appRouter = router({
           },
         },
       });
+
+      const [lease, maintenanceTicket, note] = await Promise.all([
+        ctx.prisma.lease.findFirst({ where: { unitId: input.id }, select: { id: true } }),
+        ctx.prisma.maintenanceTicketUnit.findFirst({ where: { unitId: input.id }, select: { ticketId: true } }),
+        ctx.prisma.note.findFirst({ where: { unitId: input.id }, select: { id: true } }),
+      ]);
+      if (lease || maintenanceTicket || note) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Units with history cannot be deleted. Retain the unit to preserve its records.",
+        });
+      }
 
       await ctx.prisma.unit.delete({ where: { id: input.id } });
 
