@@ -559,7 +559,7 @@ export default function PropertiesPage() {
             <AlertDialogTitle>Delete unit?</AlertDialogTitle>
             <AlertDialogDescription>
               This permanently deletes Unit {deleteUnitTarget?.unitLabel ?? ""}
-              {deleteUnitProperty ? ` from ${deleteUnitProperty.name}` : ""} and cannot be undone.
+              {deleteUnitProperty ? ` from ${deleteUnitProperty.name}` : ""} only when it has no history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -646,7 +646,8 @@ export default function PropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete property?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes {deletePropertyTarget?.name ?? "this property"} and cannot be undone.
+              This permanently deletes {deletePropertyTarget?.name ?? "this property"} only when it has no history.
+              Archive it to retain leases, invoices, and other records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

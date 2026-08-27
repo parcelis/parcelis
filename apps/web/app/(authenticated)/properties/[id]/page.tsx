@@ -271,7 +271,10 @@ export default function PropertyDetailPage() {
               }
               cancelDeleteLabel="Keep Property"
               deleteDescription={
-                <>This permanently deletes {property?.name ?? "this property"} and cannot be undone.</>
+                <>
+                  This permanently deletes {property?.name ?? "this property"} only when it has no history. Archive it to
+                  retain leases, invoices, and other records.
+                </>
               }
               entityLabel="property"
               isArchived={property?.status === "archived"}
