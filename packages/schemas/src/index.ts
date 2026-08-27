@@ -187,12 +187,14 @@ const unitNoteSubjectSchema = z.object({ unitId: idSchema }).strict();
 const tenantNoteSubjectSchema = z.object({ tenantId: idSchema }).strict();
 const maintenanceTicketNoteSubjectSchema = z.object({ maintenanceTicketId: idSchema }).strict();
 const applicationNoteSubjectSchema = z.object({ applicationId: idSchema }).strict();
+const invoiceNoteSubjectSchema = z.object({ invoiceId: idSchema }).strict();
 const noteSubjectSchemas = [
   propertyNoteSubjectSchema,
   unitNoteSubjectSchema,
   tenantNoteSubjectSchema,
   maintenanceTicketNoteSubjectSchema,
   applicationNoteSubjectSchema,
+  invoiceNoteSubjectSchema,
 ] as const;
 
 export const noteSubjectInputSchema = z.union(noteSubjectSchemas);

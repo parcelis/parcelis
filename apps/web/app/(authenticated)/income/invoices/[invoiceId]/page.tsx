@@ -211,6 +211,11 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
           </header>
         )}
         <div className={isEmbedded ? "p-0" : "parcelis-page-shell max-w-none"}>
+          {isEmbedded && invoice ? (
+            <div className="flex justify-end border-b border-parcelis-border bg-white p-4 dark:bg-parcelis-slate">
+              <InvoiceActions invoice={invoice} />
+            </div>
+          ) : null}
           {invoiceQuery.isLoading ? (
             <LoadingState label="Loading invoice…" />
           ) : invoiceQuery.error ? (

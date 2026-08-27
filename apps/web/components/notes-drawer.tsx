@@ -45,7 +45,8 @@ type NoteSubject =
   | { unitId: number }
   | { tenantId: number }
   | { maintenanceTicketId: number }
-  | { applicationId: number };
+  | { applicationId: number }
+  | { invoiceId: number };
 type NotesTab = "notes" | "files";
 
 const tabs: { value: NotesTab; label: string }[] = [

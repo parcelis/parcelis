@@ -431,11 +431,13 @@ model Note {
   tenantId            Int?
   maintenanceTicketId Int?
   applicationId       Int?
+  invoiceId           Int?
   property            Property?          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   unit                Unit?              @relation(fields: [unitId], references: [id], onDelete: Cascade)
   tenant              Tenant?            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   maintenanceTicket   MaintenanceTicket? @relation(fields: [maintenanceTicketId], references: [id], onDelete: Cascade)
   application         Application?       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  invoice             Invoice?           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   legacyProperty      Property?          @relation("PropertyLegacyNote")
   legacyTenant        Tenant?            @relation("TenantLegacyNote")
   createdAt           DateTime           @default(now())
@@ -448,6 +450,7 @@ model Note {
   @@index([tenantId, createdAt, id])
   @@index([maintenanceTicketId, createdAt, id])
   @@index([applicationId, createdAt, id])
+  @@index([invoiceId, createdAt, id])
 }
 
 model EmergencyContact {
@@ -519,6 +522,7 @@ model Invoice {
   paymentMethod  String?
   items          InvoiceItem[]
   payments       InvoicePayment[]   @relation("InvoicePaymentInvoice")
+  notes          Note[]
   lease          Lease              @relation("InvoiceLease", fields: [organizationId, leaseId, propertyId], references: [organizationId, id, propertyId], onDelete: Cascade)
   property       Property           @relation("InvoiceProperty", fields: [organizationId, propertyId], references: [organizationId, id])
   tenant         Tenant             @relation("InvoiceTenant", fields: [organizationId, tenantId], references: [organizationId, id])
