@@ -1,0 +1,36 @@
+packages/db/prisma/schema.prisma
+  s_5fda7f93dc618b::t_40e15349d012b8 433
+  s_5fda7f93dc618b::t_77b55fc79fa355 524
+  s_5fda7f93dc618b::t_75c5b222ebfb26 439,452
+apps/web/app/(authenticated)/income/invoices/[invoiceId]/page.tsx
+  s_5fda7f93dc618b::t_b779a514d1612f 214-218
+apps/docs/content/platform-user-guide/app-functionality/income-dashboard.mdx
+  s_5fda7f93dc618b::t_b779a514d1612f 30-31
+apps/web/components/invoice-actions.tsx
+  s_5fda7f93dc618b::t_b779a514d1612f 5,18,43,73-75,84-89
+packages/db/prisma/migrations/20260827000000_add_invoice_notes/migration.sql
+  s_5fda7f93dc618b::t_75c5b222ebfb26 1-2,14-17
+  s_5fda7f93dc618b::t_cebfc54a6deac8 3-13
+packages/schemas/src/index.ts
+  s_5fda7f93dc618b::t_75c5b222ebfb26 152,159
+apps/web/components/notes-drawer.tsx
+  s_5fda7f93dc618b::t_75c5b222ebfb26 48-49
+apps/api/src/router/app.router.ts
+  s_5fda7f93dc618b::t_b779a514d1612f 2540,2553,2561,2579-2582,2604
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d41032a475eea7d0460d1389cc40d9afd81a0665",
+  "prompts": {},
+  "sessions": {
+    "s_5fda7f93dc618b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0437c-7877-7442-85b7-e8a1f6e81974",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
