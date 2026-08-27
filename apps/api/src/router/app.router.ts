@@ -1612,7 +1612,7 @@ export const appRouter = router({
             select: { name: true, line1: true, line2: true, city: true, region: true, postalCode: true },
           },
           tenant: { select: { firstName: true, lastName: true } },
-          lease: { select: { unitLabel: true } },
+          lease: { select: { unit: { select: { name: true } } } },
           items: { orderBy: { id: "asc" } },
           payments: {
             orderBy: { paidOn: "desc" },
@@ -1632,8 +1632,12 @@ export const appRouter = router({
         phone: ctx.organization.organization.phone,
       };
       const fileName = `invoice-${String(invoice.invoiceNumber).padStart(7, "0")}.pdf`;
+      const pdfInvoice = {
+        ...invoice,
+        lease: { unitLabel: invoice.lease.unit.name },
+      };
       return {
-        contentBase64: (await renderInvoicePdf(invoice, organizationLogo, organization)).toString("base64"),
+        contentBase64: (await renderInvoicePdf(pdfInvoice, organizationLogo, organization)).toString("base64"),
         fileName,
       };
     }),
