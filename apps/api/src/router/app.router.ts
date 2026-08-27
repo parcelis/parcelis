@@ -944,89 +944,102 @@ export const appRouter = router({
       if (tags !== input.tagIds.length)
         throw new TRPCError({ code: "BAD_REQUEST", message: "Selected tags must belong to the active organization." });
       await validateUnitOptionIds(ctx.prisma, ctx.organization.organizationId, input.units);
-      const property = await ctx.prisma.$transaction(async (tx) => {
-        const currentProperty = await tx.property.findUniqueOrThrow({
-          where: { id: input.id },
-          select: { legacyNoteId: true },
-        });
-        const legacyNote =
-          input.notes === undefined
-            ? {}
-            : await synchronizePropertyLegacyNote(tx, input.id, currentProperty.legacyNoteId, input.notes);
-        const updatedProperty = await tx.property.update({
-          where: { id: input.id },
-          select: propertySelect,
-          data: {
-            name: input.name,
-            line1: input.address.line1,
-            line2: input.address.line2 ?? null,
-            city: input.address.city,
-            region: input.address.region,
-            postalCode: input.address.postalCode,
-            propertyType: input.propertyType,
-            tags: { set: input.tagIds.map((id) => ({ id })) },
-            contactName: input.contactName ?? null,
-            contactEmail: input.contactEmail ?? null,
-            contactPhone: input.contactPhone ?? null,
-            contactAddress: input.contactAddress ?? null,
-            ...legacyNote,
-            unitCount: input.unitCount,
-          },
-        });
-        const existingUnits = await tx.unit.findMany({
-          where: { propertyId: input.id },
-          select: { id: true },
-        });
-        const existingUnitIds = new Set(existingUnits.map((unit) => unit.id));
-        const submittedExistingUnitIds = input.units
-          .map((unit) => unit.id)
-          .filter((unitId): unitId is number => Boolean(unitId && existingUnitIds.has(unitId)));
-        const removedUnitIds = existingUnits
-          .map((unit) => unit.id)
-          .filter((unitId) => !submittedExistingUnitIds.includes(unitId));
-
-        if (removedUnitIds.length > 0) {
-          const [lease, maintenanceTicket, note] = await Promise.all([
-            tx.lease.findFirst({ where: { unitId: { in: removedUnitIds } }, select: { id: true } }),
-            tx.maintenanceTicketUnit.findFirst({ where: { unitId: { in: removedUnitIds } }, select: { ticketId: true } }),
-            tx.note.findFirst({ where: { unitId: { in: removedUnitIds } }, select: { id: true } }),
-          ]);
-          if (lease || maintenanceTicket || note) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "Units with history cannot be deleted. Retain the unit to preserve its records.",
+      const property = await ctx.prisma
+        .$transaction(
+          async (tx) => {
+            const currentProperty = await tx.property.findUniqueOrThrow({
+              where: { id: input.id },
+              select: { legacyNoteId: true },
             });
-          }
-        }
+            const legacyNote =
+              input.notes === undefined
+                ? {}
+                : await synchronizePropertyLegacyNote(tx, input.id, currentProperty.legacyNoteId, input.notes);
+            const updatedProperty = await tx.property.update({
+              where: { id: input.id },
+              select: propertySelect,
+              data: {
+                name: input.name,
+                line1: input.address.line1,
+                line2: input.address.line2 ?? null,
+                city: input.address.city,
+                region: input.address.region,
+                postalCode: input.address.postalCode,
+                propertyType: input.propertyType,
+                tags: { set: input.tagIds.map((id) => ({ id })) },
+                contactName: input.contactName ?? null,
+                contactEmail: input.contactEmail ?? null,
+                contactPhone: input.contactPhone ?? null,
+                contactAddress: input.contactAddress ?? null,
+                ...legacyNote,
+                unitCount: input.unitCount,
+              },
+            });
+            const existingUnits = await tx.unit.findMany({
+              where: { propertyId: input.id },
+              select: { id: true },
+            });
+            const existingUnitIds = new Set(existingUnits.map((unit) => unit.id));
+            const submittedExistingUnitIds = input.units
+              .map((unit) => unit.id)
+              .filter((unitId): unitId is number => Boolean(unitId && existingUnitIds.has(unitId)));
+            const removedUnitIds = existingUnits
+              .map((unit) => unit.id)
+              .filter((unitId) => !submittedExistingUnitIds.includes(unitId));
 
-        await tx.unit.deleteMany({
-          where: {
-            propertyId: input.id,
-            id: { notIn: submittedExistingUnitIds },
-          },
-        });
-
-        await Promise.all(
-          input.units.map(async (unit) => {
-            if (unit.id && existingUnitIds.has(unit.id)) {
-              await tx.unitUtility.deleteMany({
-                where: { unitId: unit.id },
-              });
-              await tx.unitAmenity.deleteMany({ where: { unitId: unit.id } });
-              await tx.unit.update({
-                where: { id: unit.id },
-                data: getUnitUpdateData(unit),
-              });
-              return;
+            if (removedUnitIds.length > 0) {
+              const [lease, maintenanceTicket, note] = await Promise.all([
+                tx.lease.findFirst({ where: { unitId: { in: removedUnitIds } }, select: { id: true } }),
+                tx.maintenanceTicketUnit.findFirst({
+                  where: { unitId: { in: removedUnitIds } },
+                  select: { ticketId: true },
+                }),
+                tx.note.findFirst({ where: { unitId: { in: removedUnitIds } }, select: { id: true } }),
+              ]);
+              if (lease || maintenanceTicket || note) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "Units with history cannot be deleted. Retain the unit to preserve its records.",
+                });
+              }
             }
 
-            await tx.unit.create({
-              data: getUnitCreateData(input.id, unit),
+            await tx.unit.deleteMany({
+              where: {
+                propertyId: input.id,
+                id: { notIn: submittedExistingUnitIds },
+              },
             });
-          }),
-        );
-        return updatedProperty;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+            await Promise.all(
+              input.units.map(async (unit) => {
+                if (unit.id && existingUnitIds.has(unit.id)) {
+                  await tx.unitUtility.deleteMany({
+                    where: { unitId: unit.id },
+                  });
+                  await tx.unitAmenity.deleteMany({ where: { unitId: unit.id } });
+                  await tx.unit.update({
+                    where: { id: unit.id },
+                    data: getUnitUpdateData(unit),
+                  });
+                  return;
+                }
+
+                await tx.unit.create({
+                  data: getUnitCreateData(input.id, unit),
+                });
+              }),
+            );
+            return updatedProperty;
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        )
+        .catch((error: unknown) => {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+            throw new TRPCError({ code: "CONFLICT", message: "The property changed. Please try again." });
+          }
+          throw error;
+        });
 
       return withPropertyNotes(property);
     }),
