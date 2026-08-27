@@ -1026,7 +1026,7 @@ export const appRouter = router({
           }),
         );
         return updatedProperty;
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       return withPropertyNotes(property);
     }),
@@ -1071,41 +1071,51 @@ export const appRouter = router({
     }),
     /** Permanently deletes a property without financial history and its related operational records. */
     delete: publicProcedure.input(propertyByIdInputSchema).mutation(async ({ ctx, input }) => {
-      const property = await ctx.prisma.property.findFirstOrThrow({
-        where: { id: input.id, organizationId: ctx.organization.organizationId },
-        select: propertySelect,
-      });
+      try {
+        const property = await ctx.prisma.$transaction(
+          async (tx) => {
+            const property = await tx.property.findFirstOrThrow({
+              where: { id: input.id, organizationId: ctx.organization.organizationId },
+              select: propertySelect,
+            });
 
-      const [lease, invoice, application, maintenanceTicket, note, unitNote, activityEvent] = await Promise.all([
-        ctx.prisma.lease.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
-        ctx.prisma.invoice.findFirst({
-          where: { organizationId: ctx.organization.organizationId, propertyId: input.id },
-          select: { id: true },
-        }),
-        ctx.prisma.application.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
-        ctx.prisma.maintenanceTicket.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
-        ctx.prisma.note.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
-        ctx.prisma.note.findFirst({ where: { unit: { propertyId: input.id } }, select: { id: true } }),
-        ctx.prisma.activityEvent.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
-      ]);
-      if (lease || invoice || application || maintenanceTicket || note || unitNote || activityEvent) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Properties with history cannot be deleted. Archive the property instead.",
-        });
+            const [lease, invoice, application, maintenanceTicket, note, unitNote, activityEvent] = await Promise.all([
+              tx.lease.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+              tx.invoice.findFirst({
+                where: { organizationId: ctx.organization.organizationId, propertyId: input.id },
+                select: { id: true },
+              }),
+              tx.application.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+              tx.maintenanceTicket.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+              tx.note.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+              tx.note.findFirst({ where: { unit: { propertyId: input.id } }, select: { id: true } }),
+              tx.activityEvent.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
+            ]);
+            if (lease || invoice || application || maintenanceTicket || note || unitNote || activityEvent) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Properties with history cannot be deleted. Archive the property instead.",
+              });
+            }
+
+            await tx.maintenanceTicket.deleteMany({ where: { propertyId: input.id } });
+            await tx.application.deleteMany({ where: { propertyId: input.id } });
+            await tx.lease.deleteMany({ where: { propertyId: input.id } });
+            await tx.unit.deleteMany({ where: { propertyId: input.id } });
+            await tx.property.delete({ where: { id: input.id } });
+
+            return property;
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+
+        return withPropertyNotes(property);
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+          throw new TRPCError({ code: "CONFLICT", message: "The property changed. Please try again." });
+        }
+        throw error;
       }
-
-      await ctx.prisma.$transaction([
-        ctx.prisma.maintenanceTicket.deleteMany({
-          where: { propertyId: input.id },
-        }),
-        ctx.prisma.application.deleteMany({ where: { propertyId: input.id } }),
-        ctx.prisma.lease.deleteMany({ where: { propertyId: input.id } }),
-        ctx.prisma.unit.deleteMany({ where: { propertyId: input.id } }),
-        ctx.prisma.property.delete({ where: { id: input.id } }),
-      ]);
-
-      return withPropertyNotes(property);
     }),
     /** Updates the notes stored on a property. */
     updateNotes: publicProcedure.input(propertyNotesInputSchema).mutation(async ({ ctx, input }) => {
@@ -2862,33 +2872,47 @@ export const appRouter = router({
     }),
     /** Deletes a unit without lease, maintenance, or note history. */
     delete: publicProcedure.input(unitByIdInputSchema).mutation(async ({ ctx, input }) => {
-      const unit = await ctx.prisma.unit.findFirstOrThrow({
-        where: { id: input.id, property: { organizationId: ctx.organization.organizationId } },
-        include: {
-          amenities: {
-            select: { option: { select: { id: true, label: true } } },
-          },
-          utilities: {
-            select: { option: { select: { id: true, label: true } } },
-          },
-        },
-      });
+      try {
+        const unit = await ctx.prisma.$transaction(
+          async (tx) => {
+            const unit = await tx.unit.findFirstOrThrow({
+              where: { id: input.id, property: { organizationId: ctx.organization.organizationId } },
+              include: {
+                amenities: {
+                  select: { option: { select: { id: true, label: true } } },
+                },
+                utilities: {
+                  select: { option: { select: { id: true, label: true } } },
+                },
+              },
+            });
 
-      const [lease, maintenanceTicket, note] = await Promise.all([
-        ctx.prisma.lease.findFirst({ where: { unitId: input.id }, select: { id: true } }),
-        ctx.prisma.maintenanceTicketUnit.findFirst({ where: { unitId: input.id }, select: { ticketId: true } }),
-        ctx.prisma.note.findFirst({ where: { unitId: input.id }, select: { id: true } }),
-      ]);
-      if (lease || maintenanceTicket || note) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Units with history cannot be deleted. Retain the unit to preserve its records.",
-        });
+            const [lease, maintenanceTicket, note] = await Promise.all([
+              tx.lease.findFirst({ where: { unitId: input.id }, select: { id: true } }),
+              tx.maintenanceTicketUnit.findFirst({ where: { unitId: input.id }, select: { ticketId: true } }),
+              tx.note.findFirst({ where: { unitId: input.id }, select: { id: true } }),
+            ]);
+            if (lease || maintenanceTicket || note) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Units with history cannot be deleted. Retain the unit to preserve its records.",
+              });
+            }
+
+            await tx.unit.delete({ where: { id: input.id } });
+
+            return unit;
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+
+        return serializeUnit(unit);
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+          throw new TRPCError({ code: "CONFLICT", message: "The unit changed. Please try again." });
+        }
+        throw error;
       }
-
-      await ctx.prisma.unit.delete({ where: { id: input.id } });
-
-      return serializeUnit(unit);
     }),
   }),
 });
