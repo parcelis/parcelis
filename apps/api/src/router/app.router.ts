@@ -674,7 +674,7 @@ export const appRouter = router({
   })),
 
   properties: router({
-    /** Lists up to 50 properties with units, lease metrics, and maintenance metrics. */
+    /** Lists properties with units, lease metrics, and maintenance metrics. */
     list: publicProcedure.query(async ({ ctx }) => {
       await synchronizeOverdueInvoices(ctx.prisma);
       const properties = await ctx.prisma.property.findMany({
@@ -740,7 +740,6 @@ export const appRouter = router({
           },
         },
         orderBy: { name: "asc" },
-        take: 50,
       });
 
       return Promise.all(
@@ -1181,7 +1180,6 @@ export const appRouter = router({
           },
         },
         orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-        take: 100,
       });
 
       return Promise.all(
@@ -1221,6 +1219,7 @@ export const appRouter = router({
                   unit: { select: { name: true } },
                   property: { select: { id: true, name: true } },
                   invoices: {
+                    where: { tenantId: input.id },
                     select: {
                       id: true,
                       status: true,

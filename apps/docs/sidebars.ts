@@ -43,6 +43,8 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/app-functionality/unit-details",
             "platform-user-guide/app-functionality/property-details",
             "platform-user-guide/app-functionality/maintenance",
+            "platform-user-guide/app-functionality/lease-dashboard",
+            "platform-user-guide/app-functionality/lease-details",
             "platform-user-guide/app-functionality/income-dashboard",
             "platform-user-guide/app-functionality/add-a-tenant",
             "platform-user-guide/app-functionality/tenant-directory",

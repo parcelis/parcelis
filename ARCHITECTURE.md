@@ -118,20 +118,24 @@ Property
   |    |- UnitUtility -> UtilityType
   |    |- UnitAmenity -> AmenityType
   |    `- Note
-  |- Lease -> Tenant
+  |- Lease -> Unit
   |- MaintenanceTicket
   |- Tag (many-to-many)
   `- Note
 
+Lease
+  |- LeaseTenant -> Tenant
+  `- Invoice
+
 Tenant
   |- EmergencyContact
-  |- Lease
+  |- LeaseTenant -> Lease
   `- Note
 ```
 
 - An organization owns operational records. Membership gives a user access to an organization and records the organization-level role; users also retain a default organization and sessions retain an active organization.
 - A property holds its address, operational status, contacts, units, leases, tags, and maintenance tickets.
-- A lease connects a tenant to a property unit label and holds rent, balance, dates, and lease status.
+- A lease belongs to a property and unit, supports one or more tenants, and holds rent, dates, and lease status.
 - Notes belong to exactly one property, unit, or tenant.
 - Organization, property, and tenant images are stored as object keys in PostgreSQL; the image bytes live in object storage. Object keys are partitioned by organization.
 
