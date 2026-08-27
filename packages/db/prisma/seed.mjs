@@ -269,7 +269,7 @@ async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balan
         },
       },
       payments: {
-        create: payments.map((payment) => ({ ...payment, tenantId })),
+        create: payments,
       },
     },
   });
