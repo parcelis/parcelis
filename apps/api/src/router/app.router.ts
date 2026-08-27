@@ -2726,6 +2726,10 @@ export const appRouter = router({
           if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034")) {
             throw error;
           }
+
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+          }
         }
       }
 

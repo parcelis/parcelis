@@ -522,7 +522,7 @@ model Invoice {
   property       Property           @relation("InvoiceProperty", fields: [organizationId, propertyId], references: [organizationId, id])
   tenant         Tenant             @relation("InvoiceTenant", fields: [organizationId, tenantId], references: [organizationId, id])
   paidByTenant   Tenant?            @relation("InvoicePaidByTenant", fields: [organizationId, paidByTenantId], references: [organizationId, id], onDelete: SetNull)
-  leaseTenant    LeaseTenant        @relation("InvoiceLeaseTenant", fields: [organizationId, leaseId, tenantId], references: [organizationId, leaseId, tenantId], onDelete: Cascade)
+  leaseTenant    LeaseTenant        @relation("InvoiceLeaseTenant", fields: [organizationId, leaseId, tenantId], references: [organizationId, leaseId, tenantId], onDelete: Restrict)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
