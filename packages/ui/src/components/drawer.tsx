@@ -19,6 +19,7 @@ const drawerSizeClasses: Record<DrawerSize, string> = {
 };
 
 const DrawerContext = React.createContext<DrawerContextValue | null>(null);
+const openDrawerIds: symbol[] = [];
 
 function useDrawer() {
   const context = React.useContext(DrawerContext);
@@ -37,17 +38,22 @@ export function Drawer({
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+
   React.useEffect(() => {
     if (!open) {
       return;
     }
 
+    const drawerId = Symbol("drawer");
+    openDrawerIds.push(drawerId);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onOpenChange(false);
+      if (event.key === "Escape" && openDrawerIds[openDrawerIds.length - 1] === drawerId) {
+        onOpenChangeRef.current(false);
       }
     }
 
@@ -55,8 +61,10 @@ export function Drawer({
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
+      const drawerIndex = openDrawerIds.indexOf(drawerId);
+      if (drawerIndex >= 0) openDrawerIds.splice(drawerIndex, 1);
     };
-  }, [onOpenChange, open]);
+  }, [open]);
 
   return <DrawerContext.Provider value={{ open, onOpenChange }}>{children}</DrawerContext.Provider>;
 }

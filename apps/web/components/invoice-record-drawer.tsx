@@ -1,7 +1,7 @@
 "use client";
 
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from "@parcelis/ui";
-import { InvoiceDetailView } from "../app/(authenticated)/income/invoices/[invoiceId]/page";
+import { InvoiceDetailView } from "./invoice-detail-view";
 
 type InvoiceRecordDrawerProps = {
   invoiceId: number | null;

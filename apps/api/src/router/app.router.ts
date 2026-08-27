@@ -2843,6 +2843,7 @@ export const appRouter = router({
             { unit: { property: { organizationId: ctx.organization.organizationId } } },
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
             { application: { organizationId: ctx.organization.organizationId } },
+            { invoice: { organizationId: ctx.organization.organizationId } },
           ],
         },
       });
