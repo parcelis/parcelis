@@ -61,7 +61,8 @@ export const updateUserProfileByIdInputSchema = updateUserProfileInputSchema.ext
     .trim()
     .email()
     .max(254)
-    .transform((email) => email.toLowerCase()),
+    .transform((email) => email.toLowerCase())
+    .optional(),
 });
 export const userProfileImageUploadInputSchema = z.object({
   id: idSchema,

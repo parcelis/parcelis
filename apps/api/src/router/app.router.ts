@@ -658,11 +658,22 @@ export const appRouter = router({
       return { ...profile, imageUrl: await createUserProfileImageDownloadUrl(profileImageObjectKey) };
     }),
     updateProfile: publicProcedure.input(updateUserProfileByIdInputSchema).mutation(async ({ ctx, input }) => {
-      if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+      const isOwnProfile = input.id === ctx.user.id;
+      if (!isOwnProfile) requireOrganizationAdministrator(ctx.organization.role);
+      if (isOwnProfile && input.email !== undefined) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Change your sign-in email from your profile settings.",
+        });
+      }
       try {
         return await ctx.prisma.user.update({
           where: { id: input.id },
-          data: { name: input.name, email: input.email, phone: input.phone || null },
+          data: {
+            name: input.name,
+            ...(input.email === undefined ? {} : { email: input.email }),
+            phone: input.phone || null,
+          },
           select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
         });
       } catch (error) {

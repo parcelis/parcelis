@@ -10,6 +10,7 @@ import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { LoadingState } from "../../../../../components/loading-state";
 import { SettingsRail } from "../../../../../components/settings-rail";
 import { ImageUploadPanel } from "../../../../../components/image-upload-panel";
+import { AccountInfoCard } from "../../../../../components/account-info-card";
 import { deleteUserProfileImage, uploadUserProfileImage } from "../../../../../components/user-profile-image-upload";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -56,11 +57,18 @@ export default function UserProfilePage() {
     setPhone(user.phone ?? "");
   }, [profileQuery.data]);
 
+  const isOwnProfile = currentUserQuery.data?.user.id === userId;
+  const canEditEmail = !isOwnProfile && currentUserQuery.data?.user.role === "administrator";
   const updateProfileMutation = useMutation({
     scope: { id: `user-profile-${userId}` },
     mutationFn: async () => {
       if (profileImageFile) await uploadUserProfileImage(userId, profileImageFile);
-      return apiClient.users.updateProfile.mutate({ id: userId, name, email, phone: phone.trim() || null });
+      return apiClient.users.updateProfile.mutate({
+        id: userId,
+        name,
+        ...(canEditEmail ? { email } : {}),
+        phone: phone.trim() || null,
+      });
     },
     onSuccess: async () => {
       setProfileImageFile(null);
@@ -84,7 +92,6 @@ export default function UserProfilePage() {
     },
   });
   const isProfileChangePending = updateProfileMutation.isPending || deleteProfileImageMutation.isPending;
-  const isOwnProfile = currentUserQuery.data?.user.id === userId;
 
   return (
     <main className="flex-1">
@@ -118,7 +125,9 @@ export default function UserProfilePage() {
                     <div>
                       <h2 className="font-semibold text-parcelis-charcoal">Personal details</h2>
                       <p className="mt-1 text-sm text-parcelis-gray">
-                        Update the name, email address, and phone number.
+                        {canEditEmail
+                          ? "Update the name, email address, and phone number."
+                          : "Update the name and phone number."}
                       </p>
                     </div>
                     <CircleUserRound className="h-5 w-5 text-parcelis-green" />
@@ -158,16 +167,18 @@ export default function UserProfilePage() {
                             value={name}
                           />
                         </Label>
-                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
-                          Email
-                          <Input
-                            className="mt-1"
-                            onChange={(event) => setEmail(event.target.value)}
-                            required
-                            type="email"
-                            value={email}
-                          />
-                        </Label>
+                        {canEditEmail ? (
+                          <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
+                            Email
+                            <Input
+                              className="mt-1"
+                              onChange={(event) => setEmail(event.target.value)}
+                              required
+                              type="email"
+                              value={email}
+                            />
+                          </Label>
+                        ) : null}
                         <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
                           Phone
                           <Input
@@ -196,6 +207,18 @@ export default function UserProfilePage() {
                   )}
                 </CardContent>
               </Card>
+              {isOwnProfile ? (
+                <AccountInfoCard
+                  email={profileQuery.data?.email ?? ""}
+                  onEmailChanged={async () => {
+                    await Promise.all([
+                      queryClient.invalidateQueries({ queryKey: ["users", "profile", userId] }),
+                      queryClient.invalidateQueries({ queryKey: queryKeys.users.list }),
+                      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me }),
+                    ]);
+                  }}
+                />
+              ) : null}
             </div>
           </div>
         </div>
