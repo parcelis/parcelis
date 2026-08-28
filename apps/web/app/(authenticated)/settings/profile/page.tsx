@@ -28,7 +28,7 @@ export default function ProfileSettingsPage() {
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [profileImageFile, setProfileImageFile] = React.useState<File | null>(null);
-  const initializedUserIdRef = React.useRef<string | null>(null);
+  const initializedUserIdRef = React.useRef<number | null>(null);
   const profileImagePreviewUrl = React.useMemo(
     () => (profileImageFile ? URL.createObjectURL(profileImageFile) : null),
     [profileImageFile],
