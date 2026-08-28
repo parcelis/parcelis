@@ -1,0 +1,89 @@
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_3bae4ecafd491b::t_356076288db84d 41,47
+apps/web/app/(authenticated)/income/invoices/[invoiceId]/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 29
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_3bae4ecafd491b::t_356076288db84d 40,51
+apps/web/components/notes-drawer.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 40
+apps/web/components/record-payment-drawer.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 24
+apps/web/components/lease-drawer.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 19
+apps/web/components/image-upload-panel.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 6
+apps/web/lib/api-client.ts
+  s_3bae4ecafd491b::t_82369a67d9b88e 21-30,35
+  s_3bae4ecafd491b::t_f2969548952377 10-11
+apps/web/components/sidebar.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 45
+apps/web/app/(authenticated)/properties/page.tsx
+  s_3bae4ecafd491b::t_356076288db84d 67,78
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_3bae4ecafd491b::t_356076288db84d 9
+apps/web/app/(authenticated)/applications/[id]/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 26,31
+apps/web/lib/image-upload.ts
+  s_3bae4ecafd491b::t_82369a67d9b88e 11
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_3bae4ecafd491b::t_356076288db84d 10-11
+apps/web/app/(authenticated)/tenants/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 51
+  s_3bae4ecafd491b::t_356076288db84d 62
+apps/web/app/(authenticated)/applications/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 24,29
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 51,58
+apps/web/app/(authenticated)/leases/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 24
+apps/web/components/tenant-record-drawer.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 25,29
+apps/web/app/(authenticated)/settings/page.tsx
+  s_3bae4ecafd491b::t_356076288db84d 47
+apps/web/components/maintenance-drawer.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 41
+apps/web/app/(authenticated)/settings/profile/page.tsx
+  s_3bae4ecafd491b::t_356076288db84d 8
+apps/web/components/property-drawer.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 48
+apps/web/components/property-image-upload.ts
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 1-2
+apps/web/components/tenant-image-upload.ts
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 1,7
+apps/web/components/maintenance-image-upload.ts
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 1,7
+apps/web/components/edit-invoice-drawer.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 23
+apps/web/app/(authenticated)/income/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 22
+apps/web/app/(authenticated)/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 11,14
+apps/web/components/invoice-actions.tsx
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 20
+apps/web/components/user-profile-image-upload.ts
+  s_3bae4ecafd491b::t_4ea0369bf0cc39 1-2
+apps/web/app/login/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 10
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 23
+apps/web/app/(authenticated)/maintenance/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 53,58
+apps/web/app/(authenticated)/maintenance/[id]/page.tsx
+  s_3bae4ecafd491b::t_41c11b8c9bda21 43,48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "fceb5afc8e11f0d656da5947feffd08c2895abb1",
+  "prompts": {},
+  "sessions": {
+    "s_3bae4ecafd491b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a048f8-5f0e-7653-ae50-1f9fef81f516",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
