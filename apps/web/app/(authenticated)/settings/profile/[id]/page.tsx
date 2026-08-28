@@ -62,13 +62,14 @@ export default function UserProfilePage() {
   const updateProfileMutation = useMutation({
     scope: { id: `user-profile-${userId}` },
     mutationFn: async () => {
-      if (profileImageFile) await uploadUserProfileImage(userId, profileImageFile);
-      return apiClient.users.updateProfile.mutate({
+      const profile = await apiClient.users.updateProfile.mutate({
         id: userId,
         name,
         ...(canEditEmail ? { email } : {}),
         phone: phone.trim() || null,
       });
+      if (profileImageFile) await uploadUserProfileImage(userId, profileImageFile);
+      return profile;
     },
     onSuccess: async () => {
       setProfileImageFile(null);
