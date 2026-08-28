@@ -79,7 +79,7 @@ function abortObjectBody(body: unknown) {
 async function createImageUploadUrl(objectKey: string, contentType: ImageContentType) {
   const config = getObjectStorageConfig();
   const { fields, url: uploadUrl } = await createPresignedPost(
-    createObjectStorageClient(),
+    createObjectStorageClient(config.publicEndpoint),
     {
       Bucket: config.bucket,
       Conditions: [
