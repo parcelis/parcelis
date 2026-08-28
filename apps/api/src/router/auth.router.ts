@@ -1,4 +1,9 @@
-import { authLoginInputSchema, authRegisterInputSchema, changePasswordInputSchema } from "@parcelis/schemas";
+import {
+  authLoginInputSchema,
+  authRegisterInputSchema,
+  changePasswordInputSchema,
+  updateUserProfileInputSchema,
+} from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -115,6 +120,21 @@ export const authRouter = router({
     ]);
     clearLoginRateLimit(rateLimitKey);
     return { success: true };
+  }),
+
+  updateProfile: protectedProcedure.input(updateUserProfileInputSchema).mutation(async ({ ctx, input }) => {
+    try {
+      return await ctx.prisma.user.update({
+        where: { id: ctx.user.id },
+        data: { name: input.name, email: input.email, phone: input.phone || null },
+        select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+      }
+      throw error;
+    }
   }),
 
   logout: publicProcedure.mutation(async ({ ctx }) => {

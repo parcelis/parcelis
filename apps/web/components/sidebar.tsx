@@ -518,6 +518,12 @@ function SidebarContent({ active }: SidebarProps) {
             </span>
           </div>
           <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/settings/profile">
+              <CircleUserRound className="h-4 w-4 shrink-0" />
+              My Profile
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setIsChangePasswordOpen(true)}>
             <KeyRound className="h-4 w-4 shrink-0" />
             Change password

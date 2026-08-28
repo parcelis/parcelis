@@ -51,6 +51,7 @@ import {
   updateNoteInputSchema,
   updatePropertyInputSchema,
   updateUserInputSchema,
+  updateUserProfileByIdInputSchema,
   userAccountStatusInputSchema,
   deleteUserInputSchema,
   switchOrganizationInputSchema,
@@ -633,6 +634,28 @@ export const appRouter = router({
         select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
         orderBy: { createdAt: "asc" },
       });
+    }),
+    profile: publicProcedure.input(deleteUserInputSchema).query(({ ctx, input }) => {
+      if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+      return ctx.prisma.user.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+      });
+    }),
+    updateProfile: publicProcedure.input(updateUserProfileByIdInputSchema).mutation(async ({ ctx, input }) => {
+      if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+      try {
+        return await ctx.prisma.user.update({
+          where: { id: input.id },
+          data: { name: input.name, email: input.email, phone: input.phone || null },
+          select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+        }
+        throw error;
+      }
     }),
     update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
       requireAdministrator(ctx.user.role as UserRole);

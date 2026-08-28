@@ -41,6 +41,17 @@ export const updateUserInputSchema = z.object({
   phone: z.string().trim().max(50).nullable(),
   role: userRoleSchema,
 });
+export const updateUserProfileInputSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
+  phone: z.string().trim().max(50).nullable(),
+});
+export const updateUserProfileByIdInputSchema = updateUserProfileInputSchema.extend({ id: idSchema });
 export const userAccountStatusInputSchema = z.object({
   id: idSchema,
   accountStatus: userAccountStatusSchema,

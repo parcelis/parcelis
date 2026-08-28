@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   EllipsisVertical,
   Mail,
@@ -116,6 +117,7 @@ function UserActionsMenu({
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const currentUserQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -360,8 +362,12 @@ export default function SettingsPage() {
                       <TableBody>
                         {users.map((user) => (
                           <TableRow
-                            className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
+                            className="cursor-pointer border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
                             key={user.id}
+                            onClick={(event) => {
+                              if ((event.target as HTMLElement).closest("a, button")) return;
+                              router.push(`/settings/profile/${user.id}`);
+                            }}
                           >
                             <TableCell className="px-5 py-4">
                               <div className="flex items-center gap-3">
