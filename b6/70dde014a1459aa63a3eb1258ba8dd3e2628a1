@@ -1,0 +1,22 @@
+apps/web/components/invoice-actions.tsx
+  s_5e8227e6b6a276::t_a798fa94eae73c 5,19,44-81,87-89,91-92,100-101,103-104,106-115,123-135,137,139,173-175
+apps/web/components/invoice-pdf-viewer.tsx
+  s_5e8227e6b6a276::t_a798fa94eae73c 19-20,22,45-47,71-72,119,125,144,148
+  s_5e8227e6b6a276::t_90fea73d9fb4e6 48-70,73-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b670dde014a1459aa63a3eb1258ba8dd3e2628a1",
+  "prompts": {},
+  "sessions": {
+    "s_5e8227e6b6a276": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a044e7-541a-75d1-a061-7d573538a9fe",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
