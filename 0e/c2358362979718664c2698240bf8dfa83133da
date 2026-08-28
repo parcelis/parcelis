@@ -1,0 +1,19 @@
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_935098b4fa3454::t_b34c596a640a27 65,71-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "0ec2358362979718664c2698240bf8dfa83133da",
+  "prompts": {},
+  "sessions": {
+    "s_935098b4fa3454": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a049cb-4edb-72f1-b682-238d0a8b26d2",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
