@@ -57,6 +57,6 @@ body:
       label: 🙋 Contributor Interest
       options:
         - label: I would like to help implement this feature.
-        - label: I am just suggestiong a feature.
+        - label: I am just suggesting a feature.
     validations:
       required: true
