@@ -123,7 +123,10 @@ export default function ProfileSettingsPage() {
                           alt="Profile photo"
                           imagePreviewUrl={profileImagePreviewUrl ?? currentUserQuery.data?.user.imageUrl ?? null}
                           isDeletePending={isProfileChangePending}
-                          onDelete={() => deleteProfileImageMutation.mutate()}
+                          onDelete={() => {
+                            if (profileImageFile) setProfileImageFile(null);
+                            else deleteProfileImageMutation.mutate();
+                          }}
                           onImageChange={setProfileImageFile}
                           title="Profile photo"
                         />
