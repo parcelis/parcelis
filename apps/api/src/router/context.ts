@@ -13,7 +13,20 @@ export function createContext(prisma: PrismaService) {
             revokedAt: null,
             user: { accountStatus: "active" },
           },
-          include: { user: { select: { id: true, name: true, email: true, role: true, accountStatus: true, defaultOrganizationId: true } } },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                profileImageObjectKey: true,
+                role: true,
+                accountStatus: true,
+                defaultOrganizationId: true,
+              },
+            },
+          },
         })
       : null;
 

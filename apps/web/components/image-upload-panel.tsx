@@ -1,15 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { ImagePlus, Replace, Trash2 } from "lucide-react";
+import { ImagePlus, Replace, Trash2, X } from "lucide-react";
 import Image from "next/image";
-
-const defaultSupportedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+import { imageContentTypes } from "./image-upload";
 
 type ImageUploadPanelProps = {
   alt: string;
   acceptedImageDescription?: string;
   acceptedImageTypes?: readonly string[];
+  hasPendingImage?: boolean;
   imagePreviewUrl: string | null;
   isDeletePending?: boolean;
   onDelete: () => void;
@@ -23,7 +23,8 @@ type ImageUploadPanelProps = {
 export function ImageUploadPanel({
   alt,
   acceptedImageDescription = "JPG, PNG, WebP, or GIF",
-  acceptedImageTypes = defaultSupportedImageTypes,
+  acceptedImageTypes = imageContentTypes,
+  hasPendingImage = false,
   imagePreviewUrl,
   isDeletePending = false,
   onDelete,
@@ -95,9 +96,7 @@ export function ImageUploadPanel({
           ) : (
             <>
               <ImagePlus className="h-6 w-6 text-parcelis-green" />
-              <span className={`mt-3 text-sm font-semibold ${emptyStateTitleClassName}`}>
-                Upload image
-              </span>
+              <span className={`mt-3 text-sm font-semibold ${emptyStateTitleClassName}`}>Upload image</span>
               <span className={`mt-1 px-3 text-xs ${emptyStateDescriptionClassName}`}>{acceptedImageDescription}</span>
             </>
           )}
@@ -118,8 +117,8 @@ export function ImageUploadPanel({
               onClick={onDelete}
               type="button"
             >
-              <Trash2 className="h-4 w-4" />
-              Delete image
+              {hasPendingImage ? <X className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+              {hasPendingImage ? "Discard image" : "Delete image"}
             </button>
           </div>
         ) : null}

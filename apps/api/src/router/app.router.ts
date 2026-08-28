@@ -51,12 +51,15 @@ import {
   updateNoteInputSchema,
   updatePropertyInputSchema,
   updateUserInputSchema,
+  updateUserProfileByIdInputSchema,
+  userProfileImageUploadCompleteInputSchema,
+  userProfileImageUploadInputSchema,
   userAccountStatusInputSchema,
   deleteUserInputSchema,
   switchOrganizationInputSchema,
   updateOrganizationInputSchema,
-  organizationAvatarMaxSizeBytes,
-  organizationAvatarMaxSizeMessage,
+  imageUploadMaxSizeBytes,
+  imageUploadMaxSizeMessage,
   organizationAvatarUploadCompleteInputSchema,
   organizationAvatarUploadInputSchema,
   deleteOrganizationAvatarInputSchema,
@@ -74,7 +77,7 @@ import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
   createOrganizationAvatarUploadUrl,
-  assertOrganizationAvatarObjectSize,
+  assertImageObjectSize,
   ObjectExceedsMaximumSizeError,
   createPropertyImageUploadUrl,
   createMaintenanceImageDownloadUrl,
@@ -84,6 +87,9 @@ import {
   createTenantImageDownloadUrl,
   createTenantImageUploadUrl,
   deleteTenantImageObject,
+  createUserProfileImageDownloadUrl,
+  createUserProfileImageUploadUrl,
+  deleteUserProfileImageObject,
   getObjectBuffer,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
@@ -116,6 +122,22 @@ const propertySelect = {
 
 const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(LeaseStatus)];
 const openEndedLeaseInvoiceHorizonMonths = 12;
+
+async function verifyImageUpload(objectKey: string) {
+  try {
+    await assertImageObjectSize(objectKey);
+  } catch (error) {
+    if (error instanceof ObjectExceedsMaximumSizeError) {
+      await deletePropertyImageObject(objectKey).catch(() => undefined);
+      throw new TRPCError({ code: "BAD_REQUEST", message: imageUploadMaxSizeMessage });
+    }
+    console.error("Failed to validate image upload.", { error, objectKey });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "The image upload could not be verified. Please upload it again.",
+    });
+  }
+}
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
   return unitType === "Commercial" ? UnitType.commercial : UnitType.residential;
@@ -425,6 +447,20 @@ async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Pris
   }
 }
 
+async function assertUserHasOrganizationMembership(
+  prisma: PrismaClient | Prisma.TransactionClient,
+  userId: number,
+  organizationId: number,
+) {
+  const membership = await prisma.organizationMembership.findUnique({
+    where: { userId_organizationId: { userId, organizationId } },
+    select: { userId: true },
+  });
+  if (!membership) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Organization access is required." });
+  }
+}
+
 async function transferSoleOrganizationOwnership(
   prisma: PrismaClient | Prisma.TransactionClient,
   userId: number,
@@ -576,22 +612,7 @@ export const appRouter = router({
         if (!input.objectKey.startsWith(objectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid organization avatar object key." });
         }
-        try {
-          await assertOrganizationAvatarObjectSize(input.objectKey);
-        } catch (error) {
-          if (error instanceof ObjectExceedsMaximumSizeError) {
-            await deletePropertyImageObject(input.objectKey).catch(() => undefined);
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: organizationAvatarMaxSizeMessage,
-            });
-          }
-          console.error("Failed to validate organization avatar upload.", { error, objectKey: input.objectKey });
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "The organization avatar upload could not be verified. Please upload it again.",
-          });
-        }
+        await verifyImageUpload(input.objectKey);
         const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
           where: { id: ctx.organization.organizationId },
           select: { avatarObjectKey: true, darkAvatarObjectKey: true },
@@ -630,8 +651,119 @@ export const appRouter = router({
     list: publicProcedure.query(({ ctx }) => {
       requireAdministrator(ctx.user.role as UserRole);
       return ctx.prisma.user.findMany({
+        where: {
+          organizationMemberships: {
+            some: { organizationId: ctx.organization.organizationId },
+          },
+        },
         select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
         orderBy: { createdAt: "asc" },
+      });
+    }),
+    profile: publicProcedure.input(deleteUserInputSchema).query(async ({ ctx, input }) => {
+      if (input.id !== ctx.user.id) {
+        requireOrganizationAdministrator(ctx.organization.role);
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+      }
+      const user = await ctx.prisma.user.findUniqueOrThrow({
+        where: { id: input.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          profileImageObjectKey: true,
+          role: true,
+          accountStatus: true,
+        },
+      });
+      const { profileImageObjectKey, ...profile } = user;
+      return { ...profile, imageUrl: await createUserProfileImageDownloadUrl(profileImageObjectKey) };
+    }),
+    updateProfile: publicProcedure.input(updateUserProfileByIdInputSchema).mutation(async ({ ctx, input }) => {
+      const isOwnProfile = input.id === ctx.user.id;
+      if (!isOwnProfile) {
+        requireOrganizationAdministrator(ctx.organization.role);
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+      }
+      if (isOwnProfile && input.email !== undefined) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Change your sign-in email from your profile settings.",
+        });
+      }
+      try {
+        return await ctx.prisma.user.update({
+          where: { id: input.id },
+          data: {
+            name: input.name,
+            ...(input.email === undefined ? {} : { email: input.email }),
+            phone: input.phone || null,
+          },
+          select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+        }
+        throw error;
+      }
+    }),
+    createProfileImageUploadUrl: publicProcedure
+      .input(userProfileImageUploadInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        if (input.id !== ctx.user.id) {
+          requireOrganizationAdministrator(ctx.organization.role);
+          await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+        }
+        await ctx.prisma.user.findUniqueOrThrow({ where: { id: input.id }, select: { id: true } });
+        return createUserProfileImageUploadUrl(input.contentType, input.id);
+      }),
+    completeProfileImageUpload: publicProcedure
+      .input(userProfileImageUploadCompleteInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        if (input.id !== ctx.user.id) {
+          requireOrganizationAdministrator(ctx.organization.role);
+          await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+        }
+        const expectedObjectKeyPrefix = `users/${input.id}/profile/images/`;
+        if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected user." });
+        }
+        await verifyImageUpload(input.objectKey);
+        const currentUser = await ctx.prisma.user.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { profileImageObjectKey: true },
+        });
+        const user = await ctx.prisma.user.update({
+          where: { id: input.id },
+          data: { profileImageObjectKey: input.objectKey },
+          select: { id: true, profileImageObjectKey: true },
+        });
+        if (currentUser.profileImageObjectKey && currentUser.profileImageObjectKey !== input.objectKey) {
+          await deleteUserProfileImageObject(currentUser.profileImageObjectKey);
+        }
+        return user;
+      }),
+    deleteProfileImage: publicProcedure.input(deleteUserInputSchema).mutation(async ({ ctx, input }) => {
+      if (input.id !== ctx.user.id) {
+        requireOrganizationAdministrator(ctx.organization.role);
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+      }
+      const currentUser = await ctx.prisma.user.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { profileImageObjectKey: true },
+      });
+      const clearedProfileImage = await ctx.prisma.user.updateMany({
+        where: { id: input.id, profileImageObjectKey: currentUser.profileImageObjectKey },
+        data: { profileImageObjectKey: null },
+      });
+      if (clearedProfileImage.count && currentUser.profileImageObjectKey) {
+        await deleteUserProfileImageObject(currentUser.profileImageObjectKey);
+      }
+      return ctx.prisma.user.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { id: true, profileImageObjectKey: true },
       });
     }),
     update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
@@ -869,6 +1001,7 @@ export const appRouter = router({
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected property." });
         }
+        await verifyImageUpload(input.objectKey);
         const currentProperty = await ctx.prisma.property.findFirstOrThrow({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           select: { imageObjectKey: true },
@@ -1287,6 +1420,7 @@ export const appRouter = router({
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected tenant." });
         }
+        await verifyImageUpload(input.objectKey);
         const currentTenant = await ctx.prisma.tenant.findFirstOrThrow({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           select: { imageObjectKey: true },
@@ -1644,7 +1778,7 @@ export const appRouter = router({
 
       const organizationLogo = await getObjectBuffer(
         ctx.organization.organization.avatarObjectKey,
-        organizationAvatarMaxSizeBytes,
+        imageUploadMaxSizeBytes,
       );
       const organization = {
         addressLine1: ctx.organization.organization.addressLine1,
@@ -2285,6 +2419,7 @@ export const appRouter = router({
             message: "The image must belong to the selected maintenance ticket.",
           });
         }
+        await verifyImageUpload(input.objectKey);
         await ctx.prisma.maintenanceTicket.findFirstOrThrow({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
         });

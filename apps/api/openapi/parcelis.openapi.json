@@ -961,6 +961,11 @@
                       "image/gif"
                     ]
                   },
+                  "fileSize": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 2097152
+                  },
                   "fileName": {
                     "type": "string",
                     "minLength": 1,
@@ -969,6 +974,7 @@
                 },
                 "required": [
                   "contentType",
+                  "fileSize",
                   "fileName"
                 ]
               }
@@ -1670,6 +1676,11 @@
                       "image/gif"
                     ]
                   },
+                  "fileSize": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 2097152
+                  },
                   "fileName": {
                     "type": "string",
                     "minLength": 1,
@@ -1678,6 +1689,7 @@
                 },
                 "required": [
                   "contentType",
+                  "fileSize",
                   "fileName"
                 ]
               }

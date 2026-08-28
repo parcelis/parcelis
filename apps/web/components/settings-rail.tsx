@@ -10,7 +10,7 @@ export function SettingsRail({
   active,
   canManageUsers = false,
 }: {
-  active: "organization" | (typeof items)[number]["key"];
+  active: "none" | "organization" | (typeof items)[number]["key"];
   canManageUsers?: boolean;
 }) {
   return (

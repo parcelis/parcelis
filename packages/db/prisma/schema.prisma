@@ -142,6 +142,7 @@ model User {
   name                    String                   @default("User")
   email                   String                   @unique
   phone                   String?
+  profileImageObjectKey   String?
   role                    UserRole                 @default(member)
   accountStatus           UserAccountStatus        @default(active)
   passwordHash            String

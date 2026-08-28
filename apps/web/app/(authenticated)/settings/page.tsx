@@ -368,7 +368,12 @@ export default function SettingsPage() {
                                 <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
                                   <Users className="h-4 w-4" />
                                 </div>
-                                <span className="font-semibold text-parcelis-charcoal">{user.name}</span>
+                                <Link
+                                  className="font-semibold text-parcelis-charcoal hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2"
+                                  href={`/settings/profile/${user.id}`}
+                                >
+                                  {user.name}
+                                </Link>
                               </div>
                             </TableCell>
                             <TableCell className="px-5 py-4 text-sm text-parcelis-gray">

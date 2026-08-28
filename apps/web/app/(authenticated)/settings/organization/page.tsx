@@ -5,19 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
-import { organizationAvatarMaxSizeBytes, organizationAvatarMaxSizeMessage } from "@parcelis/schemas";
-import {
-  AddressField,
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Input,
-  Label,
-  ParcelisLogo,
-} from "@parcelis/ui";
+import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
+import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../components/image-upload";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
 import { ImageUploadPanel } from "../../../../components/image-upload-panel";
@@ -116,20 +106,14 @@ export default function OrganizationSettingsPage() {
       await Promise.all(
         (Object.entries(avatarChanges) as Array<[AvatarVariant, File | null]>).map(async ([variant, file]) => {
           if (file === null) return apiClient.organizations.deleteAvatar.mutate({ variant });
-          if (file.size > organizationAvatarMaxSizeBytes) {
-            throw new Error(organizationAvatarMaxSizeMessage);
-          }
-          const { objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
-            contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+          assertImageFileSize(file);
+          const { fields, objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
+            contentType: file.type as ImageContentType,
+            fileSize: file.size,
             fileName: file.name,
             variant,
           });
-          const response = await fetch(uploadUrl, {
-            body: file,
-            headers: { "Content-Type": file.type },
-            method: "PUT",
-          });
-          if (!response.ok) throw new Error("The organization avatar could not be uploaded.");
+          await uploadPresignedFile(file, { fields, uploadUrl }, "The organization avatar could not be uploaded.");
           await apiClient.organizations.completeAvatarUpload.mutate({ objectKey, variant });
         }),
       );

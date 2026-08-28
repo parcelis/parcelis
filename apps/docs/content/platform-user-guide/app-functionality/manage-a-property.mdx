@@ -13,7 +13,7 @@ The property drawer also includes **Unit Details**. Use it to add, edit, or remo
 
 ## Property Image
 
-Use the **Property Image** panel below the property drawer menu to upload, replace, or delete the property image. Parcelis accepts JPG, PNG, and WebP files. The current image appears in the panel, and the property landing page shows it beneath **Edit property** in the header.
+Use the **Property Image** panel below the property drawer menu to upload, replace, or delete the property image. Parcelis accepts JPG, PNG, and WebP files up to 2 MB. The current image appears in the panel, and the property landing page shows it beneath **Edit property** in the header.
 
 Images are kept in the private MinIO bucket using `properties/{propertyId}/images/{imageId}.{extension}`. Replacing or deleting an image also removes its previous object from MinIO. Parcelis supplies short-lived upload and display URLs, so the storage bucket does not need to be public.
 

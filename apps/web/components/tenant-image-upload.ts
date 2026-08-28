@@ -1,30 +1,29 @@
 import { apiClient } from "./api-client";
-
-const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+import {
+  assertImageFileSize,
+  imageContentTypes,
+  isSupportedImageType,
+  uploadPresignedFile,
+  type ImageContentType,
+} from "./image-upload";
 
 export function isSupportedTenantImage(file: File) {
-  return supportedImageTypes.has(file.type);
+  return isSupportedImageType(file, imageContentTypes);
 }
 
 export async function uploadTenantImage(tenantId: number, file: File) {
   if (!isSupportedTenantImage(file)) {
-    throw new Error("Choose a JPG, PNG, or WebP image.");
+    throw new Error("Choose a JPG, PNG, WebP, or GIF image.");
   }
+  assertImageFileSize(file);
 
-  const { objectKey, uploadUrl } = await apiClient.tenants.createImageUploadUrl.mutate({
-    contentType: file.type as "image/jpeg" | "image/png" | "image/webp",
+  const { fields, objectKey, uploadUrl } = await apiClient.tenants.createImageUploadUrl.mutate({
+    contentType: file.type as ImageContentType,
+    fileSize: file.size,
     fileName: file.name,
     id: tenantId,
   });
-  const response = await fetch(uploadUrl, {
-    body: file,
-    headers: { "Content-Type": file.type },
-    method: "PUT",
-  });
-
-  if (!response.ok) {
-    throw new Error("The tenant image could not be uploaded.");
-  }
+  await uploadPresignedFile(file, { fields, uploadUrl }, "The tenant image could not be uploaded.");
 
   await apiClient.tenants.completeImageUpload.mutate({ id: tenantId, objectKey });
 }

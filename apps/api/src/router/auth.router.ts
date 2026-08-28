@@ -1,4 +1,10 @@
-import { authLoginInputSchema, authRegisterInputSchema, changePasswordInputSchema } from "@parcelis/schemas";
+import {
+  authLoginInputSchema,
+  authRegisterInputSchema,
+  changeEmailInputSchema,
+  changePasswordInputSchema,
+  updateUserProfileInputSchema,
+} from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -19,6 +25,7 @@ import {
 } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
+import { createUserProfileImageDownloadUrl } from "../modules/object-storage.config";
 
 const invalidCredentials = new TRPCError({
   code: "UNAUTHORIZED",
@@ -117,6 +124,41 @@ export const authRouter = router({
     return { success: true };
   }),
 
+  changeEmail: protectedProcedure.input(changeEmailInputSchema).mutation(async ({ ctx, input }) => {
+    const rateLimitKey = getPasswordChangeRateLimitKey(ctx.req.ip, ctx.user.id);
+    consumeLoginRateLimit(rateLimitKey);
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.user.id },
+      select: { passwordHash: true },
+    });
+    if (!user || !(await verifyPassword(user.passwordHash, input.currentPassword))) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect." });
+    }
+
+    try {
+      const updatedUser = await ctx.prisma.user.update({
+        where: { id: ctx.user.id },
+        data: { email: input.email },
+        select: { email: true },
+      });
+      clearLoginRateLimit(rateLimitKey);
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+      }
+      throw error;
+    }
+  }),
+
+  updateProfile: protectedProcedure.input(updateUserProfileInputSchema).mutation(async ({ ctx, input }) => {
+    return ctx.prisma.user.update({
+      where: { id: ctx.user.id },
+      data: { name: input.name, phone: input.phone || null },
+      select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+    });
+  }),
+
   logout: publicProcedure.mutation(async ({ ctx }) => {
     if (!isAuthenticationDisabled() && ctx.session) {
       await ctx.prisma.session.update({ where: { id: ctx.session.id }, data: { revokedAt: new Date() } });
@@ -125,5 +167,11 @@ export const authRouter = router({
     return { success: true };
   }),
 
-  me: protectedProcedure.query(({ ctx }) => ({ user: ctx.user })),
+  me: protectedProcedure.query(async ({ ctx }) => {
+    const { profileImageObjectKey, ...user } = ctx.user;
+    return {
+      user: { ...user, imageUrl: await createUserProfileImageDownloadUrl(profileImageObjectKey) },
+      organizationRole: ctx.organization?.role,
+    };
+  }),
 });
