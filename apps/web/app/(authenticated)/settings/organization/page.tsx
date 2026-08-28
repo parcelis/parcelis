@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
+import { organizationAvatarMaxSizeBytes, organizationAvatarMaxSizeMessage } from "@parcelis/schemas";
 import {
   AddressField,
   Badge,
@@ -25,8 +26,6 @@ const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 type AvatarVariant = "light" | "dark";
 type AvatarChanges = Partial<Record<AvatarVariant, File | null>>;
-
-const organizationAvatarMaxSizeBytes = 2 * 1024 * 1024;
 
 export default function OrganizationSettingsPage() {
   const queryClient = useQueryClient();
@@ -118,7 +117,7 @@ export default function OrganizationSettingsPage() {
         (Object.entries(avatarChanges) as Array<[AvatarVariant, File | null]>).map(async ([variant, file]) => {
           if (file === null) return apiClient.organizations.deleteAvatar.mutate({ variant });
           if (file.size > organizationAvatarMaxSizeBytes) {
-            throw new Error("Organization avatars must be 2 MB or smaller.");
+            throw new Error(organizationAvatarMaxSizeMessage);
           }
           const { objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
             contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif",

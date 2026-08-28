@@ -55,6 +55,8 @@ import {
   deleteUserInputSchema,
   switchOrganizationInputSchema,
   updateOrganizationInputSchema,
+  organizationAvatarMaxSizeBytes,
+  organizationAvatarMaxSizeMessage,
   organizationAvatarUploadCompleteInputSchema,
   organizationAvatarUploadInputSchema,
   deleteOrganizationAvatarInputSchema,
@@ -84,7 +86,6 @@ import {
   deleteTenantImageObject,
   getObjectBuffer,
   getPublicObjectStorageConfig,
-  organizationAvatarMaxSizeBytes,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
@@ -582,10 +583,14 @@ export const appRouter = router({
             await deletePropertyImageObject(input.objectKey).catch(() => undefined);
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: `Organization avatars must be ${organizationAvatarMaxSizeBytes / 1024 / 1024} MB or smaller.`,
+              message: organizationAvatarMaxSizeMessage,
             });
           }
-          throw error;
+          console.error("Failed to validate organization avatar upload.", { error, objectKey: input.objectKey });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "The organization avatar upload could not be verified. Please upload it again.",
+          });
         }
         const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
           where: { id: ctx.organization.organizationId },
