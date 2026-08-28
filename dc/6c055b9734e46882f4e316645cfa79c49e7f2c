@@ -1,0 +1,25 @@
+apps/api/src/modules/object-storage.config.ts
+  s_2d13965dac791b::t_3d5700c6109f1f 224,231
+packages/schemas/src/index.ts
+  s_2d13965dac791b::t_3d5700c6109f1f 78
+apps/docs/content/platform-user-guide/navigation-and-preferences/profile.mdx
+  s_2d13965dac791b::t_3d5700c6109f1f 13-14
+apps/api/src/router/app.router.ts
+  s_2d13965dac791b::t_3d5700c6109f1f 720,729
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "dc6c055b9734e46882f4e316645cfa79c49e7f2c",
+  "prompts": {},
+  "sessions": {
+    "s_2d13965dac791b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a04a18-8979-7403-8272-3cc5879bd1de",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
