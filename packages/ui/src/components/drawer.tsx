@@ -19,6 +19,8 @@ const drawerSizeClasses: Record<DrawerSize, string> = {
 };
 
 const DrawerContext = React.createContext<DrawerContextValue | null>(null);
+const openDrawerIds: symbol[] = [];
+let initialBodyOverflow: string | undefined;
 
 function useDrawer() {
   const context = React.useContext(DrawerContext);
@@ -37,26 +39,38 @@ export function Drawer({
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+
   React.useEffect(() => {
     if (!open) {
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
+    const drawerId = Symbol("drawer");
+    if (openDrawerIds.length === 0) {
+      initialBodyOverflow = document.body.style.overflow;
+    }
+    openDrawerIds.push(drawerId);
     document.body.style.overflow = "hidden";
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onOpenChange(false);
+      if (event.key === "Escape" && openDrawerIds[openDrawerIds.length - 1] === drawerId) {
+        onOpenChangeRef.current(false);
       }
     }
 
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
+      const drawerIndex = openDrawerIds.indexOf(drawerId);
+      if (drawerIndex >= 0) openDrawerIds.splice(drawerIndex, 1);
+      if (openDrawerIds.length === 0) {
+        document.body.style.overflow = initialBodyOverflow ?? "";
+        initialBodyOverflow = undefined;
+      }
     };
-  }, [onOpenChange, open]);
+  }, [open]);
 
   return <DrawerContext.Provider value={{ open, onOpenChange }}>{children}</DrawerContext.Provider>;
 }

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
 import { usePdfiumEngine } from "@embedpdf/engines/react";
-import { Eye, Pencil, ReceiptText, Trash2 } from "lucide-react";
+import { Eye, Pencil, ReceiptText, StickyNote, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { apiClient } from "./api-client";
 import { EditInvoiceDrawer } from "./edit-invoice-drawer";
 import { InvoicePdfViewer } from "./invoice-pdf-viewer";
+import { NotesDrawer } from "./notes-drawer";
 import { RecordPaymentDrawer } from "./record-payment-drawer";
 
 export type InvoiceActionInvoice = {
@@ -82,6 +83,7 @@ function InvoicePdfPreviewDialog({
 export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   const router = useRouter();
   const [paymentOpen, setPaymentOpen] = React.useState(false);
+  const [notesOpen, setNotesOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [pdfPreview, setPdfPreview] = React.useState<PdfPreview | null>(null);
@@ -161,6 +163,9 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
         >
           <ReceiptText className="h-4 w-4" /> {hasPayments ? "Add payment" : "Record payment"}
         </Button>
+        <Button size="sm" type="button" variant="secondary" onClick={() => setNotesOpen(true)}>
+          <StickyNote className="h-4 w-4" /> Add note
+        </Button>
         <Button size="sm" type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
           <Trash2 className="h-4 w-4" /> Delete
         </Button>
@@ -169,6 +174,12 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
         </Button>
       </div>
       <RecordPaymentDrawer invoice={invoice} open={paymentOpen} onOpenChange={setPaymentOpen} />
+      <NotesDrawer
+        onOpenChange={setNotesOpen}
+        open={notesOpen}
+        subject={{ invoiceId: invoice.id }}
+        subjectLabel={`Invoice #${String(invoice.invoiceNumber).padStart(7, "0")}`}
+      />
       <EditInvoiceDrawer invoice={invoice} open={editOpen} onOpenChange={setEditOpen} />
       {isPdfViewerReady ? (
         <InvoicePdfPreviewDialog open={isPdfPreviewOpen} preview={pdfPreview} onOpenChange={closePdfPreview} />

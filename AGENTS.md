@@ -108,6 +108,11 @@
 - Keep summaries focused on user-visible behavior, touched packages, and verification.
 - Mention skipped checks and why they were skipped.
 
+## GitHub Issues
+
+- Before creating or updating an issue, inspect `.github/ISSUE_TEMPLATE` and use the matching template's title format, labels, required sections, and checklists.
+- Search existing issues for duplicates before creating a new one.
+
 ## Gotchas
 
 - This repo uses `pnpm@11.20.0`; avoid npm or yarn lockfile changes.

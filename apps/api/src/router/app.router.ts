@@ -2735,7 +2735,7 @@ export const appRouter = router({
     }),
   }),
   notes: router({
-    /** Lists the notes attached to one property, unit, or tenant. */
+    /** Lists the notes attached to one record. */
     list: publicProcedure.input(noteListInputSchema).query(({ ctx, input }) => {
       const { limit, ...subject } = input;
 
@@ -2748,6 +2748,7 @@ export const appRouter = router({
             { unit: { property: { organizationId: ctx.organization.organizationId } } },
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
             { application: { organizationId: ctx.organization.organizationId } },
+            { invoice: { organizationId: ctx.organization.organizationId } },
           ],
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -2755,7 +2756,7 @@ export const appRouter = router({
         select: { id: true, body: true, createdAt: true, updatedAt: true },
       });
     }),
-    /** Adds an internal note to one property, unit, or tenant. */
+    /** Adds an internal note to one record. */
     create: publicProcedure.input(createNoteInputSchema).mutation(async ({ ctx, input }) => {
       if ("propertyId" in input) {
         await ctx.prisma.property.findFirstOrThrow({
@@ -2772,6 +2773,10 @@ export const appRouter = router({
       } else if ("applicationId" in input) {
         await ctx.prisma.application.findFirstOrThrow({
           where: { id: input.applicationId, organizationId: ctx.organization.organizationId },
+        });
+      } else if ("invoiceId" in input) {
+        await ctx.prisma.invoice.findFirstOrThrow({
+          where: { id: input.invoiceId, organizationId: ctx.organization.organizationId },
         });
       } else {
         await ctx.prisma.maintenanceTicket.findFirstOrThrow({
@@ -2794,6 +2799,7 @@ export const appRouter = router({
             { unit: { property: { organizationId: ctx.organization.organizationId } } },
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
             { application: { organizationId: ctx.organization.organizationId } },
+            { invoice: { organizationId: ctx.organization.organizationId } },
           ],
         },
       });
@@ -2837,6 +2843,7 @@ export const appRouter = router({
             { unit: { property: { organizationId: ctx.organization.organizationId } } },
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
             { application: { organizationId: ctx.organization.organizationId } },
+            { invoice: { organizationId: ctx.organization.organizationId } },
           ],
         },
       });
