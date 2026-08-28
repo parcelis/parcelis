@@ -1,0 +1,19 @@
+packages/ui/src/components/drawer.tsx
+  s_3136b4ba14aac9::t_262cabbcb49be9 23,51-53,68-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "4615f660fe403c1aacd29b871efbfdb4b6b06991",
+  "prompts": {},
+  "sessions": {
+    "s_3136b4ba14aac9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a04a3e-8b91-7602-bd5a-7934232f17ec",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
