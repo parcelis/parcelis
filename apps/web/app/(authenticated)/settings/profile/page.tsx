@@ -48,6 +48,7 @@ export default function ProfileSettingsPage() {
   }, [currentUserQuery.data]);
 
   const updateProfileMutation = useMutation({
+    scope: { id: "current-user-profile" },
     mutationFn: async () => {
       const userId = currentUserQuery.data?.user.id;
       if (!userId) throw new Error("Your profile could not be loaded.");
@@ -61,6 +62,7 @@ export default function ProfileSettingsPage() {
     },
   });
   const deleteProfileImageMutation = useMutation({
+    scope: { id: "current-user-profile" },
     mutationFn: () => {
       const userId = currentUserQuery.data?.user.id;
       if (!userId) throw new Error("Your profile could not be loaded.");
@@ -72,6 +74,7 @@ export default function ProfileSettingsPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
     },
   });
+  const isProfileChangePending = updateProfileMutation.isPending || deleteProfileImageMutation.isPending;
 
   return (
     <main className="flex-1">
@@ -119,7 +122,7 @@ export default function ProfileSettingsPage() {
                           acceptedImageDescription="GIF, JPG, PNG, or WebP"
                           alt="Profile photo"
                           imagePreviewUrl={profileImagePreviewUrl ?? currentUserQuery.data?.user.imageUrl ?? null}
-                          isDeletePending={deleteProfileImageMutation.isPending}
+                          isDeletePending={isProfileChangePending}
                           onDelete={() => deleteProfileImageMutation.mutate()}
                           onImageChange={setProfileImageFile}
                           title="Profile photo"
@@ -160,7 +163,7 @@ export default function ProfileSettingsPage() {
                           </p>
                         ) : null}
                         <div className="flex w-full justify-end">
-                          <Button disabled={updateProfileMutation.isPending} type="submit">
+                          <Button disabled={isProfileChangePending} type="submit">
                             Save changes
                           </Button>
                         </div>
