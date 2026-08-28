@@ -1,0 +1,20 @@
+apps/web/components/account-info-card.tsx
+  s_9d064244d46754::t_9cfb49d497c339 219
+  s_9d064244d46754::t_0bb8b3fa6fa8b5 29,156-158,229-231,234-236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "f08c206b519b3080ae75bb41a92eaffed006cf96",
+  "prompts": {},
+  "sessions": {
+    "s_9d064244d46754": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a049b6-3e79-78b3-a730-f0dea574bda7",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
