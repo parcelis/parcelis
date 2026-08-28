@@ -1,0 +1,27 @@
+apps/api/src/router/app.router.ts
+  s_6f9c1c8fc87111::t_19bed2658a3679 654-658
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_6f9c1c8fc87111::t_19bed2658a3679 76
+apps/api/openapi/parcelis.openapi.json
+  s_6f9c1c8fc87111::t_ef3479f3cfe2eb 964-968,977,1679-1683,1692
+apps/docs/content/api-reference/properties-create-image-upload-url.RequestSchema.json
+  s_6f9c1c8fc87111::t_ef3479f3cfe2eb 1
+apps/docs/content/api-reference/tenants-create-image-upload-url.RequestSchema.json
+  s_6f9c1c8fc87111::t_ef3479f3cfe2eb 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "8ce112e57366e33ee5db255e1dd401b6b32ba0b0",
+  "prompts": {},
+  "sessions": {
+    "s_6f9c1c8fc87111": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a049ff-7ef3-7761-af19-ea99ce5cd3d2",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
