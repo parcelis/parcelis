@@ -73,6 +73,7 @@ export default function UserProfilePage() {
     },
     onSuccess: async () => {
       setProfileImageFile(null);
+      deleteProfileImageMutation.reset();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["users", "profile", userId] }),
         queryClient.invalidateQueries({ queryKey: queryKeys.users.list }),

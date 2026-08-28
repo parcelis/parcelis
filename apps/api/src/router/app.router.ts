@@ -651,6 +651,11 @@ export const appRouter = router({
     list: publicProcedure.query(({ ctx }) => {
       requireAdministrator(ctx.user.role as UserRole);
       return ctx.prisma.user.findMany({
+        where: {
+          organizationMemberships: {
+            some: { organizationId: ctx.organization.organizationId },
+          },
+        },
         select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
         orderBy: { createdAt: "asc" },
       });
