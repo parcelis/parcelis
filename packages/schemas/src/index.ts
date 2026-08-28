@@ -72,6 +72,8 @@ export const organizationAvatarUploadInputSchema = z.object({
   fileName: z.string().trim().min(1).max(255),
   variant: z.enum(["light", "dark"]),
 });
+export const organizationAvatarMaxSizeBytes = 2 * 1024 * 1024;
+export const organizationAvatarMaxSizeMessage = `Organization avatars must be ${organizationAvatarMaxSizeBytes / 1024 / 1024} MB or smaller.`;
 export const organizationAvatarUploadCompleteInputSchema = z.object({
   objectKey: z.string().regex(/^organizations\/\d+\/avatar\/(light|dark)\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
   variant: z.enum(["light", "dark"]),

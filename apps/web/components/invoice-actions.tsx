@@ -41,17 +41,38 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   const [paymentOpen, setPaymentOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [isOpeningPdf, setIsOpeningPdf] = React.useState(false);
   const hasPayments = (invoice.payments ?? []).length > 0;
   const deleteInvoice = useMutation({
     mutationFn: () => apiClient.invoices.delete.mutate({ id: invoice.id }),
     onSuccess: () => router.push("/income"),
   });
 
+  async function openInvoicePdf() {
+    const previewWindow = window.open("", "_blank");
+    if (!previewWindow) return;
+
+    previewWindow.opener = null;
+    setIsOpeningPdf(true);
+    try {
+      const result = await apiClient.invoices.pdf.query({ id: invoice.id });
+      const bytes = Uint8Array.from(atob(result.contentBase64), (character) => character.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      previewWindow.location.href = url;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      previewWindow.close();
+    } finally {
+      setIsOpeningPdf(false);
+    }
+  }
+
   return (
     <>
       <div className="flex flex-wrap justify-end gap-2 print:hidden">
-        <Button disabled size="sm" title="Coming soon" type="button" variant="secondary">
-          <Download className="h-4 w-4" /> Download
+        <Button disabled={isOpeningPdf} size="sm" type="button" variant="secondary" onClick={openInvoicePdf}>
+          <Download className="h-4 w-4" /> {isOpeningPdf ? "Preparing..." : "Open PDF"}
         </Button>
         <Button disabled size="sm" title="Coming soon" type="button" variant="secondary">
           Send reminder

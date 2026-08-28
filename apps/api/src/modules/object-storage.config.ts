@@ -1,5 +1,12 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { organizationAvatarMaxSizeBytes } from "@parcelis/schemas";
 import { randomUUID } from "node:crypto";
 
 export type ObjectStorageConfig = {
@@ -54,6 +61,18 @@ const imageExtensions = {
   "image/webp": "webp",
   "image/gif": "gif",
 } as const;
+
+export class ObjectExceedsMaximumSizeError extends Error {
+  constructor() {
+    super("Object exceeds the maximum size.");
+  }
+}
+
+function abortObjectBody(body: unknown) {
+  if (typeof body === "object" && body !== null && "destroy" in body && typeof body.destroy === "function") {
+    body.destroy();
+  }
+}
 
 export function createPropertyImageObjectKey(
   contentType: keyof typeof imageExtensions,
@@ -115,6 +134,54 @@ export async function createPropertyImageDownloadUrl(objectKey: string | null) {
   return getSignedUrl(createObjectStorageClient(), new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }), {
     expiresIn: 60 * 60,
   });
+}
+
+export async function getObjectBuffer(objectKey: string | null, maxSizeBytes?: number) {
+  if (!objectKey) {
+    return null;
+  }
+
+  try {
+    const config = getObjectStorageConfig();
+    const response = await createObjectStorageClient().send(
+      new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }),
+    );
+    if (!response.Body) return null;
+
+    if (maxSizeBytes !== undefined && (response.ContentLength ?? 0) > maxSizeBytes) {
+      abortObjectBody(response.Body);
+      if (response.ContentLength && maxSizeBytes !== undefined && response.ContentLength > maxSizeBytes) {
+        console.warn("Object exceeds the configured buffer size limit.", { maxSizeBytes, objectKey });
+      }
+      return null;
+    }
+
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+      size += chunk.byteLength;
+      if (maxSizeBytes !== undefined && size > maxSizeBytes) {
+        abortObjectBody(response.Body);
+        console.warn("Object exceeds the configured buffer size limit.", { maxSizeBytes, objectKey });
+        return null;
+      }
+      chunks.push(Buffer.from(chunk));
+    }
+    return { buffer: Buffer.concat(chunks, size), contentType: response.ContentType ?? "image/png" };
+  } catch (error) {
+    console.error("Failed to retrieve object from storage.", { error, objectKey });
+    return null;
+  }
+}
+
+export async function assertOrganizationAvatarObjectSize(objectKey: string) {
+  const config = getObjectStorageConfig();
+  const response = await createObjectStorageClient().send(
+    new HeadObjectCommand({ Bucket: config.bucket, Key: objectKey }),
+  );
+  if ((response.ContentLength ?? 0) > organizationAvatarMaxSizeBytes) {
+    throw new ObjectExceedsMaximumSizeError();
+  }
 }
 
 export async function deletePropertyImageObject(objectKey: string) {

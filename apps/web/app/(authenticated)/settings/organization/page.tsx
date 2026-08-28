@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
+import { organizationAvatarMaxSizeBytes, organizationAvatarMaxSizeMessage } from "@parcelis/schemas";
 import {
   AddressField,
   Badge,
@@ -115,6 +116,9 @@ export default function OrganizationSettingsPage() {
       await Promise.all(
         (Object.entries(avatarChanges) as Array<[AvatarVariant, File | null]>).map(async ([variant, file]) => {
           if (file === null) return apiClient.organizations.deleteAvatar.mutate({ variant });
+          if (file.size > organizationAvatarMaxSizeBytes) {
+            throw new Error(organizationAvatarMaxSizeMessage);
+          }
           const { objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
             contentType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
             fileName: file.name,

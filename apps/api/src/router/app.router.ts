@@ -55,6 +55,8 @@ import {
   deleteUserInputSchema,
   switchOrganizationInputSchema,
   updateOrganizationInputSchema,
+  organizationAvatarMaxSizeBytes,
+  organizationAvatarMaxSizeMessage,
   organizationAvatarUploadCompleteInputSchema,
   organizationAvatarUploadInputSchema,
   deleteOrganizationAvatarInputSchema,
@@ -72,6 +74,8 @@ import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
   createOrganizationAvatarUploadUrl,
+  assertOrganizationAvatarObjectSize,
+  ObjectExceedsMaximumSizeError,
   createPropertyImageUploadUrl,
   createMaintenanceImageDownloadUrl,
   createMaintenanceImageUploadUrl,
@@ -80,11 +84,13 @@ import {
   createTenantImageDownloadUrl,
   createTenantImageUploadUrl,
   deleteTenantImageObject,
+  getObjectBuffer,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
+import { renderInvoicePdf } from "../modules/invoice-pdf";
 
 const propertySelect = {
   id: true,
@@ -569,6 +575,22 @@ export const appRouter = router({
         const objectKeyPrefix = `organizations/${ctx.organization.organizationId}/avatar/${input.variant}/`;
         if (!input.objectKey.startsWith(objectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid organization avatar object key." });
+        }
+        try {
+          await assertOrganizationAvatarObjectSize(input.objectKey);
+        } catch (error) {
+          if (error instanceof ObjectExceedsMaximumSizeError) {
+            await deletePropertyImageObject(input.objectKey).catch(() => undefined);
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: organizationAvatarMaxSizeMessage,
+            });
+          }
+          console.error("Failed to validate organization avatar upload.", { error, objectKey: input.objectKey });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "The organization avatar upload could not be verified. Please upload it again.",
+          });
         }
         const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
           where: { id: ctx.organization.organizationId },
@@ -1599,6 +1621,47 @@ export const appRouter = router({
           endsOn: invoice.lease.endsOn,
           unitLabel: invoice.lease.unit.name,
         },
+      };
+    }),
+    pdf: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
+      await synchronizeOverdueInvoices(ctx.prisma);
+      const invoice = await ctx.prisma.invoice.findFirst({
+        where: { id: input.id, organizationId: ctx.organization.organizationId },
+        include: {
+          property: {
+            select: { name: true, line1: true, line2: true, city: true, region: true, postalCode: true },
+          },
+          tenant: { select: { firstName: true, lastName: true } },
+          lease: { select: { unit: { select: { name: true } } } },
+          items: { orderBy: { id: "asc" } },
+          payments: {
+            orderBy: { paidOn: "desc" },
+            include: { tenant: { select: { firstName: true, lastName: true } } },
+          },
+        },
+      });
+      if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
+
+      const organizationLogo = await getObjectBuffer(
+        ctx.organization.organization.avatarObjectKey,
+        organizationAvatarMaxSizeBytes,
+      );
+      const organization = {
+        addressLine1: ctx.organization.organization.addressLine1,
+        addressLine2: ctx.organization.organization.addressLine2,
+        city: ctx.organization.organization.city,
+        region: ctx.organization.organization.region,
+        postalCode: ctx.organization.organization.postalCode,
+        phone: ctx.organization.organization.phone,
+      };
+      const fileName = `invoice-${String(invoice.invoiceNumber).padStart(7, "0")}.pdf`;
+      const pdfInvoice = {
+        ...invoice,
+        lease: { unitLabel: invoice.lease.unit.name },
+      };
+      return {
+        contentBase64: (await renderInvoicePdf(pdfInvoice, organizationLogo, organization)).toString("base64"),
+        fileName,
       };
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
