@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Download, Pencil, ReceiptText, Trash2 } from "lucide-react";
+import { usePdfiumEngine } from "@embedpdf/engines/react";
+import { Eye, Pencil, ReceiptText, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -11,10 +12,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   Button,
+  Dialog,
+  DialogContent,
 } from "@parcelis/ui";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { apiClient } from "./api-client";
 import { EditInvoiceDrawer } from "./edit-invoice-drawer";
+import { InvoicePdfViewer } from "./invoice-pdf-viewer";
 import { RecordPaymentDrawer } from "./record-payment-drawer";
 
 export type InvoiceActionInvoice = {
@@ -36,43 +41,110 @@ export type InvoiceActionInvoice = {
   }>;
 };
 
+type PdfPreview = { fileName: string; url: string };
+
+function InvoicePdfPreviewDialog({
+  open,
+  preview,
+  onOpenChange,
+}: {
+  open: boolean;
+  preview: PdfPreview | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { engine, error, isLoading } = usePdfiumEngine({ fontFallback: null });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        aria-labelledby="invoice-pdf-preview-title"
+        className="h-[90vh] min-w-0 max-w-6xl grid-rows-[minmax(0,1fr)] gap-0 overflow-hidden p-0"
+      >
+        <h2 className="sr-only" id="invoice-pdf-preview-title">
+          Invoice PDF preview
+        </h2>
+        {preview ? (
+          <div className="h-full min-h-0 min-w-0 max-w-full overflow-hidden">
+            <InvoicePdfViewer
+              engine={engine}
+              engineError={error}
+              fileName={preview.fileName}
+              isEngineLoading={isLoading}
+              source={preview.url}
+            />
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   const router = useRouter();
   const [paymentOpen, setPaymentOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [pdfPreview, setPdfPreview] = React.useState<PdfPreview | null>(null);
+  const [isPdfPreviewOpen, setIsPdfPreviewOpen] = React.useState(false);
+  const [isPdfViewerReady, setIsPdfViewerReady] = React.useState(false);
   const [isOpeningPdf, setIsOpeningPdf] = React.useState(false);
+  const isMountedRef = React.useRef(false);
+  const pdfPreviewUrlRef = React.useRef<string | null>(null);
   const hasPayments = (invoice.payments ?? []).length > 0;
   const deleteInvoice = useMutation({
     mutationFn: () => apiClient.invoices.delete.mutate({ id: invoice.id }),
     onSuccess: () => router.push("/income"),
   });
 
-  async function openInvoicePdf() {
-    const previewWindow = window.open("", "_blank");
-    if (!previewWindow) return;
+  React.useEffect(() => {
+    isMountedRef.current = true;
 
-    previewWindow.opener = null;
+    return () => {
+      isMountedRef.current = false;
+      if (pdfPreviewUrlRef.current) URL.revokeObjectURL(pdfPreviewUrlRef.current);
+    };
+  }, []);
+
+  function closePdfPreview() {
+    if (pdfPreviewUrlRef.current) {
+      URL.revokeObjectURL(pdfPreviewUrlRef.current);
+      pdfPreviewUrlRef.current = null;
+    }
+    setIsPdfPreviewOpen(false);
+    setPdfPreview(null);
+  }
+
+  async function previewInvoicePdf() {
     setIsOpeningPdf(true);
     try {
       const result = await apiClient.invoices.pdf.query({ id: invoice.id });
       const bytes = Uint8Array.from(atob(result.contentBase64), (character) => character.charCodeAt(0));
       const blob = new Blob([bytes], { type: "application/pdf" });
+      if (!isMountedRef.current) return;
+
       const url = URL.createObjectURL(blob);
-      previewWindow.location.href = url;
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (!isMountedRef.current) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      if (pdfPreviewUrlRef.current) URL.revokeObjectURL(pdfPreviewUrlRef.current);
+      pdfPreviewUrlRef.current = url;
+      setPdfPreview({ fileName: result.fileName, url });
+      setIsPdfViewerReady(true);
+      setIsPdfPreviewOpen(true);
     } catch {
-      previewWindow.close();
+      if (isMountedRef.current) toast.error("Unable to prepare the invoice PDF. Please try again.");
     } finally {
-      setIsOpeningPdf(false);
+      if (isMountedRef.current) setIsOpeningPdf(false);
     }
   }
 
   return (
     <>
       <div className="flex flex-wrap justify-end gap-2 print:hidden">
-        <Button disabled={isOpeningPdf} size="sm" type="button" variant="secondary" onClick={openInvoicePdf}>
-          <Download className="h-4 w-4" /> {isOpeningPdf ? "Preparing..." : "Open PDF"}
+        <Button disabled={isOpeningPdf} size="sm" type="button" variant="secondary" onClick={previewInvoicePdf}>
+          <Eye className="h-4 w-4" /> {isOpeningPdf ? "Preparing..." : "Preview PDF"}
         </Button>
         <Button disabled size="sm" title="Coming soon" type="button" variant="secondary">
           Send reminder
@@ -98,6 +170,9 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
       </div>
       <RecordPaymentDrawer invoice={invoice} open={paymentOpen} onOpenChange={setPaymentOpen} />
       <EditInvoiceDrawer invoice={invoice} open={editOpen} onOpenChange={setEditOpen} />
+      {isPdfViewerReady ? (
+        <InvoicePdfPreviewDialog open={isPdfPreviewOpen} preview={pdfPreview} onOpenChange={closePdfPreview} />
+      ) : null}
       <AlertDialog onOpenChange={setDeleteOpen} open={deleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
