@@ -150,6 +150,11 @@ export default function UserProfilePage() {
                           onImageChange={setProfileImageFile}
                           title="Profile photo"
                         />
+                        {deleteProfileImageMutation.error ? (
+                          <p className="mt-3 text-sm font-medium text-red-700" role="alert">
+                            {deleteProfileImageMutation.error.message}
+                          </p>
+                        ) : null}
                       </div>
                       <form
                         className="flex w-full max-w-2xl flex-wrap gap-5"
