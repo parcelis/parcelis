@@ -3,8 +3,7 @@
 import * as React from "react";
 import { ImagePlus, Replace, Trash2 } from "lucide-react";
 import Image from "next/image";
-
-const defaultSupportedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+import { imageContentTypes } from "./image-upload";
 
 type ImageUploadPanelProps = {
   alt: string;
@@ -23,7 +22,7 @@ type ImageUploadPanelProps = {
 export function ImageUploadPanel({
   alt,
   acceptedImageDescription = "JPG, PNG, WebP, or GIF",
-  acceptedImageTypes = defaultSupportedImageTypes,
+  acceptedImageTypes = imageContentTypes,
   imagePreviewUrl,
   isDeletePending = false,
   onDelete,
@@ -95,9 +94,7 @@ export function ImageUploadPanel({
           ) : (
             <>
               <ImagePlus className="h-6 w-6 text-parcelis-green" />
-              <span className={`mt-3 text-sm font-semibold ${emptyStateTitleClassName}`}>
-                Upload image
-              </span>
+              <span className={`mt-3 text-sm font-semibold ${emptyStateTitleClassName}`}>Upload image</span>
               <span className={`mt-1 px-3 text-xs ${emptyStateDescriptionClassName}`}>{acceptedImageDescription}</span>
             </>
           )}

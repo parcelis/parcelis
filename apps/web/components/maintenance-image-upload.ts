@@ -1,27 +1,23 @@
 import { apiClient } from "./api-client";
-
-const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+import {
+  isSupportedImageType,
+  standardImageContentTypes,
+  uploadPresignedFile,
+  type ImageContentType,
+} from "./image-upload";
 
 export async function uploadMaintenanceImage(ticketId: number, file: File) {
-  if (!supportedImageTypes.has(file.type)) {
+  if (!isSupportedImageType(file, standardImageContentTypes)) {
     throw new Error("Choose a JPG, PNG, or WebP image.");
   }
 
-  const contentType = file.type as "image/jpeg" | "image/png" | "image/webp";
+  const contentType = file.type as ImageContentType;
   const { objectKey, uploadUrl } = await apiClient.maintenance.createImageUploadUrl.mutate({
     id: ticketId,
     contentType,
     fileName: file.name,
   });
-  const response = await fetch(uploadUrl, {
-    body: file,
-    headers: { "Content-Type": contentType },
-    method: "PUT",
-  });
-
-  if (!response.ok) {
-    throw new Error("The maintenance image could not be uploaded.");
-  }
+  await uploadPresignedFile(file, uploadUrl, "The maintenance image could not be uploaded.");
 
   await apiClient.maintenance.completeImageUpload.mutate({
     id: ticketId,

@@ -20,6 +20,7 @@ export function createContext(prisma: PrismaService) {
                 name: true,
                 email: true,
                 phone: true,
+                profileImageObjectKey: true,
                 role: true,
                 accountStatus: true,
                 defaultOrganizationId: true,

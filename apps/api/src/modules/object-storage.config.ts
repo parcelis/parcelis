@@ -62,6 +62,8 @@ const imageExtensions = {
   "image/gif": "gif",
 } as const;
 
+type ImageContentType = keyof typeof imageExtensions;
+
 export class ObjectExceedsMaximumSizeError extends Error {
   constructor() {
     super("Object exceeds the maximum size.");
@@ -72,6 +74,17 @@ function abortObjectBody(body: unknown) {
   if (typeof body === "object" && body !== null && "destroy" in body && typeof body.destroy === "function") {
     body.destroy();
   }
+}
+
+async function createImageUploadUrl(objectKey: string, contentType: ImageContentType) {
+  const config = getObjectStorageConfig();
+  const uploadUrl = await getSignedUrl(
+    createObjectStorageClient(),
+    new PutObjectCommand({ Bucket: config.bucket, ContentType: contentType, Key: objectKey }),
+    { expiresIn: 10 * 60 },
+  );
+
+  return { objectKey, uploadUrl };
 }
 
 export function createPropertyImageObjectKey(
@@ -90,39 +103,22 @@ export function createOrganizationAvatarObjectKey(
   return `organizations/${organizationId}/avatar/${variant}/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createOrganizationAvatarUploadUrl(
+export function createOrganizationAvatarUploadUrl(
   contentType: keyof typeof imageExtensions,
   organizationId: number,
   variant: "light" | "dark",
 ) {
-  const config = getObjectStorageConfig();
   const objectKey = createOrganizationAvatarObjectKey(contentType, organizationId, variant);
-  const uploadUrl = await getSignedUrl(
-    createObjectStorageClient(),
-    new PutObjectCommand({ Bucket: config.bucket, ContentType: contentType, Key: objectKey }),
-    { expiresIn: 10 * 60 },
-  );
-  return { objectKey, uploadUrl };
+  return createImageUploadUrl(objectKey, contentType);
 }
 
-export async function createPropertyImageUploadUrl(
+export function createPropertyImageUploadUrl(
   contentType: keyof typeof imageExtensions,
   organizationId: number,
   propertyId: number,
 ) {
-  const config = getObjectStorageConfig();
   const objectKey = createPropertyImageObjectKey(contentType, organizationId, propertyId);
-  const uploadUrl = await getSignedUrl(
-    createObjectStorageClient(),
-    new PutObjectCommand({
-      Bucket: config.bucket,
-      ContentType: contentType,
-      Key: objectKey,
-    }),
-    { expiresIn: 10 * 60 },
-  );
-
-  return { objectKey, uploadUrl };
+  return createImageUploadUrl(objectKey, contentType);
 }
 
 export async function createPropertyImageDownloadUrl(objectKey: string | null) {
@@ -197,28 +193,37 @@ export function createTenantImageObjectKey(
   return `organizations/${organizationId}/tenants/${tenantId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createTenantImageUploadUrl(
+export function createTenantImageUploadUrl(
   contentType: keyof typeof imageExtensions,
   organizationId: number,
   tenantId: number,
 ) {
-  const config = getObjectStorageConfig();
   const objectKey = createTenantImageObjectKey(contentType, organizationId, tenantId);
-  const uploadUrl = await getSignedUrl(
-    createObjectStorageClient(),
-    new PutObjectCommand({
-      Bucket: config.bucket,
-      ContentType: contentType,
-      Key: objectKey,
-    }),
-    { expiresIn: 10 * 60 },
-  );
-
-  return { objectKey, uploadUrl };
+  return createImageUploadUrl(objectKey, contentType);
 }
 
 export const createTenantImageDownloadUrl = createPropertyImageDownloadUrl;
 export const deleteTenantImageObject = deletePropertyImageObject;
+
+export function createUserProfileImageObjectKey(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  userId: number,
+) {
+  return `organizations/${organizationId}/users/${userId}/profile/images/${randomUUID()}.${imageExtensions[contentType]}`;
+}
+
+export function createUserProfileImageUploadUrl(
+  contentType: keyof typeof imageExtensions,
+  organizationId: number,
+  userId: number,
+) {
+  const objectKey = createUserProfileImageObjectKey(contentType, organizationId, userId);
+  return createImageUploadUrl(objectKey, contentType);
+}
+
+export const createUserProfileImageDownloadUrl = createPropertyImageDownloadUrl;
+export const deleteUserProfileImageObject = deletePropertyImageObject;
 
 export function createMaintenanceImageObjectKey(
   contentType: keyof typeof imageExtensions,
@@ -228,20 +233,13 @@ export function createMaintenanceImageObjectKey(
   return `organizations/${organizationId}/maintenance/${ticketId}/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
-export async function createMaintenanceImageUploadUrl(
+export function createMaintenanceImageUploadUrl(
   contentType: keyof typeof imageExtensions,
   organizationId: number,
   ticketId: number,
 ) {
-  const config = getObjectStorageConfig();
   const objectKey = createMaintenanceImageObjectKey(contentType, organizationId, ticketId);
-  const uploadUrl = await getSignedUrl(
-    createObjectStorageClient(),
-    new PutObjectCommand({ Bucket: config.bucket, ContentType: contentType, Key: objectKey }),
-    { expiresIn: 10 * 60 },
-  );
-
-  return { objectKey, uploadUrl };
+  return createImageUploadUrl(objectKey, contentType);
 }
 
 export const createMaintenanceImageDownloadUrl = createPropertyImageDownloadUrl;

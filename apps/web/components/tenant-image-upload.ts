@@ -1,9 +1,13 @@
 import { apiClient } from "./api-client";
-
-const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+import {
+  isSupportedImageType,
+  standardImageContentTypes,
+  uploadPresignedFile,
+  type ImageContentType,
+} from "./image-upload";
 
 export function isSupportedTenantImage(file: File) {
-  return supportedImageTypes.has(file.type);
+  return isSupportedImageType(file, standardImageContentTypes);
 }
 
 export async function uploadTenantImage(tenantId: number, file: File) {
@@ -12,19 +16,11 @@ export async function uploadTenantImage(tenantId: number, file: File) {
   }
 
   const { objectKey, uploadUrl } = await apiClient.tenants.createImageUploadUrl.mutate({
-    contentType: file.type as "image/jpeg" | "image/png" | "image/webp",
+    contentType: file.type as ImageContentType,
     fileName: file.name,
     id: tenantId,
   });
-  const response = await fetch(uploadUrl, {
-    body: file,
-    headers: { "Content-Type": file.type },
-    method: "PUT",
-  });
-
-  if (!response.ok) {
-    throw new Error("The tenant image could not be uploaded.");
-  }
+  await uploadPresignedFile(file, uploadUrl, "The tenant image could not be uploaded.");
 
   await apiClient.tenants.completeImageUpload.mutate({ id: tenantId, objectKey });
 }

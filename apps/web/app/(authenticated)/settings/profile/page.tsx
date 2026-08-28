@@ -8,6 +8,8 @@ import { Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } fro
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
+import { ImageUploadPanel } from "../../../../components/image-upload-panel";
+import { deleteUserProfileImage, uploadUserProfileImage } from "../../../../components/user-profile-image-upload";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
@@ -25,6 +27,18 @@ export default function ProfileSettingsPage() {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
+  const [profileImageFile, setProfileImageFile] = React.useState<File | null>(null);
+  const profileImagePreviewUrl = React.useMemo(
+    () => (profileImageFile ? URL.createObjectURL(profileImageFile) : null),
+    [profileImageFile],
+  );
+
+  React.useEffect(
+    () => () => {
+      if (profileImagePreviewUrl) URL.revokeObjectURL(profileImagePreviewUrl);
+    },
+    [profileImagePreviewUrl],
+  );
 
   React.useEffect(() => {
     const user = currentUserQuery.data?.user;
@@ -35,8 +49,26 @@ export default function ProfileSettingsPage() {
   }, [currentUserQuery.data]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: () => apiClient.auth.updateProfile.mutate({ name, email, phone: phone.trim() || null }),
+    mutationFn: async () => {
+      const userId = currentUserQuery.data?.user.id;
+      if (!userId) throw new Error("Your profile could not be loaded.");
+      if (profileImageFile) await uploadUserProfileImage(userId, profileImageFile);
+      return apiClient.auth.updateProfile.mutate({ name, email, phone: phone.trim() || null });
+    },
     onSuccess: async () => {
+      setProfileImageFile(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+    },
+  });
+  const deleteProfileImageMutation = useMutation({
+    mutationFn: () => {
+      const userId = currentUserQuery.data?.user.id;
+      if (!userId) throw new Error("Your profile could not be loaded.");
+      return deleteUserProfileImage(userId);
+    },
+    onSuccess: async () => {
+      setProfileImageFile(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
     },
@@ -78,62 +110,75 @@ export default function ProfileSettingsPage() {
                     <CircleUserRound className="h-5 w-5 text-parcelis-green" />
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-col gap-8 lg:flex-row">
                   {currentUserQuery.isLoading ? (
                     <LoadingState label="Loading profile…" />
                   ) : currentUserQuery.error ? (
                     <p className="text-sm font-medium text-red-700">{currentUserQuery.error.message}</p>
                   ) : (
-                    <form
-                      className="grid max-w-2xl gap-5 md:grid-cols-2"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        updateProfileMutation.mutate();
-                      }}
-                    >
-                      <Label>
-                        Name
-                        <Input
-                          className="mt-1"
-                          onChange={(event) => setName(event.target.value)}
-                          required
-                          value={name}
+                    <>
+                      <div className="w-full shrink-0 lg:w-64">
+                        <ImageUploadPanel
+                          acceptedImageDescription="GIF, JPG, PNG, or WebP"
+                          alt="Profile photo"
+                          imagePreviewUrl={profileImagePreviewUrl ?? currentUserQuery.data?.user.imageUrl ?? null}
+                          isDeletePending={deleteProfileImageMutation.isPending}
+                          onDelete={() => deleteProfileImageMutation.mutate()}
+                          onImageChange={setProfileImageFile}
+                          title="Profile photo"
                         />
-                      </Label>
-                      <Label>
-                        Email
-                        <Input
-                          className="mt-1"
-                          onChange={(event) => setEmail(event.target.value)}
-                          required
-                          type="email"
-                          value={email}
-                        />
-                      </Label>
-                      <Label>
-                        Phone
-                        <Input
-                          className="mt-1"
-                          onChange={(event) => setPhone(event.target.value)}
-                          type="tel"
-                          value={phone}
-                        />
-                      </Label>
-                      <Label>
-                        User role
-                        <Input className="mt-1" readOnly value={formatRole(currentUserQuery.data?.user.role)} />
-                      </Label>
-                      {updateProfileMutation.error ? (
-                        <p className="text-sm font-medium text-red-700 md:col-span-2">
-                          {updateProfileMutation.error.message}
-                        </p>
-                      ) : null}
-                      <div className="flex justify-end md:col-span-2">
-                        <Button disabled={updateProfileMutation.isPending} type="submit">
-                          Save changes
-                        </Button>
                       </div>
-                    </form>
+                      <form
+                        className="flex w-full max-w-2xl flex-wrap gap-5"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          updateProfileMutation.mutate();
+                        }}
+                      >
+                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
+                          Name
+                          <Input
+                            className="mt-1"
+                            onChange={(event) => setName(event.target.value)}
+                            required
+                            value={name}
+                          />
+                        </Label>
+                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
+                          Email
+                          <Input
+                            className="mt-1"
+                            onChange={(event) => setEmail(event.target.value)}
+                            required
+                            type="email"
+                            value={email}
+                          />
+                        </Label>
+                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
+                          Phone
+                          <Input
+                            className="mt-1"
+                            onChange={(event) => setPhone(event.target.value)}
+                            type="tel"
+                            value={phone}
+                          />
+                        </Label>
+                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
+                          User role
+                          <Input className="mt-1" readOnly value={formatRole(currentUserQuery.data?.user.role)} />
+                        </Label>
+                        {updateProfileMutation.error ? (
+                          <p className="w-full text-sm font-medium text-red-700">
+                            {updateProfileMutation.error.message}
+                          </p>
+                        ) : null}
+                        <div className="flex w-full justify-end">
+                          <Button disabled={updateProfileMutation.isPending} type="submit">
+                            Save changes
+                          </Button>
+                        </div>
+                      </form>
+                    </>
                   )}
                 </CardContent>
               </Card>

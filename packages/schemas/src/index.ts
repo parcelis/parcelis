@@ -52,6 +52,17 @@ export const updateUserProfileInputSchema = z.object({
   phone: z.string().trim().max(50).nullable(),
 });
 export const updateUserProfileByIdInputSchema = updateUserProfileInputSchema.extend({ id: idSchema });
+export const userProfileImageUploadInputSchema = z.object({
+  id: idSchema,
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  fileName: z.string().trim().min(1).max(255),
+});
+export const userProfileImageUploadCompleteInputSchema = z
+  .object({
+    id: idSchema,
+    objectKey: z.string().regex(/^organizations\/\d+\/users\/\d+\/profile\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
+  })
+  .strict();
 export const userAccountStatusInputSchema = z.object({
   id: idSchema,
   accountStatus: userAccountStatusSchema,

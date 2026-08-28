@@ -24,6 +24,7 @@ import {
 } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
+import { createUserProfileImageDownloadUrl } from "../modules/object-storage.config";
 
 const invalidCredentials = new TRPCError({
   code: "UNAUTHORIZED",
@@ -145,5 +146,8 @@ export const authRouter = router({
     return { success: true };
   }),
 
-  me: protectedProcedure.query(({ ctx }) => ({ user: ctx.user })),
+  me: protectedProcedure.query(async ({ ctx }) => {
+    const { profileImageObjectKey, ...user } = ctx.user;
+    return { user: { ...user, imageUrl: await createUserProfileImageDownloadUrl(profileImageObjectKey) } };
+  }),
 });

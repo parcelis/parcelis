@@ -52,6 +52,8 @@ import {
   updatePropertyInputSchema,
   updateUserInputSchema,
   updateUserProfileByIdInputSchema,
+  userProfileImageUploadCompleteInputSchema,
+  userProfileImageUploadInputSchema,
   userAccountStatusInputSchema,
   deleteUserInputSchema,
   switchOrganizationInputSchema,
@@ -85,6 +87,9 @@ import {
   createTenantImageDownloadUrl,
   createTenantImageUploadUrl,
   deleteTenantImageObject,
+  createUserProfileImageDownloadUrl,
+  createUserProfileImageUploadUrl,
+  deleteUserProfileImageObject,
   getObjectBuffer,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
@@ -635,12 +640,22 @@ export const appRouter = router({
         orderBy: { createdAt: "asc" },
       });
     }),
-    profile: publicProcedure.input(deleteUserInputSchema).query(({ ctx, input }) => {
+    profile: publicProcedure.input(deleteUserInputSchema).query(async ({ ctx, input }) => {
       if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
-      return ctx.prisma.user.findUniqueOrThrow({
+      const user = await ctx.prisma.user.findUniqueOrThrow({
         where: { id: input.id },
-        select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          profileImageObjectKey: true,
+          role: true,
+          accountStatus: true,
+        },
       });
+      const { profileImageObjectKey, ...profile } = user;
+      return { ...profile, imageUrl: await createUserProfileImageDownloadUrl(profileImageObjectKey) };
     }),
     updateProfile: publicProcedure.input(updateUserProfileByIdInputSchema).mutation(async ({ ctx, input }) => {
       if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
@@ -656,6 +671,49 @@ export const appRouter = router({
         }
         throw error;
       }
+    }),
+    createProfileImageUploadUrl: publicProcedure
+      .input(userProfileImageUploadInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+        await ctx.prisma.user.findUniqueOrThrow({ where: { id: input.id }, select: { id: true } });
+        return createUserProfileImageUploadUrl(input.contentType, ctx.organization.organizationId, input.id);
+      }),
+    completeProfileImageUpload: publicProcedure
+      .input(userProfileImageUploadCompleteInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+        const expectedObjectKeyPrefix = `organizations/${ctx.organization.organizationId}/users/${input.id}/profile/images/`;
+        if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected user." });
+        }
+        const currentUser = await ctx.prisma.user.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { profileImageObjectKey: true },
+        });
+        const user = await ctx.prisma.user.update({
+          where: { id: input.id },
+          data: { profileImageObjectKey: input.objectKey },
+          select: { id: true, profileImageObjectKey: true },
+        });
+        if (currentUser.profileImageObjectKey && currentUser.profileImageObjectKey !== input.objectKey) {
+          await deleteUserProfileImageObject(currentUser.profileImageObjectKey);
+        }
+        return user;
+      }),
+    deleteProfileImage: publicProcedure.input(deleteUserInputSchema).mutation(async ({ ctx, input }) => {
+      if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+      const currentUser = await ctx.prisma.user.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { profileImageObjectKey: true },
+      });
+      const user = await ctx.prisma.user.update({
+        where: { id: input.id },
+        data: { profileImageObjectKey: null },
+        select: { id: true, profileImageObjectKey: true },
+      });
+      if (currentUser.profileImageObjectKey) await deleteUserProfileImageObject(currentUser.profileImageObjectKey);
+      return user;
     }),
     update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
       requireAdministrator(ctx.user.role as UserRole);
