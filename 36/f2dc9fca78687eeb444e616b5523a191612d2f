@@ -1,0 +1,19 @@
+AGENTS.md
+  s_96964dd0d002ca::t_71a76908e5748b 60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "36f2dc9fca78687eeb444e616b5523a191612d2f",
+  "prompts": {},
+  "sessions": {
+    "s_96964dd0d002ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a049e7-5817-7833-a71d-01b4f6fbfddf",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
