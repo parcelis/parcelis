@@ -1,6 +1,7 @@
 import {
   authLoginInputSchema,
   authRegisterInputSchema,
+  changeEmailInputSchema,
   changePasswordInputSchema,
   updateUserProfileInputSchema,
 } from "@parcelis/schemas";
@@ -123,19 +124,39 @@ export const authRouter = router({
     return { success: true };
   }),
 
-  updateProfile: protectedProcedure.input(updateUserProfileInputSchema).mutation(async ({ ctx, input }) => {
+  changeEmail: protectedProcedure.input(changeEmailInputSchema).mutation(async ({ ctx, input }) => {
+    const rateLimitKey = getPasswordChangeRateLimitKey(ctx.req.ip, ctx.user.id);
+    consumeLoginRateLimit(rateLimitKey);
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.user.id },
+      select: { passwordHash: true },
+    });
+    if (!user || !(await verifyPassword(user.passwordHash, input.currentPassword))) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect." });
+    }
+
     try {
-      return await ctx.prisma.user.update({
+      const updatedUser = await ctx.prisma.user.update({
         where: { id: ctx.user.id },
-        data: { name: input.name, email: input.email, phone: input.phone || null },
-        select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+        data: { email: input.email },
+        select: { email: true },
       });
+      clearLoginRateLimit(rateLimitKey);
+      return updatedUser;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
       }
       throw error;
     }
+  }),
+
+  updateProfile: protectedProcedure.input(updateUserProfileInputSchema).mutation(async ({ ctx, input }) => {
+    return ctx.prisma.user.update({
+      where: { id: ctx.user.id },
+      data: { name: input.name, phone: input.phone || null },
+      select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+    });
   }),
 
   logout: publicProcedure.mutation(async ({ ctx }) => {

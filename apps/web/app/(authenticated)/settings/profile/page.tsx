@@ -9,6 +9,7 @@ import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
 import { ImageUploadPanel } from "../../../../components/image-upload-panel";
+import { AccountInfoCard } from "../../../../components/account-info-card";
 import { deleteUserProfileImage, uploadUserProfileImage } from "../../../../components/user-profile-image-upload";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -25,7 +26,6 @@ export default function ProfileSettingsPage() {
     queryFn: () => apiClient.auth.me.query(),
   });
   const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [profileImageFile, setProfileImageFile] = React.useState<File | null>(null);
   const profileImagePreviewUrl = React.useMemo(
@@ -44,7 +44,6 @@ export default function ProfileSettingsPage() {
     const user = currentUserQuery.data?.user;
     if (!user) return;
     setName(user.name);
-    setEmail(user.email);
     setPhone(user.phone ?? "");
   }, [currentUserQuery.data]);
 
@@ -53,7 +52,7 @@ export default function ProfileSettingsPage() {
       const userId = currentUserQuery.data?.user.id;
       if (!userId) throw new Error("Your profile could not be loaded.");
       if (profileImageFile) await uploadUserProfileImage(userId, profileImageFile);
-      return apiClient.auth.updateProfile.mutate({ name, email, phone: phone.trim() || null });
+      return apiClient.auth.updateProfile.mutate({ name, phone: phone.trim() || null });
     },
     onSuccess: async () => {
       setProfileImageFile(null);
@@ -103,9 +102,7 @@ export default function ProfileSettingsPage() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h2 className="font-semibold text-parcelis-charcoal">Personal details</h2>
-                      <p className="mt-1 text-sm text-parcelis-gray">
-                        Update your name, email address, and phone number.
-                      </p>
+                      <p className="mt-1 text-sm text-parcelis-gray">Update your name and phone number.</p>
                     </div>
                     <CircleUserRound className="h-5 w-5 text-parcelis-green" />
                   </div>
@@ -145,16 +142,6 @@ export default function ProfileSettingsPage() {
                           />
                         </Label>
                         <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
-                          Email
-                          <Input
-                            className="mt-1"
-                            onChange={(event) => setEmail(event.target.value)}
-                            required
-                            type="email"
-                            value={email}
-                          />
-                        </Label>
-                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
                           Phone
                           <Input
                             className="mt-1"
@@ -182,6 +169,13 @@ export default function ProfileSettingsPage() {
                   )}
                 </CardContent>
               </Card>
+              <AccountInfoCard
+                email={currentUserQuery.data?.user.email ?? ""}
+                onEmailChanged={async () => {
+                  await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+                  await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+                }}
+              />
             </div>
           </div>
         </div>

@@ -43,15 +43,26 @@ export const updateUserInputSchema = z.object({
 });
 export const updateUserProfileInputSchema = z.object({
   name: z.string().trim().min(1).max(100),
+  phone: z.string().trim().max(50).nullable(),
+});
+export const changeEmailInputSchema = z.object({
   email: z
     .string()
     .trim()
     .email()
     .max(254)
     .transform((email) => email.toLowerCase()),
-  phone: z.string().trim().max(50).nullable(),
+  currentPassword: z.string().min(1).max(1024),
 });
-export const updateUserProfileByIdInputSchema = updateUserProfileInputSchema.extend({ id: idSchema });
+export const updateUserProfileByIdInputSchema = updateUserProfileInputSchema.extend({
+  id: idSchema,
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
+});
 export const userProfileImageUploadInputSchema = z.object({
   id: idSchema,
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
