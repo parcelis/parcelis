@@ -24,7 +24,7 @@ import { LeaseDrawer } from "../../../components/lease-drawer";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
 import { toast } from "sonner";
-import { getLeaseLink, getPropertyLink, getTenantLink } from "../../../lib/entity-links";
+import { getLeaseLink, getTenantLink } from "../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
