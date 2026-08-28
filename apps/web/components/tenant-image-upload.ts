@@ -1,5 +1,6 @@
 import { apiClient } from "./api-client";
 import {
+  assertImageFileSize,
   isSupportedImageType,
   standardImageContentTypes,
   uploadPresignedFile,
@@ -14,13 +15,15 @@ export async function uploadTenantImage(tenantId: number, file: File) {
   if (!isSupportedTenantImage(file)) {
     throw new Error("Choose a JPG, PNG, or WebP image.");
   }
+  assertImageFileSize(file);
 
-  const { objectKey, uploadUrl } = await apiClient.tenants.createImageUploadUrl.mutate({
+  const { fields, objectKey, uploadUrl } = await apiClient.tenants.createImageUploadUrl.mutate({
     contentType: file.type as ImageContentType,
+    fileSize: file.size,
     fileName: file.name,
     id: tenantId,
   });
-  await uploadPresignedFile(file, uploadUrl, "The tenant image could not be uploaded.");
+  await uploadPresignedFile(file, { fields, uploadUrl }, "The tenant image could not be uploaded.");
 
   await apiClient.tenants.completeImageUpload.mutate({ id: tenantId, objectKey });
 }

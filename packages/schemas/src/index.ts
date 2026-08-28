@@ -3,6 +3,8 @@ import { LeaseStatus } from "@parcelis/db";
 
 const idSchema = z.coerce.number().int().positive();
 const maxDatabaseInteger = 2_147_483_647;
+export const imageUploadMaxSizeBytes = 2 * 1024 * 1024;
+export const imageUploadMaxSizeMessage = `Images must be ${imageUploadMaxSizeBytes / 1024 / 1024} MB or smaller.`;
 
 export const authCredentialsInputSchema = z.object({
   email: z
@@ -67,6 +69,7 @@ export const updateUserProfileByIdInputSchema = updateUserProfileInputSchema.ext
 export const userProfileImageUploadInputSchema = z.object({
   id: idSchema,
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  fileSize: z.number().int().min(1).max(imageUploadMaxSizeBytes),
   fileName: z.string().trim().min(1).max(255),
 });
 export const userProfileImageUploadCompleteInputSchema = z
@@ -103,11 +106,10 @@ export const updateOrganizationInputSchema = z.object({
 });
 export const organizationAvatarUploadInputSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  fileSize: z.number().int().min(1).max(imageUploadMaxSizeBytes),
   fileName: z.string().trim().min(1).max(255),
   variant: z.enum(["light", "dark"]),
 });
-export const organizationAvatarMaxSizeBytes = 2 * 1024 * 1024;
-export const organizationAvatarMaxSizeMessage = `Organization avatars must be ${organizationAvatarMaxSizeBytes / 1024 / 1024} MB or smaller.`;
 export const organizationAvatarUploadCompleteInputSchema = z.object({
   objectKey: z.string().regex(/^organizations\/\d+\/avatar\/(light|dark)\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
   variant: z.enum(["light", "dark"]),
@@ -452,6 +454,7 @@ export const activityEventListInputSchema = z
 export const maintenanceImageUploadInputSchema = z.object({
   id: idSchema,
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  fileSize: z.number().int().min(1).max(imageUploadMaxSizeBytes),
   fileName: z.string().trim().min(1).max(255),
 });
 export const maintenanceImageUploadCompleteInputSchema = z
@@ -474,6 +477,7 @@ export const tenantByIdInputSchema = z.object({
 export const tenantImageUploadInputSchema = z.object({
   id: idSchema,
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  fileSize: z.number().int().min(1).max(imageUploadMaxSizeBytes),
   fileName: z.string().trim().min(1).max(255),
 });
 
@@ -525,6 +529,7 @@ export const propertyStatusInputSchema = z.object({
 export const propertyImageUploadInputSchema = z.object({
   id: idSchema,
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  fileSize: z.number().int().min(1).max(imageUploadMaxSizeBytes),
   fileName: z.string().trim().min(1).max(255),
 });
 

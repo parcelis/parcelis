@@ -58,8 +58,8 @@ import {
   deleteUserInputSchema,
   switchOrganizationInputSchema,
   updateOrganizationInputSchema,
-  organizationAvatarMaxSizeBytes,
-  organizationAvatarMaxSizeMessage,
+  imageUploadMaxSizeBytes,
+  imageUploadMaxSizeMessage,
   organizationAvatarUploadCompleteInputSchema,
   organizationAvatarUploadInputSchema,
   deleteOrganizationAvatarInputSchema,
@@ -77,7 +77,7 @@ import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
   createOrganizationAvatarUploadUrl,
-  assertOrganizationAvatarObjectSize,
+  assertImageObjectSize,
   ObjectExceedsMaximumSizeError,
   createPropertyImageUploadUrl,
   createMaintenanceImageDownloadUrl,
@@ -122,6 +122,22 @@ const propertySelect = {
 
 const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(LeaseStatus)];
 const openEndedLeaseInvoiceHorizonMonths = 12;
+
+async function verifyImageUpload(objectKey: string) {
+  try {
+    await assertImageObjectSize(objectKey);
+  } catch (error) {
+    if (error instanceof ObjectExceedsMaximumSizeError) {
+      await deletePropertyImageObject(objectKey).catch(() => undefined);
+      throw new TRPCError({ code: "BAD_REQUEST", message: imageUploadMaxSizeMessage });
+    }
+    console.error("Failed to validate image upload.", { error, objectKey });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "The image upload could not be verified. Please upload it again.",
+    });
+  }
+}
 
 function formatUnitType(unitType: UnitDetailsInput["unitType"]) {
   return unitType === "Commercial" ? UnitType.commercial : UnitType.residential;
@@ -596,22 +612,7 @@ export const appRouter = router({
         if (!input.objectKey.startsWith(objectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid organization avatar object key." });
         }
-        try {
-          await assertOrganizationAvatarObjectSize(input.objectKey);
-        } catch (error) {
-          if (error instanceof ObjectExceedsMaximumSizeError) {
-            await deletePropertyImageObject(input.objectKey).catch(() => undefined);
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: organizationAvatarMaxSizeMessage,
-            });
-          }
-          console.error("Failed to validate organization avatar upload.", { error, objectKey: input.objectKey });
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "The organization avatar upload could not be verified. Please upload it again.",
-          });
-        }
+        await verifyImageUpload(input.objectKey);
         const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
           where: { id: ctx.organization.organizationId },
           select: { avatarObjectKey: true, darkAvatarObjectKey: true },
@@ -724,6 +725,7 @@ export const appRouter = router({
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected user." });
         }
+        await verifyImageUpload(input.objectKey);
         const currentUser = await ctx.prisma.user.findUniqueOrThrow({
           where: { id: input.id },
           select: { profileImageObjectKey: true },
@@ -990,6 +992,7 @@ export const appRouter = router({
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected property." });
         }
+        await verifyImageUpload(input.objectKey);
         const currentProperty = await ctx.prisma.property.findFirstOrThrow({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           select: { imageObjectKey: true },
@@ -1408,6 +1411,7 @@ export const appRouter = router({
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected tenant." });
         }
+        await verifyImageUpload(input.objectKey);
         const currentTenant = await ctx.prisma.tenant.findFirstOrThrow({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           select: { imageObjectKey: true },
@@ -1765,7 +1769,7 @@ export const appRouter = router({
 
       const organizationLogo = await getObjectBuffer(
         ctx.organization.organization.avatarObjectKey,
-        organizationAvatarMaxSizeBytes,
+        imageUploadMaxSizeBytes,
       );
       const organization = {
         addressLine1: ctx.organization.organization.addressLine1,
@@ -2406,6 +2410,7 @@ export const appRouter = router({
             message: "The image must belong to the selected maintenance ticket.",
           });
         }
+        await verifyImageUpload(input.objectKey);
         await ctx.prisma.maintenanceTicket.findFirstOrThrow({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
         });

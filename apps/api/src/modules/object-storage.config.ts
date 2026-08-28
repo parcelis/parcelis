@@ -2,11 +2,11 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
-  PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { organizationAvatarMaxSizeBytes } from "@parcelis/schemas";
+import { imageUploadMaxSizeBytes } from "@parcelis/schemas";
 import { randomUUID } from "node:crypto";
 
 export type ObjectStorageConfig = {
@@ -78,13 +78,21 @@ function abortObjectBody(body: unknown) {
 
 async function createImageUploadUrl(objectKey: string, contentType: ImageContentType) {
   const config = getObjectStorageConfig();
-  const uploadUrl = await getSignedUrl(
+  const { fields, url: uploadUrl } = await createPresignedPost(
     createObjectStorageClient(),
-    new PutObjectCommand({ Bucket: config.bucket, ContentType: contentType, Key: objectKey }),
-    { expiresIn: 10 * 60 },
+    {
+      Bucket: config.bucket,
+      Conditions: [
+        ["content-length-range", 1, imageUploadMaxSizeBytes],
+        ["eq", "$Content-Type", contentType],
+      ],
+      Expires: 10 * 60,
+      Fields: { "Content-Type": contentType },
+      Key: objectKey,
+    },
   );
 
-  return { objectKey, uploadUrl };
+  return { fields, objectKey, uploadUrl };
 }
 
 export function createPropertyImageObjectKey(
@@ -174,12 +182,12 @@ export async function getObjectBuffer(objectKey: string | null, maxSizeBytes?: n
   }
 }
 
-export async function assertOrganizationAvatarObjectSize(objectKey: string) {
+export async function assertImageObjectSize(objectKey: string) {
   const config = getObjectStorageConfig();
   const response = await createObjectStorageClient().send(
     new HeadObjectCommand({ Bucket: config.bucket, Key: objectKey }),
   );
-  if ((response.ContentLength ?? 0) > organizationAvatarMaxSizeBytes) {
+  if ((response.ContentLength ?? 0) > imageUploadMaxSizeBytes) {
     throw new ObjectExceedsMaximumSizeError();
   }
 }
