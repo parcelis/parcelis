@@ -41,7 +41,7 @@ export function getPublicObjectStorageConfig() {
   };
 }
 
-function createObjectStorageClient() {
+function createObjectStorageClient(endpoint?: string) {
   const config = getObjectStorageConfig();
 
   return new S3Client({
@@ -49,7 +49,7 @@ function createObjectStorageClient() {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
-    endpoint: config.endpoint,
+    endpoint: endpoint ?? config.endpoint,
     forcePathStyle: true,
     region: config.region,
   });
@@ -127,9 +127,13 @@ export async function createPropertyImageDownloadUrl(objectKey: string | null) {
   }
 
   const config = getObjectStorageConfig();
-  return getSignedUrl(createObjectStorageClient(), new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }), {
-    expiresIn: 60 * 60,
-  });
+  return getSignedUrl(
+    createObjectStorageClient(config.publicEndpoint),
+    new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }),
+    {
+      expiresIn: 60 * 60,
+    },
+  );
 }
 
 export async function getObjectBuffer(objectKey: string | null, maxSizeBytes?: number) {
