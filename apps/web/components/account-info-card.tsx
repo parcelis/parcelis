@@ -26,6 +26,7 @@ const emptyPasswordForm = { currentPassword: "", newPassword: "", reenterPasswor
 export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps) {
   const emailDialogTitleId = React.useId();
   const passwordDialogTitleId = React.useId();
+  const passwordMismatchId = React.useId();
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
   const [newEmail, setNewEmail] = React.useState("");
@@ -152,7 +153,9 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
               />
             </Label>
             {changeEmailMutation.error ? (
-              <p className="text-sm font-medium text-red-700">{changeEmailMutation.error.message}</p>
+              <p className="text-sm font-medium text-red-700" role="alert">
+                {changeEmailMutation.error.message}
+              </p>
             ) : null}
             <div className="flex items-center justify-between gap-3">
               <Button
@@ -213,6 +216,7 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
             <Label>
               Re-enter new password
               <PasswordInput
+                aria-describedby={!passwordsMatch && passwordForm.reenterPassword ? passwordMismatchId : undefined}
                 autoComplete="new-password"
                 className="mt-1"
                 minLength={12}
@@ -222,10 +226,14 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
               />
             </Label>
             {!passwordsMatch && passwordForm.reenterPassword ? (
-              <p className="text-sm font-medium text-red-700">New passwords do not match.</p>
+              <p className="text-sm font-medium text-red-700" id={passwordMismatchId} role="alert">
+                New passwords do not match.
+              </p>
             ) : null}
             {changePasswordMutation.error ? (
-              <p className="text-sm font-medium text-red-700">{changePasswordMutation.error.message}</p>
+              <p className="text-sm font-medium text-red-700" role="alert">
+                {changePasswordMutation.error.message}
+              </p>
             ) : null}
             <div className="flex items-center justify-between gap-3">
               <Button
