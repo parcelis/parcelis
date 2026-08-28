@@ -63,6 +63,8 @@ import {
   organizationAvatarUploadCompleteInputSchema,
   organizationAvatarUploadInputSchema,
   deleteOrganizationAvatarInputSchema,
+  updateRolePermissionsInputSchema,
+  userRoleValues,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -95,6 +97,7 @@ import {
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
+import { getRolePermissions } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
 
@@ -817,6 +820,43 @@ export const appRouter = router({
           return tx.user.delete({ where: { id: input.id }, select: { id: true } });
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    }),
+  }),
+  roles: router({
+    list: publicProcedure.query(async ({ ctx }) => {
+      requireAdministrator(ctx.user.role as UserRole);
+      return Promise.all(
+        userRoleValues.map(async (role) => ({ role, permissions: await getRolePermissions(ctx.prisma, role) })),
+      );
+    }),
+    updatePermissions: publicProcedure.input(updateRolePermissionsInputSchema).mutation(async ({ ctx, input }) => {
+      requireAdministrator(ctx.user.role as UserRole);
+      if (input.role === "administrator") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Administrator permissions cannot be changed." });
+      }
+      return ctx.prisma.$transaction(
+        input.permissions.map(({ resource, view, create, edit, archive, delete: canDelete }) =>
+          ctx.prisma.rolePermission.upsert({
+            where: { role_resource: { role: input.role, resource } },
+            create: {
+              role: input.role,
+              resource,
+              canView: view,
+              canCreate: create,
+              canEdit: edit,
+              canArchive: resource.endsWith("_notes") ? false : archive,
+              canDelete,
+            },
+            update: {
+              canView: view,
+              canCreate: create,
+              canEdit: edit,
+              canArchive: resource.endsWith("_notes") ? false : archive,
+              canDelete,
+            },
+          }),
+        ),
       );
     }),
   }),

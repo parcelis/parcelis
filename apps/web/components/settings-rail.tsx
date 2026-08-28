@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, Users } from "lucide-react";
+import { Building2, ShieldCheck, Users } from "lucide-react";
 import { NavigationRail, NavigationRailGroup } from "./navigation-rail";
 
-const items = [{ href: "/settings", icon: Users, key: "users", label: "Users" }] as const;
+const items = [
+  { href: "/settings", icon: Users, key: "users", label: "Users" },
+  { href: "/settings/roles", icon: ShieldCheck, key: "roles", label: "Roles & permissions" },
+] as const;
 
 export function SettingsRail({
   active,
