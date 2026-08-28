@@ -72,6 +72,8 @@ import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
   createOrganizationAvatarUploadUrl,
+  assertOrganizationAvatarObjectSize,
+  ObjectExceedsMaximumSizeError,
   createPropertyImageUploadUrl,
   createMaintenanceImageDownloadUrl,
   createMaintenanceImageUploadUrl,
@@ -82,6 +84,7 @@ import {
   deleteTenantImageObject,
   getObjectBuffer,
   getPublicObjectStorageConfig,
+  organizationAvatarMaxSizeBytes,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
@@ -571,6 +574,18 @@ export const appRouter = router({
         const objectKeyPrefix = `organizations/${ctx.organization.organizationId}/avatar/${input.variant}/`;
         if (!input.objectKey.startsWith(objectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid organization avatar object key." });
+        }
+        try {
+          await assertOrganizationAvatarObjectSize(input.objectKey);
+        } catch (error) {
+          if (error instanceof ObjectExceedsMaximumSizeError) {
+            await deletePropertyImageObject(input.objectKey).catch(() => undefined);
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Organization avatars must be ${organizationAvatarMaxSizeBytes / 1024 / 1024} MB or smaller.`,
+            });
+          }
+          throw error;
         }
         const currentOrganization = await ctx.prisma.organization.findUniqueOrThrow({
           where: { id: ctx.organization.organizationId },
@@ -1622,7 +1637,10 @@ export const appRouter = router({
       });
       if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
 
-      const organizationLogo = await getObjectBuffer(ctx.organization.organization.avatarObjectKey);
+      const organizationLogo = await getObjectBuffer(
+        ctx.organization.organization.avatarObjectKey,
+        organizationAvatarMaxSizeBytes,
+      );
       const organization = {
         addressLine1: ctx.organization.organization.addressLine1,
         addressLine2: ctx.organization.organization.addressLine2,
