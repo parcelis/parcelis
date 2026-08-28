@@ -121,6 +121,7 @@ export default function ProfileSettingsPage() {
                         <ImageUploadPanel
                           acceptedImageDescription="GIF, JPG, PNG, or WebP"
                           alt="Profile photo"
+                          hasPendingImage={Boolean(profileImageFile)}
                           imagePreviewUrl={profileImagePreviewUrl ?? currentUserQuery.data?.user.imageUrl ?? null}
                           isDeletePending={isProfileChangePending}
                           onDelete={() => {
