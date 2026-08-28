@@ -75,12 +75,27 @@ enum TenantInsuranceStatus {
 
 enum UserRole {
   administrator
-  member
+  property_manager
+  lease_manager
+  maintenance
+  property_owner
+  resident_manager
 }
 
 enum UserAccountStatus {
   active
   disabled
+}
+
+enum PermissionResource {
+  properties
+  units
+  tenants
+  maintenance
+  property_notes
+  unit_notes
+  tenant_notes
+  maintenance_notes
 }
 
 enum OrganizationMemberRole {
@@ -143,7 +158,7 @@ model User {
   email                   String                   @unique
   phone                   String?
   profileImageObjectKey   String?
-  role                    UserRole                 @default(member)
+  role                    UserRole                 @default(property_manager)
   accountStatus           UserAccountStatus        @default(active)
   passwordHash            String
   defaultOrganizationId   Int?
@@ -154,6 +169,19 @@ model User {
   defaultOrganization     Organization?            @relation("UserDefaultOrganization", fields: [defaultOrganizationId], references: [id], onDelete: SetNull)
 
   @@index([defaultOrganizationId])
+}
+
+model RolePermission {
+  role       UserRole
+  resource   PermissionResource
+  canView    Boolean            @default(false)
+  canCreate  Boolean            @default(false)
+  canEdit    Boolean            @default(false)
+  canArchive Boolean            @default(false)
+  canDelete  Boolean            @default(false)
+  updatedAt  DateTime           @updatedAt
+
+  @@id([role, resource])
 }
 
 model Session {
