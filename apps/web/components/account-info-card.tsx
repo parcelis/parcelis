@@ -24,6 +24,8 @@ type AccountInfoCardProps = {
 const emptyPasswordForm = { currentPassword: "", newPassword: "", reenterPassword: "" };
 
 export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps) {
+  const emailDialogTitleId = React.useId();
+  const passwordDialogTitleId = React.useId();
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
   const [newEmail, setNewEmail] = React.useState("");
@@ -112,7 +114,7 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
         onOpenChange={(open) => (open ? setIsEmailDialogOpen(true) : closeEmailDialog())}
         open={isEmailDialogOpen}
       >
-        <DialogContent>
+        <DialogContent aria-labelledby={emailDialogTitleId}>
           <form
             className="flex flex-col gap-5"
             onSubmit={(event) => {
@@ -121,7 +123,9 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
             }}
           >
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-parcelis-charcoal">CHANGE EMAIL ADDRESS</h2>
+              <h2 className="text-lg font-bold text-parcelis-charcoal" id={emailDialogTitleId}>
+                CHANGE EMAIL ADDRESS
+              </h2>
               <p className="mt-4 text-sm text-parcelis-gray">
                 Please enter your new email address and confirm your Parcelis login password to proceed.
               </p>
@@ -171,7 +175,7 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
         onOpenChange={(open) => (open ? setIsPasswordDialogOpen(true) : closePasswordDialog())}
         open={isPasswordDialogOpen}
       >
-        <DialogContent>
+        <DialogContent aria-labelledby={passwordDialogTitleId}>
           <form
             className="flex flex-col gap-5"
             onSubmit={(event) => {
@@ -180,7 +184,9 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
             }}
           >
             <div>
-              <h2 className="text-lg font-bold text-parcelis-charcoal">Change password</h2>
+              <h2 className="text-lg font-bold text-parcelis-charcoal" id={passwordDialogTitleId}>
+                Change password
+              </h2>
               <p className="mt-1 text-sm text-parcelis-gray">Use at least 12 characters for your new password.</p>
             </div>
             <Label>
