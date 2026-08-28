@@ -1,0 +1,80 @@
+apps/web/components/property-image-upload.ts
+  s_3bae4ecafd491b::t_cd322daeb5e60f 2,5,14,18
+apps/docs/content/platform-user-guide/navigation-and-preferences/profile.mdx
+  s_d6bf21be2ddc30::t_497afa43f540ba 10
+  s_d6bf21be2ddc30::t_6baa4e04582146 8-9
+packages/db/prisma/schema.prisma
+  s_d6bf21be2ddc30::t_327a158c0c5b6c 145
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_d6bf21be2ddc30::t_bf698767d32e76 149,158,168,177,182,186
+  s_d6bf21be2ddc30::t_09279a46a1b6c2 12,38-49,60-63,65-76,130,142,148,191-192
+  s_d6bf21be2ddc30::t_bc1b836df2ed04 13,144-147,150-157,159-167,169-176,178-181,183-185,187-190
+  s_d6bf21be2ddc30::t_9b54383956b747 124,131-139,143
+apps/web/components/maintenance-image-upload.ts
+  s_3bae4ecafd491b::t_cd322daeb5e60f 10,14,20
+  s_3bae4ecafd491b::t_3cfcd104b90aca 2-7
+apps/api/src/router/app.router.ts
+  s_d6bf21be2ddc30::t_ed38a92de1279b 55-56,90-92,647-655
+  s_d6bf21be2ddc30::t_497afa43f540ba 680
+  s_d6bf21be2ddc30::t_ce4648ae2660ae 686
+  s_d6bf21be2ddc30::t_f4c79be39c98c8 657-658
+  s_d6bf21be2ddc30::t_870809d8d38fe8 643,645,675-679,681-685,687-716
+packages/schemas/src/index.ts
+  s_d6bf21be2ddc30::t_327a158c0c5b6c 55-62,64-65
+  s_d6bf21be2ddc30::t_ce4648ae2660ae 63
+apps/api/src/router/context.ts
+  s_d6bf21be2ddc30::t_327a158c0c5b6c 23
+apps/web/components/image-upload.ts
+  s_3bae4ecafd491b::t_cd322daeb5e60f 1-18
+apps/api/src/router/auth.router.ts
+  s_d6bf21be2ddc30::t_d6c66f81e3f971 149-152
+  s_d6bf21be2ddc30::t_327a158c0c5b6c 27
+apps/web/app/(authenticated)/settings/profile/page.tsx
+  s_d6bf21be2ddc30::t_9b54383956b747 113,120-128,132
+  s_d6bf21be2ddc30::t_fb6e4ef3ea2423 11-12,30-41,52-57,59-71,119,131,137,180-181
+  s_d6bf21be2ddc30::t_bf698767d32e76 138,147,157,166,171,175
+  s_d6bf21be2ddc30::t_bc1b836df2ed04 133-136,139-146,148-156,158-165,167-170,172-174,176-179
+apps/api/src/modules/object-storage.config.ts
+  s_d6bf21be2ddc30::t_ce4648ae2660ae 213
+  s_d6bf21be2ddc30::t_497afa43f540ba 208-212,217-221
+  s_d6bf21be2ddc30::t_327a158c0c5b6c 214-215,223-227
+  s_3bae4ecafd491b::t_6f3afa7d780363 65-66,79-89,106,112,115,121,196,202,216,222,236,242
+apps/web/components/user-profile-image-upload.ts
+  s_d6bf21be2ddc30::t_94673d7acfec7e 1,3-4,6-8,10-12,14-19
+  s_3bae4ecafd491b::t_cd322daeb5e60f 2,5,9,13
+apps/web/components/image-upload-panel.tsx
+  s_3bae4ecafd491b::t_2d27f89e5e060b 6,25
+  s_3bae4ecafd491b::t_e99f7ba960144e 97
+apps/web/components/tenant-image-upload.ts
+  s_3bae4ecafd491b::t_3cfcd104b90aca 2-7
+  s_3bae4ecafd491b::t_cd322daeb5e60f 10,19,23
+packages/db/prisma/migrations/20260828000000_user_profile_image/migration.sql
+  s_d6bf21be2ddc30::t_327a158c0c5b6c 1
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_3bae4ecafd491b::t_3cfcd104b90aca 9
+  s_3bae4ecafd491b::t_cd322daeb5e60f 11,114,118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "65e2f4f37b7a59b70bff0c8e1426ed5d1645bfb3",
+  "prompts": {},
+  "sessions": {
+    "s_3bae4ecafd491b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a048f8-5f0e-7653-ae50-1f9fef81f516",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_d6bf21be2ddc30": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a046cf-fb4d-7b31-8f78-52790d444a00",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
