@@ -1,0 +1,26 @@
+apps/web/components/tenant-drawer.tsx
+  s_b9fb293b93eaee::t_1c940e76029173 196
+apps/web/components/tenant-image-upload.ts
+  s_b9fb293b93eaee::t_1c940e76029173 4,11,16
+apps/api/src/router/auth.router.ts
+  s_b9fb293b93eaee::t_f6daa8a383989e 172-175
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_b9fb293b93eaee::t_f6daa8a383989e 62
+  s_b9fb293b93eaee::t_3e385c2f21442b 61,63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "75214a5075672fab2a51981d11e15eb41ef6893a",
+  "prompts": {},
+  "sessions": {
+    "s_b9fb293b93eaee": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a04a2b-53c7-7db3-9e5f-2322ca7bfe8b",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
