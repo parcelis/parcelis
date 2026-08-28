@@ -431,6 +431,20 @@ async function assertActiveAdministratorCanBeRemoved(prisma: PrismaClient | Pris
   }
 }
 
+async function assertUserHasOrganizationMembership(
+  prisma: PrismaClient | Prisma.TransactionClient,
+  userId: number,
+  organizationId: number,
+) {
+  const membership = await prisma.organizationMembership.findUnique({
+    where: { userId_organizationId: { userId, organizationId } },
+    select: { userId: true },
+  });
+  if (!membership) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Organization access is required." });
+  }
+}
+
 async function transferSoleOrganizationOwnership(
   prisma: PrismaClient | Prisma.TransactionClient,
   userId: number,
@@ -641,7 +655,10 @@ export const appRouter = router({
       });
     }),
     profile: publicProcedure.input(deleteUserInputSchema).query(async ({ ctx, input }) => {
-      if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+      if (input.id !== ctx.user.id) {
+        requireOrganizationAdministrator(ctx.organization.role);
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+      }
       const user = await ctx.prisma.user.findUniqueOrThrow({
         where: { id: input.id },
         select: {
@@ -659,7 +676,10 @@ export const appRouter = router({
     }),
     updateProfile: publicProcedure.input(updateUserProfileByIdInputSchema).mutation(async ({ ctx, input }) => {
       const isOwnProfile = input.id === ctx.user.id;
-      if (!isOwnProfile) requireOrganizationAdministrator(ctx.organization.role);
+      if (!isOwnProfile) {
+        requireOrganizationAdministrator(ctx.organization.role);
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+      }
       if (isOwnProfile && input.email !== undefined) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -686,14 +706,20 @@ export const appRouter = router({
     createProfileImageUploadUrl: publicProcedure
       .input(userProfileImageUploadInputSchema)
       .mutation(async ({ ctx, input }) => {
-        if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+        if (input.id !== ctx.user.id) {
+          requireOrganizationAdministrator(ctx.organization.role);
+          await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+        }
         await ctx.prisma.user.findUniqueOrThrow({ where: { id: input.id }, select: { id: true } });
         return createUserProfileImageUploadUrl(input.contentType, ctx.organization.organizationId, input.id);
       }),
     completeProfileImageUpload: publicProcedure
       .input(userProfileImageUploadCompleteInputSchema)
       .mutation(async ({ ctx, input }) => {
-        if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+        if (input.id !== ctx.user.id) {
+          requireOrganizationAdministrator(ctx.organization.role);
+          await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+        }
         const expectedObjectKeyPrefix = `organizations/${ctx.organization.organizationId}/users/${input.id}/profile/images/`;
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected user." });
@@ -713,7 +739,10 @@ export const appRouter = router({
         return user;
       }),
     deleteProfileImage: publicProcedure.input(deleteUserInputSchema).mutation(async ({ ctx, input }) => {
-      if (input.id !== ctx.user.id) requireOrganizationAdministrator(ctx.organization.role);
+      if (input.id !== ctx.user.id) {
+        requireOrganizationAdministrator(ctx.organization.role);
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+      }
       const currentUser = await ctx.prisma.user.findUniqueOrThrow({
         where: { id: input.id },
         select: { profileImageObjectKey: true },
