@@ -24,6 +24,8 @@ type AccountInfoCardProps = {
 const emptyPasswordForm = { currentPassword: "", newPassword: "", reenterPassword: "" };
 
 export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps) {
+  const emailInputId = React.useId();
+  const passwordInputId = React.useId();
   const emailDialogTitleId = React.useId();
   const passwordDialogTitleId = React.useId();
   const passwordMismatchId = React.useId();
@@ -79,9 +81,9 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
         </CardHeader>
         <CardContent className="flex flex-col gap-5 md:flex-row">
           <div className="min-w-0 flex-1 space-y-2">
-            <Label>Email</Label>
+            <Label htmlFor={emailInputId}>Email</Label>
             <div className="flex">
-              <Input className="min-w-0 rounded-r-none" readOnly value={email} />
+              <Input className="min-w-0 rounded-r-none" id={emailInputId} readOnly value={email} />
               <Button
                 className="min-w-40 shrink-0 rounded-l-none border-l-0"
                 onClick={() => setIsEmailDialogOpen(true)}
@@ -94,9 +96,9 @@ export function AccountInfoCard({ email, onEmailChanged }: AccountInfoCardProps)
             </div>
           </div>
           <div className="min-w-0 flex-1 space-y-2">
-            <Label>Password</Label>
+            <Label htmlFor={passwordInputId}>Password</Label>
             <div className="flex">
-              <Input className="min-w-0 rounded-r-none" readOnly value="••••••••••••" />
+              <Input className="min-w-0 rounded-r-none" id={passwordInputId} readOnly value="••••••••••••" />
               <Button
                 className="min-w-40 shrink-0 rounded-l-none border-l-0"
                 onClick={() => setIsPasswordDialogOpen(true)}

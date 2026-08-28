@@ -28,6 +28,7 @@ export default function ProfileSettingsPage() {
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [profileImageFile, setProfileImageFile] = React.useState<File | null>(null);
+  const initializedUserIdRef = React.useRef<string | null>(null);
   const profileImagePreviewUrl = React.useMemo(
     () => (profileImageFile ? URL.createObjectURL(profileImageFile) : null),
     [profileImageFile],
@@ -42,9 +43,10 @@ export default function ProfileSettingsPage() {
 
   React.useEffect(() => {
     const user = currentUserQuery.data?.user;
-    if (!user) return;
+    if (!user || initializedUserIdRef.current === user.id) return;
     setName(user.name);
     setPhone(user.phone ?? "");
+    initializedUserIdRef.current = user.id;
   }, [currentUserQuery.data]);
 
   const updateProfileMutation = useMutation({
@@ -52,8 +54,9 @@ export default function ProfileSettingsPage() {
     mutationFn: async () => {
       const userId = currentUserQuery.data?.user.id;
       if (!userId) throw new Error("Your profile could not be loaded.");
+      const profile = await apiClient.auth.updateProfile.mutate({ name, phone: phone.trim() || null });
       if (profileImageFile) await uploadUserProfileImage(userId, profileImageFile);
-      return apiClient.auth.updateProfile.mutate({ name, phone: phone.trim() || null });
+      return profile;
     },
     onSuccess: async () => {
       setProfileImageFile(null);
@@ -131,6 +134,11 @@ export default function ProfileSettingsPage() {
                           onImageChange={setProfileImageFile}
                           title="Profile photo"
                         />
+                        {deleteProfileImageMutation.error ? (
+                          <p className="mt-3 text-sm font-medium text-red-700">
+                            {deleteProfileImageMutation.error.message}
+                          </p>
+                        ) : null}
                       </div>
                       <form
                         className="flex w-full max-w-2xl flex-wrap gap-5"
