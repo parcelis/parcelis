@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   EllipsisVertical,
   Mail,
@@ -117,7 +116,6 @@ function UserActionsMenu({
 }
 
 export default function SettingsPage() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const currentUserQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -362,19 +360,20 @@ export default function SettingsPage() {
                       <TableBody>
                         {users.map((user) => (
                           <TableRow
-                            className="cursor-pointer border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
+                            className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
                             key={user.id}
-                            onClick={(event) => {
-                              if ((event.target as HTMLElement).closest("a, button")) return;
-                              router.push(`/settings/profile/${user.id}`);
-                            }}
                           >
                             <TableCell className="px-5 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
                                   <Users className="h-4 w-4" />
                                 </div>
-                                <span className="font-semibold text-parcelis-charcoal">{user.name}</span>
+                                <Link
+                                  className="font-semibold text-parcelis-charcoal hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2"
+                                  href={`/settings/profile/${user.id}`}
+                                >
+                                  {user.name}
+                                </Link>
                               </div>
                             </TableCell>
                             <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
