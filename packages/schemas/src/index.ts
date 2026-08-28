@@ -75,7 +75,7 @@ export const userProfileImageUploadInputSchema = z.object({
 export const userProfileImageUploadCompleteInputSchema = z
   .object({
     id: idSchema,
-    objectKey: z.string().regex(/^organizations\/\d+\/users\/\d+\/profile\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
+    objectKey: z.string().regex(/^users\/\d+\/profile\/images\/[a-f0-9-]+\.(jpg|png|webp|gif)$/),
   })
   .strict();
 export const userAccountStatusInputSchema = z.object({

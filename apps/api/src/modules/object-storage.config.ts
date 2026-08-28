@@ -219,18 +219,16 @@ export const deleteTenantImageObject = deletePropertyImageObject;
 
 export function createUserProfileImageObjectKey(
   contentType: keyof typeof imageExtensions,
-  organizationId: number,
   userId: number,
 ) {
-  return `organizations/${organizationId}/users/${userId}/profile/images/${randomUUID()}.${imageExtensions[contentType]}`;
+  return `users/${userId}/profile/images/${randomUUID()}.${imageExtensions[contentType]}`;
 }
 
 export function createUserProfileImageUploadUrl(
   contentType: keyof typeof imageExtensions,
-  organizationId: number,
   userId: number,
 ) {
-  const objectKey = createUserProfileImageObjectKey(contentType, organizationId, userId);
+  const objectKey = createUserProfileImageObjectKey(contentType, userId);
   return createImageUploadUrl(objectKey, contentType);
 }
 

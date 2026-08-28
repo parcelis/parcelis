@@ -717,7 +717,7 @@ export const appRouter = router({
           await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
         }
         await ctx.prisma.user.findUniqueOrThrow({ where: { id: input.id }, select: { id: true } });
-        return createUserProfileImageUploadUrl(input.contentType, ctx.organization.organizationId, input.id);
+        return createUserProfileImageUploadUrl(input.contentType, input.id);
       }),
     completeProfileImageUpload: publicProcedure
       .input(userProfileImageUploadCompleteInputSchema)
@@ -726,7 +726,7 @@ export const appRouter = router({
           requireOrganizationAdministrator(ctx.organization.role);
           await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
         }
-        const expectedObjectKeyPrefix = `organizations/${ctx.organization.organizationId}/users/${input.id}/profile/images/`;
+        const expectedObjectKeyPrefix = `users/${input.id}/profile/images/`;
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected user." });
         }
