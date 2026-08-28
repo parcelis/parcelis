@@ -58,7 +58,9 @@ export default function UserProfilePage() {
   }, [profileQuery.data]);
 
   const isOwnProfile = currentUserQuery.data?.user.id === userId;
-  const canEditEmail = !isOwnProfile && currentUserQuery.data?.user.role === "administrator";
+  const organizationRole = currentUserQuery.data?.organizationRole;
+  const canEditEmail =
+    !isOwnProfile && (organizationRole === "owner" || organizationRole === "administrator");
   const updateProfileMutation = useMutation({
     scope: { id: `user-profile-${userId}` },
     mutationFn: async () => {

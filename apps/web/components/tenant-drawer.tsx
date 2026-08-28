@@ -193,8 +193,7 @@ export function TenantDrawer({
                   })}
                 </aside>
                 <ImageUploadPanel
-                  acceptedImageDescription="JPG, PNG, or WebP"
-                  acceptedImageTypes={["image/jpeg", "image/png", "image/webp"]}
+                  acceptedImageDescription="JPG, PNG, WebP, or GIF"
                   alt="Selected tenant"
                   imagePreviewUrl={imagePreviewUrl}
                   isDeletePending={isImageDeletePending}

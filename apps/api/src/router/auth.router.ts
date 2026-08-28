@@ -169,6 +169,9 @@ export const authRouter = router({
 
   me: protectedProcedure.query(async ({ ctx }) => {
     const { profileImageObjectKey, ...user } = ctx.user;
-    return { user: { ...user, imageUrl: await createUserProfileImageDownloadUrl(profileImageObjectKey) } };
+    return {
+      user: { ...user, imageUrl: await createUserProfileImageDownloadUrl(profileImageObjectKey) },
+      organizationRole: ctx.organization?.role,
+    };
   }),
 });

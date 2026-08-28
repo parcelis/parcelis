@@ -1,19 +1,19 @@
 import { apiClient } from "./api-client";
 import {
   assertImageFileSize,
+  imageContentTypes,
   isSupportedImageType,
-  standardImageContentTypes,
   uploadPresignedFile,
   type ImageContentType,
 } from "./image-upload";
 
 export function isSupportedTenantImage(file: File) {
-  return isSupportedImageType(file, standardImageContentTypes);
+  return isSupportedImageType(file, imageContentTypes);
 }
 
 export async function uploadTenantImage(tenantId: number, file: File) {
   if (!isSupportedTenantImage(file)) {
-    throw new Error("Choose a JPG, PNG, or WebP image.");
+    throw new Error("Choose a JPG, PNG, WebP, or GIF image.");
   }
   assertImageFileSize(file);
 
