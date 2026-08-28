@@ -754,13 +754,17 @@ export const appRouter = router({
         where: { id: input.id },
         select: { profileImageObjectKey: true },
       });
-      const user = await ctx.prisma.user.update({
-        where: { id: input.id },
+      const clearedProfileImage = await ctx.prisma.user.updateMany({
+        where: { id: input.id, profileImageObjectKey: currentUser.profileImageObjectKey },
         data: { profileImageObjectKey: null },
+      });
+      if (clearedProfileImage.count && currentUser.profileImageObjectKey) {
+        await deleteUserProfileImageObject(currentUser.profileImageObjectKey);
+      }
+      return ctx.prisma.user.findUniqueOrThrow({
+        where: { id: input.id },
         select: { id: true, profileImageObjectKey: true },
       });
-      if (currentUser.profileImageObjectKey) await deleteUserProfileImageObject(currentUser.profileImageObjectKey);
-      return user;
     }),
     update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
       requireAdministrator(ctx.user.role as UserRole);
