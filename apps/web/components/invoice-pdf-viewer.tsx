@@ -3,7 +3,6 @@
 import * as React from "react";
 import { createPluginRegistration } from "@embedpdf/core";
 import { EmbedPDF } from "@embedpdf/core/react";
-import { usePdfiumEngine } from "@embedpdf/engines/react";
 import { DocumentContent, DocumentManagerPluginPackage } from "@embedpdf/plugin-document-manager/react";
 import { Download as ExportDownload, ExportPluginPackage, useExport } from "@embedpdf/plugin-export/react";
 import { FullscreenPluginPackage, FullscreenProvider, useFullscreen } from "@embedpdf/plugin-fullscreen/react";
@@ -17,7 +16,10 @@ import { ChevronLeft, ChevronRight, Download, Maximize, Minimize, Minus, Plus, P
 import { Button } from "@parcelis/ui";
 
 type InvoicePdfViewerProps = {
+  engine: Parameters<typeof EmbedPDF>[0]["engine"] | null;
+  engineError: Error | null;
   fileName: string;
+  isEngineLoading: boolean;
   source: string;
 };
 
@@ -40,86 +42,87 @@ function InvoicePdfToolbar({ documentId }: { documentId: string }) {
   }
 
   return (
-    <div className="flex min-h-14 w-full min-w-0 max-w-full shrink-0 items-center justify-between gap-3 border-b bg-parcelis-white px-4 pr-14 dark:bg-parcelis-slate">
-      <div className="flex items-center gap-1">
-        <Button
-          aria-label="Previous page"
-          disabled={!scroll || page.currentPage <= 1}
-          size="sm"
-          type="button"
-          variant="secondary"
-          onClick={() => scroll?.scrollToPreviousPage()}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="min-w-20 text-center text-xs text-parcelis-gray">
-          Page {page.currentPage} of {page.totalPages}
-        </span>
-        <Button
-          aria-label="Next page"
-          disabled={!scroll || page.currentPage >= page.totalPages}
-          size="sm"
-          type="button"
-          variant="secondary"
-          onClick={() => scroll?.scrollToNextPage()}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="flex items-center gap-1">
-        <Button
-          aria-label="Zoom out"
-          disabled={!zoom}
-          size="sm"
-          type="button"
-          variant="secondary"
-          onClick={() => zoom?.zoomOut()}
-        >
-          <Minus className="h-4 w-4" />
-        </Button>
-        <Button
-          className="min-w-16"
-          disabled={!zoom}
-          size="sm"
-          type="button"
-          variant="secondary"
-          onClick={() => zoom?.requestZoom(ZoomMode.FitPage)}
-        >
-          {Math.round(zoomState.currentZoomLevel * 100)}%
-        </Button>
-        <Button
-          aria-label="Zoom in"
-          disabled={!zoom}
-          size="sm"
-          type="button"
-          variant="secondary"
-          onClick={() => zoom?.zoomIn()}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-        <Button disabled={!print || isPrinting} size="sm" type="button" variant="secondary" onClick={handlePrint}>
-          <Printer className="h-4 w-4" /> {isPrinting ? "Preparing…" : "Print"}
-        </Button>
-        <Button disabled={!exportPdf} size="sm" type="button" onClick={() => exportPdf?.download()}>
-          <Download className="h-4 w-4" /> Download
-        </Button>
-        <Button
-          aria-label={fullscreenState.isFullscreen ? "Exit full screen" : "Full screen"}
-          disabled={!fullscreen}
-          size="sm"
-          type="button"
-          variant="secondary"
-          onClick={() => fullscreen?.toggleFullscreen()}
-        >
-          {fullscreenState.isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-        </Button>
+    <div className="w-full shrink-0 overflow-x-auto border-b bg-parcelis-white dark:bg-parcelis-slate">
+      <div className="flex min-h-14 min-w-max items-center justify-between gap-3 px-4 pr-14">
+        <div className="flex items-center gap-1">
+          <Button
+            aria-label="Previous page"
+            disabled={!scroll || page.currentPage <= 1}
+            size="sm"
+            type="button"
+            variant="secondary"
+            onClick={() => scroll?.scrollToPreviousPage()}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="min-w-20 text-center text-xs text-parcelis-gray">
+            Page {page.currentPage} of {page.totalPages}
+          </span>
+          <Button
+            aria-label="Next page"
+            disabled={!scroll || page.currentPage >= page.totalPages}
+            size="sm"
+            type="button"
+            variant="secondary"
+            onClick={() => scroll?.scrollToNextPage()}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            aria-label="Zoom out"
+            disabled={!zoom}
+            size="sm"
+            type="button"
+            variant="secondary"
+            onClick={() => zoom?.zoomOut()}
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <Button
+            className="min-w-16"
+            disabled={!zoom}
+            size="sm"
+            type="button"
+            variant="secondary"
+            onClick={() => zoom?.requestZoom(ZoomMode.FitPage)}
+          >
+            {Math.round(zoomState.currentZoomLevel * 100)}%
+          </Button>
+          <Button
+            aria-label="Zoom in"
+            disabled={!zoom}
+            size="sm"
+            type="button"
+            variant="secondary"
+            onClick={() => zoom?.zoomIn()}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button disabled={!print || isPrinting} size="sm" type="button" variant="secondary" onClick={handlePrint}>
+            <Printer className="h-4 w-4" /> {isPrinting ? "Preparing…" : "Print"}
+          </Button>
+          <Button disabled={!exportPdf} size="sm" type="button" onClick={() => exportPdf?.download()}>
+            <Download className="h-4 w-4" /> Download
+          </Button>
+          <Button
+            aria-label={fullscreenState.isFullscreen ? "Exit full screen" : "Full screen"}
+            disabled={!fullscreen}
+            size="sm"
+            type="button"
+            variant="secondary"
+            onClick={() => fullscreen?.toggleFullscreen()}
+          >
+            {fullscreenState.isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
-export function InvoicePdfViewer({ fileName, source }: InvoicePdfViewerProps) {
-  const { engine, error, isLoading } = usePdfiumEngine({ fontFallback: null });
+export function InvoicePdfViewer({ engine, engineError, fileName, isEngineLoading, source }: InvoicePdfViewerProps) {
   const plugins = React.useMemo(
     () => [
       createPluginRegistration(DocumentManagerPluginPackage, {
@@ -138,11 +141,11 @@ export function InvoicePdfViewer({ fileName, source }: InvoicePdfViewerProps) {
     [fileName, source],
   );
 
-  if (error) {
+  if (engineError) {
     return <div className="grid h-full place-items-center text-sm text-red-700">Unable to load the PDF preview.</div>;
   }
 
-  if (isLoading || !engine) {
+  if (isEngineLoading || !engine) {
     return <div className="grid h-full place-items-center text-sm text-parcelis-gray">Loading PDF preview…</div>;
   }
 
