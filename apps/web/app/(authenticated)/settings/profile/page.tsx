@@ -12,6 +12,10 @@ import { SettingsRail } from "../../../../components/settings-rail";
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
+function formatRole(role: "administrator" | "member" | undefined) {
+  return role === "administrator" ? "Administrator" : "Member";
+}
+
 export default function ProfileSettingsPage() {
   const queryClient = useQueryClient();
   const currentUserQuery = useQuery({
@@ -81,7 +85,7 @@ export default function ProfileSettingsPage() {
                     <p className="text-sm font-medium text-red-700">{currentUserQuery.error.message}</p>
                   ) : (
                     <form
-                      className="grid max-w-xl gap-5"
+                      className="grid max-w-2xl gap-5 md:grid-cols-2"
                       onSubmit={(event) => {
                         event.preventDefault();
                         updateProfileMutation.mutate();
@@ -115,10 +119,16 @@ export default function ProfileSettingsPage() {
                           value={phone}
                         />
                       </Label>
+                      <Label>
+                        User role
+                        <Input className="mt-1" readOnly value={formatRole(currentUserQuery.data?.user.role)} />
+                      </Label>
                       {updateProfileMutation.error ? (
-                        <p className="text-sm font-medium text-red-700">{updateProfileMutation.error.message}</p>
+                        <p className="text-sm font-medium text-red-700 md:col-span-2">
+                          {updateProfileMutation.error.message}
+                        </p>
                       ) : null}
-                      <div className="flex justify-end">
+                      <div className="flex justify-end md:col-span-2">
                         <Button disabled={updateProfileMutation.isPending} type="submit">
                           Save changes
                         </Button>
