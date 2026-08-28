@@ -57,6 +57,7 @@
 - Prefer shared primitives from `@parcelis/ui`. Do not create local UI controls, unless you specificially ask after looking for shared primitives or pulling them from shadcn.
 - Add reusable UI primitives in `packages/ui/src/components`.
 - Use Tailwind utility classes and existing Parcelis design tokens from the UI package.
+- Use Flexbox for layout. Do not use CSS Grid or Tailwind `grid` utilities.
 - Use `lucide-react` icons for interface actions when an icon is appropriate.
 - Use the default `Button` size with `className="min-w-40"` for standard page-header actions,
   back-navigation buttons, and drawer-footer actions. Match the Edit Property drawer buttons for
