@@ -97,7 +97,7 @@ import {
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
-import { getRolePermissions } from "../modules/permissions";
+import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
 
@@ -1752,6 +1752,7 @@ export const appRouter = router({
   }),
   invoices: router({
     list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
       await synchronizeOverdueInvoices(ctx.prisma);
       const invoices = await ctx.prisma.invoice.findMany({
         where: {
@@ -1771,6 +1772,7 @@ export const appRouter = router({
       }));
     }),
     byId: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
       await synchronizeOverdueInvoices(ctx.prisma);
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
@@ -1798,6 +1800,7 @@ export const appRouter = router({
       };
     }),
     pdf: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
       await synchronizeOverdueInvoices(ctx.prisma);
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
@@ -1839,6 +1842,7 @@ export const appRouter = router({
       };
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
       const lease = await ctx.prisma.lease.findFirst({
         where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
         select: { id: true, propertyId: true },
@@ -1919,6 +1923,7 @@ export const appRouter = router({
       }
     }),
     recordPayment: publicProcedure.input(recordInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "edit");
       try {
         return await ctx.prisma.$transaction(
           async (tx) => {
@@ -1986,6 +1991,7 @@ export const appRouter = router({
       }
     }),
     recordPayments: publicProcedure.input(recordInvoicePaymentsInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "edit");
       try {
         return await ctx.prisma.$transaction(
           async (tx) => {
@@ -2057,6 +2063,7 @@ export const appRouter = router({
       }
     }),
     update: publicProcedure.input(updateInvoiceInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "edit");
       const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
       if (amountCents <= 0) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "An invoice must have a positive total." });
@@ -2108,12 +2115,14 @@ export const appRouter = router({
       }
     }),
     delete: publicProcedure.input(deleteInvoiceInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
       await ctx.prisma.invoice.findFirstOrThrow({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
       });
       return ctx.prisma.invoice.delete({ where: { id: input.id }, select: { id: true } });
     }),
     deletePayment: publicProcedure.input(deleteInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
       return ctx.prisma.$transaction(async (tx) => {
         const payment = await tx.invoicePayment.findFirstOrThrow({
           where: { id: input.id, invoice: { organizationId: ctx.organization.organizationId } },
@@ -2776,8 +2785,11 @@ export const appRouter = router({
   }),
   notes: router({
     /** Lists the notes attached to one record. */
-    list: publicProcedure.input(noteListInputSchema).query(({ ctx, input }) => {
+    list: publicProcedure.input(noteListInputSchema).query(async ({ ctx, input }) => {
       const { limit, ...subject } = input;
+      if ("invoiceId" in subject) {
+        await requireNotePermission(ctx.prisma, ctx.user.role, subject, "view");
+      }
 
       return ctx.prisma.note.findMany({
         where: {
@@ -2815,6 +2827,7 @@ export const appRouter = router({
           where: { id: input.applicationId, organizationId: ctx.organization.organizationId },
         });
       } else if ("invoiceId" in input) {
+        await requireNotePermission(ctx.prisma, ctx.user.role, input, "create");
         await ctx.prisma.invoice.findFirstOrThrow({
           where: { id: input.invoiceId, organizationId: ctx.organization.organizationId },
         });
@@ -2830,7 +2843,7 @@ export const appRouter = router({
     }),
     /** Updates an internal note. */
     update: publicProcedure.input(updateNoteInputSchema).mutation(async ({ ctx, input }) => {
-      await ctx.prisma.note.findFirstOrThrow({
+      const existingNote = await ctx.prisma.note.findFirstOrThrow({
         where: {
           id: input.id,
           OR: [
@@ -2842,7 +2855,11 @@ export const appRouter = router({
             { invoice: { organizationId: ctx.organization.organizationId } },
           ],
         },
+        select: { invoiceId: true },
       });
+      if (existingNote.invoiceId) {
+        await requireNotePermission(ctx.prisma, ctx.user.role, { invoiceId: existingNote.invoiceId }, "edit");
+      }
       return ctx.prisma.$transaction(async (tx) => {
         const { propertyId, tenantId, ...note } = await tx.note.update({
           where: { id: input.id },
@@ -2874,7 +2891,7 @@ export const appRouter = router({
     }),
     /** Deletes an internal note. */
     delete: publicProcedure.input(deleteNoteInputSchema).mutation(async ({ ctx, input }) => {
-      await ctx.prisma.note.findFirstOrThrow({
+      const existingNote = await ctx.prisma.note.findFirstOrThrow({
         where: {
           id: input.id,
           OR: [
@@ -2886,7 +2903,11 @@ export const appRouter = router({
             { invoice: { organizationId: ctx.organization.organizationId } },
           ],
         },
+        select: { invoiceId: true },
       });
+      if (existingNote.invoiceId) {
+        await requireNotePermission(ctx.prisma, ctx.user.role, { invoiceId: existingNote.invoiceId }, "delete");
+      }
       return ctx.prisma.$transaction(async (tx) => {
         const note = await tx.note.findUniqueOrThrow({
           where: { id: input.id },
