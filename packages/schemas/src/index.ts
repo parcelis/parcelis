@@ -40,12 +40,13 @@ export const userRoleValues = [
 export const userRoleSchema = z.enum(userRoleValues);
 export type UserRole = z.infer<typeof userRoleSchema>;
 export const userAccountStatusSchema = z.enum(["active", "disabled"]);
-export const primaryPermissionResourceValues = ["properties", "units", "tenants", "maintenance"] as const;
+export const primaryPermissionResourceValues = ["properties", "units", "tenants", "maintenance", "invoices"] as const;
 export const notePermissionResourceValues = [
   "property_notes",
   "unit_notes",
   "tenant_notes",
   "maintenance_notes",
+  "invoice_notes",
 ] as const;
 export const permissionResourceValues = [...primaryPermissionResourceValues, ...notePermissionResourceValues] as const;
 export const permissionActionValues = ["view", "create", "edit", "archive", "delete"] as const;
@@ -85,6 +86,12 @@ export const permissionCatalog: ReadonlyArray<{
     description: "Maintenance tickets, attachments, and workflow status.",
     actions: permissionActionValues,
   },
+  {
+    resource: "invoices",
+    label: "Invoices",
+    description: "Invoices, payments, PDFs, and invoice status.",
+    actions: permissionActionValues.filter((action) => action !== "archive"),
+  },
 ];
 export const notePermissionCatalog: ReadonlyArray<{
   resource: (typeof notePermissionResourceValues)[number];
@@ -99,6 +106,7 @@ export const notePermissionCatalog: ReadonlyArray<{
     label: "Maintenance Notes",
     description: "Notes attached to maintenance tickets.",
   },
+  { resource: "invoice_notes", label: "Invoice Notes", description: "Notes attached to invoices." },
 ];
 export const updateUserInputSchema = z.object({
   id: idSchema,
