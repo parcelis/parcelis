@@ -92,10 +92,12 @@ enum PermissionResource {
   units
   tenants
   maintenance
+  invoices
   property_notes
   unit_notes
   tenant_notes
   maintenance_notes
+  invoice_notes
 }
 
 enum OrganizationMemberRole {
