@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, ShieldCheck } from "lucide-react";
 import {
   Button,
   Card,
@@ -36,13 +36,6 @@ const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 type PermissionMatrix = Record<PermissionResource, PermissionFlags>;
 type Role = Awaited<ReturnType<typeof apiClient.roles.list.query>>[number];
-const permissionAreas = [
-  ...permissionCatalog,
-  ...notePermissionCatalog.map((area) => ({
-    ...area,
-    actions: permissionActionValues.filter((action) => action !== "archive"),
-  })),
-];
 
 function formatRole(role: string) {
   return role
@@ -61,6 +54,7 @@ export default function RolesSettingsPage() {
   });
   const [selectedRole, setSelectedRole] = React.useState<Role | null>(null);
   const [draft, setDraft] = React.useState<PermissionMatrix | null>(null);
+  const [notesExpanded, setNotesExpanded] = React.useState(true);
 
   const updatePermissions = useMutation({
     mutationFn: ({ role, permissions }: { role: Role["role"]; permissions: PermissionMatrix }) =>
@@ -93,6 +87,14 @@ export default function RolesSettingsPage() {
       if (action !== "view" && value) flags.view = true;
       return { ...current, [resource]: flags };
     });
+  }
+
+  function setAllNotePermissions(action: Exclude<PermissionAction, "archive">, value: boolean) {
+    notePermissionCatalog.forEach(({ resource }) => setPermission(resource, action, value));
+  }
+
+  function areAllNotePermissionsEnabled(action: Exclude<PermissionAction, "archive">) {
+    return notePermissionCatalog.every(({ resource }) => draft?.[resource][action]);
   }
 
   const canManageUsers = currentUserQuery.data?.user.role === "administrator";
@@ -161,7 +163,7 @@ export default function RolesSettingsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {permissionAreas.map(({ actions, description, label, resource }) => (
+                        {permissionCatalog.map(({ actions, description, label, resource }) => (
                           <TableRow key={resource}>
                             <TableCell>
                               <p className="font-semibold text-parcelis-charcoal">{label}</p>
@@ -183,6 +185,64 @@ export default function RolesSettingsPage() {
                             ))}
                           </TableRow>
                         ))}
+                        <TableRow className="bg-parcelis-porcelain/60">
+                          <TableCell>
+                            <button
+                              aria-expanded={notesExpanded}
+                              className="flex items-center gap-2 font-semibold text-parcelis-charcoal"
+                              onClick={() => setNotesExpanded((value) => !value)}
+                              type="button"
+                            >
+                              {notesExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                              Notes
+                            </button>
+                            <p className="mt-1 pl-6 text-xs text-parcelis-gray">
+                              Set all note scopes together or expand them individually.
+                            </p>
+                          </TableCell>
+                          {permissionActionValues.map((action) => (
+                            <TableCell className="text-center" key={action}>
+                              {action === "archive" ? (
+                                "—"
+                              ) : (
+                                <Checkbox
+                                  aria-label={`${action} all notes`}
+                                  checked={areAllNotePermissionsEnabled(action)}
+                                  disabled={selectedRole.role === "administrator"}
+                                  onCheckedChange={(checked) => setAllNotePermissions(action, checked === true)}
+                                />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        {notesExpanded
+                          ? notePermissionCatalog.map(({ description, label, resource }) => (
+                              <TableRow key={resource}>
+                                <TableCell className="pl-10">
+                                  <p className="font-semibold text-parcelis-charcoal">{label}</p>
+                                  <p className="mt-1 text-xs text-parcelis-gray">{description}</p>
+                                </TableCell>
+                                {permissionActionValues.map((action) => (
+                                  <TableCell className="text-center" key={action}>
+                                    {action === "archive" ? (
+                                      "—"
+                                    ) : (
+                                      <Checkbox
+                                        aria-label={`${action} ${label}`}
+                                        checked={draft[resource][action]}
+                                        disabled={selectedRole.role === "administrator"}
+                                        onCheckedChange={(checked) => setPermission(resource, action, checked === true)}
+                                      />
+                                    )}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            ))
+                          : null}
                       </TableBody>
                     </Table>
                     <div className="mt-6 flex items-center justify-between gap-3">
