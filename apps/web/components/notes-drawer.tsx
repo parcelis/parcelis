@@ -123,9 +123,11 @@ export function NotesDrawer({
         ? "unit_notes"
         : "tenantId" in subject
           ? "tenant_notes"
-          : "invoiceId" in subject
-            ? "invoice_notes"
-            : "maintenance_notes";
+          : "applicationId" in subject
+            ? "application_notes"
+            : "invoiceId" in subject
+              ? "invoice_notes"
+              : "maintenance_notes";
   const canViewNotes = hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "view");
   const canCreateNotes = hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "create");
   const canEditNotes = hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "edit");

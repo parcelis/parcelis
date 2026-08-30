@@ -132,6 +132,15 @@ pnpm db:seed
 - `pnpm dev:services:refresh`: recreate nginx, PostgreSQL, and MinIO while preserving their volumes, then rerun MinIO initialization.
 - Stop an existing app watcher with `Ctrl+C` before starting another `pnpm dev` process.
 
+### API tests
+
+Keep API unit and router tests in feature folders under `apps/api/src/tests`, such as
+`apps/api/src/tests/permissions`. Run the API suite with:
+
+```bash
+pnpm --filter @parcelis/api test
+```
+
 ### End-to-end tests
 
 Parcelis uses Playwright for browser-level tests. Install Chromium once after installing dependencies:

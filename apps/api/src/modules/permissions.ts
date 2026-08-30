@@ -87,6 +87,7 @@ type NoteSubject = {
   unitId?: number | null;
   tenantId?: number | null;
   maintenanceTicketId?: number | null;
+  applicationId?: number | null;
   invoiceId?: number | null;
 };
 
@@ -102,11 +103,13 @@ export async function requireNotePermission(
       ? { parent: "units", notes: "unit_notes" }
       : subject.tenantId
         ? { parent: "tenants", notes: "tenant_notes" }
-        : subject.maintenanceTicketId
-          ? { parent: "maintenance", notes: "maintenance_notes" }
-          : subject.invoiceId
-            ? { parent: "invoices", notes: "invoice_notes" }
-            : null;
+        : subject.applicationId
+          ? { parent: "applications", notes: "application_notes" }
+          : subject.maintenanceTicketId
+            ? { parent: "maintenance", notes: "maintenance_notes" }
+            : subject.invoiceId
+              ? { parent: "invoices", notes: "invoice_notes" }
+              : null;
 
   if (!access) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "A note must belong to a supported record." });

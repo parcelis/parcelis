@@ -14,10 +14,12 @@ Disabled accounts cannot sign in until they are enabled again.
 
 The **Roles** tab lists Administrator, Property Manager, Lease Manager, Maintenance, Property Owner, and Resident
 Manager roles. Select **Manage access** to grant View, Create, Edit, Archive, and Delete permissions independently for
-Properties, Units, Tenants, and Maintenance. Selecting a modifying action also enables View; clearing View clears the
-other actions for that area.
+Properties, Units, Tenants, Leases, Applications, Maintenance, and Invoices. Selecting a modifying action also
+enables View; clearing View clears the other actions for that area. The API enforces these permissions for reads,
+writes, archive and restore actions, and permanent deletion.
 
-Expand **Notes** to configure Property Notes, Unit Notes, Tenant Notes, and Maintenance Notes separately. The parent
-Notes checkboxes apply an action to every note type and show a mixed state when the sub-items differ. A role must also
-have View access to the record containing the note. For example, reading a unit note requires both Unit Notes View and
-Units View. Notes do not support archiving. Administrator permissions are always enabled and cannot be changed.
+Expand **Notes** to configure Property Notes, Unit Notes, Tenant Notes, Application Notes, Maintenance Notes, and
+Invoice Notes separately. The parent Notes checkboxes apply an action to every note type and show a mixed state when
+the sub-items differ. A role must also have View access to the record containing the note. For example, reading a unit
+note requires both Unit Notes View and Units View. Notes do not support archiving. Administrator permissions are
+always enabled and cannot be changed.

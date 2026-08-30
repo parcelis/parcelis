@@ -53,6 +53,7 @@ import { deleteTenantImage, uploadTenantImage } from "../../../../components/ten
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../../components/tenant-drawer";
 import { LoadingState } from "../../../../components/loading-state";
 import { NotesDrawer } from "../../../../components/notes-drawer";
+import { hasPermission } from "../../../../components/property-access";
 import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
@@ -118,6 +119,10 @@ export default function TenantDetailPage() {
     phone: "",
   });
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
   const tenantQuery = useQuery({
     queryKey: queryKeys.tenants.byId(tenantId),
     queryFn: () => apiClient.tenants.byId.query({ id: tenantId }),
@@ -523,6 +528,8 @@ export default function TenantDetailPage() {
                 </>
               }
               cancelDeleteLabel="Keep Tenant"
+              canArchive={hasPermission(currentUserQuery.data?.permissions, "tenants", "archive")}
+              canDelete={hasPermission(currentUserQuery.data?.permissions, "tenants", "delete")}
               deleteDescription={
                 <>
                   This permanently deletes {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} and their

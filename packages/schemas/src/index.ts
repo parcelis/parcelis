@@ -40,11 +40,20 @@ export const userRoleValues = [
 export const userRoleSchema = z.enum(userRoleValues);
 export type UserRole = z.infer<typeof userRoleSchema>;
 export const userAccountStatusSchema = z.enum(["active", "disabled"]);
-export const primaryPermissionResourceValues = ["properties", "units", "tenants", "maintenance", "invoices"] as const;
+export const primaryPermissionResourceValues = [
+  "properties",
+  "units",
+  "tenants",
+  "leases",
+  "applications",
+  "maintenance",
+  "invoices",
+] as const;
 export const notePermissionResourceValues = [
   "property_notes",
   "unit_notes",
   "tenant_notes",
+  "application_notes",
   "maintenance_notes",
   "invoice_notes",
 ] as const;
@@ -81,6 +90,18 @@ export const permissionCatalog: ReadonlyArray<{
     actions: permissionActionValues,
   },
   {
+    resource: "leases",
+    label: "Leases",
+    description: "Lease records, tenant assignments, and lease status.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "applications",
+    label: "Applications",
+    description: "Rental applications, applicants, status, and archive state.",
+    actions: permissionActionValues,
+  },
+  {
     resource: "maintenance",
     label: "Maintenance",
     description: "Maintenance tickets, attachments, and workflow status.",
@@ -101,6 +122,11 @@ export const notePermissionCatalog: ReadonlyArray<{
   { resource: "property_notes", label: "Property Notes", description: "Notes attached to properties." },
   { resource: "unit_notes", label: "Unit Notes", description: "Notes attached to units." },
   { resource: "tenant_notes", label: "Tenant Notes", description: "Notes attached to tenants." },
+  {
+    resource: "application_notes",
+    label: "Application Notes",
+    description: "Notes attached to rental applications.",
+  },
   {
     resource: "maintenance_notes",
     label: "Maintenance Notes",

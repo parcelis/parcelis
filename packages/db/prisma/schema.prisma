@@ -91,11 +91,14 @@ enum PermissionResource {
   properties
   units
   tenants
+  leases
+  applications
   maintenance
   invoices
   property_notes
   unit_notes
   tenant_notes
+  application_notes
   maintenance_notes
   invoice_notes
 }
