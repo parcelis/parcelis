@@ -1,0 +1,50 @@
+apps/web/app/(authenticated)/settings/page.tsx
+  s_03d4a79d94b8f9::t_3a6d809179c094 77-79,85-87,107-123,125-128,143,147,149-152,272,370,398,400,417-419,475-487
+  s_03d4a79d94b8f9::t_71c1036a32180b 124,153-155
+  s_03d4a79d94b8f9::t_964695e18b4b88 13,50,52,146,148,161-162,177-184,213-222,360-365,399,401-402
+apps/web/components/create-user-drawer.tsx
+  s_03d4a79d94b8f9::t_80447073c1e5a2 1-63,67-161
+  s_03d4a79d94b8f9::t_5ee7e955722c76 64-66
+apps/web/components/settings-rail.tsx
+  s_03d4a79d94b8f9::t_f20476d8b79a95 15
+  s_03d4a79d94b8f9::t_e009bbfdafbb88 18,36,39
+  s_03d4a79d94b8f9::t_5ee7e955722c76 38,40-52
+apps/docs/content/platform-user-guide/navigation-and-preferences/users.mdx
+  s_03d4a79d94b8f9::t_28be468f471f21 13
+  s_03d4a79d94b8f9::t_289c4ce551345c 9-12,22
+packages/db/prisma/migrations/20260830010000_add_user_permissions/migration.sql
+  s_03d4a79d94b8f9::t_e009bbfdafbb88 1
+packages/db/prisma/schema.prisma
+  s_03d4a79d94b8f9::t_e009bbfdafbb88 91
+packages/schemas/src/index.ts
+  s_03d4a79d94b8f9::t_866936a972839b 79
+  s_03d4a79d94b8f9::t_e009bbfdafbb88 44,75-78,80,156-165
+apps/api/src/router/app.router.ts
+  s_03d4a79d94b8f9::t_5ee7e955722c76 683-706,708-712,714
+  s_03d4a79d94b8f9::t_e009bbfdafbb88 53,103,707,713
+  s_03d4a79d94b8f9::t_866936a972839b 512-518,672,717,738,740
+  s_03d4a79d94b8f9::t_71c1036a32180b 822-830,832-833,835-853,856-879,886-887
+  s_03d4a79d94b8f9::t_66285202b522c8 854-855,880-882,891
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_03d4a79d94b8f9::t_289c4ce551345c 88
+  s_03d4a79d94b8f9::t_e009bbfdafbb88 122-134
+  s_03d4a79d94b8f9::t_853cf98b3e2b28 135-151
+apps/api/src/tests/permissions/permissions.unit.test.ts
+  s_03d4a79d94b8f9::t_e009bbfdafbb88 48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "8ee8247ab610a849c5164e99f31464039af78a6c",
+  "prompts": {},
+  "sessions": {
+    "s_03d4a79d94b8f9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05107-52dd-79e2-817c-8faea13a5dcb",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
