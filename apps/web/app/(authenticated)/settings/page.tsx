@@ -26,17 +26,12 @@ import {
   Card,
   CardContent,
   CardHeader,
-  Dialog,
-  DialogContent,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Input,
-  Label,
   ParcelisLogo,
   Badge,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -45,9 +40,10 @@ import {
   TableRow,
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../components/api-client";
-import { userRoleValues, type UserRole } from "@parcelis/schemas";
+import { userRoleValues } from "@parcelis/schemas";
 import { LoadingState } from "../../../components/loading-state";
 import { CreateUserDrawer, initialCreateUserFormState } from "../../../components/create-user-drawer";
+import { EditUserDrawer, type EditUserFormState } from "../../../components/edit-user-drawer";
 import { PageRail } from "../../../components/page-rail";
 import { hasPermission } from "../../../components/property-access";
 import { SettingsRail } from "../../../components/settings-rail";
@@ -65,13 +61,6 @@ function formatLabel(value: string | null | undefined) {
 }
 
 type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
-
-type UserFormState = {
-  name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-};
 
 function UserActionsMenu({
   canArchive,
@@ -160,14 +149,14 @@ export default function SettingsPage() {
   const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
   const [isCreateUserDrawerOpen, setIsCreateUserDrawerOpen] = React.useState(false);
   const [createUserForm, setCreateUserForm] = React.useState(initialCreateUserFormState);
-  const [editForm, setEditForm] = React.useState<UserFormState>({
+  const [editForm, setEditForm] = React.useState<EditUserFormState>({
     name: "",
     email: "",
     phone: "",
     role: "property_manager",
   });
-  const updateUserMutation = useMutation({
-    mutationFn: (input: UserFormState & { id: number }) =>
+  const updateUserRequest = useMutation({
+    mutationFn: (input: EditUserFormState & { id: number }) =>
       apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
     onSuccess: async () => {
       setEditUser(null);
@@ -220,77 +209,16 @@ export default function SettingsPage() {
         onSubmit={() => createUserMutation.mutate()}
         open={isCreateUserDrawerOpen}
       />
-      <Dialog onOpenChange={(open) => !open && setEditUser(null)} open={Boolean(editUser)}>
-        <DialogContent>
-          <form
-            className="grid gap-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (editUser) updateUserMutation.mutate({ ...editForm, id: editUser.id });
-            }}
-          >
-            <div>
-              <h2 className="text-lg font-bold text-parcelis-charcoal">Edit user</h2>
-              <p className="mt-1 text-sm text-parcelis-gray">Update account details and role.</p>
-            </div>
-            <div className="grid gap-4">
-              <Label>
-                Name
-                <Input
-                  className="mt-1"
-                  onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
-                  required
-                  value={editForm.name}
-                />
-              </Label>
-              <Label>
-                Email
-                <Input
-                  className="mt-1"
-                  onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
-                  required
-                  type="email"
-                  value={editForm.email}
-                />
-              </Label>
-              <Label>
-                Phone
-                <Input
-                  className="mt-1"
-                  onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })}
-                  type="tel"
-                  value={editForm.phone}
-                />
-              </Label>
-              <Label>
-                Role
-                <Select
-                  className="mt-1"
-                  onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })}
-                  value={editForm.role}
-                >
-                  {availableUserRoles.map((role) => (
-                    <option key={role} value={role}>
-                      {formatLabel(role)}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-            </div>
-            {updateUserMutation.error ? (
-              <p className="text-sm font-medium text-red-700">{updateUserMutation.error.message}</p>
-            ) : null}
-            <div className="flex items-center justify-between gap-3">
-              <Button onClick={() => setEditUser(null)} type="button" variant="secondary">
-                Cancel
-              </Button>
-              <Button disabled={updateUserMutation.isPending} type="submit">
-                Save changes
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <EditUserDrawer
+        availableRoles={availableUserRoles}
+        error={updateUserRequest.error}
+        form={editForm}
+        isPending={updateUserRequest.isPending}
+        onFormChange={setEditForm}
+        onOpenChange={(open) => !open && setEditUser(null)}
+        onSubmit={() => editUser && updateUserRequest.mutate({ ...editForm, id: editUser.id })}
+        open={Boolean(editUser)}
+      />
       <AlertDialog onOpenChange={(open) => !open && setDisableUser(null)} open={Boolean(disableUser)}>
         <AlertDialogContent>
           <AlertDialogHeader>
