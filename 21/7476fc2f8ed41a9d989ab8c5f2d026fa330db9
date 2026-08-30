@@ -1,0 +1,23 @@
+apps/web/components/edit-user-drawer.tsx
+  s_4298f8f559603b::t_dd27457200f6db 1-130
+apps/web/app/(authenticated)/settings/page.tsx
+  s_4298f8f559603b::t_38260916500df5 43
+  s_4298f8f559603b::t_dd27457200f6db 46,152,159,212-213,215,217-218,220
+  s_4298f8f559603b::t_30a55672a0247d 158,214,216,219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "217476fc2f8ed41a9d989ab8c5f2d026fa330db9",
+  "prompts": {},
+  "sessions": {
+    "s_4298f8f559603b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05518-afd6-7df2-8a43-0085e20a2c12",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
