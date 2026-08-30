@@ -41,6 +41,7 @@ export const userRoleSchema = z.enum(userRoleValues);
 export type UserRole = z.infer<typeof userRoleSchema>;
 export const userAccountStatusSchema = z.enum(["active", "disabled"]);
 export const primaryPermissionResourceValues = [
+  "users",
   "properties",
   "units",
   "tenants",
@@ -75,6 +76,12 @@ export const permissionCatalog: ReadonlyArray<{
   description: string;
   actions: readonly PermissionAction[];
 }> = [
+  {
+    resource: "users",
+    label: "Users",
+    description: "User accounts and access to the organization.",
+    actions: permissionActionValues,
+  },
   {
     resource: "properties",
     label: "Properties",
@@ -148,6 +155,18 @@ export const updateUserInputSchema = z.object({
     .max(254)
     .transform((email) => email.toLowerCase()),
   phone: z.string().trim().max(50).nullable(),
+  role: userRoleSchema,
+});
+export const createUserInputSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
+  phone: z.string().trim().max(50).nullable(),
+  password: z.string().min(12).max(1024),
   role: userRoleSchema,
 });
 export const updateUserProfileInputSchema = z.object({

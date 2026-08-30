@@ -10,6 +10,7 @@ import {
   Phone,
   ShieldCheck,
   Trash2,
+  UserPlus,
   UserRoundCheck,
   UserRoundX,
   Users,
@@ -46,7 +47,9 @@ import {
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { userRoleValues, type UserRole } from "@parcelis/schemas";
 import { LoadingState } from "../../../components/loading-state";
+import { CreateUserDrawer, initialCreateUserFormState } from "../../../components/create-user-drawer";
 import { PageRail } from "../../../components/page-rail";
+import { hasPermission } from "../../../components/property-access";
 import { SettingsRail } from "../../../components/settings-rail";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -71,11 +74,17 @@ type UserFormState = {
 };
 
 function UserActionsMenu({
+  canArchive,
+  canDelete,
+  canEdit,
   onDelete,
   onEdit,
   onToggleAccountStatus,
   user,
 }: {
+  canArchive: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onToggleAccountStatus: () => void;
@@ -95,22 +104,28 @@ function UserActionsMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem onSelect={onEdit}>
-          <Pencil className="h-4 w-4 text-parcelis-green" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onToggleAccountStatus}>
-          {isDisabled ? (
-            <UserRoundCheck className="h-4 w-4 text-parcelis-green" />
-          ) : (
-            <UserRoundX className="h-4 w-4 text-parcelis-green" />
-          )}
-          {isDisabled ? "Enable" : "Disable"}
-        </DropdownMenuItem>
-        <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
+        {canEdit ? (
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil className="h-4 w-4 text-parcelis-green" />
+            Edit
+          </DropdownMenuItem>
+        ) : null}
+        {canArchive ? (
+          <DropdownMenuItem onSelect={onToggleAccountStatus}>
+            {isDisabled ? (
+              <UserRoundCheck className="h-4 w-4 text-parcelis-green" />
+            ) : (
+              <UserRoundX className="h-4 w-4 text-parcelis-green" />
+            )}
+            {isDisabled ? "Enable" : "Disable"}
+          </DropdownMenuItem>
+        ) : null}
+        {canDelete ? (
+          <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -125,13 +140,26 @@ export default function SettingsPage() {
   const usersQuery = useQuery({
     queryKey: queryKeys.users.list,
     queryFn: () => apiClient.users.list.query(),
+    enabled: hasPermission(currentUserQuery.data?.permissions, "users", "view"),
   });
   const users = usersQuery.data ?? [];
+  const isAdministrator = currentUserQuery.data?.user.role === "administrator";
+  const canViewUsers = hasPermission(currentUserQuery.data?.permissions, "users", "view");
+  const canCreateUsers = hasPermission(currentUserQuery.data?.permissions, "users", "create");
+  const canEditUsers = hasPermission(currentUserQuery.data?.permissions, "users", "edit");
+  const canArchiveUsers = hasPermission(currentUserQuery.data?.permissions, "users", "archive");
+  const canDeleteUsers = hasPermission(currentUserQuery.data?.permissions, "users", "delete");
+  const canManageUserActions = canEditUsers || canArchiveUsers || canDeleteUsers;
+  const availableUserRoles = isAdministrator
+    ? userRoleValues
+    : userRoleValues.filter((role) => role !== "administrator");
   const activeUsers = usersQuery.data?.filter((user) => user.accountStatus === "active").length;
   const disabledUsers = usersQuery.data?.filter((user) => user.accountStatus === "disabled").length;
   const [editUser, setEditUser] = React.useState<UserListItem | null>(null);
   const [disableUser, setDisableUser] = React.useState<UserListItem | null>(null);
   const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
+  const [isCreateUserDrawerOpen, setIsCreateUserDrawerOpen] = React.useState(false);
+  const [createUserForm, setCreateUserForm] = React.useState(initialCreateUserFormState);
   const [editForm, setEditForm] = React.useState<UserFormState>({
     name: "",
     email: "",
@@ -143,6 +171,14 @@ export default function SettingsPage() {
       apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
     onSuccess: async () => {
       setEditUser(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+    },
+  });
+  const createUserMutation = useMutation({
+    mutationFn: () => apiClient.users.create.mutate({ ...createUserForm, phone: createUserForm.phone || null }),
+    onSuccess: async () => {
+      setIsCreateUserDrawerOpen(false);
+      setCreateUserForm(initialCreateUserFormState);
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
     },
   });
@@ -174,6 +210,16 @@ export default function SettingsPage() {
 
   return (
     <main className="flex-1">
+      <CreateUserDrawer
+        canCreateAdministrators={isAdministrator === true}
+        error={createUserMutation.error}
+        form={createUserForm}
+        isPending={createUserMutation.isPending}
+        onFormChange={setCreateUserForm}
+        onOpenChange={setIsCreateUserDrawerOpen}
+        onSubmit={() => createUserMutation.mutate()}
+        open={isCreateUserDrawerOpen}
+      />
       <Dialog onOpenChange={(open) => !open && setEditUser(null)} open={Boolean(editUser)}>
         <DialogContent>
           <form
@@ -223,7 +269,7 @@ export default function SettingsPage() {
                   onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })}
                   value={editForm.role}
                 >
-                  {userRoleValues.map((role) => (
+                  {availableUserRoles.map((role) => (
                     <option key={role} value={role}>
                       {formatLabel(role)}
                     </option>
@@ -311,11 +357,17 @@ export default function SettingsPage() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
+          {canCreateUsers ? (
+            <Button className="min-w-40" onClick={() => setIsCreateUserDrawerOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              New user
+            </Button>
+          ) : null}
         </header>
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="users" canManageUsers={currentUserQuery.data?.user.role === "administrator"} />
+            <SettingsRail active="users" canManageRoles={isAdministrator} canManageUsers={canViewUsers} />
             <div className="min-w-0 flex-1">
               <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
                 <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">
@@ -343,7 +395,11 @@ export default function SettingsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="overflow-x-auto p-0">
-                  {usersQuery.isLoading ? (
+                  {!canViewUsers ? (
+                    <div className="min-h-48 p-5 text-sm text-parcelis-gray">
+                      You do not have permission to view the user directory.
+                    </div>
+                  ) : usersQuery.isLoading ? (
                     <LoadingState label="Loading users…" />
                   ) : usersQuery.error ? (
                     <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
@@ -358,7 +414,9 @@ export default function SettingsPage() {
                           <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
                           <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
                           <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
-                          <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
+                          {canManageUserActions ? (
+                            <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
+                          ) : null}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -414,14 +472,19 @@ export default function SettingsPage() {
                                 {formatLabel(user.accountStatus)}
                               </Badge>
                             </TableCell>
-                            <TableCell className="px-5 py-4 text-right">
-                              <UserActionsMenu
-                                onDelete={() => setDeleteUser(user)}
-                                onEdit={() => openEdit(user)}
-                                onToggleAccountStatus={() => setDisableUser(user)}
-                                user={user}
-                              />
-                            </TableCell>
+                            {canManageUserActions ? (
+                              <TableCell className="px-5 py-4 text-right">
+                                <UserActionsMenu
+                                  canArchive={canArchiveUsers}
+                                  canDelete={canDeleteUsers}
+                                  canEdit={canEditUsers}
+                                  onDelete={() => setDeleteUser(user)}
+                                  onEdit={() => openEdit(user)}
+                                  onToggleAccountStatus={() => setDisableUser(user)}
+                                  user={user}
+                                />
+                              </TableCell>
+                            ) : null}
                           </TableRow>
                         ))}
                       </TableBody>

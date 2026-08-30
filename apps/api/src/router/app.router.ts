@@ -50,6 +50,7 @@ import {
   updateAmenityInputSchema,
   updateNoteInputSchema,
   updatePropertyInputSchema,
+  createUserInputSchema,
   updateUserInputSchema,
   updateUserProfileByIdInputSchema,
   userProfileImageUploadCompleteInputSchema,
@@ -100,6 +101,7 @@ import {
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
+import { hashPassword } from "../modules/auth";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
@@ -508,6 +510,13 @@ function permissionProcedure(resource: PermissionResource, action: PermissionAct
   });
 }
 
+async function assertNonAdministratorUser(prisma: PrismaClient | Prisma.TransactionClient, userId: number) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
+  if (user.role === "administrator") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can manage administrator accounts." });
+  }
+}
+
 export const appRouter = router({
   auth: authRouter,
   organizations: router({
@@ -661,8 +670,7 @@ export const appRouter = router({
   }),
   users: router({
     /** Lists accounts that can access this workspace. */
-    list: publicProcedure.query(({ ctx }) => {
-      requireAdministrator(ctx.user.role as UserRole);
+    list: permissionProcedure("users", "view").query(({ ctx }) => {
       return ctx.prisma.user.findMany({
         where: {
           organizationMemberships: {
@@ -673,9 +681,41 @@ export const appRouter = router({
         orderBy: { createdAt: "asc" },
       });
     }),
+    create: permissionProcedure("users", "create")
+      .input(createUserInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        if (input.role === "administrator" && ctx.user.role !== "administrator") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can create administrator accounts." });
+        }
+        try {
+          const passwordHash = await hashPassword(input.password);
+          return await ctx.prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+              data: {
+                name: input.name,
+                email: input.email,
+                phone: input.phone || null,
+                passwordHash,
+                role: input.role,
+                defaultOrganizationId: ctx.organization.organizationId,
+              },
+              select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+            });
+            await tx.organizationMembership.create({
+              data: { userId: user.id, organizationId: ctx.organization.organizationId },
+            });
+            return user;
+          });
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+          }
+          throw error;
+        }
+      }),
     profile: publicProcedure.input(deleteUserInputSchema).query(async ({ ctx, input }) => {
       if (input.id !== ctx.user.id) {
-        requireOrganizationAdministrator(ctx.organization.role);
+        await requirePermission(ctx.prisma, ctx.user.role, "users", "view");
         await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
       }
       const user = await ctx.prisma.user.findUniqueOrThrow({
@@ -696,8 +736,9 @@ export const appRouter = router({
     updateProfile: publicProcedure.input(updateUserProfileByIdInputSchema).mutation(async ({ ctx, input }) => {
       const isOwnProfile = input.id === ctx.user.id;
       if (!isOwnProfile) {
-        requireOrganizationAdministrator(ctx.organization.role);
+        await requirePermission(ctx.prisma, ctx.user.role, "users", "edit");
         await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+        if (ctx.user.role !== "administrator") await assertNonAdministratorUser(ctx.prisma, input.id);
       }
       if (isOwnProfile && input.email !== undefined) {
         throw new TRPCError({
@@ -779,59 +820,76 @@ export const appRouter = router({
         select: { id: true, profileImageObjectKey: true },
       });
     }),
-    update: publicProcedure.input(updateUserInputSchema).mutation(async ({ ctx, input }) => {
-      requireAdministrator(ctx.user.role as UserRole);
-      try {
-        return await ctx.prisma.$transaction(
-          async (tx) => {
-            if (input.role !== "administrator") await assertActiveAdministratorCanBeRemoved(tx, input.id);
-            return tx.user.update({
-              where: { id: input.id },
-              data: { ...input, phone: input.phone || null },
-              select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+    update: permissionProcedure("users", "edit")
+      .input(updateUserInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+        if (ctx.user.role !== "administrator") {
+          if (input.role === "administrator") {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Only administrators can assign the administrator role.",
             });
-          },
-          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-        );
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-          throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+          }
+          await assertNonAdministratorUser(ctx.prisma, input.id);
         }
-        throw error;
-      }
-    }),
-    updateAccountStatus: publicProcedure.input(userAccountStatusInputSchema).mutation(async ({ ctx, input }) => {
-      requireAdministrator(ctx.user.role as UserRole);
-      if (input.accountStatus === "disabled") {
+        try {
+          return await ctx.prisma.$transaction(
+            async (tx) => {
+              if (input.role !== "administrator") await assertActiveAdministratorCanBeRemoved(tx, input.id);
+              return tx.user.update({
+                where: { id: input.id },
+                data: { ...input, phone: input.phone || null },
+                select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+              });
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });
+          }
+          throw error;
+        }
+      }),
+    updateAccountStatus: permissionProcedure("users", "archive")
+      .input(userAccountStatusInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+        if (ctx.user.role !== "administrator") await assertNonAdministratorUser(ctx.prisma, input.id);
+        if (input.accountStatus === "disabled") {
+          return ctx.prisma.$transaction(
+            async (tx) => {
+              await assertActiveAdministratorCanBeRemoved(tx, input.id);
+              return tx.user.update({
+                where: { id: input.id },
+                data: { accountStatus: input.accountStatus },
+                select: { id: true, accountStatus: true },
+              });
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        }
+        return ctx.prisma.user.update({
+          where: { id: input.id },
+          data: { accountStatus: input.accountStatus },
+          select: { id: true, accountStatus: true },
+        });
+      }),
+    delete: permissionProcedure("users", "delete")
+      .input(deleteUserInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        await assertUserHasOrganizationMembership(ctx.prisma, input.id, ctx.organization.organizationId);
+        if (ctx.user.role !== "administrator") await assertNonAdministratorUser(ctx.prisma, input.id);
         return ctx.prisma.$transaction(
           async (tx) => {
             await assertActiveAdministratorCanBeRemoved(tx, input.id);
-            return tx.user.update({
-              where: { id: input.id },
-              data: { accountStatus: input.accountStatus },
-              select: { id: true, accountStatus: true },
-            });
+            await transferSoleOrganizationOwnership(tx, input.id, ctx.user.id);
+            return tx.user.delete({ where: { id: input.id }, select: { id: true } });
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
-      }
-      return ctx.prisma.user.update({
-        where: { id: input.id },
-        data: { accountStatus: input.accountStatus },
-        select: { id: true, accountStatus: true },
-      });
-    }),
-    delete: publicProcedure.input(deleteUserInputSchema).mutation(({ ctx, input }) => {
-      requireAdministrator(ctx.user.role as UserRole);
-      return ctx.prisma.$transaction(
-        async (tx) => {
-          await assertActiveAdministratorCanBeRemoved(tx, input.id);
-          await transferSoleOrganizationOwnership(tx, input.id, ctx.user.id);
-          return tx.user.delete({ where: { id: input.id }, select: { id: true } });
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-      );
-    }),
+      }),
   }),
   roles: router({
     list: publicProcedure.query(async ({ ctx }) => {

@@ -85,6 +85,7 @@ test("API denies resource reads when view permission is missing", async () => {
     expectForbidden(() => caller.applications.list()),
     expectForbidden(() => caller.maintenance.list()),
     expectForbidden(() => caller.units.list({})),
+    expectForbidden(() => caller.users.list()),
   ]);
 });
 
@@ -116,6 +117,36 @@ test("API denies lease creation when create permission is missing", async () => 
       generateInvoices: false,
     }),
   );
+});
+
+test("API denies user creation when create permission is missing", async () => {
+  const caller = createDeniedCaller();
+  await expectForbidden(() =>
+    caller.users.create({
+      name: "New User",
+      email: "new-user@example.com",
+      phone: null,
+      password: "password-for-new-user",
+      role: "property_manager",
+    }),
+  );
+});
+
+test("API denies user changes when the matching permission is missing", async () => {
+  const caller = createDeniedCaller();
+  await Promise.all([
+    expectForbidden(() =>
+      caller.users.update({
+        id: 1,
+        name: "Restricted User",
+        email: "restricted@example.com",
+        phone: null,
+        role: "property_manager",
+      }),
+    ),
+    expectForbidden(() => caller.users.updateAccountStatus({ id: 1, accountStatus: "disabled" })),
+    expectForbidden(() => caller.users.delete({ id: 1 })),
+  ]);
 });
 
 test("API denies every supported note subject when note view permission is missing", async () => {

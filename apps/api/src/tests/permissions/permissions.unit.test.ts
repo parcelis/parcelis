@@ -108,6 +108,7 @@ test("denies invoice notes without invoice visibility", async () => {
 
 test("denies every action for every configured resource by default", async () => {
   const resources = [
+    "users",
     "properties",
     "units",
     "tenants",
