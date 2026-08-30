@@ -12,22 +12,24 @@ permissions:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     steps:
       - name: Send new PR notification
-        if: github.event_name == 'pull_request'
-        uses: stegzilla/discord-notify@v2
+        if: github.event_name == 'pull_request' && env.DISCORD_WEBHOOK_URL != ''
+        uses: stegzilla/discord-notify@23eb4dd9a5eab4ab63c65cbe554bdf837f9fe773 # v5
         with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhook_url: ${{ env.DISCORD_WEBHOOK_URL }}
           title: New PR opened — ${{ github.event.pull_request.title }}
           message: |
             Creator: ${{ github.event.pull_request.user.login }}
             ${{ github.event.pull_request.html_url }}
 
       - name: Send new issue notification
-        if: github.event_name == 'issues'
-        uses: stegzilla/discord-notify@v2
+        if: github.event_name == 'issues' && env.DISCORD_WEBHOOK_URL != ''
+        uses: stegzilla/discord-notify@23eb4dd9a5eab4ab63c65cbe554bdf837f9fe773 # v5
         with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhook_url: ${{ env.DISCORD_WEBHOOK_URL }}
           title: New issue opened — ${{ github.event.issue.title }}
           message: |
             Creator: ${{ github.event.issue.user.login }}
