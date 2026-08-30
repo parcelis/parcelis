@@ -185,7 +185,7 @@ export default function RolesSettingsPage() {
                             ))}
                           </TableRow>
                         ))}
-                        <TableRow className="bg-parcelis-porcelain/60">
+                        <TableRow className="bg-parcelis-porcelain/60 dark:bg-parcelis-charcoal/55">
                           <TableCell>
                             <button
                               aria-expanded={notesExpanded}
