@@ -1,0 +1,33 @@
+packages/db/prisma/schema.prisma
+  s_bb0679f3b4d22b::t_231dcf3417c21d 153,177-186
+apps/api/src/modules/login-rate-limit.ts
+  s_bb0679f3b4d22b::t_231dcf3417c21d 45-48,62-64
+apps/api/src/router/auth.router.ts
+  s_bb0679f3b4d22b::t_231dcf3417c21d 6-7,11,15,17,20,29,32,43-47,60-66,124-197
+packages/db/prisma/migrations/20260831000000_add_password_reset_tokens/migration.sql
+  s_bb0679f3b4d22b::t_2f6343be02dcde 1-18
+packages/email/src/password-reset.tsx
+  s_bb0679f3b4d22b::t_fdf9a42bb647fb 1-20
+packages/email/src/index.ts
+  s_bb0679f3b4d22b::t_fdf9a42bb647fb 1,3
+packages/schemas/src/index.ts
+  s_bb0679f3b4d22b::t_231dcf3417c21d 21-38
+apps/api/src/modules/auth.ts
+  s_bb0679f3b4d22b::t_231dcf3417c21d 7,44-47,52-55,77-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "293cd5e687c0e1975e8277324433c5a87ef5dd76",
+  "prompts": {},
+  "sessions": {
+    "s_bb0679f3b4d22b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0551e-5477-7de1-973a-fd0ad8b32459",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
