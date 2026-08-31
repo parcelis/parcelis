@@ -4,6 +4,7 @@ import type { Request, Response } from "express";
 
 const sessionCookieName = "parcelis_session";
 const sessionDurationMs = 1000 * 60 * 60 * 24 * 7;
+const passwordResetTokenDurationMs = 1000 * 60 * 30;
 
 export function isAuthenticationDisabled() {
   return process.env.AUTH_DISABLED === "true" && ["development", "test"].includes(process.env.NODE_ENV ?? "");
@@ -40,7 +41,15 @@ export function createSessionToken() {
   return randomBytes(32).toString("base64url");
 }
 
+export function createPasswordResetToken() {
+  return randomBytes(32).toString("base64url");
+}
+
 export function hashSessionToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export function hashPasswordResetToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
@@ -64,4 +73,8 @@ export function clearSessionCookie(response: Response) {
 
 export function getSessionExpiration() {
   return new Date(Date.now() + sessionDurationMs);
+}
+
+export function getPasswordResetTokenExpiration() {
+  return new Date(Date.now() + passwordResetTokenDurationMs);
 }

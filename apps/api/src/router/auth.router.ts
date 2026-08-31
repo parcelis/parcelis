@@ -3,15 +3,21 @@ import {
   authRegisterInputSchema,
   changeEmailInputSchema,
   changePasswordInputSchema,
+  requestPasswordResetInputSchema,
+  resetPasswordInputSchema,
   updateUserProfileInputSchema,
 } from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
+import { sendPasswordResetEmail } from "@parcelis/email";
 import { TRPCError } from "@trpc/server";
 import {
   clearSessionCookie,
+  createPasswordResetToken,
   createSessionToken,
+  getPasswordResetTokenExpiration,
   getSessionExpiration,
   hashPassword,
+  hashPasswordResetToken,
   hashSessionToken,
   setSessionCookie,
   verifyPassword,
@@ -20,8 +26,10 @@ import {
 import {
   clearLoginRateLimit,
   consumeLoginRateLimit,
+  consumePasswordResetRateLimit,
   getLoginRateLimitKey,
   getPasswordChangeRateLimitKey,
+  getPasswordResetRateLimitKey,
 } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
@@ -30,6 +38,11 @@ import { createUserProfileImageDownloadUrl } from "../modules/object-storage.con
 const invalidCredentials = new TRPCError({
   code: "UNAUTHORIZED",
   message: "Invalid email or password.",
+});
+
+const invalidPasswordResetToken = new TRPCError({
+  code: "BAD_REQUEST",
+  message: "This password reset link is invalid or has expired.",
 });
 
 async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: number) {
@@ -42,6 +55,13 @@ async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: numbe
     },
   });
   setSessionCookie(ctx.res, token);
+}
+
+function getPasswordResetUrl(token: string) {
+  const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
+  const resetUrl = new URL("/reset-password", webOrigin);
+  resetUrl.searchParams.set("token", token);
+  return resetUrl.toString();
 }
 
 export const authRouter = router({
@@ -99,6 +119,82 @@ export const authRouter = router({
     await createSession(ctx, user.id);
     clearLoginRateLimit(rateLimitKey);
     return { user: { id: user.id, email: user.email } };
+  }),
+
+  requestPasswordReset: publicProcedure.input(requestPasswordResetInputSchema).mutation(async ({ ctx, input }) => {
+    const rateLimitKey = getPasswordResetRateLimitKey(ctx.req.ip, input.email);
+    consumePasswordResetRateLimit(rateLimitKey);
+
+    const user = await ctx.prisma.user.findUnique({
+      where: { email: input.email },
+      select: { id: true, email: true, accountStatus: true },
+    });
+
+    if (user?.accountStatus === "active") {
+      const token = createPasswordResetToken();
+      await ctx.prisma.$transaction(async (tx) => {
+        await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
+        await tx.passwordResetToken.create({
+          data: {
+            userId: user.id,
+            tokenHash: hashPasswordResetToken(token),
+            expiresAt: getPasswordResetTokenExpiration(),
+          },
+        });
+      });
+
+      try {
+        await sendPasswordResetEmail({ resetUrl: getPasswordResetUrl(token), to: user.email });
+      } catch (error) {
+        console.error("Unable to send password reset email.", error);
+      }
+    }
+
+    return { success: true };
+  }),
+
+  resetPassword: publicProcedure.input(resetPasswordInputSchema).mutation(async ({ ctx, input }) => {
+    const tokenHash = hashPasswordResetToken(input.token);
+    const passwordResetToken = await ctx.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      select: { id: true, userId: true, expiresAt: true, usedAt: true, user: { select: { accountStatus: true } } },
+    });
+    if (
+      !passwordResetToken ||
+      passwordResetToken.usedAt ||
+      passwordResetToken.expiresAt <= new Date() ||
+      passwordResetToken.user.accountStatus !== "active"
+    ) {
+      throw invalidPasswordResetToken;
+    }
+
+    const passwordHash = await hashPassword(input.password);
+    await ctx.prisma.$transaction(async (tx) => {
+      const usedAt = new Date();
+      const consumedToken = await tx.passwordResetToken.updateMany({
+        where: { id: passwordResetToken.id, usedAt: null, expiresAt: { gt: usedAt } },
+        data: { usedAt },
+      });
+      if (!consumedToken.count) {
+        throw invalidPasswordResetToken;
+      }
+
+      const updatedUser = await tx.user.updateMany({
+        where: { id: passwordResetToken.userId, accountStatus: "active" },
+        data: { passwordHash },
+      });
+      if (!updatedUser.count) {
+        throw invalidPasswordResetToken;
+      }
+
+      await tx.session.updateMany({
+        where: { userId: passwordResetToken.userId, revokedAt: null },
+        data: { revokedAt: usedAt },
+      });
+    });
+
+    clearSessionCookie(ctx.res);
+    return { success: true };
   }),
 
   changePassword: protectedProcedure.input(changePasswordInputSchema).mutation(async ({ ctx, input }) => {
