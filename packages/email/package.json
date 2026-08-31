@@ -14,12 +14,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "nodemailer": "^9.0.6"
+    "nodemailer": "^9.0.6",
+    "react": "^19.2.8",
+    "react-email": "^6.9.3"
   },
   "devDependencies": {
     "@parcelis/config": "workspace:*",
     "@types/node": "24.13.3",
     "@types/nodemailer": "^8.0.1",
+    "@types/react": "19.2.18",
     "typescript": "6.0.3"
   }
 }
