@@ -10,16 +10,19 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "email:preview": "email dev --dir src/templates",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "nodemailer": "^9.0.6",
     "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-email": "^6.9.3"
   },
   "devDependencies": {
     "@parcelis/config": "workspace:*",
+    "@react-email/ui": "^6.9.3",
     "@types/node": "24.13.3",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "19.2.18",
