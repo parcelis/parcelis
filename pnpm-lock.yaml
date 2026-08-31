@@ -71,6 +71,9 @@ importers:
       '@parcelis/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@parcelis/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@parcelis/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -92,9 +95,6 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1(supports-color@8.1.1)
-      nodemailer:
-        specifier: ^9.0.6
-        version: 9.0.6
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -351,6 +351,25 @@ importers:
       tsx:
         specifier: 4.23.12
         version: 4.23.12
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  packages/email:
+    dependencies:
+      nodemailer:
+        specifier: ^9.0.6
+        version: 9.0.6
+    devDependencies:
+      '@parcelis/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      '@types/nodemailer':
+        specifier: ^8.0.1
+        version: 8.0.1
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -4239,6 +4258,9 @@ packages:
 
   '@types/node@24.13.3':
     resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
+
+  '@types/nodemailer@8.0.1':
+    resolution: {integrity: sha512-PxpaInm8V1JQDd4j0ds5HfvWQk8JupS1C0Picb96QJsrrRDjBH+DlK7L4ZdNSqNULhiZRQHc40nLVShaGxXAMw==}
 
   '@types/pg@8.23.1':
     resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
@@ -15120,6 +15142,10 @@ snapshots:
   '@types/node@24.13.3':
     dependencies:
       undici-types: 7.18.2
+
+  '@types/nodemailer@8.0.1':
+    dependencies:
+      '@types/node': 24.13.3
 
   '@types/pg@8.23.1':
     dependencies:
