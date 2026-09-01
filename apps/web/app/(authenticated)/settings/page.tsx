@@ -58,6 +58,7 @@ function UserActionsMenu({
   canArchive,
   canDelete,
   canEdit,
+  canManage,
   onDelete,
   onEdit,
   onToggleAccountStatus,
@@ -66,12 +67,15 @@ function UserActionsMenu({
   canArchive: boolean;
   canDelete: boolean;
   canEdit: boolean;
+  canManage: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onToggleAccountStatus: () => void;
   user: UserListItem;
 }) {
   const isDisabled = user.accountStatus === "disabled";
+
+  if (!canManage) return null;
 
   return (
     <DropdownMenu>
@@ -403,7 +407,8 @@ export default function SettingsPage() {
                                 <UserActionsMenu
                                   canArchive={canArchiveUsers}
                                   canDelete={canDeleteUsers}
-                                  canEdit={canEditUsers && (isAdministrator || user.role !== "administrator")}
+                                  canEdit={canEditUsers}
+                                  canManage={isAdministrator || user.role !== "administrator"}
                                   onDelete={() => setDeleteUser(user)}
                                   onEdit={() => openEdit(user)}
                                   onToggleAccountStatus={() => setDisableUser(user)}
