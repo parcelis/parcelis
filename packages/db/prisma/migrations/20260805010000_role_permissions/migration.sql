@@ -11,4 +11,4 @@ CREATE TABLE "RolePermission" (
 INSERT INTO "RolePermission" ("role", "propertyAccess", "updatedAt")
 VALUES
     ('administrator', 'all', CURRENT_TIMESTAMP),
-    ('member', 'none', CURRENT_TIMESTAMP);
+    ('member', 'all', CURRENT_TIMESTAMP);
