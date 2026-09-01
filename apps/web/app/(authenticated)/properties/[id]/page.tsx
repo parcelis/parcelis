@@ -276,7 +276,10 @@ export default function PropertyDetailPage() {
               }
               cancelDeleteLabel="Keep Property"
               canArchive={hasPermission(currentUserQuery.data?.permissions, "properties", "archive")}
-              canDelete={hasPermission(currentUserQuery.data?.permissions, "properties", "delete")}
+              canDelete={
+                hasPermission(currentUserQuery.data?.permissions, "properties", "delete") &&
+                hasPermission(currentUserQuery.data?.permissions, "units", "delete")
+              }
               deleteDescription={
                 <>
                   This permanently deletes {property?.name ?? "this property"} only when it has no history. Archive it
