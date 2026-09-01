@@ -1,0 +1,19 @@
+packages/email/src/components/email-layout.tsx
+  s_1c2ba9fb66edce::t_27551fbb4fa424 92-111,122,125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "64c024db7212321f3954d97eede82822909d2ae9",
+  "prompts": {},
+  "sessions": {
+    "s_1c2ba9fb66edce": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05ec9-38c3-78d2-b36e-8acf1a71809f",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
