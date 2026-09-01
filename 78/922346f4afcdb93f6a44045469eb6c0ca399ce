@@ -1,0 +1,21 @@
+apps/web/next.config.mjs
+  s_0ae7530c85cc88::t_c6bbeaa58f2b89 34-36
+apps/web/package.json
+  s_0ae7530c85cc88::t_c6bbeaa58f2b89 7-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "78922346f4afcdb93f6a44045469eb6c0ca399ce",
+  "prompts": {},
+  "sessions": {
+    "s_0ae7530c85cc88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05ebb-2f83-74b1-905a-ad82e8cfb8e3",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
