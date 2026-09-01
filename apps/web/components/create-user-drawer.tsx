@@ -144,7 +144,11 @@ export function CreateUserDrawer({
                 </Select>
               </Label>
             </div>
-            {error ? <p className="mt-4 text-sm font-medium text-red-700">{error.message}</p> : null}
+            {error ? (
+              <p className="mt-4 text-sm font-medium text-red-700" role="alert">
+                {error.message}
+              </p>
+            ) : null}
           </div>
           <DrawerFooter className="flex items-center justify-between gap-3">
             <Button disabled={isPending} onClick={() => onOpenChange(false)} type="button" variant="secondary">
