@@ -60,7 +60,17 @@ export default function RolesSettingsPage() {
     mutationFn: ({ role, permissions }: { role: Role["role"]; permissions: PermissionMatrix }) =>
       apiClient.roles.updatePermissions.mutate({
         role,
-        permissions: permissionResourceValues.map((resource) => ({ resource, ...permissions[resource] })),
+        permissions: permissionResourceValues.map((resource) => {
+          const flags = permissions[resource];
+          return {
+            resource,
+            view: flags.view ?? false,
+            create: flags.create ?? false,
+            edit: flags.edit ?? false,
+            archive: flags.archive,
+            delete: flags.delete ?? false,
+          };
+        }),
       }),
     onSuccess: async () => {
       setSelectedRole(null);

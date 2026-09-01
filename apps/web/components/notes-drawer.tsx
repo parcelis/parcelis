@@ -433,42 +433,42 @@ export function NotesDrawer({
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
           <div aria-labelledby="notes-tab" hidden={activeTab !== "notes"} id="notes-panel" role="tabpanel" tabIndex={0}>
-            {canViewNotes ? (
-              <div className="space-y-5">
-                {canCreateNotes ? (
-                  <div className="relative">
-                    <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="note-body">
-                      New note
-                    </label>
-                    <Textarea
-                      className="mt-2 pr-12"
-                      disabled={isMutationPending}
-                      id="note-body"
-                      onChange={(event) => setDraft(event.target.value)}
-                      placeholder="Add internal context, reminders, or instructions..."
-                      value={draft}
-                    />
-                    <button
-                      aria-label="Add note"
-                      className="absolute bottom-2 right-2 inline-grid h-8 w-8 place-items-center rounded-full text-parcelis-green transition hover:bg-parcelis-green/10 disabled:cursor-not-allowed disabled:text-parcelis-gray disabled:hover:bg-transparent"
-                      disabled={!draft.trim() || isMutationPending}
-                      onClick={() => createNote.mutate({ body: draft, session: drawerSession.current })}
-                      type="button"
-                    >
-                      {createNote.isPending ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <CircleArrowUp className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                ) : null}
-                {createNote.error ? (
-                  <p className="text-sm text-red-700" role="alert">
-                    {createNote.error.message}
-                  </p>
-                ) : null}
-                {notesQuery.isLoading ? (
+            <div className="space-y-5">
+              {canCreateNotes ? (
+                <div className="relative">
+                  <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="note-body">
+                    New note
+                  </label>
+                  <Textarea
+                    className="mt-2 pr-12"
+                    disabled={isMutationPending}
+                    id="note-body"
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="Add internal context, reminders, or instructions..."
+                    value={draft}
+                  />
+                  <button
+                    aria-label="Add note"
+                    className="absolute bottom-2 right-2 inline-grid h-8 w-8 place-items-center rounded-full text-parcelis-green transition hover:bg-parcelis-green/10 disabled:cursor-not-allowed disabled:text-parcelis-gray disabled:hover:bg-transparent"
+                    disabled={!draft.trim() || isMutationPending}
+                    onClick={() => createNote.mutate({ body: draft, session: drawerSession.current })}
+                    type="button"
+                  >
+                    {createNote.isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <CircleArrowUp className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              ) : null}
+              {createNote.error ? (
+                <p className="text-sm text-red-700" role="alert">
+                  {createNote.error.message}
+                </p>
+              ) : null}
+              {canViewNotes ? (
+                notesQuery.isLoading ? (
                   <LoadingState className="min-h-0 py-8" label="Loading notes" />
                 ) : notesQuery.error ? (
                   <p className="text-sm text-red-700">{notesQuery.error.message}</p>
@@ -565,11 +565,11 @@ export function NotesDrawer({
                     <p className="mt-3 text-sm font-semibold text-parcelis-charcoal">No notes yet.</p>
                     <p className="mt-1 text-sm text-parcelis-gray">Add private notes that tenants cannot see.</p>
                   </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-parcelis-gray">You do not have permission to view notes.</p>
-            )}
+                )
+              ) : (
+                <p className="text-sm text-parcelis-gray">You do not have permission to view notes.</p>
+              )}
+            </div>
           </div>
           <div aria-labelledby="files-tab" hidden={activeTab !== "files"} id="files-panel" role="tabpanel" tabIndex={0}>
             <div className="grid min-h-56 place-items-center rounded-md border border-dashed border-parcelis-border p-6 text-center">
@@ -581,7 +581,7 @@ export function NotesDrawer({
             </div>
           </div>
         </div>
-        {activeTab === "notes" && canViewNotes ? (
+        {activeTab === "notes" && canCreateNotes ? (
           <DrawerFooter className="flex items-center justify-between gap-3">
             <Button
               className="min-w-40"
