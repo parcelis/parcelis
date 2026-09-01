@@ -204,8 +204,8 @@ export const roleResourcePermissionSchema = z
     if (supportsArchive && permission.archive === undefined) {
       ctx.addIssue({ code: "custom", message: "Archive permission is required.", path: ["archive"] });
     }
-    if (!supportsArchive && permission.archive !== undefined) {
-      ctx.addIssue({ code: "custom", message: "Archive permission is not supported.", path: ["archive"] });
+    if (!supportsArchive && permission.archive) {
+      ctx.addIssue({ code: "custom", message: "Archive permission cannot be enabled.", path: ["archive"] });
     }
   });
 export const updateRolePermissionsInputSchema = z

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
+import { roleResourcePermissionSchema } from "@parcelis/schemas";
 import type { PrismaService } from "../../modules/prisma.service";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../../modules/permissions";
 
@@ -53,6 +54,13 @@ test("uses a role-agnostic denial for an unrecognized role", async () => {
       error.code === "FORBIDDEN" &&
       error.message === "Your role does not have permission to access this resource.",
   );
+});
+
+test("allows an explicitly disabled archive permission for unsupported resources", () => {
+  const input = { resource: "invoices", view: false, create: false, edit: false, archive: false, delete: false };
+
+  assert.equal(roleResourcePermissionSchema.safeParse(input).success, true);
+  assert.equal(roleResourcePermissionSchema.safeParse({ ...input, archive: true }).success, false);
 });
 
 test("allows configured note actions with parent visibility", async () => {
