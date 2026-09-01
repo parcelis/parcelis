@@ -13,7 +13,7 @@
     "dev:fixed": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "test": "tsx --test src/tests/**/*.test.ts",
+    "test": "tsx --test \"src/tests/**/*.test.ts\"",
     "generate:openapi": "tsx ./scripts/generate-openapi.mjs",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
