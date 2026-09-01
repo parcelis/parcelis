@@ -1,0 +1,19 @@
+packages/db/prisma/schema.prisma
+  s_66a6e388d576df::t_862dd354b331fd 270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "f54fa3c89010d449bb4db102979d5cefd71dc6f5",
+  "prompts": {},
+  "sessions": {
+    "s_66a6e388d576df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05b24-1ad8-76b3-96cc-9456a242c463",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
