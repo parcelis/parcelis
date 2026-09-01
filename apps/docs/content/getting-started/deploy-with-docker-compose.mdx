@@ -30,8 +30,12 @@ docker compose --env-file .env.production up -d --remove-orphans
 The stack will run the migration job first, then start the app and docs services once the database and object storage are ready.
 
 :::caution
-If you are planning to run Parcelis in a production environment, update the values in the secrets and authentication sections of `.env.production` before you go live. Use strong, unique values for the database, MinIO, and authentication settings so only you can access the platform services.
+If you are planning to run Parcelis in a production environment, update the values in the secrets, authentication, and transactional email sections of `.env.production` before you go live. Use strong, unique values for the database, MinIO, SMTP, and authentication settings so only you can access the platform services.
 :::
+
+## Configure transactional email
+
+Password reset links require SMTP. Set `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_PASSWORD` in `.env.production` before starting the stack. `SMTP_SECURE` must be `true` or `false`; use `true` for implicit TLS (commonly port 465).
 
 ## What the stack does
 

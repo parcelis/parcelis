@@ -83,6 +83,12 @@ const brandLogoUrl =
 const darkBrandLogoUrl =
   process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL ??
   `${objectStoragePublicEndpoint}/${process.env.MINIO_ASSETS_BUCKET ?? "parcelis-assets"}/brand/parcelis-dark.png`;
+const emailEnvironment = Object.fromEntries(
+  ["EMAIL_FROM", "SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASSWORD"].flatMap((name) => {
+    const value = process.env[name];
+    return value === undefined ? [] : [[name, value]];
+  }),
+);
 
 function runCompose(args) {
   execFileSync("docker", ["compose", "-f", "docker-compose-dev.yml", ...args], {
@@ -125,6 +131,7 @@ const processes = [
       S3_PUBLIC_ENDPOINT: objectStoragePublicEndpoint,
       S3_REGION: process.env.S3_REGION ?? "us-east-1",
       S3_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,
+      ...emailEnvironment,
       WEB_ORIGIN: proxyOrigin,
     },
   },
