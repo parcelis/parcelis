@@ -61,7 +61,7 @@ function getPasswordResetUrl(token: string) {
   const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
   const resetUrl = new URL("/login", webOrigin);
   resetUrl.searchParams.set("mode", "reset");
-  resetUrl.searchParams.set("token", token);
+  resetUrl.hash = new URLSearchParams({ token }).toString();
   return resetUrl.toString();
 }
 

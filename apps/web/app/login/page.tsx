@@ -50,10 +50,11 @@ export default function LoginPage() {
       setDestination(nextPath);
     }
 
-    const token = searchParams.get("token");
     if (searchParams.get("mode") === "reset") {
+      const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
       setLoginMode("reset-password");
       setResetToken(token);
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
     }
   }, []);
 

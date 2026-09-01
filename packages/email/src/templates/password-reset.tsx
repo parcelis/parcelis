@@ -7,7 +7,7 @@ export type PasswordResetEmailProps = {
 };
 
 export const PreviewProps = {
-  resetUrl: "http://localhost:30000/reset-password?token=preview-token",
+  resetUrl: "http://localhost:30000/login?mode=reset#token=preview-token",
 } satisfies PasswordResetEmailProps;
 
 const headingStyle = {
