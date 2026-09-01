@@ -267,6 +267,7 @@ model Unit {
   bedrooms           Int?
   bathrooms          Decimal?                @db.Decimal(4, 1)
   squareFeet         Int?
+  archivedAt         DateTime?
   property           Property                @relation(fields: [propertyId], references: [id])
   utilities          UnitUtility[]
   amenities          UnitAmenity[]
