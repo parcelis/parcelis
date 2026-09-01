@@ -403,7 +403,7 @@ export default function SettingsPage() {
                                 <UserActionsMenu
                                   canArchive={canArchiveUsers}
                                   canDelete={canDeleteUsers}
-                                  canEdit={canEditUsers}
+                                  canEdit={canEditUsers && (isAdministrator || user.role !== "administrator")}
                                   onDelete={() => setDeleteUser(user)}
                                   onEdit={() => openEdit(user)}
                                   onToggleAccountStatus={() => setDisableUser(user)}
