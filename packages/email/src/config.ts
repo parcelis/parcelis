@@ -18,6 +18,17 @@ function getRequiredEnvironmentVariable(name: string) {
   return value;
 }
 
+// Retrieves a required secret without altering its value.
+function getRequiredSecret(name: string) {
+  const value = process.env[name];
+
+  if (!value?.trim()) {
+    throw new Error(`${name} must be configured before sending email.`);
+  }
+
+  return value;
+}
+
 // Retrieves and validates the SMTP port from environment variables.
 function getSmtpPort() {
   const value = getRequiredEnvironmentVariable("SMTP_PORT");
@@ -46,7 +57,7 @@ export function getEmailConfig(): EmailConfig {
   return {
     from: getRequiredEnvironmentVariable("EMAIL_FROM"),
     host: getRequiredEnvironmentVariable("SMTP_HOST"),
-    password: getRequiredEnvironmentVariable("SMTP_PASSWORD"),
+    password: getRequiredSecret("SMTP_PASSWORD"),
     port: getSmtpPort(),
     secure: getSmtpSecure(),
     user: getRequiredEnvironmentVariable("SMTP_USER"),
