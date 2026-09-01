@@ -41,17 +41,13 @@ export function createSessionToken() {
   return randomBytes(32).toString("base64url");
 }
 
-export function createPasswordResetToken() {
-  return randomBytes(32).toString("base64url");
-}
+export const createPasswordResetToken = createSessionToken;
 
 export function hashSessionToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export function hashPasswordResetToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
+export const hashPasswordResetToken = hashSessionToken;
 
 export function getSessionToken(request: Request) {
   const cookies = request.headers.cookie?.split(";") ?? [];
