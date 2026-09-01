@@ -159,7 +159,7 @@ export default function SettingsPage() {
     mutationFn: (input: EditUserFormState & { id: number }) =>
       apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
     onSuccess: async () => {
-      setEditUser(null);
+      closeEdit();
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
     },
   });
@@ -188,6 +188,7 @@ export default function SettingsPage() {
   });
 
   function openEdit(user: UserListItem) {
+    updateUserRequest.reset();
     setEditForm({
       name: user.name,
       email: user.email,
@@ -195,6 +196,11 @@ export default function SettingsPage() {
       role: user.role ?? "property_manager",
     });
     setEditUser(user);
+  }
+
+  function closeEdit() {
+    updateUserRequest.reset();
+    setEditUser(null);
   }
 
   return (
@@ -215,7 +221,7 @@ export default function SettingsPage() {
         form={editForm}
         isPending={updateUserRequest.isPending}
         onFormChange={setEditForm}
-        onOpenChange={(open) => !open && setEditUser(null)}
+        onOpenChange={(open) => !open && closeEdit()}
         onSubmit={() => editUser && updateUserRequest.mutate({ ...editForm, id: editUser.id })}
         open={Boolean(editUser)}
       />
