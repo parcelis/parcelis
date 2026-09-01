@@ -53,6 +53,7 @@ import { deleteTenantImage, uploadTenantImage } from "../../../../components/ten
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../../components/tenant-drawer";
 import { LoadingState } from "../../../../components/loading-state";
 import { NotesDrawer } from "../../../../components/notes-drawer";
+import { hasPermission } from "../../../../components/property-access";
 import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
@@ -118,6 +119,16 @@ export default function TenantDetailPage() {
     phone: "",
   });
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditTenant = hasPermission(currentUserQuery.data?.permissions, "tenants", "edit");
+  const canCreateLease =
+    hasPermission(currentUserQuery.data?.permissions, "leases", "create") &&
+    hasPermission(currentUserQuery.data?.permissions, "properties", "view") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "view") &&
+    hasPermission(currentUserQuery.data?.permissions, "tenants", "view");
   const tenantQuery = useQuery({
     queryKey: queryKeys.tenants.byId(tenantId),
     queryFn: () => apiClient.tenants.byId.query({ id: tenantId }),
@@ -250,27 +261,29 @@ export default function TenantDetailPage() {
                 </dd>
               </div>
             </dl>
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={() => {
-                  setEmergencyContactDraft({
-                    firstName: emergencyContact.firstName,
-                    lastName: emergencyContact.lastName ?? "",
-                    phone: emergencyContact.phone ?? "",
-                  });
-                  setIsEmergencyContactOpen(false);
-                  setIsEmergencyContactDrawerOpen(true);
-                }}
-                size="sm"
-                type="button"
-              >
-                Edit Contact
-              </Button>
-            </div>
+            {canEditTenant ? (
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={() => {
+                    setEmergencyContactDraft({
+                      firstName: emergencyContact.firstName,
+                      lastName: emergencyContact.lastName ?? "",
+                      phone: emergencyContact.phone ?? "",
+                    });
+                    setIsEmergencyContactOpen(false);
+                    setIsEmergencyContactDrawerOpen(true);
+                  }}
+                  size="sm"
+                  type="button"
+                >
+                  Edit Contact
+                </Button>
+              </div>
+            ) : null}
           </DialogContent>
         </Dialog>
       ) : null}
-      <Drawer onOpenChange={setIsEmergencyContactDrawerOpen} open={isEmergencyContactDrawerOpen}>
+      <Drawer onOpenChange={setIsEmergencyContactDrawerOpen} open={isEmergencyContactDrawerOpen && canEditTenant}>
         <DrawerContent size="sm">
           <form
             className="flex min-h-0 flex-1 flex-col"
@@ -360,7 +373,7 @@ export default function TenantDetailPage() {
             input: { id: tenantId, ...form },
           })
         }
-        open={isTenantDrawerOpen}
+        open={isTenantDrawerOpen && canEditTenant}
         submitLabel="Save"
       />
       <NotesDrawer
@@ -397,7 +410,7 @@ export default function TenantDetailPage() {
           </DialogContent>
         </Dialog>
       ) : null}
-      <Dialog open={isLeaseDialogOpen} onOpenChange={setIsLeaseDialogOpen}>
+      <Dialog open={isLeaseDialogOpen && canCreateLease} onOpenChange={setIsLeaseDialogOpen}>
         <DialogContent className="max-w-lg">
           <form
             className="grid gap-4"
@@ -506,15 +519,17 @@ export default function TenantDetailPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              className="min-w-40"
-              disabled={!tenant}
-              onClick={() => setIsLeaseDialogOpen(true)}
-              variant="secondary"
-            >
-              <Plus className="h-4 w-4" />
-              Create Lease
-            </Button>
+            {canCreateLease ? (
+              <Button
+                className="min-w-40"
+                disabled={!tenant}
+                onClick={() => setIsLeaseDialogOpen(true)}
+                variant="secondary"
+              >
+                <Plus className="h-4 w-4" />
+                Create Lease
+              </Button>
+            ) : null}
             <EntityLifecycleControls
               archiveDescription={
                 <>
@@ -523,6 +538,8 @@ export default function TenantDetailPage() {
                 </>
               }
               cancelDeleteLabel="Keep Tenant"
+              canArchive={hasPermission(currentUserQuery.data?.permissions, "tenants", "archive")}
+              canDelete={hasPermission(currentUserQuery.data?.permissions, "tenants", "delete")}
               deleteDescription={
                 <>
                   This permanently deletes {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} and their
@@ -566,15 +583,17 @@ export default function TenantDetailPage() {
               <StickyNotePlusIcon />
               <span className="hidden sm:inline">Add Notes</span>
             </Button>
-            <Button
-              aria-label="Edit tenant"
-              className="min-w-10 sm:min-w-40"
-              disabled={!tenant}
-              onClick={openTenantDrawer}
-            >
-              <PenLine className="h-4 w-4" />
-              <span className="hidden sm:inline">Edit tenant</span>
-            </Button>
+            {canEditTenant ? (
+              <Button
+                aria-label="Edit tenant"
+                className="min-w-10 sm:min-w-40"
+                disabled={!tenant}
+                onClick={openTenantDrawer}
+              >
+                <PenLine className="h-4 w-4" />
+                <span className="hidden sm:inline">Edit tenant</span>
+              </Button>
+            ) : null}
           </div>
         </header>
 

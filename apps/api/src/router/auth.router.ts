@@ -26,6 +26,7 @@ import {
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
 import { createUserProfileImageDownloadUrl } from "../modules/object-storage.config";
+import { getRolePermissions } from "../modules/permissions";
 
 const invalidCredentials = new TRPCError({
   code: "UNAUTHORIZED",
@@ -172,6 +173,7 @@ export const authRouter = router({
     return {
       user: { ...user, imageUrl: await createUserProfileImageDownloadUrl(profileImageObjectKey) },
       organizationRole: ctx.organization?.role,
+      permissions: await getRolePermissions(ctx.prisma, ctx.user.role),
     };
   }),
 });

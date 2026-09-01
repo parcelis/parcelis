@@ -3,7 +3,7 @@ id: users
 title: Users
 ---
 
-Open **Settings** from the sidebar to view the accounts created for the Parcelis workspace. The Users page shows
+Open **Settings** from the sidebar to view the accounts created for the Parcelis workspace. The **Users** tab shows
 each account's name, email address, phone number, role, and account status.
 
 Select a user row to open that user's profile. Organization administrators can update the profile's name, email
@@ -11,3 +11,15 @@ address, and phone number.
 
 Use the Actions menu to edit an account, disable or enable sign-in access, or permanently delete the account.
 Disabled accounts cannot sign in until they are enabled again.
+
+The **Roles** tab lists Administrator, Property Manager, Lease Manager, Maintenance, Property Owner, and Resident
+Manager roles. Select **Manage** to grant View, Create, Edit, Archive, and Delete permissions independently for
+Properties, Units, Tenants, Leases, Applications, Maintenance, and Invoices. Selecting a modifying action also
+enables View; clearing View clears the other actions for that area. The API enforces these permissions for reads,
+writes, archive and restore actions, and permanent deletion.
+
+Expand **Notes** to configure Property Notes, Unit Notes, Tenant Notes, Application Notes, Maintenance Notes, and
+Invoice Notes separately. The parent Notes checkboxes apply an action to every note type and show a mixed state when
+the sub-items differ. A role must also have View access to the record containing the note. For example, reading a unit
+note requires both Unit Notes View and Units View. Notes do not support archiving. Administrator permissions are
+always enabled and cannot be changed.

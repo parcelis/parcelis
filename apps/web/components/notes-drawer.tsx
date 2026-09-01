@@ -39,6 +39,7 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
+import { hasPermission } from "./property-access";
 
 type NoteSubject =
   | { propertyId: number }
@@ -111,11 +112,56 @@ export function NotesDrawer({
   const wasOpen = React.useRef(open);
   const needsReset = React.useRef(false);
   const queryClient = useQueryClient();
-  const notesQuery = useQuery({
-    queryKey: queryKeys.notes.list(subject),
-    queryFn: () => apiClient.notes.list.query(subject),
-    enabled: open,
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
   });
+  const notePermissionResource =
+    "propertyId" in subject
+      ? "property_notes"
+      : "unitId" in subject
+        ? "unit_notes"
+        : "tenantId" in subject
+          ? "tenant_notes"
+          : "applicationId" in subject
+            ? "application_notes"
+            : "invoiceId" in subject
+              ? "invoice_notes"
+              : "maintenance_notes";
+  const parentPermissionResource =
+    "propertyId" in subject
+      ? "properties"
+      : "unitId" in subject
+        ? "units"
+        : "tenantId" in subject
+          ? "tenants"
+          : "applicationId" in subject
+            ? "applications"
+            : "invoiceId" in subject
+              ? "invoices"
+              : "maintenance";
+  const canViewParent = hasPermission(currentUserQuery.data?.permissions, parentPermissionResource, "view");
+  const canViewNotes =
+    canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "view");
+  const canCreateNotes =
+    canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "create");
+  const canEditNotes =
+    canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "edit");
+  const canDeleteNotes =
+    canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "delete");
+  const notesQueryKey = queryKeys.notes.list(subject);
+  const notesQuery = useQuery({
+    queryKey: notesQueryKey,
+    queryFn: () => apiClient.notes.list.query(subject),
+    enabled: open && canViewNotes,
+  });
+
+  React.useEffect(() => {
+    if (!canViewNotes) {
+      queryClient.removeQueries({ queryKey: notesQueryKey, exact: true });
+    }
+  }, [canViewNotes, notesQueryKey, queryClient]);
+
   const createNote = useMutation({
     mutationFn: ({ body }: { body: string; session: number }) => apiClient.notes.create.mutate({ ...subject, body }),
     onSuccess: async (_note, variables) => {
@@ -388,126 +434,140 @@ export function NotesDrawer({
         <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
           <div aria-labelledby="notes-tab" hidden={activeTab !== "notes"} id="notes-panel" role="tabpanel" tabIndex={0}>
             <div className="space-y-5">
-              <div className="relative">
-                <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="note-body">
-                  New note
-                </label>
-                <Textarea
-                  className="mt-2 pr-12"
-                  disabled={isMutationPending}
-                  id="note-body"
-                  onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Add internal context, reminders, or instructions..."
-                  value={draft}
-                />
-                <button
-                  aria-label="Add note"
-                  className="absolute bottom-2 right-2 inline-grid h-8 w-8 place-items-center rounded-full text-parcelis-green transition hover:bg-parcelis-green/10 disabled:cursor-not-allowed disabled:text-parcelis-gray disabled:hover:bg-transparent"
-                  disabled={!draft.trim() || isMutationPending}
-                  onClick={() => createNote.mutate({ body: draft, session: drawerSession.current })}
-                  type="button"
-                >
-                  {createNote.isPending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <CircleArrowUp className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
+              {canCreateNotes ? (
+                <div className="relative">
+                  <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="note-body">
+                    New note
+                  </label>
+                  <Textarea
+                    className="mt-2 pr-12"
+                    disabled={isMutationPending}
+                    id="note-body"
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="Add internal context, reminders, or instructions..."
+                    value={draft}
+                  />
+                  <button
+                    aria-label="Add note"
+                    className="absolute bottom-2 right-2 inline-grid h-8 w-8 place-items-center rounded-full text-parcelis-green transition hover:bg-parcelis-green/10 disabled:cursor-not-allowed disabled:text-parcelis-gray disabled:hover:bg-transparent"
+                    disabled={!draft.trim() || isMutationPending}
+                    onClick={() => createNote.mutate({ body: draft, session: drawerSession.current })}
+                    type="button"
+                  >
+                    {createNote.isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <CircleArrowUp className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              ) : null}
               {createNote.error ? (
                 <p className="text-sm text-red-700" role="alert">
                   {createNote.error.message}
                 </p>
               ) : null}
-              {notesQuery.isLoading ? (
-                <LoadingState className="min-h-0 py-8" label="Loading notes" />
-              ) : notesQuery.error ? (
-                <p className="text-sm text-red-700">{notesQuery.error.message}</p>
-              ) : notesQuery.data?.length ? (
-                <div className="space-y-3">
-                  {notesQuery.data.map((note) => (
-                    <article
-                      className="border-l-4 border-parcelis-green bg-parcelis-green/5 py-3 pl-4 pr-3"
-                      key={note.id}
-                    >
-                      {editingNoteId === note.id ? (
-                        <div>
-                          <Textarea
-                            aria-label="Edit note"
-                            disabled={isMutationPending}
-                            onChange={(event) => setEditDraft(event.target.value)}
-                            value={editDraft}
-                          />
-                          <div className="mt-3 flex justify-end gap-2">
-                            {updateNote.error ? (
-                              <p className="mr-auto self-center text-sm text-red-700" role="alert">
-                                {updateNote.error.message}
-                              </p>
-                            ) : null}
-                            <Button
+              {canViewNotes ? (
+                notesQuery.isLoading ? (
+                  <LoadingState className="min-h-0 py-8" label="Loading notes" />
+                ) : notesQuery.error ? (
+                  <p className="text-sm text-red-700">{notesQuery.error.message}</p>
+                ) : notesQuery.data?.length ? (
+                  <div className="space-y-3">
+                    {notesQuery.data.map((note) => (
+                      <article
+                        className="border-l-4 border-parcelis-green bg-parcelis-green/5 py-3 pl-4 pr-3"
+                        key={note.id}
+                      >
+                        {editingNoteId === note.id ? (
+                          <div>
+                            <Textarea
+                              aria-label="Edit note"
                               disabled={isMutationPending}
-                              onClick={cancelEdit}
-                              size="sm"
-                              type="button"
-                              variant="secondary"
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              disabled={!editDraft.trim() || isMutationPending}
-                              onClick={() =>
-                                updateNote.mutate({ id: note.id, body: editDraft, session: drawerSession.current })
-                              }
-                              size="sm"
-                              type="button"
-                            >
-                              Save
-                            </Button>
+                              onChange={(event) => setEditDraft(event.target.value)}
+                              value={editDraft}
+                            />
+                            <div className="mt-3 flex justify-end gap-2">
+                              {updateNote.error ? (
+                                <p className="mr-auto self-center text-sm text-red-700" role="alert">
+                                  {updateNote.error.message}
+                                </p>
+                              ) : null}
+                              <Button
+                                disabled={isMutationPending}
+                                onClick={cancelEdit}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                disabled={!editDraft.trim() || isMutationPending}
+                                onClick={() =>
+                                  updateNote.mutate({ id: note.id, body: editDraft, session: drawerSession.current })
+                                }
+                                size="sm"
+                                type="button"
+                              >
+                                Save
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-start justify-between gap-3">
-                            <p className="whitespace-pre-wrap text-sm leading-6 text-parcelis-charcoal">{note.body}</p>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  aria-label="Note actions"
-                                  disabled={isMutationPending}
-                                  size="sm"
-                                  type="button"
-                                  variant="ghost"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onSelect={() => startEdit(note)}>
-                                  <Pencil className="h-4 w-4 text-parcelis-green" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-red-700 focus:bg-red-50 focus:text-red-700"
-                                  onSelect={() => setNotePendingDeletion(note.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                          <p className="mt-3 text-xs text-parcelis-gray">{formatDate(note.createdAt)}</p>
-                        </>
-                      )}
-                    </article>
-                  ))}
-                </div>
+                        ) : (
+                          <>
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="whitespace-pre-wrap text-sm leading-6 text-parcelis-charcoal">
+                                {note.body}
+                              </p>
+                              {canEditNotes || canDeleteNotes ? (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      aria-label="Note actions"
+                                      disabled={isMutationPending}
+                                      size="sm"
+                                      type="button"
+                                      variant="ghost"
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {canEditNotes ? (
+                                      <DropdownMenuItem onSelect={() => startEdit(note)}>
+                                        <Pencil className="h-4 w-4 text-parcelis-green" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                    ) : null}
+                                    {canDeleteNotes ? (
+                                      <DropdownMenuItem
+                                        className="text-red-700 focus:bg-red-50 focus:text-red-700"
+                                        onSelect={() => setNotePendingDeletion(note.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    ) : null}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : null}
+                            </div>
+                            <p className="mt-3 text-xs text-parcelis-gray">{formatDate(note.createdAt)}</p>
+                          </>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center">
+                    <StickyNotes className="h-10 w-10 text-parcelis-green" />
+                    <p className="mt-3 text-sm font-semibold text-parcelis-charcoal">No notes yet.</p>
+                    <p className="mt-1 text-sm text-parcelis-gray">Add private notes that tenants cannot see.</p>
+                  </div>
+                )
               ) : (
-                <div className="flex flex-col items-center rounded-md border border-dashed border-parcelis-border px-4 py-8 text-center">
-                  <StickyNotes className="h-10 w-10 text-parcelis-green" />
-                  <p className="mt-3 text-sm font-semibold text-parcelis-charcoal">No notes yet.</p>
-                  <p className="mt-1 text-sm text-parcelis-gray">Add private notes that tenants cannot see.</p>
-                </div>
+                <p className="text-sm text-parcelis-gray">You do not have permission to view notes.</p>
               )}
             </div>
           </div>
@@ -521,7 +581,7 @@ export function NotesDrawer({
             </div>
           </div>
         </div>
-        {activeTab === "notes" ? (
+        {activeTab === "notes" && canCreateNotes ? (
           <DrawerFooter className="flex items-center justify-between gap-3">
             <Button
               className="min-w-40"

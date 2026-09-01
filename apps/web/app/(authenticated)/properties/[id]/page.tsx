@@ -42,6 +42,7 @@ import { apiClient, queryKeys } from "../../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../../components/property-image-upload";
 import { LoadingState } from "../../../../components/loading-state";
 import { NotesDrawer } from "../../../../components/notes-drawer";
+import { hasPermission } from "../../../../components/property-access";
 import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
@@ -78,6 +79,10 @@ export default function PropertyDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const propertyId = Number(params.id);
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
@@ -270,10 +275,15 @@ export default function PropertyDetailPage() {
                 <>This will hide {property?.name ?? "this property"} from the default properties view.</>
               }
               cancelDeleteLabel="Keep Property"
+              canArchive={hasPermission(currentUserQuery.data?.permissions, "properties", "archive")}
+              canDelete={
+                hasPermission(currentUserQuery.data?.permissions, "properties", "delete") &&
+                hasPermission(currentUserQuery.data?.permissions, "units", "delete")
+              }
               deleteDescription={
                 <>
-                  This permanently deletes {property?.name ?? "this property"} only when it has no history. Archive it to
-                  retain leases, invoices, and other records.
+                  This permanently deletes {property?.name ?? "this property"} only when it has no history. Archive it
+                  to retain leases, invoices, and other records.
                 </>
               }
               entityLabel="property"

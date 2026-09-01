@@ -44,6 +44,7 @@ import {
   TableRow,
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../components/api-client";
+import { userRoleValues, type UserRole } from "@parcelis/schemas";
 import { LoadingState } from "../../../components/loading-state";
 import { PageRail } from "../../../components/page-rail";
 import { SettingsRail } from "../../../components/settings-rail";
@@ -66,7 +67,7 @@ type UserFormState = {
   name: string;
   email: string;
   phone: string;
-  role: "administrator" | "member";
+  role: UserRole;
 };
 
 function UserActionsMenu({
@@ -135,7 +136,7 @@ export default function SettingsPage() {
     name: "",
     email: "",
     phone: "",
-    role: "member",
+    role: "property_manager",
   });
   const updateUserMutation = useMutation({
     mutationFn: (input: UserFormState & { id: number }) =>
@@ -166,7 +167,7 @@ export default function SettingsPage() {
       name: user.name,
       email: user.email,
       phone: user.phone ?? "",
-      role: user.role ?? "member",
+      role: user.role ?? "property_manager",
     });
     setEditUser(user);
   }
@@ -222,8 +223,11 @@ export default function SettingsPage() {
                   onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })}
                   value={editForm.role}
                 >
-                  <option value="administrator">Administrator</option>
-                  <option value="member">Member</option>
+                  {userRoleValues.map((role) => (
+                    <option key={role} value={role}>
+                      {formatLabel(role)}
+                    </option>
+                  ))}
                 </Select>
               </Label>
             </div>

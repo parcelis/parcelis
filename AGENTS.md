@@ -23,6 +23,8 @@
 - Build: `pnpm build`
 - Lint: `pnpm lint`
 - Type check: `pnpm typecheck`
+- API tests: `pnpm --filter @parcelis/api test`
+- End-to-end tests: `pnpm test:e2e`
 - Format: `pnpm format`
 - Generate Prisma client: `pnpm db:generate`
 - Run Prisma migrations: `pnpm db:migrate`
@@ -75,6 +77,8 @@
 ## API and Data
 
 - Add tRPC routes in `apps/api/src/router/app.router.ts` or split them when the router grows.
+- Keep API unit and router tests in feature folders under `apps/api/src/tests`, such as
+  `apps/api/src/tests/permissions`.
 - Validate procedure inputs with Zod schemas from `@parcelis/schemas`.
 - For schemas that are not database-driven, define them once in a central shared location and import them where needed; never duplicate or hardcode the same schema in multiple places.
 - Keep Prisma models and migrations in `packages/db/prisma`.

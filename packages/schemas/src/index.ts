@@ -29,8 +29,115 @@ export const changePasswordInputSchema = z
     path: ["reenterPassword"],
   });
 
-export const userRoleSchema = z.enum(["administrator", "member"]);
+export const userRoleValues = [
+  "administrator",
+  "property_manager",
+  "lease_manager",
+  "maintenance",
+  "property_owner",
+  "resident_manager",
+] as const;
+export const userRoleSchema = z.enum(userRoleValues);
+export type UserRole = z.infer<typeof userRoleSchema>;
 export const userAccountStatusSchema = z.enum(["active", "disabled"]);
+export const primaryPermissionResourceValues = [
+  "properties",
+  "units",
+  "tenants",
+  "leases",
+  "applications",
+  "maintenance",
+  "invoices",
+] as const;
+export const notePermissionResourceValues = [
+  "property_notes",
+  "unit_notes",
+  "tenant_notes",
+  "application_notes",
+  "maintenance_notes",
+  "invoice_notes",
+] as const;
+export const permissionResourceValues = [...primaryPermissionResourceValues, ...notePermissionResourceValues] as const;
+export const permissionActionValues = ["view", "create", "edit", "archive", "delete"] as const;
+export const permissionResourceSchema = z.enum(permissionResourceValues);
+export const permissionActionSchema = z.enum(permissionActionValues);
+export type PermissionResource = z.infer<typeof permissionResourceSchema>;
+export type PermissionAction = z.infer<typeof permissionActionSchema>;
+export type PermissionFlags = Partial<Record<PermissionAction, boolean>>;
+
+export function supportsPermissionAction(resource: PermissionResource, action: PermissionAction) {
+  return action !== "archive" || (resource !== "invoices" && !resource.endsWith("_notes"));
+}
+
+export const permissionCatalog: ReadonlyArray<{
+  resource: PermissionResource;
+  label: string;
+  description: string;
+  actions: readonly PermissionAction[];
+}> = [
+  {
+    resource: "properties",
+    label: "Properties",
+    description: "Property records, details, images, and status.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "units",
+    label: "Units",
+    description: "Units and their amenities and utilities.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "tenants",
+    label: "Tenants",
+    description: "Tenant records, contacts, images, and status.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "leases",
+    label: "Leases",
+    description: "Lease records, tenant assignments, and lease status.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "applications",
+    label: "Applications",
+    description: "Rental applications, applicants, status, and archive state.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "maintenance",
+    label: "Maintenance",
+    description: "Maintenance tickets, attachments, and workflow status.",
+    actions: permissionActionValues,
+  },
+  {
+    resource: "invoices",
+    label: "Invoices",
+    description: "Invoices, payments, PDFs, and invoice status.",
+    actions: permissionActionValues.filter((action) => action !== "archive"),
+  },
+];
+export const notePermissionCatalog: ReadonlyArray<{
+  resource: (typeof notePermissionResourceValues)[number];
+  label: string;
+  description: string;
+}> = [
+  { resource: "property_notes", label: "Property Notes", description: "Notes attached to properties." },
+  { resource: "unit_notes", label: "Unit Notes", description: "Notes attached to units." },
+  { resource: "tenant_notes", label: "Tenant Notes", description: "Notes attached to tenants." },
+  {
+    resource: "application_notes",
+    label: "Application Notes",
+    description: "Notes attached to rental applications.",
+  },
+  {
+    resource: "maintenance_notes",
+    label: "Maintenance Notes",
+    description: "Notes attached to maintenance tickets.",
+  },
+  { resource: "invoice_notes", label: "Invoice Notes", description: "Notes attached to invoices." },
+];
 export const updateUserInputSchema = z.object({
   id: idSchema,
   name: z.string().trim().min(1).max(100),
@@ -83,6 +190,34 @@ export const userAccountStatusInputSchema = z.object({
   accountStatus: userAccountStatusSchema,
 });
 export const deleteUserInputSchema = z.object({ id: idSchema });
+export const roleResourcePermissionSchema = z
+  .object({
+    resource: permissionResourceSchema,
+    view: z.boolean(),
+    create: z.boolean(),
+    edit: z.boolean(),
+    archive: z.boolean().optional(),
+    delete: z.boolean(),
+  })
+  .superRefine((permission, ctx) => {
+    const supportsArchive = supportsPermissionAction(permission.resource, "archive");
+    if (supportsArchive && permission.archive === undefined) {
+      ctx.addIssue({ code: "custom", message: "Archive permission is required.", path: ["archive"] });
+    }
+    if (!supportsArchive && permission.archive) {
+      ctx.addIssue({ code: "custom", message: "Archive permission cannot be enabled.", path: ["archive"] });
+    }
+  });
+export const updateRolePermissionsInputSchema = z
+  .object({
+    role: userRoleSchema,
+    permissions: z.array(roleResourcePermissionSchema).length(permissionResourceValues.length),
+  })
+  .superRefine(({ permissions }, ctx) => {
+    if (new Set(permissions.map(({ resource }) => resource)).size !== permissionResourceValues.length) {
+      ctx.addIssue({ code: "custom", message: "Each permission resource must be provided exactly once." });
+    }
+  });
 
 export const organizationMemberRoleSchema = z.enum(["owner", "administrator", "member"]);
 export const switchOrganizationInputSchema = z.object({ organizationId: idSchema });

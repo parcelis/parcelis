@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleUserRound } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } from "@parcelis/ui";
+import type { UserRole } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { LoadingState } from "../../../../../components/loading-state";
 import { SettingsRail } from "../../../../../components/settings-rail";
@@ -16,8 +17,13 @@ import { deleteUserProfileImage, uploadUserProfileImage } from "../../../../../c
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
-function formatRole(role: "administrator" | "member" | undefined) {
-  return role === "administrator" ? "Administrator" : "Member";
+function formatRole(role: UserRole | undefined) {
+  return role
+    ? role
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+    : "Not set";
 }
 
 export default function UserProfilePage() {
@@ -59,8 +65,7 @@ export default function UserProfilePage() {
 
   const isOwnProfile = currentUserQuery.data?.user.id === userId;
   const organizationRole = currentUserQuery.data?.organizationRole;
-  const canEditEmail =
-    !isOwnProfile && (organizationRole === "owner" || organizationRole === "administrator");
+  const canEditEmail = !isOwnProfile && (organizationRole === "owner" || organizationRole === "administrator");
   const updateProfileMutation = useMutation({
     scope: { id: `user-profile-${userId}` },
     mutationFn: async () => {

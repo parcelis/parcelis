@@ -28,7 +28,13 @@ import { ApplicationDrawer } from "../../../../components/application-drawer";
 import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
 import { LoadingState } from "../../../../components/loading-state";
 import { NotesDrawer } from "../../../../components/notes-drawer";
-import { entityArchivedMessage, entityDeletedMessage, entityReactivatedMessage, entityUpdatedMessage } from "../../../../components/toast-messages";
+import { hasPermission } from "../../../../components/property-access";
+import {
+  entityArchivedMessage,
+  entityDeletedMessage,
+  entityReactivatedMessage,
+  entityUpdatedMessage,
+} from "../../../../components/toast-messages";
 import { getPropertyLink } from "../../../../lib/entity-links";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
@@ -87,6 +93,10 @@ export default function ApplicationDetailPage() {
   const queryClient = useQueryClient();
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isNotesOpen, setIsNotesOpen] = React.useState(false);
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
 
   const applicationQuery = useQuery({
     queryKey: queryKeys.applications.byId(id),
@@ -109,7 +119,9 @@ export default function ApplicationDetailPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.applications.byId(id) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.applications.list }),
       ]);
-      toast.success(entityUpdatedMessage("Application", `${variables.applicant.firstName} ${variables.applicant.lastName}`));
+      toast.success(
+        entityUpdatedMessage("Application", `${variables.applicant.firstName} ${variables.applicant.lastName}`),
+      );
     },
   });
   const updateApplicationStatus = useMutation({
@@ -163,10 +175,10 @@ export default function ApplicationDetailPage() {
           </div>
           <div className="flex items-center gap-2">
             <EntityLifecycleControls
-              archiveDescription={
-                <>This will mark {application ? applicantName : "this application"} as archived.</>
-              }
+              archiveDescription={<>This will mark {application ? applicantName : "this application"} as archived.</>}
               cancelDeleteLabel="Keep Application"
+              canArchive={hasPermission(currentUserQuery.data?.permissions, "applications", "archive")}
+              canDelete={hasPermission(currentUserQuery.data?.permissions, "applications", "delete")}
               deleteDescription={
                 <>
                   This permanently deletes {application ? applicantName : "this application"}&apos;s application. This
@@ -268,7 +280,11 @@ export default function ApplicationDetailPage() {
                     <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         className="min-w-40"
-                        disabled={!approvedStatus || updateApplicationStatus.isPending || application.status.id === approvedStatus.id}
+                        disabled={
+                          !approvedStatus ||
+                          updateApplicationStatus.isPending ||
+                          application.status.id === approvedStatus.id
+                        }
                         onClick={() => approvedStatus && updateApplicationStatus.mutate(approvedStatus.id)}
                       >
                         <Check className="h-4 w-4" />
@@ -276,7 +292,11 @@ export default function ApplicationDetailPage() {
                       </Button>
                       <Button
                         className="min-w-40"
-                        disabled={!deniedStatus || updateApplicationStatus.isPending || application.status.id === deniedStatus.id}
+                        disabled={
+                          !deniedStatus ||
+                          updateApplicationStatus.isPending ||
+                          application.status.id === deniedStatus.id
+                        }
                         onClick={() => deniedStatus && updateApplicationStatus.mutate(deniedStatus.id)}
                         variant="danger"
                       >
@@ -286,11 +306,17 @@ export default function ApplicationDetailPage() {
                     </div>
                     <div className="grid w-full gap-3 sm:grid-cols-3">
                       <ApplicationHeroStat icon={BadgeCheck} label="Status" value={application.status.label} />
-                      <ApplicationHeroStat icon={CalendarDays} label="Applied On" value={formatDate(application.submittedOn)} />
+                      <ApplicationHeroStat
+                        icon={CalendarDays}
+                        label="Applied On"
+                        value={formatDate(application.submittedOn)}
+                      />
                       <ApplicationHeroStat
                         icon={CalendarCheck}
                         label="Requested Move In"
-                        value={application.requestedMoveInDate ? formatDateOnly(application.requestedMoveInDate) : "Not set"}
+                        value={
+                          application.requestedMoveInDate ? formatDateOnly(application.requestedMoveInDate) : "Not set"
+                        }
                       />
                     </div>
                   </div>
@@ -372,7 +398,9 @@ export default function ApplicationDetailPage() {
                     <ApplicationDetail label="Submitted" value={formatDate(application.submittedOn)} />
                     <ApplicationDetail
                       label="Requested move-in"
-                      value={application.requestedMoveInDate ? formatDateOnly(application.requestedMoveInDate) : "Not set"}
+                      value={
+                        application.requestedMoveInDate ? formatDateOnly(application.requestedMoveInDate) : "Not set"
+                      }
                     />
                   </CardContent>
                 </Card>
@@ -385,7 +413,10 @@ export default function ApplicationDetailPage() {
                   />
                   <ApplicationReviewCard description="Emergency contact details." title="Emergency Contact" />
                   <ApplicationReviewCard description="Prior residences and rental history." title="Rental History" />
-                  <ApplicationReviewCard description="Evictions and missed rent history." title="Evictions and Missed Rent" />
+                  <ApplicationReviewCard
+                    description="Evictions and missed rent history."
+                    title="Evictions and Missed Rent"
+                  />
                   <ApplicationReviewCard description="Personal and landlord references." title="References" />
                   <ApplicationReviewCard description="Income documents and verification." title="Proof of Income" />
                   <ApplicationReviewCard
