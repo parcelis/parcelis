@@ -128,7 +128,9 @@ export default function RolesSettingsPage() {
                 </p>
               </section>
 
-              {!canManageUsers ? (
+              {currentUserQuery.isLoading ? (
+                <LoadingState label="Loading account…" />
+              ) : !canManageUsers ? (
                 <Card>
                   <CardContent className="py-8 text-sm text-parcelis-gray">
                     Administrator access is required.
