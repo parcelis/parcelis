@@ -1,0 +1,19 @@
+apps/api/src/tests/permissions/permissions.unit.test.ts
+  s_66a6e388d576df::t_13a0a275641478 21-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "85ce30c39bd8cb3d0c20bef6beca5d811e98e755",
+  "prompts": {},
+  "sessions": {
+    "s_66a6e388d576df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05b24-1ad8-76b3-96cc-9456a242c463",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
