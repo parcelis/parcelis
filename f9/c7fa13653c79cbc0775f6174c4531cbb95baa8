@@ -1,0 +1,19 @@
+apps/api/src/modules/auth.ts
+  s_0ae7530c85cc88::t_866750a04b7afc 44,50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "f9c7fa13653c79cbc0775f6174c4531cbb95baa8",
+  "prompts": {},
+  "sessions": {
+    "s_0ae7530c85cc88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05ebb-2f83-74b1-905a-ad82e8cfb8e3",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
