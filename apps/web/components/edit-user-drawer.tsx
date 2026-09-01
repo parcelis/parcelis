@@ -14,6 +14,7 @@ import {
   Select,
 } from "@parcelis/ui";
 import type { UserRole } from "@parcelis/schemas";
+import { formatLabel } from "../lib/format";
 
 export type EditUserFormState = {
   name: string;
@@ -21,13 +22,6 @@ export type EditUserFormState = {
   phone: string;
   role: UserRole;
 };
-
-function formatRole(role: UserRole) {
-  return role
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
 
 export function EditUserDrawer({
   availableRoles,
@@ -116,7 +110,7 @@ export function EditUserDrawer({
                 >
                   {availableRoles.map((role) => (
                     <option key={role} value={role}>
-                      {formatRole(role)}
+                      {formatLabel(role)}
                     </option>
                   ))}
                 </Select>

@@ -6,25 +6,16 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleUserRound } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } from "@parcelis/ui";
-import type { UserRole } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { LoadingState } from "../../../../../components/loading-state";
 import { SettingsRail } from "../../../../../components/settings-rail";
+import { formatLabel } from "../../../../../lib/format";
 import { ImageUploadPanel } from "../../../../../components/image-upload-panel";
 import { AccountInfoCard } from "../../../../../components/account-info-card";
 import { deleteUserProfileImage, uploadUserProfileImage } from "../../../../../components/user-profile-image-upload";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
-
-function formatRole(role: UserRole | undefined) {
-  return role
-    ? role
-        .split("_")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ")
-    : "Not set";
-}
 
 export default function UserProfilePage() {
   const { id: idParam } = useParams<{ id: string }>();
@@ -212,7 +203,7 @@ export default function UserProfilePage() {
                         </Label>
                         <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
                           User role
-                          <Input className="mt-1" readOnly value={formatRole(profileQuery.data?.role)} />
+                          <Input className="mt-1" readOnly value={formatLabel(profileQuery.data?.role)} />
                         </Label>
                         {updateProfileMutation.error ? (
                           <p className="w-full text-sm font-medium text-red-700">

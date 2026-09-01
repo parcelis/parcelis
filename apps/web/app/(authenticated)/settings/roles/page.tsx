@@ -30,19 +30,13 @@ import {
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
+import { formatLabel } from "../../../../lib/format";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 type PermissionMatrix = Record<PermissionResource, PermissionFlags>;
 type Role = Awaited<ReturnType<typeof apiClient.roles.list.query>>[number];
-
-function formatRole(role: string) {
-  return role
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
 
 export default function RolesSettingsPage() {
   const queryClient = useQueryClient();
@@ -155,7 +149,7 @@ export default function RolesSettingsPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <h2 className="font-semibold text-parcelis-charcoal">{formatRole(selectedRole.role)}</h2>
+                        <h2 className="font-semibold text-parcelis-charcoal">{formatLabel(selectedRole.role)}</h2>
                         <p className="mt-1 text-sm text-parcelis-gray">
                           {selectedRole.role === "administrator"
                             ? "Administrators always have full access."
@@ -297,7 +291,7 @@ export default function RolesSettingsPage() {
                         {(rolesQuery.data ?? []).map((role) => (
                           <TableRow key={role.role}>
                             <TableCell className="font-semibold text-parcelis-charcoal">
-                              {formatRole(role.role)}
+                              {formatLabel(role.role)}
                             </TableCell>
                             <TableCell>
                               {role.role === "administrator"

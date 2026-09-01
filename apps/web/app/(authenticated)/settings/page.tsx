@@ -47,18 +47,10 @@ import { EditUserDrawer, type EditUserFormState } from "../../../components/edit
 import { PageRail } from "../../../components/page-rail";
 import { hasPermission } from "../../../components/property-access";
 import { SettingsRail } from "../../../components/settings-rail";
+import { formatLabel } from "../../../lib/format";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
-
-function formatLabel(value: string | null | undefined) {
-  if (!value) return "Not set";
-
-  return value
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
 
 type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
 

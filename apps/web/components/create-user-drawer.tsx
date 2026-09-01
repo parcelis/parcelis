@@ -14,6 +14,7 @@ import {
   Select,
 } from "@parcelis/ui";
 import { userRoleValues, type UserRole } from "@parcelis/schemas";
+import { formatLabel } from "../lib/format";
 
 // Types and initial state for the create user form
 export type CreateUserFormState = {
@@ -33,15 +34,6 @@ export const initialCreateUserFormState: CreateUserFormState = {
   role: "property_manager",
 };
 
-// Formats a user role for display
-function formatRole(role: UserRole) {
-  return role
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-// CreateUserDrawer component for creating a new user
 export function CreateUserDrawer({
   error,
   form,
@@ -138,7 +130,7 @@ export function CreateUserDrawer({
                 >
                   {availableRoles.map((role) => (
                     <option key={role} value={role}>
-                      {formatRole(role)}
+                      {formatLabel(role)}
                     </option>
                   ))}
                 </Select>
