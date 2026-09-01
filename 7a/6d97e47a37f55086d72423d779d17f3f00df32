@@ -1,0 +1,29 @@
+packages/schemas/src/index.ts
+  s_a585bebdbf1497::t_258b5fd1cd9758 58
+  s_f47368892e8af7::t_c51bf20fb64f72 81-82,89,94
+  s_f47368892e8af7::t_b645032ac82de9 88,90-93,109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "7a6d97e47a37f55086d72423d779d17f3f00df32",
+  "prompts": {},
+  "sessions": {
+    "s_a585bebdbf1497": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05b4b-e548-7722-91c9-aa29155c0f8b",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_f47368892e8af7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a04a4f-73d7-7b81-b8d3-e93a12ddccd6",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

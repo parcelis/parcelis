@@ -1,0 +1,34 @@
+apps/web/components/notes-drawer.tsx
+  s_66a6e388d576df::t_e3b6912b72d133 126,128,131-143,146-147,150-151
+  s_f47368892e8af7::t_c51bf20fb64f72 127
+  s_f47368892e8af7::t_1f2c09d0f28227 129-130
+  s_66a6e388d576df::t_95f3b4dce1c3c5 152,154,158-164
+  s_66a6e388d576df::t_7871f891a3102f 436-437,569-572
+  s_66a6e388d576df::t_e35204281f8530 438-456,458-485,487-515,517-531,533-568
+  s_66a6e388d576df::t_e9bc9c4c2af408 584
+  s_66a6e388d576df::t_db2416a69e018a 144-145,148-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "a8c6cf5694d818e9a136fa7f3a2561d8ffb56ce0",
+  "prompts": {},
+  "sessions": {
+    "s_66a6e388d576df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05b24-1ad8-76b3-96cc-9456a242c463",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_f47368892e8af7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a04a4f-73d7-7b81-b8d3-e93a12ddccd6",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

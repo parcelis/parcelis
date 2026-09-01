@@ -1,0 +1,35 @@
+apps/web/app/(authenticated)/settings/profile/page.tsx
+  s_f47368892e8af7::t_cc6e9ce4f7023e 8,19
+  s_f47368892e8af7::t_4b5992d8e8aed8 20-25
+apps/web/components/settings-rail.tsx
+  s_f47368892e8af7::t_fc331245f8db24 7,10
+apps/web/app/(authenticated)/settings/page.tsx
+  s_f47368892e8af7::t_cc6e9ce4f7023e 47,70,139,170,226-230
+apps/web/app/(authenticated)/settings/roles/page.tsx
+  s_f47368892e8af7::t_5d9f6ff6ba0e4d 1-5,7-24,26-38,46-81,85-125,127,131-163,165-174,176-201,205-213,221-223,237-250
+  s_f47368892e8af7::t_4a4fa968060157 25
+  s_f47368892e8af7::t_54874b4a309591 82-84,128-130,202-204,214-220,224-236
+apps/api/src/router/app.router.ts
+  s_f47368892e8af7::t_60f9c209b82780 66-67,826-847,849-854,856-859
+  s_f47368892e8af7::t_1f2c09d0f28227 983,1582,1632,1653,1672,1685,2194,2213,2474,2488,2500,2521,2571,2602,2671,2947,2974,3125,3127,3130,3140,3165
+  s_f47368892e8af7::t_fc029e74c0e951 2844,2888
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_f47368892e8af7::t_cc6e9ce4f7023e 9,20
+  s_f47368892e8af7::t_4b5992d8e8aed8 21-26,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6a226bdc0bd27e2f37ad91a2ffe6ff44b18e1047",
+  "prompts": {},
+  "sessions": {
+    "s_f47368892e8af7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a04a4f-73d7-7b81-b8d3-e93a12ddccd6",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
