@@ -10,6 +10,7 @@ import {
   Phone,
   ShieldCheck,
   Trash2,
+  UserPlus,
   UserRoundCheck,
   UserRoundX,
   Users,
@@ -25,17 +26,12 @@ import {
   Card,
   CardContent,
   CardHeader,
-  Dialog,
-  DialogContent,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Input,
-  Label,
   ParcelisLogo,
   Badge,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -44,44 +40,42 @@ import {
   TableRow,
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../components/api-client";
-import { userRoleValues, type UserRole } from "@parcelis/schemas";
+import { userRoleValues } from "@parcelis/schemas";
 import { LoadingState } from "../../../components/loading-state";
+import { CreateUserDrawer, initialCreateUserFormState } from "../../../components/create-user-drawer";
+import { EditUserDrawer, type EditUserFormState } from "../../../components/edit-user-drawer";
 import { PageRail } from "../../../components/page-rail";
+import { hasPermission } from "../../../components/property-access";
 import { SettingsRail } from "../../../components/settings-rail";
+import { formatLabel } from "../../../lib/format";
 
 const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
 const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
-function formatLabel(value: string | null | undefined) {
-  if (!value) return "Not set";
-
-  return value
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
 
-type UserFormState = {
-  name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-};
-
 function UserActionsMenu({
+  canArchive,
+  canDelete,
+  canEdit,
+  canManage,
   onDelete,
   onEdit,
   onToggleAccountStatus,
   user,
 }: {
+  canArchive: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
+  canManage: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onToggleAccountStatus: () => void;
   user: UserListItem;
 }) {
   const isDisabled = user.accountStatus === "disabled";
+
+  if (!canManage) return null;
 
   return (
     <DropdownMenu>
@@ -95,22 +89,28 @@ function UserActionsMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem onSelect={onEdit}>
-          <Pencil className="h-4 w-4 text-parcelis-green" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onToggleAccountStatus}>
-          {isDisabled ? (
-            <UserRoundCheck className="h-4 w-4 text-parcelis-green" />
-          ) : (
-            <UserRoundX className="h-4 w-4 text-parcelis-green" />
-          )}
-          {isDisabled ? "Enable" : "Disable"}
-        </DropdownMenuItem>
-        <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
+        {canEdit ? (
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil className="h-4 w-4 text-parcelis-green" />
+            Edit
+          </DropdownMenuItem>
+        ) : null}
+        {canArchive ? (
+          <DropdownMenuItem onSelect={onToggleAccountStatus}>
+            {isDisabled ? (
+              <UserRoundCheck className="h-4 w-4 text-parcelis-green" />
+            ) : (
+              <UserRoundX className="h-4 w-4 text-parcelis-green" />
+            )}
+            {isDisabled ? "Enable" : "Disable"}
+          </DropdownMenuItem>
+        ) : null}
+        {canDelete ? (
+          <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -125,24 +125,45 @@ export default function SettingsPage() {
   const usersQuery = useQuery({
     queryKey: queryKeys.users.list,
     queryFn: () => apiClient.users.list.query(),
+    enabled: hasPermission(currentUserQuery.data?.permissions, "users", "view"),
   });
   const users = usersQuery.data ?? [];
+  const isAdministrator = currentUserQuery.data?.user.role === "administrator";
+  const canViewUsers = hasPermission(currentUserQuery.data?.permissions, "users", "view");
+  const canCreateUsers = hasPermission(currentUserQuery.data?.permissions, "users", "create");
+  const canEditUsers = hasPermission(currentUserQuery.data?.permissions, "users", "edit");
+  const canArchiveUsers = hasPermission(currentUserQuery.data?.permissions, "users", "archive");
+  const canDeleteUsers = hasPermission(currentUserQuery.data?.permissions, "users", "delete");
+  const canManageUserActions = canEditUsers || canArchiveUsers || canDeleteUsers;
+  const availableUserRoles = isAdministrator
+    ? userRoleValues
+    : userRoleValues.filter((role) => role !== "administrator");
   const activeUsers = usersQuery.data?.filter((user) => user.accountStatus === "active").length;
   const disabledUsers = usersQuery.data?.filter((user) => user.accountStatus === "disabled").length;
   const [editUser, setEditUser] = React.useState<UserListItem | null>(null);
   const [disableUser, setDisableUser] = React.useState<UserListItem | null>(null);
   const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
-  const [editForm, setEditForm] = React.useState<UserFormState>({
+  const [isCreateUserDrawerOpen, setIsCreateUserDrawerOpen] = React.useState(false);
+  const [createUserForm, setCreateUserForm] = React.useState(initialCreateUserFormState);
+  const [editForm, setEditForm] = React.useState<EditUserFormState>({
     name: "",
     email: "",
     phone: "",
     role: "property_manager",
   });
-  const updateUserMutation = useMutation({
-    mutationFn: (input: UserFormState & { id: number }) =>
+  const updateUserRequest = useMutation({
+    mutationFn: (input: EditUserFormState & { id: number }) =>
       apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
     onSuccess: async () => {
-      setEditUser(null);
+      closeEdit();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+    },
+  });
+  const createUserMutation = useMutation({
+    mutationFn: () => apiClient.users.create.mutate({ ...createUserForm, phone: createUserForm.phone || null }),
+    onSuccess: async () => {
+      setIsCreateUserDrawerOpen(false);
+      setCreateUserForm(initialCreateUserFormState);
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
     },
   });
@@ -163,6 +184,7 @@ export default function SettingsPage() {
   });
 
   function openEdit(user: UserListItem) {
+    updateUserRequest.reset();
     setEditForm({
       name: user.name,
       email: user.email,
@@ -172,79 +194,33 @@ export default function SettingsPage() {
     setEditUser(user);
   }
 
+  function closeEdit() {
+    updateUserRequest.reset();
+    setEditUser(null);
+  }
+
   return (
     <main className="flex-1">
-      <Dialog onOpenChange={(open) => !open && setEditUser(null)} open={Boolean(editUser)}>
-        <DialogContent>
-          <form
-            className="grid gap-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (editUser) updateUserMutation.mutate({ ...editForm, id: editUser.id });
-            }}
-          >
-            <div>
-              <h2 className="text-lg font-bold text-parcelis-charcoal">Edit user</h2>
-              <p className="mt-1 text-sm text-parcelis-gray">Update account details and role.</p>
-            </div>
-            <div className="grid gap-4">
-              <Label>
-                Name
-                <Input
-                  className="mt-1"
-                  onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
-                  required
-                  value={editForm.name}
-                />
-              </Label>
-              <Label>
-                Email
-                <Input
-                  className="mt-1"
-                  onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
-                  required
-                  type="email"
-                  value={editForm.email}
-                />
-              </Label>
-              <Label>
-                Phone
-                <Input
-                  className="mt-1"
-                  onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })}
-                  type="tel"
-                  value={editForm.phone}
-                />
-              </Label>
-              <Label>
-                Role
-                <Select
-                  className="mt-1"
-                  onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserFormState["role"] })}
-                  value={editForm.role}
-                >
-                  {userRoleValues.map((role) => (
-                    <option key={role} value={role}>
-                      {formatLabel(role)}
-                    </option>
-                  ))}
-                </Select>
-              </Label>
-            </div>
-            {updateUserMutation.error ? (
-              <p className="text-sm font-medium text-red-700">{updateUserMutation.error.message}</p>
-            ) : null}
-            <div className="flex items-center justify-between gap-3">
-              <Button onClick={() => setEditUser(null)} type="button" variant="secondary">
-                Cancel
-              </Button>
-              <Button disabled={updateUserMutation.isPending} type="submit">
-                Save changes
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CreateUserDrawer
+        canCreateAdministrators={isAdministrator === true}
+        error={createUserMutation.error}
+        form={createUserForm}
+        isPending={createUserMutation.isPending}
+        onFormChange={setCreateUserForm}
+        onOpenChange={setIsCreateUserDrawerOpen}
+        onSubmit={() => createUserMutation.mutate()}
+        open={isCreateUserDrawerOpen}
+      />
+      <EditUserDrawer
+        availableRoles={availableUserRoles}
+        error={updateUserRequest.error}
+        form={editForm}
+        isPending={updateUserRequest.isPending}
+        onFormChange={setEditForm}
+        onOpenChange={(open) => !open && closeEdit()}
+        onSubmit={() => editUser && updateUserRequest.mutate({ ...editForm, id: editUser.id })}
+        open={Boolean(editUser)}
+      />
       <AlertDialog onOpenChange={(open) => !open && setDisableUser(null)} open={Boolean(disableUser)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -311,11 +287,17 @@ export default function SettingsPage() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
+          {canCreateUsers ? (
+            <Button className="min-w-40" onClick={() => setIsCreateUserDrawerOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              New user
+            </Button>
+          ) : null}
         </header>
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="users" canManageUsers={currentUserQuery.data?.user.role === "administrator"} />
+            <SettingsRail active="users" canManageRoles={isAdministrator} canManageUsers={canViewUsers} />
             <div className="min-w-0 flex-1">
               <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
                 <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">
@@ -343,7 +325,11 @@ export default function SettingsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="overflow-x-auto p-0">
-                  {usersQuery.isLoading ? (
+                  {!canViewUsers ? (
+                    <div className="min-h-48 p-5 text-sm text-parcelis-gray">
+                      You do not have permission to view the user directory.
+                    </div>
+                  ) : usersQuery.isLoading ? (
                     <LoadingState label="Loading users…" />
                   ) : usersQuery.error ? (
                     <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
@@ -358,7 +344,9 @@ export default function SettingsPage() {
                           <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
                           <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
                           <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
-                          <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
+                          {canManageUserActions ? (
+                            <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
+                          ) : null}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -414,14 +402,20 @@ export default function SettingsPage() {
                                 {formatLabel(user.accountStatus)}
                               </Badge>
                             </TableCell>
-                            <TableCell className="px-5 py-4 text-right">
-                              <UserActionsMenu
-                                onDelete={() => setDeleteUser(user)}
-                                onEdit={() => openEdit(user)}
-                                onToggleAccountStatus={() => setDisableUser(user)}
-                                user={user}
-                              />
-                            </TableCell>
+                            {canManageUserActions ? (
+                              <TableCell className="px-5 py-4 text-right">
+                                <UserActionsMenu
+                                  canArchive={canArchiveUsers}
+                                  canDelete={canDeleteUsers}
+                                  canEdit={canEditUsers}
+                                  canManage={isAdministrator || user.role !== "administrator"}
+                                  onDelete={() => setDeleteUser(user)}
+                                  onEdit={() => openEdit(user)}
+                                  onToggleAccountStatus={() => setDisableUser(user)}
+                                  user={user}
+                                />
+                              </TableCell>
+                            ) : null}
                           </TableRow>
                         ))}
                       </TableBody>

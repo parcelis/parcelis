@@ -12,8 +12,10 @@ const items = [
 export function SettingsRail({
   active,
   canManageUsers = false,
+  canManageRoles = false,
 }: {
   active: "none" | "organization" | (typeof items)[number]["key"];
+  canManageRoles?: boolean;
   canManageUsers?: boolean;
 }) {
   return (
@@ -31,21 +33,23 @@ export function SettingsRail({
             General
           </Link>
         </NavigationRailGroup>
-        {canManageUsers ? (
+        {canManageRoles || canManageUsers ? (
           <NavigationRailGroup icon={ShieldCheck} label="Security">
-            {items.map((item) => (
-              <Link
-                className={`block rounded-md px-2 py-1.5 text-xs font-medium ${
-                  active === item.key
-                    ? "bg-parcelis-green/20 text-parcelis-charcoal"
-                    : "text-parcelis-gray hover:bg-parcelis-porcelain"
-                }`}
-                href={item.href}
-                key={item.key}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {items.map((item) =>
+              (item.key === "roles" ? canManageRoles : canManageUsers) ? (
+                <Link
+                  className={`block rounded-md px-2 py-1.5 text-xs font-medium ${
+                    active === item.key
+                      ? "bg-parcelis-green/20 text-parcelis-charcoal"
+                      : "text-parcelis-gray hover:bg-parcelis-porcelain"
+                  }`}
+                  href={item.href}
+                  key={item.key}
+                >
+                  {item.label}
+                </Link>
+              ) : null,
+            )}
           </NavigationRailGroup>
         ) : null}
       </nav>

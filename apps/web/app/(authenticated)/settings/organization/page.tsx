@@ -168,7 +168,7 @@ export default function OrganizationSettingsPage() {
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="organization" canManageUsers={canManageUsers} />
+            <SettingsRail active="organization" canManageRoles={canManageUsers} canManageUsers={canManageUsers} />
             <div className="min-w-0 flex-1">
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
