@@ -261,27 +261,29 @@ export default function TenantDetailPage() {
                 </dd>
               </div>
             </dl>
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={() => {
-                  setEmergencyContactDraft({
-                    firstName: emergencyContact.firstName,
-                    lastName: emergencyContact.lastName ?? "",
-                    phone: emergencyContact.phone ?? "",
-                  });
-                  setIsEmergencyContactOpen(false);
-                  setIsEmergencyContactDrawerOpen(true);
-                }}
-                size="sm"
-                type="button"
-              >
-                Edit Contact
-              </Button>
-            </div>
+            {canEditTenant ? (
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={() => {
+                    setEmergencyContactDraft({
+                      firstName: emergencyContact.firstName,
+                      lastName: emergencyContact.lastName ?? "",
+                      phone: emergencyContact.phone ?? "",
+                    });
+                    setIsEmergencyContactOpen(false);
+                    setIsEmergencyContactDrawerOpen(true);
+                  }}
+                  size="sm"
+                  type="button"
+                >
+                  Edit Contact
+                </Button>
+              </div>
+            ) : null}
           </DialogContent>
         </Dialog>
       ) : null}
-      <Drawer onOpenChange={setIsEmergencyContactDrawerOpen} open={isEmergencyContactDrawerOpen}>
+      <Drawer onOpenChange={setIsEmergencyContactDrawerOpen} open={isEmergencyContactDrawerOpen && canEditTenant}>
         <DrawerContent size="sm">
           <form
             className="flex min-h-0 flex-1 flex-col"
