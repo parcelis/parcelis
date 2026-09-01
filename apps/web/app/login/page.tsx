@@ -327,6 +327,7 @@ export default function LoginPage() {
               <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">
                 <button
                   className="text-xs font-semibold text-parcelis-green-hover"
+                  disabled={isSubmitting}
                   type="button"
                   onClick={returnToSignIn}
                 >
