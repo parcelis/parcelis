@@ -1,0 +1,23 @@
+packages/email/src/templates/password-reset.tsx
+  s_5e310c3ab2990f::t_0930d042af7fe4 10
+apps/api/src/router/auth.router.ts
+  s_5e310c3ab2990f::t_0930d042af7fe4 64
+apps/web/app/login/page.tsx
+  s_5e310c3ab2990f::t_0930d042af7fe4 54,57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "76bd557b63cd9a93f2e3ff69d64eb2282fb477fc",
+  "prompts": {},
+  "sessions": {
+    "s_5e310c3ab2990f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05e5f-9482-7ad2-896c-f19f8e54884d",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
