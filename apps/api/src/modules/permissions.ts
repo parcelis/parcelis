@@ -29,7 +29,7 @@ function getUserRole(role: string): UserRole {
   ) {
     return role;
   }
-  throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to access Properties." });
+  throw new TRPCError({ code: "FORBIDDEN", message: "Your role does not have permission to access this resource." });
 }
 
 export function requireAdministrator(role: string) {

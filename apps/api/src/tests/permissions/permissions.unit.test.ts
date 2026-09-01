@@ -45,6 +45,16 @@ test("denies invoice archive even when a legacy permission is enabled", async ()
   );
 });
 
+test("uses a role-agnostic denial for an unrecognized role", async () => {
+  await assert.rejects(
+    requirePermission(createPrisma({}), "unknown_role", "invoices", "view"),
+    (error: unknown) =>
+      error instanceof TRPCError &&
+      error.code === "FORBIDDEN" &&
+      error.message === "Your role does not have permission to access this resource.",
+  );
+});
+
 test("allows configured note actions with parent visibility", async () => {
   for (const action of ["view", "create", "edit", "delete"] as const) {
     await assert.doesNotReject(
