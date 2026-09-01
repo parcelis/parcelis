@@ -80,3 +80,7 @@ Direct JavaScript dependencies are declared in:
 - Shared packages: `packages/*/package.json`
 
 `pnpm-lock.yaml` records the resolved dependency tree. Docker image tags are declared in `docker-compose.yml` and `apps/docs/Dockerfile`.
+
+### Transitive dependency overrides
+
+`fast-uri` is pinned to `3.1.6` in `pnpm-workspace.yaml`. Update the parent dependencies that introduce it when compatible versions are available, then remove this override.
