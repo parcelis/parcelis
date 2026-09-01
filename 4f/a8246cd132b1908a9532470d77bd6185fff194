@@ -1,0 +1,21 @@
+packages/schemas/src/index.ts
+  s_aa109d30d7ca97::t_656b6f4b64d65e 399-400
+packages/db/prisma/migrations/20260819042209_org_address/migration.sql
+  s_aa109d30d7ca97::t_495f9bf5b0fbc1 1-11,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "4fa8246cd132b1908a9532470d77bd6185fff194",
+  "prompts": {},
+  "sessions": {
+    "s_aa109d30d7ca97": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05dc7-8571-7232-a795-53489b736a90",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
