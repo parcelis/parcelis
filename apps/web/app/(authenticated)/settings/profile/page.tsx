@@ -101,7 +101,11 @@ export default function ProfileSettingsPage() {
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="none" canManageUsers={currentUserQuery.data?.user.role === "administrator"} />
+            <SettingsRail
+              active="none"
+              canManageRoles={currentUserQuery.data?.user.role === "administrator"}
+              canManageUsers={currentUserQuery.data?.user.role === "administrator"}
+            />
             <div className="min-w-0 flex-1">
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>

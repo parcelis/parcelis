@@ -12,7 +12,7 @@ const items = [
 export function SettingsRail({
   active,
   canManageUsers = false,
-  canManageRoles = canManageUsers,
+  canManageRoles = false,
 }: {
   active: "none" | "organization" | (typeof items)[number]["key"];
   canManageRoles?: boolean;
