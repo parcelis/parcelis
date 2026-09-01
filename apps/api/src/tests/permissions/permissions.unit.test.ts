@@ -18,6 +18,32 @@ function createPrisma(permissions: Record<string, boolean>) {
   } as unknown as PrismaService;
 }
 
+test("allows configured resource actions", async () => {
+  for (const action of ["view", "create", "edit", "archive", "delete"] as const) {
+    await assert.doesNotReject(
+      requirePermission(createPrisma({ [`invoices:${action}`]: true }), "property_manager", "invoices", action),
+    );
+  }
+});
+
+test("allows configured note actions with parent visibility", async () => {
+  for (const action of ["view", "create", "edit", "delete"] as const) {
+    await assert.doesNotReject(
+      requireNotePermission(
+        createPrisma({ [`invoice_notes:${action}`]: true, "invoices:view": true }),
+        "property_manager",
+        { invoiceId: 1 },
+        action,
+      ),
+    );
+  }
+});
+
+test("allows administrators to bypass stored permissions", async () => {
+  await assert.doesNotReject(requirePermission(createPrisma({}), "administrator", "invoices", "delete"));
+  await assert.doesNotReject(requireNotePermission(createPrisma({}), "administrator", { invoiceId: 1 }, "delete"));
+});
+
 test("denies invoice note actions without the matching permission", async () => {
   for (const action of ["view", "create", "edit", "delete"] as const) {
     await assert.rejects(
