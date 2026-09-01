@@ -31,28 +31,28 @@ SELECT
     CASE
         WHEN role_permission."role" = 'administrator' THEN true
         WHEN resource."resource" IN ('properties', 'units') THEN role_permission."propertyAccess" IN ('view', 'edit', 'delete', 'all')
-        ELSE true
+        ELSE false
     END,
     CASE
         WHEN role_permission."role" = 'administrator' THEN true
         WHEN resource."resource" IN ('properties', 'units') THEN role_permission."propertyAccess" IN ('edit', 'delete', 'all')
-        ELSE true
+        ELSE false
     END,
     CASE
         WHEN role_permission."role" = 'administrator' THEN true
         WHEN resource."resource" IN ('properties', 'units') THEN role_permission."propertyAccess" IN ('edit', 'delete', 'all')
-        ELSE true
+        ELSE false
     END,
     CASE
         WHEN resource."resource" = 'notes' THEN false
         WHEN role_permission."role" = 'administrator' THEN true
         WHEN resource."resource" IN ('properties', 'units') THEN role_permission."propertyAccess" IN ('delete', 'all')
-        ELSE true
+        ELSE false
     END,
     CASE
         WHEN role_permission."role" = 'administrator' THEN true
         WHEN resource."resource" IN ('properties', 'units') THEN role_permission."propertyAccess" IN ('delete', 'all')
-        ELSE true
+        ELSE false
     END,
     CURRENT_TIMESTAMP
 FROM "RolePermission_old" role_permission
