@@ -1,0 +1,23 @@
+apps/api/package.json
+  s_63bd4756f71646::t_367c13719da065 12-13
+apps/api/scripts/dev.mjs
+  s_63bd4756f71646::t_367c13719da065 1-12,14-37,39-92,94-104
+  s_63bd4756f71646::t_ea6748396dec11 13,93,105-111
+  s_63bd4756f71646::t_feb6989034a5c9 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6edf35a920a2f55d70f8004b73f67cafed3fbc7e",
+  "prompts": {},
+  "sessions": {
+    "s_63bd4756f71646": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05ec0-9dbd-7871-828c-f8576525a727",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
