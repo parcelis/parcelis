@@ -93,8 +93,11 @@ export default function RolesSettingsPage() {
     notePermissionCatalog.forEach(({ resource }) => setPermission(resource, action, value));
   }
 
-  function areAllNotePermissionsEnabled(action: Exclude<PermissionAction, "archive">) {
-    return notePermissionCatalog.every(({ resource }) => draft?.[resource][action]);
+  function getNotePermissionState(action: Exclude<PermissionAction, "archive">) {
+    const enabledCount = notePermissionCatalog.filter(({ resource }) => draft?.[resource][action]).length;
+    if (enabledCount === 0) return false;
+    if (enabledCount === notePermissionCatalog.length) return true;
+    return "indeterminate" as const;
   }
 
   const canManageUsers = currentUserQuery.data?.user.role === "administrator";
@@ -211,7 +214,7 @@ export default function RolesSettingsPage() {
                               ) : (
                                 <Checkbox
                                   aria-label={`${action} all notes`}
-                                  checked={areAllNotePermissionsEnabled(action)}
+                                  checked={getNotePermissionState(action)}
                                   disabled={selectedRole.role === "administrator"}
                                   onCheckedChange={(checked) => setAllNotePermissions(action, checked === true)}
                                 />
