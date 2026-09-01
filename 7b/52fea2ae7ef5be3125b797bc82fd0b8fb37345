@@ -1,0 +1,19 @@
+packages/email/package.json
+  s_56788c56750245::t_802ca272c37a1d 7,10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "7b52fea2ae7ef5be3125b797bc82fd0b8fb37345",
+  "prompts": {},
+  "sessions": {
+    "s_56788c56750245": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05f2b-cb75-7a62-a681-a774ad992d75",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
