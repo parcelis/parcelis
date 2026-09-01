@@ -49,7 +49,16 @@ export function EditUserDrawer({
   open: boolean;
 }) {
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
+    <Drawer
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && isPending) {
+          return;
+        }
+
+        onOpenChange(nextOpen);
+      }}
+      open={open}
+    >
       <DrawerContent size="sm">
         <DrawerHeader className="flex items-center gap-3">
           <DrawerClose disabled={isPending} />
