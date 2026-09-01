@@ -1,0 +1,60 @@
+apps/api/package.json
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 12-13
+packages/email/package.json
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 6-7,9-12
+apps/web/app/login/page.tsx
+  s_bb0679f3b4d22b::t_99ca65dd6cc5b8 26-27,30,33,35-36,47-48,52-57,60-78,86-89,91-111
+  s_bb0679f3b4d22b::t_34996802a46f3f 202,205-211,214-223,225-327,329,331,333,335-347
+packages/email/src/password-reset.tsx
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 2-3
+apps/api/src/router/auth.router.ts
+  s_bb0679f3b4d22b::t_99ca65dd6cc5b8 62-63
+packages/email/tsconfig.json
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 5-6
+tests/e2e/login.spec.ts
+  s_bb0679f3b4d22b::t_79f789427ecf33 26-27
+  s_bb0679f3b4d22b::t_a1b4fbcbe4b9a3 11-20
+  s_bb0679f3b4d22b::t_6e002d0be81cc8 21-25,28-29
+packages/email/src/service.ts
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 1
+packages/email/src/components/email-layout.tsx
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 3
+CONTRIBUTING.md
+  s_bb0679f3b4d22b::t_1aace99c35effc 133
+apps/docs/content/platform-user-guide/getting-started/sign-in.mdx
+  s_bb0679f3b4d22b::t_ab73ad0b507872 21-27
+package.json
+  s_bb0679f3b4d22b::t_1aace99c35effc 25-26
+packages/email/src/index.ts
+  s_bb0679f3b4d22b::t_1aace99c35effc 3
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 1-2,4-5
+packages/db/prisma/migrations/20260819042209_org_address/migration.sql
+  s_bb0679f3b4d22b::t_2e46943fedcf8f 1-11,13
+packages/schemas/src/index.ts
+  s_bb0679f3b4d22b::t_e4e0715aa4f37b 263-264
+packages/email/src/verify.ts
+  s_bb0679f3b4d22b::t_1aace99c35effc 1-10
+apps/web/package.json
+  s_bb0679f3b4d22b::t_3b516710de37b4 7-9
+packages/email/src/transport.ts
+  s_bb0679f3b4d22b::t_1aace99c35effc 24-27
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 2
+packages/email/src/templates/password-reset.tsx
+  s_bb0679f3b4d22b::t_4b183b1d7906cf 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "8d5b87e22cd05869304266d885f4051a00f84746",
+  "prompts": {},
+  "sessions": {
+    "s_bb0679f3b4d22b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0551e-5477-7de1-973a-fd0ad8b32459",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
