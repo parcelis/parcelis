@@ -1,0 +1,22 @@
+packages/ui/src/components/checkbox.tsx
+  s_a585bebdbf1497::t_691596ae00323f 6,8-24
+  s_a585bebdbf1497::t_bbb8a076290903 3
+apps/web/app/(authenticated)/settings/roles/page.tsx
+  s_a585bebdbf1497::t_bbb8a076290903 96-100,217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "37ad366d0b47665ae97e83419acd25b2c8001440",
+  "prompts": {},
+  "sessions": {
+    "s_a585bebdbf1497": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05b4b-e548-7722-91c9-aa29155c0f8b",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
