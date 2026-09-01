@@ -1,1 +1,1 @@
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "profileImageObjectKey" TEXT;
+ALTER TABLE "User" ADD COLUMN "profileImageObjectKey" TEXT;
