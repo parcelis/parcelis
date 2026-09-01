@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { Body, Container, Head, Html, Img, Link, Preview, Section, Text } from "react-email";
-import { emailColors, emailDarkColors } from "../styles";
+import { emailColors, emailDarkColors } from "../styles.js";
 
 type EmailLayoutProps = PropsWithChildren<{
   preview: string;

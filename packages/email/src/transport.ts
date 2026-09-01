@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { getEmailConfig } from "./config";
+import { getEmailConfig } from "./config.js";
 
 let transporter: Transporter | undefined;
 
@@ -20,4 +20,8 @@ export function getEmailTransporter() {
   );
 
   return transporter;
+}
+
+export async function verifyEmailTransport() {
+  await getEmailTransporter().verify();
 }

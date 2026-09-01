@@ -23,12 +23,17 @@ const benefits = [
   },
 ];
 
+type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password";
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
-  const [isRegistering, setIsRegistering] = React.useState(false);
+  const [loginMode, setLoginMode] = React.useState<LoginMode>("sign-in");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isLoadingApp, setIsLoadingApp] = React.useState(false);
+  const [isPasswordResetRequested, setIsPasswordResetRequested] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const [resetToken, setResetToken] = React.useState<string | null>(null);
   const [destination, setDestination] = React.useState("/");
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
@@ -39,28 +44,71 @@ export default function LoginPage() {
   }, []);
 
   React.useEffect(() => {
-    const nextPath = new URLSearchParams(window.location.search).get("next");
+    const searchParams = new URLSearchParams(window.location.search);
+    const nextPath = searchParams.get("next");
     if (nextPath?.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("\\")) {
       setDestination(nextPath);
     }
+
+    const token = searchParams.get("token");
+    if (searchParams.get("mode") === "reset") {
+      setLoginMode("reset-password");
+      setResetToken(token);
+    }
   }, []);
+
+  const isRegistering = loginMode === "register";
+  const isSignIn = loginMode === "sign-in";
+  const isForgotPassword = loginMode === "forgot-password";
+  const isResetPassword = loginMode === "reset-password";
+
+  function selectLoginMode(mode: LoginMode) {
+    setLoginMode(mode);
+    setError(null);
+    setNotice(null);
+    setIsPasswordResetRequested(false);
+    setShowPassword(false);
+  }
+
+  function returnToSignIn() {
+    selectLoginMode("sign-in");
+    setResetToken(null);
+    router.replace("/login");
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const input = {
-      email: String(formData.get("email") ?? ""),
-      password: String(formData.get("password") ?? ""),
-    };
 
     setError(null);
     setIsSubmitting(true);
     try {
-      if (isRegistering) {
-        await apiClient.auth.register.mutate(input);
-      } else {
-        await apiClient.auth.login.mutate(input);
+      if (isForgotPassword) {
+        await apiClient.auth.requestPasswordReset.mutate({ email: String(formData.get("email") ?? "") });
+        setIsPasswordResetRequested(true);
+        return;
       }
+
+      if (isResetPassword) {
+        if (!resetToken) throw new Error("This password reset link is invalid or has expired.");
+        await apiClient.auth.resetPassword.mutate({
+          password: String(formData.get("password") ?? ""),
+          reenterPassword: String(formData.get("reenterPassword") ?? ""),
+          token: resetToken,
+        });
+        selectLoginMode("sign-in");
+        setResetToken(null);
+        setNotice("Your password has been reset. Sign in with your new password.");
+        router.replace("/login");
+        return;
+      }
+
+      const input = {
+        email: String(formData.get("email") ?? ""),
+        password: String(formData.get("password") ?? ""),
+      };
+      if (isRegistering) await apiClient.auth.register.mutate(input);
+      else await apiClient.auth.login.mutate(input);
       flushSync(() => setIsLoadingApp(true));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => window.setTimeout(resolve, 5000));
@@ -151,80 +199,152 @@ export default function LoginPage() {
             />
             <div className="text-center">
               <h2 id="sign-in-title" className="m-0 text-2xl font-semibold tracking-[-0.035em]">
-                Welcome back
+                {isForgotPassword ? "Reset your password" : isResetPassword ? "Choose a new password" : "Welcome back"}
               </h2>
               <p className="mb-9 mt-2 text-sm text-parcelis-gray">
-                {isRegistering ? "Create an account to get started" : "Sign in to access your account"}
+                {isForgotPassword
+                  ? "Enter your email and we’ll send a reset link."
+                  : isResetPassword
+                    ? "Use a strong password with at least 12 characters."
+                    : isRegistering
+                      ? "Create an account to get started"
+                      : "Sign in to access your account"}
               </p>
             </div>
-            <form onSubmit={handleSubmit}>
-              <label className="mb-2 block text-sm font-semibold" htmlFor="email">
-                Email address
-              </label>
-              <div className="relative">
-                <Mail
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-parcelis-gray"
-                />
-                <Input
-                  className="h-12 pl-11 text-[.94rem]"
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                />
-              </div>
-              <div className="mt-6">
-                <label className="mb-0 block text-sm font-semibold" htmlFor="password">
-                  Password
-                </label>
-              </div>
-              <div className="relative">
-                <LockKeyhole
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-parcelis-gray"
-                />
-                <Input
-                  className="h-12 pl-11 pr-12 text-[.94rem]"
-                  id="password"
-                  minLength={12}
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                />
-                <button
-                  className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-0 bg-transparent text-parcelis-gray"
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((visible) => !visible)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              {error ? (
-                <p className="mt-4 text-sm text-red-700 dark:text-red-300" role="alert">
-                  {error}
+            {notice ? (
+              <p className="mb-6 text-center text-sm text-parcelis-green" role="status">
+                {notice}
+              </p>
+            ) : null}
+            {isPasswordResetRequested ? (
+              <div className="text-center">
+                <p className="m-0 text-sm leading-6 text-parcelis-gray">
+                  If an account matches that email address, a password reset link will arrive shortly.
                 </p>
-              ) : null}
-              <Button className="mt-6 w-full text-white" disabled={isSubmitting} size="lg" type="submit">
-                {isSubmitting ? "Please wait…" : isRegistering ? "Create account" : "Sign in"}
-              </Button>
-            </form>
-            <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">
-              {isRegistering ? "Already have an account?" : "New to Parcelis?"}{" "}
-              <button
-                className="text-xs font-semibold text-parcelis-green-hover"
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setIsRegistering((value) => !value);
-                }}
-              >
-                {isRegistering ? "Sign in" : "Create account"}
-              </button>
-            </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                {!isResetPassword ? (
+                  <>
+                    <label className="mb-2 block text-sm font-semibold" htmlFor="email">
+                      Email address
+                    </label>
+                    <div className="relative">
+                      <Mail
+                        aria-hidden="true"
+                        className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-parcelis-gray"
+                      />
+                      <Input
+                        autoComplete="email"
+                        className="h-12 pl-11 text-[.94rem]"
+                        id="email"
+                        name="email"
+                        placeholder="you@example.com"
+                        required
+                        type="email"
+                      />
+                    </div>
+                  </>
+                ) : null}
+                {!isForgotPassword ? (
+                  <>
+                    <div className="mt-6">
+                      <label className="mb-0 block text-sm font-semibold" htmlFor="password">
+                        {isResetPassword ? "New password" : "Password"}
+                      </label>
+                    </div>
+                    <div className="relative">
+                      <LockKeyhole
+                        aria-hidden="true"
+                        className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-parcelis-gray"
+                      />
+                      <Input
+                        autoComplete={isRegistering || isResetPassword ? "new-password" : "current-password"}
+                        className="h-12 pl-11 pr-12 text-[.94rem]"
+                        id="password"
+                        minLength={12}
+                        name="password"
+                        placeholder={isResetPassword ? "Create a new password" : "Enter your password"}
+                        required
+                        type={showPassword ? "text" : "password"}
+                      />
+                      <button
+                        className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-0 bg-transparent text-parcelis-gray"
+                        type="button"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowPassword((visible) => !visible)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {isResetPassword ? (
+                      <>
+                        <label className="mb-2 mt-6 block text-sm font-semibold" htmlFor="reenterPassword">
+                          Confirm new password
+                        </label>
+                        <Input
+                          autoComplete="new-password"
+                          className="h-12 text-[.94rem]"
+                          id="reenterPassword"
+                          minLength={12}
+                          name="reenterPassword"
+                          placeholder="Re-enter your new password"
+                          required
+                          type={showPassword ? "text" : "password"}
+                        />
+                      </>
+                    ) : null}
+                  </>
+                ) : null}
+                {error ? (
+                  <p className="mt-4 text-sm text-red-700 dark:text-red-300" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+                <Button className="mt-6 w-full text-white" disabled={isSubmitting} size="lg" type="submit">
+                  {isSubmitting
+                    ? "Please wait…"
+                    : isForgotPassword
+                      ? "Send reset link"
+                      : isResetPassword
+                        ? "Reset password"
+                        : isRegistering
+                          ? "Create account"
+                          : "Sign in"}
+                </Button>
+                {isSignIn ? (
+                  <button
+                    className="mt-4 w-full text-center text-xs font-semibold text-parcelis-green-hover"
+                    type="button"
+                    onClick={() => selectLoginMode("forgot-password")}
+                  >
+                    Forgot your password?
+                  </button>
+                ) : null}
+              </form>
+            )}
+            {isForgotPassword || isResetPassword ? (
+              <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">
+                <button
+                  className="text-xs font-semibold text-parcelis-green-hover"
+                  type="button"
+                  onClick={returnToSignIn}
+                >
+                  Back to sign in
+                </button>
+              </p>
+            ) : (
+              <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">
+                {isRegistering ? "Already have an account?" : "New to Parcelis?"}{" "}
+                <button
+                  className="text-xs font-semibold text-parcelis-green-hover"
+                  type="button"
+                  onClick={() => selectLoginMode(isRegistering ? "sign-in" : "register")}
+                >
+                  {isRegistering ? "Sign in" : "Create account"}
+                </button>
+              </p>
+            )}
           </section>
         </div>
         <footer className="mt-4 w-full max-w-[33rem] self-end text-center text-xs text-parcelis-gray dark:text-white/70">

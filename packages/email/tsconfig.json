@@ -2,6 +2,8 @@
   "extends": "@parcelis/config/tsconfig/base",
   "compilerOptions": {
     "jsx": "react-jsx",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "dist",
     "rootDir": "src"
   },

@@ -1,6 +1,6 @@
 import { Button, Heading, Link, Text } from "react-email";
-import { EmailLayout } from "../components/email-layout";
-import { emailColors } from "../styles";
+import { EmailLayout } from "../components/email-layout.js";
+import { emailColors } from "../styles.js";
 
 export type PasswordResetEmailProps = {
   resetUrl: string;

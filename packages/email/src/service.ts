@@ -1,4 +1,4 @@
-import { getEmailTransporter } from "./transport";
+import { getEmailTransporter } from "./transport.js";
 
 export type SendEmailInput = {
   html: string;

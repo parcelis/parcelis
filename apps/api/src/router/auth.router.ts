@@ -59,7 +59,8 @@ async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: numbe
 
 function getPasswordResetUrl(token: string) {
   const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
-  const resetUrl = new URL("/reset-password", webOrigin);
+  const resetUrl = new URL("/login", webOrigin);
+  resetUrl.searchParams.set("mode", "reset");
   resetUrl.searchParams.set("token", token);
   return resetUrl.toString();
 }

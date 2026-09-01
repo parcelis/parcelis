@@ -31,9 +31,6 @@ const nextConfig = {
       },
     ];
   },
-  turbopack: {
-    root: resolve(dirname(fileURLToPath(import.meta.url)), "../.."),
-  },
 };
 
 export default nextConfig;

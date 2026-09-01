@@ -1,6 +1,6 @@
 import { render, toPlainText } from "react-email";
-import { sendEmail } from "./service";
-import { PasswordResetEmail } from "./templates/password-reset";
+import { sendEmail } from "./service.js";
+import { PasswordResetEmail } from "./templates/password-reset.js";
 
 export type SendPasswordResetEmailInput = {
   resetUrl: string;

@@ -9,8 +9,8 @@
     }
   },
   "scripts": {
-    "dev": "node ../../scripts/run-with-open-port.mjs API_PORT 40010 nest start --watch",
-    "dev:fixed": "nest start --watch",
+    "dev": "pnpm --filter @parcelis/email build && node ../../scripts/run-with-open-port.mjs API_PORT 40010 nest start --watch",
+    "dev:fixed": "pnpm --filter @parcelis/email build && nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
     "generate:openapi": "tsx ./scripts/generate-openapi.mjs",
