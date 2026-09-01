@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import {
   permissionActionValues,
   permissionResourceValues,
+  supportsPermissionAction,
   type PermissionAction,
   type PermissionFlags,
   type PermissionResource,
@@ -48,12 +49,11 @@ export async function getRolePermissions(prisma: PrismaService, role: string) {
       return [
         resource,
         Object.fromEntries(
-          permissionActionValues.map((action) => [
-            action,
-            resource.endsWith("_notes") && action === "archive"
-              ? false
-              : enabled || Boolean(row?.[actionFields[action]]),
-          ]),
+          permissionActionValues.flatMap((action) =>
+            supportsPermissionAction(resource, action)
+              ? [[action, enabled || Boolean(row?.[actionFields[action]])]]
+              : [],
+          ),
         ) as PermissionFlags,
       ];
     }),
@@ -66,6 +66,14 @@ export async function requirePermission(
   resource: PermissionResource,
   action: PermissionAction,
 ) {
+  if (!supportsPermissionAction(resource, action)) {
+    const resourceLabel = resource.replaceAll("_", " ");
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `Permission denied: you cannot ${action} ${resourceLabel}.`,
+    });
+  }
+
   const userRole = getUserRole(role);
   if (userRole === "administrator") return;
 

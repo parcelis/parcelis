@@ -174,7 +174,7 @@ export default function RolesSettingsPage() {
                                 {actions.includes(action) ? (
                                   <Checkbox
                                     aria-label={`${action} ${label}`}
-                                    checked={draft[resource][action]}
+                                    checked={Boolean(draft[resource][action])}
                                     disabled={selectedRole.role === "administrator"}
                                     onCheckedChange={(checked) => setPermission(resource, action, checked === true)}
                                   />
@@ -233,7 +233,7 @@ export default function RolesSettingsPage() {
                                     ) : (
                                       <Checkbox
                                         aria-label={`${action} ${label}`}
-                                        checked={draft[resource][action]}
+                                        checked={Boolean(draft[resource][action])}
                                         disabled={selectedRole.role === "administrator"}
                                         onCheckedChange={(checked) => setPermission(resource, action, checked === true)}
                                       />

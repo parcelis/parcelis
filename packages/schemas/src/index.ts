@@ -63,7 +63,11 @@ export const permissionResourceSchema = z.enum(permissionResourceValues);
 export const permissionActionSchema = z.enum(permissionActionValues);
 export type PermissionResource = z.infer<typeof permissionResourceSchema>;
 export type PermissionAction = z.infer<typeof permissionActionSchema>;
-export type PermissionFlags = Record<PermissionAction, boolean>;
+export type PermissionFlags = Partial<Record<PermissionAction, boolean>>;
+
+export function supportsPermissionAction(resource: PermissionResource, action: PermissionAction) {
+  return action !== "archive" || (resource !== "invoices" && !resource.endsWith("_notes"));
+}
 
 export const permissionCatalog: ReadonlyArray<{
   resource: PermissionResource;
@@ -186,14 +190,24 @@ export const userAccountStatusInputSchema = z.object({
   accountStatus: userAccountStatusSchema,
 });
 export const deleteUserInputSchema = z.object({ id: idSchema });
-export const roleResourcePermissionSchema = z.object({
-  resource: permissionResourceSchema,
-  view: z.boolean(),
-  create: z.boolean(),
-  edit: z.boolean(),
-  archive: z.boolean(),
-  delete: z.boolean(),
-});
+export const roleResourcePermissionSchema = z
+  .object({
+    resource: permissionResourceSchema,
+    view: z.boolean(),
+    create: z.boolean(),
+    edit: z.boolean(),
+    archive: z.boolean().optional(),
+    delete: z.boolean(),
+  })
+  .superRefine((permission, ctx) => {
+    const supportsArchive = supportsPermissionAction(permission.resource, "archive");
+    if (supportsArchive && permission.archive === undefined) {
+      ctx.addIssue({ code: "custom", message: "Archive permission is required.", path: ["archive"] });
+    }
+    if (!supportsArchive && permission.archive !== undefined) {
+      ctx.addIssue({ code: "custom", message: "Archive permission is not supported.", path: ["archive"] });
+    }
+  });
 export const updateRolePermissionsInputSchema = z
   .object({
     role: userRoleSchema,

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
 import type { PrismaService } from "../../modules/prisma.service";
-import { requireNotePermission, requirePermission } from "../../modules/permissions";
+import { getRolePermissions, requireNotePermission, requirePermission } from "../../modules/permissions";
 
 function createPrisma(permissions: Record<string, boolean>) {
   return {
@@ -18,12 +18,31 @@ function createPrisma(permissions: Record<string, boolean>) {
   } as unknown as PrismaService;
 }
 
-test("allows configured resource actions", async () => {
-  for (const action of ["view", "create", "edit", "archive", "delete"] as const) {
+test("allows configured invoice actions", async () => {
+  for (const action of ["view", "create", "edit", "delete"] as const) {
     await assert.doesNotReject(
       requirePermission(createPrisma({ [`invoices:${action}`]: true }), "property_manager", "invoices", action),
     );
   }
+});
+
+test("omits archive from invoice permissions", async () => {
+  const prisma = {
+    rolePermission: {
+      findMany: async () => [{ resource: "invoices", canView: true, canCreate: true, canEdit: true, canDelete: true }],
+    },
+  } as unknown as PrismaService;
+
+  const permissions = await getRolePermissions(prisma, "property_manager");
+
+  assert.deepEqual(permissions.invoices, { view: true, create: true, edit: true, delete: true });
+});
+
+test("denies invoice archive even when a legacy permission is enabled", async () => {
+  await assert.rejects(
+    requirePermission(createPrisma({ "invoices:archive": true }), "property_manager", "invoices", "archive"),
+    (error: unknown) => error instanceof TRPCError && error.code === "FORBIDDEN",
+  );
 });
 
 test("allows configured note actions with parent visibility", async () => {
