@@ -89,6 +89,26 @@ const headerLogoUrl = `${emailOrigin}/brand/parcelis-dark-lettermark.png`;
 const lightFullmarkUrl = `${emailOrigin}/brand/parcelis-fullmark-light.png`;
 const darkFullmarkUrl = `${emailOrigin}/brand/parcelis-fullmark-dark.png`;
 
+const darkThemeCss = `
+  .parcelis-email-body,
+  .parcelis-email-body > table > tbody > tr > td {
+    background-color: ${emailColors.charcoal} !important;
+    background-image: linear-gradient(180deg, rgba(111, 166, 64, 0.08), rgba(16, 28, 41, 0) 340px) !important;
+  }
+  .parcelis-email-header { background-color: ${emailDarkColors.surface} !important; }
+  .parcelis-email-container {
+    background-color: ${emailDarkColors.surface} !important;
+    border-color: ${emailDarkColors.border} !important;
+  }
+  .parcelis-email-heading, .parcelis-email-text { color: ${emailDarkColors.text} !important; }
+  .parcelis-email-footer, .parcelis-email-link, .parcelis-email-link a {
+    color: ${emailDarkColors.mutedText} !important;
+  }
+  .parcelis-email-issued-with { color: ${emailDarkColors.mutedText} !important; }
+  .parcelis-email-fullmark-light { display: none !important; }
+  .parcelis-email-fullmark-dark { display: block !important; }
+`;
+
 export function EmailLayout({ children, preview }: EmailLayoutProps) {
   return (
     <Html lang="en">
@@ -99,43 +119,10 @@ export function EmailLayout({ children, preview }: EmailLayoutProps) {
           :root { color-scheme: light dark; }
 
           @media (prefers-color-scheme: dark) {
-            .parcelis-email-body,
-            .parcelis-email-body > table > tbody > tr > td {
-              background-color: ${emailColors.charcoal} !important;
-              background-image: linear-gradient(180deg, rgba(111, 166, 64, 0.08), rgba(16, 28, 41, 0) 340px) !important;
-            }
-            .parcelis-email-header { background-color: ${emailDarkColors.surface} !important; }
-            .parcelis-email-container {
-              background-color: ${emailDarkColors.surface} !important;
-              border-color: ${emailDarkColors.border} !important;
-            }
-            .parcelis-email-heading, .parcelis-email-text { color: ${emailDarkColors.text} !important; }
-            .parcelis-email-footer, .parcelis-email-link, .parcelis-email-link a {
-              color: ${emailDarkColors.mutedText} !important;
-            }
-            .parcelis-email-issued-with { color: ${emailDarkColors.mutedText} !important; }
-            .parcelis-email-fullmark-light { display: none !important; }
-            .parcelis-email-fullmark-dark { display: block !important; }
+            ${darkThemeCss}
           }
 
-          [data-ogsc] .parcelis-email-body,
-          [data-ogsc] .parcelis-email-body > table > tbody > tr > td {
-            background-color: ${emailColors.charcoal} !important;
-            background-image: linear-gradient(180deg, rgba(111, 166, 64, 0.08), rgba(16, 28, 41, 0) 340px) !important;
-          }
-          [data-ogsc] .parcelis-email-header { background-color: ${emailDarkColors.surface} !important; }
-          [data-ogsc] .parcelis-email-container {
-            background-color: ${emailDarkColors.surface} !important;
-            border-color: ${emailDarkColors.border} !important;
-          }
-          [data-ogsc] .parcelis-email-heading, [data-ogsc] .parcelis-email-text {
-            color: ${emailDarkColors.text} !important;
-          }
-          [data-ogsc] .parcelis-email-footer, [data-ogsc] .parcelis-email-link,
-          [data-ogsc] .parcelis-email-link a { color: ${emailDarkColors.mutedText} !important; }
-          [data-ogsc] .parcelis-email-issued-with { color: ${emailDarkColors.mutedText} !important; }
-          [data-ogsc] .parcelis-email-fullmark-light { display: none !important; }
-          [data-ogsc] .parcelis-email-fullmark-dark { display: block !important; }
+          ${darkThemeCss.replaceAll(".parcelis-email", "[data-ogsc] .parcelis-email")}
         `}</style>
       </Head>
       <Preview>{preview}</Preview>
