@@ -128,10 +128,27 @@ export function NotesDrawer({
             : "invoiceId" in subject
               ? "invoice_notes"
               : "maintenance_notes";
-  const canViewNotes = hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "view");
-  const canCreateNotes = hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "create");
-  const canEditNotes = hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "edit");
-  const canDeleteNotes = hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "delete");
+  const parentPermissionResource =
+    "propertyId" in subject
+      ? "properties"
+      : "unitId" in subject
+        ? "units"
+        : "tenantId" in subject
+          ? "tenants"
+          : "applicationId" in subject
+            ? "applications"
+            : "invoiceId" in subject
+              ? "invoices"
+              : "maintenance";
+  const canViewParent = hasPermission(currentUserQuery.data?.permissions, parentPermissionResource, "view");
+  const canViewNotes =
+    canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "view");
+  const canCreateNotes =
+    canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "create");
+  const canEditNotes =
+    canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "edit");
+  const canDeleteNotes =
+    canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "delete");
   const notesQueryKey = queryKeys.notes.list(subject);
   const notesQuery = useQuery({
     queryKey: notesQueryKey,
