@@ -32,12 +32,14 @@ export default function LoginPage() {
   const [isLoadingApp, setIsLoadingApp] = React.useState(false);
   const [isPasswordResetRequested, setIsPasswordResetRequested] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [passwordConfirmationError, setPasswordConfirmationError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [resetToken, setResetToken] = React.useState<string | null>(null);
   const [destination, setDestination] = React.useState("/");
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
+  const passwordConfirmationErrorId = React.useId();
 
   React.useEffect(() => {
     setMounted(true);
@@ -66,6 +68,7 @@ export default function LoginPage() {
   function selectLoginMode(mode: LoginMode) {
     setLoginMode(mode);
     setError(null);
+    setPasswordConfirmationError(null);
     setNotice(null);
     setIsPasswordResetRequested(false);
     setShowPassword(false);
@@ -82,6 +85,15 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget);
 
     setError(null);
+    setPasswordConfirmationError(null);
+    if (isResetPassword) {
+      const password = String(formData.get("password") ?? "");
+      const reenterPassword = String(formData.get("reenterPassword") ?? "");
+      if (password !== reenterPassword) {
+        setPasswordConfirmationError("New passwords do not match.");
+        return;
+      }
+    }
     setIsSubmitting(true);
     try {
       if (isForgotPassword) {
@@ -287,12 +299,20 @@ export default function LoginPage() {
                           autoComplete="new-password"
                           className="h-12 text-[.94rem]"
                           id="reenterPassword"
+                          aria-describedby={passwordConfirmationError ? passwordConfirmationErrorId : undefined}
+                          aria-invalid={passwordConfirmationError ? true : undefined}
                           minLength={12}
                           name="reenterPassword"
+                          onChange={() => setPasswordConfirmationError(null)}
                           placeholder="Re-enter your new password"
                           required
                           type={showPassword ? "text" : "password"}
                         />
+                        {passwordConfirmationError ? (
+                          <p className="mt-2 text-sm text-red-700 dark:text-red-300" id={passwordConfirmationErrorId} role="alert">
+                            {passwordConfirmationError}
+                          </p>
+                        ) : null}
                       </>
                     ) : null}
                   </>
