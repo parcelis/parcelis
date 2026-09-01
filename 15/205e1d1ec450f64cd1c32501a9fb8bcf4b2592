@@ -1,0 +1,20 @@
+apps/web/components/notes-drawer.tsx
+  s_66a6e388d576df::t_e3b6912b72d133 131-143,146-147,150-151
+  s_66a6e388d576df::t_db2416a69e018a 144-145,148-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "15205e1d1ec450f64cd1c32501a9fb8bcf4b2592",
+  "prompts": {},
+  "sessions": {
+    "s_66a6e388d576df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05b24-1ad8-76b3-96cc-9456a242c463",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
