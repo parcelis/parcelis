@@ -131,26 +131,24 @@ export const authRouter = router({
       select: { id: true, email: true, accountStatus: true },
     });
 
+    const token = createPasswordResetToken();
+
     if (user?.accountStatus === "active") {
-      const token = createPasswordResetToken();
-
-      try {
-        await sendPasswordResetEmail({ resetUrl: getPasswordResetUrl(token), to: user.email });
-      } catch (error) {
-        console.error("Unable to send password reset email.", error);
-        return { success: true };
-      }
-
-      await ctx.prisma.$transaction(async (tx) => {
-        await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
-        await tx.passwordResetToken.create({
-          data: {
-            userId: user.id,
-            tokenHash: hashPasswordResetToken(token),
-            expiresAt: getPasswordResetTokenExpiration(),
-          },
+      void ctx.prisma
+        .$transaction(async (tx) => {
+          await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
+          await tx.passwordResetToken.create({
+            data: {
+              userId: user.id,
+              tokenHash: hashPasswordResetToken(token),
+              expiresAt: getPasswordResetTokenExpiration(),
+            },
+          });
+        })
+        .then(() => sendPasswordResetEmail({ resetUrl: getPasswordResetUrl(token), to: user.email }))
+        .catch((error: unknown) => {
+          console.error("Unable to create password reset token or send reset email.", error);
         });
-      });
     }
 
     return { success: true };
