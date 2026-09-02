@@ -107,6 +107,7 @@ function SidebarContent({ active }: SidebarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+  const mobileSidebarRef = React.useRef<HTMLElement>(null);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
@@ -173,6 +174,29 @@ function SidebarContent({ active }: SidebarProps) {
   }, []);
 
   React.useEffect(() => {
+    if (!isMobileSidebarOpen) return;
+
+    const previouslyFocusedElement = document.activeElement as HTMLElement | null;
+    const previousBodyOverflow = document.body.style.overflow;
+    const backgroundElements = Array.from(document.querySelectorAll<HTMLElement>("main, footer"));
+    const previousInertStates = backgroundElements.map((element) => element.inert);
+
+    document.body.style.overflow = "hidden";
+    backgroundElements.forEach((element) => {
+      element.inert = true;
+    });
+    mobileSidebarRef.current?.querySelector<HTMLElement>("[data-mobile-nav-close]")?.focus();
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      backgroundElements.forEach((element, index) => {
+        element.inert = previousInertStates[index] ?? false;
+      });
+      previouslyFocusedElement?.focus();
+    };
+  }, [isMobileSidebarOpen]);
+
+  React.useEffect(() => {
     const organization = activeOrganizationQuery.data;
     if (organization && !window.location.pathname.startsWith(`/o/${organization.slug}`)) {
       const routePath = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
@@ -197,6 +221,36 @@ function SidebarContent({ active }: SidebarProps) {
 
   function closeMobileSidebar() {
     setIsMobileSidebarOpen(false);
+  }
+
+  function trapMobileSidebarFocus(event: React.KeyboardEvent<HTMLElement>) {
+    if (!isMobileSidebarOpen) return;
+    if (event.key === "Escape") {
+      closeMobileSidebar();
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusableElements = Array.from(
+      mobileSidebarRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements.at(-1);
+
+    if (!firstElement || !lastElement) {
+      event.preventDefault();
+      mobileSidebarRef.current?.focus();
+      return;
+    }
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+    } else if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
   }
 
   useShortcut(shortcuts.toggleSidebar.keys, toggleSidebar);
@@ -226,6 +280,8 @@ function SidebarContent({ active }: SidebarProps) {
     <>
       {!isMobileSidebarOpen ? (
         <button
+          aria-controls="mobile-navigation"
+          aria-expanded={false}
           aria-label="Open navigation"
           className="fixed left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-md bg-white p-1 shadow-sm ring-1 ring-parcelis-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2 dark:bg-parcelis-slate lg:hidden"
           onClick={() => setIsMobileSidebarOpen(true)}
@@ -251,6 +307,8 @@ function SidebarContent({ active }: SidebarProps) {
       ) : null}
       {isMobileSidebarOpen ? (
         <button
+          aria-controls="mobile-navigation"
+          aria-expanded={true}
           aria-label="Close navigation"
           className="fixed inset-0 z-20 bg-parcelis-charcoal/40 lg:hidden"
           onClick={closeMobileSidebar}
@@ -258,6 +316,8 @@ function SidebarContent({ active }: SidebarProps) {
         />
       ) : null}
       <aside
+        aria-label="Primary navigation"
+        id="mobile-navigation"
         className={`fixed inset-y-0 left-0 z-30 flex overflow-hidden border-r border-parcelis-border bg-white transition-[width,padding] duration-200 max-lg:ease-in-out ${
           isMobileSidebarOpen
             ? "max-lg:w-64 max-lg:flex-col max-lg:px-4"
@@ -267,6 +327,9 @@ function SidebarContent({ active }: SidebarProps) {
           if (isSidebarCollapsed) setIsSidebarHovered(true);
         }}
         onMouseLeave={() => setIsSidebarHovered(false)}
+        onKeyDown={trapMobileSidebarFocus}
+        ref={mobileSidebarRef}
+        tabIndex={-1}
       >
         <div
           className={`flex min-h-16 items-center gap-2 ${
@@ -320,7 +383,10 @@ function SidebarContent({ active }: SidebarProps) {
           {isSidebarExpanded ? (
             <button
               aria-label={sidebarToggleLabel}
+              aria-controls={isMobileSidebarOpen ? "mobile-navigation" : undefined}
+              aria-expanded={isMobileSidebarOpen ? true : undefined}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-parcelis-porcelain"
+              data-mobile-nav-close={isMobileSidebarOpen ? "" : undefined}
               onClick={isMobileSidebarOpen ? closeMobileSidebar : toggleSidebar}
               type="button"
             >
