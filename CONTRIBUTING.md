@@ -90,7 +90,7 @@ pnpm dev
 
 #### What `pnpm dev` starts
 
-`pnpm dev` starts the web, API, and docs apps with hot reload. It also starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
+`pnpm dev` starts the web, API, docs, and React Email preview apps with hot reload. It also starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
 
 Use nginx as the normal local entry point:
 
@@ -99,6 +99,7 @@ Use nginx as the normal local entry point:
 | Web app | `http://localhost` |
 | Documentation | `http://localhost/docs/` |
 | API | `http://localhost/api/v1` |
+| React Email previews | `http://templates.localhost/` |
 
 The host processes and local services are also available directly:
 
@@ -107,6 +108,7 @@ The host processes and local services are also available directly:
 | Web app | `http://localhost:30000` |
 | Docs | `http://localhost:40000` |
 | API | `http://localhost:40010` |
+| React Email previews | `http://localhost:30001` |
 | PostgreSQL | `localhost:54320` |
 | pgAdmin | `http://localhost:8000` |
 | MinIO API | `http://localhost:9001` |
@@ -177,7 +179,7 @@ cp .env.example .env
 docker compose -f docker-compose-dev.yml up -d
 ```
 
-The development stack provides the nginx proxy and local dependencies. `pnpm dev` starts nginx, PostgreSQL, MinIO, and MinIO initialization before starting the host-based web, API, and docs processes. Keep the compose stack running while you work, then stop it when you are done. Set `PROXY_PORT` when port 80 is already in use.
+The development stack provides the nginx proxy and local dependencies. `pnpm dev` starts nginx, PostgreSQL, MinIO, and MinIO initialization before starting the host-based web, API, docs, and React Email preview processes. Keep the compose stack running while you work, then stop it when you are done. Set `PROXY_PORT` when port 80 is already in use.
 
 #### Production-style deployment
 

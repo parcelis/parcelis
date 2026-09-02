@@ -2,13 +2,13 @@ import { Button, Heading, Link, Text } from "react-email";
 import { EmailLayout } from "../components/email-layout.js";
 import { emailColors } from "../styles.js";
 
-export type VerificationEmailProps = {
+export type AccountVerificationEmailProps = {
   verificationUrl: string;
 };
 
 export const PreviewProps = {
   verificationUrl: "http://localhost:30000/login?mode=verify#token=preview-token",
-} satisfies VerificationEmailProps;
+} satisfies AccountVerificationEmailProps;
 
 const headingStyle = {
   color: emailColors.charcoal,
@@ -43,7 +43,7 @@ const linkStyle = {
   overflowWrap: "anywhere" as const,
 };
 
-export function VerificationEmail({ verificationUrl }: VerificationEmailProps) {
+export function AccountVerificationEmail({ verificationUrl }: AccountVerificationEmailProps) {
   return (
     <EmailLayout preview="Verify your Parcelis email">
       <Heading as="h1" className="parcelis-email-heading" style={headingStyle}>
@@ -68,4 +68,4 @@ export function VerificationEmail({ verificationUrl }: VerificationEmailProps) {
   );
 }
 
-export default VerificationEmail;
+export default AccountVerificationEmail;

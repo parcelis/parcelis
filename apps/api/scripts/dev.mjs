@@ -3,6 +3,7 @@ import { watch } from "node:fs";
 import { resolve } from "node:path";
 
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
+const apiRoot = resolve(import.meta.dirname, "..");
 const emailSource = resolve(repositoryRoot, "packages/email/src");
 const useOpenPort = process.argv.includes("--open-port");
 
@@ -35,11 +36,11 @@ function run(command, args, options = {}) {
 function startApi() {
   const command = useOpenPort ? process.execPath : "nest";
   const args = useOpenPort
-    ? ["scripts/run-with-open-port.mjs", "API_PORT", "40010", "nest", "start", "--watch"]
+    ? [resolve(repositoryRoot, "scripts/run-with-open-port.mjs"), "API_PORT", "40010", "nest", "start", "--watch"]
     : ["start", "--watch"];
 
   apiProcess = spawn(command, args, {
-    cwd: repositoryRoot,
+    cwd: apiRoot,
     detached: process.platform !== "win32",
     stdio: "inherit",
     shell: process.platform === "win32",

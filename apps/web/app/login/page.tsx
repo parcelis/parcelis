@@ -66,8 +66,9 @@ export default function LoginPage() {
       const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
       setLoginMode("verify-email");
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
-      if (!token || verificationAttempted.current) {
-        if (!token) setError("This email verification link is invalid or has expired.");
+      if (verificationAttempted.current) return;
+      if (!token) {
+        setError("This email verification link is invalid or has expired.");
         return;
       }
       verificationAttempted.current = true;

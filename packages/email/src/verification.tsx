@@ -1,6 +1,6 @@
 import { render, toPlainText } from "react-email";
 import { sendEmail } from "./service.js";
-import { VerificationEmail } from "./templates/verification.js";
+import { AccountVerificationEmail } from "./templates/account-verification.js";
 
 export type SendVerificationEmailInput = {
   to: string;
@@ -8,7 +8,7 @@ export type SendVerificationEmailInput = {
 };
 
 export async function sendVerificationEmail(input: SendVerificationEmailInput) {
-  const html = await render(<VerificationEmail verificationUrl={input.verificationUrl} />);
+  const html = await render(<AccountVerificationEmail verificationUrl={input.verificationUrl} />);
   const text = toPlainText(html);
 
   return sendEmail({
