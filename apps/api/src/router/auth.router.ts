@@ -180,6 +180,9 @@ export const authRouter = router({
     if (!user || !isPasswordValid) {
       throw invalidCredentials;
     }
+    if (user.accountStatus === "pending") {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Please verify your email before signing in." });
+    }
     if (user.accountStatus === "disabled") {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "This account has been disabled." });
     }
