@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleUserRound } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } from "@parcelis/ui";
+import { Button, Card, CardContent, CardHeader, Input, Label } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
@@ -13,8 +13,6 @@ import { ImageUploadPanel } from "../../../../components/image-upload-panel";
 import { AccountInfoCard } from "../../../../components/account-info-card";
 import { deleteUserProfileImage, uploadUserProfileImage } from "../../../../components/user-profile-image-upload";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 export default function ProfileSettingsPage() {
   const queryClient = useQueryClient();
@@ -81,9 +79,6 @@ export default function ProfileSettingsPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
-              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-            </div>
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>

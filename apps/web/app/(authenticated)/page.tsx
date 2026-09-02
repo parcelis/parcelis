@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Building2, CalendarClock, CircleDollarSign, ClipboardCheck, Plus, Search, Wrench } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, CardContent, CardHeader, ParcelisLogo } from "@parcelis/ui";
+import { Button, Card, CardContent, CardHeader } from "@parcelis/ui";
 import type { CreatePropertyInput } from "@parcelis/schemas";
 import { PropertyDrawer, initialPropertyFormState, type PropertyFormState } from "../../components/property-drawer";
 import { apiClient, queryKeys } from "../../components/api-client";
@@ -13,8 +13,6 @@ import { LoadingState } from "../../components/loading-state";
 import { uploadPropertyImage } from "../../components/property-image-upload";
 import { entityCreatedMessage } from "../../components/toast-messages";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 const tasks = [
   { label: "Renew lease for Unit 4B", due: "Today", icon: ClipboardCheck },
@@ -77,9 +75,6 @@ export default function Page() {
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
-          <div className="lg:hidden">
-            <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-          </div>
           <div className="hidden min-w-80 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 py-2 text-sm text-parcelis-gray md:flex">
             <Search className="h-4 w-4" />
             Search properties, tenants, leases

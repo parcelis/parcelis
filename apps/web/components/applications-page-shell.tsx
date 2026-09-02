@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { Button, ParcelisLogo } from "@parcelis/ui";
+import { Button } from "@parcelis/ui";
 import { ApplicationsRail, type ApplicationsRailActive } from "./applications-rail";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 type ApplicationsPageShellProps = {
   active: ApplicationsRailActive;
@@ -27,9 +25,6 @@ export function ApplicationsPageShell({
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
-              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-            </div>
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>

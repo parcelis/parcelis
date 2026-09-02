@@ -27,7 +27,6 @@ import {
   CardHeader,
   Dialog,
   DialogContent,
-  ParcelisLogo,
   Select,
 } from "@parcelis/ui";
 import { isActiveMaintenanceTicketStatus, type UpdatePropertyInput } from "@parcelis/schemas";
@@ -48,8 +47,6 @@ import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../lib/entity-links";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 function formatStatus(status: string) {
   return status
@@ -259,9 +256,6 @@ export default function PropertyDetailPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
-              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-            </div>
             <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
               <Link href="/properties">
                 <ArrowLeft className="h-4 w-4" />
