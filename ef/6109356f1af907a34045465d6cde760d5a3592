@@ -1,0 +1,28 @@
+CONTRIBUTING.md
+  s_b35efdf114d4a5::t_bfd2b8b463d369 121
+demo/render/README.md
+  s_b35efdf114d4a5::t_bfd2b8b463d369 19,25-26
+packages/db/prisma/seed.mjs
+  s_b35efdf114d4a5::t_bfd2b8b463d369 279
+.env.example
+  s_b35efdf114d4a5::t_bfd2b8b463d369 42
+  s_b35efdf114d4a5::t_7aeaf74dd2e0b5 43
+apps/docs/content/platform-user-guide/getting-started/sign-in.mdx
+  s_b35efdf114d4a5::t_bfd2b8b463d369 14-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "ef6109356f1af907a34045465d6cde760d5a3592",
+  "prompts": {},
+  "sessions": {
+    "s_b35efdf114d4a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a063ae-f558-7533-84ff-b7afd4c6cdf9",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
