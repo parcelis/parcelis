@@ -162,6 +162,17 @@ function SidebarContent({ active }: SidebarProps) {
   }, []);
 
   React.useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => {
+      if (desktopQuery.matches) setIsMobileSidebarOpen(false);
+    };
+
+    closeOnDesktop();
+    desktopQuery.addEventListener("change", closeOnDesktop);
+    return () => desktopQuery.removeEventListener("change", closeOnDesktop);
+  }, []);
+
+  React.useEffect(() => {
     const organization = activeOrganizationQuery.data;
     if (organization && !window.location.pathname.startsWith(`/o/${organization.slug}`)) {
       const routePath = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
