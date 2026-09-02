@@ -1,0 +1,27 @@
+apps/docs/content/platform-user-guide/navigation-and-preferences/users.mdx
+  s_cd60e9e7616ccd::t_6f9f5b8820b4a5 9-10
+apps/api/src/modules/auth.ts
+  s_cd60e9e7616ccd::t_6f9f5b8820b4a5 84-91
+apps/api/src/router/auth.router.ts
+  s_cd60e9e7616ccd::t_6f9f5b8820b4a5 21
+apps/api/src/router/app.router.ts
+  s_cd60e9e7616ccd::t_6f9f5b8820b4a5 73,105-111,697,700,709,716-722,725-733
+apps/web/components/create-user-drawer.tsx
+  ai_agent 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "5667d22411c7c58a4d3b4999b4ecb7911f3cc1e4",
+  "prompts": {},
+  "sessions": {
+    "s_cd60e9e7616ccd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05ffd-4fcb-7501-a3f2-ecee4458fdd8",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
