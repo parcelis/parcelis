@@ -14,7 +14,7 @@
     {
       "groupName": "Next.js",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["next", "eslint-config-next"],
+      "matchPackageNames": ["next", "@next/eslint-plugin-next"],
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
