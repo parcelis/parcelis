@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "turbo build",
+    "start": "pnpm --filter @parcelis/web start",
     "dev": "node scripts/dev-local.mjs",
     "dev:services:refresh": "node scripts/refresh-dev-services.mjs",
     "dev:turbo": "turbo dev --parallel",
@@ -22,7 +23,9 @@
     "format": "prettier --write .",
     "db:generate": "pnpm --filter @parcelis/db db:generate",
     "db:migrate": "pnpm --filter @parcelis/db db:migrate",
+    "db:deploy": "node scripts/prisma-with-env.mjs migrate deploy",
     "db:seed": "pnpm --filter @parcelis/db db:seed",
+    "db:demo:prepare": "pnpm db:deploy && pnpm db:seed",
     "email:verify": "pnpm --filter @parcelis/email build && node --env-file=.env packages/email/dist/verify.js"
   },
   "devDependencies": {

@@ -7,7 +7,7 @@
     "dev": "node ../../scripts/run-with-open-port.mjs PORT 30000 next dev --turbo --hostname 0.0.0.0 --port {PORT}",
     "dev:fixed": "next dev --turbo --hostname 0.0.0.0 --port ${PORT:-30000}",
     "build": "next build",
-    "start": "node ../../scripts/run-with-open-port.mjs PORT 30000 next start --port {PORT}",
+    "start": "next start --hostname 0.0.0.0 --port ${PORT:-30000}",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
