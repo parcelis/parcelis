@@ -70,6 +70,7 @@ import {
   type PermissionAction,
   type PermissionResource,
 } from "@parcelis/schemas";
+import { sendVerificationEmail } from "@parcelis/email";
 import {
   ActivitySubjectType,
   LeaseStatus,
@@ -101,7 +102,13 @@ import {
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
-import { hashPassword } from "../modules/auth";
+import {
+  createEmailVerificationToken,
+  getEmailVerificationTokenExpiration,
+  getEmailVerificationUrl,
+  hashEmailVerificationToken,
+  hashPassword,
+} from "../modules/auth";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
@@ -687,9 +694,10 @@ export const appRouter = router({
         if (input.role === "administrator" && ctx.user.role !== "administrator") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can create administrator accounts." });
         }
+        const verificationToken = createEmailVerificationToken();
         try {
           const passwordHash = await hashPassword(input.password);
-          return await ctx.prisma.$transaction(async (tx) => {
+          const user = await ctx.prisma.$transaction(async (tx) => {
             const user = await tx.user.create({
               data: {
                 name: input.name,
@@ -698,14 +706,31 @@ export const appRouter = router({
                 passwordHash,
                 role: input.role,
                 defaultOrganizationId: ctx.organization.organizationId,
+                accountStatus: "pending",
               },
               select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
             });
             await tx.organizationMembership.create({
               data: { userId: user.id, organizationId: ctx.organization.organizationId },
             });
+            await tx.emailVerificationToken.create({
+              data: {
+                userId: user.id,
+                tokenHash: hashEmailVerificationToken(verificationToken),
+                expiresAt: getEmailVerificationTokenExpiration(),
+              },
+            });
             return user;
           });
+          try {
+            await sendVerificationEmail({
+              to: user.email,
+              verificationUrl: getEmailVerificationUrl(verificationToken),
+            });
+          } catch (error) {
+            console.error("Unable to send email verification email.", error);
+          }
+          return user;
         } catch (error) {
           if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
             throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });

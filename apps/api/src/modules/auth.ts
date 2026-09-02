@@ -81,3 +81,11 @@ export function getPasswordResetTokenExpiration() {
 export function getEmailVerificationTokenExpiration() {
   return new Date(Date.now() + emailVerificationTokenDurationMs);
 }
+
+export function getEmailVerificationUrl(token: string) {
+  const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
+  const verificationUrl = new URL("/login", webOrigin);
+  verificationUrl.searchParams.set("mode", "verify");
+  verificationUrl.hash = new URLSearchParams({ token }).toString();
+  return verificationUrl.toString();
+}

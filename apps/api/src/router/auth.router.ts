@@ -18,6 +18,7 @@ import {
   createPasswordResetToken,
   createSessionToken,
   getEmailVerificationTokenExpiration,
+  getEmailVerificationUrl,
   getPasswordResetTokenExpiration,
   getSessionExpiration,
   hashEmailVerificationToken,
@@ -76,14 +77,6 @@ function getPasswordResetUrl(token: string) {
   resetUrl.searchParams.set("mode", "reset");
   resetUrl.hash = new URLSearchParams({ token }).toString();
   return resetUrl.toString();
-}
-
-function getEmailVerificationUrl(token: string) {
-  const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
-  const verificationUrl = new URL("/login", webOrigin);
-  verificationUrl.searchParams.set("mode", "verify");
-  verificationUrl.hash = new URLSearchParams({ token }).toString();
-  return verificationUrl.toString();
 }
 
 export const authRouter = router({
