@@ -1,0 +1,23 @@
+apps/api/src/router/auth.router.ts
+  s_cd60e9e7616ccd::t_39a64bec5bfef2 83
+packages/db/prisma/schema.prisma
+  s_cd60e9e7616ccd::t_39a64bec5bfef2 86
+packages/db/prisma/migrations/20260901000000_add_pending_user_account_status/migration.sql
+  s_cd60e9e7616ccd::t_39a64bec5bfef2 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "5c6810716bbe52905e616827afa44f4d65df3a50",
+  "prompts": {},
+  "sessions": {
+    "s_cd60e9e7616ccd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05ffd-4fcb-7501-a3f2-ecee4458fdd8",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
