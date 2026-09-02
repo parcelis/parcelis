@@ -120,8 +120,13 @@ export default function LoginPage() {
         email: String(formData.get("email") ?? ""),
         password: String(formData.get("password") ?? ""),
       };
-      if (isRegistering) await apiClient.auth.register.mutate(input);
-      else await apiClient.auth.login.mutate(input);
+      if (isRegistering) {
+        await apiClient.auth.register.mutate(input);
+        selectLoginMode("sign-in");
+        setNotice("Check your email for a link to verify your account.");
+        return;
+      }
+      await apiClient.auth.login.mutate(input);
       flushSync(() => setIsLoadingApp(true));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => window.setTimeout(resolve, 5000));
@@ -309,7 +314,11 @@ export default function LoginPage() {
                           type={showPassword ? "text" : "password"}
                         />
                         {passwordConfirmationError ? (
-                          <p className="mt-2 text-sm text-red-700 dark:text-red-300" id={passwordConfirmationErrorId} role="alert">
+                          <p
+                            className="mt-2 text-sm text-red-700 dark:text-red-300"
+                            id={passwordConfirmationErrorId}
+                            role="alert"
+                          >
                             {passwordConfirmationError}
                           </p>
                         ) : null}

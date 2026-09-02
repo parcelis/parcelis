@@ -56,7 +56,7 @@ export const userRoleValues = [
 ] as const;
 export const userRoleSchema = z.enum(userRoleValues);
 export type UserRole = z.infer<typeof userRoleSchema>;
-export const userAccountStatusSchema = z.enum(["active", "disabled"]);
+export const userAccountStatusSchema = z.enum(["pending", "active", "disabled"]);
 export const primaryPermissionResourceValues = [
   "users",
   "properties",

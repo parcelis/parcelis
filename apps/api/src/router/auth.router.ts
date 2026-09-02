@@ -8,14 +8,17 @@ import {
   updateUserProfileInputSchema,
 } from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
-import { sendPasswordResetEmail } from "@parcelis/email";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@parcelis/email";
 import { TRPCError } from "@trpc/server";
 import {
   clearSessionCookie,
+  createEmailVerificationToken,
   createPasswordResetToken,
   createSessionToken,
+  getEmailVerificationTokenExpiration,
   getPasswordResetTokenExpiration,
   getSessionExpiration,
+  hashEmailVerificationToken,
   hashPassword,
   hashPasswordResetToken,
   hashSessionToken,
@@ -66,6 +69,14 @@ function getPasswordResetUrl(token: string) {
   return resetUrl.toString();
 }
 
+function getEmailVerificationUrl(token: string) {
+  const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
+  const verificationUrl = new URL("/login", webOrigin);
+  verificationUrl.searchParams.set("mode", "verify");
+  verificationUrl.hash = new URLSearchParams({ token }).toString();
+  return verificationUrl.toString();
+}
+
 export const authRouter = router({
   register: publicProcedure.input(authRegisterInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
@@ -76,6 +87,7 @@ export const authRouter = router({
     }
 
     let user;
+    const verificationToken = createEmailVerificationToken();
     try {
       const passwordHash = await hashPassword(input.password);
       user = await ctx.prisma.$transaction(async (tx) => {
@@ -91,6 +103,13 @@ export const authRouter = router({
           data: { userId: createdUser.id, organizationId: organization.id, role: "owner" },
         });
         await tx.user.update({ where: { id: createdUser.id }, data: { defaultOrganizationId: organization.id } });
+        await tx.emailVerificationToken.create({
+          data: {
+            userId: createdUser.id,
+            tokenHash: hashEmailVerificationToken(verificationToken),
+            expiresAt: getEmailVerificationTokenExpiration(),
+          },
+        });
         return createdUser;
       });
     } catch (error) {
@@ -99,7 +118,11 @@ export const authRouter = router({
       }
       throw error;
     }
-    await createSession(ctx, user.id);
+    try {
+      await sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(verificationToken) });
+    } catch (error) {
+      console.error("Unable to send email verification email.", error);
+    }
     clearLoginRateLimit(rateLimitKey);
     return { user };
   }),
