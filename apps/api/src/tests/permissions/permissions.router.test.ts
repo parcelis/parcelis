@@ -126,7 +126,7 @@ test("API denies user creation when create permission is missing", async () => {
       name: "New User",
       email: "new-user@example.com",
       phone: null,
-      password: "password-for-new-user",
+      password: "test-password",
       role: "property_manager",
     }),
   );
