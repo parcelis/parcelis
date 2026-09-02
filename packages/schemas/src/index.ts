@@ -17,6 +17,24 @@ export const authCredentialsInputSchema = z.object({
 
 export const authLoginInputSchema = authCredentialsInputSchema;
 export const authRegisterInputSchema = authCredentialsInputSchema;
+export const requestPasswordResetInputSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(254)
+    .transform((email) => email.toLowerCase()),
+});
+export const resetPasswordInputSchema = z
+  .object({
+    token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+    password: z.string().min(12).max(1024),
+    reenterPassword: z.string().min(12).max(1024),
+  })
+  .refine((input) => input.password === input.reenterPassword, {
+    message: "New passwords do not match.",
+    path: ["reenterPassword"],
+  });
 export const changePasswordInputSchema = z
   .object({
     currentPassword: z.string().min(1).max(1024),

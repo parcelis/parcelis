@@ -32,6 +32,7 @@ When adding or removing a primary technology or service, update this file in the
 | API     | [cors](https://github.com/expressjs/cors) and [reflect-metadata](https://github.com/rbuckton/reflect-metadata)                                                                                 | Cross-origin request handling and NestJS decorator metadata.                           |
 | API     | [dotenv](https://github.com/motdotla/dotenv)                                                                                                                                                   | Environment variable loading.                                                          |
 | API     | [AWS SDK for JavaScript v3](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/)                                                                                                           | Size-constrained presigned S3-compatible uploads and download URLs for MinIO images.   |
+| Email   | [Nodemailer](https://nodemailer.com/)                                                                                                                                                          | Server-side SMTP transport in `@parcelis/email`.                                       |
 | Docs    | [Docusaurus](https://docusaurus.io/)                                                                                                                                                           | Documentation site framework.                                                          |
 | Docs    | [Docusaurus Faster](https://docusaurus.io/docs/advanced/rspack) and [SWC](https://swc.rs/)                                                                                                     | Compiles documentation JavaScript, including the OpenAPI theme.                        |
 | Docs    | [MDX](https://mdxjs.com/)                                                                                                                                                                      | JSX-enabled documentation content.                                                     |
@@ -79,3 +80,7 @@ Direct JavaScript dependencies are declared in:
 - Shared packages: `packages/*/package.json`
 
 `pnpm-lock.yaml` records the resolved dependency tree. Docker image tags are declared in `docker-compose.yml` and `apps/docs/Dockerfile`.
+
+### Transitive dependency overrides
+
+`fast-uri` is pinned to `3.1.6` in `pnpm-workspace.yaml`. Update the parent dependencies that introduce it when compatible versions are available, then remove this override.

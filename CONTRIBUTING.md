@@ -130,6 +130,7 @@ pnpm db:seed
 #### Useful commands
 
 - `pnpm dev:services:refresh`: recreate nginx, PostgreSQL, and MinIO while preserving their volumes, then rerun MinIO initialization.
+- `pnpm email:verify`: verify the configured SMTP connection and authentication without sending an email.
 - Stop an existing app watcher with `Ctrl+C` before starting another `pnpm dev` process.
 
 ### API tests

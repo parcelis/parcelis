@@ -9,8 +9,8 @@
     }
   },
   "scripts": {
-    "dev": "node ../../scripts/run-with-open-port.mjs API_PORT 40010 nest start --watch",
-    "dev:fixed": "nest start --watch",
+    "dev": "node ./scripts/dev.mjs --open-port",
+    "dev:fixed": "node ./scripts/dev.mjs",
     "build": "nest build",
     "start": "node dist/main.js",
     "test": "tsx --test \"src/tests/**/*.test.ts\"",
@@ -27,6 +27,7 @@
     "@nestjs/core": "^11.2.1",
     "@nestjs/platform-express": "^11.2.1",
     "@parcelis/db": "workspace:*",
+    "@parcelis/email": "workspace:*",
     "@parcelis/schemas": "workspace:*",
     "@react-pdf/renderer": "^4.6.0",
     "@trpc/server": "^11.18.0",

@@ -50,6 +50,7 @@ reload.
 | `@parcelis/ui`      | `packages/ui`      | Shared Tailwind and shadcn-style UI primitives, dialogs, drawers, and brand components |
 | `@parcelis/schemas` | `packages/schemas` | Zod input schemas and inferred TypeScript contracts shared by web and API              |
 | `@parcelis/db`      | `packages/db`      | Prisma schema, migrations, seed data, and database client exports                      |
+| `@parcelis/email`   | `packages/email`   | Server-only SMTP transport and reusable email delivery capabilities                     |
 | `@parcelis/config`  | `packages/config`  | Shared TypeScript, ESLint, Prettier, and Tailwind configuration                        |
 
 ## Request flow
