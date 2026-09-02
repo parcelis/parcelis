@@ -25,6 +25,7 @@ export const requestPasswordResetInputSchema = z.object({
     .max(254)
     .transform((email) => email.toLowerCase()),
 });
+export const requestEmailVerificationInputSchema = requestPasswordResetInputSchema;
 export const verifyEmailInputSchema = z.object({
   token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
 });

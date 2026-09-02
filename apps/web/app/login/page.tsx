@@ -36,6 +36,7 @@ export default function LoginPage() {
   const [notice, setNotice] = React.useState<string | null>(null);
   const [resetToken, setResetToken] = React.useState<string | null>(null);
   const [isEmailVerified, setIsEmailVerified] = React.useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = React.useState<string | null>(null);
   const [destination, setDestination] = React.useState("/");
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
@@ -92,6 +93,7 @@ export default function LoginPage() {
     setNotice(null);
     setIsPasswordResetRequested(false);
     setIsEmailVerified(false);
+    setPendingVerificationEmail(null);
     setShowPassword(false);
   }
 
@@ -101,9 +103,25 @@ export default function LoginPage() {
     router.replace("/login");
   }
 
+  async function resendVerificationEmail() {
+    if (!pendingVerificationEmail) return;
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await apiClient.auth.requestEmailVerification.mutate({ email: pendingVerificationEmail });
+      setNotice("If your account needs verification, a new link will arrive shortly.");
+      setPendingVerificationEmail(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to send a verification email. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
 
     setError(null);
     setPasswordConfirmationError(null);
@@ -118,7 +136,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       if (isForgotPassword) {
-        await apiClient.auth.requestPasswordReset.mutate({ email: String(formData.get("email") ?? "") });
+        await apiClient.auth.requestPasswordReset.mutate({ email });
         setIsPasswordResetRequested(true);
         return;
       }
@@ -138,7 +156,7 @@ export default function LoginPage() {
       }
 
       const input = {
-        email: String(formData.get("email") ?? ""),
+        email,
         password: String(formData.get("password") ?? ""),
       };
       if (isRegistering) {
@@ -155,6 +173,9 @@ export default function LoginPage() {
       router.refresh();
     } catch (cause) {
       setIsLoadingApp(false);
+      if (cause instanceof Error && cause.message === "Please verify your email before signing in.") {
+        setPendingVerificationEmail(email);
+      }
       setError(cause instanceof Error ? cause.message : "Unable to sign in. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -379,6 +400,16 @@ export default function LoginPage() {
                   <p className="mt-4 text-sm text-red-700 dark:text-red-300" role="alert">
                     {error}
                   </p>
+                ) : null}
+                {pendingVerificationEmail ? (
+                  <button
+                    className="mt-3 w-full text-center text-xs font-semibold text-parcelis-green-hover"
+                    disabled={isSubmitting}
+                    type="button"
+                    onClick={() => void resendVerificationEmail()}
+                  >
+                    Resend verification email
+                  </button>
                 ) : null}
                 <Button className="mt-6 w-full text-white" disabled={isSubmitting} size="lg" type="submit">
                   {isSubmitting

@@ -3,6 +3,7 @@ import {
   authRegisterInputSchema,
   changeEmailInputSchema,
   changePasswordInputSchema,
+  requestEmailVerificationInputSchema,
   requestPasswordResetInputSchema,
   resetPasswordInputSchema,
   updateUserProfileInputSchema,
@@ -29,10 +30,12 @@ import {
 } from "../modules/auth";
 import {
   clearLoginRateLimit,
+  consumeEmailVerificationRateLimit,
   consumeLoginRateLimit,
   consumePasswordResetRateLimit,
   getLoginRateLimitKey,
   getPasswordChangeRateLimitKey,
+  getEmailVerificationRateLimitKey,
   getPasswordResetRateLimitKey,
 } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
@@ -169,6 +172,39 @@ export const authRouter = router({
 
     return { success: true };
   }),
+
+  requestEmailVerification: publicProcedure
+    .input(requestEmailVerificationInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const rateLimitKey = getEmailVerificationRateLimitKey(ctx.req.ip, input.email);
+      consumeEmailVerificationRateLimit(rateLimitKey);
+
+      const user = await ctx.prisma.user.findUnique({
+        where: { email: input.email },
+        select: { id: true, email: true, accountStatus: true },
+      });
+      const token = createEmailVerificationToken();
+
+      if (user?.accountStatus === "pending") {
+        void ctx.prisma
+          .$transaction(async (tx) => {
+            await tx.emailVerificationToken.deleteMany({ where: { userId: user.id } });
+            await tx.emailVerificationToken.create({
+              data: {
+                userId: user.id,
+                tokenHash: hashEmailVerificationToken(token),
+                expiresAt: getEmailVerificationTokenExpiration(),
+              },
+            });
+          })
+          .then(() => sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(token) }))
+          .catch((error: unknown) => {
+            console.error("Unable to create email verification token or send verification email.", error);
+          });
+      }
+
+      return { success: true };
+    }),
 
   login: publicProcedure.input(authLoginInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
