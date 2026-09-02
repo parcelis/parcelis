@@ -19,5 +19,14 @@ function run(args) {
   });
 }
 
-await run(["exec", "prisma", "migrate", "deploy", "--schema", "packages/db/prisma/schema.prisma"]);
+await run([
+  "--filter",
+  "@parcelis/db",
+  "exec",
+  "prisma",
+  "migrate",
+  "deploy",
+  "--schema",
+  "prisma/schema.prisma",
+]);
 await run(["--filter", "@parcelis/db", "exec", "prisma", "db", "seed"]);
