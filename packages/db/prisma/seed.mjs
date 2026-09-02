@@ -276,7 +276,7 @@ async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balan
 }
 
 async function main() {
-  const administratorEmail = "admin@parcelis.dev";
+  const administratorEmail = process.env.SEED_ADMIN_EMAIL?.trim() || "admin@parcelis.dev";
   const organizationName = "Parcelis Property Management";
   const organizationSeedKey = "parcelis-demo";
   const existingOrganization = await prisma.organization.findUnique({

@@ -11,9 +11,10 @@ Parcelis requires an account before you can access the workspace.
 
 New users can select **Create account** on the same page. Passwords must be at least 12 characters long.
 
-For local development, `pnpm db:seed` creates `admin@parcelis.dev` using the value of
-`SEED_ADMIN_PASSWORD`. Set this environment variable to a unique password of at least 12 characters
-before running the seed command. Later seed runs do not replace the administrator password.
+For local development, `pnpm db:seed` creates the administrator using `SEED_ADMIN_EMAIL`, which
+defaults to `admin@parcelis.dev`, and `SEED_ADMIN_PASSWORD`. Set the password to a unique value of
+at least 12 characters before running the seed command. Later seed runs do not replace the
+administrator password.
 
 Sign out is available from the **My Account** menu at the bottom of the sidebar. Signing out revokes the current
 browser session.

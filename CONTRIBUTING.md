@@ -118,7 +118,7 @@ Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `
 
 pgAdmin is available at `http://localhost:8000` with `admin@parcelis.dev` / `parcelis`. The Parcelis database is preconfigured; use `parcelis` as its password when connecting for the first time.
 
-Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first `pnpm db:seed`. It creates the local administrator account without replacing an existing password.
+Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first `pnpm db:seed`. Set `SEED_ADMIN_EMAIL` to use an address other than the default `admin@parcelis.dev`. The seed creates the local administrator account without replacing an existing password.
 
 After pulling schema changes, run:
 
