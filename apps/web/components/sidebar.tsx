@@ -318,7 +318,7 @@ function SidebarContent({ active }: SidebarProps) {
       <aside
         aria-label="Primary navigation"
         id="mobile-navigation"
-        className={`fixed inset-y-0 left-0 z-30 flex overflow-hidden border-r border-parcelis-border bg-white transition-[width,padding] duration-200 max-lg:ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-30 flex overflow-hidden border-r border-parcelis-border bg-white transition-[width,padding] duration-200 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:ease-in-out ${
           isMobileSidebarOpen
             ? "max-lg:w-64 max-lg:flex-col max-lg:px-4"
             : "max-lg:w-0 max-lg:flex-col max-lg:border-r-0 max-lg:px-0"
@@ -470,7 +470,7 @@ function SidebarContent({ active }: SidebarProps) {
           </div>
         ) : null}
 
-        <nav className="mt-6 flex-1 space-y-1 text-sm font-medium text-parcelis-gray">
+        <nav className="mt-6 flex-1 space-y-1 text-sm font-medium text-parcelis-gray max-lg:flex-none">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.key === active;
