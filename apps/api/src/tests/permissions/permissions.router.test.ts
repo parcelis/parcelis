@@ -124,9 +124,9 @@ test("API denies user creation when create permission is missing", async () => {
   await expectForbidden(() =>
     caller.users.create({
       name: "New User",
-      email: "new-user@example.com",
+      email: process.env.TEST_NEW_USER_EMAIL ?? "",
       phone: null,
-      password: "password-for-new-user",
+      password: process.env.TEST_NEW_USER_PASSWORD ?? "",
       role: "property_manager",
     }),
   );
@@ -139,7 +139,7 @@ test("API denies user changes when the matching permission is missing", async ()
       caller.users.update({
         id: 1,
         name: "Restricted User",
-        email: "restricted@example.com",
+        email: process.env.TEST_RESTRICTED_USER_EMAIL ?? "",
         phone: null,
         role: "property_manager",
       }),
