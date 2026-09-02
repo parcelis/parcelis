@@ -1,0 +1,41 @@
+apps/web/app/(authenticated)/settings/profile/page.tsx
+  s_d40d88cc082c52::t_de5945e9ab0b78 7
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_d40d88cc082c52::t_de5945e9ab0b78 22
+apps/web/app/(authenticated)/applications/[id]/page.tsx
+  s_d40d88cc082c52::t_de5945e9ab0b78 24
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_d40d88cc082c52::t_de5945e9ab0b78 8
+apps/web/app/globals.css
+  s_d40d88cc082c52::t_7cc9ad3a1ba978 34-39
+apps/web/components/sidebar.tsx
+  s_d40d88cc082c52::t_abf378beb9541d 208-212,290,311,316-320
+  s_d40d88cc082c52::t_e82bd01b6a4a1b 228,236,277,285
+  s_d40d88cc082c52::t_9a6086215e447e 251,254
+  s_d40d88cc082c52::t_4053367d0b7b39 252-253
+  s_d40d88cc082c52::t_2f190d324d7313 250
+  s_d40d88cc082c52::t_e59cc119120308 255-258,260-271,273-276,278,281-284,286,288-289,292-297,299-310,312-315,321-322,325-357,359-366,368-378,380-387,389-391,393-409,411-431,433-524,526-550,552-559,561-631,633-642
+  s_d40d88cc082c52::t_7e25812c1d5bde 109,187-190,207,215-227,229-235,237-249,643-644
+apps/web/components/applications-page-shell.tsx
+  s_d40d88cc082c52::t_de5945e9ab0b78 4
+apps/web/app/(authenticated)/page.tsx
+  s_d40d88cc082c52::t_de5945e9ab0b78 8
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_d40d88cc082c52::t_de5945e9ab0b78 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "8f762606f98699aa96f14e86ea049816198f270b",
+  "prompts": {},
+  "sessions": {
+    "s_d40d88cc082c52": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0642b-f3fe-7cd2-a21c-a6c15995a1c1",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
