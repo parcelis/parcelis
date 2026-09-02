@@ -94,7 +94,7 @@ export default function UserProfilePage() {
   return (
     <main className="flex-1">
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/settings">Back to users</Link>

@@ -200,7 +200,7 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
     <InvoiceDetailContainer embedded={isEmbedded}>
       <section className={isEmbedded ? "" : "lg:pl-[var(--parcelis-sidebar-width)]"}>
         {isEmbedded ? null : (
-          <header className="flex min-h-16 items-center justify-between gap-4 border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
+          <header className="parcelis-mobile-nav-header flex min-h-16 items-center justify-between gap-4 border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/income">
                 <ArrowLeft className="h-4 w-4" />

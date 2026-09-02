@@ -575,7 +575,7 @@ function SidebarContent({ active }: SidebarProps) {
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/settings/profile">
+              <Link href="/settings/profile" onClick={closeMobileSidebar}>
                 <CircleUserRound className="h-4 w-4 shrink-0" />
                 My Profile
               </Link>
@@ -589,20 +589,30 @@ function SidebarContent({ active }: SidebarProps) {
               Keyboard shortcuts
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a href="/docs/" rel="noopener noreferrer" target="_blank">
+              <a href="/docs/" onClick={closeMobileSidebar} rel="noopener noreferrer" target="_blank">
                 <BookOpen className="h-4 w-4 shrink-0" />
                 Documentation Site
               </a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <a href="https://github.com/parcelis/parcelis" rel="noopener noreferrer" target="_blank">
+              <a
+                href="https://github.com/parcelis/parcelis"
+                onClick={closeMobileSidebar}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
                 <FaGithub className="h-4 w-4 shrink-0" />
                 GitHub
               </a>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a href="https://discord.gg/4XYkWmVpWH" rel="noopener noreferrer" target="_blank">
+              <a
+                href="https://discord.gg/4XYkWmVpWH"
+                onClick={closeMobileSidebar}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
                 <FaDiscord className="h-4 w-4 shrink-0" />
                 Discord Community
               </a>
@@ -610,6 +620,7 @@ function SidebarContent({ active }: SidebarProps) {
             <DropdownMenuItem asChild>
               <a
                 href="https://github.com/parcelis/parcelis/issues/new?template=feature_request.yml"
+                onClick={closeMobileSidebar}
                 rel="noopener noreferrer"
                 target="_blank"
               >

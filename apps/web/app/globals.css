@@ -15,6 +15,8 @@
 html {
   background: rgb(var(--parcelis-porcelain));
   --parcelis-sidebar-width: 16rem;
+  /* Left offset + mobile trigger width + header gap. Keep in sync with the trigger in Sidebar. */
+  --parcelis-mobile-nav-clearance: calc(0.75rem + 2.5rem + 0.75rem);
 }
 
 html.dark {
@@ -32,8 +34,8 @@ body {
 }
 
 @media (max-width: 1023px) {
-  main > section > header {
-    padding-left: 4rem;
+  .parcelis-mobile-nav-header {
+    padding-left: var(--parcelis-mobile-nav-clearance);
   }
 }
 

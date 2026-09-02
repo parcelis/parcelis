@@ -74,7 +74,7 @@ export default function Page() {
       />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="hidden min-w-80 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 py-2 text-sm text-parcelis-gray md:flex">
             <Search className="h-4 w-4" />
             Search properties, tenants, leases
