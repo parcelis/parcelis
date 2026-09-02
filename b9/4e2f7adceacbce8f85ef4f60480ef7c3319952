@@ -1,0 +1,61 @@
+apps/web/app/(authenticated)/maintenance/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 277
+apps/web/app/(authenticated)/income/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 163
+apps/web/app/(authenticated)/maintenance/[id]/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 251
+apps/web/app/(authenticated)/applications/[id]/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 162
+apps/web/app/(authenticated)/settings/profile/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 80
+apps/web/app/(authenticated)/settings/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 278
+apps/web/app/(authenticated)/tenants/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 418
+apps/web/app/(authenticated)/settings/roles/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 109
+apps/web/components/applications-page-shell.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 26
+apps/web/app/(authenticated)/leases/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 133
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 156
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 257
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 506
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 225
+apps/web/app/globals.css
+  s_d40d88cc082c52::t_825bcee36ee3e5 18-19,37-38
+apps/web/components/invoice-detail-view.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 203
+apps/web/components/sidebar.tsx
+  s_d40d88cc082c52::t_6b4fd9c7a03ea8 578,592,599-604,610-615,623
+apps/web/app/(authenticated)/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 77
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 97
+apps/web/app/(authenticated)/applications/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 145
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 88
+apps/web/app/(authenticated)/properties/page.tsx
+  s_d40d88cc082c52::t_784458ab36bbb2 673
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b94e2f7adceacbce8f85ef4f60480ef7c3319952",
+  "prompts": {},
+  "sessions": {
+    "s_d40d88cc082c52": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0642b-f3fe-7cd2-a21c-a6c15995a1c1",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
