@@ -1,0 +1,54 @@
+infra/nginx/proxy.conf.template
+  s_cd60e9e7616ccd::t_86bea536db6b76 3-15
+.env.example
+  s_cd60e9e7616ccd::t_5dfd4516ee334b 8
+scripts/dev-local.mjs
+  s_cd60e9e7616ccd::t_25fac3a7b4529c 63-65,72-73
+  s_cd60e9e7616ccd::t_50a81ab9475f2d 115
+  s_cd60e9e7616ccd::t_5dfd4516ee334b 16,70,165-172
+  s_cd60e9e7616ccd::t_489b72dd965a80 106
+  s_cd60e9e7616ccd::t_86bea536db6b76 179
+apps/api/scripts/dev.mjs
+  s_cd60e9e7616ccd::t_f540a814eb830f 6,39,43
+packages/email/src/verification.tsx
+  s_cd60e9e7616ccd::t_a397af882c2557 3,11
+apps/docs/content/getting-started.mdx
+  s_cd60e9e7616ccd::t_86bea536db6b76 49
+  s_cd60e9e7616ccd::t_5dfd4516ee334b 37-38,58
+packages/email/src/templates/account-verification.tsx
+  s_cd60e9e7616ccd::t_a397af882c2557 5,11,46,71
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_cd60e9e7616ccd::t_387963bf6f4fb0 120,218-252,258-271,296-307
+  s_cd60e9e7616ccd::t_d75c0ab1ce7fb3 253-257
+  s_cd60e9e7616ccd::t_c72b48b915e478 4,36,113-114,116
+  s_cd60e9e7616ccd::t_81fba6318831be 1-3,5-35,37-50,61-98,101-112,115,117-119,121-154,156-217,272-273,275-295,308-311,313-325
+  s_cd60e9e7616ccd::t_863e1cf235d462 155,274,312
+  s_cd60e9e7616ccd::t_a57f5d4323b113 51-60,99-100
+packages/email/src/index.ts
+  s_cd60e9e7616ccd::t_c72b48b915e478 4
+CONTRIBUTING.md
+  s_cd60e9e7616ccd::t_86bea536db6b76 102
+  s_cd60e9e7616ccd::t_4cfe3983e243cc 93,111,182
+docker-compose-dev.yml
+  s_cd60e9e7616ccd::t_489b72dd965a80 11
+apps/web/app/login/page.tsx
+  s_cd60e9e7616ccd::t_c7f8b9ec8d7005 69-71
+packages/email/package.json
+  s_cd60e9e7616ccd::t_5dfd4516ee334b 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d20a8b9518749b7d0bbbf71639093f7b676662e4",
+  "prompts": {},
+  "sessions": {
+    "s_cd60e9e7616ccd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05ffd-4fcb-7501-a3f2-ecee4458fdd8",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
