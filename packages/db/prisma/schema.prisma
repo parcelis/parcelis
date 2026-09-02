@@ -83,6 +83,7 @@ enum UserRole {
 }
 
 enum UserAccountStatus {
+  pending
   active
   disabled
 }

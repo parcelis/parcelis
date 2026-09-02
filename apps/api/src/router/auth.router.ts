@@ -80,7 +80,7 @@ export const authRouter = router({
       const passwordHash = await hashPassword(input.password);
       user = await ctx.prisma.$transaction(async (tx) => {
         const createdUser = await tx.user.create({
-          data: { email: input.email, passwordHash },
+          data: { email: input.email, passwordHash, accountStatus: "pending" },
           select: { id: true, email: true },
         });
         const organization = await tx.organization.create({
