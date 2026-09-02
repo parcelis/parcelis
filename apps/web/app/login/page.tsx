@@ -23,7 +23,7 @@ const benefits = [
   },
 ];
 
-type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password";
+type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password" | "verify-email";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
@@ -35,11 +35,13 @@ export default function LoginPage() {
   const [passwordConfirmationError, setPasswordConfirmationError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [resetToken, setResetToken] = React.useState<string | null>(null);
+  const [isEmailVerified, setIsEmailVerified] = React.useState(false);
   const [destination, setDestination] = React.useState("/");
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const passwordConfirmationErrorId = React.useId();
+  const verificationAttempted = React.useRef(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -52,11 +54,28 @@ export default function LoginPage() {
       setDestination(nextPath);
     }
 
-    if (searchParams.get("mode") === "reset") {
+    const mode = searchParams.get("mode");
+    if (mode === "reset") {
       const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
       setLoginMode("reset-password");
       setResetToken(token);
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    }
+    if (mode === "verify") {
+      const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
+      setLoginMode("verify-email");
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+      if (!token || verificationAttempted.current) {
+        if (!token) setError("This email verification link is invalid or has expired.");
+        return;
+      }
+      verificationAttempted.current = true;
+      void apiClient.auth.verifyEmail
+        .mutate({ token })
+        .then(() => setIsEmailVerified(true))
+        .catch((cause: unknown) => {
+          setError(cause instanceof Error ? cause.message : "Unable to verify your email. Please try again.");
+        });
     }
   }, []);
 
@@ -64,6 +83,7 @@ export default function LoginPage() {
   const isSignIn = loginMode === "sign-in";
   const isForgotPassword = loginMode === "forgot-password";
   const isResetPassword = loginMode === "reset-password";
+  const isVerifyingEmail = loginMode === "verify-email";
 
   function selectLoginMode(mode: LoginMode) {
     setLoginMode(mode);
@@ -71,6 +91,7 @@ export default function LoginPage() {
     setPasswordConfirmationError(null);
     setNotice(null);
     setIsPasswordResetRequested(false);
+    setIsEmailVerified(false);
     setShowPassword(false);
   }
 
@@ -217,16 +238,28 @@ export default function LoginPage() {
             />
             <div className="text-center">
               <h2 id="sign-in-title" className="m-0 text-2xl font-semibold tracking-[-0.035em]">
-                {isForgotPassword ? "Reset your password" : isResetPassword ? "Choose a new password" : "Welcome back"}
+                {isForgotPassword
+                  ? "Reset your password"
+                  : isResetPassword
+                    ? "Choose a new password"
+                    : isVerifyingEmail
+                      ? isEmailVerified
+                        ? "Email verified"
+                        : "Verifying your email"
+                      : "Welcome back"}
               </h2>
               <p className="mb-9 mt-2 text-sm text-parcelis-gray">
                 {isForgotPassword
                   ? "Enter your email and we’ll send a reset link."
                   : isResetPassword
                     ? "Use a strong password with at least 12 characters."
-                    : isRegistering
-                      ? "Create an account to get started"
-                      : "Sign in to access your account"}
+                    : isVerifyingEmail
+                      ? isEmailVerified
+                        ? "Your account is active. You can now sign in."
+                        : "Please wait while we verify your email address."
+                      : isRegistering
+                        ? "Create an account to get started"
+                        : "Sign in to access your account"}
               </p>
             </div>
             {notice ? (
@@ -234,7 +267,23 @@ export default function LoginPage() {
                 {notice}
               </p>
             ) : null}
-            {isPasswordResetRequested ? (
+            {isVerifyingEmail ? (
+              <div className="text-center">
+                {error ? (
+                  <p className="m-0 text-sm leading-6 text-red-700 dark:text-red-300" role="alert">
+                    {error}
+                  </p>
+                ) : isEmailVerified ? (
+                  <Button className="mt-6 min-w-40" onClick={returnToSignIn} type="button">
+                    Sign in
+                  </Button>
+                ) : (
+                  <p className="m-0 text-sm leading-6 text-parcelis-gray" role="status">
+                    Verifying your email address…
+                  </p>
+                )}
+              </div>
+            ) : isPasswordResetRequested ? (
               <div className="text-center">
                 <p className="m-0 text-sm leading-6 text-parcelis-gray">
                   If an account matches that email address, a password reset link will arrive shortly.
@@ -353,7 +402,7 @@ export default function LoginPage() {
                 ) : null}
               </form>
             )}
-            {isForgotPassword || isResetPassword ? (
+            {isForgotPassword || isResetPassword || isVerifyingEmail ? (
               <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">
                 <button
                   className="text-xs font-semibold text-parcelis-green-hover"

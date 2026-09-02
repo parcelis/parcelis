@@ -6,6 +6,7 @@ import {
   requestPasswordResetInputSchema,
   resetPasswordInputSchema,
   updateUserProfileInputSchema,
+  verifyEmailInputSchema,
 } from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@parcelis/email";
@@ -47,6 +48,11 @@ const invalidCredentials = new TRPCError({
 const invalidPasswordResetToken = new TRPCError({
   code: "BAD_REQUEST",
   message: "This password reset link is invalid or has expired.",
+});
+
+const invalidEmailVerificationToken = new TRPCError({
+  code: "BAD_REQUEST",
+  message: "This email verification link is invalid or has expired.",
 });
 
 async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: number) {
@@ -125,6 +131,43 @@ export const authRouter = router({
     }
     clearLoginRateLimit(rateLimitKey);
     return { user };
+  }),
+
+  verifyEmail: publicProcedure.input(verifyEmailInputSchema).mutation(async ({ ctx, input }) => {
+    const tokenHash = hashEmailVerificationToken(input.token);
+    const verificationToken = await ctx.prisma.emailVerificationToken.findUnique({
+      where: { tokenHash },
+      select: { id: true, userId: true, expiresAt: true, usedAt: true, user: { select: { accountStatus: true } } },
+    });
+    if (
+      !verificationToken ||
+      verificationToken.usedAt ||
+      verificationToken.expiresAt <= new Date() ||
+      verificationToken.user.accountStatus !== "pending"
+    ) {
+      throw invalidEmailVerificationToken;
+    }
+
+    await ctx.prisma.$transaction(async (tx) => {
+      const usedAt = new Date();
+      const consumedToken = await tx.emailVerificationToken.updateMany({
+        where: { id: verificationToken.id, usedAt: null, expiresAt: { gt: usedAt } },
+        data: { usedAt },
+      });
+      if (!consumedToken.count) {
+        throw invalidEmailVerificationToken;
+      }
+
+      const activatedUser = await tx.user.updateMany({
+        where: { id: verificationToken.userId, accountStatus: "pending" },
+        data: { accountStatus: "active" },
+      });
+      if (!activatedUser.count) {
+        throw invalidEmailVerificationToken;
+      }
+    });
+
+    return { success: true };
   }),
 
   login: publicProcedure.input(authLoginInputSchema).mutation(async ({ ctx, input }) => {
