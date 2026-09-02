@@ -11,6 +11,29 @@ const sharedEnvironment = {
   NEXT_PUBLIC_API_URL: "",
 };
 
+async function prepareDatabase() {
+  console.log("[render] Applying database migrations and demo data");
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ["demo/render/prepare.mjs"], {
+      cwd: rootDirectory,
+      stdio: "inherit",
+    });
+
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      if (signal) {
+        reject(new Error(`Database preparation stopped with ${signal}`));
+        return;
+      }
+      if (code === 0) resolve();
+      else reject(new Error(`Database preparation exited with ${code}`));
+    });
+  });
+}
+
+await prepareDatabase();
+
 const processes = [
   {
     name: "api",
