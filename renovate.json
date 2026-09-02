@@ -1,0 +1,102 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "America/Chicago",
+  "schedule": ["before 7am on monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "dependencyDashboard": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 7am on monday"]
+  },
+  "packageRules": [
+    {
+      "groupName": "Next.js",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["next", "@next/eslint-plugin-next"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "NestJS",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["@nestjs/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Turborepo",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["turbo"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "TanStack",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["@tanstack/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "React",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "React Email",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["react-email"],
+      "matchPackagePrefixes": ["@react-email/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "React PDF",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["@react-pdf/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "EmbedPDF",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["@embedpdf/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "tRPC",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["@trpc/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Prisma",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["prisma"],
+      "matchPackagePrefixes": ["@prisma/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Radix UI",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["@radix-ui/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Tailwind CSS",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["tailwindcss", "postcss"],
+      "matchPackagePrefixes": ["@tailwindcss/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Docusaurus",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["@docusaurus/", "docusaurus-"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "AWS SDK",
+      "matchManagers": ["npm"],
+      "matchPackagePrefixes": ["@aws-sdk/"],
+      "matchUpdateTypes": ["minor", "patch"]
+    }
+  ]
+}
