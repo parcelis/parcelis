@@ -1,0 +1,34 @@
+apps/api/src/modules/auth.ts
+  s_cd60e9e7616ccd::t_e5a4f56919ef9c 8,46,53,80-82
+apps/docs/content/platform-user-guide/getting-started/sign-in.mdx
+  s_cd60e9e7616ccd::t_e5a4f56919ef9c 12-13
+apps/web/app/login/page.tsx
+  s_cd60e9e7616ccd::t_e5a4f56919ef9c 123-129
+  ai_agent 317-321
+apps/api/src/router/auth.router.ts
+  s_cd60e9e7616ccd::t_e5a4f56919ef9c 11,15,18,21,72-79,90,106-112,121-124
+packages/email/src/templates/verification.tsx
+  s_cd60e9e7616ccd::t_e5a4f56919ef9c 1-71
+packages/email/src/index.ts
+  s_cd60e9e7616ccd::t_e5a4f56919ef9c 2,6
+packages/email/src/verification.tsx
+  s_cd60e9e7616ccd::t_e5a4f56919ef9c 1-20
+packages/schemas/src/index.ts
+  s_cd60e9e7616ccd::t_e5a4f56919ef9c 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "428d1239ca0ff3f57c42703dc4a36dfd859741b7",
+  "prompts": {},
+  "sessions": {
+    "s_cd60e9e7616ccd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a05ffd-4fcb-7501-a3f2-ecee4458fdd8",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
