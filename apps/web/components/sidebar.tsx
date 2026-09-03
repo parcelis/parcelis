@@ -283,7 +283,7 @@ function SidebarContent({ active }: SidebarProps) {
           aria-controls="mobile-navigation"
           aria-expanded={false}
           aria-label="Open navigation"
-          className="fixed left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-md bg-white p-1 shadow-sm ring-1 ring-parcelis-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2 dark:bg-parcelis-slate lg:hidden"
+          className="parcelis-mobile-nav-trigger fixed z-20 flex items-center justify-center rounded-md bg-white p-1 shadow-sm ring-1 ring-parcelis-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2 dark:bg-parcelis-slate lg:hidden"
           onClick={() => setIsMobileSidebarOpen(true)}
           ref={mobileNavigationButton}
           type="button"
