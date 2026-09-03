@@ -413,7 +413,10 @@ function SidebarContent({ active }: SidebarProps) {
                 <Select
                   disabled={switchOrganizationMutation.isPending}
                   id="organization-switcher"
-                  onChange={(event) => switchOrganizationMutation.mutate(Number(event.target.value))}
+                  onChange={(event) => {
+                    closeMobileSidebar();
+                    switchOrganizationMutation.mutate(Number(event.target.value));
+                  }}
                   value={activeOrganizationQuery.data?.id ?? ""}
                 >
                   {organizationsQuery.data.map(({ organization }) => (
