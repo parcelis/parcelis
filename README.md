@@ -39,7 +39,7 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 ## Try the demo
 <a href="https://demo.parcelis.dev" target="_blank"><img height="100" src="image.png" /></a>
-<span>Click the button above to open the demo</span>
+<p>Click the button above to open the demo</p>
 
 <br />
 
