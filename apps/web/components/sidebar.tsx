@@ -107,7 +107,8 @@ function SidebarContent({ active }: SidebarProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
-  const mobileSidebarRef = React.useRef<HTMLElement>(null);
+  const mobileSidebar = React.useRef<HTMLElement>(null);
+  const mobileNavigationButton = React.useRef<HTMLButtonElement>(null);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
@@ -176,7 +177,6 @@ function SidebarContent({ active }: SidebarProps) {
   React.useEffect(() => {
     if (!isMobileSidebarOpen) return;
 
-    const previouslyFocusedElement = document.activeElement as HTMLElement | null;
     const previousBodyOverflow = document.body.style.overflow;
     const backgroundElements = Array.from(document.querySelectorAll<HTMLElement>("main, footer"));
     const previousInertStates = backgroundElements.map((element) => element.inert);
@@ -185,14 +185,14 @@ function SidebarContent({ active }: SidebarProps) {
     backgroundElements.forEach((element) => {
       element.inert = true;
     });
-    mobileSidebarRef.current?.querySelector<HTMLElement>("[data-mobile-nav-close]")?.focus();
+    mobileSidebar.current?.querySelector<HTMLElement>("[data-mobile-nav-close]")?.focus();
 
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       backgroundElements.forEach((element, index) => {
         element.inert = previousInertStates[index] ?? false;
       });
-      previouslyFocusedElement?.focus();
+      mobileNavigationButton.current?.focus();
     };
   }, [isMobileSidebarOpen]);
 
@@ -232,7 +232,7 @@ function SidebarContent({ active }: SidebarProps) {
     if (event.key !== "Tab") return;
 
     const focusableElements = Array.from(
-      mobileSidebarRef.current?.querySelectorAll<HTMLElement>(
+      mobileSidebar.current?.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       ) ?? [],
     );
@@ -241,7 +241,7 @@ function SidebarContent({ active }: SidebarProps) {
 
     if (!firstElement || !lastElement) {
       event.preventDefault();
-      mobileSidebarRef.current?.focus();
+      mobileSidebar.current?.focus();
       return;
     }
     if (event.shiftKey && document.activeElement === firstElement) {
@@ -285,6 +285,7 @@ function SidebarContent({ active }: SidebarProps) {
           aria-label="Open navigation"
           className="fixed left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-md bg-white p-1 shadow-sm ring-1 ring-parcelis-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2 dark:bg-parcelis-slate lg:hidden"
           onClick={() => setIsMobileSidebarOpen(true)}
+          ref={mobileNavigationButton}
           type="button"
         >
           <Image
@@ -328,7 +329,7 @@ function SidebarContent({ active }: SidebarProps) {
         }}
         onMouseLeave={() => setIsSidebarHovered(false)}
         onKeyDown={trapMobileSidebarFocus}
-        ref={mobileSidebarRef}
+        ref={mobileSidebar}
         tabIndex={-1}
       >
         <div
