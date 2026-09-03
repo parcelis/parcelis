@@ -1,0 +1,19 @@
+README.md
+  s_e84a8a770a80f4::t_1c71ffbcec029a 7,18,32,34,36-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1854ba28925005436c642d70808d0b9d255bc61d",
+  "prompts": {},
+  "sessions": {
+    "s_e84a8a770a80f4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0658b-ea06-7ce2-ab36-587471c6db72",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
