@@ -321,7 +321,7 @@ function SidebarContent({ active }: SidebarProps) {
         id="mobile-navigation"
         className={`fixed inset-y-0 left-0 z-30 flex overflow-hidden border-r border-parcelis-border bg-white transition-[width,padding] duration-200 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:ease-in-out ${
           isMobileSidebarOpen
-            ? "max-lg:visible max-lg:w-64 max-lg:flex-col max-lg:px-4"
+            ? "max-lg:w-64 max-lg:flex-col max-lg:px-4"
             : "max-lg:invisible max-lg:w-0 max-lg:flex-col max-lg:border-r-0 max-lg:px-0"
         } lg:flex lg:flex-col ${isSidebarExpanded ? "w-64 px-4" : "w-16 px-1"}`}
         onMouseEnter={() => {
