@@ -72,6 +72,27 @@ const initialChangePasswordForm: ChangePasswordForm = {
   reenterPassword: "",
 };
 
+function Lettermark() {
+  return (
+    <>
+      <Image
+        alt="Parcelis"
+        className="h-full w-full object-cover dark:hidden"
+        height={1042}
+        src="/brand/parcelis-lettermark-light.svg"
+        width={730}
+      />
+      <Image
+        alt="Parcelis"
+        className="hidden h-full w-full object-cover dark:block"
+        height={1042}
+        src="/brand/parcelis-lettermark-dark.svg"
+        width={730}
+      />
+    </>
+  );
+}
+
 // Determines the active navigation item based on the current pathname.
 function activeNavigation(pathname: string): SidebarProps["active"] {
   const path = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
@@ -288,22 +309,7 @@ function SidebarContent({ active }: SidebarProps) {
           ref={mobileNavigationButton}
           type="button"
         >
-          <Image
-            alt="Parcelis"
-            className="h-full w-full object-cover dark:hidden"
-            height={1042}
-            priority
-            src="/brand/parcelis-lettermark-light.svg"
-            width={730}
-          />
-          <Image
-            alt="Parcelis"
-            className="hidden h-full w-full object-cover dark:block"
-            height={1042}
-            priority
-            src="/brand/parcelis-lettermark-dark.svg"
-            width={730}
-          />
+          <Lettermark />
         </button>
       ) : null}
       {isMobileSidebarOpen ? (
@@ -344,22 +350,7 @@ function SidebarContent({ active }: SidebarProps) {
               onClick={toggleSidebar}
               type="button"
             >
-              <Image
-                alt="Parcelis"
-                className="h-full w-full object-cover dark:hidden"
-                height={1042}
-                priority
-                src="/brand/parcelis-lettermark-light.svg"
-                width={730}
-              />
-              <Image
-                alt="Parcelis"
-                className="hidden h-full w-full object-cover dark:block"
-                height={1042}
-                priority
-                src="/brand/parcelis-lettermark-dark.svg"
-                width={730}
-              />
+              <Lettermark />
             </button>
           ) : (
             <Link aria-label="Parcelis portfolio" className="min-w-0" href="/" onClick={closeMobileSidebar}>
