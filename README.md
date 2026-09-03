@@ -4,7 +4,7 @@
 Parcelis (PAR-suhl-iss) is an open-source property management platform for landlords, small operators, and local property teams.
 
 <h4 align="center">
-  ,🚀
+  🚀
   <a href="http://kan.bn/dothuxv6abhw/parcelis-roadmap">Roadmap</a>
     <span>&nbsp; &nbsp; &nbsp; · &nbsp; &nbsp; &nbsp;</span>
   🧩
@@ -15,7 +15,7 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
   <span>&nbsp; &nbsp; &nbsp; · &nbsp; &nbsp; &nbsp;</span>
   👥💬
   <a href="https://github.com/parcelis/parcelis/discussions">Community Discussions</a>
-</h3>
+</h4>
 
 <br />
 
@@ -29,16 +29,19 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br />
 
-![GitHub Tag](https://img.shields.io/github/v/tag/parcelis/parcelis)
-![Docker Automated build](https://img.shields.io/docker/automated/ndcallahan/parcelis)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/parcelis/parcelis/publish-images.yml)
-[![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml) [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/parcelis/parcelis) ![GitHub Issues](https://img.shields.io/github/issues/parcelis/parcelis) ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/parcelis/parcelis) ![GitHub Discussions (all)](https://img.shields.io/github/discussions/all/parcelis/parcelis)
-![GitHub License](https://img.shields.io/github/license/parcelis/parcelis)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-3.0-4baaaa.svg)](CODE_OF_CONDUCT.md)
+![GitHub Tag](https://img.shields.io/github/v/tag/parcelis/parcelis) ![Docker Automated build](https://img.shields.io/docker/automated/ndcallahan/parcelis) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/parcelis/parcelis/publish-images.yml) [![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml) [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/parcelis/parcelis) ![GitHub Issues](https://img.shields.io/github/issues/parcelis/parcelis) ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/parcelis/parcelis) ![GitHub Discussions (all)](https://img.shields.io/github/discussions/all/parcelis/parcelis) ![GitHub License](https://img.shields.io/github/license/parcelis/parcelis) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-3.0-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-## <p align="center"> Currently under development. Will update once we have a basic MVP to pilot.</p>
+<br/>
 
-<br /><br />
+## <p align="center"> We are currently under active development. While we have produced a demo website and pre-released versions, this software is not production ready. We will update once we have a basic MVP to pilot.</p>
+
+<br />
+
+## Try the demo
+<a href="https://demo.parcelis.dev" target="_blank"><img height="100" src="image.png" /></a>
+<span>Click the button above to open the demo</span>
+
+<br />
 
 # 🧩 Features
 
