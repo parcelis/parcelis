@@ -15,6 +15,13 @@
 html {
   background: rgb(var(--parcelis-porcelain));
   --parcelis-sidebar-width: 16rem;
+  --parcelis-mobile-nav-trigger-inset: 0.75rem;
+  --parcelis-mobile-nav-trigger-size: 2.5rem;
+  --parcelis-mobile-nav-trigger-gap: 0.75rem;
+  --parcelis-mobile-nav-clearance: calc(
+    var(--parcelis-mobile-nav-trigger-inset) + var(--parcelis-mobile-nav-trigger-size) +
+      var(--parcelis-mobile-nav-trigger-gap)
+  );
 }
 
 html.dark {
@@ -29,6 +36,19 @@ body {
   background:
     linear-gradient(180deg, rgb(var(--parcelis-charcoal) / 0.04), rgb(var(--parcelis-porcelain) / 0) 320px),
     rgb(var(--parcelis-porcelain));
+}
+
+@media (max-width: 1023px) {
+  .parcelis-mobile-nav-trigger {
+    top: var(--parcelis-mobile-nav-trigger-inset);
+    left: var(--parcelis-mobile-nav-trigger-inset);
+    width: var(--parcelis-mobile-nav-trigger-size);
+    height: var(--parcelis-mobile-nav-trigger-size);
+  }
+
+  .parcelis-mobile-nav-header {
+    padding-left: var(--parcelis-mobile-nav-clearance);
+  }
 }
 
 .dark body {

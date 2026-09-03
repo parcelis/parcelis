@@ -5,15 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
-import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label, ParcelisLogo } from "@parcelis/ui";
+import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../components/image-upload";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
 import { ImageUploadPanel } from "../../../../components/image-upload-panel";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 type AvatarVariant = "light" | "dark";
 type AvatarChanges = Partial<Record<AvatarVariant, File | null>>;
 
@@ -155,11 +153,8 @@ export default function OrganizationSettingsPage() {
   return (
     <main className="flex-1">
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
-              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-            </div>
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>
