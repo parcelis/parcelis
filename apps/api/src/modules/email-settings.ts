@@ -1,4 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import type { PrismaClient } from "@parcelis/db";
+import type { EmailConfig } from "@parcelis/email";
 
 const encryptionAlgorithm = "aes-256-gcm";
 const initializationVectorLength = 12;
@@ -34,4 +36,44 @@ export function decryptEmailSettingsPassword(passwordCipher: string) {
   decipher.setAuthTag(authenticationTag);
 
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+}
+
+export async function getOrganizationEmailConfig(prisma: PrismaClient, organizationId: number): Promise<EmailConfig | undefined> {
+  const settings = await prisma.organizationEmailSettings.findUnique({
+    where: { organizationId },
+    select: {
+      host: true,
+      securityType: true,
+      port: true,
+      fromEmail: true,
+      requireSignIn: true,
+      username: true,
+      passwordCipher: true,
+    },
+  });
+  if (!settings) return undefined;
+
+  const security =
+    settings.securityType === "tls"
+      ? { secure: true }
+      : settings.securityType === "starttls"
+        ? { requireTLS: true, secure: false }
+        : settings.securityType === "none"
+          ? { secure: false }
+          : null;
+  if (!security) throw new Error("Organization email settings have an invalid security type.");
+
+  if (!settings.requireSignIn) return { from: settings.fromEmail, host: settings.host, port: settings.port, ...security };
+  if (!settings.username || !settings.passwordCipher) {
+    throw new Error("Organization email settings require a username and password.");
+  }
+
+  return {
+    from: settings.fromEmail,
+    host: settings.host,
+    password: decryptEmailSettingsPassword(settings.passwordCipher),
+    port: settings.port,
+    user: settings.username,
+    ...security,
+  };
 }
