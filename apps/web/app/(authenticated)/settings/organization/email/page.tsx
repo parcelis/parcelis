@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Mail } from "lucide-react";
+import { toast } from "sonner";
 import { Badge, Button, Card, CardContent, CardHeader, Checkbox, Input, Label, ParcelisLogo, Select } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { LoadingState } from "../../../../../components/loading-state";
@@ -74,6 +75,11 @@ export default function OrganizationEmailSettingsPage() {
       setPassword("");
       await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.emailSettings });
     },
+  });
+  const sendTestEmail = useMutation({
+    mutationFn: () => apiClient.organizations.sendTestEmail.mutate(),
+    onError: (error) => toast.error(error.message),
+    onSuccess: ({ recipient }) => toast.success(`Test email sent to ${recipient}.`),
   });
   const hasSavedPassword = emailSettingsQuery.data?.hasPassword ?? false;
 
@@ -233,9 +239,20 @@ export default function OrganizationEmailSettingsPage() {
                       {saveEmailSettings.error ? (
                         <p className="text-sm font-medium text-red-700">{saveEmailSettings.error.message}</p>
                       ) : null}
-                      <Button className="min-w-40 self-start" disabled={saveEmailSettings.isPending} type="submit">
-                        Save email settings
-                      </Button>
+                      <div className="flex flex-wrap gap-3">
+                        <Button className="min-w-40" disabled={saveEmailSettings.isPending} type="submit">
+                          Save email settings
+                        </Button>
+                        <Button
+                          className="min-w-40"
+                          disabled={sendTestEmail.isPending || !emailSettingsQuery.data}
+                          onClick={() => sendTestEmail.mutate()}
+                          type="button"
+                          variant="secondary"
+                        >
+                          {sendTestEmail.isPending ? "Sending test email…" : "Send test email"}
+                        </Button>
+                      </div>
                     </form>
                   )}
                 </CardContent>

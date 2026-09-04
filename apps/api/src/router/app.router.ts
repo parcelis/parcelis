@@ -106,7 +106,12 @@ import { hashPassword } from "../modules/auth";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
-import { encryptEmailSettingsPassword, isEmailSettingsEncryptionConfigured } from "../modules/email-settings";
+import { sendSmtpTestEmail } from "@parcelis/email";
+import {
+  encryptEmailSettingsPassword,
+  getOrganizationEmailConfig,
+  isEmailSettingsEncryptionConfigured,
+} from "../modules/email-settings";
 
 const propertySelect = {
   id: true,
@@ -699,6 +704,29 @@ export const appRouter = router({
         const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
         return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
       }),
+      // Send a test email to verify the organization's SMTP settings
+    sendTestEmail: organizationProcedure.mutation(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      const emailConfig = await getOrganizationEmailConfig(ctx.prisma, ctx.organization.organizationId);
+      if (!emailConfig) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Save SMTP settings before sending a test email." });
+      }
+
+      try {
+        await sendSmtpTestEmail({
+          emailConfig,
+          to: ctx.user.email,
+        });
+      } catch (error) {
+        console.error("Failed to send SMTP test email.", { error, organizationId: ctx.organization.organizationId });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Unable to send a test email.",
+        });
+      }
+
+      return { recipient: ctx.user.email };
+    }),
     createAvatarUploadUrl: organizationProcedure
       .input(organizationAvatarUploadInputSchema)
       .mutation(({ ctx, input }) => {

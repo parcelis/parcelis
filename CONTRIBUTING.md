@@ -90,7 +90,7 @@ pnpm dev
 
 #### What `pnpm dev` starts
 
-`pnpm dev` starts the web, API, and docs apps with hot reload. It also starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
+`pnpm dev` starts the web, API, docs, and React Email preview apps with hot reload. It also starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
 
 Use nginx as the normal local entry point:
 
@@ -107,6 +107,7 @@ The host processes and local services are also available directly:
 | Web app | `http://localhost:30000` |
 | Docs | `http://localhost:40000` |
 | API | `http://localhost:40010` |
+| Email preview | `http://localhost:30001` |
 | PostgreSQL | `localhost:54320` |
 | pgAdmin | `http://localhost:8000` |
 | MinIO API | `http://localhost:9001` |
@@ -130,6 +131,7 @@ pnpm db:seed
 #### Useful commands
 
 - `pnpm dev:services:refresh`: recreate nginx, PostgreSQL, and MinIO while preserving their volumes, then rerun MinIO initialization.
+- `pnpm --filter @parcelis/email email:preview`: run only the React Email template preview on `http://localhost:30001`.
 - `pnpm email:verify`: verify the configured SMTP connection and authentication without sending an email.
 - Stop an existing app watcher with `Ctrl+C` before starting another `pnpm dev` process.
 
