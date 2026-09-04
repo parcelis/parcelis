@@ -122,6 +122,16 @@ export default function OrganizationEmailSettingsPage() {
     },
   });
   const hasSavedPassword = emailSettingsQuery.data?.hasPassword ?? false;
+  const hasUnsavedChanges =
+    Boolean(emailSettingsQuery.data) &&
+    (host !== emailSettingsQuery.data?.host ||
+      securityType !== emailSettingsQuery.data?.securityType ||
+      port !== String(emailSettingsQuery.data?.port) ||
+      fromName !== (emailSettingsQuery.data?.fromName ?? "") ||
+      fromEmail !== emailSettingsQuery.data?.fromEmail ||
+      requireSignIn !== emailSettingsQuery.data?.requireSignIn ||
+      username !== (emailSettingsQuery.data?.username ?? "") ||
+      password !== "");
 
   return (
     <main className="flex-1">
@@ -300,7 +310,12 @@ export default function OrganizationEmailSettingsPage() {
                         </Button>
                         <Button
                           className="min-w-40"
-                          disabled={sendTestEmail.isPending || !emailSettingsQuery.data}
+                          disabled={
+                            sendTestEmail.isPending ||
+                            saveEmailSettings.isPending ||
+                            !emailSettingsQuery.data ||
+                            hasUnsavedChanges
+                          }
                           onClick={() => sendTestEmail.mutate()}
                           type="button"
                           variant="secondary"
@@ -319,6 +334,9 @@ export default function OrganizationEmailSettingsPage() {
                           </Button>
                         ) : null}
                       </div>
+                      {hasUnsavedChanges ? (
+                        <p className="text-sm text-parcelis-gray">Save changes before sending a test email.</p>
+                      ) : null}
                     </form>
                   )}
                 </CardContent>
