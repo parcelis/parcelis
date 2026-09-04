@@ -704,7 +704,14 @@ export const appRouter = router({
         const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
         return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
       }),
-      // Send a test email to verify the organization's SMTP settings
+    deleteEmailSettings: organizationProcedure.mutation(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      await ctx.prisma.organizationEmailSettings.deleteMany({
+        where: { organizationId: ctx.organization.organizationId },
+      });
+      return { success: true };
+    }),
+    // Send a test email to verify the organization's SMTP settings
     sendTestEmail: organizationProcedure.mutation(async ({ ctx }) => {
       requireOrganizationAdministrator(ctx.organization.role);
       const emailConfig = await getOrganizationEmailConfig(ctx.prisma, ctx.organization.organizationId);

@@ -73,6 +73,27 @@ test("uses environment SMTP when an organization has no saved configuration", as
   assert.equal(await getOrganizationEmailConfig(prisma, 42), undefined);
 });
 
+test("removes the organization SMTP configuration", async () => {
+  let deletedOrganizationId: number | undefined;
+  const prisma = {
+    organizationEmailSettings: {
+      deleteMany: async ({ where }: { where: { organizationId: number } }) => {
+        deletedOrganizationId = where.organizationId;
+        return { count: 1 };
+      },
+    },
+  } as unknown as PrismaService;
+  const caller = appRouter.createCaller({
+    prisma,
+    session: {},
+    organization: { organizationId: 1, role: "administrator" },
+  } as Context);
+
+  await caller.organizations.deleteEmailSettings();
+
+  assert.equal(deletedOrganizationId, 1);
+});
+
 test("preserves the current SMTP password when saving without a replacement", async () => {
   let updateData: Record<string, unknown> | undefined;
   const prisma = {

@@ -4,9 +4,26 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mail } from "lucide-react";
+import { Mail, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge, Button, Card, CardContent, CardHeader, Checkbox, Input, Label, ParcelisLogo, Select } from "@parcelis/ui";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Checkbox,
+  Input,
+  Label,
+  ParcelisLogo,
+  Select,
+} from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { LoadingState } from "../../../../../components/loading-state";
 import { SettingsRail } from "../../../../../components/settings-rail";
@@ -51,6 +68,7 @@ export default function OrganizationEmailSettingsPage() {
   const [requireSignIn, setRequireSignIn] = React.useState(true);
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [isResetDialogOpen, setIsResetDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     const settings = emailSettingsQuery.data;
@@ -85,6 +103,22 @@ export default function OrganizationEmailSettingsPage() {
     mutationFn: () => apiClient.organizations.sendTestEmail.mutate(),
     onError: (error) => toast.error(error.message),
     onSuccess: ({ recipient }) => toast.success(`Test email sent to ${recipient}.`),
+  });
+  const deleteEmailSettings = useMutation({
+    mutationFn: () => apiClient.organizations.deleteEmailSettings.mutate(),
+    onError: (error) => toast.error(error.message),
+    onSuccess: async () => {
+      setIsResetDialogOpen(false);
+      setHost("");
+      setSecurityType("starttls");
+      setPort("587");
+      setFromName("");
+      setFromEmail("");
+      setRequireSignIn(true);
+      setUsername("");
+      setPassword("");
+      await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.emailSettings });
+    },
   });
   const hasSavedPassword = emailSettingsQuery.data?.hasPassword ?? false;
 
@@ -142,7 +176,9 @@ export default function OrganizationEmailSettingsPage() {
                   {activeOrganizationQuery.error ? (
                     <p className="text-sm font-medium text-red-700">{activeOrganizationQuery.error.message}</p>
                   ) : !canManageOrganization && !activeOrganizationQuery.isLoading ? (
-                    <p className="text-sm text-parcelis-gray">You have view-only access to this organization’s settings.</p>
+                    <p className="text-sm text-parcelis-gray">
+                      You have view-only access to this organization’s settings.
+                    </p>
                   ) : activeOrganizationQuery.isLoading || emailSettingsQuery.isLoading ? (
                     <LoadingState label="Loading email settings…" />
                   ) : emailSettingsQuery.error ? (
@@ -157,7 +193,12 @@ export default function OrganizationEmailSettingsPage() {
                     >
                       <Label>
                         SMTP host
-                        <Input className="mt-1" onChange={(event) => setHost(event.target.value)} required value={host} />
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setHost(event.target.value)}
+                          required
+                          value={host}
+                        />
                       </Label>
                       <div className="flex flex-col gap-6 sm:flex-row">
                         <Label className="flex-1">
@@ -187,7 +228,11 @@ export default function OrganizationEmailSettingsPage() {
                       </div>
                       <Label>
                         Sender name
-                        <Input className="mt-1" onChange={(event) => setFromName(event.target.value)} value={fromName} />
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setFromName(event.target.value)}
+                          value={fromName}
+                        />
                       </Label>
                       <Label>
                         From email address
@@ -209,7 +254,9 @@ export default function OrganizationEmailSettingsPage() {
                           <Label className="cursor-pointer" htmlFor="require-sign-in">
                             Require sign in
                           </Label>
-                          <p className="mt-1 text-sm text-parcelis-gray">Use a username and password to authenticate with SMTP.</p>
+                          <p className="mt-1 text-sm text-parcelis-gray">
+                            Use a username and password to authenticate with SMTP.
+                          </p>
                         </div>
                       </div>
                       {requireSignIn ? (
@@ -259,11 +306,49 @@ export default function OrganizationEmailSettingsPage() {
                         >
                           {sendTestEmail.isPending ? "Sending test email…" : "Send test email"}
                         </Button>
+                        {emailSettingsQuery.data ? (
+                          <Button
+                            className="min-w-40"
+                            onClick={() => setIsResetDialogOpen(true)}
+                            type="button"
+                            variant="destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Reset configuration
+                          </Button>
+                        ) : null}
                       </div>
                     </form>
                   )}
                 </CardContent>
               </Card>
+              <AlertDialog onOpenChange={setIsResetDialogOpen} open={isResetDialogOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset organization SMTP settings?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This clears the form and makes future email use the deployment’s SMTP configuration until you save
+                      a new configuration.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {deleteEmailSettings.error ? (
+                    <p className="text-sm font-medium text-red-700">{deleteEmailSettings.error.message}</p>
+                  ) : null}
+                  <AlertDialogFooter>
+                    <Button onClick={() => setIsResetDialogOpen(false)} type="button" variant="secondary">
+                      Cancel
+                    </Button>
+                    <Button
+                      disabled={deleteEmailSettings.isPending}
+                      onClick={() => deleteEmailSettings.mutate()}
+                      type="button"
+                      variant="destructive"
+                    >
+                      {deleteEmailSettings.isPending ? "Resetting settings…" : "Reset settings"}
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>
