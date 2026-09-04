@@ -32,6 +32,11 @@ export default function OrganizationEmailSettingsPage() {
     queryFn: () => apiClient.organizations.emailSettings.query(),
     enabled: canManageOrganization,
   });
+  const emailSettingsEncryptionStatusQuery = useQuery({
+    queryKey: queryKeys.organizations.emailSettingsEncryptionStatus,
+    queryFn: () => apiClient.organizations.emailSettingsEncryptionStatus.query(),
+    enabled: canManageOrganization,
+  });
   const [host, setHost] = React.useState("");
   const [securityType, setSecurityType] = React.useState<SmtpSecurityType>("starttls");
   const [port, setPort] = React.useState("587");
@@ -103,6 +108,18 @@ export default function OrganizationEmailSettingsPage() {
                       <p className="mt-1 text-sm text-parcelis-gray">
                         Leave this unconfigured to use the deployment’s email settings.
                       </p>
+                      {emailSettingsEncryptionStatusQuery.data ? (
+                        <p
+                          aria-live="polite"
+                          className={`mt-3 text-sm font-medium ${
+                            emailSettingsEncryptionStatusQuery.data.configured ? "text-parcelis-green" : "text-red-700"
+                          }`}
+                        >
+                          {emailSettingsEncryptionStatusQuery.data.configured
+                            ? "SMTP credential encryption is configured."
+                            : "SMTP credential encryption is not configured. Set EMAIL_SETTINGS_ENCRYPTION_KEY in your .env file."}
+                        </p>
+                      ) : null}
                     </div>
                     <Mail className="h-5 w-5 text-parcelis-green" />
                   </div>
