@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
+import { TRPCError } from "@trpc/server";
 import type { PrismaService } from "../../modules/prisma.service";
 import {
   decryptEmailSettingsPassword,
@@ -70,6 +71,39 @@ test("uses environment SMTP when an organization has no saved configuration", as
   } as unknown as PrismaClient;
 
   assert.equal(await getOrganizationEmailConfig(prisma, 42), undefined);
+});
+
+test("returns a bad request when saved SMTP credentials cannot be decrypted for a test email", async () => {
+  const previousKey = process.env.EMAIL_SETTINGS_ENCRYPTION_KEY;
+  process.env.EMAIL_SETTINGS_ENCRYPTION_KEY = encryptionKey;
+  try {
+    const prisma = {
+      organizationEmailSettings: {
+        findUnique: async () => ({
+          host: "smtp.example.com",
+          securityType: "starttls",
+          port: 587,
+          fromEmail: "notices@example.com",
+          requireSignIn: true,
+          username: "smtp-user",
+          passwordCipher: "invalid-ciphertext",
+        }),
+      },
+    } as unknown as PrismaService;
+    const caller = appRouter.createCaller({
+      prisma,
+      session: {},
+      organization: { organizationId: 1, role: "administrator" },
+    } as Context);
+
+    await assert.rejects(
+      () => caller.organizations.sendTestEmail(),
+      (error: unknown) => error instanceof TRPCError && error.code === "BAD_REQUEST",
+    );
+  } finally {
+    if (previousKey === undefined) delete process.env.EMAIL_SETTINGS_ENCRYPTION_KEY;
+    else process.env.EMAIL_SETTINGS_ENCRYPTION_KEY = previousKey;
+  }
 });
 
 test("removes the organization SMTP configuration", async () => {

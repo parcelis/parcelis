@@ -714,7 +714,19 @@ export const appRouter = router({
     // Send a test email to verify the organization's SMTP settings
     sendTestEmail: organizationProcedure.mutation(async ({ ctx }) => {
       requireOrganizationAdministrator(ctx.organization.role);
-      const emailConfig = await getOrganizationEmailConfig(ctx.prisma, ctx.organization.organizationId);
+      let emailConfig;
+      try {
+        emailConfig = await getOrganizationEmailConfig(ctx.prisma, ctx.organization.organizationId);
+      } catch (error) {
+        console.error("Failed to load SMTP settings for test email.", {
+          error,
+          organizationId: ctx.organization.organizationId,
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Unable to load SMTP settings.",
+        });
+      }
       if (!emailConfig) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Save SMTP settings before sending a test email." });
       }
