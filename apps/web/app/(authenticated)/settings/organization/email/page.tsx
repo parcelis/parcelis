@@ -40,6 +40,7 @@ export default function OrganizationEmailSettingsPage() {
   const [host, setHost] = React.useState("");
   const [securityType, setSecurityType] = React.useState<SmtpSecurityType>("starttls");
   const [port, setPort] = React.useState("587");
+  const [fromName, setFromName] = React.useState("");
   const [fromEmail, setFromEmail] = React.useState("");
   const [requireSignIn, setRequireSignIn] = React.useState(true);
   const [username, setUsername] = React.useState("");
@@ -51,6 +52,7 @@ export default function OrganizationEmailSettingsPage() {
     setHost(settings.host);
     setSecurityType(isSmtpSecurityType(settings.securityType) ? settings.securityType : "starttls");
     setPort(String(settings.port));
+    setFromName(settings.fromName ?? "");
     setFromEmail(settings.fromEmail);
     setRequireSignIn(settings.requireSignIn);
     setUsername(settings.username ?? "");
@@ -62,6 +64,7 @@ export default function OrganizationEmailSettingsPage() {
         host: host.trim(),
         securityType,
         port: Number(port),
+        fromName: fromName.trim() || undefined,
         fromEmail: fromEmail.trim(),
         requireSignIn,
         username: requireSignIn ? username.trim() : undefined,
@@ -169,6 +172,10 @@ export default function OrganizationEmailSettingsPage() {
                           />
                         </Label>
                       </div>
+                      <Label>
+                        Sender name
+                        <Input className="mt-1" onChange={(event) => setFromName(event.target.value)} value={fromName} />
+                      </Label>
                       <Label>
                         From email address
                         <Input

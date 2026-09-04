@@ -55,6 +55,7 @@ export async function getOrganizationEmailConfig(prisma: PrismaClient, organizat
       host: true,
       securityType: true,
       port: true,
+      fromName: true,
       fromEmail: true,
       requireSignIn: true,
       username: true,
@@ -73,13 +74,15 @@ export async function getOrganizationEmailConfig(prisma: PrismaClient, organizat
           : null;
   if (!security) throw new Error("Organization email settings have an invalid security type.");
 
-  if (!settings.requireSignIn) return { from: settings.fromEmail, host: settings.host, port: settings.port, ...security };
+  const from = settings.fromName ? `${settings.fromName} <${settings.fromEmail}>` : settings.fromEmail;
+
+  if (!settings.requireSignIn) return { from, host: settings.host, port: settings.port, ...security };
   if (!settings.username || !settings.passwordCipher) {
     throw new Error("Organization email settings require a username and password.");
   }
 
   return {
-    from: settings.fromEmail,
+    from,
     host: settings.host,
     password: decryptEmailSettingsPassword(settings.passwordCipher),
     port: settings.port,

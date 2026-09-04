@@ -294,6 +294,7 @@ export const saveOrganizationEmailSettingsInputSchema = z
     host: z.string().trim().min(1).max(255),
     securityType: smtpSecurityTypeSchema,
     port: z.number().int().min(1).max(65535),
+    fromName: z.string().trim().min(1).max(100).optional(),
     fromEmail: z.string().trim().email().max(320),
     requireSignIn: z.boolean(),
     username: z.string().trim().min(1).max(320).optional(),
