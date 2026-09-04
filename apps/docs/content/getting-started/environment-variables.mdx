@@ -1,0 +1,63 @@
+---
+id: environment-variables
+title: Environment variables
+sidebar_label: Environment variables
+---
+
+Configure these values before deploying Parcelis. Start with [`.env.production.example`](https://raw.githubusercontent.com/parcelis/parcelis/main/.env.production.example), copy it to `.env.production`, and replace every placeholder and default credential.
+
+Do not commit the resulting file or expose its contents in shell history, logs, or source control.
+
+## Application
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `PARCELIS_VERSION` | Yes | Version tag for the Parcelis container images, such as `v0.4.1`. |
+| `WEB_ORIGIN` | Yes | Public HTTPS origin of the web app, for example `https://parcelis.example.com`. |
+| `APP_PORT` | No | Host port exposed by the reverse proxy. Defaults to `3000`. |
+| `AUTH_COOKIE_DOMAIN` | No | Cookie domain. Leave empty to restrict sessions to the exact host. |
+| `AUTH_COOKIE_SECURE` | Yes | Set to `true` when serving Parcelis over HTTPS. |
+| `AUTH_DISABLED` | No | Enables authentication bypass only in development and test environments. Keep `false` in production. |
+
+## Database
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `POSTGRES_DB` | Yes | Name of the PostgreSQL database used by Parcelis. |
+| `POSTGRES_USER` | Yes | PostgreSQL user for the deployment. |
+| `POSTGRES_PASSWORD` | Yes | Password for `POSTGRES_USER`; use a unique secret. |
+| `DATABASE_URL` | Direct Docker only | PostgreSQL connection string for an app container launched outside the Compose stack. The Compose stack constructs it from the `POSTGRES_*` values. |
+
+## Object storage
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `MINIO_ROOT_USER` | Compose with MinIO | MinIO administrator username. |
+| `MINIO_ROOT_PASSWORD` | Compose with MinIO | MinIO administrator password; use a unique secret. |
+| `MINIO_API_PORT` | No | Host port for the MinIO S3 API. Defaults to `9001`. |
+| `MINIO_CONSOLE_PORT` | No | Host port for the MinIO console. Defaults to `9010`. |
+| `MINIO_ASSETS_BUCKET` | Compose with MinIO | Bucket for Parcelis brand assets. |
+| `S3_ENDPOINT` | Direct Docker only | Internal S3-compatible endpoint used by the app. The Compose stack sets this to its MinIO service. |
+| `S3_PUBLIC_ENDPOINT` | Yes | Public URL used to serve uploaded images and brand assets. |
+| `S3_REGION` | No | S3 region. Defaults to `us-east-1`. |
+| `S3_BUCKET` | Yes | Bucket for uploaded property images. |
+| `S3_ACCESS_KEY_ID` | Direct Docker only | Access key for external S3-compatible storage. The Compose stack uses `MINIO_ROOT_USER`. |
+| `S3_SECRET_ACCESS_KEY` | Direct Docker only | Secret key for external S3-compatible storage. The Compose stack uses `MINIO_ROOT_PASSWORD`. |
+
+## Email
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `EMAIL_FROM` | Yes | Sender shown on transactional email, such as password reset messages. |
+| `SMTP_HOST` | Yes | Hostname of the fallback SMTP server. |
+| `SMTP_PORT` | Yes | SMTP server port. Use `465` for implicit TLS. |
+| `SMTP_SECURE` | Yes | `true` for implicit TLS; otherwise `false`. |
+| `SMTP_USER` | Usually | SMTP username, when the server requires authentication. |
+| `SMTP_PASSWORD` | Usually | SMTP password, when the server requires authentication. |
+| `EMAIL_SETTINGS_ENCRYPTION_KEY` | Yes for organization SMTP | Base64-encoded 32-byte secret used to encrypt SMTP passwords saved in organization settings. Keep it stable across deployments. |
+
+Organization-level SMTP settings take precedence over these fallback values for users in that organization.
+
+## Optional branding and local-only values
+
+The production example also includes `NEXT_PUBLIC_BRAND_LOGO_URL` and `NEXT_PUBLIC_DARK_BRAND_LOGO_URL` for custom email branding. Local development values, including `API_PORT`, `DOCS_PORT`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, and `PGADMIN_*`, are documented in [Getting started](../getting-started).

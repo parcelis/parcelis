@@ -45,21 +45,9 @@ docker compose --env-file .env.production up -d
 If you are planning to run Parcelis in a production environment, update the values for the database, object storage, and authentication settings before you expose the service publicly. Use strong, unique credentials and keep them out of shell history and version control.
 :::
 
-## Required environment variables
+## Environment configuration
 
-The app container expects the following values at minimum:
-
-- `DATABASE_URL`: PostgreSQL connection string
-- `WEB_ORIGIN`: the public origin used by the web app
-- `AUTH_COOKIE_DOMAIN`: the cookie domain for authentication sessions
-- `AUTH_COOKIE_SECURE`: set to `true` when the app is served over HTTPS
-- `EMAIL_FROM`: sender address for password reset emails
-- `SMTP_HOST`, `SMTP_PORT`, and `SMTP_SECURE`: SMTP server connection settings; `SMTP_SECURE` must be `true` or `false`
-- `SMTP_USER` and `SMTP_PASSWORD`: SMTP authentication credentials
-- `EMAIL_SETTINGS_ENCRYPTION_KEY`: base64-encoded 32-byte key used to encrypt saved organization SMTP passwords
-- `S3_ENDPOINT` and `S3_PUBLIC_ENDPOINT`: S3-compatible endpoint URLs
-- `S3_BUCKET`: the object-storage bucket used for uploaded images
-- `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`: credentials for object storage
+See [Environment variables](./environment-variables) for the complete deployment reference, including the values required when you use an external PostgreSQL or S3-compatible storage service.
 
 The nginx proxy exposes the web app at `/`, documentation at `/docs/`, and
 the API at `/api/v1`.

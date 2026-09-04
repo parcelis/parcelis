@@ -27,6 +27,8 @@ docker compose --env-file .env.production pull
 docker compose --env-file .env.production up -d --remove-orphans
 ```
 
+See [Environment variables](./environment-variables) for a description of each deployment setting.
+
 The stack will run the migration job first, then start the app and docs services once the database and object storage are ready.
 
 :::caution
