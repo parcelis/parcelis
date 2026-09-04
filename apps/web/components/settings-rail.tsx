@@ -14,7 +14,7 @@ export function SettingsRail({
   canManageUsers = false,
   canManageRoles = false,
 }: {
-  active: "none" | "organization" | (typeof items)[number]["key"];
+  active: "none" | "organization" | "email" | (typeof items)[number]["key"];
   canManageRoles?: boolean;
   canManageUsers?: boolean;
 }) {
@@ -31,6 +31,16 @@ export function SettingsRail({
             href="/settings/organization"
           >
             General
+          </Link>
+          <Link
+            className={`mt-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium ${
+              active === "email"
+                ? "bg-parcelis-green/20 text-parcelis-charcoal"
+                : "text-parcelis-gray hover:bg-parcelis-porcelain"
+            }`}
+            href="/settings/organization/email"
+          >
+            Email
           </Link>
         </NavigationRailGroup>
         {canManageRoles || canManageUsers ? (

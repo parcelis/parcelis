@@ -1,25 +1,28 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { getEmailConfig } from "./config.js";
+import { getEmailConfig, type EmailConfig } from "./config.js";
 
-let transporter: Transporter | undefined;
+let environmentTransporter: Transporter | undefined;
 
-export function getEmailTransporter() {
-  if (transporter) {
-    return transporter;
-  }
-
-  const config = getEmailConfig();
-  transporter = nodemailer.createTransport(
+export function createEmailTransporter(config: EmailConfig) {
+  return nodemailer.createTransport(
     {
-      auth: { pass: config.password, user: config.user },
+      auth: config.user && config.password ? { pass: config.password, user: config.user } : undefined,
       host: config.host,
       port: config.port,
+      requireTLS: config.requireTLS,
       secure: config.secure,
     },
     { from: config.from },
   );
 
-  return transporter;
+}
+
+export function getEmailTransporter() {
+  if (!environmentTransporter) {
+    environmentTransporter = createEmailTransporter(getEmailConfig());
+  }
+
+  return environmentTransporter;
 }
 
 export async function verifyEmailTransport() {

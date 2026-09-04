@@ -60,6 +60,7 @@ import {
   switchOrganizationInputSchema,
   supportsPermissionAction,
   updateOrganizationInputSchema,
+  saveOrganizationEmailSettingsInputSchema,
   imageUploadMaxSizeBytes,
   imageUploadMaxSizeMessage,
   organizationAvatarUploadCompleteInputSchema,
@@ -105,6 +106,12 @@ import { hashPassword } from "../modules/auth";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
+import { sendSmtpTestEmail } from "@parcelis/email";
+import {
+  encryptEmailSettingsPassword,
+  getOrganizationEmailConfig,
+  isEmailSettingsEncryptionConfigured,
+} from "../modules/email-settings";
 
 const propertySelect = {
   id: true,
@@ -619,6 +626,125 @@ export const appRouter = router({
         }
         throw error;
       }
+    }),
+    emailSettings: organizationProcedure.query(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      const settings = await ctx.prisma.organizationEmailSettings.findUnique({
+        where: { organizationId: ctx.organization.organizationId },
+        select: {
+          host: true,
+          securityType: true,
+          port: true,
+          fromName: true,
+          fromEmail: true,
+          requireSignIn: true,
+          username: true,
+          passwordCipher: true,
+        },
+      });
+
+      if (!settings) return null;
+      const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
+      return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
+    }),
+    emailSettingsEncryptionStatus: organizationProcedure.query(({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      return { configured: isEmailSettingsEncryptionConfigured() };
+    }),
+    saveEmailSettings: organizationProcedure
+      .input(saveOrganizationEmailSettingsInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        requireOrganizationAdministrator(ctx.organization.role);
+        const existing = await ctx.prisma.organizationEmailSettings.findUnique({
+          where: { organizationId: ctx.organization.organizationId },
+          select: { passwordCipher: true },
+        });
+        if (input.requireSignIn && !input.password && !existing?.passwordCipher) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Password is required when sign in is enabled." });
+        }
+
+        const settings = await ctx.prisma.organizationEmailSettings.upsert({
+          where: { organizationId: ctx.organization.organizationId },
+          create: {
+            organizationId: ctx.organization.organizationId,
+            host: input.host,
+            securityType: input.securityType,
+            port: input.port,
+            fromName: input.fromName?.trim() || null,
+            fromEmail: input.fromEmail,
+            requireSignIn: input.requireSignIn,
+            username: input.requireSignIn ? input.username : null,
+            passwordCipher: input.requireSignIn && input.password ? encryptEmailSettingsPassword(input.password) : null,
+          },
+          update: {
+            host: input.host,
+            securityType: input.securityType,
+            port: input.port,
+            fromName: input.fromName?.trim() || null,
+            fromEmail: input.fromEmail,
+            requireSignIn: input.requireSignIn,
+            username: input.requireSignIn ? input.username : null,
+            ...(!input.requireSignIn
+              ? { passwordCipher: null }
+              : input.password
+                ? { passwordCipher: encryptEmailSettingsPassword(input.password) }
+                : {}),
+          },
+          select: {
+            host: true,
+            securityType: true,
+            port: true,
+            fromName: true,
+            fromEmail: true,
+            requireSignIn: true,
+            username: true,
+            passwordCipher: true,
+          },
+        });
+        const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
+        return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
+      }),
+    deleteEmailSettings: organizationProcedure.mutation(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      await ctx.prisma.organizationEmailSettings.deleteMany({
+        where: { organizationId: ctx.organization.organizationId },
+      });
+      return { success: true };
+    }),
+    // Send a test email to verify the organization's SMTP settings
+    sendTestEmail: organizationProcedure.mutation(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      let emailConfig;
+      try {
+        emailConfig = await getOrganizationEmailConfig(ctx.prisma, ctx.organization.organizationId);
+      } catch (error) {
+        console.error("Failed to load SMTP settings for test email.", {
+          error,
+          organizationId: ctx.organization.organizationId,
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Unable to load SMTP settings.",
+        });
+      }
+      if (!emailConfig) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Save SMTP settings before sending a test email." });
+      }
+
+      try {
+        await sendSmtpTestEmail({
+          emailConfig,
+          to: ctx.user.email,
+        });
+      } catch (error) {
+        console.error("Failed to send SMTP test email.", { error, organizationId: ctx.organization.organizationId });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Unable to send a test email.",
+        });
+      }
+
+      return { recipient: ctx.user.email };
     }),
     createAvatarUploadUrl: organizationProcedure
       .input(organizationAvatarUploadInputSchema)

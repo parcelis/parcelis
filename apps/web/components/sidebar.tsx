@@ -53,7 +53,7 @@ const navItems = [
   { label: "Applications", href: "/applications", key: "applications", icon: FileText },
   { label: "Maintenance", href: "/maintenance", key: "maintenance", icon: Wrench },
   { label: "Income", href: "/income", key: "income", icon: Banknote },
-  { label: "Settings", href: "/settings", key: "settings", icon: Settings },
+  { label: "Settings", href: "/settings/organization", key: "settings", icon: Settings },
 ] as const;
 
 type SidebarProps = {

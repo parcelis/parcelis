@@ -35,6 +35,7 @@ import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
 import { createUserProfileImageDownloadUrl } from "../modules/object-storage.config";
 import { getRolePermissions } from "../modules/permissions";
+import { getOrganizationEmailConfig } from "../modules/email-settings";
 
 const invalidCredentials = new TRPCError({
   code: "UNAUTHORIZED",
@@ -129,7 +130,7 @@ export const authRouter = router({
 
     const user = await ctx.prisma.user.findUnique({
       where: { email: input.email },
-      select: { id: true, email: true, accountStatus: true },
+      select: { id: true, email: true, accountStatus: true, defaultOrganizationId: true },
     });
 
     const token = createPasswordResetToken();
@@ -146,7 +147,22 @@ export const authRouter = router({
             },
           });
         })
-        .then(() => sendPasswordResetEmail({ resetUrl: getPasswordResetUrl(token), to: user.email }))
+        .then(async () => {
+          let emailConfig;
+          if (user.defaultOrganizationId) {
+            try {
+              emailConfig = await getOrganizationEmailConfig(ctx.prisma, user.defaultOrganizationId);
+            } catch (error: unknown) {
+              console.error("Unable to load organization email settings; using default SMTP configuration.", error);
+            }
+          }
+
+          return sendPasswordResetEmail({
+            resetUrl: getPasswordResetUrl(token),
+            to: user.email,
+            emailConfig,
+          });
+        })
         .catch((error: unknown) => {
           console.error("Unable to create password reset token or send reset email.", error);
         });

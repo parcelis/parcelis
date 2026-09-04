@@ -13,6 +13,7 @@ if (existsSync(envPath)) {
 const requestedApiPort = Number(process.env.API_PORT ?? 40010);
 const requestedAppPort = Number(process.env.APP_PORT ?? process.env.PORT ?? 30000);
 const requestedDocsPort = Number(process.env.DOCS_PORT ?? 40000);
+const requestedEmailPreviewPort = Number(process.env.EMAIL_PREVIEW_PORT ?? 30001);
 
 function getListenerProcessIds(port) {
   try {
@@ -59,11 +60,12 @@ async function stopListener(port) {
   console.log(`[parcelis] Stopped existing listener on port ${port}`);
 }
 
-await Promise.all([requestedAppPort, requestedDocsPort, requestedApiPort].map(stopListener));
+await Promise.all([requestedAppPort, requestedDocsPort, requestedApiPort, requestedEmailPreviewPort].map(stopListener));
 
 const apiPort = await findOpenPort(requestedApiPort);
 const appPort = await findOpenPort(requestedAppPort);
 const docsPort = await findOpenPort(requestedDocsPort);
+const emailPreviewPort = await findOpenPort(requestedEmailPreviewPort);
 const proxyPort = process.env.PROXY_PORT ?? 80;
 const proxyOrigin = Number(proxyPort) === 80 ? "http://localhost" : `http://localhost:${proxyPort}`;
 const postgresPort = process.env.POSTGRES_PORT ?? 54320;
@@ -156,12 +158,21 @@ const processes = [
       DOCS_BASE_URL: "/docs/",
     },
   },
+  {
+    name: "email preview",
+    args: ["--filter", "@parcelis/email", "dev:fixed"],
+    env: {
+      EMAIL_PREVIEW_PORT: String(emailPreviewPort),
+      WEB_ORIGIN: proxyOrigin,
+    },
+  },
 ];
 
 console.log("[parcelis] Starting local development");
 console.log(`[parcelis] Web:  ${proxyOrigin}`);
 console.log(`[parcelis] API:  ${proxyOrigin}/api/v1`);
 console.log(`[parcelis] Docs: ${proxyOrigin}/docs/`);
+console.log(`[parcelis] Email preview: http://localhost:${emailPreviewPort}`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);
 
 const children = processes.map(({ name, args, env }) => {

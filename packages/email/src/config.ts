@@ -1,10 +1,11 @@
 export type EmailConfig = {
   from: string;
   host: string;
-  password: string;
+  password?: string;
   port: number;
+  requireTLS?: boolean;
   secure: boolean;
-  user: string;
+  user?: string;
 };
 
 // Retrieves and validates a required environment variable.

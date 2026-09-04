@@ -287,6 +287,30 @@ export const organizationAvatarUploadCompleteInputSchema = z.object({
 });
 export const deleteOrganizationAvatarInputSchema = z.object({ variant: z.enum(["light", "dark"]) });
 
+// SMTP email settings schemas
+export const smtpSecurityTypeSchema = z.enum(["none", "starttls", "tls"]);
+export const saveOrganizationEmailSettingsInputSchema = z
+  .object({
+    host: z.string().trim().min(1).max(255),
+    securityType: smtpSecurityTypeSchema,
+    port: z.number().int().min(1).max(65535),
+    fromName: z.string().trim().min(1).max(100).optional(),
+    fromEmail: z.string().trim().email().max(320),
+    requireSignIn: z.boolean(),
+    username: z.string().trim().min(1).max(320).optional(),
+    password: z.string().min(1).max(1024).optional(),
+  })
+  .superRefine(({ requireSignIn, username }, ctx) => {
+    if (requireSignIn && !username) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["username"],
+        message: "Username is required when sign in is enabled.",
+      });
+    }
+  });
+
+
 export const addressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().nullable().optional(),

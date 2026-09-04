@@ -13,7 +13,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "email:preview": "email dev --dir src/templates",
+    "dev:fixed": "email dev --dir src/templates --port ${EMAIL_PREVIEW_PORT:-30001}",
+    "email:preview": "email dev --dir src/templates --port ${EMAIL_PREVIEW_PORT:-30001}",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

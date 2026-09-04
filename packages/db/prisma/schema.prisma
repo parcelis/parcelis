@@ -140,8 +140,25 @@ model Organization {
   activityEvents        ActivityEvent[]
   defaultUsers          User[]                   @relation("UserDefaultOrganization")
   activeSessions        Session[]                @relation("SessionActiveOrganization")
+  emailSettings         OrganizationEmailSettings?
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
+}
+
+model OrganizationEmailSettings {
+  id             Int          @id @default(autoincrement())
+  organizationId Int          @unique
+  host           String
+  securityType   String
+  port           Int
+  fromName       String?
+  fromEmail      String
+  requireSignIn  Boolean      @default(true)
+  username       String?
+  passwordCipher String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 model OrganizationMembership {
