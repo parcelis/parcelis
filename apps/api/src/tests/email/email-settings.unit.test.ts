@@ -28,26 +28,25 @@ test("encrypts and decrypts SMTP passwords", () => {
 test("resolves only the requested organization's SMTP configuration", async () => {
   const previousKey = process.env.EMAIL_SETTINGS_ENCRYPTION_KEY;
   process.env.EMAIL_SETTINGS_ENCRYPTION_KEY = encryptionKey;
-  const passwordCipher = encryptEmailSettingsPassword("smtp-password");
-  let requestedOrganizationId: number | undefined;
-  const prisma = {
-    organizationEmailSettings: {
-      findUnique: async ({ where }: { where: { organizationId: number } }) => {
-        requestedOrganizationId = where.organizationId;
-        return {
-          host: "smtp.example.com",
-          securityType: "starttls",
-          port: 587,
-          fromEmail: "notices@example.com",
-          requireSignIn: true,
-          username: "smtp-user",
-          passwordCipher,
-        };
-      },
-    },
-  } as unknown as PrismaClient;
-
   try {
+    const passwordCipher = encryptEmailSettingsPassword("smtp-password");
+    let requestedOrganizationId: number | undefined;
+    const prisma = {
+      organizationEmailSettings: {
+        findUnique: async ({ where }: { where: { organizationId: number } }) => {
+          requestedOrganizationId = where.organizationId;
+          return {
+            host: "smtp.example.com",
+            securityType: "starttls",
+            port: 587,
+            fromEmail: "notices@example.com",
+            requireSignIn: true,
+            username: "smtp-user",
+            passwordCipher,
+          };
+        },
+      },
+    } as unknown as PrismaClient;
     const config = await getOrganizationEmailConfig(prisma, 42);
     assert.equal(requestedOrganizationId, 42);
     assert.deepEqual(config, {
