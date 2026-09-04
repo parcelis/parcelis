@@ -151,6 +151,7 @@ model OrganizationEmailSettings {
   host           String
   securityType   String
   port           Int
+  fromName       String?
   fromEmail      String
   requireSignIn  Boolean      @default(true)
   username       String?
