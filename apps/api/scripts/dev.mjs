@@ -36,7 +36,14 @@ function run(command, args, options = {}) {
 function startApi() {
   const command = useOpenPort ? process.execPath : "nest";
   const args = useOpenPort
-    ? ["scripts/run-with-open-port.mjs", "API_PORT", "40010", "nest", "start", "--watch"]
+    ? [
+        resolve(repositoryRoot, "scripts/run-with-open-port.mjs"),
+        "API_PORT",
+        "40010",
+        "nest",
+        "start",
+        "--watch",
+      ]
     : ["start", "--watch"];
 
   apiProcess = spawn(command, args, {
