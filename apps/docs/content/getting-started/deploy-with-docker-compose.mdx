@@ -35,7 +35,9 @@ If you are planning to run Parcelis in a production environment, update the valu
 
 ## Configure transactional email
 
-Password reset links require SMTP. Set `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_PASSWORD` in `.env.production` before starting the stack. `SMTP_SECURE` must be `true` or `false`; use `true` for implicit TLS (commonly port 465).
+Password reset links use the SMTP values in `.env.production` until an organization has saved its own SMTP configuration. Set `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_PASSWORD` for this fallback configuration. `SMTP_SECURE` must be `true` or `false`; use `true` for implicit TLS (commonly port 465).
+
+Set `EMAIL_SETTINGS_ENCRYPTION_KEY` to a base64-encoded 32-byte secret before saving organization SMTP passwords. Keep this value stable and available to every app instance; changing it prevents the app from decrypting existing organization SMTP passwords.
 
 ## What the stack does
 
