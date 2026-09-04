@@ -18,6 +18,16 @@ function getEncryptionKey() {
   return key;
 }
 
+// Email settings to validate if environment variable for encryption key is configured
+export function isEmailSettingsEncryptionConfigured() {
+  try {
+    getEncryptionKey();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function encryptEmailSettingsPassword(password: string) {
   const initializationVector = randomBytes(initializationVectorLength);
   const cipher = createCipheriv(encryptionAlgorithm, getEncryptionKey(), initializationVector);
