@@ -1,0 +1,29 @@
+apps/api/src/router/auth.router.ts
+  s_8f18fe6c6be722::t_dc547b9b2ffe60 150-160,163-165
+apps/web/app/(authenticated)/settings/organization/email/page.tsx
+  s_55b4954de02f90::t_dfd45746a91641 142-144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6a849c0991df762f0f2dbabf208b91c7f770f206",
+  "prompts": {},
+  "sessions": {
+    "s_55b4954de02f90": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a06e41-05ff-7eb1-bfd0-85a68e0a7e37",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_8f18fe6c6be722": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a06e42-eb23-7c52-b8c0-63f08e443dc0",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
