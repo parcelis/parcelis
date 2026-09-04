@@ -27,7 +27,12 @@ export default function OrganizationEmailSettingsPage() {
     queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
   });
+  const currentUserQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () => apiClient.auth.me.query(),
+  });
   const canManageOrganization = ["owner", "administrator"].includes(activeOrganizationQuery.data?.role ?? "");
+  const canManageUsers = currentUserQuery.data?.user.role === "administrator";
   const emailSettingsQuery = useQuery({
     queryKey: queryKeys.organizations.emailSettings,
     queryFn: () => apiClient.organizations.emailSettings.query(),
@@ -99,7 +104,7 @@ export default function OrganizationEmailSettingsPage() {
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="email" />
+            <SettingsRail active="email" canManageRoles={canManageUsers} canManageUsers={canManageUsers} />
             <div className="min-w-0 flex-1">
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
