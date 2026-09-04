@@ -57,7 +57,6 @@ export function CreateUserDrawer({
     ? userRoleValues
     : userRoleValues.filter((role) => role !== "administrator");
 
-  
   return (
     // Drawer for creating a new user
     <Drawer onOpenChange={onOpenChange} open={open}>
@@ -78,7 +77,7 @@ export function CreateUserDrawer({
               <div className="grid h-10 w-10 place-items-center rounded-md bg-white/10 text-parcelis-green">
                 <UserPlus className="h-5 w-5" />
               </div>
-              <p className="text-sm text-white/75">Create an account and give the user access to this organization.</p>
+              <p className="text-sm text-white/75">Create an account and send the user an email verification link.</p>
             </div>
             <div className="mt-5 grid gap-4">
               <Label>

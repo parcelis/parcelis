@@ -23,7 +23,7 @@ const benefits = [
   },
 ];
 
-type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password";
+type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password" | "verify-email";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
@@ -35,11 +35,14 @@ export default function LoginPage() {
   const [passwordConfirmationError, setPasswordConfirmationError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [resetToken, setResetToken] = React.useState<string | null>(null);
+  const [isEmailVerified, setIsEmailVerified] = React.useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = React.useState<string | null>(null);
   const [destination, setDestination] = React.useState("/");
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = React.useState(false);
   const passwordConfirmationErrorId = React.useId();
+  const verificationAttempted = React.useRef(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -52,11 +55,29 @@ export default function LoginPage() {
       setDestination(nextPath);
     }
 
-    if (searchParams.get("mode") === "reset") {
+    const mode = searchParams.get("mode");
+    if (mode === "reset") {
       const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
       setLoginMode("reset-password");
       setResetToken(token);
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    }
+    if (mode === "verify") {
+      const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
+      setLoginMode("verify-email");
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+      if (verificationAttempted.current) return;
+      if (!token) {
+        setError("This email verification link is invalid or has expired.");
+        return;
+      }
+      verificationAttempted.current = true;
+      void apiClient.auth.verifyEmail
+        .mutate({ token })
+        .then(() => setIsEmailVerified(true))
+        .catch((cause: unknown) => {
+          setError(cause instanceof Error ? cause.message : "Unable to verify your email. Please try again.");
+        });
     }
   }, []);
 
@@ -64,6 +85,7 @@ export default function LoginPage() {
   const isSignIn = loginMode === "sign-in";
   const isForgotPassword = loginMode === "forgot-password";
   const isResetPassword = loginMode === "reset-password";
+  const isVerifyingEmail = loginMode === "verify-email";
 
   function selectLoginMode(mode: LoginMode) {
     setLoginMode(mode);
@@ -71,6 +93,8 @@ export default function LoginPage() {
     setPasswordConfirmationError(null);
     setNotice(null);
     setIsPasswordResetRequested(false);
+    setIsEmailVerified(false);
+    setPendingVerificationEmail(null);
     setShowPassword(false);
   }
 
@@ -80,9 +104,25 @@ export default function LoginPage() {
     router.replace("/login");
   }
 
+  async function resendVerificationEmail() {
+    if (!pendingVerificationEmail) return;
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await apiClient.auth.requestEmailVerification.mutate({ email: pendingVerificationEmail });
+      setNotice("If your account needs verification, a new link will arrive shortly.");
+      setPendingVerificationEmail(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to send a verification email. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
 
     setError(null);
     setPasswordConfirmationError(null);
@@ -97,7 +137,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       if (isForgotPassword) {
-        await apiClient.auth.requestPasswordReset.mutate({ email: String(formData.get("email") ?? "") });
+        await apiClient.auth.requestPasswordReset.mutate({ email });
         setIsPasswordResetRequested(true);
         return;
       }
@@ -117,11 +157,16 @@ export default function LoginPage() {
       }
 
       const input = {
-        email: String(formData.get("email") ?? ""),
+        email,
         password: String(formData.get("password") ?? ""),
       };
-      if (isRegistering) await apiClient.auth.register.mutate(input);
-      else await apiClient.auth.login.mutate(input);
+      if (isRegistering) {
+        await apiClient.auth.register.mutate(input);
+        selectLoginMode("sign-in");
+        setNotice("Check your email for a link to verify your account.");
+        return;
+      }
+      await apiClient.auth.login.mutate(input);
       flushSync(() => setIsLoadingApp(true));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => window.setTimeout(resolve, 5000));
@@ -129,6 +174,9 @@ export default function LoginPage() {
       router.refresh();
     } catch (cause) {
       setIsLoadingApp(false);
+      if (cause instanceof Error && cause.message === "Please verify your email before signing in.") {
+        setPendingVerificationEmail(email);
+      }
       setError(cause instanceof Error ? cause.message : "Unable to sign in. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -212,16 +260,28 @@ export default function LoginPage() {
             />
             <div className="text-center">
               <h2 id="sign-in-title" className="m-0 text-2xl font-semibold tracking-[-0.035em]">
-                {isForgotPassword ? "Reset your password" : isResetPassword ? "Choose a new password" : "Welcome back"}
+                {isForgotPassword
+                  ? "Reset your password"
+                  : isResetPassword
+                    ? "Choose a new password"
+                    : isVerifyingEmail
+                      ? isEmailVerified
+                        ? "Email verified"
+                        : "Verifying your email"
+                      : "Welcome back"}
               </h2>
               <p className="mb-9 mt-2 text-sm text-parcelis-gray">
                 {isForgotPassword
                   ? "Enter your email and we’ll send a reset link."
                   : isResetPassword
                     ? "Use a strong password with at least 12 characters."
-                    : isRegistering
-                      ? "Create an account to get started"
-                      : "Sign in to access your account"}
+                    : isVerifyingEmail
+                      ? isEmailVerified
+                        ? "Your account is active. You can now sign in."
+                        : "Please wait while we verify your email address."
+                      : isRegistering
+                        ? "Create an account to get started"
+                        : "Sign in to access your account"}
               </p>
             </div>
             {notice ? (
@@ -229,7 +289,23 @@ export default function LoginPage() {
                 {notice}
               </p>
             ) : null}
-            {isPasswordResetRequested ? (
+            {isVerifyingEmail ? (
+              <div className="text-center">
+                {error ? (
+                  <p className="m-0 text-sm leading-6 text-red-700 dark:text-red-300" role="alert">
+                    {error}
+                  </p>
+                ) : isEmailVerified ? (
+                  <Button className="mt-6 min-w-40" onClick={returnToSignIn} type="button">
+                    Sign in
+                  </Button>
+                ) : (
+                  <p className="m-0 text-sm leading-6 text-parcelis-gray" role="status">
+                    Verifying your email address…
+                  </p>
+                )}
+              </div>
+            ) : isPasswordResetRequested ? (
               <div className="text-center">
                 <p className="m-0 text-sm leading-6 text-parcelis-gray">
                   If an account matches that email address, a password reset link will arrive shortly.
@@ -309,7 +385,11 @@ export default function LoginPage() {
                           type={showPassword ? "text" : "password"}
                         />
                         {passwordConfirmationError ? (
-                          <p className="mt-2 text-sm text-red-700 dark:text-red-300" id={passwordConfirmationErrorId} role="alert">
+                          <p
+                            className="mt-2 text-sm text-red-700 dark:text-red-300"
+                            id={passwordConfirmationErrorId}
+                            role="alert"
+                          >
                             {passwordConfirmationError}
                           </p>
                         ) : null}
@@ -321,6 +401,16 @@ export default function LoginPage() {
                   <p className="mt-4 text-sm text-red-700 dark:text-red-300" role="alert">
                     {error}
                   </p>
+                ) : null}
+                {pendingVerificationEmail ? (
+                  <button
+                    className="mt-3 w-full text-center text-xs font-semibold text-parcelis-green-hover"
+                    disabled={isSubmitting}
+                    type="button"
+                    onClick={() => void resendVerificationEmail()}
+                  >
+                    Resend verification email
+                  </button>
                 ) : null}
                 <Button className="mt-6 w-full text-white" disabled={isSubmitting} size="lg" type="submit">
                   {isSubmitting
@@ -344,7 +434,7 @@ export default function LoginPage() {
                 ) : null}
               </form>
             )}
-            {isForgotPassword || isResetPassword ? (
+            {isForgotPassword || isResetPassword || isVerifyingEmail ? (
               <p className="mb-0 mt-10 text-center text-sm text-parcelis-gray">
                 <button
                   className="text-xs font-semibold text-parcelis-green-hover"

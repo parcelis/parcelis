@@ -9,7 +9,9 @@ Parcelis requires an account before you can access the workspace.
 2. Enter your email address and password.
 3. Select **Sign in**.
 
-New users can select **Create account** on the same page. Passwords must be at least 12 characters long.
+New users can select **Create account** on the same page. Parcelis sends a verification link to the supplied email
+address; opening it activates the account before sign-in. Passwords must be at least 12 characters long.
+If the link expires, try signing in and select **Resend verification email**.
 
 For local development, `pnpm db:seed` creates the administrator using `SEED_ADMIN_EMAIL`, which
 defaults to `admin@parcelis.dev`, and `SEED_ADMIN_PASSWORD`. Set the password to a unique value of

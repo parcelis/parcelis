@@ -3,19 +3,25 @@ import {
   authRegisterInputSchema,
   changeEmailInputSchema,
   changePasswordInputSchema,
+  requestEmailVerificationInputSchema,
   requestPasswordResetInputSchema,
   resetPasswordInputSchema,
   updateUserProfileInputSchema,
+  verifyEmailInputSchema,
 } from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
-import { sendPasswordResetEmail } from "@parcelis/email";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@parcelis/email";
 import { TRPCError } from "@trpc/server";
 import {
   clearSessionCookie,
+  createEmailVerificationToken,
   createPasswordResetToken,
   createSessionToken,
+  getEmailVerificationTokenExpiration,
+  getEmailVerificationUrl,
   getPasswordResetTokenExpiration,
   getSessionExpiration,
+  hashEmailVerificationToken,
   hashPassword,
   hashPasswordResetToken,
   hashSessionToken,
@@ -25,10 +31,12 @@ import {
 } from "../modules/auth";
 import {
   clearLoginRateLimit,
+  consumeEmailVerificationRateLimit,
   consumeLoginRateLimit,
   consumePasswordResetRateLimit,
   getLoginRateLimitKey,
   getPasswordChangeRateLimitKey,
+  getEmailVerificationRateLimitKey,
   getPasswordResetRateLimitKey,
 } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
@@ -44,6 +52,11 @@ const invalidCredentials = new TRPCError({
 const invalidPasswordResetToken = new TRPCError({
   code: "BAD_REQUEST",
   message: "This password reset link is invalid or has expired.",
+});
+
+const invalidEmailVerificationToken = new TRPCError({
+  code: "BAD_REQUEST",
+  message: "This email verification link is invalid or has expired.",
 });
 
 async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: number) {
@@ -76,11 +89,12 @@ export const authRouter = router({
     }
 
     let user;
+    const verificationToken = createEmailVerificationToken();
     try {
       const passwordHash = await hashPassword(input.password);
       user = await ctx.prisma.$transaction(async (tx) => {
         const createdUser = await tx.user.create({
-          data: { email: input.email, passwordHash },
+          data: { email: input.email, passwordHash, accountStatus: "pending" },
           select: { id: true, email: true },
         });
         const organization = await tx.organization.create({
@@ -91,6 +105,13 @@ export const authRouter = router({
           data: { userId: createdUser.id, organizationId: organization.id, role: "owner" },
         });
         await tx.user.update({ where: { id: createdUser.id }, data: { defaultOrganizationId: organization.id } });
+        await tx.emailVerificationToken.create({
+          data: {
+            userId: createdUser.id,
+            tokenHash: hashEmailVerificationToken(verificationToken),
+            expiresAt: getEmailVerificationTokenExpiration(),
+          },
+        });
         return createdUser;
       });
     } catch (error) {
@@ -99,10 +120,84 @@ export const authRouter = router({
       }
       throw error;
     }
-    await createSession(ctx, user.id);
+    try {
+      await sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(verificationToken) });
+    } catch (error) {
+      console.error("Unable to send email verification email.", error);
+    }
     clearLoginRateLimit(rateLimitKey);
     return { user };
   }),
+
+  verifyEmail: publicProcedure.input(verifyEmailInputSchema).mutation(async ({ ctx, input }) => {
+    const tokenHash = hashEmailVerificationToken(input.token);
+    const verificationToken = await ctx.prisma.emailVerificationToken.findUnique({
+      where: { tokenHash },
+      select: { id: true, userId: true, expiresAt: true, usedAt: true, user: { select: { accountStatus: true } } },
+    });
+    if (
+      !verificationToken ||
+      verificationToken.usedAt ||
+      verificationToken.expiresAt <= new Date() ||
+      verificationToken.user.accountStatus !== "pending"
+    ) {
+      throw invalidEmailVerificationToken;
+    }
+
+    await ctx.prisma.$transaction(async (tx) => {
+      const usedAt = new Date();
+      const consumedToken = await tx.emailVerificationToken.updateMany({
+        where: { id: verificationToken.id, usedAt: null, expiresAt: { gt: usedAt } },
+        data: { usedAt },
+      });
+      if (!consumedToken.count) {
+        throw invalidEmailVerificationToken;
+      }
+
+      const activatedUser = await tx.user.updateMany({
+        where: { id: verificationToken.userId, accountStatus: "pending" },
+        data: { accountStatus: "active" },
+      });
+      if (!activatedUser.count) {
+        throw invalidEmailVerificationToken;
+      }
+    });
+
+    return { success: true };
+  }),
+
+  requestEmailVerification: publicProcedure
+    .input(requestEmailVerificationInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const rateLimitKey = getEmailVerificationRateLimitKey(ctx.req.ip, input.email);
+      consumeEmailVerificationRateLimit(rateLimitKey);
+
+      const user = await ctx.prisma.user.findUnique({
+        where: { email: input.email },
+        select: { id: true, email: true, accountStatus: true },
+      });
+      const token = createEmailVerificationToken();
+
+      if (user?.accountStatus === "pending") {
+        void ctx.prisma
+          .$transaction(async (tx) => {
+            await tx.emailVerificationToken.deleteMany({ where: { userId: user.id } });
+            await tx.emailVerificationToken.create({
+              data: {
+                userId: user.id,
+                tokenHash: hashEmailVerificationToken(token),
+                expiresAt: getEmailVerificationTokenExpiration(),
+              },
+            });
+          })
+          .then(() => sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(token) }))
+          .catch((error: unknown) => {
+            console.error("Unable to create email verification token or send verification email.", error);
+          });
+      }
+
+      return { success: true };
+    }),
 
   login: publicProcedure.input(authLoginInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
@@ -113,6 +208,9 @@ export const authRouter = router({
       : (await hashPassword(input.password), false);
     if (!user || !isPasswordValid) {
       throw invalidCredentials;
+    }
+    if (user.accountStatus === "pending") {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Please verify your email before signing in." });
     }
     if (user.accountStatus === "disabled") {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "This account has been disabled." });

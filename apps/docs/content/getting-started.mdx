@@ -34,7 +34,8 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm dev` runs the web app, API, and documentation site with hot reload. Docker provides nginx, PostgreSQL, pgAdmin, MinIO, and the one-time MinIO initialization job.
+`pnpm dev` runs the web app, API, documentation site, and React Email previews with hot reload. Docker provides nginx,
+PostgreSQL, pgAdmin, MinIO, and the one-time MinIO initialization job.
 
 ## Local URLs
 
@@ -45,6 +46,7 @@ Use nginx as the usual entry point:
 | Web app | `http://localhost` |
 | Documentation | `http://localhost/docs/` |
 | API | `http://localhost/api/v1` |
+| React Email previews | `http://templates.localhost/` |
 
 The apps and services are also available directly:
 
@@ -53,6 +55,7 @@ The apps and services are also available directly:
 | Web app | `http://localhost:30000` |
 | Docs | `http://localhost:40000` |
 | API | `http://localhost:40010` |
+| React Email previews | `http://localhost:30001` |
 | PostgreSQL | `localhost:54320` |
 | pgAdmin | `http://localhost:8000` |
 | MinIO API | `http://localhost:9001` |
