@@ -139,7 +139,9 @@ export default function OrganizationEmailSettingsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {!canManageOrganization && !activeOrganizationQuery.isLoading ? (
+                  {activeOrganizationQuery.error ? (
+                    <p className="text-sm font-medium text-red-700">{activeOrganizationQuery.error.message}</p>
+                  ) : !canManageOrganization && !activeOrganizationQuery.isLoading ? (
                     <p className="text-sm text-parcelis-gray">You have view-only access to this organization’s settings.</p>
                   ) : activeOrganizationQuery.isLoading || emailSettingsQuery.isLoading ? (
                     <LoadingState label="Loading email settings…" />

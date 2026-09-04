@@ -147,15 +147,22 @@ export const authRouter = router({
             },
           });
         })
-        .then(async () =>
-          sendPasswordResetEmail({
+        .then(async () => {
+          let emailConfig;
+          if (user.defaultOrganizationId) {
+            try {
+              emailConfig = await getOrganizationEmailConfig(ctx.prisma, user.defaultOrganizationId);
+            } catch (error: unknown) {
+              console.error("Unable to load organization email settings; using default SMTP configuration.", error);
+            }
+          }
+
+          return sendPasswordResetEmail({
             resetUrl: getPasswordResetUrl(token),
             to: user.email,
-            emailConfig: user.defaultOrganizationId
-              ? await getOrganizationEmailConfig(ctx.prisma, user.defaultOrganizationId)
-              : undefined,
-          }),
-        )
+            emailConfig,
+          });
+        })
         .catch((error: unknown) => {
           console.error("Unable to create password reset token or send reset email.", error);
         });
