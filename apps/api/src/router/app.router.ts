@@ -106,7 +106,7 @@ import { hashPassword } from "../modules/auth";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
-import { encryptEmailSettingsPassword } from "../modules/email-settings";
+import { encryptEmailSettingsPassword, isEmailSettingsEncryptionConfigured } from "../modules/email-settings";
 
 const propertySelect = {
   id: true,
@@ -640,6 +640,10 @@ export const appRouter = router({
       if (!settings) return null;
       const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
       return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
+    }),
+    emailSettingsEncryptionStatus: organizationProcedure.query(({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      return { configured: isEmailSettingsEncryptionConfigured() };
     }),
     saveEmailSettings: organizationProcedure
       .input(saveOrganizationEmailSettingsInputSchema)
