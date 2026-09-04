@@ -684,11 +684,11 @@ export const appRouter = router({
             fromEmail: input.fromEmail,
             requireSignIn: input.requireSignIn,
             username: input.requireSignIn ? input.username : null,
-            passwordCipher: input.requireSignIn
-              ? input.password
-                ? encryptEmailSettingsPassword(input.password)
-                : existing?.passwordCipher
-              : null,
+            ...(!input.requireSignIn
+              ? { passwordCipher: null }
+              : input.password
+                ? { passwordCipher: encryptEmailSettingsPassword(input.password) }
+                : {}),
           },
           select: {
             host: true,

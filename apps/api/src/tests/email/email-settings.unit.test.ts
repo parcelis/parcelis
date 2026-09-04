@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
+import type { PrismaService } from "../../modules/prisma.service";
 import {
   decryptEmailSettingsPassword,
   encryptEmailSettingsPassword,
   getOrganizationEmailConfig,
 } from "../../modules/email-settings";
+import { appRouter } from "../../router/app.router";
+import type { Context } from "../../router/context";
 
 const encryptionKey = Buffer.alloc(32, 7).toString("base64");
 
@@ -68,4 +71,37 @@ test("uses environment SMTP when an organization has no saved configuration", as
   } as unknown as PrismaClient;
 
   assert.equal(await getOrganizationEmailConfig(prisma, 42), undefined);
+});
+
+test("preserves the current SMTP password when saving without a replacement", async () => {
+  let updateData: Record<string, unknown> | undefined;
+  const prisma = {
+    organizationEmailSettings: {
+      findUnique: async () => ({ passwordCipher: "older-ciphertext" }),
+      upsert: async ({ update }: { update: Record<string, unknown> }) => {
+        updateData = update;
+        return {
+          ...update,
+          passwordCipher: "newer-ciphertext",
+        };
+      },
+    },
+  } as unknown as PrismaService;
+  const caller = appRouter.createCaller({
+    prisma,
+    session: {},
+    organization: { organizationId: 1, role: "administrator" },
+  } as Context);
+
+  await caller.organizations.saveEmailSettings({
+    host: "smtp.example.com",
+    securityType: "starttls",
+    port: 587,
+    fromEmail: "notices@example.com",
+    requireSignIn: true,
+    username: "smtp-user",
+  });
+
+  assert.ok(updateData);
+  assert.equal("passwordCipher" in updateData, false);
 });
