@@ -1,0 +1,23 @@
+packages/db/prisma/migrations/20260901000000_add_pending_user_account_status/migration.sql
+  s_3eab7bf81c3584::t_1a64ff8206f44f 1
+packages/db/prisma/migrations/20260904180345_smtp_migration/migration.sql
+  ai_agent 1-23
+packages/db/prisma/migrations/20260901010000_add_email_verification_tokens/migration.sql
+  s_3eab7bf81c3584::t_1a64ff8206f44f 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1b68adc823be3ee02a6f3ac56ef0116f0d0394c4",
+  "prompts": {},
+  "sessions": {
+    "s_3eab7bf81c3584": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a06aa3-0313-7c02-8718-af8dce5920b7",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
