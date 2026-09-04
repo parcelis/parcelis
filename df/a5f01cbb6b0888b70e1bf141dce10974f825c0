@@ -1,0 +1,25 @@
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_80f92a68485cdd::t_2216e71a77b16c 48,50
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_80f92a68485cdd::t_2216e71a77b16c 30-31
+apps/docs/content/getting-started/environment-variables.mdx
+  s_80f92a68485cdd::t_2216e71a77b16c 1-63
+apps/docs/sidebars.ts
+  s_80f92a68485cdd::t_2216e71a77b16c 75-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "dfa5f01cbb6b0888b70e1bf141dce10974f825c0",
+  "prompts": {},
+  "sessions": {
+    "s_80f92a68485cdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a06e1c-3670-7d50-9087-49ce9e8bb305",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
