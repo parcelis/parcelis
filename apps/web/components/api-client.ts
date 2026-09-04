@@ -25,6 +25,7 @@ export const queryKeys = {
   organizations: {
     active: ["organizations", "active"] as const,
     list: ["organizations", "list"] as const,
+    emailSettings: ["organizations", "email-settings"] as const,
   },
   users: {
     list: ["users", "list"] as const,
