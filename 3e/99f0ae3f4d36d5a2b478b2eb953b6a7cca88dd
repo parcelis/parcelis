@@ -1,0 +1,19 @@
+apps/api/scripts/dev.mjs
+  s_1d924952119f47::t_2417712e134091 39-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "3e99f0ae3f4d36d5a2b478b2eb953b6a7cca88dd",
+  "prompts": {},
+  "sessions": {
+    "s_1d924952119f47": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a06e3c-d2e6-7f31-83c7-a84006ff37be",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
