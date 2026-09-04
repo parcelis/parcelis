@@ -60,6 +60,7 @@ import {
   switchOrganizationInputSchema,
   supportsPermissionAction,
   updateOrganizationInputSchema,
+  saveOrganizationEmailSettingsInputSchema,
   imageUploadMaxSizeBytes,
   imageUploadMaxSizeMessage,
   organizationAvatarUploadCompleteInputSchema,
@@ -105,6 +106,7 @@ import { hashPassword } from "../modules/auth";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
+import { encryptEmailSettingsPassword } from "../modules/email-settings";
 
 const propertySelect = {
   id: true,
@@ -620,6 +622,75 @@ export const appRouter = router({
         throw error;
       }
     }),
+    emailSettings: organizationProcedure.query(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      const settings = await ctx.prisma.organizationEmailSettings.findUnique({
+        where: { organizationId: ctx.organization.organizationId },
+        select: {
+          host: true,
+          securityType: true,
+          port: true,
+          fromEmail: true,
+          requireSignIn: true,
+          username: true,
+          passwordCipher: true,
+        },
+      });
+
+      if (!settings) return null;
+      const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
+      return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
+    }),
+    saveEmailSettings: organizationProcedure
+      .input(saveOrganizationEmailSettingsInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        requireOrganizationAdministrator(ctx.organization.role);
+        const existing = await ctx.prisma.organizationEmailSettings.findUnique({
+          where: { organizationId: ctx.organization.organizationId },
+          select: { passwordCipher: true },
+        });
+        if (input.requireSignIn && !input.password && !existing?.passwordCipher) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Password is required when sign in is enabled." });
+        }
+
+        const settings = await ctx.prisma.organizationEmailSettings.upsert({
+          where: { organizationId: ctx.organization.organizationId },
+          create: {
+            organizationId: ctx.organization.organizationId,
+            host: input.host,
+            securityType: input.securityType,
+            port: input.port,
+            fromEmail: input.fromEmail,
+            requireSignIn: input.requireSignIn,
+            username: input.requireSignIn ? input.username : null,
+            passwordCipher: input.requireSignIn && input.password ? encryptEmailSettingsPassword(input.password) : null,
+          },
+          update: {
+            host: input.host,
+            securityType: input.securityType,
+            port: input.port,
+            fromEmail: input.fromEmail,
+            requireSignIn: input.requireSignIn,
+            username: input.requireSignIn ? input.username : null,
+            passwordCipher: input.requireSignIn
+              ? input.password
+                ? encryptEmailSettingsPassword(input.password)
+                : existing?.passwordCipher
+              : null,
+          },
+          select: {
+            host: true,
+            securityType: true,
+            port: true,
+            fromEmail: true,
+            requireSignIn: true,
+            username: true,
+            passwordCipher: true,
+          },
+        });
+        const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
+        return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
+      }),
     createAvatarUploadUrl: organizationProcedure
       .input(organizationAvatarUploadInputSchema)
       .mutation(({ ctx, input }) => {
