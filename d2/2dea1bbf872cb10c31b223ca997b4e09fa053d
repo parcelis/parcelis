@@ -1,0 +1,19 @@
+apps/api/src/router/app.router.ts
+  s_3eab7bf81c3584::t_42e319a118d38e 109,644-646
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d22dea1bbf872cb10c31b223ca997b4e09fa053d",
+  "prompts": {},
+  "sessions": {
+    "s_3eab7bf81c3584": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a06aa3-0313-7c02-8718-af8dce5920b7",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
