@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, Moon, Sun, UsersRound } from "lucide-react";
+import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, UsersRound } from "lucide-react";
 import * as React from "react";
 import { flushSync } from "react-dom";
 import { Button, Input } from "@parcelis/ui";
-import { useTheme } from "next-themes";
 import { apiClient } from "../../components/api-client";
+import { ThemeSelector } from "../../components/theme-selector";
 
 const benefits = [
   { icon: LockOpen, title: "Open Source", description: "Built transparently. Owned by the community." },
@@ -36,14 +36,8 @@ export default function LoginPage() {
   const [notice, setNotice] = React.useState<string | null>(null);
   const [resetToken, setResetToken] = React.useState<string | null>(null);
   const [destination, setDestination] = React.useState("/");
-  const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
-  const [mounted, setMounted] = React.useState(false);
   const passwordConfirmationErrorId = React.useId();
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
 
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -155,14 +149,7 @@ export default function LoginPage() {
             src="/brand/parcelis-fullmark-dark.svg"
             width={9792}
           />
-          <button
-            className="flex h-10 w-10 items-center justify-center rounded-md border border-parcelis-charcoal/20 bg-white/50 text-parcelis-charcoal transition hover:bg-white/80 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-            type="button"
-            aria-label={mounted && resolvedTheme === "dark" ? "Use light theme" : "Use dark theme"}
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          >
-            {mounted && resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
+          <ThemeSelector />
         </header>
 
         <div className="flex flex-1 items-center justify-between gap-8 lg:gap-[7vw]">
