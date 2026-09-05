@@ -1034,6 +1034,8 @@ export const appRouter = router({
           });
           return {
             ...result,
+            leases: leases.filter((lease) => lease.archivedAt === null),
+            leaseHistory: leases,
             imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
           };
         }),
@@ -1094,7 +1096,11 @@ export const appRouter = router({
         });
 
         return {
-          ...withPropertyNotes({ ...propertyData, leases }),
+          ...withPropertyNotes({
+            ...propertyData,
+            leases: leases.filter((lease) => lease.archivedAt === null),
+            leaseHistory: leases,
+          }),
           units: rawUnits.map(serializeUnit),
           unitStatuses,
           imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),

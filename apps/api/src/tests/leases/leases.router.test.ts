@@ -95,7 +95,9 @@ test("property view/edit permission does not expose lease records or permit leas
     "property_manager",
   );
   assert.deepEqual((await caller.properties.list())[0]?.leases, []);
+  assert.deepEqual((await caller.properties.list())[0]?.leaseHistory, []);
   assert.deepEqual((await caller.properties.byId({ id: 1 }))?.leases, []);
+  assert.deepEqual((await caller.properties.byId({ id: 1 }))?.leaseHistory, []);
   for (const action of ["archive", "reactivate", "delete"] as const) {
     await assert.rejects(
       () => caller.leases[action]({ id: 2 }),
@@ -183,3 +185,60 @@ for (const code of ["P2034", "P2025"] as const) {
     );
   });
 }
+
+test("archiving hides leases from property collections while preserving history and metrics", async () => {
+  const leases = ["active", "notice", "ended"].map((status, index) => ({
+    id: index + 1,
+    archivedAt: null as Date | null,
+    status,
+    startsOn: new Date("2025-01-01"),
+    endsOn: null,
+    monthlyRentCents: 100_000,
+    unit: { name: String(index + 1) },
+    tenants: [{ tenant: { id: 1, firstName: "Test", lastName: "Resident" } }],
+    invoices: [{ balanceCents: 500 }],
+  }));
+  const property = {
+    id: 1,
+    legacyNotes: null,
+    imageObjectKey: null,
+    occupiedUnits: 2,
+    units: [],
+    maintenanceTickets: [],
+    leases,
+  };
+  const caller = createCaller({
+    property: {
+      findMany: async () => [property],
+      findFirst: async () => property,
+    },
+    invoice: { updateMany: async () => ({ count: 0 }) },
+    lease: {
+      update: async ({ where, data }: { where: { id: number }; data: { archivedAt: Date | null } }) => {
+        const lease = leases.find((item) => item.id === where.id)!;
+        lease.archivedAt = data.archivedAt;
+        return { id: lease.id, archivedAt: lease.archivedAt };
+      },
+    },
+  });
+  for (const lease of leases) await caller.leases.archive({ id: lease.id });
+  for (const result of [
+    (await caller.properties.list())[0]!,
+    (await caller.properties.byId({ id: 1 }))!,
+  ]) {
+    assert.deepEqual(result.leases, []);
+    assert.deepEqual(result.leaseHistory.map((lease) => lease.id).sort(), [1, 2, 3]);
+    assert.equal(result.occupiedUnits, 2);
+  }
+  const metrics = (await caller.properties.list())[0]!;
+  assert.equal(metrics.monthlyRentCents, 200_000);
+  assert.equal(metrics.amountOverdueCents, 1_000);
+  await caller.leases.reactivate({ id: 2 });
+  for (const result of [
+    (await caller.properties.list())[0]!,
+    (await caller.properties.byId({ id: 1 }))!,
+  ]) {
+    assert.deepEqual(result.leases.map((lease) => lease.id), [2]);
+    assert.equal(result.leaseHistory.length, 3);
+  }
+});
