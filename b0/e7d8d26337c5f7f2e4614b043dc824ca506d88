@@ -1,0 +1,23 @@
+apps/api/src/tests/leases/leases.router.test.ts
+  s_feb7984b97bd36::t_36c0c140169122 98,100,188-244
+apps/docs/content/platform-user-guide/app-functionality/lease-dashboard.mdx
+  s_feb7984b97bd36::t_36c0c140169122 12-14
+apps/api/src/router/app.router.ts
+  s_feb7984b97bd36::t_77103f14200951 1037-1038,1099-1103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b0e7d8d26337c5f7f2e4614b043dc824ca506d88",
+  "prompts": {},
+  "sessions": {
+    "s_feb7984b97bd36": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a071d4-a861-7641-b35f-2a668bd9a6b3",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
