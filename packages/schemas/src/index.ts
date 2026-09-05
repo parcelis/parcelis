@@ -417,6 +417,8 @@ export const tenantSchema = z.object({
 export const leaseStatusValues = ["draft", "active", "notice", "ended"] as const;
 export const leaseStatusSchema = z.enum(leaseStatusValues);
 
+export const leaseByIdInputSchema = z.object({ id: idSchema });
+
 export const leaseSchema = z.object({
   id: idSchema,
   propertyId: idSchema,

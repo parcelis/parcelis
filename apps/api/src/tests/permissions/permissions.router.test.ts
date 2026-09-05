@@ -92,6 +92,8 @@ test("API denies resource reads when view permission is missing", async () => {
 test("API denies archive operations when archive permission is missing", async () => {
   const caller = createDeniedCaller();
   await Promise.all([
+    expectForbidden(() => caller.leases.archive({ id: 1 })),
+    expectForbidden(() => caller.leases.reactivate({ id: 1 })),
     expectForbidden(() => caller.properties.archive({ id: 1 })),
     expectForbidden(() => caller.properties.inactivate({ id: 1 })),
     expectForbidden(() => caller.properties.reactivate({ id: 1 })),
@@ -168,4 +170,8 @@ test("API denies note create, edit, and delete when the matching permission is m
     expectForbidden(() => caller.notes.update({ id: 1, body: "Restricted" })),
     expectForbidden(() => caller.notes.delete({ id: 1 })),
   ]);
+});
+
+test("API denies lease deletion when delete permission is missing", async () => {
+  await expectForbidden(() => createDeniedCaller().leases.delete({ id: 1 }));
 });

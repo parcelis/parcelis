@@ -2,6 +2,7 @@ import {
   createManualInvoiceInputSchema,
   createPropertyInputSchema,
   createLeaseInputSchema,
+  leaseByIdInputSchema,
   createLeaseWithInvoicesInputSchema,
   deleteInvoiceInputSchema,
   deleteInvoicePaymentInputSchema,
@@ -938,6 +939,7 @@ export const appRouter = router({
   properties: router({
     /** Lists properties with units, lease metrics, and maintenance metrics. */
     list: permissionProcedure("properties", "view").query(async ({ ctx }) => {
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
       await synchronizeOverdueInvoices(ctx.prisma);
       const properties = await ctx.prisma.property.findMany({
         where: { organizationId: ctx.organization.organizationId },
@@ -946,6 +948,7 @@ export const appRouter = router({
           leases: {
             select: {
               monthlyRentCents: true,
+              archivedAt: true,
               id: true,
               startsOn: true,
               endsOn: true,
@@ -1006,7 +1009,7 @@ export const appRouter = router({
 
       return Promise.all(
         properties.map(async (property) => {
-          const leases = property.leases.flatMap((lease) => {
+          const leases = (permissions.leases.view ? property.leases : []).flatMap((lease) => {
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = lease.tenants[0]?.tenant;
             if (!firstTenant) return [];
@@ -1040,6 +1043,7 @@ export const appRouter = router({
     byId: permissionProcedure("properties", "view")
       .input(propertyByIdInputSchema)
       .query(async ({ ctx, input }) => {
+        const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
         const property = await ctx.prisma.property.findFirst({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           include: {
@@ -1073,7 +1077,7 @@ export const appRouter = router({
 
         const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
 
-        const leases = rawLeases.flatMap((lease) => {
+        const leases = (permissions.leases.view ? rawLeases : []).flatMap((lease) => {
           const { tenants: _tenants, unit: _unit, invoices: _invoices, ...leaseData } = lease;
           const firstTenant = lease.tenants[0]?.tenant;
           if (!firstTenant) return [];
@@ -3153,6 +3157,47 @@ export const appRouter = router({
     }),
   }),
   leases: router({
+    /** Archives a lease without changing its contractual status. */
+    archive: permissionProcedure("leases", "archive")
+      .input(leaseByIdInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.lease.update({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          data: { archivedAt: new Date() },
+        }),
+      ),
+    /** Restores an archived lease to the default lease directory. */
+    reactivate: permissionProcedure("leases", "archive")
+      .input(leaseByIdInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.lease.update({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          data: { archivedAt: null },
+        }),
+      ),
+    /** Permanently deletes a draft lease without invoices. */
+    delete: permissionProcedure("leases", "delete")
+      .input(leaseByIdInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        return ctx.prisma.$transaction(
+          async (tx) => {
+            const lease = await tx.lease.findFirstOrThrow({
+              where: { id: input.id, organizationId: ctx.organization.organizationId },
+              include: { _count: { select: { invoices: true } } },
+            });
+            if (lease.status !== LeaseStatus.draft || lease._count.invoices > 0) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Only draft leases without invoices can be deleted. Archive the lease instead.",
+              });
+            }
+            return tx.lease.delete({
+              where: { id: input.id, organizationId: ctx.organization.organizationId },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      }),
     /** Creates a new lease with tenants and optionally generates invoices. */
     create: permissionProcedure("leases", "create")
       .input(createLeaseWithInvoicesInputSchema)
