@@ -1,0 +1,25 @@
+apps/api/src/tests/leases/leases.router.test.ts
+  s_dfbd99531725a5::t_d59604545ea42d 95,97-99,101-102,223-230
+  s_dfbd99531725a5::t_be5270d55a3bbb 96,100
+apps/api/src/router/app.router.ts
+  s_dfbd99531725a5::t_b52ebdcc720fdb 1011-1013,1017,1084-1086
+  s_dfbd99531725a5::t_3ba71e8de4487b 1009-1010,1082-1083
+  s_dfbd99531725a5::t_9aec6f4b5b9fe5 1092
+  s_dfbd99531725a5::t_be5270d55a3bbb 944,1008,1054,1081
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "5844fa943ac23814bdc93055d7b5a800a6d36593",
+  "prompts": {},
+  "sessions": {
+    "s_dfbd99531725a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07248-a20e-72d3-9a8e-8f6ead1b1964",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
