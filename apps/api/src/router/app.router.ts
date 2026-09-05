@@ -3164,6 +3164,7 @@ export const appRouter = router({
         ctx.prisma.lease.update({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           data: { archivedAt: new Date() },
+          select: { id: true, archivedAt: true },
         }),
       ),
     /** Restores an archived lease to the default lease directory. */
@@ -3173,6 +3174,7 @@ export const appRouter = router({
         ctx.prisma.lease.update({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           data: { archivedAt: null },
+          select: { id: true, archivedAt: true },
         }),
       ),
     /** Permanently deletes a draft lease without invoices. */
@@ -3193,6 +3195,7 @@ export const appRouter = router({
             }
             return tx.lease.delete({
               where: { id: input.id, organizationId: ctx.organization.organizationId },
+              select: { id: true },
             });
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

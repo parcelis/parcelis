@@ -102,3 +102,55 @@ test("property view/edit permission does not expose lease records or permit leas
     );
   }
 });
+
+for (const action of ["archive", "reactivate", "delete"] as const) {
+  test(`lease ${action} returns only confirmation fields without view permission`, async () => {
+    const lease = {
+      id: 2,
+      archivedAt: null as Date | null,
+      status: "draft",
+      monthlyRentCents: 100_000,
+      _count: { invoices: 0 },
+    };
+    const selectResult = (select: Record<string, boolean>) =>
+      Object.fromEntries(Object.entries(lease).filter(([key]) => select[key]));
+    const tx = {
+      lease: {
+        findFirstOrThrow: async () => lease,
+        delete: async ({ select }: { select: Record<string, boolean> }) => {
+          assert.deepEqual(select, { id: true });
+          return selectResult(select);
+        },
+        update: async ({ data, select }: { data: { archivedAt: Date | null }; select: Record<string, boolean> }) => {
+          assert.deepEqual(select, { id: true, archivedAt: true });
+          lease.archivedAt = data.archivedAt;
+          return selectResult(select);
+        },
+      },
+    };
+    const caller = createCaller(
+      {
+        ...tx,
+        rolePermission: {
+          findUnique: async () => ({
+            canView: false,
+            canArchive: action !== "delete",
+            canDelete: action === "delete",
+          }),
+        },
+        $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      },
+      "property_manager",
+    );
+    const result = await caller.leases[action]({ id: 2 });
+    assert.deepEqual(
+      result,
+      action === "delete"
+        ? { id: 2 }
+        : {
+            id: 2,
+            archivedAt: lease.archivedAt,
+          },
+    );
+  });
+}
