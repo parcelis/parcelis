@@ -82,6 +82,8 @@
 - Validate procedure inputs with Zod schemas from `@parcelis/schemas`.
 - For schemas that are not database-driven, define them once in a central shared location and import them where needed; never duplicate or hardcode the same schema in multiple places.
 - Keep Prisma models and migrations in `packages/db/prisma`.
+- When editing `schema.prisma`, prefer Prisma portable types over provider-specific native types so the schema remains compatible with PostgreSQL, MySQL, SQLite, and other supported databases.
+- If a provider-specific feature is unavoidable, document the constraint and its supported providers.
 - After editing `schema.prisma`, run `pnpm db:migrate` and `pnpm db:generate`.
 - Seed local demo data with `pnpm db:seed`.
 - Prefer Prisma transactions for multi-step writes that must stay consistent.
