@@ -214,6 +214,10 @@ Parcelis uses MinIO for local image storage. Docker Compose starts the service a
 | `parcelis-images` | Private property and tenant images |
 | `parcelis-assets` | Public brand assets, including `brand/parcelis-light.png` and `brand/parcelis-dark.png` |
 
+MinIO CORS uses the server-level `MINIO_API_CORS_ALLOW_ORIGIN` setting. Development allows
+`http://localhost` and localhost ports; production defaults to `WEB_ORIGIN`. Set a comma-separated
+list of origins to override it. Initialization failures stop `pnpm dev` before the apps start.
+
 #### Using storage in the apps
 
 - The API reads S3-compatible settings from `OBJECT_STORAGE_*` environment variables.

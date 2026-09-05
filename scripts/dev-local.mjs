@@ -109,7 +109,7 @@ function startDevelopmentServices() {
     runCompose(["up", "-d", "proxy-service"]);
     runCompose(["up", "-d", "--wait", "postgres-service"]);
     runCompose(["up", "-d", "minio-service"]);
-    runCompose(["up", "minio-init-service"]);
+    runCompose(["up", "--exit-code-from", "minio-init-service", "minio-init-service"]);
   } catch {
     console.error("[parcelis] Could not start local services. Install and start Docker, then run pnpm dev again.");
     process.exit(1);

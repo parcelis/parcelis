@@ -52,6 +52,7 @@ services:
     container_name: parcelis-dev-minio
     command: server /data --console-address ":9001"
     environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: "${MINIO_API_CORS_ALLOW_ORIGIN:-http://localhost,http://localhost:*}"
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-parcelis-minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parcelis-minio-secret}
     ports:
@@ -72,13 +73,11 @@ services:
       MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET:-parcelis-assets}
     volumes:
       - ./infra/minio/assets:/assets:ro
-      - ./infra/minio/property-images:/property-images:ro
     entrypoint: >
-      /bin/sh -c "
+      /bin/sh -ec "
       until /usr/bin/mc alias set parcelis http://minio-service:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
       /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_BUCKET;
       /usr/bin/mc anonymous set none parcelis/$$MINIO_BUCKET;
-      /usr/bin/mc cors set parcelis/$$MINIO_BUCKET /property-images;
       /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_ASSETS_BUCKET;
       /usr/bin/mc cp --recursive /assets/ parcelis/$$MINIO_ASSETS_BUCKET/;
       /usr/bin/mc anonymous set download parcelis/$$MINIO_ASSETS_BUCKET;
