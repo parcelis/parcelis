@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
@@ -151,6 +152,34 @@ for (const action of ["archive", "reactivate", "delete"] as const) {
             id: 2,
             archivedAt: lease.archivedAt,
           },
+    );
+  });
+}
+
+for (const code of ["P2034", "P2025"] as const) {
+  test(`lease deletion handles transaction error ${code}`, async () => {
+    const cause = new Prisma.PrismaClientKnownRequestError("Transaction failed", {
+      code,
+      clientVersion: "7.10.0",
+    });
+    const caller = createCaller({
+      $transaction: async (_callback: unknown, options: unknown) => {
+        assert.deepEqual(options, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        throw cause;
+      },
+    });
+    await assert.rejects(
+      () => caller.leases.delete({ id: 2 }),
+      (error: unknown) => {
+        assert.ok(error instanceof TRPCError);
+        if (code === "P2034") {
+          assert.equal(error.code, "CONFLICT");
+          assert.equal(error.message, "The lease changed. Please try again.");
+        } else {
+          assert.equal(error.cause, cause);
+        }
+        return true;
+      },
     );
   });
 }

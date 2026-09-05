@@ -3181,25 +3181,32 @@ export const appRouter = router({
     delete: permissionProcedure("leases", "delete")
       .input(leaseByIdInputSchema)
       .mutation(async ({ ctx, input }) => {
-        return ctx.prisma.$transaction(
-          async (tx) => {
-            const lease = await tx.lease.findFirstOrThrow({
-              where: { id: input.id, organizationId: ctx.organization.organizationId },
-              include: { _count: { select: { invoices: true } } },
-            });
-            if (lease.status !== LeaseStatus.draft || lease._count.invoices > 0) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: "Only draft leases without invoices can be deleted. Archive the lease instead.",
+        try {
+          return await ctx.prisma.$transaction(
+            async (tx) => {
+              const lease = await tx.lease.findFirstOrThrow({
+                where: { id: input.id, organizationId: ctx.organization.organizationId },
+                include: { _count: { select: { invoices: true } } },
               });
-            }
-            return tx.lease.delete({
-              where: { id: input.id, organizationId: ctx.organization.organizationId },
-              select: { id: true },
-            });
-          },
-          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-        );
+              if (lease.status !== LeaseStatus.draft || lease._count.invoices > 0) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "Only draft leases without invoices can be deleted. Archive the lease instead.",
+                });
+              }
+              return tx.lease.delete({
+                where: { id: input.id, organizationId: ctx.organization.organizationId },
+                select: { id: true },
+              });
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+            throw new TRPCError({ code: "CONFLICT", message: "The lease changed. Please try again." });
+          }
+          throw error;
+        }
       }),
     /** Creates a new lease with tenants and optionally generates invoices. */
     create: permissionProcedure("leases", "create")
