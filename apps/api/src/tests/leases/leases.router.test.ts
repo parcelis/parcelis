@@ -82,7 +82,6 @@ test("property view/edit permission does not expose lease records or permit leas
     imageObjectKey: null,
     units: [],
     maintenanceTickets: [],
-    leases: [{ id: 2, confidential: "lease data" }],
   };
   const permission = { resource: "properties", canView: true, canEdit: true };
   const caller = createCaller(
@@ -93,8 +92,14 @@ test("property view/edit permission does not expose lease records or permit leas
           where.role_resource.resource === "properties" ? permission : null,
       },
       property: {
-        findMany: async () => [property],
-        findFirst: async () => property,
+        findMany: async ({ include }: { include: { leases: unknown } }) => {
+          assert.equal(include.leases, false);
+          return [property];
+        },
+        findFirst: async ({ include }: { include: { leases: unknown } }) => {
+          assert.equal(include.leases, false);
+          return property;
+        },
       },
       invoice: { updateMany: async () => ({ count: 0 }) },
     },
@@ -215,8 +220,14 @@ test("archiving hides leases from property collections while preserving history 
   };
   const caller = createCaller({
     property: {
-      findMany: async () => [property],
-      findFirst: async () => property,
+      findMany: async ({ include }: { include: { leases: unknown } }) => {
+        assert.ok(include.leases);
+        return [property];
+      },
+      findFirst: async ({ include }: { include: { leases: unknown } }) => {
+        assert.ok(include.leases);
+        return property;
+      },
     },
     invoice: { updateMany: async () => ({ count: 0 }) },
     lease: {

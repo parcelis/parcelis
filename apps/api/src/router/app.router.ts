@@ -941,7 +941,7 @@ export const appRouter = router({
     list: permissionProcedure("properties", "view").query(async ({ ctx }) => {
       const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
       await synchronizeOverdueInvoices(ctx.prisma);
-      const properties = await ctx.prisma.property.findMany({
+      const query = {
         where: { organizationId: ctx.organization.organizationId },
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
@@ -1005,11 +1005,16 @@ export const appRouter = router({
           },
         },
         orderBy: { name: "asc" },
-      });
+      } satisfies Prisma.PropertyFindManyArgs;
+      const properties = permissions.leases.view
+        ? await ctx.prisma.property.findMany(query)
+        : await ctx.prisma.property
+            .findMany({ ...query, include: { ...query.include, leases: false } })
+            .then((properties) => properties.map((property) => ({ ...property, leases: [] })));
 
       return Promise.all(
         properties.map(async (property) => {
-          const leases = (permissions.leases.view ? property.leases : []).flatMap((lease) => {
+          const leases = property.leases.flatMap((lease) => {
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = lease.tenants[0]?.tenant;
             if (!firstTenant) return [];
@@ -1046,7 +1051,7 @@ export const appRouter = router({
       .input(propertyByIdInputSchema)
       .query(async ({ ctx, input }) => {
         const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
-        const property = await ctx.prisma.property.findFirst({
+        const query = {
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           include: {
             tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
@@ -1073,13 +1078,18 @@ export const appRouter = router({
               },
             },
           },
-        });
+        } satisfies Prisma.PropertyFindFirstArgs;
+        const property = permissions.leases.view
+          ? await ctx.prisma.property.findFirst(query)
+          : await ctx.prisma.property
+              .findFirst({ ...query, include: { ...query.include, leases: false } })
+              .then((property) => (property ? { ...property, leases: [] } : null));
 
         if (!property) return null;
 
         const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
 
-        const leases = (permissions.leases.view ? rawLeases : []).flatMap((lease) => {
+        const leases = rawLeases.flatMap((lease) => {
           const { tenants: _tenants, unit: _unit, invoices: _invoices, ...leaseData } = lease;
           const firstTenant = lease.tenants[0]?.tenant;
           if (!firstTenant) return [];
