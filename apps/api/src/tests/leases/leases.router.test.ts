@@ -42,6 +42,7 @@ for (const [status, invoiceCount, allowed] of [
 ] as const) {
   test(`lease deletion: ${status}, ${invoiceCount} invoices`, async () => {
     let deleted = false;
+    let transactionOptions: unknown;
     const tx = {
       lease: {
         findFirstOrThrow: async ({ where }: { where: unknown }) => {
@@ -56,10 +57,15 @@ for (const [status, invoiceCount, allowed] of [
       },
     };
     const caller = createCaller({
-      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
+        transactionOptions = options;
+        return callback(tx);
+      },
     });
-    if (allowed) await caller.leases.delete({ id: 2 });
-    else {
+    if (allowed) {
+      await caller.leases.delete({ id: 2 });
+      assert.deepEqual(transactionOptions, { isolationLevel: "Serializable" });
+    } else {
       await assert.rejects(
         () => caller.leases.delete({ id: 2 }),
         (error: unknown) => error instanceof TRPCError && error.code === "CONFLICT",
