@@ -1,0 +1,18 @@
+---
+id: detail-page-actions
+title: Detail Page Actions
+---
+
+Detail pages use a consistent action group on larger screens:
+
+- Properties: **Edit Property → Actions**.
+- Units: **Edit Unit → Actions**.
+- Tenants: **Edit Tenant → Create Lease → Actions**.
+- Archived tenants: **Unarchive Tenant → Edit Tenant → Actions**. Create Lease is hidden until the tenant is restored.
+- Leases: **Edit Lease → Renew Lease → Actions**.
+- Maintenance: **Edit Maintenance → Acknowledge, Resolve, or Reopen Ticket → Actions**, according to ticket status.
+- Applications: **Edit Application → Actions**.
+
+The primary action is green. Common workflow actions use secondary buttons. Notes, archive, delete, cancellation, and other infrequent actions live in **Actions**. Destructive menu items are red and keep their existing confirmation requirements.
+
+Below 768 pixels, header actions collapse into a single **Actions** menu. Back navigation remains separate. Available actions depend on permissions for the corresponding resource; property access does not grant lease access.

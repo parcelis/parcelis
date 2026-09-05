@@ -31,6 +31,7 @@ import {
   CardHeader,
   Dialog,
   DialogContent,
+  DropdownMenuItem,
   Drawer,
   DrawerClose,
   DrawerContent,
@@ -57,7 +58,6 @@ import { EntityLifecycleControls } from "../../../../components/entity-lifecycle
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
 import { getInvoiceLink, getPropertyLink, getTenantInvoicesLink } from "../../../../lib/entity-links";
-
 
 function formatDate(date: Date | string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -136,6 +136,8 @@ export default function TenantDetailPage() {
     queryFn: () => apiClient.properties.list.query(),
   });
   const tenant = tenantQuery.data;
+  const prioritizeUnarchive =
+    tenant?.tenantStatus === "archived" && hasPermission(currentUserQuery.data?.permissions, "tenants", "archive");
   const emergencyContact = tenant?.emergencyContacts?.[0];
   const updateEmergencyContactMutation = useMutation({
     mutationFn: (input: { id: number; firstName: string; lastName: string; phone: string }) =>
@@ -407,7 +409,10 @@ export default function TenantDetailPage() {
           </DialogContent>
         </Dialog>
       ) : null}
-      <Dialog open={isLeaseDialogOpen && canCreateLease} onOpenChange={setIsLeaseDialogOpen}>
+      <Dialog
+        open={isLeaseDialogOpen && canCreateLease && tenant?.tenantStatus !== "archived"}
+        onOpenChange={setIsLeaseDialogOpen}
+      >
         <DialogContent className="max-w-lg">
           <form
             className="grid gap-4"
@@ -505,26 +510,43 @@ export default function TenantDetailPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 md:min-w-40" variant="secondary">
               <Link href="/tenants">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="sr-only sm:not-sr-only">Tenants</span>
+                <span className="sr-only md:not-sr-only">Tenants</span>
               </Link>
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            {canCreateLease ? (
-              <Button
-                className="min-w-40"
-                disabled={!tenant}
-                onClick={() => setIsLeaseDialogOpen(true)}
-                variant="secondary"
-              >
-                <Plus className="h-4 w-4" />
-                Create Lease
-              </Button>
-            ) : null}
+          <div aria-label="Tenant actions" className="flex items-center rounded-md shadow-sm" role="group">
             <EntityLifecycleControls
+              presentation="dropdown"
+              promoteReactivate
+              headerActions={
+                <>
+                  {canEditTenant ? (
+                    <Button
+                      className={`hidden min-w-40 md:inline-flex ${prioritizeUnarchive ? "rounded-none border-l-0" : "rounded-r-none"}`}
+                      disabled={!tenant}
+                      onClick={openTenantDrawer}
+                      variant={prioritizeUnarchive ? "secondary" : "primary"}
+                    >
+                      <PenLine className="h-4 w-4" />
+                      Edit Tenant
+                    </Button>
+                  ) : null}
+                  {canCreateLease && tenant?.tenantStatus !== "archived" ? (
+                    <Button
+                      className="hidden min-w-40 rounded-none border-l-0 md:inline-flex"
+                      disabled={!tenant}
+                      onClick={() => setIsLeaseDialogOpen(true)}
+                      variant="secondary"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Lease
+                    </Button>
+                  ) : null}
+                </>
+              }
               archiveDescription={
                 <>
                   This will mark {tenant ? `${tenant.firstName} ${tenant.lastName}` : "this tenant"} as archived while
@@ -566,28 +588,24 @@ export default function TenantDetailPage() {
                   queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
                 ]);
               }}
-            />
-            <Button
-              aria-label="Add notes"
-              className="min-w-10 sm:min-w-40"
-              disabled={!tenant}
-              onClick={() => setIsNotesDrawerOpen(true)}
-              variant="secondary"
             >
-              <StickyNotePlusIcon />
-              <span className="hidden sm:inline">Add Notes</span>
-            </Button>
-            {canEditTenant ? (
-              <Button
-                aria-label="Edit tenant"
-                className="min-w-10 sm:min-w-40"
-                disabled={!tenant}
-                onClick={openTenantDrawer}
-              >
-                <PenLine className="h-4 w-4" />
-                <span className="hidden sm:inline">Edit tenant</span>
-              </Button>
-            ) : null}
+              {canEditTenant ? (
+                <DropdownMenuItem className="md:hidden" disabled={!tenant} onSelect={openTenantDrawer}>
+                  <PenLine className="h-4 w-4" />
+                  Edit Tenant
+                </DropdownMenuItem>
+              ) : null}
+              {canCreateLease && tenant?.tenantStatus !== "archived" ? (
+                <DropdownMenuItem className="md:hidden" disabled={!tenant} onSelect={() => setIsLeaseDialogOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Create Lease
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem disabled={!tenant} onSelect={() => setIsNotesDrawerOpen(true)}>
+                <StickyNotePlusIcon />
+                Add Notes
+              </DropdownMenuItem>
+            </EntityLifecycleControls>
           </div>
         </header>
 

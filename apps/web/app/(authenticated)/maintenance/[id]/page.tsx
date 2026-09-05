@@ -35,11 +35,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   Textarea,
 } from "@parcelis/ui";
 import { isActiveMaintenanceTicketStatus, isTerminalMaintenanceTicketStatus } from "@parcelis/schemas";
-import { apiClient } from "../../../../components/api-client";
+import { hasPermission } from "../../../../components/property-access";
+import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { NotesDrawer } from "../../../../components/notes-drawer";
 import { MaintenanceDrawer } from "../../../../components/maintenance-drawer";
@@ -86,6 +88,11 @@ export default function MaintenanceTicketPage() {
   const [isLoggingOpen, setIsLoggingOpen] = React.useState(false);
   const [galleryIndex, setGalleryIndex] = React.useState<number | null>(null);
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditTicket = hasPermission(currentUserQuery.data?.permissions, "maintenance", "edit");
   const ticketQuery = useQuery({
     queryKey: ["maintenance", "byId", id],
     queryFn: () => apiClient.maintenance.byId.query({ id }),
@@ -106,7 +113,9 @@ export default function MaintenanceTicketPage() {
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
-        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }] }),
+        queryClient.invalidateQueries({
+          queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }],
+        }),
       ]),
   });
   const resolveTicket = useMutation({
@@ -120,7 +129,9 @@ export default function MaintenanceTicketPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
-        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }] }),
+        queryClient.invalidateQueries({
+          queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }],
+        }),
       ]);
     },
   });
@@ -130,7 +141,9 @@ export default function MaintenanceTicketPage() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
-        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }] }),
+        queryClient.invalidateQueries({
+          queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }],
+        }),
       ]),
   });
   const cancelTicket = useMutation({
@@ -139,7 +152,9 @@ export default function MaintenanceTicketPage() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["maintenance", "byId", id] }),
         queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
-        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }] }),
+        queryClient.invalidateQueries({
+          queryKey: ["activityEvents", "list", { subjectType: "maintenance_ticket", subjectId: id }],
+        }),
       ]).then(() => {
         setCancellationNote("");
         setIsCancellationNoteOpen(false);
@@ -250,61 +265,115 @@ export default function MaintenanceTicketPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <Button asChild className="min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 md:min-w-40" variant="secondary">
               <Link href="/maintenance">
                 <ArrowLeft className="h-4 w-4" />
-                Maintenance
+                <span className="sr-only md:not-sr-only">Maintenance</span>
               </Link>
             </Button>
           </div>
-          <div className="flex gap-2">
+          <div aria-label="Maintenance actions" className="flex items-center rounded-md shadow-sm" role="group">
             <Button
-              className="min-w-40 border-red-200 text-red-700 hover:bg-red-50"
-              disabled={!ticket || isTerminalMaintenanceTicketStatus(ticket.status) || cancelTicket.isPending}
-              onClick={() => setIsCancellationNoteOpen(true)}
-              variant="secondary"
+              className="hidden min-w-40 rounded-r-none md:inline-flex"
+              disabled={!ticket || !canEditTicket}
+              onClick={() => setEditOpen(true)}
             >
-              <CircleX className="h-4 w-4" />
-              Cancel Ticket
+              <Pencil className="h-4 w-4" />
+              Edit Maintenance
             </Button>
-            {ticket && isActiveMaintenanceTicketStatus(ticket.status) ? (
+            {ticket?.status === "new" ? (
               <Button
-                className="min-w-40"
-                disabled={resolveTicket.isPending}
+                className="hidden min-w-40 rounded-none border-l-0 md:inline-flex"
+                disabled={!canEditTicket || acknowledgeTicket.isPending}
+                onClick={() => acknowledgeTicket.mutate()}
+                variant="secondary"
+              >
+                <Check className="h-4 w-4" />
+                Acknowledge
+              </Button>
+            ) : ticket && isActiveMaintenanceTicketStatus(ticket.status) ? (
+              <Button
+                className="hidden min-w-40 rounded-none border-l-0 md:inline-flex"
+                disabled={!canEditTicket || resolveTicket.isPending}
                 onClick={() => (hasRecentNote ? resolveTicket.mutate(undefined) : setIsResolutionNoteOpen(true))}
                 variant="secondary"
               >
                 <Check className="h-4 w-4" />
                 Resolve
               </Button>
-            ) : null}
-            <Button
-              className="min-w-40"
-              disabled={ticket?.status !== "resolved" || reopenTicket.isPending}
-              onClick={() => reopenTicket.mutate()}
-              variant="secondary"
-            >
-              <Wrench className="h-4 w-4" />
-              Reopen Ticket
-            </Button>
-            <Button className="min-w-40" onClick={() => setNotesOpen(true)} variant="secondary">
-              <StickyNote className="h-4 w-4" />
-              Notes
-            </Button>
-            <Button className="min-w-40" onClick={() => setEditOpen(true)} variant="primary">
-              <Pencil className="h-4 w-4" />
-              Edit Maintenance
-            </Button>
-            {ticket?.status === "new" ? (
+            ) : ticket?.status === "resolved" ? (
               <Button
-                className="min-w-40"
-                disabled={acknowledgeTicket.isPending}
-                onClick={() => acknowledgeTicket.mutate()}
+                className="hidden min-w-40 rounded-none border-l-0 md:inline-flex"
+                disabled={!canEditTicket || reopenTicket.isPending}
+                onClick={() => reopenTicket.mutate()}
+                variant="secondary"
               >
-                <Check className="h-4 w-4" />
-                Acknowledge
+                <Wrench className="h-4 w-4" />
+                Reopen Ticket
               </Button>
             ) : null}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="md:min-w-40 md:rounded-l-none md:border-l-0" disabled={!ticket} variant="secondary">
+                  Actions
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="md:hidden" disabled={!canEditTicket} onSelect={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4" />
+                  Edit Maintenance
+                </DropdownMenuItem>
+                {ticket?.status === "new" ? (
+                  <DropdownMenuItem
+                    className="md:hidden"
+                    disabled={!canEditTicket || acknowledgeTicket.isPending}
+                    onSelect={() => acknowledgeTicket.mutate()}
+                  >
+                    <Check className="h-4 w-4" />
+                    Acknowledge
+                  </DropdownMenuItem>
+                ) : null}
+                {ticket && isActiveMaintenanceTicketStatus(ticket.status) ? (
+                  <DropdownMenuItem
+                    className={ticket.status === "new" ? undefined : "md:hidden"}
+                    disabled={!canEditTicket || resolveTicket.isPending}
+                    onSelect={() => (hasRecentNote ? resolveTicket.mutate(undefined) : setIsResolutionNoteOpen(true))}
+                  >
+                    <Check className="h-4 w-4" />
+                    Resolve
+                  </DropdownMenuItem>
+                ) : null}
+                {ticket?.status === "resolved" ? (
+                  <DropdownMenuItem
+                    className="md:hidden"
+                    disabled={!canEditTicket || reopenTicket.isPending}
+                    onSelect={() => reopenTicket.mutate()}
+                  >
+                    <Wrench className="h-4 w-4" />
+                    Reopen Ticket
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem onSelect={() => setNotesOpen(true)}>
+                  <StickyNote className="h-4 w-4" />
+                  Add Notes
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-red-700 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40 dark:focus:bg-red-950/40 dark:focus:text-red-300"
+                  disabled={
+                    !ticket ||
+                    !canEditTicket ||
+                    isTerminalMaintenanceTicketStatus(ticket.status) ||
+                    cancelTicket.isPending
+                  }
+                  onSelect={() => setIsCancellationNoteOpen(true)}
+                >
+                  <CircleX className="h-4 w-4" />
+                  Cancel Ticket
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
         <div className="parcelis-page-shell">
@@ -516,13 +585,13 @@ export default function MaintenanceTicketPage() {
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-parcelis-border bg-parcelis-porcelain/50 px-4 py-10 text-center dark:bg-parcelis-charcoal/55">
-                        <Image className="h-10 w-10 text-parcelis-green" />
+                          <Image className="h-10 w-10 text-parcelis-green" />
                           <span className="mt-3 text-sm font-semibold text-parcelis-charcoal dark:text-white">
                             No photos attached
                           </span>
-                        <span className="mt-1 text-xs text-parcelis-gray">
-                          Attached photos will be available in the gallery.
-                        </span>
+                          <span className="mt-1 text-xs text-parcelis-gray">
+                            Attached photos will be available in the gallery.
+                          </span>
                         </div>
                       )}
                     </CardContent>
@@ -648,7 +717,9 @@ export default function MaintenanceTicketPage() {
                       {activityEventsQuery.isLoading ? (
                         <LoadingState className="min-h-32" label="Loading activity…" />
                       ) : activityEventsQuery.error ? (
-                        <p className="p-5 text-sm font-medium text-red-700">Unable to load activity. Please try again.</p>
+                        <p className="p-5 text-sm font-medium text-red-700">
+                          Unable to load activity. Please try again.
+                        </p>
                       ) : activityEvents.length ? (
                         <ul className="divide-y divide-parcelis-border">
                           {activityEvents.map((event) => (

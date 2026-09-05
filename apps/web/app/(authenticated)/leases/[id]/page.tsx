@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -19,13 +19,14 @@ import {
   UserRound,
   XCircle,
 } from "lucide-react";
-import { Button, Card, CardContent, CardHeader } from "@parcelis/ui";
+import { Button, Card, CardContent, CardHeader, DropdownMenuItem, DropdownMenuSeparator } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
+import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
+import { hasPermission } from "../../../../components/property-access";
 import { LoadingState } from "../../../../components/loading-state";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { TenantRecordDrawer } from "../../../../components/tenant-record-drawer";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
-
 
 function formatDate(value: Date | string | null) {
   return value
@@ -69,60 +70,129 @@ function dueDay(value: Date | string | undefined) {
 }
 
 export default function LeaseDetailPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
   const params = useParams<{ id: string }>();
   const leaseId = Number(params.id);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
+  const canViewLease = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
+  const canEditLease = canViewLease && hasPermission(currentUserQuery.data?.permissions, "leases", "edit");
   const propertiesQuery = useQuery({
+    enabled: canViewLease,
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
   });
-  const leaseRecord = (propertiesQuery.data ?? [])
+  const leaseRecord = (canViewLease ? (propertiesQuery.data ?? []) : [])
     .flatMap((property) => property.leases.map((lease) => ({ ...lease, property })))
     .find((lease) => lease.id === leaseId);
   const unit = leaseRecord?.property.units.find((item) => item.name === leaseRecord.unitLabel);
   const firstInvoice = leaseRecord?.invoices[0];
+  const refreshLeaseData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["properties"] }),
+      queryClient.invalidateQueries({ queryKey: ["tenants"] }),
+    ]);
+  };
+  const returnToLeases = async () => {
+    await refreshLeaseData();
+    router.push("/leases");
+  };
 
   return (
     <main className="flex-1">
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-parcelis-border bg-white/90 px-4 py-3 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <Button asChild className="min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 md:min-w-40" variant="secondary">
               <Link href="/leases">
                 <ArrowLeft className="h-4 w-4" />
-                Leases
+                <span className="sr-only md:not-sr-only">Leases</span>
               </Link>
             </Button>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            <Button className="min-w-40" variant="secondary">
-              <RefreshCw className="h-4 w-4" />
-              Renew Lease
-            </Button>
-            <Button className="min-w-40" variant="secondary">
-              <UserRoundCog className="h-4 w-4" />
-              Edit Tenants
-            </Button>
-            <Button className="min-w-40" variant="secondary">
-              <StickyNotePlusIcon />
-              Notes
-            </Button>
-            <Button className="min-w-40" variant="danger">
-              <XCircle className="h-4 w-4" />
-              Terminate
-            </Button>
-            <Button className="min-w-40" variant="secondary">
-              <ClipboardEdit className="h-4 w-4" />
-              Initiate Damage Report
-            </Button>
-            <Button className="min-w-40" variant="primary">
-              <PenLine className="h-4 w-4" />
-              Edit Lease
-            </Button>
+            <div aria-label="Lease actions" className="flex items-center rounded-md shadow-sm" role="group">
+              {canEditLease ? (
+                <Button disabled={!leaseRecord} className="hidden rounded-r-none md:inline-flex" variant="primary">
+                  <PenLine className="h-4 w-4" />
+                  Edit Lease
+                </Button>
+              ) : null}
+              {hasPermission(currentUserQuery.data?.permissions, "leases", "create") ? (
+                <Button disabled={!leaseRecord} className="hidden rounded-none border-l-0 md:inline-flex" variant="secondary">
+                  <RefreshCw className="h-4 w-4" />
+                  Renew Lease
+                </Button>
+              ) : null}
+              <EntityLifecycleControls
+                presentation="dropdown"
+                archiveDescription="This hides the lease from the default lease directory while preserving its status, tenant assignments, and invoices. Archiving does not terminate the lease."
+                canArchive={hasPermission(currentUserQuery.data?.permissions, "leases", "archive")}
+                canDelete={hasPermission(currentUserQuery.data?.permissions, "leases", "delete")}
+                cancelDeleteLabel="Keep Lease"
+                deleteDescription="This permanently deletes a draft lease only when it has no invoices. Archive leases with history to retain their records."
+                entityLabel="lease"
+                isArchived={Boolean(leaseRecord?.archivedAt)}
+                isAvailable={Boolean(leaseRecord)}
+                onArchive={() => apiClient.leases.archive.mutate({ id: leaseId })}
+                onArchiveSuccess={returnToLeases}
+                onDelete={() => apiClient.leases.delete.mutate({ id: leaseId })}
+                onDeleteSuccess={returnToLeases}
+                onReactivate={() => apiClient.leases.reactivate.mutate({ id: leaseId })}
+                onReactivateSuccess={refreshLeaseData}
+              >
+                {canEditLease ? (
+                  <DropdownMenuItem className="md:hidden" disabled={!leaseRecord}>
+                    <PenLine className="h-4 w-4" />
+                    Edit Lease
+                  </DropdownMenuItem>
+                ) : null}
+                {hasPermission(currentUserQuery.data?.permissions, "leases", "create") ? (
+                  <DropdownMenuItem className="md:hidden" disabled={!leaseRecord}>
+                    <RefreshCw className="h-4 w-4" />
+                    Renew Lease
+                  </DropdownMenuItem>
+                ) : null}
+                <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
+                  Tenant Management
+                </p>
+                <DropdownMenuItem disabled={!canEditLease}>
+                  <UserRoundCog className="h-4 w-4 text-parcelis-green" />
+                  Edit Tenants
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <StickyNotePlusIcon />
+                  Notes
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
+                  Lease Actions
+                </p>
+                <DropdownMenuItem disabled={!canEditLease}>
+                  <ClipboardEdit className="h-4 w-4 text-parcelis-green" />
+                  Initiate Damage Report
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!canEditLease}
+                  className="text-red-600 focus:bg-red-50 focus:text-red-700 hover:bg-red-50"
+                >
+                  <XCircle className="h-4 w-4" />
+                  Terminate
+                </DropdownMenuItem>
+              </EntityLifecycleControls>
+            </div>
           </div>
         </header>
         <div className="parcelis-page-shell">
-          {propertiesQuery.isLoading ? (
+          {currentUserQuery.isLoading ? (
+            <LoadingState label="Loading lease…" />
+          ) : !canViewLease ? (
+            <p className="text-sm text-parcelis-gray">You do not have permission to view leases.</p>
+          ) : propertiesQuery.isLoading ? (
             <LoadingState label="Loading lease…" />
           ) : propertiesQuery.error ? (
             <div className="min-h-48 rounded-lg border border-red-200 bg-red-50 p-5 text-sm font-medium text-red-700">
@@ -155,7 +225,10 @@ export default function LeaseDetailPage() {
                       <BadgeCheck className={`h-4 w-4 ${statusTone(leaseRecord.status)}`} />
                       Lease Status
                     </div>
-                    <p className="mt-2 text-2xl font-bold text-white">{formatStatus(leaseRecord.status)}</p>
+                    <p className="mt-2 text-2xl font-bold text-white">
+                      {formatStatus(leaseRecord.status)}
+                      {leaseRecord.archivedAt ? " · Archived" : ""}
+                    </p>
                   </div>
                 </div>
               </section>
