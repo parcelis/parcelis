@@ -1,0 +1,19 @@
+scripts/dev-local.mjs
+  s_0a2dce0664f2da::t_211245a93e5558 112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "58f2974c83298c4e114d815e5538448ec743a3bf",
+  "prompts": {},
+  "sessions": {
+    "s_0a2dce0664f2da": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a06ff2-068a-73d3-8c90-747de9ba8bc8",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
