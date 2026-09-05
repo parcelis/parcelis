@@ -28,10 +28,12 @@ import { getLeaseLink, getTenantLink } from "../../../lib/entity-links";
 
 type LeaseFilters = {
   status: string;
+  archived: string;
 };
 
 const initialFilters: LeaseFilters = {
   status: "all",
+  archived: "active",
 };
 
 function formatDate(value: Date | string | null) {
@@ -84,6 +86,7 @@ export default function LeasesPage() {
     const query = search.trim().toLowerCase();
     return (
       (appliedFilters.status === "all" || lease.status === appliedFilters.status) &&
+      (appliedFilters.archived === "all" || Boolean(lease.archivedAt) === (appliedFilters.archived === "archived")) &&
       [
         lease.property.name,
         lease.unitLabel,
@@ -99,7 +102,7 @@ export default function LeasesPage() {
     const days = (new Date(lease.endsOn).getTime() - Date.now()) / 86400000;
     return days >= 0 && days <= 90;
   });
-  const activeFilterCount = appliedFilters.status === "all" ? 0 : 1;
+  const activeFilterCount = Number(appliedFilters.status !== "all") + Number(appliedFilters.archived !== "active");
   const groupedLeases = Array.from(
     filteredLeases.reduce((groups, lease) => {
       const group = groups.get(lease.property.id) ?? { name: lease.property.name, leases: [] as typeof filteredLeases };
@@ -192,7 +195,7 @@ export default function LeasesPage() {
                     <Label className="gap-2">
                       <span>Lease Status</span>
                       <Select
-                        onChange={(event) => setDraftFilters({ status: event.target.value })}
+                        onChange={(event) => setDraftFilters({ ...draftFilters, status: event.target.value })}
                         value={draftFilters.status}
                       >
                         <option value="all">All statuses</option>
@@ -200,6 +203,17 @@ export default function LeasesPage() {
                         <option value="active">Active</option>
                         <option value="notice">Notice given</option>
                         <option value="ended">Ended</option>
+                      </Select>
+                    </Label>
+                    <Label className="mt-4 gap-2">
+                      <span>Archive Status</span>
+                      <Select
+                        onChange={(event) => setDraftFilters({ ...draftFilters, archived: event.target.value })}
+                        value={draftFilters.archived}
+                      >
+                        <option value="active">Not archived</option>
+                        <option value="archived">Archived</option>
+                        <option value="all">All records</option>
                       </Select>
                     </Label>
                     <div className="mt-5 flex items-center justify-between border-t border-parcelis-border pt-4">

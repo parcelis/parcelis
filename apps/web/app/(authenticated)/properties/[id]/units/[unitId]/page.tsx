@@ -15,7 +15,6 @@ import {
   DoorOpen,
   FileText,
   Mail,
-  MoreHorizontal,
   PenLine,
   Phone,
   Plus,
@@ -33,9 +32,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@parcelis/ui";
 import { isActiveMaintenanceTicketStatus, type UpdatePropertyInput } from "@parcelis/schemas";
+import { hasPermission } from "../../../../../../components/property-access";
 import { apiClient, queryKeys } from "../../../../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../../../../components/property-image-upload";
 import {
@@ -50,7 +51,6 @@ import { NotesDrawer } from "../../../../../../components/notes-drawer";
 import { entityUpdatedMessage } from "../../../../../../components/toast-messages";
 import { StickyNotePlusIcon } from "../../../../../../components/sticky-note-plus-icon";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../../../lib/entity-links";
-
 
 function formatStatus(status: string) {
   return status
@@ -94,6 +94,13 @@ export default function UnitDetailPage() {
   const params = useParams<{ id: string; unitId: string }>();
   const propertyId = Number(params.id);
   const unitId = Number(params.unitId);
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditUnit =
+    hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "edit");
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
@@ -224,74 +231,54 @@ export default function UnitDetailPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between gap-3 border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
-            <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 md:min-w-40" variant="secondary">
               <Link href={getPropertyLink(propertyId)}>
                 <ArrowLeft className="h-4 w-4" />
-                <span className="sr-only sm:not-sr-only">Property</span>
+                <span className="sr-only md:not-sr-only">Property</span>
               </Link>
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            {property ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="min-w-0 sm:min-w-40" variant="secondary">
-                    All Units
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="max-h-96 min-w-48 overflow-y-auto">
-                  <DropdownMenuItem asChild>
-                    <Link href={getPropertyLink(propertyId)}>All Units</Link>
-                  </DropdownMenuItem>
-                  {property.units.map((propertyUnit) => (
-                    <DropdownMenuItem asChild key={propertyUnit.id}>
-                      <Link
-                        className={
-                          propertyUnit.id === unitId ? "bg-parcelis-porcelain text-parcelis-charcoal" : undefined
-                        }
-                        href={getUnitLink(propertyId, propertyUnit.id)}
-                      >
-                        Unit {propertyUnit.name}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button className="min-w-0 sm:min-w-40" disabled variant="secondary">
-                All Units
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            )}
+          <div aria-label="Unit actions" className="flex items-center rounded-md shadow-sm" role="group">
             <Button
-              className="hidden min-w-40 xl:inline-flex"
-              disabled={!unit}
-              onClick={() => setIsNotesDrawerOpen(true)}
-              variant="secondary"
+              className="hidden min-w-40 rounded-r-none md:inline-flex"
+              disabled={!unit || !canEditUnit}
+              onClick={openEditUnitDrawer}
             >
-              <StickyNotePlusIcon />
-              Add Notes
-            </Button>
-            <Button className="hidden min-w-40 xl:inline-flex" disabled={!property} onClick={openEditUnitDrawer}>
               <PenLine className="h-4 w-4" />
               Edit Unit
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button aria-label="Unit actions" className="min-w-10 xl:hidden" variant="secondary">
-                  <MoreHorizontal className="h-4 w-4" />
+                <Button className="md:min-w-40 md:rounded-l-none md:border-l-0" disabled={!unit} variant="secondary">
+                  Actions
+                  <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="max-h-96 min-w-48 overflow-y-auto">
+                <DropdownMenuItem className="md:hidden" disabled={!unit || !canEditUnit} onSelect={openEditUnitDrawer}>
+                  <PenLine className="h-4 w-4" />
+                  Edit Unit
+                </DropdownMenuItem>
                 <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
                   <StickyNotePlusIcon />
                   Add Notes
                 </DropdownMenuItem>
-                <DropdownMenuItem disabled={!property} onSelect={openEditUnitDrawer}>
-                  <PenLine className="h-4 w-4" />
-                  Edit Unit
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={getPropertyLink(propertyId)}>All Units</Link>
                 </DropdownMenuItem>
+                {property?.units.map((propertyUnit) => (
+                  <DropdownMenuItem asChild key={propertyUnit.id}>
+                    <Link
+                      className={
+                        propertyUnit.id === unitId ? "bg-parcelis-porcelain text-parcelis-charcoal" : undefined
+                      }
+                      href={getUnitLink(propertyId, propertyUnit.id)}
+                    >
+                      Unit {propertyUnit.name}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

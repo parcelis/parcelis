@@ -21,7 +21,7 @@ import {
   StickyNote,
   X,
 } from "lucide-react";
-import { Button, Card, CardContent, CardHeader } from "@parcelis/ui";
+import { Button, Card, CardContent, CardHeader, DropdownMenuItem } from "@parcelis/ui";
 import type { UpdateApplicationInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { ApplicationDrawer } from "../../../../components/application-drawer";
@@ -36,7 +36,6 @@ import {
   entityUpdatedMessage,
 } from "../../../../components/toast-messages";
 import { getPropertyLink } from "../../../../lib/entity-links";
-
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", {
@@ -161,15 +160,24 @@ export default function ApplicationDetailPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <Button asChild className="min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 md:min-w-40" variant="secondary">
               <Link href="/applications">
                 <ArrowLeft className="h-4 w-4" />
-                Applications
+                <span className="sr-only md:not-sr-only">Applications</span>
               </Link>
             </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div aria-label="Application actions" className="flex items-center rounded-md shadow-sm" role="group">
+            <Button
+              className="hidden min-w-40 rounded-r-none md:inline-flex"
+              disabled={!application || !hasPermission(currentUserQuery.data?.permissions, "applications", "edit")}
+              onClick={() => setIsEditOpen(true)}
+            >
+              <Pencil className="h-4 w-4" />
+              Edit Application
+            </Button>
             <EntityLifecycleControls
+              presentation="dropdown"
               archiveDescription={<>This will mark {application ? applicantName : "this application"} as archived.</>}
               cancelDeleteLabel="Keep Application"
               canArchive={hasPermission(currentUserQuery.data?.permissions, "applications", "archive")}
@@ -209,25 +217,20 @@ export default function ApplicationDetailPage() {
                   queryClient.invalidateQueries({ queryKey: queryKeys.applications.list }),
                 ]);
               }}
-            />
-            <Button
-              className="min-w-10 sm:min-w-40"
-              disabled={!application}
-              onClick={() => setIsNotesOpen(true)}
-              variant="secondary"
             >
-              <StickyNote className="h-4 w-4" />
-              <span className="hidden sm:inline">Notes</span>
-            </Button>
-            <Button
-              className="min-w-10 sm:min-w-40"
-              disabled={!application}
-              onClick={() => setIsEditOpen(true)}
-              variant="primary"
-            >
-              <Pencil className="h-4 w-4" />
-              <span className="hidden sm:inline">Edit Application</span>
-            </Button>
+              <DropdownMenuItem
+                className="md:hidden"
+                disabled={!application || !hasPermission(currentUserQuery.data?.permissions, "applications", "edit")}
+                onSelect={() => setIsEditOpen(true)}
+              >
+                <Pencil className="h-4 w-4" />
+                Edit Application
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!application} onSelect={() => setIsNotesOpen(true)}>
+                <StickyNote className="h-4 w-4" />
+                Add Notes
+              </DropdownMenuItem>
+            </EntityLifecycleControls>
           </div>
         </header>
         <div className="parcelis-page-shell">
