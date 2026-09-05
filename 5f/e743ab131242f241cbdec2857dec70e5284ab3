@@ -1,0 +1,19 @@
+apps/api/src/tests/leases/leases.router.test.ts
+  s_dfbd99531725a5::t_8ab7d825673cbc 45,60-63,65-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "5fe743ab131242f241cbdec2857dec70e5284ab3",
+  "prompts": {},
+  "sessions": {
+    "s_dfbd99531725a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a07248-a20e-72d3-9a8e-8f6ead1b1964",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
