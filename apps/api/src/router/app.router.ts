@@ -2,6 +2,7 @@ import {
   createManualInvoiceInputSchema,
   createPropertyInputSchema,
   createLeaseInputSchema,
+  leaseByIdInputSchema,
   createLeaseWithInvoicesInputSchema,
   deleteInvoiceInputSchema,
   deleteInvoicePaymentInputSchema,
@@ -938,14 +939,16 @@ export const appRouter = router({
   properties: router({
     /** Lists properties with units, lease metrics, and maintenance metrics. */
     list: permissionProcedure("properties", "view").query(async ({ ctx }) => {
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
       await synchronizeOverdueInvoices(ctx.prisma);
-      const properties = await ctx.prisma.property.findMany({
+      const query = {
         where: { organizationId: ctx.organization.organizationId },
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
           leases: {
             select: {
               monthlyRentCents: true,
+              archivedAt: true,
               id: true,
               startsOn: true,
               endsOn: true,
@@ -1002,7 +1005,12 @@ export const appRouter = router({
           },
         },
         orderBy: { name: "asc" },
-      });
+      } satisfies Prisma.PropertyFindManyArgs;
+      const properties = permissions.leases.view
+        ? await ctx.prisma.property.findMany(query)
+        : await ctx.prisma.property
+            .findMany({ ...query, include: { ...query.include, leases: false } })
+            .then((properties) => properties.map((property) => ({ ...property, leases: [] })));
 
       return Promise.all(
         properties.map(async (property) => {
@@ -1031,6 +1039,8 @@ export const appRouter = router({
           });
           return {
             ...result,
+            leases: leases.filter((lease) => lease.archivedAt === null),
+            leaseHistory: leases,
             imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
           };
         }),
@@ -1040,7 +1050,8 @@ export const appRouter = router({
     byId: permissionProcedure("properties", "view")
       .input(propertyByIdInputSchema)
       .query(async ({ ctx, input }) => {
-        const property = await ctx.prisma.property.findFirst({
+        const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
+        const query = {
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           include: {
             tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
@@ -1067,7 +1078,12 @@ export const appRouter = router({
               },
             },
           },
-        });
+        } satisfies Prisma.PropertyFindFirstArgs;
+        const property = permissions.leases.view
+          ? await ctx.prisma.property.findFirst(query)
+          : await ctx.prisma.property
+              .findFirst({ ...query, include: { ...query.include, leases: false } })
+              .then((property) => (property ? { ...property, leases: [] } : null));
 
         if (!property) return null;
 
@@ -1090,7 +1106,11 @@ export const appRouter = router({
         });
 
         return {
-          ...withPropertyNotes({ ...propertyData, leases }),
+          ...withPropertyNotes({
+            ...propertyData,
+            leases: leases.filter((lease) => lease.archivedAt === null),
+            leaseHistory: leases,
+          }),
           units: rawUnits.map(serializeUnit),
           unitStatuses,
           imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
@@ -3153,6 +3173,57 @@ export const appRouter = router({
     }),
   }),
   leases: router({
+    /** Archives a lease without changing its contractual status. */
+    archive: permissionProcedure("leases", "archive")
+      .input(leaseByIdInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.lease.update({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          data: { archivedAt: new Date() },
+          select: { id: true, archivedAt: true },
+        }),
+      ),
+    /** Restores an archived lease to the default lease directory. */
+    reactivate: permissionProcedure("leases", "archive")
+      .input(leaseByIdInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.lease.update({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          data: { archivedAt: null },
+          select: { id: true, archivedAt: true },
+        }),
+      ),
+    /** Permanently deletes a draft lease without invoices. */
+    delete: permissionProcedure("leases", "delete")
+      .input(leaseByIdInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await ctx.prisma.$transaction(
+            async (tx) => {
+              const lease = await tx.lease.findFirstOrThrow({
+                where: { id: input.id, organizationId: ctx.organization.organizationId },
+                include: { _count: { select: { invoices: true } } },
+              });
+              if (lease.status !== LeaseStatus.draft || lease._count.invoices > 0) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "Only draft leases without invoices can be deleted. Archive the lease instead.",
+                });
+              }
+              return tx.lease.delete({
+                where: { id: input.id, organizationId: ctx.organization.organizationId },
+                select: { id: true },
+              });
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+            throw new TRPCError({ code: "CONFLICT", message: "The lease changed. Please try again." });
+          }
+          throw error;
+        }
+      }),
     /** Creates a new lease with tenants and optionally generates invoices. */
     create: permissionProcedure("leases", "create")
       .input(createLeaseWithInvoicesInputSchema)

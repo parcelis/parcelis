@@ -1,0 +1,1 @@
+ALTER TABLE "Lease" ADD COLUMN "archivedAt" TIMESTAMP(3);

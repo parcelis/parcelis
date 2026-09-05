@@ -525,6 +525,7 @@ model Lease {
   startsOn         DateTime
   endsOn           DateTime?
   status           LeaseStatus  @default(draft)
+  archivedAt       DateTime?
   property         Property     @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id])
   unit             Unit         @relation(fields: [propertyId, unitId], references: [propertyId, id])
   tenants          LeaseTenant[]
