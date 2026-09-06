@@ -4,6 +4,7 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
@@ -11,6 +12,7 @@ import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from 
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
 import { ImageUploadPanel } from "../../../../components/image-upload-panel";
+import { settingUpdatedMessage } from "../../../../components/toast-messages";
 
 type AvatarVariant = "light" | "dark";
 type AvatarChanges = Partial<Record<AvatarVariant, File | null>>;
@@ -148,6 +150,7 @@ export default function OrganizationSettingsPage() {
       } else {
         router.replace(nextPathname);
       }
+      toast.success(settingUpdatedMessage("Organization"));
     },
   });
   return (

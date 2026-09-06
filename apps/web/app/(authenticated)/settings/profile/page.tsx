@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { CircleUserRound } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, Input, Label } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
@@ -12,6 +13,7 @@ import { formatLabel } from "../../../../lib/format";
 import { ImageUploadPanel } from "../../../../components/image-upload-panel";
 import { AccountInfoCard } from "../../../../components/account-info-card";
 import { deleteUserProfileImage, uploadUserProfileImage } from "../../../../components/user-profile-image-upload";
+import { settingUpdatedMessage } from "../../../../components/toast-messages";
 
 
 export default function ProfileSettingsPage() {
@@ -57,6 +59,7 @@ export default function ProfileSettingsPage() {
       setProfileImageFile(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(settingUpdatedMessage("Profile"));
     },
   });
   const deleteProfileImageMutation = useMutation({

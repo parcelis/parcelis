@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ChevronDown, ChevronRight, ShieldCheck } from "lucide-react";
 import {
   Button,
@@ -30,6 +31,7 @@ import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
 import { formatLabel } from "../../../../lib/format";
+import { settingUpdatedMessage } from "../../../../components/toast-messages";
 
 
 type PermissionMatrix = Record<PermissionResource, PermissionFlags>;
@@ -68,6 +70,7 @@ export default function RolesSettingsPage() {
       setDraft(null);
       await queryClient.invalidateQueries({ queryKey: ["roles", "list"] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+      toast.success(settingUpdatedMessage("Permissions"));
     },
   });
 
