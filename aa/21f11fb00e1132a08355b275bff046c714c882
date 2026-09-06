@@ -1,0 +1,19 @@
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_8ebb8f181dc2e7::t_601a699a5d918a 540
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "aa21f11fb00e1132a08355b275bff046c714c882",
+  "prompts": {},
+  "sessions": {
+    "s_8ebb8f181dc2e7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a074aa-8926-7870-84f5-b19cce527478",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
