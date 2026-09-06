@@ -1,0 +1,41 @@
+apps/api/src/router/app.router.ts
+  s_5965b4b112cadb::t_532180a52c6416 73-74,179,201,2071
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_5965b4b112cadb::t_532180a52c6416 9,208
+apps/web/components/record-payment-drawer.tsx
+  s_5965b4b112cadb::t_532180a52c6416 24,146
+apps/web/components/invoice-detail-view.tsx
+  s_5965b4b112cadb::t_532180a52c6416 30,245,314
+apps/api/src/modules/invoice-pdf.tsx
+  s_5965b4b112cadb::t_378d4f8cf957f8 62,134-140,160-168,176-183,210-212,313-315,390
+  s_5965b4b112cadb::t_532180a52c6416 3,261
+packages/schemas/src/index.ts
+  s_5965b4b112cadb::t_532180a52c6416 8-15
+apps/web/app/(authenticated)/maintenance/page.tsx
+  s_5965b4b112cadb::t_532180a52c6416 51,521
+apps/web/components/maintenance-drawer.tsx
+  s_5965b4b112cadb::t_532180a52c6416 40,256
+apps/web/app/(authenticated)/income/page.tsx
+  s_5965b4b112cadb::t_532180a52c6416 21,340,433
+apps/web/components/tenant-record-drawer.tsx
+  s_5965b4b112cadb::t_532180a52c6416 9,255
+apps/web/app/(authenticated)/maintenance/[id]/page.tsx
+  s_5965b4b112cadb::t_532180a52c6416 41-45,336,684
+  s_5965b4b112cadb::t_378d4f8cf957f8 112-114,128-130,140-142,151-153,463,530,534-536,662-664
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "585b8ce2507a2d41cccc874d2f73ed5bee034b0b",
+  "prompts": {},
+  "sessions": {
+    "s_5965b4b112cadb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a06f6d-2256-7ac2-a34a-3fb1237bfd80",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
