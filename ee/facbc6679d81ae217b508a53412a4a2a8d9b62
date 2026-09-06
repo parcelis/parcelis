@@ -1,0 +1,21 @@
+apps/api/src/tests/maintenance/maintenance-notes.router.test.ts
+  s_05aae40a4bac5b::t_07ff352b848ebe 7,9-10,22,28,35-45,52-53
+apps/api/src/router/app.router.ts
+  s_05aae40a4bac5b::t_50198028bad8e8 165-178,187-196,207-209,219-220,3084-3086,3096-3097
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "eefacbc6679d81ae217b508a53412a4a2a8d9b62",
+  "prompts": {},
+  "sessions": {
+    "s_05aae40a4bac5b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0771e-0619-7880-9ea5-4307022fd64b",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
