@@ -22,6 +22,14 @@ export function entityReactivatedMessage(entity: EntityLabel, name: string) {
   return `${entity} “${name}” has been reactivated.`;
 }
 
+export function entityEnabledMessage(entity: EntityLabel, name: string) {
+  return `${entity} “${name}” has been enabled.`;
+}
+
+export function entityDisabledMessage(entity: EntityLabel, name: string) {
+  return `${entity} “${name}” has been disabled.`;
+}
+
 export function settingUpdatedMessage(section: SettingsSection) {
   return `${section} has been updated.`;
 }

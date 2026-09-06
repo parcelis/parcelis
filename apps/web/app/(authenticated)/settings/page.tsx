@@ -51,6 +51,8 @@ import { formatLabel } from "../../../lib/format";
 import {
   entityCreatedMessage,
   entityDeletedMessage,
+  entityDisabledMessage,
+  entityEnabledMessage,
   entityUpdatedMessage,
 } from "../../../components/toast-messages";
 
@@ -175,10 +177,14 @@ export default function SettingsPage() {
   const updateAccountStatusMutation = useMutation({
     mutationFn: ({ accountStatus, user }: { accountStatus: "active" | "disabled"; user: UserListItem }) =>
       apiClient.users.updateAccountStatus.mutate({ id: user.id, accountStatus }),
-    onSuccess: async (_result, { user }) => {
+    onSuccess: async (result, { user }) => {
       setDisableUser(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
-      toast.success(entityUpdatedMessage("User", user.name));
+      toast.success(
+        result.accountStatus === "disabled"
+          ? entityDisabledMessage("User", user.name)
+          : entityEnabledMessage("User", user.name),
+      );
     },
   });
   const deleteUserMutation = useMutation({
