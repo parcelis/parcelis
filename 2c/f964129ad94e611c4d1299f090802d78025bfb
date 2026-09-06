@@ -1,0 +1,25 @@
+apps/docs/content/platform-user-guide/app-functionality/unit-details.mdx
+  s_c4fba2bcb32892::t_fe2036c7850744 36-39,41
+  s_c4fba2bcb32892::t_f5d6a2372c23c8 12,24
+  s_c4fba2bcb32892::t_8e5a1448e0a229 40
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_c4fba2bcb32892::t_8e5a1448e0a229 171
+  s_c4fba2bcb32892::t_fe2036c7850744 5,102,158-160,162,169-170,172-180
+  s_c4fba2bcb32892::t_f5d6a2372c23c8 306,332
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "2cf964129ad94e611c4d1299f090802d78025bfb",
+  "prompts": {},
+  "sessions": {
+    "s_c4fba2bcb32892": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a074a6-b25e-7951-98e9-6577ab656ef4",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
