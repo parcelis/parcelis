@@ -1,0 +1,44 @@
+apps/web/components/entity-lifecycle-controls.tsx
+  s_d93e74085107f6::t_a4d799da67bb08 26,48,153,178
+apps/web/app/(authenticated)/applications/[id]/page.tsx
+  s_d93e74085107f6::t_a4d799da67bb08 181
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_d93e74085107f6::t_a4d799da67bb08 524,540
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_d93e74085107f6::t_432964d26e1e07 8,31,85,180-209
+apps/web/components/api-client.ts
+  s_d93e74085107f6::t_94c2d3e784fb9f 36-38
+apps/docs/content/platform-user-guide/app-functionality/maintenance.mdx
+  s_d93e74085107f6::t_a4d799da67bb08 20
+apps/web/app/(authenticated)/maintenance/[id]/page.tsx
+  s_d93e74085107f6::t_a4d799da67bb08 337,339
+apps/web/app/(authenticated)/leases/page.tsx
+  s_d93e74085107f6::t_a4d799da67bb08 105
+apps/docs/content/platform-user-guide/app-functionality/lease-details.mdx
+  s_d93e74085107f6::t_432964d26e1e07 40-41
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_d93e74085107f6::t_a4d799da67bb08 279
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_d93e74085107f6::t_94c2d3e784fb9f 84,86-87,89-90,94,136,197-199,205-207,210,212,214,232,278,281
+  s_d93e74085107f6::t_5816eff2554736 125-129,200-204
+apps/docs/content/platform-user-guide/app-functionality/manage-a-tenant.mdx
+  s_d93e74085107f6::t_a4d799da67bb08 46,49
+apps/api/src/router/app.router.ts
+  s_d93e74085107f6::t_94c2d3e784fb9f 3176-3198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "eddb1a5dce0bf0e683c86eee624f07b99c0742d5",
+  "prompts": {},
+  "sessions": {
+    "s_d93e74085107f6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0749c-9f50-7650-8742-358d08906322",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
