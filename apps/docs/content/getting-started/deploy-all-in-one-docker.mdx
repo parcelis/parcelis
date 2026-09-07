@@ -45,7 +45,7 @@ The single-image container expects the same environment variables as the modular
 | `S3_REGION` | Region for the object storage bucket |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Object storage credentials |
 
-## Required mount
+## Required working directory
 
 The single-image container still expects the Prisma schema to run the migration job. When you run a migration container from the image, set its working directory to `/repo` (the compose example does this) so the bundled `prisma/schema.prisma` resolves correctly.
 
