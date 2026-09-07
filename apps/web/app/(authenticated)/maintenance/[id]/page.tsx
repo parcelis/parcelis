@@ -51,6 +51,7 @@ import { NotesDrawer } from "../../../../components/notes-drawer";
 import { MaintenanceDrawer } from "../../../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../../../components/maintenance-image-upload";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
+import { Badge } from "@parcelis/ui";
 
 const label = (value: string) =>
   value
@@ -544,9 +545,15 @@ export default function MaintenanceTicketPage() {
                       </div>
                       <div>
                         <p className="text-xs font-semibold uppercase text-parcelis-gray">Consent to enter</p>
-                        <p className="mt-1 font-semibold text-parcelis-charcoal">
+                        <Badge
+                          className={`mt-2 rounded-full px-3 text-sm ${
+                            ticket.consentToEnter
+                              ? "border-parcelis-green/30 bg-parcelis-green/15 text-parcelis-charcoal"
+                              : "border-red-200 bg-red-50 text-red-700"
+                          }`}
+                        >
                           {ticket.consentToEnter ? "Granted" : "Not granted"}
-                        </p>
+                        </Badge>
                       </div>
                     </div>
                     <div className="border-t border-parcelis-border pt-5">
