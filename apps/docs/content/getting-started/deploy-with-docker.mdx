@@ -37,11 +37,11 @@ docker run -d --name parcelis-app \
 
 The published documentation image is designed to be mounted at `/docs/` by the nginx proxy. Use the production Compose stack when serving the application and documentation site together.
 
-```
-
-For a single-image deployment that bundles the web app, API, documentation site, and nginx routing into one container, see [Deploy with the Single-Image Docker Build](deploy-all-in-one-docker.mdx).bash
+```bash
 docker compose --env-file .env.production up -d
 ```
+
+For a single-image deployment that bundles the web app, API, documentation site, and nginx routing into one container, see [Deploy with the Single-Image Docker Build](deploy-all-in-one-docker.mdx).
 
 :::caution
 If you are planning to run Parcelis in a production environment, update the values for the database, object storage, and authentication settings before you expose the service publicly. Use strong, unique credentials and keep them out of shell history and version control.

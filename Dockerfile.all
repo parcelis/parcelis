@@ -16,10 +16,17 @@ FROM base AS api-build
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches patches
 COPY apps/api/package.json apps/api/package.json
+# Copy all workspace manifests so pnpm can resolve the api's transitive
+# workspace dependencies (db, email, schemas, config) without first needing
+# their source files.
 COPY packages packages
+# Install full api dependency tree (no --prod) so prisma is available in
+# node_modules for the runtime migration job.
 RUN pnpm install --frozen-lockfile --filter @parcelis/api...
 COPY apps/api apps/api
-RUN pnpm --filter @parcelis/api build
+# Build the api and every workspace it depends on so the runtime can resolve
+# the declared `dist/index.js` entries (notably @parcelis/email).
+RUN pnpm --filter @parcelis/email build && pnpm --filter @parcelis/api build
 
 # ---------------------------------------------------------------------------
 # Web build
@@ -27,6 +34,9 @@ RUN pnpm --filter @parcelis/api build
 FROM base AS web-build
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches patches
+# The web app declares `@parcelis/api` as a workspace dependency, so the api
+# workspace manifest must be present before pnpm install.
+COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages packages
 RUN pnpm install --frozen-lockfile --filter @parcelis/web...
@@ -52,23 +62,27 @@ RUN pnpm build
 # ---------------------------------------------------------------------------
 FROM node:24.19.0-alpine AS all-in-one
 WORKDIR /repo
-RUN apk add --no-cache nginx openssl supervisor
+RUN apk add --no-cache nginx openssl supervisor && corepack enable
 
-# API runtime deps and build output
-COPY --from=api-build /repo/package.json /repo/pnpm-lock.yaml /repo/pnpm-workspace.yaml ./
-COPY --from=api-build /repo/patches patches
+# Workspace manifests and lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
+# API source: manifest and compiled output
 COPY --from=api-build /repo/apps/api/package.json apps/api/package.json
-COPY --from=api-build /repo/packages packages
-RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api...
 COPY --from=api-build /repo/apps/api/dist apps/api/dist
-
-# Web build output
+# Built workspace packages that the api imports at runtime
+COPY --from=api-build /repo/packages packages
+# Web source: manifest, build output, and public assets
+COPY --from=web-build /repo/apps/web/package.json apps/web/package.json
 COPY --from=web-build /repo/apps/web/.next apps/web/.next
 COPY --from=web-build /repo/apps/web/public apps/web/public
-COPY apps/web/package.json apps/web/package.json
-
 # Docs build output (static files served directly by nginx)
 COPY --from=docs-build /repo/apps/docs/build /usr/share/parcelis-docs
+
+# Install runtime dependencies for the api, web, and db workspaces without
+# --prod so devDependencies (notably prisma) remain available for the
+# migration job that uses this same image.
+RUN pnpm install --frozen-lockfile --filter @parcelis/api... --filter @parcelis/web... --filter @parcelis/db...
 
 COPY infra/docker/all-in-one/nginx.conf /etc/nginx/http.d/default.conf
 COPY infra/docker/all-in-one/supervisord.conf /etc/supervisord.conf
