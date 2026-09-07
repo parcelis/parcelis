@@ -1,0 +1,78 @@
+# syntax=docker/dockerfile:1
+#
+# Single-image build that packages the Parcelis web app, API, documentation
+# site, and edge routing into one deployable artifact. Published alongside the
+# modular app, docs, and proxy images; it does not replace them.
+
+FROM node:24.19.0-alpine AS base
+ENV FORCE_COLOR=0
+WORKDIR /repo
+RUN apk add --no-cache libc6-compat && corepack enable
+
+# ---------------------------------------------------------------------------
+# API build
+# ---------------------------------------------------------------------------
+FROM base AS api-build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
+COPY apps/api/package.json apps/api/package.json
+COPY packages packages
+RUN pnpm install --frozen-lockfile --filter @parcelis/api...
+COPY apps/api apps/api
+RUN pnpm --filter @parcelis/api build
+
+# ---------------------------------------------------------------------------
+# Web build
+# ---------------------------------------------------------------------------
+FROM base AS web-build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
+COPY apps/web/package.json apps/web/package.json
+COPY packages packages
+RUN pnpm install --frozen-lockfile --filter @parcelis/web...
+COPY apps/web apps/web
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @parcelis/web build
+
+# ---------------------------------------------------------------------------
+# Docs build
+# ---------------------------------------------------------------------------
+FROM base AS docs-build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
+COPY apps/docs/package.json apps/docs/package.json
+RUN pnpm install --frozen-lockfile --filter @parcelis/docs...
+COPY apps/docs apps/docs
+WORKDIR /repo/apps/docs
+ENV DOCS_BASE_URL=/docs/
+RUN pnpm build
+
+# ---------------------------------------------------------------------------
+# Runtime
+# ---------------------------------------------------------------------------
+FROM node:24.19.0-alpine AS all-in-one
+WORKDIR /repo
+RUN apk add --no-cache nginx openssl supervisor
+
+# API runtime deps and build output
+COPY --from=api-build /repo/package.json /repo/pnpm-lock.yaml /repo/pnpm-workspace.yaml ./
+COPY --from=api-build /repo/patches patches
+COPY --from=api-build /repo/apps/api/package.json apps/api/package.json
+COPY --from=api-build /repo/packages packages
+RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api...
+COPY --from=api-build /repo/apps/api/dist apps/api/dist
+
+# Web build output
+COPY --from=web-build /repo/apps/web/.next apps/web/.next
+COPY --from=web-build /repo/apps/web/public apps/web/public
+COPY apps/web/package.json apps/web/package.json
+
+# Docs build output (static files served directly by nginx)
+COPY --from=docs-build /repo/apps/docs/build /usr/share/parcelis-docs
+
+COPY infra/docker/all-in-one/nginx.conf /etc/nginx/http.d/default.conf
+COPY infra/docker/all-in-one/supervisord.conf /etc/supervisord.conf
+
+EXPOSE 3000
+
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]

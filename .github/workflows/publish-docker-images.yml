@@ -22,6 +22,11 @@ jobs:
             target: nginx
             title: Parcelis Docs
             description: Parcelis documentation site for the Parcelis Docker Compose stack.
+          - image: all
+            file: Dockerfile.all
+            target: all-in-one
+            title: Parcelis All-in-One
+            description: Parcelis web app, API, documentation site, and nginx edge routing in a single image.
           - image: proxy
             file: infra/docker/proxy/Dockerfile
             target: proxy

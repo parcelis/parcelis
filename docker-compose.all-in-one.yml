@@ -1,0 +1,131 @@
+# Single-image Compose example.
+#
+# Runs the published `parcelis/all` image, which bundles the Parcelis web app,
+# API, documentation site, and nginx edge routing into one container. PostgreSQL
+# and S3-compatible object storage (MinIO is provided here) remain external
+# services that you can replace with managed equivalents.
+#
+# This file does not modify the modular `docker-compose.yml` stack. Use it
+# when you want a single runtime image and one exposed application port.
+#
+# Bring the stack up with:
+#
+#   cp .env.production.example .env.production
+#   # edit .env.production with your production values
+#   docker compose --env-file .env.production -f docker-compose.all-in-one.yml up -d --remove-orphans
+#
+
+name: parcelis-all-in-one
+
+services:
+  postgres-service:
+    image: postgres:16-alpine
+    container_name: parcelis-all-in-one-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - parcelis
+
+  minio-service:
+    image: minio/minio:latest
+    container_name: parcelis-all-in-one-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: "${MINIO_API_CORS_ALLOW_ORIGIN:-${WEB_ORIGIN}}"
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "${MINIO_API_PORT:-9001}:9000"
+      - "${MINIO_CONSOLE_PORT:-9010}:9001"
+    networks:
+      - parcelis
+
+  minio-init-service:
+    image: minio/mc:latest
+    container_name: parcelis-all-in-one-minio-init
+    depends_on:
+      - minio-service
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${S3_BUCKET}
+      MINIO_ASSETS_BUCKET: ${MINIO_ASSETS_BUCKET}
+    volumes:
+      - ./infra/minio/assets:/assets:ro
+    entrypoint: >
+      /bin/sh -ec "
+      until /usr/bin/mc alias set parcelis http://minio-service:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_BUCKET;
+      /usr/bin/mc anonymous set none parcelis/$$MINIO_BUCKET;
+      /usr/bin/mc mb --ignore-existing parcelis/$$MINIO_ASSETS_BUCKET;
+      /usr/bin/mc cp --recursive /assets/ parcelis/$$MINIO_ASSETS_BUCKET/;
+      /usr/bin/mc anonymous set download parcelis/$$MINIO_ASSETS_BUCKET;
+      "
+    networks:
+      - parcelis
+
+  migrate-service:
+    image: parcelis/all:${PARCELIS_VERSION:-v0.4.1}
+    container_name: parcelis-all-in-one-migrate
+    command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
+    working_dir: /repo
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-service:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      postgres-service:
+        condition: service_healthy
+    networks:
+      - parcelis
+
+  app-service:
+    image: parcelis/all:${PARCELIS_VERSION:-v0.4.1}
+    container_name: parcelis-all-in-one-app
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-service:5432/${POSTGRES_DB}?schema=public
+      WEB_ORIGIN: ${WEB_ORIGIN}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_DISABLED: ${AUTH_DISABLED:-false}
+      EMAIL_FROM: ${EMAIL_FROM}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      S3_ENDPOINT: http://minio-service:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+    depends_on:
+      migrate-service:
+        condition: service_completed_successfully
+      minio-init-service:
+        condition: service_completed_successfully
+    networks:
+      - parcelis
+
+volumes:
+  postgres-data:
+  minio-data:
+
+networks:
+  parcelis:
+    name: parcelis-all-in-one
+    ipam:
+      config:
+        - subnet: 10.90.0.0/24
