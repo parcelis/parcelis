@@ -34,7 +34,7 @@
     "@parcelis/config": "workspace:*",
     "@playwright/test": "^1.62.1",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
+    "@types/react-dom": "19.2.7",
     "eslint": "^9.39.5",
     "prettier": "^3.9.6",
     "turbo": "^2.10.11",
