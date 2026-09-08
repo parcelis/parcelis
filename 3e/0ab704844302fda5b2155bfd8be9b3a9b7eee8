@@ -1,0 +1,19 @@
+AGENTS.md
+  s_bf952ae7c532c4::t_e7a3f05ab48fd0 85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "3e0ab704844302fda5b2155bfd8be9b3a9b7eee8",
+  "prompts": {},
+  "sessions": {
+    "s_bf952ae7c532c4": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "367a0b8c-b9a3-4511-bfdf-c19d14b5a96d",
+        "model": "gpt-5-mini"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
