@@ -256,7 +256,7 @@ importers:
         version: 17.4.2
       lucide-react:
         specifier: ^1.32.0
-        version: 1.32.0(react@19.2.8)
+        version: 1.43.0(react@19.2.8)
       next:
         specifier: ^16.3.3
         version: 16.3.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.102.0)
@@ -351,7 +351,7 @@ importers:
         version: 7.10.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
       tsx:
         specifier: 4.23.12
-        version: 4.23.13
+        version: 4.23.12
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -428,7 +428,7 @@ importers:
         version: 2.1.1
       lucide-react:
         specifier: ^1.32.0
-        version: 1.32.0(react@19.2.8)
+        version: 1.43.0(react@19.2.8)
       react:
         specifier: ^18.3.1 || ^19.0.0
         version: 19.2.8
@@ -7734,8 +7734,8 @@ packages:
     resolution: {integrity: sha512-DqC6n3QQ77zdFpCMASA1a3Jlb64Hv2N2DciFGkO/4L9+q/IpIAuRlKOvCXabtRW6cQf8usbmM6BE/TOPysCdIA==}
     engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
 
-  lucide-react@1.32.0:
-    resolution: {integrity: sha512-txX56hMFnRxPi1f9/nH69YN8uvAO6a7Y1KSWKjCDAtdD9+soEgmWuCt6iRm1pkxUZo2+YntSdsE1L6bIuKoY8Q==}
+  lucide-react@1.43.0:
+    resolution: {integrity: sha512-ubtnda1fVK5ky0PNEpOmB0wiwhpZUyJiol4K14KCm+QKvuCkfUu54Et/rIjyupJpwiJ5Hg+BLQE86/GEsS+IgQ==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -10215,6 +10215,11 @@ packages:
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
+  tsx@4.23.12:
+    resolution: {integrity: sha512-FDf4L4sYzKtzWYhU/Xm0AQFdTjdIxNo9ElTf2mxXM6k8YMHXzYUe4yODVaXP4V9uMFbVg8c0qyBccK2OOxb45Q==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   tsx@4.23.13:
     resolution: {integrity: sha512-BL5MGkRln6aDYhb0xbQlEAGw743BaZYWdbWtdJOBriYJboKgUUYCadFp2/FpBBZquBC/ezNBn7wMMPx7FDZUDw==}
@@ -16259,7 +16264,7 @@ snapshots:
       '@vue/shared': 3.5.42
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.26
+      postcss: 8.5.28
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.5.42':
@@ -19590,7 +19595,7 @@ snapshots:
 
   lru.min@1.1.4: {}
 
-  lucide-react@1.32.0(react@19.2.8):
+  lucide-react@1.43.0(react@19.2.8):
     dependencies:
       react: 19.2.8
 
@@ -22908,6 +22913,12 @@ snapshots:
   tslib@1.14.1: {}
 
   tslib@2.8.1: {}
+
+  tsx@4.23.12:
+    dependencies:
+      esbuild: 0.28.2
+    optionalDependencies:
+      fsevents: 2.3.3
 
   tsx@4.23.13:
     dependencies:
