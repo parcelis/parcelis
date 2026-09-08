@@ -125,13 +125,16 @@ test("API denies lease creation when create permission is missing", async () => 
 
 test("API denies user creation when create permission is missing", async () => {
   const caller = createDeniedCaller();
+  const userCreateInput = {
+    name: "New User",
+    email: "new-user@example.com",
+    phone: null,
+    role: "property_manager" as const,
+  };
   await expectForbidden(() =>
     caller.users.create({
-      name: "New User",
-      email: "new-user@example.com",
-      phone: null,
-      password: "test-password",
-      role: "property_manager",
+      ...userCreateInput,
+      password: process.env.TEST_USER_PASSWORD ?? "",
     }),
   );
 });
@@ -142,8 +145,8 @@ test("API denies user changes when the matching permission is missing", async ()
     expectForbidden(() =>
       caller.users.update({
         id: 1,
-        name: "Restricted User",
-        email: "restricted@example.com",
+        name: process.env.TEST_USER_NAME ?? "",
+        email: process.env.TEST_USER_EMAIL ?? "",
         phone: null,
         role: "property_manager",
       }),
