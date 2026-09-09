@@ -1,6 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":dependencyDashboard"],
+  "major": {
+    "dependencyDashboardApproval": true
+  },
   "timezone": "America/Chicago",
   "schedule": ["before 9am on friday"],
   "prConcurrentLimit": 5,
