@@ -87,7 +87,19 @@ jobs:
               }
 
               const latest = await dependencyState(issueNumber);
-              if (!latest || latest.state !== "OPEN") return syncIssue(issueNumber);
+              if (!latest) return;
+
+              if (latest.state !== "OPEN") {
+                if (hasBlockedLabel) {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    name: blockedLabel,
+                  });
+                }
+                return;
+              }
 
               if (latest.blocked && !hasBlockedLabel) {
                 await github.rest.issues.addLabels({
@@ -155,6 +167,7 @@ jobs:
                 await syncIssue(issueNumber);
               } catch (error) {
                 core.warning(`Failed to sync issue #${issueNumber}: ${error.message}`);
+                core.setFailed(`Failed to sync issue #${issueNumber}`);
               }
             }
 
