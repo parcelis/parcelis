@@ -12,6 +12,9 @@ permissions:
 
 jobs:
   sync:
+    concurrency:
+      group: sync-blocked-issues-${{ github.repository }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v8
@@ -27,37 +30,17 @@ jobs:
               );
             }
 
-            async function syncIssue(issueNumber) {
-              const result = await github.graphql(
-                `query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
-                  repository(owner: $owner, name: $repo) {
-                    issue(number: $number) {
-                      state
-                      blockedBy(first: 100, after: $cursor) {
-                        nodes { state }
-                        pageInfo { hasNextPage endCursor }
-                      }
-                    }
-                  }
-                }`,
-                { owner, repo, number: issueNumber, cursor: null }
-              );
+            async function dependencyState(issueNumber) {
+              let state = null;
+              let blocked = false;
+              let cursor = null;
 
-              const issue = result.repository.issue;
-              if (!issue || issue.state !== "OPEN") return;
-
-              let blocked = issue.blockedBy.nodes.some(
-                (blocker) => blocker.state !== "CLOSED"
-              );
-              let cursor = issue.blockedBy.pageInfo.hasNextPage
-                ? issue.blockedBy.pageInfo.endCursor
-                : null;
-
-              while (cursor && !blocked) {
+              do {
                 const page = await github.graphql(
                   `query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
                     repository(owner: $owner, name: $repo) {
                       issue(number: $number) {
+                        state
                         blockedBy(first: 100, after: $cursor) {
                           nodes { state }
                           pageInfo { hasNextPage endCursor }
@@ -68,21 +51,45 @@ jobs:
                   { owner, repo, number: issueNumber, cursor }
                 );
 
-                const dependencies = page.repository.issue.blockedBy;
-                blocked = dependencies.nodes.some(
+                const issue = page.repository.issue;
+                if (!issue) return null;
+                state = issue.state;
+                blocked ||= issue.blockedBy.nodes.some(
                   (blocker) => blocker.state !== "CLOSED"
                 );
-                cursor = dependencies.pageInfo.hasNextPage
-                  ? dependencies.pageInfo.endCursor
+                cursor = issue.blockedBy.pageInfo.hasNextPage
+                  ? issue.blockedBy.pageInfo.endCursor
                   : null;
-              }
+              } while (cursor);
+
+              return { state, blocked };
+            }
+
+            async function syncIssue(issueNumber) {
+              const current = await dependencyState(issueNumber);
+              if (!current) return;
 
               const labels = await labelsFor(issueNumber);
               const hasBlockedLabel = labels.some(
                 label => label.name === blockedLabel
               );
 
-              if (blocked && !hasBlockedLabel) {
+              if (current.state !== "OPEN") {
+                if (hasBlockedLabel) {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    name: blockedLabel,
+                  });
+                }
+                return;
+              }
+
+              const latest = await dependencyState(issueNumber);
+              if (!latest || latest.state !== "OPEN") return syncIssue(issueNumber);
+
+              if (latest.blocked && !hasBlockedLabel) {
                 await github.rest.issues.addLabels({
                   owner,
                   repo,
@@ -91,7 +98,7 @@ jobs:
                 });
               }
 
-              if (!blocked && hasBlockedLabel) {
+              if (!latest.blocked && hasBlockedLabel) {
                 await github.rest.issues.removeLabel({
                   owner,
                   repo,
@@ -133,6 +140,24 @@ jobs:
               return numbers;
             }
 
+            async function closedIssuesWithBlockedLabel() {
+              return github.paginate(github.rest.issues.listForRepo, {
+                owner,
+                repo,
+                state: "closed",
+                labels: blockedLabel,
+                per_page: 100,
+              }).then(issues => issues.map(issue => issue.number));
+            }
+
+            async function syncSafely(issueNumber) {
+              try {
+                await syncIssue(issueNumber);
+              } catch (error) {
+                core.warning(`Failed to sync issue #${issueNumber}: ${error.message}`);
+              }
+            }
+
             if (context.eventName === "issues") {
               const sourceIssue = context.payload.issue.number;
 
@@ -162,10 +187,14 @@ jobs:
               } while (cursor);
 
               for (const issueNumber of affected) {
-                await syncIssue(issueNumber);
+                await syncSafely(issueNumber);
               }
             } else {
-              for (const issueNumber of await allOpenIssues()) {
-                await syncIssue(issueNumber);
+              const issueNumbers = new Set([
+                ...(await allOpenIssues()),
+                ...(await closedIssuesWithBlockedLabel()),
+              ]);
+              for (const issueNumber of issueNumbers) {
+                await syncSafely(issueNumber);
               }
             }
