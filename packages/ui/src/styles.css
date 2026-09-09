@@ -8,11 +8,21 @@
   --parcelis-white: rgb(255 255 255);
   --parcelis-border: rgb(220 225 220);
   --parcelis-green-hover: rgb(91 142 52);
+  --parcelis-charcoal-rgb: 16 28 41;
+  --parcelis-slate-rgb: 23 38 53;
+  --parcelis-green-rgb: 111 166 64;
+  --parcelis-gray-rgb: 88 98 115;
+  --parcelis-porcelain-rgb: 247 248 246;
+  --parcelis-white-rgb: 255 255 255;
+  --parcelis-border-rgb: 220 225 220;
+  --parcelis-green-hover-rgb: 91 142 52;
 }
 
 .dark {
   --parcelis-border: rgb(53 70 74);
   --parcelis-green-hover: rgb(137 185 96);
+  --parcelis-border-rgb: 53 70 74;
+  --parcelis-green-hover-rgb: 137 185 96;
 }
 
 .parcelis-wordmark-parcel {

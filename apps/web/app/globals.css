@@ -34,7 +34,7 @@ body {
   font-family: var(--font-inter), ui-sans-serif, system-ui;
   color: var(--parcelis-charcoal);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--parcelis-charcoal) 4%, transparent), var(--parcelis-porcelain) 320px),
+    linear-gradient(180deg, rgb(var(--parcelis-charcoal-rgb) / 0.04), var(--parcelis-porcelain) 320px),
     var(--parcelis-porcelain);
 }
 
@@ -54,7 +54,7 @@ body {
 .dark body {
   color: var(--parcelis-porcelain);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--parcelis-green) 8%, transparent), var(--parcelis-charcoal) 340px),
+    linear-gradient(180deg, rgb(var(--parcelis-green-rgb) / 0.08), var(--parcelis-charcoal) 340px),
     var(--parcelis-charcoal);
 }
 
@@ -63,7 +63,7 @@ body {
 }
 
 .dark .bg-white\/90 {
-  background-color: color-mix(in srgb, var(--parcelis-slate) 90%, transparent);
+  background-color: rgb(var(--parcelis-slate-rgb) / 0.9);
 }
 
 .dark .hover\:bg-white:hover {
@@ -71,7 +71,7 @@ body {
 }
 
 .dark .hover\:bg-white\/60:hover {
-  background-color: color-mix(in srgb, var(--parcelis-slate) 60%, transparent);
+  background-color: rgb(var(--parcelis-slate-rgb) / 0.6);
 }
 
 .dark .text-parcelis-charcoal {
@@ -79,7 +79,7 @@ body {
 }
 
 .dark .text-parcelis-gray {
-  color: color-mix(in srgb, var(--parcelis-porcelain) 72%, transparent);
+  color: rgb(var(--parcelis-porcelain-rgb) / 0.72);
 }
 
 .dark .bg-parcelis-charcoal {
@@ -91,12 +91,12 @@ body {
 }
 
 .dark .bg-parcelis-porcelain\/45 {
-  background-color: color-mix(in srgb, var(--parcelis-charcoal) 45%, transparent);
+  background-color: rgb(var(--parcelis-charcoal-rgb) / 0.45);
 }
 
 .dark .hover\:bg-parcelis-porcelain:hover,
 .dark .hover\:bg-parcelis-porcelain\/60:hover {
-  background-color: color-mix(in srgb, var(--parcelis-charcoal) 72%, transparent);
+  background-color: rgb(var(--parcelis-charcoal-rgb) / 0.72);
 }
 
 .dark .bg-parcelis-green.text-parcelis-charcoal {
@@ -111,5 +111,5 @@ body {
 }
 
 .dark input::placeholder {
-  color: color-mix(in srgb, var(--parcelis-porcelain) 68%, transparent);
+  color: rgb(var(--parcelis-porcelain-rgb) / 0.68);
 }
