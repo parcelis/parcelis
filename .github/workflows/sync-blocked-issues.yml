@@ -66,8 +66,12 @@ jobs:
             }
 
             async function syncIssue(issueNumber) {
+              core.info(`Syncing blocked label for issue #${issueNumber}`);
               const current = await dependencyState(issueNumber);
-              if (!current) return;
+              if (!current) {
+                core.info(`Issue #${issueNumber} no longer exists; skipped`);
+                return;
+              }
 
               const labels = await labelsFor(issueNumber);
               const hasBlockedLabel = labels.some(
@@ -82,6 +86,9 @@ jobs:
                     issue_number: issueNumber,
                     name: blockedLabel,
                   });
+                  core.info(`Removed "${blockedLabel}" from issue #${issueNumber} because it is closed`);
+                } else {
+                  core.info(`Issue #${issueNumber} is closed; no label update needed`);
                 }
                 return;
               }
@@ -97,6 +104,9 @@ jobs:
                     issue_number: issueNumber,
                     name: blockedLabel,
                   });
+                  core.info(`Removed "${blockedLabel}" from issue #${issueNumber} because it is closed`);
+                } else {
+                  core.info(`Issue #${issueNumber} is closed; no label update needed`);
                 }
                 return;
               }
@@ -108,6 +118,7 @@ jobs:
                   issue_number: issueNumber,
                   labels: [blockedLabel],
                 });
+                core.info(`Added "${blockedLabel}" to issue #${issueNumber}`);
               }
 
               if (!latest.blocked && hasBlockedLabel) {
@@ -117,6 +128,11 @@ jobs:
                   issue_number: issueNumber,
                   name: blockedLabel,
                 });
+                core.info(`Removed "${blockedLabel}" from issue #${issueNumber} because it is no longer blocked`);
+              }
+
+              if (latest.blocked === hasBlockedLabel) {
+                core.info(`Issue #${issueNumber} touched; blocked label already in sync`);
               }
             }
 
