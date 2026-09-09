@@ -13,7 +13,7 @@
 }
 
 html {
-  background: rgb(var(--parcelis-porcelain));
+  background: var(--parcelis-porcelain);
   --parcelis-sidebar-width: 16rem;
   --parcelis-mobile-nav-trigger-inset: 0.75rem;
   --parcelis-mobile-nav-trigger-size: 2.5rem;
@@ -25,17 +25,17 @@ html {
 }
 
 html.dark {
-  background: rgb(var(--parcelis-charcoal));
+  background: var(--parcelis-charcoal);
 }
 
 body {
   min-height: 100vh;
   margin: 0;
   font-family: var(--font-inter), ui-sans-serif, system-ui;
-  color: rgb(var(--parcelis-charcoal));
+  color: var(--parcelis-charcoal);
   background:
-    linear-gradient(180deg, rgb(var(--parcelis-charcoal) / 0.04), rgb(var(--parcelis-porcelain) / 0) 320px),
-    rgb(var(--parcelis-porcelain));
+    linear-gradient(180deg, color-mix(in srgb, var(--parcelis-charcoal) 4%, transparent), var(--parcelis-porcelain) 320px),
+    var(--parcelis-porcelain);
 }
 
 @media (max-width: 1023px) {
@@ -52,64 +52,64 @@ body {
 }
 
 .dark body {
-  color: rgb(var(--parcelis-porcelain));
+  color: var(--parcelis-porcelain);
   background:
-    linear-gradient(180deg, rgb(var(--parcelis-green) / 0.08), rgb(var(--parcelis-charcoal) / 0) 340px),
-    rgb(var(--parcelis-charcoal));
+    linear-gradient(180deg, color-mix(in srgb, var(--parcelis-green) 8%, transparent), var(--parcelis-charcoal) 340px),
+    var(--parcelis-charcoal);
 }
 
 .dark .bg-white {
-  background-color: rgb(var(--parcelis-slate));
+  background-color: var(--parcelis-slate);
 }
 
 .dark .bg-white\/90 {
-  background-color: rgb(var(--parcelis-slate) / 0.9);
+  background-color: color-mix(in srgb, var(--parcelis-slate) 90%, transparent);
 }
 
 .dark .hover\:bg-white:hover {
-  background-color: rgb(var(--parcelis-slate));
+  background-color: var(--parcelis-slate);
 }
 
 .dark .hover\:bg-white\/60:hover {
-  background-color: rgb(var(--parcelis-slate) / 0.6);
+  background-color: color-mix(in srgb, var(--parcelis-slate) 60%, transparent);
 }
 
 .dark .text-parcelis-charcoal {
-  color: rgb(var(--parcelis-porcelain));
+  color: var(--parcelis-porcelain);
 }
 
 .dark .text-parcelis-gray {
-  color: rgb(var(--parcelis-porcelain) / 0.72);
+  color: color-mix(in srgb, var(--parcelis-porcelain) 72%, transparent);
 }
 
 .dark .bg-parcelis-charcoal {
-  background-color: rgb(var(--parcelis-charcoal));
+  background-color: var(--parcelis-charcoal);
 }
 
 .dark .bg-parcelis-porcelain {
-  background-color: rgb(var(--parcelis-charcoal));
+  background-color: var(--parcelis-charcoal);
 }
 
 .dark .bg-parcelis-porcelain\/45 {
-  background-color: rgb(var(--parcelis-charcoal) / 0.45);
+  background-color: color-mix(in srgb, var(--parcelis-charcoal) 45%, transparent);
 }
 
 .dark .hover\:bg-parcelis-porcelain:hover,
 .dark .hover\:bg-parcelis-porcelain\/60:hover {
-  background-color: rgb(var(--parcelis-charcoal) / 0.72);
+  background-color: color-mix(in srgb, var(--parcelis-charcoal) 72%, transparent);
 }
 
 .dark .bg-parcelis-green.text-parcelis-charcoal {
-  color: rgb(var(--parcelis-charcoal));
+  color: var(--parcelis-charcoal);
 }
 
 .dark input,
 .dark select,
 .dark textarea {
-  background-color: rgb(var(--parcelis-charcoal));
-  color: rgb(var(--parcelis-porcelain));
+  background-color: var(--parcelis-charcoal);
+  color: var(--parcelis-porcelain);
 }
 
 .dark input::placeholder {
-  color: rgb(var(--parcelis-porcelain) / 0.68);
+  color: color-mix(in srgb, var(--parcelis-porcelain) 68%, transparent);
 }

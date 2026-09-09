@@ -6,14 +6,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        "parcelis-charcoal": "rgb(var(--parcelis-charcoal) / <alpha-value>)",
-        "parcelis-green": "rgb(var(--parcelis-green) / <alpha-value>)",
-        "parcelis-slate": "rgb(var(--parcelis-slate) / <alpha-value>)",
-        "parcelis-gray": "rgb(var(--parcelis-gray) / <alpha-value>)",
-        "parcelis-porcelain": "rgb(var(--parcelis-porcelain) / <alpha-value>)",
-        "parcelis-white": "rgb(var(--parcelis-white) / <alpha-value>)",
-        "parcelis-border": "rgb(var(--parcelis-border) / <alpha-value>)",
-        "parcelis-green-hover": "rgb(var(--parcelis-green-hover) / <alpha-value>)"
+        "parcelis-charcoal": "rgb(from var(--parcelis-charcoal) r g b / <alpha-value>)",
+        "parcelis-green": "rgb(from var(--parcelis-green) r g b / <alpha-value>)",
+        "parcelis-slate": "rgb(from var(--parcelis-slate) r g b / <alpha-value>)",
+        "parcelis-gray": "rgb(from var(--parcelis-gray) r g b / <alpha-value>)",
+        "parcelis-porcelain": "rgb(from var(--parcelis-porcelain) r g b / <alpha-value>)",
+        "parcelis-white": "rgb(from var(--parcelis-white) r g b / <alpha-value>)",
+        "parcelis-border": "rgb(from var(--parcelis-border) r g b / <alpha-value>)",
+        "parcelis-green-hover": "rgb(from var(--parcelis-green-hover) r g b / <alpha-value>)"
       },
       fontFamily: {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui"],
