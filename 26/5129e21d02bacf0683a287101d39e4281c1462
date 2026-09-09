@@ -1,0 +1,19 @@
+.github/workflows/sync-blocked-issues.yml
+  s_847f1942d07504::t_53465a6770e8fa 69,71-74,89-91,107-109,121,131-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "265129e21d02bacf0683a287101d39e4281c1462",
+  "prompts": {},
+  "sessions": {
+    "s_847f1942d07504": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a083dd-cb69-7d41-8390-1e09a6432c80",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
