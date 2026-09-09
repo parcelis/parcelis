@@ -132,7 +132,8 @@ jobs:
               }
 
               if (latest.blocked === hasBlockedLabel) {
-                core.info(`Issue #${issueNumber} touched; blocked label already in sync`);
+                core.info(`Issue #${issueNumber} is in sync; no label update needed`);
+              }
               }
             }
 
