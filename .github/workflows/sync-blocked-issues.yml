@@ -134,7 +134,6 @@ jobs:
               if (latest.blocked === hasBlockedLabel) {
                 core.info(`Issue #${issueNumber} is in sync; no label update needed`);
               }
-              }
             }
 
             async function allOpenIssues() {
