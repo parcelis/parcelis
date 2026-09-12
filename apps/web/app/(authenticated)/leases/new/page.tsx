@@ -21,7 +21,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@parcelis/ui";
-import type { CreatePropertyInput } from "@parcelis/schemas";
+import { leasePropertyStepSchema, type CreatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
 import { LoadingState } from "../../../../components/loading-state";
@@ -98,8 +98,10 @@ function formatCurrency(cents: number) {
 function PropertySelector({
   onAddProperty,
   onValueChange,
+  error,
   value,
 }: {
+  error: string | null;
   onAddProperty: () => void;
   onValueChange: (selection: { propertyId: number; unitId: number }) => void;
   value: number | null;
@@ -161,6 +163,9 @@ function PropertySelector({
           Add Property
         </Button>
       </div>
+      {error ? (
+        <p className="border-b border-parcelis-border px-5 py-3 text-sm font-medium text-red-700">{error}</p>
+      ) : null}
       {propertyGroups.length === 0 ? (
         <div className="p-6 text-sm text-parcelis-gray">
           {availabilityFilter === "available" ? "No available properties were found." : "No properties were found."}
@@ -380,6 +385,7 @@ export default function NewLeasePage() {
   const [isPropertyDrawerOpen, setIsPropertyDrawerOpen] = React.useState(false);
   const [propertyForm, setPropertyForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
+  const [stepError, setStepError] = React.useState<string | null>(null);
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
       const property = await apiClient.properties.create.mutate(input);
@@ -426,9 +432,35 @@ export default function NewLeasePage() {
     if (previousStep) setDraft((current) => ({ ...current, currentStep: previousStep.id }));
   }
 
+  function validateCurrentStep() {
+    if (currentIndex !== 0) return true;
+
+    const result = leasePropertyStepSchema.safeParse({
+      propertyId: draft.propertyId,
+      unitId: draft.unitId,
+    });
+    if (result.success) {
+      setStepError(null);
+      return true;
+    }
+
+    setStepError(result.error.issues[0]?.message ?? "Select a property and unit to continue.");
+    return false;
+  }
+
   function goNext() {
+    if (!validateCurrentStep()) return;
     const nextStep = leaseCreationSteps[currentIndex + 1];
     if (nextStep) setDraft((current) => ({ ...current, currentStep: nextStep.id }));
+  }
+
+  function handleStepChange(nextStepId: string) {
+    const nextIndex = leaseCreationSteps.findIndex((step) => step.id === nextStepId);
+    if (nextIndex === -1 || nextIndex === currentIndex) return;
+    if (nextIndex > currentIndex + 1 || (nextIndex > currentIndex && !validateCurrentStep())) return;
+
+    setStepError(null);
+    setDraft((current) => ({ ...current, currentStep: nextStepId }));
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -485,10 +517,7 @@ export default function NewLeasePage() {
               {/* wizard stepper card for lease creation */}
               <Card className="flex flex-1 flex-col">
                 <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
-                  <LeaseCreationStepper
-                    onValueChange={(currentStep) => setDraft((current) => ({ ...current, currentStep }))}
-                    value={draft.currentStep}
-                  />
+                  <LeaseCreationStepper onValueChange={handleStepChange} value={draft.currentStep} />
                 </CardHeader>
                 <CardContent
                   className={`flex min-h-80 flex-1 flex-col ${
@@ -497,10 +526,12 @@ export default function NewLeasePage() {
                 >
                   {currentIndex === 0 ? (
                     <PropertySelector
+                      error={stepError}
                       onAddProperty={() => setIsPropertyDrawerOpen(true)}
-                      onValueChange={({ propertyId, unitId }) =>
-                        setDraft((current) => ({ ...current, propertyId, unitId }))
-                      }
+                      onValueChange={({ propertyId, unitId }) => {
+                        setStepError(null);
+                        setDraft((current) => ({ ...current, propertyId, unitId }));
+                      }}
                       value={draft.unitId}
                     />
                   ) : (
