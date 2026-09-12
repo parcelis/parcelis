@@ -73,7 +73,7 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Deployment",
-      items: ["getting-started/deploy-with-docker", "getting-started/deploy-with-docker-compose"],
+      items: ["getting-started/deploy-with-docker", "getting-started/deploy-with-docker-compose", "getting-started/deploy-all-in-one-docker"],
     },
     {
       type: "category",

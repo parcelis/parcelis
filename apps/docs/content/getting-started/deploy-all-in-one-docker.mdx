@@ -1,0 +1,148 @@
+---
+id: deploy-all-in-one-docker
+title: Deploy with the Single-Image Docker Build
+sidebar_label: Deploy with Single-Image Docker
+---
+
+Parcelis publishes an optional **single-image** artifact, `parcelis/all`, that bundles the web app, API, documentation site, and nginx edge routing into one container. The published `parcelis/app`, `parcelis/docs`, and `parcelis/proxy` modular images continue to be published alongside it.
+
+PostgreSQL and S3-compatible object storage (such as MinIO) remain external services. Database migrations are still an explicit deployment step.
+
+## When to use the single-image artifact
+
+Use `parcelis/all` when you want:
+
+- One runtime image and one exposed application port.
+- A simpler self-hosted setup that is closer to a single deployable unit.
+- The same public URL layout as the modular stack: web app at `/`, tRPC at `/trpc/*`, public API at `/api/*`, documentation at `/docs/`.
+
+Use the modular [`docker-compose.yml`](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose.yml) stack when you need the web app, API, documentation site, and proxy as independently scaled or isolated services, or when you want to keep the proxy on a separate container.
+
+## Image name and tags
+
+The image is published from each GitHub release with the version tag and `latest`. Replace `v0.4.1` with the version you want to run.
+
+| Image | Tag examples |
+| --- | --- |
+| `parcelis/all` | `v0.4.1`, `latest` |
+
+## Required environment variables
+
+The single-image container expects the same environment variables as the modular `parcelis/app` service:
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `WEB_ORIGIN` | Public origin used for CORS and the web app |
+| `AUTH_COOKIE_DOMAIN` | Cookie domain for authentication sessions |
+| `AUTH_COOKIE_SECURE` | `true` when served over HTTPS |
+| `AUTH_DISABLED` | Set to `true` to disable authentication (local development only) |
+| `EMAIL_FROM` | Sender address for password reset emails |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | SMTP server connection settings |
+| `SMTP_USER`, `SMTP_PASSWORD` | SMTP authentication credentials |
+| `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT` | S3-compatible endpoint URLs |
+| `S3_BUCKET` | Object storage bucket for uploaded images |
+| `S3_REGION` | Region for the object storage bucket |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Object storage credentials |
+
+## Required working directory
+
+The single-image container still expects the Prisma schema to run the migration job. When you run a migration container from the image, set its working directory to `/repo` (the compose example does this) so the bundled `prisma/schema.prisma` resolves correctly.
+
+## Running with Docker
+
+The example below starts the single-image container with an external PostgreSQL service and an external S3-compatible storage endpoint:
+
+```bash
+docker run -d --name parcelis-all \
+  -p 3000:3000 \
+  -e DATABASE_URL=postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public \
+  -e WEB_ORIGIN=https://parcelis.example.com \
+  -e AUTH_COOKIE_DOMAIN=parcelis.example.com \
+  -e AUTH_COOKIE_SECURE=true \
+  -e EMAIL_FROM='Parcelis <no-reply@example.com>' \
+  -e SMTP_HOST=smtp.example.com \
+  -e SMTP_PORT=465 \
+  -e SMTP_SECURE=true \
+  -e SMTP_USER=your-smtp-user \
+  -e SMTP_PASSWORD=your-smtp-password \
+  -e S3_ENDPOINT=https://s3.example.com \
+  -e S3_PUBLIC_ENDPOINT=https://s3.example.com \
+  -e S3_BUCKET=parcelis-images \
+  -e S3_REGION=us-east-1 \
+  -e S3_ACCESS_KEY_ID=your-access-key \
+  -e S3_SECRET_ACCESS_KEY=your-secret-key \
+  parcelis/all:v0.4.1
+```
+
+Run the migration job as a separate step before starting the application container for the first time or after upgrading the image:
+
+```bash
+docker run --rm \
+  -e DATABASE_URL=postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public \
+  -w /repo \
+  parcelis/all:v0.4.1 \
+  pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
+```
+
+## Running with Docker Compose
+
+Copy the example below to your host alongside `.env.production`:
+
+1. [docker-compose.all-in-one.yml](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose.all-in-one.yml) - the single-image stack with PostgreSQL, MinIO, bucket initialization, and a migration job.
+2. [.env.production.example](https://raw.githubusercontent.com/parcelis/parcelis/main/.env.production.example) - the same environment template used by the modular stack.
+
+```bash
+cp .env.production.example .env.production
+# edit .env.production with your production values
+
+docker compose --env-file .env.production -f docker-compose.all-in-one.yml pull
+docker compose --env-file .env.production -f docker-compose.all-in-one.yml up -d --remove-orphans
+```
+
+The single-image Compose stack will:
+
+- Run the `migrate-service` job from the same `parcelis/all` image before the application container starts.
+- Run the `minio-init-service` job to create the object storage buckets and upload the public brand assets.
+- Start `app-service` once both jobs have completed successfully and the database and object storage are ready.
+
+`app-service` exposes the web app at `/`, tRPC at `/trpc/*`, the public API at `/api/*`, and the documentation site at `/docs/`, on the configured `APP_PORT` (default `3000`).
+
+## Upgrading and running migrations
+
+Migrations are an explicit deployment step. Run the migration container from the new image before starting the application container when you change versions:
+
+```bash
+docker compose --env-file .env.production \
+  -f docker-compose.all-in-one.yml \
+  run --rm migrate-service
+```
+
+The migrate service uses the same `parcelis/all` image and exits after applying pending migrations, so the upgrade path is identical to the modular stack.
+
+To upgrade the stack:
+
+```bash
+docker compose --env-file .env.production \
+  -f docker-compose.all-in-one.yml \
+  pull
+docker compose --env-file .env.production \
+  -f docker-compose.all-in-one.yml \
+  up -d --remove-orphans
+```
+
+The pull and up commands rerun the migration job automatically because `app-service` depends on `migrate-service` having completed successfully.
+
+## Trade-offs compared with the modular Compose stack
+
+| Concern | Single-image stack | Modular stack |
+| --- | --- | --- |
+| Number of running containers | One application container plus the migrate and minio-init one-shots | Separate `app`, `docs`, and `proxy` containers plus the same one-shots |
+| Image publishes | `parcelis/all` only | `parcelis/app`, `parcelis/docs`, and `parcelis/proxy` |
+| Documentation site | Served from the bundled `parcelis/all` image at `/docs/` | Served from the separate `parcelis/docs` container at `/docs/` |
+| Edge routing | nginx inside the `parcelis/all` image | Standalone `parcelis/proxy` image |
+| Independent scaling of web, API, and docs | Not supported | Supported |
+| PostgreSQL and object storage | External services, identical to the modular stack | External services, identical to the modular stack |
+| Migration job | Uses the `parcelis/all` image with `prisma migrate deploy` | Uses the `parcelis/app` image with `prisma migrate deploy` |
+
+Pick the single-image artifact when simpler deployment topology is more valuable than independent scaling. Pick the modular stack when you already run the proxy, app, and documentation as separate services, or when you need to scale them independently.

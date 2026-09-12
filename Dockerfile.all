@@ -1,0 +1,100 @@
+# syntax=docker/dockerfile:1
+#
+# Single-image build that packages the Parcelis web app, API, documentation
+# site, and edge routing into one deployable artifact. Published alongside the
+# modular app, docs, and proxy images; it does not replace them.
+
+FROM node:24.19.0-alpine AS base
+ENV FORCE_COLOR=0
+WORKDIR /repo
+RUN apk add --no-cache libc6-compat && corepack enable
+
+# ---------------------------------------------------------------------------
+# API build
+# ---------------------------------------------------------------------------
+FROM base AS api-build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
+COPY apps/api/package.json apps/api/package.json
+# Copy all workspace manifests so pnpm can resolve the api's transitive
+# workspace dependencies (db, email, schemas, config) without first needing
+# their source files.
+COPY packages packages
+RUN pnpm install --frozen-lockfile --filter @parcelis/api...
+COPY apps/api apps/api
+# Build the api and every workspace it depends on so the runtime can resolve
+# the declared `dist/index.js` entries (notably @parcelis/email).
+RUN pnpm --filter @parcelis/email build && pnpm --filter @parcelis/api build
+
+# ---------------------------------------------------------------------------
+# Web build
+# ---------------------------------------------------------------------------
+FROM base AS web-build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
+# The web app declares `@parcelis/api` as a workspace dependency, so the api
+# workspace manifest must be present before pnpm install.
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages packages
+RUN pnpm install --frozen-lockfile --filter @parcelis/web...
+# The web imports `type AppRouter from "@parcelis/api/router"`, whose
+# `package.json#exports.router.default` points at `src/router/app.router.ts`.
+# Copy the api source so TypeScript can resolve the router types during the
+# Next build. (The api is already linked into the web's node_modules via
+# pnpm workspace symlinks, so this is the only missing piece on disk.)
+COPY apps/api/tsconfig.json apps/api/tsconfig.json
+COPY apps/api/src apps/api/src
+COPY apps/web apps/web
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @parcelis/web build
+
+# ---------------------------------------------------------------------------
+# Docs build
+# ---------------------------------------------------------------------------
+FROM base AS docs-build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
+COPY apps/docs/package.json apps/docs/package.json
+RUN pnpm install --frozen-lockfile --filter @parcelis/docs...
+COPY apps/docs apps/docs
+WORKDIR /repo/apps/docs
+ENV DOCS_BASE_URL=/docs/
+RUN pnpm build
+
+# ---------------------------------------------------------------------------
+# Runtime
+# ---------------------------------------------------------------------------
+FROM node:24.19.0-alpine AS all-in-one
+WORKDIR /repo
+RUN apk add --no-cache nginx openssl supervisor && corepack enable
+
+# Workspace manifests and lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
+# API source: manifest and compiled output
+COPY --from=api-build /repo/apps/api/package.json apps/api/package.json
+COPY --from=api-build /repo/apps/api/dist apps/api/dist
+# Built workspace packages that the api imports at runtime
+COPY --from=api-build /repo/packages packages
+# Web source: manifest, build output, and public assets
+COPY --from=web-build /repo/apps/web/package.json apps/web/package.json
+COPY --from=web-build /repo/apps/web/.next apps/web/.next
+COPY --from=web-build /repo/apps/web/public apps/web/public
+# Docs build output (static files served directly by nginx)
+COPY --from=docs-build /repo/apps/docs/build /usr/share/parcelis-docs
+
+# Install production dependencies for the api and web workspaces. The api
+# is already built into dist/ and the web is already built into .next/, so
+# the dev toolchain (typescript, eslint, tailwind, embedpdf, ...) is not
+# needed at runtime. The db workspace is installed without --prod below so
+# its devDependency `prisma` is available for the migration job.
+# Restore a single non-prod install (ensuring prisma is present when the root postinstall runs).
+RUN pnpm install --frozen-lockfile --filter @parcelis/api... --filter @parcelis/web... --filter @parcelis/db...
+
+COPY infra/docker/all-in-one/nginx.conf /etc/nginx/http.d/default.conf
+COPY infra/docker/all-in-one/supervisord.conf /etc/supervisord.conf
+
+EXPOSE 3000
+
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]

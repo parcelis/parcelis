@@ -81,6 +81,8 @@ Direct JavaScript dependencies are declared in:
 
 `pnpm-lock.yaml` records the resolved dependency tree. Docker image tags are declared in `docker-compose.yml` and `apps/docs/Dockerfile`.
 
+Docker images are built from Dockerfile.app (modular app + API), apps/docs/Dockerfile (modular docs site), infra/docker/proxy/Dockerfile (modular proxy), and the optional Dockerfile.all (single-image web app + API + docs site + nginx edge routing). Docker image tags are declared in docker-compose.yml and docker-compose.all-in-one.yml.
+
 ### Transitive dependency overrides
 
 `fast-uri` is pinned to `3.1.6` in `pnpm-workspace.yaml`. Update the parent dependencies that introduce it when compatible versions are available, then remove this override.
