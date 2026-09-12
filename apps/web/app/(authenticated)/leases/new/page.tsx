@@ -425,6 +425,11 @@ export default function NewLeasePage() {
     if (nextStep) setDraft((current) => ({ ...current, currentStep: nextStep.id }));
   }
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isLastStep) goNext();
+  }
+
   return (
     <>
       <PropertyDrawer
@@ -470,59 +475,61 @@ export default function NewLeasePage() {
               </div>
             </section>
 
-            <Card className="flex flex-1 flex-col">
-              <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
-                <LeaseCreationStepper
-                  onValueChange={(currentStep) => setDraft((current) => ({ ...current, currentStep }))}
-                  value={draft.currentStep}
-                />
-              </CardHeader>
-              <CardContent
-                className={`flex min-h-80 flex-1 flex-col ${
-                  currentIndex === 0 ? "p-0" : "items-center justify-center p-8 text-center"
-                }`}
-              >
-                {currentIndex === 0 ? (
-                  <PropertySelector
-                    onAddProperty={() => setIsPropertyDrawerOpen(true)}
-                    onValueChange={({ propertyId, unitId }) =>
-                      setDraft((current) => ({ ...current, propertyId, unitId }))
-                    }
-                    value={draft.unitId}
+            <form className="flex flex-1 flex-col" onSubmit={handleSubmit}>
+              {/* wizard stepper card for lease creation */}
+              <Card className="flex flex-1 flex-col">
+                <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
+                  <LeaseCreationStepper
+                    onValueChange={(currentStep) => setDraft((current) => ({ ...current, currentStep }))}
+                    value={draft.currentStep}
                   />
-                ) : (
-                  <>
-                    <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">
-                      Step {currentIndex + 1}
-                    </p>
-                    <h2 className="mt-3 text-2xl font-bold text-parcelis-charcoal">{step?.title}</h2>
-                    <p className="mt-2 max-w-lg text-sm leading-6 text-parcelis-gray">
-                      {step?.description}. The lease form fields for this section will be added next.
-                    </p>
-                  </>
-                )}
-              </CardContent>
-              <div className="flex items-center justify-between border-t border-parcelis-border p-4 md:px-6">
-                {currentIndex === 0 ? (
-                  <Button asChild className="min-w-40" variant="secondary">
-                    <Link href="/leases">Cancel</Link>
-                  </Button>
-                ) : (
-                  <Button className="min-w-40" onClick={goBack} type="button" variant="secondary">
-                    Back
-                  </Button>
-                )}
-                <Button
-                  className="min-w-40"
-                  disabled={isLastStep || (currentIndex === 0 && draft.unitId === null)}
-                  onClick={goNext}
-                  type="button"
+                </CardHeader>
+                <CardContent
+                  className={`flex min-h-80 flex-1 flex-col ${
+                    currentIndex === 0 ? "p-0" : "items-center justify-center p-8 text-center"
+                  }`}
                 >
-                  {isLastStep ? "Create lease" : "Next"}
-                  {!isLastStep ? <ChevronRight className="h-4 w-4" /> : null}
-                </Button>
-              </div>
-            </Card>
+                  {currentIndex === 0 ? (
+                    <PropertySelector
+                      onAddProperty={() => setIsPropertyDrawerOpen(true)}
+                      onValueChange={({ propertyId, unitId }) =>
+                        setDraft((current) => ({ ...current, propertyId, unitId }))
+                      }
+                      value={draft.unitId}
+                    />
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">
+                        Step {currentIndex + 1}
+                      </p>
+                      <h2 className="mt-3 text-2xl font-bold text-parcelis-charcoal">{step?.title}</h2>
+                      <p className="mt-2 max-w-lg text-sm leading-6 text-parcelis-gray">
+                        {step?.description}. The lease form fields for this section will be added next.
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+                <div className="flex items-center justify-between border-t border-parcelis-border p-4 md:px-6">
+                  {currentIndex === 0 ? (
+                    <Button asChild className="min-w-40" variant="secondary">
+                      <Link href="/leases">Cancel</Link>
+                    </Button>
+                  ) : (
+                    <Button className="min-w-40" onClick={goBack} type="button" variant="secondary">
+                      Back
+                    </Button>
+                  )}
+                  <Button
+                    className="min-w-40"
+                    disabled={isLastStep || (currentIndex === 0 && draft.unitId === null)}
+                    type="submit"
+                  >
+                    {isLastStep ? "Create lease" : "Next"}
+                    {!isLastStep ? <ChevronRight className="h-4 w-4" /> : null}
+                  </Button>
+                </div>
+              </Card>
+            </form>
           </div>
         </section>
       </main>
