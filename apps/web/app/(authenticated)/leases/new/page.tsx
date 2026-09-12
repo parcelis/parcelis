@@ -4,8 +4,9 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Building2, ChevronRight, DoorOpen, FileText } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ArrowLeft, Building2, ChevronRight, DoorOpen, FileText, Plus } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
   Card,
@@ -20,9 +21,17 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@parcelis/ui";
+import type { CreatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
 import { LoadingState } from "../../../../components/loading-state";
+import {
+  initialPropertyFormState,
+  PropertyDrawer,
+  type PropertyFormState,
+} from "../../../../components/property-drawer";
+import { uploadPropertyImage } from "../../../../components/property-image-upload";
+import { entityCreatedMessage } from "../../../../components/toast-messages";
 
 type LeaseDraft = {
   version: 1;
@@ -81,9 +90,11 @@ function formatCurrency(cents: number) {
 }
 
 function PropertySelector({
+  onAddProperty,
   onValueChange,
   value,
 }: {
+  onAddProperty: () => void;
   onValueChange: (selection: { propertyId: number; unitId: number }) => void;
   value: number | null;
 }) {
@@ -125,7 +136,7 @@ function PropertySelector({
 
   return (
     <div className="w-full text-left">
-      <div className="flex items-center justify-end border-b border-parcelis-border px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-parcelis-border px-5 py-4">
         <div className="flex items-center gap-2">
           <ToggleGroup
             aria-label="Property availability"
@@ -139,6 +150,10 @@ function PropertySelector({
             {groupByProperty ? "Grouped By Property" : "Not Grouped"}
           </Button>
         </div>
+        <Button onClick={onAddProperty} type="button">
+          <Plus className="h-4 w-4" />
+          Add Property
+        </Button>
       </div>
       {propertyGroups.length === 0 ? (
         <div className="p-6 text-sm text-parcelis-gray">
@@ -348,6 +363,7 @@ function PropertySelector({
 
 export default function NewLeasePage() {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [draft, setDraft] = React.useState<LeaseDraft>(initialLeaseDraft);
   const [hydratedStorageKey, setHydratedStorageKey] = React.useState<string | null>(null);
   const activeOrganizationQuery = useQuery({
@@ -355,13 +371,29 @@ export default function NewLeasePage() {
     queryFn: () => apiClient.organizations.active.query(),
   });
   const storageKey = activeOrganizationQuery.data ? getLeaseDraftStorageKey(activeOrganizationQuery.data.id) : null;
+  const [isPropertyDrawerOpen, setIsPropertyDrawerOpen] = React.useState(false);
+  const [propertyForm, setPropertyForm] = React.useState<PropertyFormState>(initialPropertyFormState);
+  const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
+  const createProperty = useMutation({
+    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
+      const property = await apiClient.properties.create.mutate(input);
+      if (imageFile) await uploadPropertyImage(property.id, imageFile);
+      return property;
+    },
+    onSuccess: async (property) => {
+      setPropertyForm(initialPropertyFormState);
+      setPropertyImageFile(null);
+      setIsPropertyDrawerOpen(false);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
+      toast.success(entityCreatedMessage("Property", property.name));
+    },
+  });
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
   const step = leaseCreationSteps[currentIndex];
   const isLastStep = currentIndex === leaseCreationSteps.length - 1;
 
   React.useEffect(() => {
     if (!storageKey) return;
-
     try {
       const storedDraft = window.sessionStorage.getItem(storageKey);
       if (storedDraft) {
@@ -371,13 +403,11 @@ export default function NewLeasePage() {
     } catch {
       setDraft(initialLeaseDraft);
     }
-
     setHydratedStorageKey(storageKey);
   }, [storageKey]);
 
   React.useEffect(() => {
     if (!storageKey || hydratedStorageKey !== storageKey) return;
-
     try {
       window.sessionStorage.setItem(storageKey, JSON.stringify(draft));
     } catch {
@@ -396,88 +426,106 @@ export default function NewLeasePage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col">
-      <section className="flex flex-1 flex-col transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
-          <Button asChild className="min-w-40" variant="secondary">
-            <Link href="/leases">
-              <ArrowLeft className="h-4 w-4" />
-              Leases
-            </Link>
-          </Button>
-          <span className="text-sm font-medium text-parcelis-gray">
-            Step {currentIndex + 1} of {leaseCreationSteps.length}
-          </span>
-        </header>
+    <>
+      <PropertyDrawer
+        drawerTitle="Add Property"
+        error={createProperty.error}
+        form={propertyForm}
+        imageFile={propertyImageFile}
+        isPending={createProperty.isPending}
+        onFormChange={setPropertyForm}
+        onImageChange={setPropertyImageFile}
+        onOpenChange={(open) => {
+          setIsPropertyDrawerOpen(open);
+          if (!open) setPropertyImageFile(null);
+        }}
+        onSubmit={(input, imageFile) => createProperty.mutate({ imageFile, input })}
+        open={isPropertyDrawerOpen}
+      />
+      <main className="flex flex-1 flex-col">
+        <section className="flex flex-1 flex-col transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
+          <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+            <Button asChild className="min-w-40" variant="secondary">
+              <Link href="/leases">
+                <ArrowLeft className="h-4 w-4" />
+                Leases
+              </Link>
+            </Button>
+            <span className="text-sm font-medium text-parcelis-gray">
+              Step {currentIndex + 1} of {leaseCreationSteps.length}
+            </span>
+          </header>
 
-        <div className="parcelis-page-shell flex flex-1 flex-col">
-          <section className="mb-6 flex flex-col gap-4 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Leases</p>
-              <h1 className="mt-4 text-3xl font-bold md:text-4xl">Create a lease</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">
-                Set up the property, residents, terms, and billing details for a new lease.
-              </p>
-            </div>
-            <div className="flex size-12 items-center justify-center rounded-md bg-white/10 text-parcelis-green">
-              <FileText className="h-6 w-6" />
-            </div>
-          </section>
+          <div className="parcelis-page-shell flex flex-1 flex-col">
+            <section className="mb-6 flex flex-col gap-4 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Leases</p>
+                <h1 className="mt-4 text-3xl font-bold md:text-4xl">Create a lease</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">
+                  Set up the property, residents, terms, and billing details for a new lease.
+                </p>
+              </div>
+              <div className="flex size-12 items-center justify-center rounded-md bg-white/10 text-parcelis-green">
+                <FileText className="h-6 w-6" />
+              </div>
+            </section>
 
-          <Card className="flex flex-1 flex-col">
-            <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
-              <LeaseCreationStepper
-                onValueChange={(currentStep) => setDraft((current) => ({ ...current, currentStep }))}
-                value={draft.currentStep}
-              />
-            </CardHeader>
-            <CardContent
-              className={`flex min-h-80 flex-1 flex-col ${
-                currentIndex === 0 ? "p-0" : "items-center justify-center p-8 text-center"
-              }`}
-            >
-              {currentIndex === 0 ? (
-                <PropertySelector
-                  onValueChange={({ propertyId, unitId }) =>
-                    setDraft((current) => ({ ...current, propertyId, unitId }))
-                  }
-                  value={draft.unitId}
+            <Card className="flex flex-1 flex-col">
+              <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
+                <LeaseCreationStepper
+                  onValueChange={(currentStep) => setDraft((current) => ({ ...current, currentStep }))}
+                  value={draft.currentStep}
                 />
-              ) : (
-                <>
-                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">
-                    Step {currentIndex + 1}
-                  </p>
-                  <h2 className="mt-3 text-2xl font-bold text-parcelis-charcoal">{step?.title}</h2>
-                  <p className="mt-2 max-w-lg text-sm leading-6 text-parcelis-gray">
-                    {step?.description}. The lease form fields for this section will be added next.
-                  </p>
-                </>
-              )}
-            </CardContent>
-            <div className="flex items-center justify-between border-t border-parcelis-border p-4 md:px-6">
-              {currentIndex === 0 ? (
-                <Button asChild className="min-w-40" variant="secondary">
-                  <Link href="/leases">Cancel</Link>
-                </Button>
-              ) : (
-                <Button className="min-w-40" onClick={goBack} type="button" variant="secondary">
-                  Back
-                </Button>
-              )}
-              <Button
-                className="min-w-40"
-                disabled={isLastStep || (currentIndex === 0 && draft.unitId === null)}
-                onClick={goNext}
-                type="button"
+              </CardHeader>
+              <CardContent
+                className={`flex min-h-80 flex-1 flex-col ${
+                  currentIndex === 0 ? "p-0" : "items-center justify-center p-8 text-center"
+                }`}
               >
-                {isLastStep ? "Create lease" : "Next"}
-                {!isLastStep ? <ChevronRight className="h-4 w-4" /> : null}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </section>
-    </main>
+                {currentIndex === 0 ? (
+                  <PropertySelector
+                    onAddProperty={() => setIsPropertyDrawerOpen(true)}
+                    onValueChange={({ propertyId, unitId }) =>
+                      setDraft((current) => ({ ...current, propertyId, unitId }))
+                    }
+                    value={draft.unitId}
+                  />
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">
+                      Step {currentIndex + 1}
+                    </p>
+                    <h2 className="mt-3 text-2xl font-bold text-parcelis-charcoal">{step?.title}</h2>
+                    <p className="mt-2 max-w-lg text-sm leading-6 text-parcelis-gray">
+                      {step?.description}. The lease form fields for this section will be added next.
+                    </p>
+                  </>
+                )}
+              </CardContent>
+              <div className="flex items-center justify-between border-t border-parcelis-border p-4 md:px-6">
+                {currentIndex === 0 ? (
+                  <Button asChild className="min-w-40" variant="secondary">
+                    <Link href="/leases">Cancel</Link>
+                  </Button>
+                ) : (
+                  <Button className="min-w-40" onClick={goBack} type="button" variant="secondary">
+                    Back
+                  </Button>
+                )}
+                <Button
+                  className="min-w-40"
+                  disabled={isLastStep || (currentIndex === 0 && draft.unitId === null)}
+                  onClick={goNext}
+                  type="button"
+                >
+                  {isLastStep ? "Create lease" : "Next"}
+                  {!isLastStep ? <ChevronRight className="h-4 w-4" /> : null}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </section>
+      </main>
+    </>
   );
 }
