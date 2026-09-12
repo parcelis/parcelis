@@ -424,8 +424,50 @@ export const tenantSchema = z.object({
 
 export const leaseStatusValues = ["draft", "active", "notice", "ended"] as const;
 export const leaseStatusSchema = z.enum(leaseStatusValues);
+export const leaseTermTypeValues = ["fixed", "month_to_month"] as const;
+export const leaseTermTypeSchema = z.enum(leaseTermTypeValues);
 
 export const leaseByIdInputSchema = z.object({ id: idSchema });
+
+export const leasePropertyStepSchema = z.object({
+  propertyId: idSchema,
+  unitId: idSchema,
+});
+
+export const leaseResidentsStepSchema = z.object({
+  tenantIds: z
+    .array(idSchema)
+    .min(1)
+    .max(50)
+    .refine((tenantIds) => new Set(tenantIds).size === tenantIds.length, {
+      message: "Each resident can only be added once.",
+    }),
+});
+
+export const leaseTermsStepSchema = z
+  .object({
+    termType: leaseTermTypeSchema,
+    startsOn: z.string().date(),
+    endsOn: z.union([z.string().date(), z.literal("")]),
+    monthlyRentCents: z.number().int().positive(),
+    continueMonthToMonthAfterEnd: z.boolean(),
+  })
+  .refine((lease) => lease.termType !== "fixed" || Boolean(lease.endsOn), {
+    message: "A fixed-term lease requires an end date.",
+    path: ["endsOn"],
+  })
+  .refine((lease) => lease.termType !== "month_to_month" || !lease.endsOn, {
+    message: "A month-to-month lease cannot have an end date.",
+    path: ["endsOn"],
+  })
+  .refine((lease) => lease.termType === "fixed" || !lease.continueMonthToMonthAfterEnd, {
+    message: "Only fixed-term leases can continue month-to-month at the end of the term.",
+    path: ["continueMonthToMonthAfterEnd"],
+  })
+  .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
+    message: "Lease end date must be on or after the start date.",
+    path: ["endsOn"],
+  });
 
 export const leaseSchema = z.object({
   id: idSchema,
