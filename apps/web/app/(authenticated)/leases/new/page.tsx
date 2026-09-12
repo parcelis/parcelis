@@ -34,11 +34,13 @@ import { uploadPropertyImage } from "../../../../components/property-image-uploa
 import { entityCreatedMessage } from "../../../../components/toast-messages";
 
 type LeaseDraft = {
-  version: 1;
+  version: 3;
   currentStep: string;
   propertyId: number | null;
   unitId: number | null;
   tenantIds: number[];
+  termType: "fixed" | "month_to_month";
+  continueMonthToMonthAfterEnd: boolean;
   startsOn: string;
   endsOn: string;
   monthlyRentCents: number | null;
@@ -47,11 +49,13 @@ type LeaseDraft = {
 };
 
 const initialLeaseDraft: LeaseDraft = {
-  version: 1,
+  version: 3,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
   propertyId: null,
   unitId: null,
   tenantIds: [],
+  termType: "fixed",
+  continueMonthToMonthAfterEnd: false,
   startsOn: "",
   endsOn: "",
   monthlyRentCents: null,
@@ -60,19 +64,21 @@ const initialLeaseDraft: LeaseDraft = {
 };
 
 function getLeaseDraftStorageKey(organizationId: number) {
-  return `parcelis:lease-creation-draft:v1:${organizationId}`;
+  return `parcelis:lease-creation-draft:${organizationId}`;
 }
 
 function isLeaseDraft(value: unknown): value is LeaseDraft {
   if (!value || typeof value !== "object") return false;
   const draft = value as Record<string, unknown>;
   return (
-    draft.version === 1 &&
+    draft.version === 3 &&
     typeof draft.currentStep === "string" &&
     (typeof draft.propertyId === "number" || draft.propertyId === null) &&
     (typeof draft.unitId === "number" || draft.unitId === null) &&
     Array.isArray(draft.tenantIds) &&
     draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
+    (draft.termType === "fixed" || draft.termType === "month_to_month") &&
+    typeof draft.continueMonthToMonthAfterEnd === "boolean" &&
     typeof draft.startsOn === "string" &&
     typeof draft.endsOn === "string" &&
     (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
