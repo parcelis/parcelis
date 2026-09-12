@@ -4,25 +4,52 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, FileText } from "lucide-react";
 import { Button, Card, CardContent, CardHeader } from "@parcelis/ui";
-import {
-  LeaseCreationStepper,
-  leaseCreationSteps,
-} from "../../../../components/lease-creation-stepper";
+import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
+
+// Types and initial state for the lease creation form.
+type LeaseDraft = {
+  version: 1;
+  currentStep: string;
+  propertyId: number | null;
+  unitId: number | null;
+  tenantIds: number[];
+  startsOn: string;
+  endsOn: string;
+  monthlyRentCents: number | null;
+  depositCents: number | null;
+  billingDay: number | null;
+};
+
+// Initial state for the lease creation form.
+const initialLeaseDraft: LeaseDraft = {
+  version: 1,
+  currentStep: leaseCreationSteps[0]?.id ?? "property",
+  propertyId: null,
+  unitId: null,
+  tenantIds: [],
+  startsOn: "",
+  endsOn: "",
+  monthlyRentCents: null,
+  depositCents: null,
+  billingDay: null,
+};
 
 export default function NewLeasePage() {
-  const [currentStep, setCurrentStep] = React.useState(leaseCreationSteps[0]?.id ?? "property");
-  const currentIndex = leaseCreationSteps.findIndex((step) => step.id === currentStep);
+  // State for the lease creation form.
+  const [draft, setDraft] = React.useState<LeaseDraft>(initialLeaseDraft);
+  // Determine the current step index and step details.
+  const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
   const step = leaseCreationSteps[currentIndex];
   const isLastStep = currentIndex === leaseCreationSteps.length - 1;
 
   function goBack() {
     const previousStep = leaseCreationSteps[currentIndex - 1];
-    if (previousStep) setCurrentStep(previousStep.id);
+    if (previousStep) setDraft((current) => ({ ...current, currentStep: previousStep.id }));
   }
 
   function goNext() {
     const nextStep = leaseCreationSteps[currentIndex + 1];
-    if (nextStep) setCurrentStep(nextStep.id);
+    if (nextStep) setDraft((current) => ({ ...current, currentStep: nextStep.id }));
   }
 
   return (
@@ -56,7 +83,10 @@ export default function NewLeasePage() {
 
           <Card className="flex flex-1 flex-col">
             <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
-              <LeaseCreationStepper onValueChange={setCurrentStep} value={currentStep} />
+              <LeaseCreationStepper
+                onValueChange={(currentStep) => setDraft((current) => ({ ...current, currentStep }))}
+                value={draft.currentStep}
+              />
             </CardHeader>
             <CardContent className="flex min-h-80 flex-1 flex-col items-center justify-center p-8 text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">
