@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Building2, CalendarClock, Filter, Plus, Search, UserRound } from "lucide-react";
 import {
   Button,
@@ -19,12 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import { LeaseDrawer } from "../../../components/lease-drawer";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
-import { toast } from "sonner";
-import { getLeaseLink, getTenantLink } from "../../../lib/entity-links";
-
+import { getLeaseLink, getNewLeaseLink, getTenantLink } from "../../../lib/entity-links";
 
 type LeaseFilters = {
   status: string;
@@ -60,24 +57,14 @@ function statusClass(value: string) {
 }
 
 export default function LeasesPage() {
-  const queryClient = useQueryClient();
   const [search, setSearch] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [draftFilters, setDraftFilters] = React.useState<LeaseFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = React.useState<LeaseFilters>(initialFilters);
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [groupByProperty, setGroupByProperty] = React.useState(false);
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
-  });
-  const createLease = useMutation({
-    mutationFn: (input: Parameters<typeof apiClient.leases.create.mutate>[0]) => apiClient.leases.create.mutate(input),
-    onSuccess: async () => {
-      setDrawerOpen(false);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
-      toast.success("Lease created.");
-    },
   });
   const leases = (propertiesQuery.data ?? []).flatMap((property) =>
     property.leases.map((lease) => ({ ...lease, property })),
@@ -125,13 +112,6 @@ export default function LeasesPage() {
 
   return (
     <main className="flex-1">
-      <LeaseDrawer
-        error={createLease.error}
-        isPending={createLease.isPending}
-        onOpenChange={setDrawerOpen}
-        onSubmit={(input) => createLease.mutate(input)}
-        open={drawerOpen}
-      />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
@@ -139,9 +119,11 @@ export default function LeasesPage() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button className="min-w-40" onClick={() => setDrawerOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Lease
+          <Button asChild className="min-w-40">
+            <Link href={getNewLeaseLink()}>
+              <Plus className="h-4 w-4" />
+              Lease
+            </Link>
           </Button>
         </header>
         <div className="parcelis-page-shell">

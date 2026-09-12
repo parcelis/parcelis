@@ -15,5 +15,6 @@ export * from "./components/logo";
 export * from "./components/password-input";
 export * from "./components/popover";
 export * from "./components/select";
+export * from "./components/stepper";
 export * from "./components/table";
 export * from "./components/textarea";

@@ -14,6 +14,10 @@ export function getLeaseLink(leaseId: number | string) {
   return `/leases/${leaseId}`;
 }
 
+export function getNewLeaseLink() {
+  return "/leases/new";
+}
+
 export function getTenantInvoicesLink(tenantId: number) {
   return `/income?tenantId=${tenantId}`;
 }
