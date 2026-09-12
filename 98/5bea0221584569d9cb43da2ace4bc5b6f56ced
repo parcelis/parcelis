@@ -1,0 +1,36 @@
+apps/web/lib/entity-links.ts
+  s_c0cc2155ebcc28::t_eda3e7418bc650 17-20
+apps/web/components/lease-creation-stepper.tsx
+  s_c0cc2155ebcc28::t_b2f1e8f9c2f2da 1-54
+packages/ui/src/index.ts
+  s_c0cc2155ebcc28::t_0f4e6f41470ac8 18
+packages/ui/package.json
+  s_c0cc2155ebcc28::t_2af025318a55be 23
+packages/ui/src/components/stepper.tsx
+  s_c0cc2155ebcc28::t_ad82f97cdb7205 7,11,93,206
+  s_c0cc2155ebcc28::t_ad8321df8f151a 110,122
+  s_c0cc2155ebcc28::t_0f4e6f41470ac8 1-6,8-10,12-92,94-109,111-121,123-205,207-385
+apps/web/app/(authenticated)/leases/page.tsx
+  s_c0cc2155ebcc28::t_eda3e7418bc650 24,123
+  s_c0cc2155ebcc28::t_513cc2823593bc 5
+  s_c0cc2155ebcc28::t_0f4e6f41470ac8 122,124-126
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_c0cc2155ebcc28::t_b2f1e8f9c2f2da 7-10,59
+  s_c0cc2155ebcc28::t_0f4e6f41470ac8 1-6,11-58,60-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "985bea0221584569d9cb43da2ace4bc5b6f56ced",
+  "prompts": {},
+  "sessions": {
+    "s_c0cc2155ebcc28": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a092b2-126c-72f0-9c6a-35212cc7bf22",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
