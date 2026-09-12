@@ -17,6 +17,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  ToggleGroup,
+  ToggleGroupItem,
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
@@ -86,6 +88,8 @@ function PropertySelector({
   value: number | null;
 }) {
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(() => new Set());
+  const [availabilityFilter, setAvailabilityFilter] = React.useState<"available" | "all">("available");
+  const [groupByProperty, setGroupByProperty] = React.useState(true);
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -103,13 +107,12 @@ function PropertySelector({
         .filter((lease) => lease.status === "active" || lease.status === "notice")
         .map((lease) => lease.unitLabel),
     );
-    const units = property.units.filter((unit) => !unit.archivedAt && !unavailableUnitNames.has(unit.name));
+    const units = property.units
+      .filter((unit) => !unit.archivedAt)
+      .map((unit) => ({ ...unit, isAvailable: !unavailableUnitNames.has(unit.name) }))
+      .filter((unit) => availabilityFilter === "all" || unit.isAvailable);
     return units.length > 0 ? [{ property, units }] : [];
   });
-
-  if (propertyGroups.length === 0) {
-    return <div className="p-6 text-sm text-parcelis-gray">No available properties were found.</div>;
-  }
 
   function toggleProperty(propertyId: number) {
     setExpandedPropertyIds((current) => {
@@ -121,119 +124,224 @@ function PropertySelector({
   }
 
   return (
-    <div className="w-full overflow-x-auto text-left">
-      <Table className="min-w-[720px] border-collapse">
-        <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
-          <TableRow className="border-0">
-            <TableHead className="w-1/2 px-5 py-3 font-semibold">Property / Unit</TableHead>
-            <TableHead className="px-5 py-3 font-semibold">Address</TableHead>
-            <TableHead className="px-5 py-3 text-right font-semibold">Monthly Rent</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {propertyGroups.map(({ property, units }) => {
-            const isExpanded = expandedPropertyIds.has(property.id);
-            const rents = units.map((unit) => unit.marketRateCents);
-            const minimumRent = Math.min(...rents);
-            const maximumRent = Math.max(...rents);
-            return (
-              <React.Fragment key={property.id}>
-                <TableRow
-                  className="cursor-pointer border-t border-parcelis-border transition-colors hover:bg-parcelis-porcelain/60"
-                  onClick={() => toggleProperty(property.id)}
-                >
-                  <TableCell className="px-5 py-4">
-                    <div className="flex items-center gap-4">
-                      <button
-                        aria-expanded={isExpanded}
-                        aria-label={`${isExpanded ? "Collapse" : "Expand"} ${property.name} units`}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-white"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleProperty(property.id);
-                        }}
-                        type="button"
-                      >
-                        <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
-                      </button>
-                      <span className="relative flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-parcelis-porcelain text-parcelis-charcoal">
-                        {property.imageUrl ? (
-                          <Image
-                            alt={`${property.name} property`}
-                            className="object-cover"
-                            fill
-                            sizes="80px"
-                            src={property.imageUrl}
-                            unoptimized
-                          />
-                        ) : (
-                          <Building2 className="h-5 w-5" />
-                        )}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-semibold text-parcelis-charcoal">{property.name}</span>
-                        <span className="block text-sm text-parcelis-gray">
-                          {units.length} available {units.length === 1 ? "unit" : "units"}
-                        </span>
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-w-72 whitespace-normal px-5 py-4 text-parcelis-gray">
-                    {property.line1}
-                    {property.line2 ? `, ${property.line2}` : ""}, {property.city}, {property.region}{" "}
-                    {property.postalCode}
-                  </TableCell>
-                  <TableCell className="px-5 py-4 text-right font-semibold text-parcelis-charcoal">
-                    {minimumRent === maximumRent
-                      ? formatCurrency(minimumRent)
-                      : `${formatCurrency(minimumRent)}–${formatCurrency(maximumRent)}`}
-                  </TableCell>
-                </TableRow>
-                {isExpanded
-                  ? units.map((unit) => {
+    <div className="w-full text-left">
+      <div className="flex items-center justify-end border-b border-parcelis-border px-5 py-4">
+        <div className="flex items-center gap-2">
+          <ToggleGroup
+            aria-label="Property availability"
+            onValueChange={(nextValue) => setAvailabilityFilter(nextValue as "available" | "all")}
+            value={availabilityFilter}
+          >
+            <ToggleGroupItem value="available">Available</ToggleGroupItem>
+            <ToggleGroupItem value="all">All Properties</ToggleGroupItem>
+          </ToggleGroup>
+          <Button onClick={() => setGroupByProperty((current) => !current)} type="button" variant="secondary">
+            {groupByProperty ? "Grouped By Property" : "Not Grouped"}
+          </Button>
+        </div>
+      </div>
+      {propertyGroups.length === 0 ? (
+        <div className="p-6 text-sm text-parcelis-gray">
+          {availabilityFilter === "available" ? "No available properties were found." : "No properties were found."}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table className="min-w-[720px] border-collapse">
+            <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+              <TableRow className="border-0">
+                <TableHead className="w-1/2 px-5 py-3 font-semibold">Property / Unit</TableHead>
+                <TableHead className="px-5 py-3 font-semibold">Address</TableHead>
+                <TableHead className="px-5 py-3 text-right font-semibold">Monthly Rent</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {groupByProperty
+                ? propertyGroups.map(({ property, units }) => {
+                    const isExpanded = expandedPropertyIds.has(property.id);
+                    const rents = units.map((unit) => unit.marketRateCents);
+                    const minimumRent = Math.min(...rents);
+                    const maximumRent = Math.max(...rents);
+                    const availableUnitCount = units.filter((unit) => unit.isAvailable).length;
+                    return (
+                      <React.Fragment key={property.id}>
+                        <TableRow
+                          className="cursor-pointer border-t border-parcelis-border transition-colors hover:bg-parcelis-porcelain/60"
+                          onClick={() => toggleProperty(property.id)}
+                        >
+                          <TableCell className="px-5 py-4">
+                            <div className="flex items-center gap-4">
+                              <button
+                                aria-expanded={isExpanded}
+                                aria-label={`${isExpanded ? "Collapse" : "Expand"} ${property.name} units`}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-parcelis-border text-parcelis-gray hover:bg-white"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleProperty(property.id);
+                                }}
+                                type="button"
+                              >
+                                <ChevronRight
+                                  className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                                />
+                              </button>
+                              <span className="relative flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-parcelis-porcelain text-parcelis-charcoal">
+                                {property.imageUrl ? (
+                                  <Image
+                                    alt={`${property.name} property`}
+                                    className="object-cover"
+                                    fill
+                                    sizes="80px"
+                                    src={property.imageUrl}
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <Building2 className="h-5 w-5" />
+                                )}
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block font-semibold text-parcelis-charcoal">{property.name}</span>
+                                <span className="block text-sm text-parcelis-gray">
+                                  {availabilityFilter === "all"
+                                    ? `${availableUnitCount} of ${units.length} available`
+                                    : `${units.length} available ${units.length === 1 ? "unit" : "units"}`}
+                                </span>
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-72 whitespace-normal px-5 py-4 text-parcelis-gray">
+                            {property.line1}
+                            {property.line2 ? `, ${property.line2}` : ""}, {property.city}, {property.region}{" "}
+                            {property.postalCode}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-right font-semibold text-parcelis-charcoal">
+                            {minimumRent === maximumRent
+                              ? formatCurrency(minimumRent)
+                              : `${formatCurrency(minimumRent)}–${formatCurrency(maximumRent)}`}
+                          </TableCell>
+                        </TableRow>
+                        {isExpanded
+                          ? units.map((unit) => {
+                              const isSelected = value === unit.id;
+                              return (
+                                <TableRow
+                                  aria-selected={isSelected}
+                                  className={`border-t border-parcelis-border transition-colors ${
+                                    unit.isAvailable ? "cursor-pointer hover:bg-parcelis-porcelain/80" : "opacity-60"
+                                  } ${isSelected ? "bg-parcelis-green/10" : "bg-parcelis-porcelain/45"}`}
+                                  key={unit.id}
+                                  onClick={() => {
+                                    if (unit.isAvailable) onValueChange({ propertyId: property.id, unitId: unit.id });
+                                  }}
+                                >
+                                  <TableCell className="px-5 py-3">
+                                    <label
+                                      className={`flex items-center gap-3 pl-12 ${
+                                        unit.isAvailable ? "cursor-pointer" : "cursor-not-allowed"
+                                      }`}
+                                    >
+                                      <input
+                                        checked={isSelected}
+                                        className="h-4 w-4 accent-parcelis-green"
+                                        disabled={!unit.isAvailable}
+                                        name="lease-unit"
+                                        onChange={() => onValueChange({ propertyId: property.id, unitId: unit.id })}
+                                        type="radio"
+                                        value={unit.id}
+                                      />
+                                      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-white text-parcelis-charcoal">
+                                        <DoorOpen className="h-4 w-4" />
+                                      </span>
+                                      <span>
+                                        <span className="block font-semibold text-parcelis-charcoal">
+                                          Unit {unit.name}
+                                        </span>
+                                        {!unit.isAvailable ? (
+                                          <span className="block text-xs text-parcelis-gray">Unavailable</span>
+                                        ) : null}
+                                      </span>
+                                    </label>
+                                  </TableCell>
+                                  <TableCell className="max-w-72 whitespace-normal px-5 py-3 text-parcelis-gray">
+                                    {property.line1}
+                                    {property.line2 ? `, ${property.line2}` : ""}, {property.city}, {property.region}{" "}
+                                    {property.postalCode}
+                                  </TableCell>
+                                  <TableCell className="px-5 py-3 text-right font-semibold text-parcelis-charcoal">
+                                    {formatCurrency(unit.marketRateCents)}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
+                          : null}
+                      </React.Fragment>
+                    );
+                  })
+                : propertyGroups.flatMap(({ property, units }) =>
+                    units.map((unit) => {
                       const isSelected = value === unit.id;
                       return (
                         <TableRow
                           aria-selected={isSelected}
-                          className={`cursor-pointer border-t border-parcelis-border transition-colors hover:bg-parcelis-porcelain/80 ${
-                            isSelected ? "bg-parcelis-green/10" : "bg-parcelis-porcelain/45"
-                          }`}
+                          className={`border-t border-parcelis-border transition-colors ${
+                            unit.isAvailable ? "cursor-pointer hover:bg-parcelis-porcelain/60" : "opacity-60"
+                          } ${isSelected ? "bg-parcelis-green/10" : ""}`}
                           key={unit.id}
-                          onClick={() => onValueChange({ propertyId: property.id, unitId: unit.id })}
+                          onClick={() => {
+                            if (unit.isAvailable) onValueChange({ propertyId: property.id, unitId: unit.id });
+                          }}
                         >
-                          <TableCell className="px-5 py-3">
-                            <label className="flex cursor-pointer items-center gap-3 pl-12">
+                          <TableCell className="px-5 py-4">
+                            <label
+                              className={`flex items-center gap-4 ${unit.isAvailable ? "cursor-pointer" : "cursor-not-allowed"}`}
+                            >
                               <input
                                 checked={isSelected}
                                 className="h-4 w-4 accent-parcelis-green"
+                                disabled={!unit.isAvailable}
                                 name="lease-unit"
                                 onChange={() => onValueChange({ propertyId: property.id, unitId: unit.id })}
                                 type="radio"
                                 value={unit.id}
                               />
-                              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-white text-parcelis-charcoal">
-                                <DoorOpen className="h-4 w-4" />
+                              <span className="relative flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-parcelis-porcelain text-parcelis-charcoal">
+                                {property.imageUrl ? (
+                                  <Image
+                                    alt={`${property.name} property`}
+                                    className="object-cover"
+                                    fill
+                                    sizes="80px"
+                                    src={property.imageUrl}
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <Building2 className="h-5 w-5" />
+                                )}
                               </span>
-                              <span className="font-semibold text-parcelis-charcoal">Unit {unit.name}</span>
+                              <span className="min-w-0">
+                                <span className="block font-semibold text-parcelis-charcoal">{property.name}</span>
+                                <span className="block text-sm text-parcelis-gray">
+                                  Unit {unit.name}
+                                  {unit.isAvailable ? "" : " · Unavailable"}
+                                </span>
+                              </span>
                             </label>
                           </TableCell>
-                          <TableCell className="max-w-72 whitespace-normal px-5 py-3 text-parcelis-gray">
+                          <TableCell className="max-w-72 whitespace-normal px-5 py-4 text-parcelis-gray">
                             {property.line1}
                             {property.line2 ? `, ${property.line2}` : ""}, {property.city}, {property.region}{" "}
                             {property.postalCode}
                           </TableCell>
-                          <TableCell className="px-5 py-3 text-right font-semibold text-parcelis-charcoal">
+                          <TableCell className="px-5 py-4 text-right font-semibold text-parcelis-charcoal">
                             {formatCurrency(unit.marketRateCents)}
                           </TableCell>
                         </TableRow>
                       );
-                    })
-                  : null}
-              </React.Fragment>
-            );
-          })}
-        </TableBody>
-      </Table>
+                    }),
+                  )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
