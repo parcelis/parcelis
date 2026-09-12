@@ -18,3 +18,4 @@ export * from "./components/select";
 export * from "./components/stepper";
 export * from "./components/table";
 export * from "./components/textarea";
+export * from "./components/toggle-group";
