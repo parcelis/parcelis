@@ -2,8 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowLeft, ChevronRight, FileText } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader } from "@parcelis/ui";
+import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
 
 // Types and initial state for the lease creation form.
@@ -34,13 +37,68 @@ const initialLeaseDraft: LeaseDraft = {
   billingDay: null,
 };
 
+function getLeaseDraftStorageKey(organizationId: number) {
+  return `parcelis:lease-creation-draft:v1:${organizationId}`;
+}
+
+function isLeaseDraft(value: unknown): value is LeaseDraft {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Record<string, unknown>;
+  return (
+    draft.version === 1 &&
+    typeof draft.currentStep === "string" &&
+    (typeof draft.propertyId === "number" || draft.propertyId === null) &&
+    (typeof draft.unitId === "number" || draft.unitId === null) &&
+    Array.isArray(draft.tenantIds) &&
+    draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
+    typeof draft.startsOn === "string" &&
+    typeof draft.endsOn === "string" &&
+    (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
+    (typeof draft.depositCents === "number" || draft.depositCents === null) &&
+    (typeof draft.billingDay === "number" || draft.billingDay === null)
+  );
+}
+
 export default function NewLeasePage() {
+  const pathname = usePathname();
   // State for the lease creation form.
   const [draft, setDraft] = React.useState<LeaseDraft>(initialLeaseDraft);
+  const [hydratedStorageKey, setHydratedStorageKey] = React.useState<string | null>(null);
+  const activeOrganizationQuery = useQuery({
+    queryKey: [...queryKeys.organizations.active, pathname],
+    queryFn: () => apiClient.organizations.active.query(),
+  });
+  const storageKey = activeOrganizationQuery.data ? getLeaseDraftStorageKey(activeOrganizationQuery.data.id) : null;
   // Determine the current step index and step details.
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
   const step = leaseCreationSteps[currentIndex];
   const isLastStep = currentIndex === leaseCreationSteps.length - 1;
+
+  React.useEffect(() => {
+    if (!storageKey) return;
+
+    try {
+      const storedDraft = window.sessionStorage.getItem(storageKey);
+      if (storedDraft) {
+        const parsedDraft: unknown = JSON.parse(storedDraft);
+        if (isLeaseDraft(parsedDraft)) setDraft(parsedDraft);
+      }
+    } catch {
+      setDraft(initialLeaseDraft);
+    }
+
+    setHydratedStorageKey(storageKey);
+  }, [storageKey]);
+
+  React.useEffect(() => {
+    if (!storageKey || hydratedStorageKey !== storageKey) return;
+
+    try {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(draft));
+    } catch {
+      // Storage can be unavailable in private browsing or restricted browser contexts.
+    }
+  }, [draft, hydratedStorageKey, storageKey]);
 
   function goBack() {
     const previousStep = leaseCreationSteps[currentIndex - 1];
