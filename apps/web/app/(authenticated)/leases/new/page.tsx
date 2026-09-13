@@ -393,17 +393,25 @@ function ResidentsSelector({
   value: number[];
 }) {
   const [search, setSearch] = React.useState("");
+  const [availabilityFilter, setAvailabilityFilter] = React.useState<"available" | "all">("available");
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants.list,
     queryFn: () => apiClient.tenants.list.query(),
   });
   const tenants = (tenantsQuery.data ?? []).filter((tenant) => tenant.tenantStatus !== "archived");
   const query = search.trim().toLowerCase();
-  const filteredTenants = tenants.filter((tenant) =>
-    [tenant.firstName, tenant.lastName, tenant.email, tenant.phone ?? ""].some((field) =>
-      field.toLowerCase().includes(query),
-    ),
-  );
+  const filteredTenants = tenants
+    .filter((tenant) =>
+      [tenant.firstName, tenant.lastName, tenant.email, tenant.phone ?? ""].some((field) =>
+        field.toLowerCase().includes(query),
+      ),
+    )
+    .filter(
+      (tenant) =>
+        availabilityFilter === "all" ||
+        value.includes(tenant.id) ||
+        !tenant.leases.some((lease) => lease.status === "active" || lease.status === "notice"),
+    );
   function toggleResidentSelection(tenantId: number) {
     onValueChange(value.includes(tenantId) ? value.filter((id) => id !== tenantId) : [...value, tenantId]);
   }
@@ -416,23 +424,37 @@ function ResidentsSelector({
   return (
     <div className="w-full text-left">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-parcelis-border px-5 py-4">
-        <label className="flex h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray md:min-w-80">
-          <Search className="h-4 w-4" />
-          <Input
-            aria-label="Search tenants"
-            className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 focus:border-transparent"
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search tenants"
-            value={search}
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleGroup
+            aria-label="Tenant availability"
+            onValueChange={(nextValue) => setAvailabilityFilter(nextValue as "available" | "all")}
+            value={availabilityFilter}
+          >
+            <ToggleGroupItem value="available">Available</ToggleGroupItem>
+            <ToggleGroupItem value="all">All Tenants</ToggleGroupItem>
+          </ToggleGroup>
+          <label className="flex h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray md:min-w-80">
+            <Search className="h-4 w-4" />
+            <Input
+              aria-label="Search tenants"
+              className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 focus:border-transparent"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search tenants"
+              value={search}
+            />
+          </label>
+        </div>
         <span className="text-sm font-semibold text-parcelis-charcoal">
           {value.length} {value.length === 1 ? "resident" : "residents"} selected
         </span>
       </div>
       {filteredTenants.length === 0 ? (
         <div className="p-6 text-sm text-parcelis-gray">
-          {tenants.length === 0 ? "No tenants yet." : "No tenants match your search."}
+          {tenants.length === 0
+            ? "No tenants yet."
+            : availabilityFilter === "available" && !query
+              ? "No available tenants were found."
+              : "No tenants match your search."}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -669,7 +691,7 @@ export default function NewLeasePage() {
                 </CardHeader>
                 <CardContent
                   className={`flex min-h-80 flex-1 flex-col ${
-                    currentIndex === 0 ? "p-0" : "items-center justify-center p-8 text-center"
+                    currentIndex <= 1 ? "p-0" : "items-center justify-center p-8 text-center"
                   }`}
                 >
                   {currentIndex === 0 ? (
