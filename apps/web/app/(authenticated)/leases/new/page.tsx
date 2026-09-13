@@ -45,6 +45,8 @@ import {
 } from "../../../../components/property-drawer";
 import { uploadPropertyImage } from "../../../../components/property-image-upload";
 import { entityCreatedMessage } from "../../../../components/toast-messages";
+import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../../components/tenant-drawer";
+import { uploadTenantImage } from "../../../../components/tenant-image-upload";
 
 type LeaseDraft = {
   version: 3;
@@ -386,9 +388,11 @@ function PropertySelector({
 }
 
 function ResidentsSelector({
+  onAddTenant,
   onValueChange,
   value,
 }: {
+  onAddTenant: () => void;
   onValueChange: (tenantIds: number[]) => void;
   value: number[];
 }) {
@@ -444,9 +448,15 @@ function ResidentsSelector({
             />
           </label>
         </div>
-        <span className="text-sm font-semibold text-parcelis-charcoal">
-          {value.length} {value.length === 1 ? "resident" : "residents"} selected
-        </span>
+        <div className="flex items-center gap-5">
+          <span className="text-sm font-semibold text-parcelis-charcoal">
+            {value.length} {value.length === 1 ? "resident" : "residents"} selected
+          </span>
+          <Button onClick={onAddTenant} type="button">
+            <Plus className="h-4 w-4" />
+            Add Tenant
+          </Button>
+        </div>
       </div>
       {filteredTenants.length === 0 ? (
         <div className="p-6 text-sm text-parcelis-gray">
@@ -555,6 +565,9 @@ export default function NewLeasePage() {
   const [isPropertyDrawerOpen, setIsPropertyDrawerOpen] = React.useState(false);
   const [propertyForm, setPropertyForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
+  const [isTenantDrawerOpen, setIsTenantDrawerOpen] = React.useState(false);
+  const [tenantForm, setTenantForm] = React.useState(initialTenantFormState);
+  const [tenantImageFile, setTenantImageFile] = React.useState<File | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
@@ -568,6 +581,20 @@ export default function NewLeasePage() {
       setIsPropertyDrawerOpen(false);
       await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
       toast.success(entityCreatedMessage("Property", property.name));
+    },
+  });
+  const createTenant = useMutation({
+    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: TenantFormState }) => {
+      const tenant = await apiClient.tenants.create.mutate(input);
+      if (imageFile) await uploadTenantImage(tenant.id, imageFile);
+      return tenant;
+    },
+    onSuccess: async (tenant) => {
+      setTenantForm(initialTenantFormState);
+      setTenantImageFile(null);
+      setIsTenantDrawerOpen(false);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
+      toast.success(entityCreatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
   });
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
@@ -655,6 +682,22 @@ export default function NewLeasePage() {
         onSubmit={(input, imageFile) => createProperty.mutate({ imageFile, input })}
         open={isPropertyDrawerOpen}
       />
+      <TenantDrawer
+        drawerTitle="Add Tenant"
+        error={createTenant.error}
+        form={tenantForm}
+        imageFile={tenantImageFile}
+        isPending={createTenant.isPending}
+        onFormChange={setTenantForm}
+        onImageChange={setTenantImageFile}
+        onOpenChange={(open) => {
+          setIsTenantDrawerOpen(open);
+          if (!open) setTenantImageFile(null);
+        }}
+        onSubmit={(input, imageFile) => createTenant.mutate({ imageFile, input })}
+        open={isTenantDrawerOpen}
+        submitLabel="Add Tenant"
+      />
       <main className="flex flex-1 flex-col">
         <section className="flex flex-1 flex-col transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
           <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
@@ -706,6 +749,8 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 1 ? (
                     <ResidentsSelector
+                      onAddTenant={() => 
+                    setIsTenantDrawerOpen(true)}
                       onValueChange={(tenantIds) => setDraft((current) => ({ ...current, tenantIds }))}
                       value={draft.tenantIds}
                     />
