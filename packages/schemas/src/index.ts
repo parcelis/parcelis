@@ -437,7 +437,7 @@ export const leasePropertyStepSchema = z.object({
 export const leaseResidentsStepSchema = z.object({
   tenantIds: z
     .array(idSchema)
-    .min(1)
+    .min(1, "Select at least one resident to continue.")
     .max(50)
     .refine((tenantIds) => new Set(tenantIds).size === tenantIds.length, {
       message: "Each resident can only be added once.",

@@ -15,10 +15,13 @@ import {
   Phone,
   Plus,
   Search,
+  TriangleAlert,
   UserRound,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Alert,
+  AlertTitle,
   Button,
   Card,
   CardContent,
@@ -34,7 +37,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@parcelis/ui";
-import { leasePropertyStepSchema, type CreatePropertyInput } from "@parcelis/schemas";
+import { leasePropertyStepSchema, leaseResidentsStepSchema, type CreatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
 import { LoadingState } from "../../../../components/loading-state";
@@ -179,7 +182,10 @@ function PropertySelector({
         </Button>
       </div>
       {error ? (
-        <p className="border-b border-parcelis-border px-5 py-3 text-sm font-medium text-red-700">{error}</p>
+        <Alert className="rounded-none border-x-0" variant="destructive">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <AlertTitle>{error}</AlertTitle>
+        </Alert>
       ) : null}
       {propertyGroups.length === 0 ? (
         <div className="p-6 text-sm text-parcelis-gray">
@@ -388,10 +394,12 @@ function PropertySelector({
 }
 
 function ResidentsSelector({
+  error,
   onAddTenant,
   onValueChange,
   value,
 }: {
+  error?: string | null;
   onAddTenant: () => void;
   onValueChange: (tenantIds: number[]) => void;
   value: number[];
@@ -458,6 +466,12 @@ function ResidentsSelector({
           </Button>
         </div>
       </div>
+      {error ? (
+        <Alert className="rounded-none border-x-0" variant="destructive">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <AlertTitle>{error}</AlertTitle>
+        </Alert>
+      ) : null}
       {filteredTenants.length === 0 ? (
         <div className="p-6 text-sm text-parcelis-gray">
           {tenants.length === 0
@@ -623,9 +637,13 @@ export default function NewLeasePage() {
       return tenant;
     },
     onSuccess: async (tenant) => {
+      setIsTenantDrawerOpen(false);
+      setDraft((current) => ({
+        ...current,
+        tenantIds: current.tenantIds.includes(tenant.id) ? current.tenantIds : [...current.tenantIds, tenant.id],
+      }));
       setTenantForm(initialTenantFormState);
       setTenantImageFile(null);
-      setIsTenantDrawerOpen(false);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
       toast.success(entityCreatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
@@ -660,23 +678,32 @@ export default function NewLeasePage() {
   }, [draft, hydratedStorageKey, storageKey]);
 
   function goBack() {
+    setStepError(null);
     const previousStep = leaseCreationSteps[currentIndex - 1];
     if (previousStep) setDraft((current) => ({ ...current, currentStep: previousStep.id }));
   }
 
   function validateCurrentStep() {
-    if (currentIndex !== 0) return true;
+    const result =
+      currentIndex === 0
+        ? leasePropertyStepSchema.safeParse({
+            propertyId: draft.propertyId,
+            unitId: draft.unitId,
+          })
+        : currentIndex === 1
+          ? leaseResidentsStepSchema.safeParse({
+              tenantIds: draft.tenantIds,
+            })
+          : null;
 
-    const result = leasePropertyStepSchema.safeParse({
-      propertyId: draft.propertyId,
-      unitId: draft.unitId,
-    });
+    if (!result) return true;
+
     if (result.success) {
       setStepError(null);
       return true;
     }
 
-    setStepError(result.error.issues[0]?.message ?? "Select a property and unit to continue.");
+    setStepError(result.error.issues[0]?.message ?? "Complete this step to continue.");
     return false;
   }
 
@@ -781,8 +808,8 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 1 ? (
                     <ResidentsSelector
-                      onAddTenant={() => 
-                    setIsTenantDrawerOpen(true)}
+                      error={stepError}
+                      onAddTenant={() => setIsTenantDrawerOpen(true)}
                       onValueChange={(tenantIds) => setDraft((current) => ({ ...current, tenantIds }))}
                       value={draft.tenantIds}
                     />
