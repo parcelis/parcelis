@@ -5,13 +5,26 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, ChevronRight, DoorOpen, FileText, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  ChevronRight,
+  DoorOpen,
+  FileText,
+  Mail,
+  Phone,
+  Plus,
+  Search,
+  UserRound,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
+  Input,
   Table,
   TableBody,
   TableCell,
@@ -372,6 +385,141 @@ function PropertySelector({
   );
 }
 
+function ResidentsSelector({
+  onValueChange,
+  value,
+}: {
+  onValueChange: (tenantIds: number[]) => void;
+  value: number[];
+}) {
+  const [search, setSearch] = React.useState("");
+  const tenantsQuery = useQuery({
+    queryKey: queryKeys.tenants.list,
+    queryFn: () => apiClient.tenants.list.query(),
+  });
+  const tenants = (tenantsQuery.data ?? []).filter((tenant) => tenant.tenantStatus !== "archived");
+  const query = search.trim().toLowerCase();
+  const filteredTenants = tenants.filter((tenant) =>
+    [tenant.firstName, tenant.lastName, tenant.email, tenant.phone ?? ""].some((field) =>
+      field.toLowerCase().includes(query),
+    ),
+  );
+  function toggleResidentSelection(tenantId: number) {
+    onValueChange(value.includes(tenantId) ? value.filter((id) => id !== tenantId) : [...value, tenantId]);
+  }
+
+  if (tenantsQuery.isLoading) return <LoadingState label="Loading tenants" />;
+  if (tenantsQuery.error) {
+    return <div className="p-6 text-sm font-medium text-red-700">{tenantsQuery.error.message}</div>;
+  }
+
+  return (
+    <div className="w-full text-left">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-parcelis-border px-5 py-4">
+        <label className="flex h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray md:min-w-80">
+          <Search className="h-4 w-4" />
+          <Input
+            aria-label="Search tenants"
+            className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 focus:border-transparent"
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search tenants"
+            value={search}
+          />
+        </label>
+        <span className="text-sm font-semibold text-parcelis-charcoal">
+          {value.length} {value.length === 1 ? "resident" : "residents"} selected
+        </span>
+      </div>
+      {filteredTenants.length === 0 ? (
+        <div className="p-6 text-sm text-parcelis-gray">
+          {tenants.length === 0 ? "No tenants yet." : "No tenants match your search."}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table className="min-w-[860px] border-collapse">
+            <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+              <TableRow className="border-0">
+                <TableHead className="w-16 px-5 py-3 font-semibold">Select</TableHead>
+                <TableHead className="w-72 px-5 py-3 font-semibold">Tenant</TableHead>
+                <TableHead className="w-72 px-5 py-3 font-semibold">Contact</TableHead>
+                <TableHead className="px-5 py-3 font-semibold">Current Lease</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTenants.map((tenant) => {
+                const isSelected = value.includes(tenant.id);
+                const currentLease = tenant.leases.find(
+                  (lease) => lease.status === "active" || lease.status === "notice",
+                );
+                return (
+                  <TableRow
+                    aria-selected={isSelected}
+                    className={`border-t border-parcelis-border ${
+                      isSelected ? "bg-parcelis-green/10" : "hover:bg-parcelis-porcelain/60"
+                    }`}
+                    key={tenant.id}
+                  >
+                    <TableCell className="px-5 py-4">
+                      <Checkbox
+                        aria-label={`Select ${tenant.firstName} ${tenant.lastName}`}
+                        checked={isSelected}
+                        onCheckedChange={() => toggleResidentSelection(tenant.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-parcelis-porcelain text-parcelis-green">
+                          {tenant.imageUrl ? (
+                            <Image
+                              alt={`${tenant.firstName} ${tenant.lastName}`}
+                              className="object-cover"
+                              fill
+                              sizes="40px"
+                              src={tenant.imageUrl}
+                              unoptimized
+                            />
+                          ) : (
+                            <UserRound className="h-4 w-4" />
+                          )}
+                        </span>
+                        <span className="font-semibold text-parcelis-charcoal">
+                          {tenant.firstName} {tenant.lastName}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                      <span className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-parcelis-green" />
+                        {tenant.email}
+                      </span>
+                      {tenant.phone ? (
+                        <span className="mt-1 flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-parcelis-green" />
+                          {tenant.phone}
+                        </span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                      {currentLease ? (
+                        <>
+                          <span className="block font-medium text-parcelis-charcoal">{currentLease.property.name}</span>
+                          <span>Unit {currentLease.unitLabel}</span>
+                        </>
+                      ) : (
+                        "No current lease"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NewLeasePage() {
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -533,6 +681,11 @@ export default function NewLeasePage() {
                         setDraft((current) => ({ ...current, propertyId, unitId }));
                       }}
                       value={draft.unitId}
+                    />
+                  ) : currentIndex === 1 ? (
+                    <ResidentsSelector
+                      onValueChange={(tenantIds) => setDraft((current) => ({ ...current, tenantIds }))}
+                      value={draft.tenantIds}
                     />
                   ) : (
                     <>
