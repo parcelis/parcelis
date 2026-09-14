@@ -20,6 +20,11 @@ enum LeaseStatus {
   ended
 }
 
+enum LeaseBillingResponsibility {
+  joint
+  individual
+}
+
 enum InvoiceStatus {
   open
   overdue
@@ -136,6 +141,7 @@ model Organization {
   applications          Application[]
   leases                Lease[]
   invoices              Invoice[]
+  invoiceRecipients     InvoiceRecipient[]
   maintenanceTickets    MaintenanceTicket[]
   activityEvents        ActivityEvent[]
   defaultUsers          User[]                   @relation("UserDefaultOrganization")
@@ -362,6 +368,7 @@ model Tenant {
   emergencyContacts   EmergencyContact[]
   leases              LeaseTenant[]         @relation("LeaseTenant")
   invoices            Invoice[]             @relation("InvoiceTenant")
+  invoiceRecipients   InvoiceRecipient[]    @relation("InvoiceRecipient")
   paymentsMade        Invoice[]             @relation("InvoicePaidByTenant")
   invoicePayments     InvoicePayment[]
   notes               Note[]
@@ -517,22 +524,25 @@ model EmergencyContact {
 }
 
 model Lease {
-  id               Int          @id @default(autoincrement())
-  organizationId   Int
-  propertyId       Int
-  unitId           Int
-  monthlyRentCents Int
-  startsOn         DateTime
-  endsOn           DateTime?
-  status           LeaseStatus  @default(draft)
-  archivedAt       DateTime?
-  property         Property     @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id])
-  unit             Unit         @relation(fields: [propertyId, unitId], references: [propertyId, id])
-  tenants          LeaseTenant[]
-  invoices         Invoice[]    @relation("InvoiceLease")
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id                      Int                         @id @default(autoincrement())
+  organizationId          Int
+  propertyId              Int
+  unitId                  Int
+  monthlyRentCents        Int
+  securityDepositCents    Int                        @default(0)
+  billingResponsibility   LeaseBillingResponsibility?
+  allowPartialPayments    Boolean                    @default(true)
+  startsOn                DateTime
+  endsOn                  DateTime?
+  status                  LeaseStatus                 @default(draft)
+  archivedAt              DateTime?
+  property                Property                    @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id])
+  unit                    Unit                        @relation(fields: [propertyId, unitId], references: [propertyId, id])
+  tenants                 LeaseTenant[]
+  invoices                Invoice[]                   @relation("InvoiceLease")
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+  organization            Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([propertyId])
   @@index([unitId])
@@ -542,13 +552,15 @@ model Lease {
 }
 
 model LeaseTenant {
-  organizationId Int
-  leaseId        Int
-  tenantId       Int
-  lease          Lease     @relation(fields: [organizationId, leaseId], references: [organizationId, id], onDelete: Cascade)
-  tenant         Tenant    @relation("LeaseTenant", fields: [organizationId, tenantId], references: [organizationId, id], onDelete: Cascade)
-  invoices       Invoice[] @relation("InvoiceLeaseTenant")
-  createdAt      DateTime  @default(now())
+  organizationId    Int
+  leaseId           Int
+  tenantId          Int
+  rentShareCents    Int?
+  depositShareCents Int?
+  lease             Lease     @relation(fields: [organizationId, leaseId], references: [organizationId, id], onDelete: Cascade)
+  tenant            Tenant    @relation("LeaseTenant", fields: [organizationId, tenantId], references: [organizationId, id], onDelete: Cascade)
+  invoices          Invoice[] @relation("InvoiceLeaseTenant")
+  createdAt         DateTime  @default(now())
 
   @@id([organizationId, leaseId, tenantId])
   @@index([tenantId])
@@ -572,6 +584,7 @@ model Invoice {
   paymentMethod  String?
   items          InvoiceItem[]
   payments       InvoicePayment[]   @relation("InvoicePaymentInvoice")
+  recipients     InvoiceRecipient[]
   notes          Note[]
   lease          Lease              @relation("InvoiceLease", fields: [organizationId, leaseId, propertyId], references: [organizationId, id, propertyId], onDelete: Cascade)
   property       Property           @relation("InvoiceProperty", fields: [organizationId, propertyId], references: [organizationId, id])
@@ -583,12 +596,27 @@ model Invoice {
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@unique([leaseId, tenantId, periodStartsOn])
+  @@unique([organizationId, id])
   @@unique([id, tenantId])
   @@index([leaseId])
   @@index([propertyId])
   @@index([tenantId])
   @@index([paidByTenantId])
   @@index([organizationId])
+}
+
+model InvoiceRecipient {
+  organizationId Int
+  invoiceId      Int
+  tenantId       Int
+  invoice        Invoice      @relation(fields: [organizationId, invoiceId], references: [organizationId, id], onDelete: Cascade)
+  tenant         Tenant       @relation("InvoiceRecipient", fields: [organizationId, tenantId], references: [organizationId, id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdAt      DateTime     @default(now())
+
+  @@id([organizationId, invoiceId, tenantId])
+  @@index([invoiceId])
+  @@index([tenantId])
 }
 
 model InvoiceItem {
