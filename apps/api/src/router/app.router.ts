@@ -2146,7 +2146,6 @@ export const appRouter = router({
                 propertyId: true,
                 dueOn: true,
                 balanceCents: true,
-                tenantId: true,
                 recipients: {
                   select: { tenantId: true },
                 },
@@ -2155,11 +2154,22 @@ export const appRouter = router({
                 },
               },
             });
-            if (input.paidByTenantId !== invoice.tenantId) {
-              throw new TRPCError({ code: "BAD_REQUEST", message: "Select a tenant assigned to this unit." });
+            const responsibleTenantIds = new Set(invoice.recipients.map(({ tenantId }) => tenantId));
+
+            if (!responsibleTenantIds.has(input.paidByTenantId)) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Select a tenant responsible for this invoice.",
+              });
             }
             if (input.amountCents > invoice.balanceCents) {
               throw new TRPCError({ code: "BAD_REQUEST", message: "Payment cannot exceed the remaining balance." });
+            }
+            if (!invoice.lease.allowPartialPayments && input.amountCents !== invoice.balanceCents) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This lease requires the invoice to be paid in full.",
+              });
             }
             const balanceCents = invoice.balanceCents - input.amountCents;
             const payment = await tx.invoicePayment.create({
