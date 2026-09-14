@@ -2096,13 +2096,19 @@ export const appRouter = router({
               message: `An invoice already exists for this lease and billing date (${formatInvoiceNumber(existingInvoice.invoiceNumber)}).`,
             });
           }
-
+          // Create the invoice with its items and recipients
           const invoice = await tx.invoice.create({
             data: {
               organizationId: ctx.organization.organizationId,
               leaseId: lease.id,
               propertyId: lease.propertyId,
               tenantId: input.tenantId,
+              recipients: {
+                create: {
+                  organizationId: ctx.organization.organizationId,
+                  tenantId: input.tenantId,
+                },
+              },
               periodStartsOn: dueOn,
               periodEndsOn: dueOn,
               dueOn,
