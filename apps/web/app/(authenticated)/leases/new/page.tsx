@@ -433,13 +433,19 @@ function PropertySelector({
 }
 
 function ResidentsSelector({
+  billingResponsibility,
   error,
   onAddTenant,
+  onBillingResponsibilityChange,
   onValueChange,
   value,
 }: {
+  billingResponsibility: LeaseDraft["billingResponsibility"];
   error?: string | null;
   onAddTenant: () => void;
+  onBillingResponsibilityChange: (
+    billingResponsibility: LeaseDraft["billingResponsibility"],
+  ) => void;
   onValueChange: (tenantIds: number[]) => void;
   value: number[];
 }) {
@@ -820,8 +826,12 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 1 ? (
                     <ResidentsSelector
+                      billingResponsibility={draft.billingResponsibility}
                       error={stepError}
                       onAddTenant={() => setIsTenantDrawerOpen(true)}
+                      onBillingResponsibilityChange={(billingResponsibility) =>
+                        setDraft((current) => ({ ...current, billingResponsibility }))
+                      }
                       onValueChange={(tenantIds) =>
                         setDraft((current) => ({
                           ...current,
