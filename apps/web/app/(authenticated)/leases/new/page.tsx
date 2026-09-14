@@ -52,7 +52,7 @@ import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../.
 import { uploadTenantImage } from "../../../../components/tenant-image-upload";
 
 type LeaseDraft = {
-  version: 3;
+  version: 4;
   currentStep: string;
   propertyId: number | null;
   unitId: number | null;
@@ -62,12 +62,19 @@ type LeaseDraft = {
   startsOn: string;
   endsOn: string;
   monthlyRentCents: number | null;
-  depositCents: number | null;
+  securityDepositCents: number | null;
   billingDay: number | null;
+  billingResponsibility: "joint" | "individual";
+  allowPartialPayments: boolean;
+  tenantAllocations: Array<{
+    tenantId: number;
+    rentShareCents: number;
+    depositShareCents: number;
+  }>;
 };
 
 const initialLeaseDraft: LeaseDraft = {
-  version: 3,
+  version: 4,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
   propertyId: null,
   unitId: null,
@@ -77,8 +84,11 @@ const initialLeaseDraft: LeaseDraft = {
   startsOn: "",
   endsOn: "",
   monthlyRentCents: null,
-  depositCents: null,
+  securityDepositCents: null,
   billingDay: null,
+  billingResponsibility: "joint",
+  allowPartialPayments: true,
+  tenantAllocations: [],
 };
 
 function getLeaseDraftStorageKey(organizationId: number) {
@@ -89,7 +99,7 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
   if (!value || typeof value !== "object") return false;
   const draft = value as Record<string, unknown>;
   return (
-    draft.version === 3 &&
+    draft.version === 4 &&
     typeof draft.currentStep === "string" &&
     (typeof draft.propertyId === "number" || draft.propertyId === null) &&
     (typeof draft.unitId === "number" || draft.unitId === null) &&
@@ -100,8 +110,19 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
     typeof draft.startsOn === "string" &&
     typeof draft.endsOn === "string" &&
     (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
-    (typeof draft.depositCents === "number" || draft.depositCents === null) &&
-    (typeof draft.billingDay === "number" || draft.billingDay === null)
+    (typeof draft.securityDepositCents === "number" || draft.securityDepositCents === null) &&
+    (typeof draft.billingDay === "number" || draft.billingDay === null) &&
+    (draft.billingResponsibility === "joint" || draft.billingResponsibility === "individual") &&
+    typeof draft.allowPartialPayments === "boolean" &&
+    Array.isArray(draft.tenantAllocations) &&
+    draft.tenantAllocations.every(
+      (allocation) =>
+        typeof allocation === "object" &&
+        allocation !== null &&
+        typeof (allocation as Record<string, unknown>).tenantId === "number" &&
+        typeof (allocation as Record<string, unknown>).rentShareCents === "number" &&
+        typeof (allocation as Record<string, unknown>).depositShareCents === "number",
+    )
   );
 }
 
