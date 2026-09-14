@@ -420,13 +420,17 @@ function PropertySelector({
 }
 
 function ResidentsSelector({
+  billingResponsibility,
   error,
   onAddTenant,
+  onBillingResponsibilityChange,
   onValueChange,
   value,
 }: {
+  billingResponsibility: LeaseDraft["billingResponsibility"];
   error?: string | null;
   onAddTenant: () => void;
+  onBillingResponsibilityChange: (billingResponsibility: LeaseDraft["billingResponsibility"]) => void;
   onValueChange: (tenantIds: number[]) => void;
   value: number[];
 }) {
@@ -461,6 +465,17 @@ function ResidentsSelector({
 
   return (
     <div className="w-full text-left">
+      <div className="flex items-center gap-2 border-b border-parcelis-border px-5 py-3 text-sm">
+        <span className="font-medium text-parcelis-charcoal">Billing responsibility</span>
+        <ToggleGroup
+          aria-label="Billing responsibility"
+          onValueChange={(value) => onBillingResponsibilityChange(value as LeaseDraft["billingResponsibility"])}
+          value={billingResponsibility}
+        >
+          <ToggleGroupItem value="joint">Joint</ToggleGroupItem>
+          <ToggleGroupItem value="individual">Individual</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-parcelis-border px-5 py-4">
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
@@ -857,8 +872,12 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 1 ? (
                     <ResidentsSelector
+                      billingResponsibility={draft.billingResponsibility}
                       error={stepError}
                       onAddTenant={() => setIsTenantDrawerOpen(true)}
+                      onBillingResponsibilityChange={(billingResponsibility) =>
+                        setDraft((current) => ({ ...current, billingResponsibility }))
+                      }
                       onValueChange={(tenantIds) => {
                         setStepError(null);
                         setDraft((current) => ({ ...current, tenantIds }));
