@@ -2230,14 +2230,34 @@ export const appRouter = router({
           async (tx) => {
             const invoice = await tx.invoice.findFirstOrThrow({
               where: { id: input.id, organizationId: ctx.organization.organizationId },
-              select: { dueOn: true, balanceCents: true, tenantId: true },
+              select: {
+                dueOn: true,
+                balanceCents: true,
+                recipients: {
+                  select: { tenantId: true },
+                },
+                lease: {
+                  select: { allowPartialPayments: true },
+                },
+              },
             });
-            if (input.payments.some((payment) => payment.paidByTenantId !== invoice.tenantId)) {
-              throw new TRPCError({ code: "BAD_REQUEST", message: "Select a tenant assigned to this unit." });
+            const responsibleTenantIds = new Set(invoice.recipients.map(({ tenantId }) => tenantId));
+
+            if (input.payments.some(({ paidByTenantId }) => !responsibleTenantIds.has(paidByTenantId))) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Select a tenant responsible for this invoice.",
+              });
             }
             const paymentTotalCents = input.payments.reduce((total, payment) => total + payment.amountCents, 0);
             if (paymentTotalCents > invoice.balanceCents) {
               throw new TRPCError({ code: "BAD_REQUEST", message: "Payments cannot exceed the remaining balance." });
+            }
+            if (!invoice.lease.allowPartialPayments && paymentTotalCents !== invoice.balanceCents) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This lease requires the invoice to be paid in full.",
+              });
             }
             const balanceCents = invoice.balanceCents - paymentTotalCents;
             const latestPayment = input.payments.reduce((latest, payment) =>
