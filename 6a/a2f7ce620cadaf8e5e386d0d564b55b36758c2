@@ -1,0 +1,34 @@
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_11e8197a95fb27::t_7390f0125758a0 539-544
+  s_11e8197a95fb27::t_fc5c4136be000e 150-160
+  s_11e8197a95fb27::t_7c090034e4c188 704,886,906,918,930
+  s_11e8197a95fb27::t_2ae8bee6de3a06 1151,1154,1156-1158,1172-1180,1192-1193
+  s_11e8197a95fb27::t_2422faf45179f6 517-518,553-567
+  s_11e8197a95fb27::t_711615aeb77642 140-149
+  s_11e8197a95fb27::t_8dd0a12195f9f9 483,487,489-491,493-495,498,502,506-508,510-512
+  s_11e8197a95fb27::t_b4341c2b859cc0 745-758
+  s_11e8197a95fb27::t_11cc61b49cd37f 887,908,931
+  s_11e8197a95fb27::t_d51b2596ae06c0 33
+  s_11e8197a95fb27::t_fdd8674b26d937 537-538,545-548
+  s_11e8197a95fb27::t_92f0ac24da783d 706-735,885,888-905,907,909-917,919-929
+  s_11e8197a95fb27::t_bde475c29e90b3 761,797,804-830,833-859,882
+  s_11e8197a95fb27::t_33709bef1c32ef 736-744,759-760,762-796,798-803,831-832,860-881,883-884
+  s_11e8197a95fb27::t_b0c043d000cc1f 1160-1171
+  s_11e8197a95fb27::t_d3af4346b12df0 161-183,705
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6aa2f7ce620cadaf8e5e386d0d564b55b36758c2",
+  "prompts": {},
+  "sessions": {
+    "s_11e8197a95fb27": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a09630-3ff0-7ad0-82e1-fab3a162f3c2",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
