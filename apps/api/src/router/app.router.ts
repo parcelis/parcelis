@@ -107,7 +107,6 @@ import { requireAdministrator, requireOrganizationAdministrator } from "../modul
 import { hashPassword } from "../modules/auth";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
-import { renderInvoicePdf } from "../modules/invoice-pdf";
 
 const propertySelect = {
   id: true,
@@ -2047,6 +2046,7 @@ export const appRouter = router({
         ...invoice,
         lease: { unitLabel: invoice.lease.unit.name },
       };
+      const { renderInvoicePdf } = await import("../modules/invoice-pdf");
       return {
         contentBase64: (await renderInvoicePdf(pdfInvoice, organizationLogo, organization)).toString("base64"),
         fileName,
