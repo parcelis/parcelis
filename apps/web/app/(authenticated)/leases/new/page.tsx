@@ -134,6 +134,24 @@ function formatCurrency(cents: number) {
   }).format(cents / 100);
 }
 
+function synchronizeTenantAllocations(
+  tenantIds: number[],
+  allocations: LeaseDraft["tenantAllocations"],
+) {
+  const allocationsByTenantId = new Map(
+    allocations.map((allocation) => [allocation.tenantId, allocation]),
+  );
+
+  return tenantIds.map(
+    (tenantId) =>
+      allocationsByTenantId.get(tenantId) ?? {
+        tenantId,
+        rentShareCents: 0,
+        depositShareCents: 0,
+      },
+  );
+}
+
 function PropertySelector({
   onAddProperty,
   onValueChange,
@@ -626,10 +644,15 @@ export default function NewLeasePage() {
     },
     onSuccess: async (tenant) => {
       setIsTenantDrawerOpen(false);
-      setDraft((current) => ({
-        ...current,
-        tenantIds: current.tenantIds.includes(tenant.id) ? current.tenantIds : [...current.tenantIds, tenant.id],
-      }));
+      setDraft((current) => {
+        const tenantIds = current.tenantIds.includes(tenant.id) ? current.tenantIds : [...current.tenantIds, tenant.id];
+
+        return {
+          ...current,
+          tenantIds,
+          tenantAllocations: synchronizeTenantAllocations(tenantIds, current.tenantAllocations),
+        };
+      });
       setTenantForm(initialTenantFormState);
       setTenantImageFile(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
@@ -799,7 +822,16 @@ export default function NewLeasePage() {
                     <ResidentsSelector
                       error={stepError}
                       onAddTenant={() => setIsTenantDrawerOpen(true)}
-                      onValueChange={(tenantIds) => setDraft((current) => ({ ...current, tenantIds }))}
+                      onValueChange={(tenantIds) =>
+                        setDraft((current) => ({
+                          ...current,
+                          tenantIds,
+                          tenantAllocations: synchronizeTenantAllocations(
+                            tenantIds,
+                            current.tenantAllocations,
+                          ),
+                        }))
+                      }
                       value={draft.tenantIds}
                     />
                   ) : (
