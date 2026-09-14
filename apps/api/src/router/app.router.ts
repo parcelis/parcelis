@@ -1845,20 +1845,33 @@ export const appRouter = router({
                 throw new TRPCError({ code: "CONFLICT", message: "The selected unit already has an active lease." });
               }
 
+              const allocationsByTenantId = new Map(
+                input.tenantAllocations.map((allocation) => [allocation.tenantId, allocation]),
+              );
+
               const lease = await tx.lease.create({
                 data: {
                   organizationId: ctx.organization.organizationId,
                   propertyId: input.propertyId,
                   unitId: input.unitId,
+                  securityDepositCents: input.securityDepositCents,
+                  billingResponsibility: input.billingResponsibility,
+                  allowPartialPayments: input.allowPartialPayments,
                   monthlyRentCents: input.monthlyRentCents,
                   startsOn: input.startsOn,
                   endsOn: input.endsOn,
                   status: input.status,
                   tenants: {
-                    create: input.tenantIds.map((tenantId) => ({
-                      organizationId: ctx.organization.organizationId,
-                      tenantId,
-                    })),
+                    create: input.tenantIds.map((tenantId) => {
+                      const allocation = allocationsByTenantId.get(tenantId);
+
+                      return {
+                        organizationId: ctx.organization.organizationId,
+                        tenantId,
+                        rentShareCents: allocation?.rentShareCents,
+                        depositShareCents: allocation?.depositShareCents,
+                      };
+                    }),
                   },
                 },
                 include: {
@@ -2134,6 +2147,12 @@ export const appRouter = router({
                 dueOn: true,
                 balanceCents: true,
                 tenantId: true,
+                recipients: {
+                  select: { tenantId: true },
+                },
+                lease: {
+                  select: { allowPartialPayments: true },
+                },
               },
             });
             if (input.paidByTenantId !== invoice.tenantId) {
@@ -3294,7 +3313,8 @@ export const appRouter = router({
         if (input.generateInvoices) {
           await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
         }
-        const { propertyId, unitId, tenantIds, generateInvoices, ...leaseData } = input;
+        const { propertyId, unitId, tenantIds, tenantAllocations, generateInvoices, ...leaseData } = input;
+        const allocationsByTenantId = new Map(tenantAllocations.map((allocation) => [allocation.tenantId, allocation]));
         for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
             return await ctx.prisma.$transaction(
@@ -3334,10 +3354,16 @@ export const appRouter = router({
                     unitId,
                     ...leaseData,
                     tenants: {
-                      create: tenantIds.map((tenantId) => ({
-                        organizationId: ctx.organization.organizationId,
-                        tenantId,
-                      })),
+                      create: tenantIds.map((tenantId) => {
+                        const allocation = allocationsByTenantId.get(tenantId);
+
+                        return {
+                          organizationId: ctx.organization.organizationId,
+                          tenantId,
+                          rentShareCents: allocation?.rentShareCents,
+                          depositShareCents: allocation?.depositShareCents,
+                        };
+                      }),
                     },
                   },
                   include: {
@@ -3375,28 +3401,48 @@ export const appRouter = router({
                     }
                   }
 
+                  const invoicePlans =
+                    createdLease.billingResponsibility === "joint"
+                      ? [
+                          {
+                            amountCents: createdLease.monthlyRentCents,
+                            primaryTenantId: tenantIds[0]!,
+                            recipientIds: tenantIds,
+                          },
+                        ]
+                      : tenantIds.map((tenantId) => ({
+                          amountCents: allocationsByTenantId.get(tenantId)!.rentShareCents,
+                          primaryTenantId: tenantId,
+                          recipientIds: [tenantId],
+                        }));
                   for (const periodStartsOn of periods) {
                     const periodEndsOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0);
                     const dueOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth(), 1);
 
-                    for (const tenant of tenants) {
+                    for (const invoicePlan of invoicePlans) {
                       await tx.invoice.create({
                         data: {
                           organizationId: ctx.organization.organizationId,
                           leaseId: createdLease.id,
                           propertyId,
-                          tenantId: tenant.id,
+                          tenantId: invoicePlan.primaryTenantId,
                           periodStartsOn,
                           periodEndsOn,
                           dueOn,
-                          amountCents: createdLease.monthlyRentCents,
-                          balanceCents: createdLease.monthlyRentCents,
+                          amountCents: invoicePlan.amountCents,
+                          balanceCents: invoicePlan.amountCents,
+                          recipients: {
+                            create: invoicePlan.recipientIds.map((tenantId) => ({
+                              organizationId: ctx.organization.organizationId,
+                              tenantId,
+                            })),
+                          },
                           items: {
                             create: {
                               item: "Rent",
                               quantity: 1,
-                              rateCents: createdLease.monthlyRentCents,
-                              amountCents: createdLease.monthlyRentCents,
+                              rateCents: invoicePlan.amountCents,
+                              amountCents: invoicePlan.amountCents,
                             },
                           },
                         },
