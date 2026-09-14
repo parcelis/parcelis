@@ -28,6 +28,9 @@ import {
   CardHeader,
   Checkbox,
   Input,
+  RadioGroup,
+  RadioGroupItem,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -142,6 +145,68 @@ function formatCurrency(cents: number) {
     style: "currency",
     currency: "USD",
   }).format(cents / 100);
+}
+
+function formatCurrencyInput(cents: number | null) {
+  return cents === null ? "" : (cents / 100).toFixed(2);
+}
+
+function parseCurrencyInput(value: string) {
+  if (!value) return null;
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : null;
+}
+
+function formatPercentage(cents: number, totalCents: number | null) {
+  if (!totalCents) return "0";
+  return ((cents / totalCents) * 100).toFixed(2);
+}
+
+function parsePercentageInput(value: string, totalCents: number | null) {
+  if (!value || !totalCents) return 0;
+  const percentage = Number(value);
+  return Number.isFinite(percentage) && percentage >= 0 ? Math.round((percentage / 100) * totalCents) : 0;
+}
+
+function splitCentsEvenly(totalCents: number | null, count: number) {
+  if (!totalCents || count === 0) return Array.from({ length: count }, () => 0);
+  const baseShareCents = Math.floor(totalCents / count);
+  const remainderCents = totalCents % count;
+
+  return Array.from({ length: count }, (_, index) => baseShareCents + (index < remainderCents ? 1 : 0));
+}
+
+function createEqualTenantAllocations(
+  tenantIds: number[],
+  monthlyRentCents: number | null,
+  securityDepositCents: number | null,
+): LeaseDraft["tenantAllocations"] {
+  const rentShares = splitCentsEvenly(monthlyRentCents, tenantIds.length);
+  const depositShares = splitCentsEvenly(securityDepositCents, tenantIds.length);
+
+  return tenantIds.map((tenantId, index) => ({
+    tenantId,
+    rentShareCents: rentShares[index] ?? 0,
+    depositShareCents: depositShares[index] ?? 0,
+  }));
+}
+
+function synchronizeTenantAllocations(
+  tenantIds: number[],
+  allocations: LeaseDraft["tenantAllocations"],
+) {
+  const allocationsByTenantId = new Map(
+    allocations.map((allocation) => [allocation.tenantId, allocation]),
+  );
+
+  return tenantIds.map(
+    (tenantId) =>
+      allocationsByTenantId.get(tenantId) ?? {
+        tenantId,
+        rentShareCents: 0,
+        depositShareCents: 0,
+      },
+  );
 }
 
 function PropertySelector({
@@ -420,22 +485,42 @@ function PropertySelector({
 }
 
 function ResidentsSelector({
+  allowPartialPayments,
   billingResponsibility,
   error,
   onAddTenant,
+  onAllowPartialPaymentsChange,
   onBillingResponsibilityChange,
+  onMonthlyRentCentsChange,
+  onSecurityDepositCentsChange,
+  onTenantAllocationsChange,
   onValueChange,
+  monthlyRentCents,
+  securityDepositCents,
+  tenantAllocations,
   value,
 }: {
+  allowPartialPayments: boolean;
   billingResponsibility: LeaseDraft["billingResponsibility"];
   error?: string | null;
   onAddTenant: () => void;
-  onBillingResponsibilityChange: (billingResponsibility: LeaseDraft["billingResponsibility"]) => void;
+  onAllowPartialPaymentsChange: (allowPartialPayments: boolean) => void;
+  onBillingResponsibilityChange: (
+    billingResponsibility: LeaseDraft["billingResponsibility"],
+  ) => void;
+  onMonthlyRentCentsChange: (monthlyRentCents: number | null) => void;
+  onSecurityDepositCentsChange: (securityDepositCents: number | null) => void;
+  onTenantAllocationsChange: (tenantAllocations: LeaseDraft["tenantAllocations"]) => void;
   onValueChange: (tenantIds: number[]) => void;
+  monthlyRentCents: number | null;
+  securityDepositCents: number | null;
+  tenantAllocations: LeaseDraft["tenantAllocations"];
   value: number[];
 }) {
   const [search, setSearch] = React.useState("");
   const [availabilityFilter, setAvailabilityFilter] = React.useState<"available" | "all">("available");
+  const [rentAllocationMode, setRentAllocationMode] = React.useState<"percentage" | "amount">("percentage");
+  const [depositAllocationMode, setDepositAllocationMode] = React.useState<"percentage" | "amount">("percentage");
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants.list,
     queryFn: () => apiClient.tenants.list.query(),
@@ -454,8 +539,37 @@ function ResidentsSelector({
         value.includes(tenant.id) ||
         !tenant.leases.some((lease) => lease.status === "active" || lease.status === "notice"),
     );
+  const selectedTenants = tenants.filter((tenant) => value.includes(tenant.id));
+  const selectedAllocations = synchronizeTenantAllocations(value, tenantAllocations);
+  const displayedAllocations =
+    billingResponsibility === "joint"
+      ? createEqualTenantAllocations(value, monthlyRentCents, securityDepositCents)
+      : selectedAllocations;
+  const allocatedRentCents = displayedAllocations.reduce((total, allocation) => total + allocation.rentShareCents, 0);
+  const allocatedDepositCents = displayedAllocations.reduce(
+    (total, allocation) => total + allocation.depositShareCents,
+    0,
+  );
+
   function toggleResidentSelection(tenantId: number) {
     onValueChange(value.includes(tenantId) ? value.filter((id) => id !== tenantId) : [...value, tenantId]);
+  }
+
+  function updateTenantAllocation(
+    tenantId: number,
+    field: "rentShareCents" | "depositShareCents",
+    inputValue: string,
+    mode: "percentage" | "amount",
+  ) {
+    const totalCents = field === "rentShareCents" ? monthlyRentCents : securityDepositCents;
+    const shareCents =
+      mode === "percentage" ? parsePercentageInput(inputValue, totalCents) : (parseCurrencyInput(inputValue) ?? 0);
+
+    onTenantAllocationsChange(
+      synchronizeTenantAllocations(value, tenantAllocations).map((allocation) =>
+        allocation.tenantId === tenantId ? { ...allocation, [field]: shareCents } : allocation,
+      ),
+    );
   }
 
   if (tenantsQuery.isLoading) return <LoadingState label="Loading tenants" />;
@@ -465,17 +579,6 @@ function ResidentsSelector({
 
   return (
     <div className="w-full text-left">
-      <div className="flex items-center gap-2 border-b border-parcelis-border px-5 py-3 text-sm">
-        <span className="font-medium text-parcelis-charcoal">Billing responsibility</span>
-        <ToggleGroup
-          aria-label="Billing responsibility"
-          onValueChange={(value) => onBillingResponsibilityChange(value as LeaseDraft["billingResponsibility"])}
-          value={billingResponsibility}
-        >
-          <ToggleGroupItem value="joint">Joint</ToggleGroupItem>
-          <ToggleGroupItem value="individual">Individual</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-parcelis-border px-5 py-4">
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
@@ -603,6 +706,234 @@ function ResidentsSelector({
           </Table>
         </div>
       )}
+      <section className="border-t border-parcelis-border px-5 py-8 md:px-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">Resident billing</p>
+        <div className="mt-5 flex flex-col gap-8 xl:flex-row xl:gap-10">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <label className="flex flex-1 flex-col gap-2 text-sm font-semibold text-parcelis-charcoal">
+                Monthly rent
+                <Input
+                  inputMode="decimal"
+                  min="0"
+                  onChange={(event) => onMonthlyRentCentsChange(parseCurrencyInput(event.target.value))}
+                  placeholder="0.00"
+                  step="0.01"
+                  type="number"
+                  value={formatCurrencyInput(monthlyRentCents)}
+                />
+              </label>
+              <label className="flex flex-1 flex-col gap-2 text-sm font-semibold text-parcelis-charcoal">
+                Security deposit
+                <Input
+                  inputMode="decimal"
+                  min="0"
+                  onChange={(event) => onSecurityDepositCentsChange(parseCurrencyInput(event.target.value))}
+                  placeholder="0.00"
+                  step="0.01"
+                  type="number"
+                  value={formatCurrencyInput(securityDepositCents)}
+                />
+              </label>
+            </div>
+
+            <div className="mt-8">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-parcelis-charcoal">Tenant allocations</h2>
+                  <p className="mt-2 text-sm leading-6 text-parcelis-gray">
+                    {billingResponsibility === "individual"
+                      ? "Set each tenant’s rent and deposit share."
+                      : "All selected tenants share a single invoice and balance."}
+                  </p>
+                </div>
+                {billingResponsibility === "individual" && selectedTenants.length > 0 ? (
+                  <Button
+                    onClick={() =>
+                      onTenantAllocationsChange(
+                        createEqualTenantAllocations(value, monthlyRentCents, securityDepositCents),
+                      )
+                    }
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Split equally
+                  </Button>
+                ) : null}
+              </div>
+
+              {selectedTenants.length > 0 ? (
+                <div className="mt-5 overflow-x-auto rounded-md border border-parcelis-border bg-white">
+                  <Table className="min-w-[620px] border-collapse">
+                    <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                      <TableRow className="border-0">
+                        <TableHead className="px-4 py-3 font-semibold">Tenant</TableHead>
+                        <TableHead className="px-4 py-3 font-semibold">
+                          <span className="flex items-center justify-between gap-3">
+                            Rent
+                            <ToggleGroup
+                              aria-label="Rent allocation input mode"
+                              onValueChange={(nextValue) => setRentAllocationMode(nextValue as "percentage" | "amount")}
+                              value={rentAllocationMode}
+                            >
+                              <ToggleGroupItem value="percentage">%</ToggleGroupItem>
+                              <ToggleGroupItem value="amount">$</ToggleGroupItem>
+                            </ToggleGroup>
+                          </span>
+                        </TableHead>
+                        <TableHead className="px-4 py-3 font-semibold">
+                          <span className="flex items-center justify-between gap-3">
+                            Deposit
+                            <ToggleGroup
+                              aria-label="Deposit allocation input mode"
+                              onValueChange={(nextValue) => setDepositAllocationMode(nextValue as "percentage" | "amount")}
+                              value={depositAllocationMode}
+                            >
+                              <ToggleGroupItem value="percentage">%</ToggleGroupItem>
+                              <ToggleGroupItem value="amount">$</ToggleGroupItem>
+                            </ToggleGroup>
+                          </span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedTenants.map((tenant) => {
+                        const allocation = displayedAllocations.find((item) => item.tenantId === tenant.id)!;
+                        return (
+                          <TableRow key={tenant.id}>
+                            <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal">
+                              {tenant.firstName} {tenant.lastName}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              {billingResponsibility === "individual" ? (
+                                <Input
+                                  inputMode="decimal"
+                                  min="0"
+                                  onChange={(event) =>
+                                    updateTenantAllocation(
+                                      tenant.id,
+                                      "rentShareCents",
+                                      event.target.value,
+                                      rentAllocationMode,
+                                    )
+                                  }
+                                  step="0.01"
+                                  type="number"
+                                  value={
+                                    rentAllocationMode === "percentage"
+                                      ? formatPercentage(allocation.rentShareCents, monthlyRentCents)
+                                      : formatCurrencyInput(allocation.rentShareCents)
+                                  }
+                                />
+                              ) : (
+                                <span className="block py-2 font-semibold text-parcelis-charcoal">
+                                  {rentAllocationMode === "percentage"
+                                    ? `${formatPercentage(allocation.rentShareCents, monthlyRentCents)}%`
+                                    : formatCurrency(allocation.rentShareCents)}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              {billingResponsibility === "individual" ? (
+                                <Input
+                                  inputMode="decimal"
+                                  min="0"
+                                  onChange={(event) =>
+                                    updateTenantAllocation(
+                                      tenant.id,
+                                      "depositShareCents",
+                                      event.target.value,
+                                      depositAllocationMode,
+                                    )
+                                  }
+                                  step="0.01"
+                                  type="number"
+                                  value={
+                                    depositAllocationMode === "percentage"
+                                      ? formatPercentage(allocation.depositShareCents, securityDepositCents)
+                                      : formatCurrencyInput(allocation.depositShareCents)
+                                  }
+                                />
+                              ) : (
+                                <span className="block py-2 font-semibold text-parcelis-charcoal">
+                                  {depositAllocationMode === "percentage"
+                                    ? `${formatPercentage(allocation.depositShareCents, securityDepositCents)}%`
+                                    : formatCurrency(allocation.depositShareCents)}
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      <TableRow className="bg-parcelis-porcelain/60">
+                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal">Total</TableCell>
+                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal">
+                          {rentAllocationMode === "percentage"
+                            ? `${formatPercentage(allocatedRentCents, monthlyRentCents)}%`
+                            : formatCurrency(allocatedRentCents)}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal">
+                          {depositAllocationMode === "percentage"
+                            ? `${formatPercentage(allocatedDepositCents, securityDepositCents)}%`
+                            : formatCurrency(allocatedDepositCents)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="mt-5 rounded-md border border-parcelis-border bg-white p-4 text-sm text-parcelis-gray">
+                  Select at least one tenant to view allocations.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="xl:w-[30rem] xl:shrink-0 xl:border-l xl:border-parcelis-border xl:pl-10">
+            <h2 className="text-xl font-bold text-parcelis-charcoal">Billing responsibility</h2>
+            <RadioGroup
+              className="mt-5 gap-5"
+              onValueChange={(nextValue) => {
+                if (nextValue === "joint" || nextValue === "individual") {
+                  onBillingResponsibilityChange(nextValue);
+                }
+              }}
+              value={billingResponsibility}
+            >
+              <label className="flex cursor-pointer items-start gap-3 rounded-md p-2 transition-colors hover:bg-parcelis-porcelain">
+                <RadioGroupItem className="mt-0.5" value="joint" />
+                <span>
+                  <span className="block font-semibold text-parcelis-charcoal">All tenants are equally responsible.</span>
+                  <span className="mt-1 block text-sm leading-6 text-parcelis-gray">
+                    We’ll create one shared invoice. Every tenant can view the full amount and pay against the same balance.
+                  </span>
+                </span>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-md p-2 transition-colors hover:bg-parcelis-porcelain">
+                <RadioGroupItem className="mt-0.5" value="individual" />
+                <span>
+                  <span className="block font-semibold text-parcelis-charcoal">
+                    Each tenant is responsible for their own portion.
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-parcelis-gray">
+                    We’ll create a separate invoice for each tenant based on their rent and deposit allocation.
+                  </span>
+                </span>
+              </label>
+            </RadioGroup>
+
+            <div className="mt-8 flex items-center justify-between gap-4 border-t border-parcelis-border pt-6">
+              <div>
+                <h3 className="font-semibold text-parcelis-charcoal">Partial payments</h3>
+                <p className="mt-1 text-sm leading-6 text-parcelis-gray">Tenants may submit partial invoice payments.</p>
+              </div>
+              <Switch checked={allowPartialPayments} onCheckedChange={onAllowPartialPaymentsChange} />
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -872,16 +1203,50 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 1 ? (
                     <ResidentsSelector
+                      allowPartialPayments={draft.allowPartialPayments}
                       billingResponsibility={draft.billingResponsibility}
                       error={stepError}
+                      monthlyRentCents={draft.monthlyRentCents}
                       onAddTenant={() => setIsTenantDrawerOpen(true)}
+                      onAllowPartialPaymentsChange={(allowPartialPayments) =>
+                        setDraft((current) => ({ ...current, allowPartialPayments }))
+                      }
                       onBillingResponsibilityChange={(billingResponsibility) =>
-                        setDraft((current) => ({ ...current, billingResponsibility }))
+                        setDraft((current) => ({
+                          ...current,
+                          billingResponsibility,
+                          tenantAllocations:
+                            billingResponsibility === "individual"
+                              ? createEqualTenantAllocations(
+                                  current.tenantIds,
+                                  current.monthlyRentCents,
+                                  current.securityDepositCents,
+                                )
+                              : [],
+                        }))
+                      }
+                      onMonthlyRentCentsChange={(monthlyRentCents) =>
+                        setDraft((current) => ({ ...current, monthlyRentCents }))
+                      }
+                      onSecurityDepositCentsChange={(securityDepositCents) =>
+                        setDraft((current) => ({ ...current, securityDepositCents }))
+                      }
+                      onTenantAllocationsChange={(tenantAllocations) =>
+                        setDraft((current) => ({ ...current, tenantAllocations }))
                       }
                       onValueChange={(tenantIds) => {
                         setStepError(null);
-                        setDraft((current) => ({ ...current, tenantIds }));
+                        setDraft((current) => ({
+                           ...current,
+                           tenantIds,
+                           tenantAllocations: synchronizeTenantAllocations(
+                             tenantIds,
+                             current.tenantAllocations,
+                           ),
+                        }));
                       }}
+                       securityDepositCents={draft.securityDepositCents}
+                       tenantAllocations={draft.tenantAllocations}
                       value={draft.tenantIds}
                     />
                   ) : (
