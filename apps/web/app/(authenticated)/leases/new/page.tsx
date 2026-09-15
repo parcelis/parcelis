@@ -40,7 +40,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@parcelis/ui";
-import { leasePropertyStepSchema, leaseResidentsStepSchema, type CreatePropertyInput } from "@parcelis/schemas";
+import { leasePropertyStepSchema, leaseTenantBillingStepSchema, type CreatePropertyInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
 import { LoadingState } from "../../../../components/loading-state";
@@ -1086,8 +1086,13 @@ export default function NewLeasePage() {
             unitId: draft.unitId,
           })
         : currentIndex === 1
-          ? leaseResidentsStepSchema.safeParse({
+          ? leaseTenantBillingStepSchema.safeParse({
               tenantIds: draft.tenantIds,
+              billingResponsibility: draft.billingResponsibility,
+              allowPartialPayments: draft.allowPartialPayments,
+              monthlyRentCents: draft.monthlyRentCents,
+              securityDepositCents: draft.securityDepositCents,
+              tenantAllocations: draft.tenantAllocations,
             })
           : null;
 
