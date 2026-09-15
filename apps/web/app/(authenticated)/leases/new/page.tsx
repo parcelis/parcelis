@@ -1056,8 +1056,10 @@ function LeaseTermsSelector({
   onEndsOnChange,
   onStartsOnChange,
   onTermTypeChange,
+  propertyId,
   startsOn,
   termType,
+  unitId,
 }: {
   continueMonthToMonthAfterEnd: boolean;
   onContinueMonthToMonthAfterEndChange: (continueMonthToMonthAfterEnd: boolean) => void;
@@ -1065,8 +1067,10 @@ function LeaseTermsSelector({
   onEndsOnChange: (endsOn: string) => void;
   onStartsOnChange: (startsOn: string) => void;
   onTermTypeChange: (termType: LeaseDraft["termType"]) => void;
+  propertyId: number | null;
   startsOn: string;
   termType: LeaseDraft["termType"];
+  unitId: number | null;
 }) {
   const [isEndDatePickerOpen, setIsEndDatePickerOpen] = React.useState(false);
   const [isStartDatePickerOpen, setIsStartDatePickerOpen] = React.useState(false);
@@ -1074,6 +1078,12 @@ function LeaseTermsSelector({
   const today = new Date();
   const leaseEndMonth = new Date(today.getFullYear() + 7, today.getMonth(), 1);
   const startDate = parseDateInput(startsOn);
+  const propertiesQuery = useQuery({
+    queryKey: queryKeys.properties.list,
+    queryFn: () => apiClient.properties.list.query(),
+  });
+  const selectedProperty = propertiesQuery.data?.find((property) => property.id === propertyId);
+  const selectedUnit = selectedProperty?.units.find((unit) => unit.id === unitId);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-5 md:p-6">
@@ -1081,6 +1091,34 @@ function LeaseTermsSelector({
         <h2 className="text-xl font-bold text-parcelis-charcoal">Lease terms</h2>
         <p className="mt-1 text-sm text-parcelis-gray">Choose how long this lease will run.</p>
       </div>
+
+      <section className="flex flex-col gap-4 rounded-lg border border-parcelis-border bg-parcelis-porcelain/40 p-4 dark:bg-parcelis-charcoal/55">
+        <h3 className="text-sm font-semibold text-parcelis-charcoal dark:text-white">Selected property</h3>
+        <div className="flex flex-col gap-4 md:flex-row">
+          <div className="flex flex-1 flex-col gap-2">
+            <label className="text-sm font-medium text-parcelis-charcoal dark:text-white" htmlFor="lease-property">
+              Property
+            </label>
+            <Input
+              className="bg-white dark:bg-parcelis-slate dark:text-white"
+              id="lease-property"
+              readOnly
+              value={selectedProperty?.name ?? "Loading property…"}
+            />
+          </div>
+          <div className="flex flex-1 flex-col gap-2">
+            <label className="text-sm font-medium text-parcelis-charcoal dark:text-white" htmlFor="lease-unit">
+              Unit
+            </label>
+            <Input
+              className="bg-white dark:bg-parcelis-slate dark:text-white"
+              id="lease-unit"
+              readOnly
+              value={selectedUnit?.name ?? "Loading unit…"}
+            />
+          </div>
+        </div>
+      </section>
 
       <RadioGroup
         className="flex flex-col gap-3 md:flex-row"
@@ -1519,8 +1557,10 @@ export default function NewLeasePage() {
                           endsOn: termType === "fixed" ? current.endsOn : "",
                         }))
                       }
+                      propertyId={draft.propertyId}
                       startsOn={draft.startsOn}
                       termType={draft.termType}
+                      unitId={draft.unitId}
                     />
                   ) : (
                     <>
