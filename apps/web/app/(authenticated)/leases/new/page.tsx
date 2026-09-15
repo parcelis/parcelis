@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Building2,
+  CalendarDays,
+  CalendarRange,
   ChevronRight,
   DoorOpen,
   FileText,
@@ -1025,6 +1027,72 @@ function ResidentsSelector({
   );
 }
 
+function LeaseTermsSelector({
+  onTermTypeChange,
+  termType,
+}: {
+  onTermTypeChange: (termType: LeaseDraft["termType"]) => void;
+  termType: LeaseDraft["termType"];
+}) {
+  return (
+    <div className="flex flex-1 flex-col gap-6 p-5 md:p-6">
+      <div>
+        <h2 className="text-xl font-bold text-parcelis-charcoal">Lease terms</h2>
+        <p className="mt-1 text-sm text-parcelis-gray">Choose how long this lease will run.</p>
+      </div>
+
+      <RadioGroup
+        className="flex flex-col gap-3 md:flex-row"
+        onValueChange={(value) => onTermTypeChange(value as LeaseDraft["termType"])}
+        value={termType}
+      >
+        <label
+          className={`flex flex-1 cursor-pointer items-start gap-4 rounded-lg border p-4 transition-colors ${
+            termType === "fixed"
+              ? "border-parcelis-green bg-parcelis-green/10"
+              : "border-parcelis-border hover:bg-parcelis-porcelain/60"
+          }`}
+        >
+          <span
+            className={`flex size-30 shrink-0 items-center justify-center rounded-md ${
+              termType === "fixed" ? "bg-parcelis-green text-white" : "bg-parcelis-porcelain text-parcelis-gray"
+            }`}
+          >
+            <CalendarRange className="size-25" />
+          </span>
+          <span className="flex flex-1 flex-col gap-1">
+            <span className="font-semibold text-parcelis-charcoal">Fixed term</span>
+            <span className="text-sm leading-5 text-parcelis-gray">This lease runs for a fixed term, starting on the date below and ending on the date below.</span>
+          </span>
+          <RadioGroupItem className="mt-1" value="fixed" />
+        </label>
+        <label
+          className={`flex flex-1 cursor-pointer items-start gap-4 rounded-lg border p-4 transition-colors ${
+            termType === "month_to_month"
+              ? "border-parcelis-green bg-parcelis-green/10"
+              : "border-parcelis-border hover:bg-parcelis-porcelain/60"
+          }`}
+        >
+          <span
+            className={`flex size-30 shrink-0 items-center justify-center rounded-md ${
+              termType === "month_to_month"
+                ? "bg-parcelis-green text-white"
+                : "bg-parcelis-porcelain text-parcelis-gray"
+            }`}
+          >
+            <CalendarDays className="size-25" />
+          </span>
+          <span className="flex flex-1 flex-col gap-1">
+            <span className="font-semibold text-parcelis-charcoal">Month-to-month</span>
+            <span className="text-sm leading-5 text-parcelis-gray">This lease begins on the start date below and automatically renews on a month-to-month basis until terminated.</span>
+          </span>
+          <RadioGroupItem className="mt-1" value="month_to_month" />
+        </label>
+      </RadioGroup>
+    </div>
+  );
+}
+
 export default function NewLeasePage() {
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -1235,7 +1303,7 @@ export default function NewLeasePage() {
                 </CardHeader>
                 <CardContent
                   className={`flex min-h-80 flex-1 flex-col ${
-                    currentIndex <= 1 ? "p-0" : "items-center justify-center p-8 text-center"
+                    currentIndex <= 2 ? "p-0" : "items-center justify-center p-8 text-center"
                   }`}
                 >
                   {currentIndex === 0 ? (
@@ -1297,6 +1365,19 @@ export default function NewLeasePage() {
                       securityDepositCents={draft.securityDepositCents}
                       tenantAllocations={draft.tenantAllocations}
                       value={draft.tenantIds}
+                    />
+                  ) : currentIndex === 2 ? (
+                    <LeaseTermsSelector
+                      onTermTypeChange={(termType) =>
+                        setDraft((current) => ({
+                          ...current,
+                          termType,
+                          continueMonthToMonthAfterEnd:
+                            termType === "fixed" ? current.continueMonthToMonthAfterEnd : false,
+                          endsOn: termType === "fixed" ? current.endsOn : "",
+                        }))
+                      }
+                      termType={draft.termType}
                     />
                   ) : (
                     <>
