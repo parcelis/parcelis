@@ -1071,6 +1071,8 @@ function LeaseTermsSelector({
   const [isEndDatePickerOpen, setIsEndDatePickerOpen] = React.useState(false);
   const [isStartDatePickerOpen, setIsStartDatePickerOpen] = React.useState(false);
   const endDate = parseDateInput(endsOn);
+  const today = new Date();
+  const leaseEndMonth = new Date(today.getFullYear() + 7, today.getMonth(), 1);
   const startDate = parseDateInput(startsOn);
 
   return (
@@ -1149,6 +1151,7 @@ function LeaseTermsSelector({
           </PopoverTrigger>
           <PopoverContent align="start" className="w-auto p-0">
             <Calendar
+              endMonth={leaseEndMonth}
               mode="single"
               onSelect={(date) => {
                 if (!date) return;
@@ -1185,6 +1188,7 @@ function LeaseTermsSelector({
             <PopoverContent align="start" className="w-auto p-0">
               <Calendar
                 disabled={startDate ? { before: startDate } : undefined}
+                endMonth={leaseEndMonth}
                 mode="single"
                 onSelect={(date) => {
                   if (!date) return;
