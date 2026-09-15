@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
-import { appRouter } from "../../router/app.router";
+import { appRouter, getMonthlyDueDate } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
 function createCaller(prisma: unknown) {
@@ -19,6 +19,21 @@ const paymentInput = {
   paidByTenantId: 12,
   paymentMethod: "check" as const,
 };
+
+test("generated rent due dates clamp to the final day of short months", () => {
+  const cases = [
+    { periodStartsOn: new Date(2026, 1, 1), expectedDay: 28 },
+    { periodStartsOn: new Date(2028, 1, 1), expectedDay: 29 },
+    { periodStartsOn: new Date(2026, 3, 1), expectedDay: 30 },
+  ];
+
+  for (const { periodStartsOn, expectedDay } of cases) {
+    const dueOn = getMonthlyDueDate(periodStartsOn, 31);
+    assert.equal(dueOn.getFullYear(), periodStartsOn.getFullYear());
+    assert.equal(dueOn.getMonth(), periodStartsOn.getMonth());
+    assert.equal(dueOn.getDate(), expectedDay);
+  }
+});
 
 test("joint invoice accepts a payment from any recipient", async () => {
   let paymentData: unknown;
