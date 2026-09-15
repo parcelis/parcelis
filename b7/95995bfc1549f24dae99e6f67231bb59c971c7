@@ -1,0 +1,22 @@
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_11e8197a95fb27::t_c5161f0c338a20 1063
+  s_11e8197a95fb27::t_d5e992ec224ac0 1055-1056,1064-1065,1071,1073,1166,1169,1171-1200,1501,1505
+  s_11e8197a95fb27::t_b7afb1d6be1920 1132-1134,1136,1167-1168,1201-1203
+  s_11e8197a95fb27::t_23a905f85c9af3 1204-1220,1500,1502-1504
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b795995bfc1549f24dae99e6f67231bb59c971c7",
+  "prompts": {},
+  "sessions": {
+    "s_11e8197a95fb27": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a09630-3ff0-7ad0-82e1-fab3a162f3c2",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
