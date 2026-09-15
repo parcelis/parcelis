@@ -181,13 +181,8 @@ function createEqualTenantAllocations(
   }));
 }
 
-function synchronizeTenantAllocations(
-  tenantIds: number[],
-  allocations: LeaseDraft["tenantAllocations"],
-) {
-  const allocationsByTenantId = new Map(
-    allocations.map((allocation) => [allocation.tenantId, allocation]),
-  );
+function synchronizeTenantAllocations(tenantIds: number[], allocations: LeaseDraft["tenantAllocations"]) {
+  const allocationsByTenantId = new Map(allocations.map((allocation) => [allocation.tenantId, allocation]));
 
   return tenantIds.map(
     (tenantId) =>
@@ -207,7 +202,7 @@ function PropertySelector({
 }: {
   error: string | null;
   onAddProperty: () => void;
-  onValueChange: (selection: { propertyId: number; unitId: number }) => void;
+  onValueChange: (selection: { propertyId: number; unitId: number; monthlyRentCents: number }) => void;
   value: number | null;
 }) {
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(() => new Set());
@@ -363,7 +358,13 @@ function PropertySelector({
                                   } ${isSelected ? "bg-parcelis-green/10" : "bg-parcelis-porcelain/45"}`}
                                   key={unit.id}
                                   onClick={() => {
-                                    if (unit.isAvailable) onValueChange({ propertyId: property.id, unitId: unit.id });
+                                    if (unit.isAvailable) {
+                                      onValueChange({
+                                        propertyId: property.id,
+                                        unitId: unit.id,
+                                        monthlyRentCents: unit.marketRateCents,
+                                      });
+                                    }
                                   }}
                                 >
                                   <TableCell className="px-5 py-3">
@@ -377,7 +378,13 @@ function PropertySelector({
                                         className="h-4 w-4 accent-parcelis-green"
                                         disabled={!unit.isAvailable}
                                         name="lease-unit"
-                                        onChange={() => onValueChange({ propertyId: property.id, unitId: unit.id })}
+                                        onChange={() =>
+                                          onValueChange({
+                                            propertyId: property.id,
+                                            unitId: unit.id,
+                                            monthlyRentCents: unit.marketRateCents,
+                                          })
+                                        }
                                         type="radio"
                                         value={unit.id}
                                       />
@@ -420,7 +427,13 @@ function PropertySelector({
                           } ${isSelected ? "bg-parcelis-green/10" : ""}`}
                           key={unit.id}
                           onClick={() => {
-                            if (unit.isAvailable) onValueChange({ propertyId: property.id, unitId: unit.id });
+                            if (unit.isAvailable) {
+                              onValueChange({
+                                propertyId: property.id,
+                                unitId: unit.id,
+                                monthlyRentCents: unit.marketRateCents,
+                              });
+                            }
                           }}
                         >
                           <TableCell className="px-5 py-4">
@@ -432,7 +445,13 @@ function PropertySelector({
                                 className="h-4 w-4 accent-parcelis-green"
                                 disabled={!unit.isAvailable}
                                 name="lease-unit"
-                                onChange={() => onValueChange({ propertyId: property.id, unitId: unit.id })}
+                                onChange={() =>
+                                  onValueChange({
+                                    propertyId: property.id,
+                                    unitId: unit.id,
+                                    monthlyRentCents: unit.marketRateCents,
+                                  })
+                                }
                                 type="radio"
                                 value={unit.id}
                               />
@@ -500,9 +519,7 @@ function ResidentsSelector({
   error?: string | null;
   onAddTenant: () => void;
   onAllowPartialPaymentsChange: (allowPartialPayments: boolean) => void;
-  onBillingResponsibilityChange: (
-    billingResponsibility: LeaseDraft["billingResponsibility"],
-  ) => void;
+  onBillingResponsibilityChange: (billingResponsibility: LeaseDraft["billingResponsibility"]) => void;
   onMonthlyRentCentsChange: (monthlyRentCents: number | null) => void;
   onSecurityDepositCentsChange: (securityDepositCents: number | null) => void;
   onTenantAllocationsChange: (tenantAllocations: LeaseDraft["tenantAllocations"]) => void;
@@ -516,10 +533,24 @@ function ResidentsSelector({
   const [availabilityFilter, setAvailabilityFilter] = React.useState<"available" | "all">("available");
   const [rentAllocationMode, setRentAllocationMode] = React.useState<"percentage" | "amount">("percentage");
   const [depositAllocationMode, setDepositAllocationMode] = React.useState<"percentage" | "amount">("percentage");
+  const [allocationInputs, setAllocationInputs] = React.useState<Record<string, string>>({});
+  const [monthlyRentInput, setMonthlyRentInput] = React.useState(() => formatCurrencyInput(monthlyRentCents));
+  const [securityDepositInput, setSecurityDepositInput] = React.useState(() =>
+    formatCurrencyInput(securityDepositCents),
+  );
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants.list,
     queryFn: () => apiClient.tenants.list.query(),
   });
+
+  React.useEffect(() => {
+    setMonthlyRentInput(formatCurrencyInput(monthlyRentCents));
+  }, [monthlyRentCents]);
+
+  React.useEffect(() => {
+    setSecurityDepositInput(formatCurrencyInput(securityDepositCents));
+  }, [securityDepositCents]);
+
   const tenants = (tenantsQuery.data ?? []).filter((tenant) => tenant.tenantStatus !== "archived");
   const query = search.trim().toLowerCase();
   const filteredTenants = tenants
@@ -710,24 +741,22 @@ function ResidentsSelector({
                 Monthly rent
                 <Input
                   inputMode="decimal"
-                  min="0"
-                  onChange={(event) => onMonthlyRentCentsChange(parseCurrencyInput(event.target.value))}
+                  onBlur={() => onMonthlyRentCentsChange(parseCurrencyInput(monthlyRentInput))}
+                  onChange={(event) => setMonthlyRentInput(event.target.value)}
                   placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                  value={formatCurrencyInput(monthlyRentCents)}
+                  type="text"
+                  value={monthlyRentInput}
                 />
               </label>
               <label className="flex flex-1 flex-col gap-2 text-sm font-semibold text-parcelis-charcoal">
                 Security deposit
                 <Input
                   inputMode="decimal"
-                  min="0"
-                  onChange={(event) => onSecurityDepositCentsChange(parseCurrencyInput(event.target.value))}
+                  onBlur={() => onSecurityDepositCentsChange(parseCurrencyInput(securityDepositInput))}
+                  onChange={(event) => setSecurityDepositInput(event.target.value)}
                   placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                  value={formatCurrencyInput(securityDepositCents)}
+                  type="text"
+                  value={securityDepositInput}
                 />
               </label>
             </div>
@@ -753,7 +782,7 @@ function ResidentsSelector({
                     type="button"
                     variant="secondary"
                   >
-                    Split equally
+                    Reset to equal shares
                   </Button>
                 ) : null}
               </div>
@@ -782,7 +811,9 @@ function ResidentsSelector({
                             Deposit
                             <ToggleGroup
                               aria-label="Deposit allocation input mode"
-                              onValueChange={(nextValue) => setDepositAllocationMode(nextValue as "percentage" | "amount")}
+                              onValueChange={(nextValue) =>
+                                setDepositAllocationMode(nextValue as "percentage" | "amount")
+                              }
                               value={depositAllocationMode}
                             >
                               <ToggleGroupItem value="percentage">%</ToggleGroupItem>
@@ -795,6 +826,18 @@ function ResidentsSelector({
                     <TableBody>
                       {selectedTenants.map((tenant) => {
                         const allocation = displayedAllocations.find((item) => item.tenantId === tenant.id)!;
+                        const rentInputKey = `${tenant.id}:rent:${rentAllocationMode}`;
+                        const depositInputKey = `${tenant.id}:deposit:${depositAllocationMode}`;
+                        const rentInputValue =
+                          allocationInputs[rentInputKey] ??
+                          (rentAllocationMode === "percentage"
+                            ? formatPercentage(allocation.rentShareCents, monthlyRentCents)
+                            : formatCurrencyInput(allocation.rentShareCents));
+                        const depositInputValue =
+                          allocationInputs[depositInputKey] ??
+                          (depositAllocationMode === "percentage"
+                            ? formatPercentage(allocation.depositShareCents, securityDepositCents)
+                            : formatCurrencyInput(allocation.depositShareCents));
                         return (
                           <TableRow key={tenant.id}>
                             <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal">
@@ -804,22 +847,26 @@ function ResidentsSelector({
                               {billingResponsibility === "individual" ? (
                                 <Input
                                   inputMode="decimal"
-                                  min="0"
-                                  onChange={(event) =>
+                                  onBlur={() => {
                                     updateTenantAllocation(
                                       tenant.id,
                                       "rentShareCents",
-                                      event.target.value,
+                                      rentInputValue,
                                       rentAllocationMode,
-                                    )
+                                    );
+                                    setAllocationInputs((current) => {
+                                      const { [rentInputKey]: _removed, ...remaining } = current;
+                                      return remaining;
+                                    });
+                                  }}
+                                  onChange={(event) =>
+                                    setAllocationInputs((current) => ({
+                                      ...current,
+                                      [rentInputKey]: event.target.value,
+                                    }))
                                   }
-                                  step="0.01"
-                                  type="number"
-                                  value={
-                                    rentAllocationMode === "percentage"
-                                      ? formatPercentage(allocation.rentShareCents, monthlyRentCents)
-                                      : formatCurrencyInput(allocation.rentShareCents)
-                                  }
+                                  type="text"
+                                  value={rentInputValue}
                                 />
                               ) : (
                                 <span className="block py-2 font-semibold text-parcelis-charcoal">
@@ -833,22 +880,26 @@ function ResidentsSelector({
                               {billingResponsibility === "individual" ? (
                                 <Input
                                   inputMode="decimal"
-                                  min="0"
-                                  onChange={(event) =>
+                                  onBlur={() => {
                                     updateTenantAllocation(
                                       tenant.id,
                                       "depositShareCents",
-                                      event.target.value,
+                                      depositInputValue,
                                       depositAllocationMode,
-                                    )
+                                    );
+                                    setAllocationInputs((current) => {
+                                      const { [depositInputKey]: _removed, ...remaining } = current;
+                                      return remaining;
+                                    });
+                                  }}
+                                  onChange={(event) =>
+                                    setAllocationInputs((current) => ({
+                                      ...current,
+                                      [depositInputKey]: event.target.value,
+                                    }))
                                   }
-                                  step="0.01"
-                                  type="number"
-                                  value={
-                                    depositAllocationMode === "percentage"
-                                      ? formatPercentage(allocation.depositShareCents, securityDepositCents)
-                                      : formatCurrencyInput(allocation.depositShareCents)
-                                  }
+                                  type="text"
+                                  value={depositInputValue}
                                 />
                               ) : (
                                 <span className="block py-2 font-semibold text-parcelis-charcoal">
@@ -899,9 +950,12 @@ function ResidentsSelector({
               <label className="flex cursor-pointer items-start gap-3 rounded-md p-2 transition-colors hover:bg-parcelis-porcelain">
                 <RadioGroupItem className="mt-0.5" value="joint" />
                 <span>
-                  <span className="block font-semibold text-parcelis-charcoal">All tenants are equally responsible.</span>
+                  <span className="block font-semibold text-parcelis-charcoal">
+                    All tenants are equally responsible.
+                  </span>
                   <span className="mt-1 block text-sm leading-6 text-parcelis-gray">
-                    We’ll create one shared invoice. Every tenant can view the full amount and pay against the same balance.
+                    We’ll create one shared invoice. Every tenant can view the full amount and pay against the same
+                    balance.
                   </span>
                 </span>
               </label>
@@ -922,7 +976,9 @@ function ResidentsSelector({
             <div className="mt-8 flex items-center justify-between gap-4 border-t border-parcelis-border pt-6">
               <div>
                 <h3 className="font-semibold text-parcelis-charcoal">Partial payments</h3>
-                <p className="mt-1 text-sm leading-6 text-parcelis-gray">Tenants may submit partial invoice payments.</p>
+                <p className="mt-1 text-sm leading-6 text-parcelis-gray">
+                  Tenants may submit partial invoice payments.
+                </p>
               </div>
               <Switch checked={allowPartialPayments} onCheckedChange={onAllowPartialPaymentsChange} />
             </div>
@@ -1140,9 +1196,14 @@ export default function NewLeasePage() {
                     <PropertySelector
                       error={stepError}
                       onAddProperty={() => setIsPropertyDrawerOpen(true)}
-                      onValueChange={({ propertyId, unitId }) => {
+                      onValueChange={({ propertyId, unitId, monthlyRentCents }) => {
                         setStepError(null);
-                        setDraft((current) => ({ ...current, propertyId, unitId }));
+                        setDraft((current) => ({
+                          ...current,
+                          propertyId,
+                          unitId,
+                          monthlyRentCents,
+                        }));
                       }}
                       value={draft.unitId}
                     />
@@ -1183,10 +1244,7 @@ export default function NewLeasePage() {
                         setDraft((current) => ({
                           ...current,
                           tenantIds,
-                          tenantAllocations: synchronizeTenantAllocations(
-                            tenantIds,
-                            current.tenantAllocations,
-                          ),
+                          tenantAllocations: synchronizeTenantAllocations(tenantIds, current.tenantAllocations),
                         }))
                       }
                       securityDepositCents={draft.securityDepositCents}
