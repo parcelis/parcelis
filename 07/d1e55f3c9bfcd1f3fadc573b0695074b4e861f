@@ -1,0 +1,19 @@
+packages/db/prisma/migrations/20260915050333_add_lease_terms_fields/migration.sql
+  s_11e8197a95fb27::t_3fff0e83527cca 1-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "07d1e55f3c9bfcd1f3fadc573b0695074b4e861f",
+  "prompts": {},
+  "sessions": {
+    "s_11e8197a95fb27": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a09630-3ff0-7ad0-82e1-fab3a162f3c2",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
