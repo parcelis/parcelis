@@ -37,6 +37,7 @@ import {
   PopoverTrigger,
   RadioGroup,
   RadioGroupItem,
+  Select,
   Switch,
   Table,
   TableBody,
@@ -170,6 +171,13 @@ function formatDateInput(date: Date) {
 
 function formatDateLabel(date: Date) {
   return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", year: "numeric" }).format(date);
+}
+
+function formatDayOfMonth(day: number) {
+  const remainder = day % 100;
+  if (remainder >= 11 && remainder <= 13) return `${day}th`;
+  const suffix = day % 10 === 1 ? "st" : day % 10 === 2 ? "nd" : day % 10 === 3 ? "rd" : "th";
+  return `${day}${suffix}`;
 }
 
 function formatPercentage(cents: number, totalCents: number | null) {
@@ -1054,9 +1062,11 @@ function LeaseTermsSelector({
   onContinueMonthToMonthAfterEndChange,
   endsOn,
   onEndsOnChange,
+  onRentDueDayChange,
   onStartsOnChange,
   onTermTypeChange,
   propertyId,
+  rentDueDay,
   startsOn,
   termType,
   unitId,
@@ -1065,9 +1075,11 @@ function LeaseTermsSelector({
   onContinueMonthToMonthAfterEndChange: (continueMonthToMonthAfterEnd: boolean) => void;
   endsOn: string;
   onEndsOnChange: (endsOn: string) => void;
+  onRentDueDayChange: (rentDueDay: number) => void;
   onStartsOnChange: (startsOn: string) => void;
   onTermTypeChange: (termType: LeaseDraft["termType"]) => void;
   propertyId: number | null;
+  rentDueDay: number;
   startsOn: string;
   termType: LeaseDraft["termType"];
   unitId: number | null;
@@ -1242,6 +1254,23 @@ function LeaseTermsSelector({
           </p>
           </div>
         ) : null}
+      </div>
+      <div className="flex max-w-sm flex-col gap-2">
+        <label className="text-sm font-semibold text-parcelis-charcoal dark:text-white" htmlFor="lease-rent-due-day">
+          Rent due day
+        </label>
+        <Select
+          id="lease-rent-due-day"
+          onChange={(event) => onRentDueDayChange(Number(event.target.value))}
+          value={rentDueDay}
+        >
+          {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
+            <option key={day} value={day}>
+              {formatDayOfMonth(day)} of each month
+            </option>
+          ))}
+        </Select>
+        <p className="text-sm text-parcelis-gray">Rent is due on this day each month.</p>
       </div>
       {termType === "fixed" ? (
         <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-parcelis-border p-4 hover:bg-parcelis-porcelain/60">
@@ -1545,6 +1574,7 @@ export default function NewLeasePage() {
                         setDraft((current) => ({ ...current, continueMonthToMonthAfterEnd }))
                       }
                       onEndsOnChange={(endsOn) => setDraft((current) => ({ ...current, endsOn }))}
+                      onRentDueDayChange={(rentDueDay) => setDraft((current) => ({ ...current, rentDueDay }))}
                       onStartsOnChange={(startsOn) =>
                         setDraft((current) => ({ ...current, startsOn }))
                       }
@@ -1558,6 +1588,7 @@ export default function NewLeasePage() {
                         }))
                       }
                       propertyId={draft.propertyId}
+                      rentDueDay={draft.rentDueDay}
                       startsOn={draft.startsOn}
                       termType={draft.termType}
                       unitId={draft.unitId}
