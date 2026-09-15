@@ -1,0 +1,25 @@
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_11e8197a95fb27::t_1049e700c6695f 70,92,118
+packages/db/prisma/schema.prisma
+  s_11e8197a95fb27::t_29dc99a08a1995 218,220,223-224,466,527-547,549-550,572,574,584,596-598
+apps/api/src/router/app.router.ts
+  s_11e8197a95fb27::t_17a958f67b5f23 1859-1860
+packages/schemas/src/index.ts
+  s_11e8197a95fb27::t_be70e2518a94f6 461,567-568,576-578
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "503481d36b491a10191adab9cf7797b35dd23b24",
+  "prompts": {},
+  "sessions": {
+    "s_11e8197a95fb27": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a09630-3ff0-7ad0-82e1-fab3a162f3c2",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
