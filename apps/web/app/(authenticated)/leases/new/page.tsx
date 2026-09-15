@@ -1050,17 +1050,27 @@ function ResidentsSelector({
 }
 
 function LeaseTermsSelector({
+  continueMonthToMonthAfterEnd,
+  onContinueMonthToMonthAfterEndChange,
+  endsOn,
+  onEndsOnChange,
   onStartsOnChange,
   onTermTypeChange,
   startsOn,
   termType,
 }: {
+  continueMonthToMonthAfterEnd: boolean;
+  onContinueMonthToMonthAfterEndChange: (continueMonthToMonthAfterEnd: boolean) => void;
+  endsOn: string;
+  onEndsOnChange: (endsOn: string) => void;
   onStartsOnChange: (startsOn: string) => void;
   onTermTypeChange: (termType: LeaseDraft["termType"]) => void;
   startsOn: string;
   termType: LeaseDraft["termType"];
 }) {
+  const [isEndDatePickerOpen, setIsEndDatePickerOpen] = React.useState(false);
   const [isStartDatePickerOpen, setIsStartDatePickerOpen] = React.useState(false);
+  const endDate = parseDateInput(endsOn);
   const startDate = parseDateInput(startsOn);
 
   return (
@@ -1119,10 +1129,11 @@ function LeaseTermsSelector({
         </label>
       </RadioGroup>
 
-      <div className="flex max-w-sm flex-col gap-2">
-        <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="lease-start-date">
-          Start date
-        </label>
+      <div className="flex flex-col gap-4 md:flex-row">
+        <div className="flex w-full flex-col gap-2 md:max-w-sm">
+          <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="lease-start-date">
+            Lease start date
+          </label>
         <Popover onOpenChange={setIsStartDatePickerOpen} open={isStartDatePickerOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -1152,6 +1163,61 @@ function LeaseTermsSelector({
           The first day of the lease term.
         </p>
       </div>
+
+        {termType === "fixed" ? (
+          <div className="flex w-full flex-col gap-2 md:max-w-sm">
+          <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="lease-end-date">
+            Lease end date
+          </label>
+          <Popover onOpenChange={setIsEndDatePickerOpen} open={isEndDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                aria-describedby="lease-end-date-description"
+                className="justify-start font-normal"
+                id="lease-end-date"
+                type="button"
+                variant="secondary"
+              >
+                <CalendarDays className="size-4 text-parcelis-gray" />
+                {endDate ? formatDateLabel(endDate) : "Select an end date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-auto p-0">
+              <Calendar
+                disabled={startDate ? { before: startDate } : undefined}
+                mode="single"
+                onSelect={(date) => {
+                  if (!date) return;
+                  onEndsOnChange(formatDateInput(date));
+                  setIsEndDatePickerOpen(false);
+                }}
+                selected={endDate}
+              />
+            </PopoverContent>
+          </Popover>
+          <p className="text-sm text-parcelis-gray" id="lease-end-date-description">
+            The last day of the lease term.
+          </p>
+          </div>
+        ) : null}
+      </div>
+      {termType === "fixed" ? (
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-parcelis-border p-4 hover:bg-parcelis-porcelain/60">
+          <Checkbox
+            checked={continueMonthToMonthAfterEnd}
+            className="mt-0.5"
+            onCheckedChange={(checked) => onContinueMonthToMonthAfterEndChange(checked === true)}
+          />
+          <span className="flex flex-col gap-1">
+            <span className="font-semibold text-parcelis-charcoal">
+              Continue month-to-month after the end date
+            </span>
+            <span className="text-sm leading-5 text-parcelis-gray">
+              The lease will transition to a month-to-month arrangement once the fixed term ends.
+            </span>
+          </span>
+        </label>
+      ) : null}
     </div>
   );
 }
@@ -1431,6 +1497,12 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 2 ? (
                     <LeaseTermsSelector
+                      continueMonthToMonthAfterEnd={draft.continueMonthToMonthAfterEnd}
+                      endsOn={draft.endsOn}
+                      onContinueMonthToMonthAfterEndChange={(continueMonthToMonthAfterEnd) =>
+                        setDraft((current) => ({ ...current, continueMonthToMonthAfterEnd }))
+                      }
+                      onEndsOnChange={(endsOn) => setDraft((current) => ({ ...current, endsOn }))}
                       onStartsOnChange={(startsOn) =>
                         setDraft((current) => ({ ...current, startsOn }))
                       }
