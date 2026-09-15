@@ -442,15 +442,15 @@ export const leasePropertyStepSchema = z.object({
   unitId: idSchema,
 });
 
-export const leaseResidentsStepSchema = z.object({
-  tenantIds: z
-    .array(idSchema)
-    .min(1, "Select at least one resident to continue.")
-    .max(50)
-    .refine((tenantIds) => new Set(tenantIds).size === tenantIds.length, {
-      message: "Each resident can only be added once.",
-    }),
-});
+const leaseTenantIdsSchema = z
+  .array(idSchema)
+  .min(1, "Select at least one resident to continue.")
+  .max(50)
+  .refine((tenantIds) => new Set(tenantIds).size === tenantIds.length, {
+    message: "Each resident can only be added once.",
+  });
+
+export const leaseResidentsStepSchema = z.object({ tenantIds: leaseTenantIdsSchema });
 
 export const leaseTermsStepSchema = z
   .object({
@@ -477,6 +477,76 @@ export const leaseTermsStepSchema = z
     path: ["endsOn"],
   });
 
+type LeaseTenantBillingValues = {
+  tenantIds: number[];
+  billingResponsibility: "joint" | "individual";
+  monthlyRentCents: number;
+  securityDepositCents: number;
+  tenantAllocations: Array<{ tenantId: number; rentShareCents: number; depositShareCents: number }>;
+};
+
+function validateLeaseTenantAllocations(lease: LeaseTenantBillingValues, ctx: z.RefinementCtx) {
+  const selectedTenantIds = new Set(lease.tenantIds);
+
+  if (lease.billingResponsibility === "joint") {
+    if (lease.tenantAllocations.length > 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Joint responsibility does not use individual tenant allocations.",
+        path: ["tenantAllocations"],
+      });
+    }
+    return;
+  }
+
+  const allocationTenantIds = new Set(lease.tenantAllocations.map((allocation) => allocation.tenantId));
+
+  if (
+    allocationTenantIds.size !== lease.tenantAllocations.length ||
+    allocationTenantIds.size !== selectedTenantIds.size ||
+    !lease.tenantIds.every((tenantId) => allocationTenantIds.has(tenantId))
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Provide one allocation for each selected tenant.",
+      path: ["tenantAllocations"],
+    });
+    return;
+  }
+
+  const totalRentCents = lease.tenantAllocations.reduce((total, allocation) => total + allocation.rentShareCents, 0);
+  if (totalRentCents !== lease.monthlyRentCents) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Tenant rent allocations must equal the monthly rent.",
+      path: ["tenantAllocations"],
+    });
+  }
+
+  const totalDepositCents = lease.tenantAllocations.reduce(
+    (total, allocation) => total + allocation.depositShareCents,
+    0,
+  );
+  if (totalDepositCents !== lease.securityDepositCents) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Tenant deposit allocations must equal the security deposit.",
+      path: ["tenantAllocations"],
+    });
+  }
+}
+
+export const leaseTenantBillingStepSchema = z
+  .object({
+    tenantIds: leaseTenantIdsSchema,
+    billingResponsibility: leaseBillingResponsibilitySchema,
+    allowPartialPayments: z.boolean(),
+    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
+    securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+    tenantAllocations: z.array(leaseTenantAllocationSchema).max(50),
+  })
+  .superRefine(validateLeaseTenantAllocations);
+
 export const leaseSchema = z.object({
   id: idSchema,
   propertyId: idSchema,
@@ -490,7 +560,7 @@ export const leaseSchema = z.object({
 export const createLeaseInputSchema = leaseSchema
   .omit({ id: true })
   .extend({
-    tenantIds: z.array(idSchema).min(1).max(50),
+    tenantIds: leaseTenantIdsSchema,
     billingResponsibility: leaseBillingResponsibilitySchema.default("joint"),
     allowPartialPayments: z.boolean().default(true),
     securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).default(0),
@@ -500,68 +570,12 @@ export const createLeaseInputSchema = leaseSchema
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
   })
-  .superRefine((lease, ctx) => {
-    const selectedTenantIds = new Set(lease.tenantIds);
-
-    if (selectedTenantIds.size !== lease.tenantIds.length) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Each tenant can only be selected once.",
-        path: ["tenantIds"],
-      });
-    }
-
-    if (lease.billingResponsibility === "joint") {
-      if (lease.tenantAllocations.length > 0) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Joint responsibility does not use individual tenant allocations.",
-          path: ["tenantAllocations"],
-        });
-      }
-      return;
-    }
-
-    const allocationTenantIds = new Set(lease.tenantAllocations.map((allocation) => allocation.tenantId));
-
-    if (
-      allocationTenantIds.size !== lease.tenantAllocations.length ||
-      allocationTenantIds.size !== selectedTenantIds.size ||
-      !lease.tenantIds.every((tenantId) => allocationTenantIds.has(tenantId))
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Provide one allocation for each selected tenant.",
-        path: ["tenantAllocations"],
-      });
-      return;
-    }
-
-    const totalRentCents = lease.tenantAllocations.reduce((total, allocation) => total + allocation.rentShareCents, 0);
-    if (totalRentCents !== lease.monthlyRentCents) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Tenant rent allocations must equal the monthly rent.",
-        path: ["tenantAllocations"],
-      });
-    }
-
-    const totalDepositCents = lease.tenantAllocations.reduce(
-      (total, allocation) => total + allocation.depositShareCents,
-      0,
-    );
-    if (totalDepositCents !== lease.securityDepositCents) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Tenant deposit allocations must equal the security deposit.",
-        path: ["tenantAllocations"],
-      });
-    }
-  });
+  .superRefine(validateLeaseTenantAllocations);
 
 export const createLeaseWithInvoicesInputSchema = createLeaseInputSchema.extend({
   generateInvoices: z.boolean().default(false),
 });
+
 export const invoiceByIdInputSchema = z.object({ id: idSchema });
 export const invoiceListInputSchema = z.object({ tenantId: idSchema.optional() });
 export const invoiceItemInputSchema = z.object({
