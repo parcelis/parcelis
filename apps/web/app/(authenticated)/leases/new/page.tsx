@@ -1059,6 +1059,7 @@ function ResidentsSelector({
 
 function LeaseTermsSelector({
   continueMonthToMonthAfterEnd,
+  error,
   onContinueMonthToMonthAfterEndChange,
   endsOn,
   onEndsOnChange,
@@ -1072,6 +1073,7 @@ function LeaseTermsSelector({
   unitId,
 }: {
   continueMonthToMonthAfterEnd: boolean;
+  error: string | null;
   onContinueMonthToMonthAfterEndChange: (continueMonthToMonthAfterEnd: boolean) => void;
   endsOn: string;
   onEndsOnChange: (endsOn: string) => void;
@@ -1103,6 +1105,12 @@ function LeaseTermsSelector({
         <h2 className="text-xl font-bold text-parcelis-charcoal">Lease terms</h2>
         <p className="mt-1 text-sm text-parcelis-gray">Choose how long this lease will run.</p>
       </div>
+      {error ? (
+        <Alert variant="destructive">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <AlertTitle>{error}</AlertTitle>
+        </Alert>
+      ) : null}
 
       <section className="flex flex-col gap-4 rounded-lg border border-parcelis-border bg-parcelis-porcelain/40 p-4 dark:bg-parcelis-charcoal/55">
         <h3 className="text-sm font-semibold text-parcelis-charcoal dark:text-white">Selected property</h3>
@@ -1579,23 +1587,33 @@ export default function NewLeasePage() {
                     <LeaseTermsSelector
                       continueMonthToMonthAfterEnd={draft.continueMonthToMonthAfterEnd}
                       endsOn={draft.endsOn}
-                      onContinueMonthToMonthAfterEndChange={(continueMonthToMonthAfterEnd) =>
-                        setDraft((current) => ({ ...current, continueMonthToMonthAfterEnd }))
-                      }
-                      onEndsOnChange={(endsOn) => setDraft((current) => ({ ...current, endsOn }))}
-                      onRentDueDayChange={(rentDueDay) => setDraft((current) => ({ ...current, rentDueDay }))}
-                      onStartsOnChange={(startsOn) =>
-                        setDraft((current) => ({ ...current, startsOn }))
-                      }
-                      onTermTypeChange={(termType) =>
+                      error={stepError}
+                      onContinueMonthToMonthAfterEndChange={(continueMonthToMonthAfterEnd) => {
+                        setStepError(null);
+                        setDraft((current) => ({ ...current, continueMonthToMonthAfterEnd }));
+                      }}
+                      onEndsOnChange={(endsOn) => {
+                        setStepError(null);
+                        setDraft((current) => ({ ...current, endsOn }));
+                      }}
+                      onRentDueDayChange={(rentDueDay) => {
+                        setStepError(null);
+                        setDraft((current) => ({ ...current, rentDueDay }));
+                      }}
+                      onStartsOnChange={(startsOn) => {
+                        setStepError(null);
+                        setDraft((current) => ({ ...current, startsOn }));
+                      }}
+                      onTermTypeChange={(termType) => {
+                        setStepError(null);
                         setDraft((current) => ({
                           ...current,
                           termType,
                           continueMonthToMonthAfterEnd:
                             termType === "fixed" ? current.continueMonthToMonthAfterEnd : false,
                           endsOn: termType === "fixed" ? current.endsOn : "",
-                        }))
-                      }
+                        }));
+                      }}
                       propertyId={draft.propertyId}
                       rentDueDay={draft.rentDueDay}
                       startsOn={draft.startsOn}
