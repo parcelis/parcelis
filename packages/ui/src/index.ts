@@ -5,6 +5,7 @@ export * from "./components/alert-dialog";
 export * from "./components/badge";
 export * from "./components/button";
 export * from "./components/card";
+export * from "./components/calendar";
 export * from "./components/checkbox";
 export * from "./components/drawer";
 export * from "./components/dialog";

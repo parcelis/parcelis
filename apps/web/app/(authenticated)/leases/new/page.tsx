@@ -26,11 +26,15 @@ import {
   AlertDescription,
   AlertTitle,
   Button,
+  Calendar,
   Card,
   CardContent,
   CardHeader,
   Checkbox,
   Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   RadioGroup,
   RadioGroupItem,
   Switch,
@@ -148,6 +152,24 @@ function parseCurrencyInput(value: string) {
   if (!value) return null;
   const amount = Number(value);
   return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : null;
+}
+
+function parseDateInput(value: string) {
+  if (!value) return undefined;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+}
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateLabel(date: Date) {
+  return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", year: "numeric" }).format(date);
 }
 
 function formatPercentage(cents: number, totalCents: number | null) {
@@ -1028,12 +1050,19 @@ function ResidentsSelector({
 }
 
 function LeaseTermsSelector({
+  onStartsOnChange,
   onTermTypeChange,
+  startsOn,
   termType,
 }: {
+  onStartsOnChange: (startsOn: string) => void;
   onTermTypeChange: (termType: LeaseDraft["termType"]) => void;
+  startsOn: string;
   termType: LeaseDraft["termType"];
 }) {
+  const [isStartDatePickerOpen, setIsStartDatePickerOpen] = React.useState(false);
+  const startDate = parseDateInput(startsOn);
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-5 md:p-6">
       <div>
@@ -1089,6 +1118,40 @@ function LeaseTermsSelector({
           <RadioGroupItem className="mt-1" value="month_to_month" />
         </label>
       </RadioGroup>
+
+      <div className="flex max-w-sm flex-col gap-2">
+        <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="lease-start-date">
+          Start date
+        </label>
+        <Popover onOpenChange={setIsStartDatePickerOpen} open={isStartDatePickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              aria-describedby="lease-start-date-description"
+              className="justify-start font-normal"
+              id="lease-start-date"
+              type="button"
+              variant="secondary"
+            >
+              <CalendarDays className="size-4 text-parcelis-gray" />
+              {startDate ? formatDateLabel(startDate) : "Select a start date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-auto p-0">
+            <Calendar
+              mode="single"
+              onSelect={(date) => {
+                if (!date) return;
+                onStartsOnChange(formatDateInput(date));
+                setIsStartDatePickerOpen(false);
+              }}
+              selected={startDate}
+            />
+          </PopoverContent>
+        </Popover>
+        <p className="text-sm text-parcelis-gray" id="lease-start-date-description">
+          The first day of the lease term.
+        </p>
+      </div>
     </div>
   );
 }
@@ -1368,6 +1431,9 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 2 ? (
                     <LeaseTermsSelector
+                      onStartsOnChange={(startsOn) =>
+                        setDraft((current) => ({ ...current, startsOn }))
+                      }
                       onTermTypeChange={(termType) =>
                         setDraft((current) => ({
                           ...current,
@@ -1377,6 +1443,7 @@ export default function NewLeasePage() {
                           endsOn: termType === "fixed" ? current.endsOn : "",
                         }))
                       }
+                      startsOn={draft.startsOn}
                       termType={draft.termType}
                     />
                   ) : (
