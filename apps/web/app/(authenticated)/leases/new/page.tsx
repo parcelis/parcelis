@@ -21,6 +21,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
+  AlertDescription,
   AlertTitle,
   Button,
   Card,
@@ -576,6 +577,26 @@ function ResidentsSelector({
     (total, allocation) => total + allocation.depositShareCents,
     0,
   );
+  const billingValidationMessages = [
+    ...(monthlyRentCents === null || monthlyRentCents <= 0 ? ["Enter a monthly rent amount greater than $0."] : []),
+    ...(securityDepositCents === null ? ["Enter the security deposit amount."] : []),
+    ...(billingResponsibility === "individual" && monthlyRentCents !== null && allocatedRentCents !== monthlyRentCents
+      ? [
+          `Rent allocations total ${formatCurrency(allocatedRentCents)}; ${formatCurrency(
+            monthlyRentCents,
+          )} is required.`,
+        ]
+      : []),
+    ...(billingResponsibility === "individual" &&
+    securityDepositCents !== null &&
+    allocatedDepositCents !== securityDepositCents
+      ? [
+          `Deposit allocations total ${formatCurrency(allocatedDepositCents)}; ${formatCurrency(
+            securityDepositCents,
+          )} is required.`,
+        ]
+      : []),
+  ];
 
   function toggleResidentSelection(tenantId: number) {
     onValueChange(value.includes(tenantId) ? value.filter((id) => id !== tenantId) : [...value, tenantId]);
@@ -636,7 +657,7 @@ function ResidentsSelector({
           </Button>
         </div>
       </div>
-      {error ? (
+      {error && value.length === 0 ? (
         <Alert className="rounded-none border-x-0" variant="destructive">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <AlertTitle>{error}</AlertTitle>
@@ -933,6 +954,21 @@ function ResidentsSelector({
                   Select at least one tenant to view allocations.
                 </div>
               )}
+              {billingValidationMessages.length > 0 ? (
+                <Alert className="mt-4" variant="destructive">
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <AlertTitle>Complete tenant billing</AlertTitle>
+                    <AlertDescription className="mt-1">
+                      <ul className="list-disc space-y-1 pl-4">
+                        {billingValidationMessages.map((message) => (
+                          <li key={message}>{message}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </div>
+                </Alert>
+              ) : null}
             </div>
           </div>
 
@@ -1101,7 +1137,12 @@ export default function NewLeasePage() {
       return true;
     }
 
-    setStepError(result.error.issues[0]?.message ?? "Complete this step to continue.");
+    const firstIssue = result.error.issues[0];
+    setStepError(
+      currentIndex === 1 && firstIssue?.path[0] !== "tenantIds"
+        ? null
+        : (firstIssue?.message ?? "Complete this step to continue."),
+    );
     return false;
   }
 
@@ -1245,13 +1286,14 @@ export default function NewLeasePage() {
                       onTenantAllocationsChange={(tenantAllocations) =>
                         setDraft((current) => ({ ...current, tenantAllocations }))
                       }
-                      onValueChange={(tenantIds) =>
+                      onValueChange={(tenantIds) => {
+                        setStepError(null);
                         setDraft((current) => ({
                           ...current,
                           tenantIds,
                           tenantAllocations: synchronizeTenantAllocations(tenantIds, current.tenantAllocations),
-                        }))
-                      }
+                        }));
+                      }}
                       securityDepositCents={draft.securityDepositCents}
                       tenantAllocations={draft.tenantAllocations}
                       value={draft.tenantIds}
