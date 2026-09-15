@@ -48,7 +48,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@parcelis/ui";
-import { leasePropertyStepSchema, leaseTenantBillingStepSchema, type CreatePropertyInput } from "@parcelis/schemas";
+import { leasePropertyStepSchema, leaseTenantBillingStepSchema, leaseTermsStepSchema, type CreatePropertyInput, } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
 import { LoadingState } from "../../../../components/loading-state";
@@ -1396,7 +1396,16 @@ export default function NewLeasePage() {
               securityDepositCents: draft.securityDepositCents,
               tenantAllocations: draft.tenantAllocations,
             })
-          : null;
+          : currentIndex === 2
+            ? leaseTermsStepSchema.safeParse({
+                termType: draft.termType,
+                startsOn: draft.startsOn,
+                endsOn: draft.endsOn,
+                monthlyRentCents: draft.monthlyRentCents,
+                rentDueDay: draft.rentDueDay,
+                continueMonthToMonthAfterEnd: draft.continueMonthToMonthAfterEnd,
+              })
+            : null;
 
     if (!result) return true;
 
