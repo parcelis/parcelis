@@ -1,0 +1,28 @@
+packages/ui/package.json
+  s_11e8197a95fb27::t_178a87d5b7c9cd 29
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_11e8197a95fb27::t_5a3072e6a3e91b 29,35-37,157-174,1063-1065,1126-1153
+  s_11e8197a95fb27::t_5c62f9233db728 1053,1055,1058,1060,1121-1125,1154,1434-1436,1446
+packages/ui/src/components/calendar.tsx
+  s_11e8197a95fb27::t_afada2ed87adaa 1-49
+packages/ui/src/index.ts
+  s_11e8197a95fb27::t_afada2ed87adaa 8
+pnpm-lock.yaml
+  ai_agent 441-443,1651-1653,5794-5796,9103-9112,12312-12313,17399-17400,21306-21312
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "bd36241e67057fa7a29b26ffe83dcb3738c3b6ba",
+  "prompts": {},
+  "sessions": {
+    "s_11e8197a95fb27": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a09630-3ff0-7ad0-82e1-fab3a162f3c2",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
