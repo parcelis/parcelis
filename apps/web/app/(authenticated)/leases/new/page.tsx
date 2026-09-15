@@ -67,7 +67,7 @@ type LeaseDraft = {
   endsOn: string;
   monthlyRentCents: number | null;
   securityDepositCents: number | null;
-  billingDay: number | null;
+  rentDueDay: number;
   billingResponsibility: "joint" | "individual";
   allowPartialPayments: boolean;
   tenantAllocations: Array<{
@@ -89,7 +89,7 @@ const initialLeaseDraft: LeaseDraft = {
   endsOn: "",
   monthlyRentCents: null,
   securityDepositCents: null,
-  billingDay: null,
+  rentDueDay: 1,
   billingResponsibility: "joint",
   allowPartialPayments: true,
   tenantAllocations: [],
@@ -115,7 +115,7 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
     typeof draft.endsOn === "string" &&
     (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
     (typeof draft.securityDepositCents === "number" || draft.securityDepositCents === null) &&
-    (typeof draft.billingDay === "number" || draft.billingDay === null) &&
+    typeof draft.rentDueDay === "number" &&
     (draft.billingResponsibility === "joint" || draft.billingResponsibility === "individual") &&
     typeof draft.allowPartialPayments === "boolean" &&
     Array.isArray(draft.tenantAllocations) &&

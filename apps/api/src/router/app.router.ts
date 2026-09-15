@@ -1856,6 +1856,8 @@ export const appRouter = router({
                   securityDepositCents: input.securityDepositCents,
                   billingResponsibility: input.billingResponsibility,
                   allowPartialPayments: input.allowPartialPayments,
+                  rentDueDay: input.rentDueDay,
+                  continueMonthToMonthAfterEnd: input.continueMonthToMonthAfterEnd,
                   monthlyRentCents: input.monthlyRentCents,
                   startsOn: input.startsOn,
                   endsOn: input.endsOn,

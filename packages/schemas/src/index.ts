@@ -458,6 +458,7 @@ export const leaseTermsStepSchema = z
     startsOn: z.string().date(),
     endsOn: z.union([z.string().date(), z.literal("")]),
     monthlyRentCents: z.number().int().positive(),
+    rentDueDay: z.number().int().min(1).max(31),
     continueMonthToMonthAfterEnd: z.boolean(),
   })
   .refine((lease) => lease.termType !== "fixed" || Boolean(lease.endsOn), {
@@ -563,12 +564,18 @@ export const createLeaseInputSchema = leaseSchema
     tenantIds: leaseTenantIdsSchema,
     billingResponsibility: leaseBillingResponsibilitySchema.default("joint"),
     allowPartialPayments: z.boolean().default(true),
+    rentDueDay: z.number().int().min(1).max(31).default(1),
+    continueMonthToMonthAfterEnd: z.boolean().default(false),
     securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).default(0),
     tenantAllocations: z.array(leaseTenantAllocationSchema).max(50).default([]),
   })
   .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
+  })
+  .refine((lease) => Boolean(lease.endsOn) || !lease.continueMonthToMonthAfterEnd, {
+    message: "Only fixed-term leases can continue month-to-month at the end of the term.",
+    path: ["continueMonthToMonthAfterEnd"],
   })
   .superRefine(validateLeaseTenantAllocations);
 
