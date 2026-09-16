@@ -512,6 +512,13 @@ export const createLeaseInputSchema = leaseSchema
     }
 
     if (lease.billingResponsibility === "joint") {
+      if (lease.monthlyRentCents + lease.securityDepositCents > maxDatabaseInteger) {
+        ctx.addIssue({
+          code: "custom",
+          message: "The first invoice total exceeds the maximum supported amount.",
+          path: ["securityDepositCents"],
+        });
+      }
       if (lease.tenantAllocations.length > 0) {
         ctx.addIssue({
           code: "custom",
@@ -554,6 +561,18 @@ export const createLeaseInputSchema = leaseSchema
       ctx.addIssue({
         code: "custom",
         message: "Tenant deposit allocations must equal the security deposit.",
+        path: ["tenantAllocations"],
+      });
+    }
+
+    if (
+      lease.tenantAllocations.some(
+        (allocation) => allocation.rentShareCents + allocation.depositShareCents > maxDatabaseInteger,
+      )
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "The first invoice total exceeds the maximum supported amount.",
         path: ["tenantAllocations"],
       });
     }
