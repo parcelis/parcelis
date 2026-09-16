@@ -1395,7 +1395,6 @@ function LeaseTermsSelector({
 function LeaseReviewPropertyAndUnit({
   allowPartialPayments,
   billingResponsibility,
-  continueMonthToMonthAfterEnd,
   endsOn,
   monthlyRentCents,
   onEdit,
@@ -1410,7 +1409,6 @@ function LeaseReviewPropertyAndUnit({
 }: {
   allowPartialPayments: boolean;
   billingResponsibility: LeaseDraft["billingResponsibility"];
-  continueMonthToMonthAfterEnd: boolean;
   endsOn: string;
   monthlyRentCents: number | null;
   onEdit: (stepId: "property" | "residents" | "terms") => void;
@@ -1526,9 +1524,6 @@ function LeaseReviewPropertyAndUnit({
             value={monthlyRentCents === null ? "Not set" : `${formatCurrency(monthlyRentCents)}/month`}
           />
           <ReviewDetail label="Rent due" value={`${formatDayOfMonth(rentDueDay)} of each month`} />
-          {termType === "fixed" ? (
-            <ReviewDetail label="Continues month-to-month" value={continueMonthToMonthAfterEnd ? "Yes" : "No"} />
-          ) : null}
         </div>
       </section>
       <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
@@ -1951,7 +1946,6 @@ export default function NewLeasePage() {
                     <LeaseReviewPropertyAndUnit
                       allowPartialPayments={draft.allowPartialPayments}
                       billingResponsibility={draft.billingResponsibility}
-                      continueMonthToMonthAfterEnd={draft.continueMonthToMonthAfterEnd}
                       endsOn={draft.endsOn}
                       monthlyRentCents={draft.monthlyRentCents}
                       onEdit={(stepId) => {
