@@ -5,10 +5,12 @@ import type {
   ComponentProps,
   HTMLAttributes,
   KeyboardEvent,
+  MouseEvent,
   ReactElement,
   ReactNode,
 } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Slot } from "@radix-ui/react-slot";
 import * as Stepperize from "@stepperize/react";
 import { cn } from "../lib/utils";
 
@@ -184,7 +186,15 @@ interface StepperTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-function StepperTrigger({ asChild = false, className, children, tabIndex, ...props }: StepperTriggerProps) {
+function StepperTrigger({
+  asChild = false,
+  className,
+  children,
+  onClick,
+  onKeyDown,
+  tabIndex,
+  ...props
+}: StepperTriggerProps) {
   const { state, isLoading, step, isDisabled } = useStepItem();
   const { stepper, registerTrigger, triggerNodes } = useStepper();
   const isSelected = stepper.id === step.id;
@@ -202,6 +212,9 @@ function StepperTrigger({ asChild = false, className, children, tabIndex, ...pro
     [registerTrigger],
   );
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    onKeyDown?.(event);
+    if (event.defaultPrevented) return;
+
     const enabledTriggerNodes = triggerNodes.filter((node) => !node.disabled);
     const enabledTriggerIndex = enabledTriggerNodes.findIndex((node) => node === buttonRef.current);
     if (enabledTriggerIndex === -1) return;
@@ -220,16 +233,15 @@ function StepperTrigger({ asChild = false, className, children, tabIndex, ...pro
     }
   }
 
-  if (asChild) {
-    return (
-      <span className={className} data-slot="stepper-trigger" data-state={state}>
-        {children}
-      </span>
-    );
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
+    onClick?.(event);
+    if (!event.defaultPrevented) void stepper.goTo(step.id);
   }
 
+  const Component = asChild ? Slot : "button";
+
   return (
-    <button
+    <Component
       aria-controls={`stepper-panel-${step.id}`}
       aria-selected={isSelected}
       className={cn(
@@ -241,7 +253,7 @@ function StepperTrigger({ asChild = false, className, children, tabIndex, ...pro
       data-state={state}
       disabled={isDisabled}
       id={`stepper-tab-${step.id}`}
-      onClick={() => void stepper.goTo(step.id)}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
       ref={triggerRef}
       role="tab"
@@ -250,7 +262,7 @@ function StepperTrigger({ asChild = false, className, children, tabIndex, ...pro
       {...props}
     >
       {children}
-    </button>
+    </Component>
   );
 }
 
