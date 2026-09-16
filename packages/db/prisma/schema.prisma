@@ -650,6 +650,7 @@ model InvoicePayment {
 
   @@index([invoiceId, paidOn])
   @@index([tenantId])
+  @@index([organizationId])
 }
 
 model MaintenanceTicket {
