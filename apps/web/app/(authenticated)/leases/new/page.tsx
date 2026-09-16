@@ -1438,6 +1438,18 @@ function LeaseReviewPropertyAndUnit({
 
   if (propertiesQuery.isLoading || tenantsQuery.isLoading) return <LoadingState label="Loading lease details" />;
 
+  if (propertiesQuery.error || tenantsQuery.error) {
+    return (
+      <div className="w-full p-5 md:p-6">
+        <Alert variant="destructive">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <AlertTitle>Unable to load lease review details</AlertTitle>
+          <AlertDescription>Return to the previous step and try again.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-full flex-1 flex-col gap-6 p-5 md:p-6">
       <div>
@@ -1544,9 +1556,10 @@ function LeaseReviewPropertyAndUnit({
                     <span className="text-sm font-medium text-parcelis-charcoal dark:text-white">
                       {resident.firstName} {resident.lastName}
                     </span>
-                    <span className="text-sm font-semibold text-parcelis-charcoal dark:text-white">
-                      {formatCurrency(allocationsByTenantId.get(resident.id)?.depositShareCents ?? 0)}
-                    </span>
+                    <div className="flex flex-col items-end gap-1 text-sm font-semibold text-parcelis-charcoal dark:text-white">
+                      <span>Rent: {formatCurrency(allocationsByTenantId.get(resident.id)?.rentShareCents ?? 0)}</span>
+                      <span>Deposit: {formatCurrency(allocationsByTenantId.get(resident.id)?.depositShareCents ?? 0)}</span>
+                    </div>
                   </div>
                 ))}
               </div>
