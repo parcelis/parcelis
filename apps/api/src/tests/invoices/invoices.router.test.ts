@@ -132,6 +132,48 @@ test("invoice payments reject tenants who are not recipients", async () => {
   );
 });
 
+test("batch invoice payments reject tenants who are not recipients", async () => {
+  const tx = {
+    invoice: {
+      findFirstOrThrow: async () => ({
+        dueOn: new Date("2026-09-15"),
+        balanceCents: 10_000,
+        recipients: [{ tenantId: 11 }],
+        lease: { allowPartialPayments: true },
+      }),
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await assert.rejects(
+    () => caller.invoices.recordPayments({ id: 4, payments: [paymentInput] }),
+    (error: unknown) => error instanceof TRPCError && error.code === "BAD_REQUEST",
+  );
+});
+
+test("single invoice payments must clear the balance when partial payments are disabled", async () => {
+  const tx = {
+    invoice: {
+      findFirstOrThrow: async () => ({
+        dueOn: new Date("2026-09-15"),
+        balanceCents: 10_000,
+        recipients: [{ tenantId: 11 }, { tenantId: 12 }],
+        lease: { allowPartialPayments: false },
+      }),
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await assert.rejects(
+    () => caller.invoices.recordPayment(paymentInput),
+    (error: unknown) => error instanceof TRPCError && error.code === "BAD_REQUEST",
+  );
+});
+
 test("payment batches must clear the balance when partial payments are disabled", async () => {
   const tx = {
     invoice: {
