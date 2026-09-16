@@ -71,6 +71,11 @@ type CreatePropertyResult = {
   property: Awaited<ReturnType<typeof apiClient.properties.create.mutate>>;
 };
 
+type CreateTenantResult = {
+  imageUploadError: Error | null;
+  tenant: Awaited<ReturnType<typeof apiClient.tenants.create.mutate>>;
+};
+
 const initialLeaseDraft: LeaseDraft = {
   version: 3,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
@@ -631,12 +636,31 @@ export default function NewLeasePage() {
   }
 
   const createTenant = useMutation({
-    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: TenantFormState }) => {
+    mutationFn: async ({
+      imageFile,
+      input,
+    }: {
+      imageFile: File | null;
+      input: TenantFormState;
+    }): Promise<CreateTenantResult> => {
       const tenant = await apiClient.tenants.create.mutate(input);
-      if (imageFile) await uploadTenantImage(tenant.id, imageFile);
-      return tenant;
+      if (!imageFile) return { imageUploadError: null, tenant };
+
+      try {
+        await uploadTenantImage(tenant.id, imageFile);
+        return { imageUploadError: null, tenant };
+      } catch (error) {
+        const imageUploadError =
+          error instanceof Error ? error : new Error("The tenant image could not be uploaded.");
+        try {
+          await apiClient.tenants.delete.mutate({ id: tenant.id });
+        } catch {
+          return { imageUploadError, tenant };
+        }
+        throw imageUploadError;
+      }
     },
-    onSuccess: async (tenant) => {
+    onSuccess: async ({ imageUploadError, tenant }) => {
       setIsTenantDrawerOpen(false);
       setDraft((current) => ({
         ...current,
@@ -645,7 +669,11 @@ export default function NewLeasePage() {
       setTenantForm(initialTenantFormState);
       setTenantImageFile(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
-      toast.success(entityCreatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
+      if (imageUploadError) {
+        toast.error(`Tenant ${tenant.firstName} ${tenant.lastName} was created, but its image could not be uploaded.`);
+      } else {
+        toast.success(entityCreatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
+      }
     },
   });
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
@@ -810,7 +838,10 @@ export default function NewLeasePage() {
                     <ResidentsSelector
                       error={stepError}
                       onAddTenant={() => setIsTenantDrawerOpen(true)}
-                      onValueChange={(tenantIds) => setDraft((current) => ({ ...current, tenantIds }))}
+                      onValueChange={(tenantIds) => {
+                        setStepError(null);
+                        setDraft((current) => ({ ...current, tenantIds }));
+                      }}
                       value={draft.tenantIds}
                     />
                   ) : (
