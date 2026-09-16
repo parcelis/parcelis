@@ -1,0 +1,21 @@
+packages/db/prisma/migrations/20260916120000_allow_recipient_invoice_payments/migration.sql
+  s_4c1bede568cb85::t_2d169f85b6e919 21
+packages/db/prisma/schema.prisma
+  s_4c1bede568cb85::t_2d169f85b6e919 647
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "a4272d04ecb8899f132edb5dfa2a854587ddf932",
+  "prompts": {},
+  "sessions": {
+    "s_4c1bede568cb85": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0aafd-38d2-7020-a47f-9ed4f6f768fd",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
