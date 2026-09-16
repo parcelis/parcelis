@@ -1847,6 +1847,7 @@ export const appRouter = router({
                 where: {
                   propertyId: input.propertyId,
                   unitId: input.unitId,
+                  securityDepositCents: input.securityDepositCents,
                   status: { in: [LeaseStatus.active, LeaseStatus.notice] },
                 },
                 select: { id: true },
@@ -1865,7 +1866,6 @@ export const appRouter = router({
                   organizationId: ctx.organization.organizationId,
                   propertyId: input.propertyId,
                   unitId: input.unitId,
-                  securityDepositCents: input.securityDepositCents,
                   billingResponsibility: input.billingResponsibility,
                   allowPartialPayments: input.allowPartialPayments,
                   monthlyRentCents: input.monthlyRentCents,
@@ -3463,12 +3463,14 @@ export const appRouter = router({
                       ? [
                           {
                             amountCents: createdLease.monthlyRentCents,
+                            depositCents: createdLease.securityDepositCents,
                             primaryTenantId: tenantIds[0]!,
                             recipientIds: tenantIds,
                           },
                         ]
                       : tenantIds.map((tenantId) => ({
                           amountCents: allocationsByTenantId.get(tenantId)!.rentShareCents,
+                          depositCents: allocationsByTenantId.get(tenantId)!.depositShareCents,
                           primaryTenantId: tenantId,
                           recipientIds: [tenantId],
                         }));
@@ -3477,6 +3479,9 @@ export const appRouter = router({
                     const dueOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth(), 1);
 
                     for (const invoicePlan of invoicePlans) {
+                      const depositCents =
+                        periodStartsOn.getTime() === firstPeriod.getTime() ? invoicePlan.depositCents : 0;
+                      const amountCents = invoicePlan.amountCents + depositCents;
                       await tx.invoice.create({
                         data: {
                           organizationId: ctx.organization.organizationId,
@@ -3486,8 +3491,8 @@ export const appRouter = router({
                           periodStartsOn,
                           periodEndsOn,
                           dueOn,
-                          amountCents: invoicePlan.amountCents,
-                          balanceCents: invoicePlan.amountCents,
+                          amountCents,
+                          balanceCents: amountCents,
                           recipients: {
                             create: invoicePlan.recipientIds.map((tenantId) => ({
                               organizationId: ctx.organization.organizationId,
@@ -3495,12 +3500,24 @@ export const appRouter = router({
                             })),
                           },
                           items: {
-                            create: {
-                              item: "Rent",
-                              quantity: 1,
-                              rateCents: invoicePlan.amountCents,
-                              amountCents: invoicePlan.amountCents,
-                            },
+                            create: [
+                              {
+                                item: "Rent",
+                                quantity: 1,
+                                rateCents: invoicePlan.amountCents,
+                                amountCents: invoicePlan.amountCents,
+                              },
+                              ...(depositCents > 0
+                                ? [
+                                    {
+                                      item: "Security deposit",
+                                      quantity: 1,
+                                      rateCents: depositCents,
+                                      amountCents: depositCents,
+                                    },
+                                  ]
+                                : []),
+                            ],
                           },
                         },
                       });

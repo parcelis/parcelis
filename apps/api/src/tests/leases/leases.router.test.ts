@@ -79,8 +79,8 @@ for (const [name, input, message] of [
 }
 
 for (const [billingResponsibility, expectedAmounts, expectedRecipients] of [
-  ["joint", [10_000], [[11, 12]]],
-  ["individual", [4_000, 6_000], [[11], [12]]],
+  ["joint", [13_000], [[11, 12]]],
+  ["individual", [5_000, 8_000], [[11], [12]]],
 ] as const) {
   test(`${billingResponsibility} lease generation creates invoices with the correct amounts and recipients`, async () => {
     const invoiceData: unknown[] = [];
@@ -104,6 +104,7 @@ for (const [billingResponsibility, expectedAmounts, expectedRecipients] of [
             endsOn: input.endsOn,
             billingResponsibility,
             monthlyRentCents: input.monthlyRentCents,
+            securityDepositCents: input.securityDepositCents,
             tenants: [],
           };
         },
