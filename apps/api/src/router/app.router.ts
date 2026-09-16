@@ -1945,6 +1945,18 @@ export const appRouter = router({
             leaseIdsToDelete.add(tl.leaseId);
           }
 
+          const jointInvoices = await tx.invoice.findMany({
+            where: { tenantId: input.id, lease: { billingResponsibility: "joint" } },
+            select: { id: true, recipients: { select: { tenantId: true } } },
+          });
+          await Promise.all(
+            jointInvoices.map((invoice) => {
+              const replacementTenantId = invoice.recipients.find(({ tenantId }) => tenantId !== input.id)?.tenantId;
+              if (!replacementTenantId) return Promise.resolve();
+              return tx.invoice.update({ where: { id: invoice.id }, data: { tenantId: replacementTenantId } });
+            }),
+          );
+
           await tx.invoice.deleteMany({ where: { tenantId: input.id } });
           await tx.leaseTenant.deleteMany({ where: { tenantId: input.id } });
 
@@ -2118,7 +2130,7 @@ export const appRouter = router({
               const existingInvoice = await tx.invoice.findFirst({
                 where: {
                   leaseId: lease.id,
-              ...(lease.billingResponsibility === "joint" ? {} : { tenantId: input.tenantId }),
+                  ...(lease.billingResponsibility === "joint" ? {} : { tenantId: input.tenantId }),
                   periodStartsOn: dueOn,
                 },
                 select: { invoiceNumber: true },
