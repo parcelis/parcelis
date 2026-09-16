@@ -78,6 +78,8 @@ export default function NewLeasePage() {
   React.useEffect(() => {
     if (!storageKey) return;
 
+    setDraft(initialLeaseDraft);
+
     try {
       const storedDraft = window.sessionStorage.getItem(storageKey);
       if (storedDraft) {
