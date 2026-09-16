@@ -83,6 +83,20 @@ type LeaseDraft = {
   }>;
 };
 
+type LeaseDraftV4 = Omit<LeaseDraft, "version" | "rentDueDay"> & {
+  version: 4;
+  billingDay: number | null;
+  continueMonthToMonthAfterEnd: boolean;
+};
+
+type LeaseDraftV3 = Omit<
+  LeaseDraftV4,
+  "version" | "securityDepositCents" | "billingResponsibility" | "allowPartialPayments" | "tenantAllocations"
+> & {
+  version: 3;
+  depositCents: number | null;
+};
+
 const initialLeaseDraft: LeaseDraft = {
   version: 5,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
@@ -110,6 +124,7 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
   return (
     draft.version === 5 &&
     typeof draft.currentStep === "string" &&
+    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
     (typeof draft.propertyId === "number" || draft.propertyId === null) &&
     (typeof draft.unitId === "number" || draft.unitId === null) &&
     Array.isArray(draft.tenantIds) &&
@@ -134,19 +149,101 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
   );
 }
 
+function isLeaseDraftV4(value: unknown): value is LeaseDraftV4 {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Record<string, unknown>;
+  return (
+    draft.version === 4 &&
+    typeof draft.currentStep === "string" &&
+    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
+    (typeof draft.propertyId === "number" || draft.propertyId === null) &&
+    (typeof draft.unitId === "number" || draft.unitId === null) &&
+    Array.isArray(draft.tenantIds) &&
+    draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
+    (draft.termType === "fixed" || draft.termType === "month_to_month") &&
+    typeof draft.continueMonthToMonthAfterEnd === "boolean" &&
+    typeof draft.startsOn === "string" &&
+    typeof draft.endsOn === "string" &&
+    (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
+    (typeof draft.securityDepositCents === "number" || draft.securityDepositCents === null) &&
+    (typeof draft.billingDay === "number" || draft.billingDay === null) &&
+    (draft.billingResponsibility === "joint" || draft.billingResponsibility === "individual") &&
+    typeof draft.allowPartialPayments === "boolean" &&
+    Array.isArray(draft.tenantAllocations) &&
+    draft.tenantAllocations.every(
+      (allocation) =>
+        typeof allocation === "object" &&
+        allocation !== null &&
+        typeof (allocation as Record<string, unknown>).tenantId === "number" &&
+        typeof (allocation as Record<string, unknown>).rentShareCents === "number" &&
+        typeof (allocation as Record<string, unknown>).depositShareCents === "number",
+    )
+  );
+}
+
+function isLeaseDraftV3(value: unknown): value is LeaseDraftV3 {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Record<string, unknown>;
+  return (
+    draft.version === 3 &&
+    typeof draft.currentStep === "string" &&
+    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
+    (typeof draft.propertyId === "number" || draft.propertyId === null) &&
+    (typeof draft.unitId === "number" || draft.unitId === null) &&
+    Array.isArray(draft.tenantIds) &&
+    draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
+    (draft.termType === "fixed" || draft.termType === "month_to_month") &&
+    typeof draft.continueMonthToMonthAfterEnd === "boolean" &&
+    typeof draft.startsOn === "string" &&
+    typeof draft.endsOn === "string" &&
+    (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
+    (typeof draft.depositCents === "number" || draft.depositCents === null) &&
+    (typeof draft.billingDay === "number" || draft.billingDay === null)
+  );
+}
+
 function migrateLeaseDraft(value: unknown): LeaseDraft | null {
   if (isLeaseDraft(value)) return value;
-  if (!value || typeof value !== "object") return null;
+  if (isLeaseDraftV3(value)) {
+    return {
+      version: 5,
+      currentStep: value.currentStep,
+      propertyId: value.propertyId,
+      unitId: value.unitId,
+      tenantIds: value.tenantIds,
+      termType: value.termType,
+      startsOn: value.startsOn,
+      endsOn: value.endsOn,
+      monthlyRentCents: value.monthlyRentCents,
+      securityDepositCents: value.depositCents,
+      rentDueDay:
+        typeof value.billingDay === "number" && value.billingDay >= 1 && value.billingDay <= 31
+          ? value.billingDay
+          : 1,
+      billingResponsibility: "joint",
+      allowPartialPayments: true,
+      tenantAllocations: [],
+    };
+  }
+  if (!isLeaseDraftV4(value)) return null;
 
-  const draft = value as Record<string, unknown>;
-  if (draft.version !== 4 || (typeof draft.billingDay !== "number" && draft.billingDay !== null)) return null;
-
-  const { billingDay, continueMonthToMonthAfterEnd: _continueMonthToMonthAfterEnd, ...legacyDraft } = draft;
   return {
-    ...legacyDraft,
     version: 5,
-    rentDueDay: typeof billingDay === "number" && billingDay >= 1 && billingDay <= 31 ? billingDay : 1,
-  } as LeaseDraft;
+    currentStep: value.currentStep,
+    propertyId: value.propertyId,
+    unitId: value.unitId,
+    tenantIds: value.tenantIds,
+    termType: value.termType,
+    startsOn: value.startsOn,
+    endsOn: value.endsOn,
+    monthlyRentCents: value.monthlyRentCents,
+    securityDepositCents: value.securityDepositCents,
+    rentDueDay:
+      typeof value.billingDay === "number" && value.billingDay >= 1 && value.billingDay <= 31 ? value.billingDay : 1,
+    billingResponsibility: value.billingResponsibility,
+    allowPartialPayments: value.allowPartialPayments,
+    tenantAllocations: value.tenantAllocations,
+  };
 }
 
 function formatCurrency(cents: number) {
