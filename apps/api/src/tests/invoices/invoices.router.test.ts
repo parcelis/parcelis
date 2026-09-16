@@ -52,12 +52,52 @@ test("joint invoice accepts a payment from any recipient", async () => {
   await caller.invoices.recordPayment(paymentInput);
 
   assert.deepEqual(paymentData, {
+    organizationId: 7,
     invoiceId: 4,
     tenantId: 12,
     amountCents: 5_000,
     paymentMethod: "check",
     paidOn: paymentInput.paidOn,
   });
+});
+
+test("joint invoice records batch payments from recipient tenants", async () => {
+  const paymentData: unknown[] = [];
+  const invoice = {
+    dueOn: new Date("2026-09-15"),
+    balanceCents: 10_000,
+    recipients: [{ tenantId: 11 }, { tenantId: 12 }],
+    lease: { allowPartialPayments: true },
+  };
+  const tx = {
+    invoice: {
+      findFirstOrThrow: async () => invoice,
+      update: async () => invoice,
+    },
+    invoicePayment: {
+      create: async ({ data }: { data: unknown }) => {
+        paymentData.push(data);
+        return { id: paymentData.length };
+      },
+    },
+    activityEvent: { create: async () => ({ id: 1 }) },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await caller.invoices.recordPayments({ id: 4, payments: [paymentInput] });
+
+  assert.deepEqual(paymentData, [
+    {
+      organizationId: 7,
+      invoiceId: 4,
+      tenantId: 12,
+      amountCents: 5_000,
+      paymentMethod: "check",
+      paidOn: paymentInput.paidOn,
+    },
+  ]);
 });
 
 test("invoice payments reject tenants who are not recipients", async () => {

@@ -2192,6 +2192,7 @@ export const appRouter = router({
             const balanceCents = invoice.balanceCents - input.amountCents;
             const payment = await tx.invoicePayment.create({
               data: {
+                organizationId: ctx.organization.organizationId,
                 invoiceId: input.id,
                 tenantId: input.paidByTenantId,
                 amountCents: input.amountCents,
@@ -2280,6 +2281,7 @@ export const appRouter = router({
               payments.push(
                 await tx.invoicePayment.create({
                   data: {
+                    organizationId: ctx.organization.organizationId,
                     invoiceId: input.id,
                     tenantId: payment.paidByTenantId,
                     amountCents: payment.amountCents,
