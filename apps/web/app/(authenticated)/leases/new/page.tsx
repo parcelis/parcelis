@@ -1393,6 +1393,7 @@ function LeaseTermsSelector({
 }
 
 function LeaseReviewPropertyAndUnit({
+  allowPartialPayments,
   billingResponsibility,
   continueMonthToMonthAfterEnd,
   endsOn,
@@ -1406,6 +1407,7 @@ function LeaseReviewPropertyAndUnit({
   termType,
   unitId,
 }: {
+  allowPartialPayments: boolean;
   billingResponsibility: LeaseDraft["billingResponsibility"];
   continueMonthToMonthAfterEnd: boolean;
   endsOn: string;
@@ -1564,6 +1566,23 @@ function LeaseReviewPropertyAndUnit({
                 All residents are jointly responsible for the security deposit.
               </p>
             )}
+          </div>
+        </div>
+      </section>
+      <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
+        <div className="border-b border-parcelis-border px-4 py-3">
+          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Billing</h3>
+        </div>
+        <div className="flex flex-col gap-4 p-4 md:flex-row">
+          <ReviewDetail label="Partial payments" value={allowPartialPayments ? "Allowed" : "Not allowed"} />
+          <div className="flex flex-1 flex-col gap-1 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
+              Rent invoices
+            </p>
+            <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">Not generated for draft leases</p>
+            <p className="mt-1 text-sm leading-6 text-parcelis-gray dark:text-white/65">
+              Generate rent invoices when this lease is activated.
+            </p>
           </div>
         </div>
       </section>
@@ -1927,6 +1946,7 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 3 ? (
                     <LeaseReviewPropertyAndUnit
+                      allowPartialPayments={draft.allowPartialPayments}
                       billingResponsibility={draft.billingResponsibility}
                       continueMonthToMonthAfterEnd={draft.continueMonthToMonthAfterEnd}
                       endsOn={draft.endsOn}
