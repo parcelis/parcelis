@@ -1392,6 +1392,53 @@ function LeaseTermsSelector({
   );
 }
 
+function LeaseReviewPropertyAndUnit({ propertyId, unitId }: { propertyId: number | null; unitId: number | null }) {
+  const propertiesQuery = useQuery({
+    queryKey: queryKeys.properties.list,
+    queryFn: () => apiClient.properties.list.query(),
+  });
+  const property = propertiesQuery.data?.find((item) => item.id === propertyId);
+  const unit = property?.units.find((item) => item.id === unitId);
+
+  if (propertiesQuery.isLoading) return <LoadingState label="Loading selected property" />;
+
+  return (
+    <div className="flex w-full flex-1 flex-col gap-6 p-5 md:p-6">
+      <div>
+        <h2 className="text-xl font-bold text-parcelis-charcoal dark:text-white">Review lease</h2>
+        <p className="mt-1 text-sm text-parcelis-gray dark:text-white/65">Confirm the selected property and unit.</p>
+      </div>
+      <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
+        <div className="border-b border-parcelis-border px-4 py-3">
+          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Property and unit</h3>
+        </div>
+        <div className="flex flex-col gap-4 p-4 md:flex-row">
+          <div className="flex flex-1 items-center gap-3 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
+            <Building2 className="h-5 w-5 text-parcelis-green" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
+                Property
+              </p>
+              <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">
+                {property?.name ?? "Not selected"}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-1 items-center gap-3 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
+            <DoorOpen className="h-5 w-5 text-parcelis-green" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">Unit</p>
+              <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">
+                {unit?.name ?? "Not selected"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default function NewLeasePage() {
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -1737,6 +1784,8 @@ export default function NewLeasePage() {
                       termType={draft.termType}
                       unitId={draft.unitId}
                     />
+                  ) : currentIndex === 3 ? (
+                    <LeaseReviewPropertyAndUnit propertyId={draft.propertyId} unitId={draft.unitId} />
                   ) : (
                     <>
                       <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">
