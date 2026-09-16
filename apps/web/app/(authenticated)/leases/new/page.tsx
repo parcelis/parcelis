@@ -157,6 +157,15 @@ function formatCurrency(cents: number) {
   }).format(cents / 100);
 }
 
+function formatCurrencyExact(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
 function formatCurrencyInput(cents: number | null) {
   return cents === null ? "" : (cents / 100).toFixed(2);
 }
@@ -265,14 +274,9 @@ function PropertySelector({
 
   const propertyGroups = (propertiesQuery.data ?? []).flatMap((property) => {
     if (property.status === "archived") return [];
-    const unavailableUnitNames = new Set(
-      property.leases
-        .filter((lease) => lease.status === "active" || lease.status === "notice")
-        .map((lease) => lease.unitLabel),
-    );
     const units = property.units
       .filter((unit) => !unit.archivedAt)
-      .map((unit) => ({ ...unit, isAvailable: !unavailableUnitNames.has(unit.name) }))
+      .map((unit) => ({ ...unit, isAvailable: !unit.isOccupied }))
       .filter((unit) => availabilityFilter === "all" || unit.isAvailable);
     return units.length > 0 ? [{ property, units }] : [];
   });
@@ -626,7 +630,7 @@ function ResidentsSelector({
     ...(securityDepositCents === null ? ["Enter the security deposit amount."] : []),
     ...(billingResponsibility === "individual" && monthlyRentCents !== null && allocatedRentCents !== monthlyRentCents
       ? [
-          `Rent allocations total ${formatCurrency(allocatedRentCents)}; ${formatCurrency(
+          `Rent allocations total ${formatCurrencyExact(allocatedRentCents)}; ${formatCurrencyExact(
             monthlyRentCents,
           )} is required.`,
         ]
@@ -635,7 +639,7 @@ function ResidentsSelector({
     securityDepositCents !== null &&
     allocatedDepositCents !== securityDepositCents
       ? [
-          `Deposit allocations total ${formatCurrency(allocatedDepositCents)}; ${formatCurrency(
+          `Deposit allocations total ${formatCurrencyExact(allocatedDepositCents)}; ${formatCurrencyExact(
             securityDepositCents,
           )} is required.`,
         ]
@@ -1308,7 +1312,18 @@ export default function NewLeasePage() {
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
       const property = await apiClient.properties.create.mutate(input);
-      if (imageFile) await uploadPropertyImage(property.id, imageFile);
+      if (imageFile) {
+        try {
+          await uploadPropertyImage(property.id, imageFile);
+        } catch (error) {
+          try {
+            await apiClient.properties.delete.mutate({ id: property.id });
+          } catch {
+            throw new Error(`Property ${property.name} was created, but its image could not be uploaded.`);
+          }
+          throw error;
+        }
+      }
       return property;
     },
     onSuccess: async (property) => {
@@ -1322,7 +1337,18 @@ export default function NewLeasePage() {
   const createTenant = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: TenantFormState }) => {
       const tenant = await apiClient.tenants.create.mutate(input);
-      if (imageFile) await uploadTenantImage(tenant.id, imageFile);
+      if (imageFile) {
+        try {
+          await uploadTenantImage(tenant.id, imageFile);
+        } catch (error) {
+          try {
+            await apiClient.tenants.delete.mutate({ id: tenant.id });
+          } catch {
+            throw new Error(`Tenant ${tenant.firstName} ${tenant.lastName} was created, but its image could not be uploaded.`);
+          }
+          throw error;
+        }
+      }
       return tenant;
     },
     onSuccess: async (tenant) => {
@@ -1333,7 +1359,10 @@ export default function NewLeasePage() {
         return {
           ...current,
           tenantIds,
-          tenantAllocations: synchronizeTenantAllocations(tenantIds, current.tenantAllocations),
+          tenantAllocations:
+            current.billingResponsibility === "individual"
+              ? synchronizeTenantAllocations(tenantIds, current.tenantAllocations)
+              : [],
         };
       });
       setTenantForm(initialTenantFormState);
@@ -1564,7 +1593,10 @@ export default function NewLeasePage() {
                         setDraft((current) => ({
                           ...current,
                           tenantIds,
-                          tenantAllocations: synchronizeTenantAllocations(tenantIds, current.tenantAllocations),
+                          tenantAllocations:
+                            current.billingResponsibility === "individual"
+                              ? synchronizeTenantAllocations(tenantIds, current.tenantAllocations)
+                              : [],
                         }));
                       }}
                       securityDepositCents={draft.securityDepositCents}

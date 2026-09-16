@@ -469,10 +469,6 @@ export const leaseTermsStepSchema = z
     message: "A month-to-month lease cannot have an end date.",
     path: ["endsOn"],
   })
-  .refine((lease) => lease.termType === "fixed" || !lease.continueMonthToMonthAfterEnd, {
-    message: "Only fixed-term leases can continue month-to-month at the end of the term.",
-    path: ["continueMonthToMonthAfterEnd"],
-  })
   .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
@@ -600,10 +596,6 @@ export const createLeaseInputSchema = leaseSchema
   .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
-  })
-  .refine((lease) => Boolean(lease.endsOn) || !lease.continueMonthToMonthAfterEnd, {
-    message: "Only fixed-term leases can continue month-to-month at the end of the term.",
-    path: ["continueMonthToMonthAfterEnd"],
   })
   .superRefine(validateLeaseTenantAllocations);
 
