@@ -5,10 +5,12 @@ import type {
   ComponentProps,
   HTMLAttributes,
   KeyboardEvent,
+  MouseEvent,
   ReactElement,
   ReactNode,
 } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Slot } from "@radix-ui/react-slot";
 import * as Stepperize from "@stepperize/react";
 import { cn } from "../lib/utils";
 
@@ -184,7 +186,15 @@ interface StepperTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-function StepperTrigger({ asChild = false, className, children, tabIndex, ...props }: StepperTriggerProps) {
+function StepperTrigger({
+  asChild = false,
+  className,
+  children,
+  onClick,
+  onKeyDown,
+  tabIndex,
+  ...props
+}: StepperTriggerProps) {
   const { state, isLoading, step, isDisabled } = useStepItem();
   const { stepper, registerTrigger, triggerNodes } = useStepper();
   const isSelected = stepper.id === step.id;
@@ -201,33 +211,37 @@ function StepperTrigger({ asChild = false, className, children, tabIndex, ...pro
     },
     [registerTrigger],
   );
-  const triggerIndex = triggerNodes.findIndex((node) => node === buttonRef.current);
-
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    const previousIndex = (triggerIndex - 1 + triggerNodes.length) % triggerNodes.length;
-    const nextIndex = (triggerIndex + 1) % triggerNodes.length;
+    onKeyDown?.(event);
+    if (event.defaultPrevented) return;
+
+    const enabledTriggerNodes = triggerNodes.filter((node) => !node.disabled);
+    const enabledTriggerIndex = enabledTriggerNodes.findIndex((node) => node === buttonRef.current);
+    if (enabledTriggerIndex === -1) return;
+
+    const previousIndex = (enabledTriggerIndex - 1 + enabledTriggerNodes.length) % enabledTriggerNodes.length;
+    const nextIndex = (enabledTriggerIndex + 1) % enabledTriggerNodes.length;
     if (["ArrowRight", "ArrowDown"].includes(event.key)) {
       event.preventDefault();
-      triggerNodes[nextIndex]?.focus();
+      enabledTriggerNodes[nextIndex]?.focus();
     } else if (["ArrowLeft", "ArrowUp"].includes(event.key)) {
       event.preventDefault();
-      triggerNodes[previousIndex]?.focus();
+      enabledTriggerNodes[previousIndex]?.focus();
     } else if (event.key === "Home" || event.key === "End") {
       event.preventDefault();
-      (event.key === "Home" ? triggerNodes[0] : triggerNodes.at(-1))?.focus();
+      (event.key === "Home" ? enabledTriggerNodes[0] : enabledTriggerNodes.at(-1))?.focus();
     }
   }
 
-  if (asChild) {
-    return (
-      <span className={className} data-slot="stepper-trigger" data-state={state}>
-        {children}
-      </span>
-    );
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
+    onClick?.(event);
+    if (!isDisabled && !event.defaultPrevented) void stepper.goTo(step.id);
   }
 
+  const Component = asChild ? Slot : "button";
+
   return (
-    <button
+    <Component
       aria-controls={`stepper-panel-${step.id}`}
       aria-selected={isSelected}
       className={cn(
@@ -239,7 +253,7 @@ function StepperTrigger({ asChild = false, className, children, tabIndex, ...pro
       data-state={state}
       disabled={isDisabled}
       id={`stepper-tab-${step.id}`}
-      onClick={() => void stepper.goTo(step.id)}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
       ref={triggerRef}
       role="tab"
@@ -248,7 +262,7 @@ function StepperTrigger({ asChild = false, className, children, tabIndex, ...pro
       {...props}
     >
       {children}
-    </button>
+    </Component>
   );
 }
 

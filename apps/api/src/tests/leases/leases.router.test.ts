@@ -80,7 +80,16 @@ test("property view/edit permission does not expose lease records or permit leas
     id: 1,
     legacyNotes: null,
     imageObjectKey: null,
-    units: [],
+    units: [
+      {
+        id: 1,
+        name: "1A",
+        bathrooms: null,
+        amenities: [],
+        utilities: [],
+        _count: { leases: 1 },
+      },
+    ],
     maintenanceTickets: [],
   };
   const permission = { resource: "properties", canView: true, canEdit: true };
@@ -107,6 +116,7 @@ test("property view/edit permission does not expose lease records or permit leas
   );
   assert.deepEqual((await caller.properties.list())[0]?.leases, []);
   assert.deepEqual((await caller.properties.list())[0]?.leaseHistory, []);
+  assert.equal((await caller.properties.list())[0]?.units[0]?.isOccupied, true);
   assert.deepEqual((await caller.properties.byId({ id: 1 }))?.leases, []);
   assert.deepEqual((await caller.properties.byId({ id: 1 }))?.leaseHistory, []);
   for (const action of ["archive", "reactivate", "delete"] as const) {
@@ -239,10 +249,7 @@ test("archiving hides leases from property collections while preserving history 
     },
   });
   for (const lease of leases) await caller.leases.archive({ id: lease.id });
-  for (const result of [
-    (await caller.properties.list())[0]!,
-    (await caller.properties.byId({ id: 1 }))!,
-  ]) {
+  for (const result of [(await caller.properties.list())[0]!, (await caller.properties.byId({ id: 1 }))!]) {
     assert.deepEqual(result.leases, []);
     assert.deepEqual(result.leaseHistory.map((lease) => lease.id).sort(), [1, 2, 3]);
     assert.equal(result.occupiedUnits, 2);
@@ -251,11 +258,11 @@ test("archiving hides leases from property collections while preserving history 
   assert.equal(metrics.monthlyRentCents, 200_000);
   assert.equal(metrics.amountOverdueCents, 1_000);
   await caller.leases.reactivate({ id: 2 });
-  for (const result of [
-    (await caller.properties.list())[0]!,
-    (await caller.properties.byId({ id: 1 }))!,
-  ]) {
-    assert.deepEqual(result.leases.map((lease) => lease.id), [2]);
+  for (const result of [(await caller.properties.list())[0]!, (await caller.properties.byId({ id: 1 }))!]) {
+    assert.deepEqual(
+      result.leases.map((lease) => lease.id),
+      [2],
+    );
     assert.equal(result.leaseHistory.length, 3);
   }
 });

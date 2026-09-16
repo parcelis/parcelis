@@ -66,6 +66,16 @@ type LeaseDraft = {
   billingDay: number | null;
 };
 
+type CreatePropertyResult = {
+  imageUploadError: Error | null;
+  property: Awaited<ReturnType<typeof apiClient.properties.create.mutate>>;
+};
+
+type CreateTenantResult = {
+  imageUploadError: Error | null;
+  tenant: Awaited<ReturnType<typeof apiClient.tenants.create.mutate>>;
+};
+
 const initialLeaseDraft: LeaseDraft = {
   version: 3,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
@@ -91,6 +101,7 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
   return (
     draft.version === 3 &&
     typeof draft.currentStep === "string" &&
+    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
     (typeof draft.propertyId === "number" || draft.propertyId === null) &&
     (typeof draft.unitId === "number" || draft.unitId === null) &&
     Array.isArray(draft.tenantIds) &&
@@ -109,7 +120,6 @@ function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
   }).format(cents / 100);
 }
 
@@ -139,14 +149,9 @@ function PropertySelector({
 
   const propertyGroups = (propertiesQuery.data ?? []).flatMap((property) => {
     if (property.status === "archived") return [];
-    const unavailableUnitNames = new Set(
-      property.leases
-        .filter((lease) => lease.status === "active" || lease.status === "notice")
-        .map((lease) => lease.unitLabel),
-    );
     const units = property.units
       .filter((unit) => !unit.archivedAt)
-      .map((unit) => ({ ...unit, isAvailable: !unavailableUnitNames.has(unit.name) }))
+      .map((unit) => ({ ...unit, isAvailable: !unit.isOccupied }))
       .filter((unit) => availabilityFilter === "all" || unit.isAvailable);
     return units.length > 0 ? [{ property, units }] : [];
   });
@@ -584,26 +589,78 @@ export default function NewLeasePage() {
   const [tenantImageFile, setTenantImageFile] = React.useState<File | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
   const createProperty = useMutation({
-    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
+    mutationFn: async ({
+      imageFile,
+      input,
+    }: {
+      imageFile: File | null;
+      input: CreatePropertyInput;
+    }): Promise<CreatePropertyResult> => {
       const property = await apiClient.properties.create.mutate(input);
-      if (imageFile) await uploadPropertyImage(property.id, imageFile);
-      return property;
+      if (!imageFile) return { imageUploadError: null, property };
+
+      try {
+        await uploadPropertyImage(property.id, imageFile);
+        return { imageUploadError: null, property };
+      } catch (error) {
+        const imageUploadError =
+          error instanceof Error ? error : new Error("The property image could not be uploaded.");
+        try {
+          await apiClient.properties.delete.mutate({ id: property.id });
+        } catch {
+          return { imageUploadError, property };
+        }
+        throw imageUploadError;
+      }
     },
-    onSuccess: async (property) => {
-      setPropertyForm(initialPropertyFormState);
-      setPropertyImageFile(null);
-      setIsPropertyDrawerOpen(false);
+    onSuccess: async ({ imageUploadError, property }) => {
+      closePropertyDrawer(false, true);
       await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
-      toast.success(entityCreatedMessage("Property", property.name));
+      if (imageUploadError) {
+        toast.error(`Property ${property.name} was created, but its image could not be uploaded.`);
+      } else {
+        toast.success(entityCreatedMessage("Property", property.name));
+      }
     },
   });
+
+  function closePropertyDrawer(open: boolean, force = false) {
+    if (!open && createProperty.isPending && !force) return;
+
+    setIsPropertyDrawerOpen(open);
+    if (!open) {
+      setPropertyForm(initialPropertyFormState);
+      setPropertyImageFile(null);
+      createProperty.reset();
+    }
+  }
+
   const createTenant = useMutation({
-    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: TenantFormState }) => {
+    mutationFn: async ({
+      imageFile,
+      input,
+    }: {
+      imageFile: File | null;
+      input: TenantFormState;
+    }): Promise<CreateTenantResult> => {
       const tenant = await apiClient.tenants.create.mutate(input);
-      if (imageFile) await uploadTenantImage(tenant.id, imageFile);
-      return tenant;
+      if (!imageFile) return { imageUploadError: null, tenant };
+
+      try {
+        await uploadTenantImage(tenant.id, imageFile);
+        return { imageUploadError: null, tenant };
+      } catch (error) {
+        const imageUploadError =
+          error instanceof Error ? error : new Error("The tenant image could not be uploaded.");
+        try {
+          await apiClient.tenants.delete.mutate({ id: tenant.id });
+        } catch {
+          return { imageUploadError, tenant };
+        }
+        throw imageUploadError;
+      }
     },
-    onSuccess: async (tenant) => {
+    onSuccess: async ({ imageUploadError, tenant }) => {
       setIsTenantDrawerOpen(false);
       setDraft((current) => ({
         ...current,
@@ -612,7 +669,11 @@ export default function NewLeasePage() {
       setTenantForm(initialTenantFormState);
       setTenantImageFile(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
-      toast.success(entityCreatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
+      if (imageUploadError) {
+        toast.error(`Tenant ${tenant.firstName} ${tenant.lastName} was created, but its image could not be uploaded.`);
+      } else {
+        toast.success(entityCreatedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
+      }
     },
   });
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
@@ -621,6 +682,8 @@ export default function NewLeasePage() {
 
   React.useEffect(() => {
     if (!storageKey) return;
+
+    setDraft(initialLeaseDraft);
     try {
       const storedDraft = window.sessionStorage.getItem(storageKey);
       if (storedDraft) {
@@ -702,10 +765,7 @@ export default function NewLeasePage() {
         isPending={createProperty.isPending}
         onFormChange={setPropertyForm}
         onImageChange={setPropertyImageFile}
-        onOpenChange={(open) => {
-          setIsPropertyDrawerOpen(open);
-          if (!open) setPropertyImageFile(null);
-        }}
+        onOpenChange={closePropertyDrawer}
         onSubmit={(input, imageFile) => createProperty.mutate({ imageFile, input })}
         open={isPropertyDrawerOpen}
       />
@@ -778,7 +838,10 @@ export default function NewLeasePage() {
                     <ResidentsSelector
                       error={stepError}
                       onAddTenant={() => setIsTenantDrawerOpen(true)}
-                      onValueChange={(tenantIds) => setDraft((current) => ({ ...current, tenantIds }))}
+                      onValueChange={(tenantIds) => {
+                        setStepError(null);
+                        setDraft((current) => ({ ...current, tenantIds }));
+                      }}
                       value={draft.tenantIds}
                     />
                   ) : (

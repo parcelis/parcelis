@@ -42,7 +42,7 @@ export function ToggleGroupItem({ className, value, children, ...props }: Toggle
     event.preventDefault();
     const items = Array.from(
       event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("[role=radio]") ?? [],
-    );
+    ).filter((item) => !item.disabled);
     const currentIndex = items.indexOf(event.currentTarget);
     const offset = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
     const nextItem = items[(currentIndex + offset + items.length) % items.length];
