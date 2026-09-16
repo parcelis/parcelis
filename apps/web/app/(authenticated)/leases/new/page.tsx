@@ -266,6 +266,38 @@ function createEqualTenantAllocations(
   }));
 }
 
+function rescaleTenantAllocations(
+  tenantIds: number[],
+  allocations: LeaseDraft["tenantAllocations"],
+  monthlyRentCents: number | null,
+  securityDepositCents: number | null,
+): LeaseDraft["tenantAllocations"] {
+  const synchronizedAllocations = synchronizeTenantAllocations(tenantIds, allocations);
+
+  function rescale(field: "rentShareCents" | "depositShareCents", totalCents: number | null) {
+    if (!totalCents) return Array.from({ length: synchronizedAllocations.length }, () => 0);
+
+    const existingTotal = synchronizedAllocations.reduce((total, allocation) => total + allocation[field], 0);
+    if (!existingTotal) return splitCentsEvenly(totalCents, synchronizedAllocations.length);
+
+    const shares = synchronizedAllocations.map((allocation) => Math.floor((allocation[field] * totalCents) / existingTotal));
+    let remainder = totalCents - shares.reduce((total, share) => total + share, 0);
+    for (let index = 0; remainder > 0; index = (index + 1) % shares.length) {
+      shares[index] = (shares[index] ?? 0) + 1;
+      remainder -= 1;
+    }
+    return shares;
+  }
+
+  const rentShares = rescale("rentShareCents", monthlyRentCents);
+  const depositShares = rescale("depositShareCents", securityDepositCents);
+  return synchronizedAllocations.map((allocation, index) => ({
+    ...allocation,
+    rentShareCents: rentShares[index] ?? 0,
+    depositShareCents: depositShares[index] ?? 0,
+  }));
+}
+
 function synchronizeTenantAllocations(
   tenantIds: number[],
   allocations: LeaseDraft["tenantAllocations"],
@@ -1304,10 +1336,34 @@ export default function NewLeasePage() {
                         }))
                       }
                       onMonthlyRentCentsChange={(monthlyRentCents) =>
-                        setDraft((current) => ({ ...current, monthlyRentCents }))
+                        setDraft((current) => ({
+                          ...current,
+                          monthlyRentCents,
+                          tenantAllocations:
+                            current.billingResponsibility === "individual"
+                              ? rescaleTenantAllocations(
+                                  current.tenantIds,
+                                  current.tenantAllocations,
+                                  monthlyRentCents,
+                                  current.securityDepositCents,
+                                )
+                              : [],
+                        }))
                       }
                       onSecurityDepositCentsChange={(securityDepositCents) =>
-                        setDraft((current) => ({ ...current, securityDepositCents }))
+                        setDraft((current) => ({
+                          ...current,
+                          securityDepositCents,
+                          tenantAllocations:
+                            current.billingResponsibility === "individual"
+                              ? rescaleTenantAllocations(
+                                  current.tenantIds,
+                                  current.tenantAllocations,
+                                  current.monthlyRentCents,
+                                  securityDepositCents,
+                                )
+                              : [],
+                        }))
                       }
                       onTenantAllocationsChange={(tenantAllocations) =>
                         setDraft((current) => ({ ...current, tenantAllocations }))
