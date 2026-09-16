@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Prisma } from "@parcelis/db";
+import { createLeaseInputSchema } from "@parcelis/schemas";
 import { TRPCError } from "@trpc/server";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
@@ -11,6 +12,153 @@ function createCaller(prisma: unknown, role = "administrator") {
     session: { user: { id: 1, role } },
     organization: { organizationId: 7 },
   } as unknown as Context);
+}
+
+const individualLeaseInput = {
+  propertyId: 2,
+  unitId: 3,
+  tenantIds: [11, 12],
+  billingResponsibility: "individual" as const,
+  allowPartialPayments: true,
+  securityDepositCents: 3_000,
+  monthlyRentCents: 10_000,
+  startsOn: new Date("2026-01-01"),
+  endsOn: new Date("2026-01-01"),
+  status: "draft" as const,
+  tenantAllocations: [
+    { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
+    { tenantId: 12, rentShareCents: 6_000, depositShareCents: 2_000 },
+  ],
+};
+
+for (const [name, input, message] of [
+  [
+    "zero rent allocations",
+    {
+      ...individualLeaseInput,
+      tenantAllocations: [
+        { tenantId: 11, rentShareCents: 0, depositShareCents: 1_000 },
+        { tenantId: 12, rentShareCents: 10_000, depositShareCents: 2_000 },
+      ],
+    },
+    "Too small: expected number to be >0",
+  ],
+  [
+    "duplicate allocation tenants",
+    {
+      ...individualLeaseInput,
+      tenantAllocations: [
+        { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
+        { tenantId: 11, rentShareCents: 6_000, depositShareCents: 2_000 },
+      ],
+    },
+    "Provide one allocation for each selected tenant.",
+  ],
+  [
+    "missing tenant allocations",
+    { ...individualLeaseInput, tenantAllocations: [individualLeaseInput.tenantAllocations[0]!] },
+    "Provide one allocation for each selected tenant.",
+  ],
+  [
+    "rent allocation mismatches",
+    {
+      ...individualLeaseInput,
+      tenantAllocations: [
+        { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
+        { tenantId: 12, rentShareCents: 5_000, depositShareCents: 2_000 },
+      ],
+    },
+    "Tenant rent allocations must equal the monthly rent.",
+  ],
+  [
+    "deposit allocation mismatches",
+    {
+      ...individualLeaseInput,
+      tenantAllocations: [
+        { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
+        { tenantId: 12, rentShareCents: 6_000, depositShareCents: 1_000 },
+      ],
+    },
+    "Tenant deposit allocations must equal the security deposit.",
+  ],
+] as const) {
+  test(`individual lease validation rejects ${name}`, () => {
+    const result = createLeaseInputSchema.safeParse(input);
+    assert.equal(result.success, false);
+    if (!result.success) assert.ok(result.error.issues.some((issue) => issue.message === message));
+  });
+}
+
+for (const [billingResponsibility, expectedAmounts, expectedRecipients] of [
+  ["joint", [13_000], [[11, 12]]],
+  ["individual", [5_000, 8_000], [[11], [12]]],
+] as const) {
+  test(`${billingResponsibility} lease generation creates invoices with the correct amounts and recipients`, async () => {
+    const invoiceData: unknown[] = [];
+    let leaseData: unknown;
+    const input = {
+      ...individualLeaseInput,
+      billingResponsibility,
+      tenantAllocations: billingResponsibility === "joint" ? [] : individualLeaseInput.tenantAllocations,
+      generateInvoices: true,
+    };
+    const tx = {
+      property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
+      unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+      tenant: { findMany: async () => [{ id: 11 }, { id: 12 }] },
+      lease: {
+        create: async ({ data }: { data: unknown }) => {
+          leaseData = data;
+          return {
+            id: 4,
+            startsOn: input.startsOn,
+            endsOn: input.endsOn,
+            billingResponsibility,
+            monthlyRentCents: input.monthlyRentCents,
+            securityDepositCents: input.securityDepositCents,
+            tenants: [],
+          };
+        },
+      },
+      invoice: {
+        create: async ({ data }: { data: unknown }) => {
+          invoiceData.push(data);
+          return { id: invoiceData.length };
+        },
+      },
+    };
+    const caller = createCaller({
+      ...tx,
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    });
+
+    await caller.leases.create(input);
+
+    assert.deepEqual(
+      invoiceData.map((data) => {
+        const invoice = data as {
+          amountCents: number;
+          recipients: { create: { tenantId: number }[] };
+        };
+        return {
+          amountCents: invoice.amountCents,
+          recipientIds: invoice.recipients.create.map(({ tenantId }) => tenantId),
+        };
+      }),
+      expectedAmounts.map((amountCents, index) => ({ amountCents, recipientIds: expectedRecipients[index] })),
+    );
+
+    const tenants = (leaseData as { tenants: { create: unknown[] } }).tenants.create;
+    assert.deepEqual(
+      tenants,
+      input.tenantIds.map((tenantId, index) => ({
+        organizationId: 7,
+        tenantId,
+        rentShareCents: input.tenantAllocations[index]?.rentShareCents,
+        depositShareCents: input.tenantAllocations[index]?.depositShareCents,
+      })),
+    );
+  });
 }
 
 for (const action of ["archive", "reactivate"] as const) {
@@ -80,7 +228,16 @@ test("property view/edit permission does not expose lease records or permit leas
     id: 1,
     legacyNotes: null,
     imageObjectKey: null,
-    units: [],
+    units: [
+      {
+        id: 1,
+        name: "1A",
+        bathrooms: null,
+        amenities: [],
+        utilities: [],
+        _count: { leases: 1 },
+      },
+    ],
     maintenanceTickets: [],
   };
   const permission = { resource: "properties", canView: true, canEdit: true };
@@ -107,6 +264,7 @@ test("property view/edit permission does not expose lease records or permit leas
   );
   assert.deepEqual((await caller.properties.list())[0]?.leases, []);
   assert.deepEqual((await caller.properties.list())[0]?.leaseHistory, []);
+  assert.equal((await caller.properties.list())[0]?.units[0]?.isOccupied, true);
   assert.deepEqual((await caller.properties.byId({ id: 1 }))?.leases, []);
   assert.deepEqual((await caller.properties.byId({ id: 1 }))?.leaseHistory, []);
   for (const action of ["archive", "reactivate", "delete"] as const) {
@@ -239,10 +397,7 @@ test("archiving hides leases from property collections while preserving history 
     },
   });
   for (const lease of leases) await caller.leases.archive({ id: lease.id });
-  for (const result of [
-    (await caller.properties.list())[0]!,
-    (await caller.properties.byId({ id: 1 }))!,
-  ]) {
+  for (const result of [(await caller.properties.list())[0]!, (await caller.properties.byId({ id: 1 }))!]) {
     assert.deepEqual(result.leases, []);
     assert.deepEqual(result.leaseHistory.map((lease) => lease.id).sort(), [1, 2, 3]);
     assert.equal(result.occupiedUnits, 2);
@@ -251,11 +406,11 @@ test("archiving hides leases from property collections while preserving history 
   assert.equal(metrics.monthlyRentCents, 200_000);
   assert.equal(metrics.amountOverdueCents, 1_000);
   await caller.leases.reactivate({ id: 2 });
-  for (const result of [
-    (await caller.properties.list())[0]!,
-    (await caller.properties.byId({ id: 1 }))!,
-  ]) {
-    assert.deepEqual(result.leases.map((lease) => lease.id), [2]);
+  for (const result of [(await caller.properties.list())[0]!, (await caller.properties.byId({ id: 1 }))!]) {
+    assert.deepEqual(
+      result.leases.map((lease) => lease.id),
+      [2],
+    );
     assert.equal(result.leaseHistory.length, 3);
   }
 });

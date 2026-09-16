@@ -431,7 +431,7 @@ export const leaseBillingResponsibilitySchema = z.enum(leaseBillingResponsibilit
 
 export const leaseTenantAllocationSchema = z.object({
   tenantId: idSchema,
-  rentShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+  rentShareCents: z.number().int().positive().max(maxDatabaseInteger),
   depositShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
 });
 
@@ -457,7 +457,7 @@ export const leaseTermsStepSchema = z
     termType: leaseTermTypeSchema,
     startsOn: z.string().date(),
     endsOn: z.union([z.string().date(), z.literal("")]),
-    monthlyRentCents: z.number().int().positive(),
+    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
     rentDueDay: z.number().int().min(1).max(31),
     continueMonthToMonthAfterEnd: z.boolean(),
   })
@@ -489,7 +489,22 @@ type LeaseTenantBillingValues = {
 function validateLeaseTenantAllocations(lease: LeaseTenantBillingValues, ctx: z.RefinementCtx) {
   const selectedTenantIds = new Set(lease.tenantIds);
 
+  if (selectedTenantIds.size !== lease.tenantIds.length) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Each tenant can only be selected once.",
+      path: ["tenantIds"],
+    });
+  }
+
   if (lease.billingResponsibility === "joint") {
+    if (lease.monthlyRentCents + lease.securityDepositCents > maxDatabaseInteger) {
+      ctx.addIssue({
+        code: "custom",
+        message: "The first invoice total exceeds the maximum supported amount.",
+        path: ["securityDepositCents"],
+      });
+    }
     if (lease.tenantAllocations.length > 0) {
       ctx.addIssue({
         code: "custom",
@@ -535,6 +550,17 @@ function validateLeaseTenantAllocations(lease: LeaseTenantBillingValues, ctx: z.
       path: ["tenantAllocations"],
     });
   }
+  if (
+    lease.tenantAllocations.some(
+      (allocation) => allocation.rentShareCents + allocation.depositShareCents > maxDatabaseInteger,
+    )
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "The first invoice total exceeds the maximum supported amount.",
+      path: ["tenantAllocations"],
+    });
+  }
 }
 
 export const leaseTenantBillingStepSchema = z
@@ -552,7 +578,7 @@ export const leaseSchema = z.object({
   id: idSchema,
   propertyId: idSchema,
   unitId: idSchema,
-  monthlyRentCents: z.number().int().positive(),
+  monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
   startsOn: z.coerce.date(),
   endsOn: z.coerce.date().nullable(),
   status: leaseStatusSchema,

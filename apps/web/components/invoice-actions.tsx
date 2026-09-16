@@ -32,6 +32,7 @@ export type InvoiceActionInvoice = {
   items: Array<{ id: number; item: string; description: string | null; quantity: number; rateCents: number }>;
   property: { name: string };
   tenant: { id: number; firstName: string; lastName: string };
+  recipients: Array<{ tenant: { id: number; firstName: string; lastName: string } }>;
   lease: { unitLabel: string; startsOn: Date | string; endsOn: Date | string | null };
   payments: Array<{
     id: number;

@@ -613,6 +613,7 @@ model InvoiceRecipient {
   tenantId       Int
   invoice        Invoice      @relation(fields: [organizationId, invoiceId], references: [organizationId, id], onDelete: Cascade)
   tenant         Tenant       @relation("InvoiceRecipient", fields: [organizationId, tenantId], references: [organizationId, id], onDelete: Cascade)
+  payments       InvoicePayment[] @relation("InvoicePaymentRecipient")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   createdAt      DateTime     @default(now())
 
@@ -638,17 +639,20 @@ model InvoiceItem {
 
 model InvoicePayment {
   id            Int      @id @default(autoincrement())
+  organizationId Int
   invoiceId     Int
   tenantId      Int
   amountCents   Int
   paymentMethod String
   paidOn        DateTime
-  invoice       Invoice  @relation("InvoicePaymentInvoice", fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  invoice       Invoice  @relation("InvoicePaymentInvoice", fields: [invoiceId], references: [id], onDelete: Cascade)
+  recipient     InvoiceRecipient @relation("InvoicePaymentRecipient", fields: [organizationId, invoiceId, tenantId], references: [organizationId, invoiceId, tenantId], onDelete: Cascade)
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
   createdAt     DateTime @default(now())
 
   @@index([invoiceId, paidOn])
   @@index([tenantId])
+  @@index([organizationId])
 }
 
 model MaintenanceTicket {
