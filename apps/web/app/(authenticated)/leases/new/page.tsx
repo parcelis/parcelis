@@ -412,7 +412,7 @@ export default function NewLeasePage() {
       }
     },
     onSuccess: async ({ imageUploadError, property }) => {
-      closePropertyDrawer(false);
+      closePropertyDrawer(false, true);
       await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
       if (imageUploadError) {
         toast.error(`Property ${property.name} was created, but its image could not be uploaded.`);
@@ -422,7 +422,9 @@ export default function NewLeasePage() {
     },
   });
 
-  function closePropertyDrawer(open: boolean) {
+  function closePropertyDrawer(open: boolean, force = false) {
+    if (!open && createProperty.isPending && !force) return;
+
     setIsPropertyDrawerOpen(open);
     if (!open) {
       setPropertyForm(initialPropertyFormState);
