@@ -22,12 +22,13 @@ const paymentInput = {
 
 test("joint invoice accepts a payment from any recipient", async () => {
   let paymentData: unknown;
+  let invoiceUpdateData: unknown;
   const invoice = {
     id: 4,
     invoiceNumber: 1,
     organizationId: 7,
     propertyId: 2,
-    dueOn: new Date("2026-09-15"),
+    dueOn: new Date("2099-09-15"),
     balanceCents: 10_000,
     recipients: [{ tenantId: 11 }, { tenantId: 12 }],
     lease: { allowPartialPayments: true },
@@ -35,7 +36,10 @@ test("joint invoice accepts a payment from any recipient", async () => {
   const tx = {
     invoice: {
       findFirstOrThrow: async () => invoice,
-      update: async () => invoice,
+      update: async ({ data }: { data: unknown }) => {
+        invoiceUpdateData = data;
+        return invoice;
+      },
     },
     invoicePayment: {
       create: async ({ data }: { data: unknown }) => {
@@ -58,6 +62,13 @@ test("joint invoice accepts a payment from any recipient", async () => {
     amountCents: 5_000,
     paymentMethod: "check",
     paidOn: paymentInput.paidOn,
+  });
+  assert.deepEqual(invoiceUpdateData, {
+    balanceCents: 5_000,
+    paidOn: null,
+    paidByTenantId: null,
+    paymentMethod: null,
+    status: "open",
   });
 });
 
