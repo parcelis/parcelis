@@ -47,6 +47,7 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
   return (
     draft.version === 1 &&
     typeof draft.currentStep === "string" &&
+    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
     (typeof draft.propertyId === "number" || draft.propertyId === null) &&
     (typeof draft.unitId === "number" || draft.unitId === null) &&
     Array.isArray(draft.tenantIds) &&
