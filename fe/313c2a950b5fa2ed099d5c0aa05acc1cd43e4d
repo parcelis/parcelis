@@ -1,0 +1,27 @@
+apps/web/components/record-payment-drawer.tsx
+  s_7f5c5df2de3b63::t_6b10dcf4c80f74 60,67,69,200-204
+apps/api/src/tests/leases/leases.router.test.ts
+  s_7f5c5df2de3b63::t_6b10dcf4c80f74 4,17-163,231-240,267,400,409-413
+packages/db/prisma/migrations/20260916120000_allow_recipient_invoice_payments/migration.sql
+  s_7f5c5df2de3b63::t_6b10dcf4c80f74 1-23
+apps/web/components/property-drawer.tsx
+  s_7f5c5df2de3b63::t_6b10dcf4c80f74 527-528
+apps/web/components/invoice-actions.tsx
+  s_7f5c5df2de3b63::t_6b10dcf4c80f74 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "fe313c2a950b5fa2ed099d5c0aa05acc1cd43e4d",
+  "prompts": {},
+  "sessions": {
+    "s_7f5c5df2de3b63": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0abd2-b56a-7bd0-baa2-0d3d9f073d2b",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
