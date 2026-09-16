@@ -2111,64 +2111,76 @@ export const appRouter = router({
       const dueOn = new Date(input.dueOn);
       dueOn.setUTCHours(0, 0, 0, 0);
 
-      try {
-        return await ctx.prisma.$transaction(async (tx) => {
-          const existingInvoice = await tx.invoice.findFirst({
-            where: {
-              leaseId: lease.id,
-              ...(lease.billingResponsibility === "individual" ? { tenantId: input.tenantId } : {}),
-              periodStartsOn: dueOn,
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          return await ctx.prisma.$transaction(
+            async (tx) => {
+              const existingInvoice = await tx.invoice.findFirst({
+                where: {
+                  leaseId: lease.id,
+                  ...(lease.billingResponsibility === "individual" ? { tenantId: input.tenantId } : {}),
+                  periodStartsOn: dueOn,
+                },
+                select: { invoiceNumber: true },
+              });
+              if (existingInvoice) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: `An invoice already exists for this lease and billing date (${formatInvoiceNumber(existingInvoice.invoiceNumber)}).`,
+                });
+              }
+              // Create the invoice with its items and recipients
+              const invoice = await tx.invoice.create({
+                data: {
+                  organizationId: ctx.organization.organizationId,
+                  leaseId: lease.id,
+                  propertyId: lease.propertyId,
+                  tenantId: input.tenantId,
+                  recipients: {
+                    create: recipientTenantIds.map((tenantId) => ({
+                      organizationId: ctx.organization.organizationId,
+                      tenantId,
+                    })),
+                  },
+                  periodStartsOn: dueOn,
+                  periodEndsOn: dueOn,
+                  dueOn,
+                  amountCents,
+                  balanceCents: amountCents - input.paidCents,
+                  status: getInvoiceStatus(dueOn, amountCents - input.paidCents),
+                  paidOn: input.paidCents === amountCents ? dueOn : null,
+                  items: {
+                    create: input.items.map((item) => ({
+                      ...item,
+                      description: item.description || null,
+                      amountCents: item.quantity * item.rateCents,
+                    })),
+                  },
+                },
+                include: { items: true },
+              });
+              await recordInvoiceActivity(tx, invoice, "invoice.created");
+              return invoice;
             },
-            select: { invoiceNumber: true },
-          });
-          if (existingInvoice) {
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034" && attempt < 2) {
+            continue;
+          }
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            (error.code === "P2002" || error.code === "P2034")
+          ) {
             throw new TRPCError({
               code: "CONFLICT",
-              message: `An invoice already exists for this lease and billing date (${formatInvoiceNumber(existingInvoice.invoiceNumber)}).`,
+              message: "An invoice already exists for this lease and billing date.",
             });
           }
-          // Create the invoice with its items and recipients
-          const invoice = await tx.invoice.create({
-            data: {
-              organizationId: ctx.organization.organizationId,
-              leaseId: lease.id,
-              propertyId: lease.propertyId,
-              tenantId: input.tenantId,
-              recipients: {
-                create: recipientTenantIds.map((tenantId) => ({
-                  organizationId: ctx.organization.organizationId,
-                  tenantId,
-                })),
-              },
-              periodStartsOn: dueOn,
-              periodEndsOn: dueOn,
-              dueOn,
-              amountCents,
-              balanceCents: amountCents - input.paidCents,
-              status: getInvoiceStatus(dueOn, amountCents - input.paidCents),
-              paidOn: input.paidCents === amountCents ? dueOn : null,
-              items: {
-                create: input.items.map((item) => ({
-                  ...item,
-                  description: item.description || null,
-                  amountCents: item.quantity * item.rateCents,
-                })),
-              },
-            },
-            include: { items: true },
-          });
-          await recordInvoiceActivity(tx, invoice, "invoice.created");
-          return invoice;
-        });
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "An invoice already exists for this lease and billing date.",
-          });
+          throw error;
         }
-        throw error;
       }
+      throw new TRPCError({ code: "CONFLICT", message: "An invoice already exists for this lease and billing date." });
     }),
     recordPayment: publicProcedure.input(recordInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "edit");
