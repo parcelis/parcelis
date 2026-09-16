@@ -2068,7 +2068,12 @@ export const appRouter = router({
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
       const lease = await ctx.prisma.lease.findFirst({
         where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
-        select: { id: true, propertyId: true },
+        select: {
+          id: true,
+          propertyId: true,
+          billingResponsibility: true,
+          tenants: { select: { tenantId: true } },
+        },
       });
       if (!lease || lease.propertyId !== input.propertyId) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property." });
@@ -2081,6 +2086,8 @@ export const appRouter = router({
       if (!leaseTenant) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "The selected tenant is not on this lease." });
       }
+      const recipientTenantIds =
+        lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [input.tenantId];
 
       const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
       if (amountCents <= 0) {
@@ -2116,10 +2123,10 @@ export const appRouter = router({
               propertyId: lease.propertyId,
               tenantId: input.tenantId,
               recipients: {
-                create: {
+                create: recipientTenantIds.map((tenantId) => ({
                   organizationId: ctx.organization.organizationId,
-                  tenantId: input.tenantId,
-                },
+                  tenantId,
+                })),
               },
               periodStartsOn: dueOn,
               periodEndsOn: dueOn,

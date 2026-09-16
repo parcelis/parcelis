@@ -153,7 +153,7 @@ test("payment batches must clear the balance when partial payments are disabled"
   );
 });
 
-test("manual invoices create a recipient for their selected tenant", async () => {
+test("manual joint invoices create recipients for every lease tenant", async () => {
   let invoiceData: unknown;
   const tx = {
     invoice: {
@@ -167,7 +167,12 @@ test("manual invoices create a recipient for their selected tenant", async () =>
   };
   const caller = createCaller({
     lease: {
-      findFirst: async () => ({ id: 3, propertyId: 2 }),
+      findFirst: async () => ({
+        id: 3,
+        propertyId: 2,
+        billingResponsibility: "joint",
+        tenants: [{ tenantId: 11 }, { tenantId: 12 }],
+      }),
     },
     leaseTenant: {
       findFirst: async () => ({ id: 1 }),
@@ -185,9 +190,9 @@ test("manual invoices create a recipient for their selected tenant", async () =>
   });
 
   assert.deepEqual((invoiceData as { recipients: unknown }).recipients, {
-    create: {
-      organizationId: 7,
-      tenantId: 12,
-    },
+    create: [
+      { organizationId: 7, tenantId: 11 },
+      { organizationId: 7, tenantId: 12 },
+    ],
   });
 });
