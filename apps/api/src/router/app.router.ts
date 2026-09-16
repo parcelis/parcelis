@@ -2096,6 +2096,7 @@ export const appRouter = router({
           id: true,
           propertyId: true,
           billingResponsibility: true,
+          allowPartialPayments: true,
           tenants: { select: { tenantId: true } },
         },
       });
@@ -2119,6 +2120,12 @@ export const appRouter = router({
       }
       if (input.paidCents > amountCents) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid cannot exceed the invoice total." });
+      }
+      if (!lease.allowPartialPayments && input.paidCents > 0 && input.paidCents !== amountCents) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This lease requires the invoice to be paid in full.",
+        });
       }
       const dueOn = new Date(input.dueOn);
       dueOn.setUTCHours(0, 0, 0, 0);
