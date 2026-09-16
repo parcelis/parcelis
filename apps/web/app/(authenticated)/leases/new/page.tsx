@@ -1399,8 +1399,10 @@ function LeaseReviewPropertyAndUnit({
   monthlyRentCents,
   propertyId,
   rentDueDay,
+  securityDepositCents,
   startsOn,
   tenantIds,
+  tenantAllocations,
   termType,
   unitId,
 }: {
@@ -1410,8 +1412,10 @@ function LeaseReviewPropertyAndUnit({
   monthlyRentCents: number | null;
   propertyId: number | null;
   rentDueDay: number;
+  securityDepositCents: number | null;
   startsOn: string;
   tenantIds: number[];
+  tenantAllocations: LeaseDraft["tenantAllocations"];
   termType: LeaseDraft["termType"];
   unitId: number | null;
 }) {
@@ -1428,6 +1432,7 @@ function LeaseReviewPropertyAndUnit({
   const residents = tenantIds
     .map((tenantId) => tenantsQuery.data?.find((tenant) => tenant.id === tenantId))
     .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant));
+  const allocationsByTenantId = new Map(tenantAllocations.map((allocation) => [allocation.tenantId, allocation]));
 
   if (propertiesQuery.isLoading || tenantsQuery.isLoading) return <LoadingState label="Loading lease details" />;
 
@@ -1526,6 +1531,40 @@ function LeaseReviewPropertyAndUnit({
           {termType === "fixed" ? (
             <ReviewDetail label="Continues month-to-month" value={continueMonthToMonthAfterEnd ? "Yes" : "No"} />
           ) : null}
+        </div>
+      </section>
+      <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
+        <div className="border-b border-parcelis-border px-4 py-3">
+          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Deposit</h3>
+        </div>
+        <div className="flex flex-col gap-4 p-4 md:flex-row">
+          <ReviewDetail
+            label="Security deposit"
+            value={securityDepositCents === null ? "Not set" : formatCurrency(securityDepositCents)}
+          />
+          <div className="flex flex-1 flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
+              Resident allocations
+            </p>
+            {billingResponsibility === "individual" ? (
+              <div className="flex flex-col divide-y divide-parcelis-border rounded-md bg-parcelis-porcelain/60 dark:bg-parcelis-charcoal/55">
+                {residents.map((resident) => (
+                  <div className="flex items-center justify-between gap-4 px-4 py-3" key={resident.id}>
+                    <span className="text-sm font-medium text-parcelis-charcoal dark:text-white">
+                      {resident.firstName} {resident.lastName}
+                    </span>
+                    <span className="text-sm font-semibold text-parcelis-charcoal dark:text-white">
+                      {formatCurrency(allocationsByTenantId.get(resident.id)?.depositShareCents ?? 0)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm leading-6 text-parcelis-gray dark:text-white/65">
+                All residents are jointly responsible for the security deposit.
+              </p>
+            )}
+          </div>
         </div>
       </section>
     </div>
@@ -1894,8 +1933,10 @@ export default function NewLeasePage() {
                       monthlyRentCents={draft.monthlyRentCents}
                       propertyId={draft.propertyId}
                       rentDueDay={draft.rentDueDay}
+                      securityDepositCents={draft.securityDepositCents}
                       startsOn={draft.startsOn}
                       tenantIds={draft.tenantIds}
+                      tenantAllocations={draft.tenantAllocations}
                       termType={draft.termType}
                       unitId={draft.unitId}
                     />
