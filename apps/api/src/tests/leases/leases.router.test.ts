@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Prisma } from "@parcelis/db";
+import { createLeaseInputSchema } from "@parcelis/schemas";
 import { TRPCError } from "@trpc/server";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
@@ -11,6 +12,141 @@ function createCaller(prisma: unknown, role = "administrator") {
     session: { user: { id: 1, role } },
     organization: { organizationId: 7 },
   } as unknown as Context);
+}
+
+const individualLeaseInput = {
+  propertyId: 2,
+  unitId: 3,
+  tenantIds: [11, 12],
+  billingResponsibility: "individual" as const,
+  allowPartialPayments: true,
+  securityDepositCents: 3_000,
+  monthlyRentCents: 10_000,
+  startsOn: new Date("2026-01-01"),
+  endsOn: new Date("2026-01-01"),
+  status: "draft" as const,
+  tenantAllocations: [
+    { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
+    { tenantId: 12, rentShareCents: 6_000, depositShareCents: 2_000 },
+  ],
+};
+
+for (const [name, input, message] of [
+  [
+    "duplicate allocation tenants",
+    {
+      ...individualLeaseInput,
+      tenantAllocations: [
+        { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
+        { tenantId: 11, rentShareCents: 6_000, depositShareCents: 2_000 },
+      ],
+    },
+    "Provide one allocation for each selected tenant.",
+  ],
+  [
+    "missing tenant allocations",
+    { ...individualLeaseInput, tenantAllocations: [individualLeaseInput.tenantAllocations[0]!] },
+    "Provide one allocation for each selected tenant.",
+  ],
+  [
+    "rent allocation mismatches",
+    {
+      ...individualLeaseInput,
+      tenantAllocations: [
+        { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
+        { tenantId: 12, rentShareCents: 5_000, depositShareCents: 2_000 },
+      ],
+    },
+    "Tenant rent allocations must equal the monthly rent.",
+  ],
+  [
+    "deposit allocation mismatches",
+    {
+      ...individualLeaseInput,
+      tenantAllocations: [
+        { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
+        { tenantId: 12, rentShareCents: 6_000, depositShareCents: 1_000 },
+      ],
+    },
+    "Tenant deposit allocations must equal the security deposit.",
+  ],
+] as const) {
+  test(`individual lease validation rejects ${name}`, () => {
+    const result = createLeaseInputSchema.safeParse(input);
+    assert.equal(result.success, false);
+    if (!result.success) assert.ok(result.error.issues.some((issue) => issue.message === message));
+  });
+}
+
+for (const [billingResponsibility, expectedAmounts, expectedRecipients] of [
+  ["joint", [10_000], [[11, 12]]],
+  ["individual", [4_000, 6_000], [[11], [12]]],
+] as const) {
+  test(`${billingResponsibility} lease generation creates invoices with the correct amounts and recipients`, async () => {
+    const invoiceData: unknown[] = [];
+    let leaseData: unknown;
+    const input = {
+      ...individualLeaseInput,
+      billingResponsibility,
+      tenantAllocations: billingResponsibility === "joint" ? [] : individualLeaseInput.tenantAllocations,
+      generateInvoices: true,
+    };
+    const tx = {
+      property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
+      unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+      tenant: { findMany: async () => [{ id: 11 }, { id: 12 }] },
+      lease: {
+        create: async ({ data }: { data: unknown }) => {
+          leaseData = data;
+          return {
+            id: 4,
+            startsOn: input.startsOn,
+            endsOn: input.endsOn,
+            billingResponsibility,
+            monthlyRentCents: input.monthlyRentCents,
+            tenants: [],
+          };
+        },
+      },
+      invoice: {
+        create: async ({ data }: { data: unknown }) => {
+          invoiceData.push(data);
+          return { id: invoiceData.length };
+        },
+      },
+    };
+    const caller = createCaller({
+      ...tx,
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    });
+
+    await caller.leases.create(input);
+
+    assert.deepEqual(
+      invoiceData.map((data) => {
+        const invoice = data as {
+          amountCents: number;
+          recipients: { create: { tenantId: number }[] };
+        };
+        return {
+          amountCents: invoice.amountCents,
+          recipientIds: invoice.recipients.create.map(({ tenantId }) => tenantId),
+        };
+      }),
+      expectedAmounts.map((amountCents, index) => ({ amountCents, recipientIds: expectedRecipients[index] })),
+    );
+
+    const tenants = (leaseData as { tenants: { create: unknown[] } }).tenants.create;
+    assert.deepEqual(
+      tenants,
+      input.tenantIds.map((tenantId, index) => ({
+        organizationId: 7,
+        tenantId,
+        rentShareCents: input.tenantAllocations[index]?.rentShareCents,
+        depositShareCents: input.tenantAllocations[index]?.depositShareCents,
+      })),
+    );
+  });
 }
 
 for (const action of ["archive", "reactivate"] as const) {
