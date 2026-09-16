@@ -1593,7 +1593,7 @@ export const appRouter = router({
                     unit: { select: { name: true } },
                     property: { select: { id: true, name: true } },
                     invoices: {
-                      where: { tenantId: input.id },
+                      where: { recipients: { some: { tenantId: input.id } } },
                       select: {
                         id: true,
                         status: true,
@@ -2002,7 +2002,7 @@ export const appRouter = router({
       const invoices = await ctx.prisma.invoice.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
-          ...(input.tenantId ? { tenantId: input.tenantId } : {}),
+          ...(input.tenantId ? { recipients: { some: { tenantId: input.tenantId } } } : {}),
         },
         include: {
           lease: { select: { unit: { select: { name: true } } } },
