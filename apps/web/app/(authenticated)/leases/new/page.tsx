@@ -1398,6 +1398,7 @@ function LeaseReviewPropertyAndUnit({
   continueMonthToMonthAfterEnd,
   endsOn,
   monthlyRentCents,
+  onEdit,
   propertyId,
   rentDueDay,
   securityDepositCents,
@@ -1412,6 +1413,7 @@ function LeaseReviewPropertyAndUnit({
   continueMonthToMonthAfterEnd: boolean;
   endsOn: string;
   monthlyRentCents: number | null;
+  onEdit: (stepId: "property" | "residents" | "terms") => void;
   propertyId: number | null;
   rentDueDay: number;
   securityDepositCents: number | null;
@@ -1445,9 +1447,7 @@ function LeaseReviewPropertyAndUnit({
         <p className="mt-1 text-sm text-parcelis-gray dark:text-white/65">Confirm the selected property and unit.</p>
       </div>
       <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
-        <div className="border-b border-parcelis-border px-4 py-3">
-          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Property and unit</h3>
-        </div>
+        <ReviewSectionHeader onEdit={() => onEdit("property")} title="Property and unit" />
         <div className="flex flex-col gap-4 p-4 md:flex-row">
           <div className="flex flex-1 items-center gap-3 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
             <Building2 className="h-5 w-5 text-parcelis-green" />
@@ -1472,9 +1472,7 @@ function LeaseReviewPropertyAndUnit({
         </div>
       </section>
       <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
-        <div className="border-b border-parcelis-border px-4 py-3">
-          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Residents and responsibility</h3>
-        </div>
+        <ReviewSectionHeader onEdit={() => onEdit("residents")} title="Residents and responsibility" />
         <div className="flex flex-col gap-4 p-4 md:flex-row">
           <div className="flex flex-1 flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
@@ -1511,9 +1509,7 @@ function LeaseReviewPropertyAndUnit({
         </div>
       </section>
       <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
-        <div className="border-b border-parcelis-border px-4 py-3">
-          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Lease terms</h3>
-        </div>
+        <ReviewSectionHeader onEdit={() => onEdit("terms")} title="Lease terms" />
         <div className="flex flex-wrap gap-4 p-4">
           <ReviewDetail label="Lease type" value={termType === "fixed" ? "Fixed term" : "Month-to-month"} />
           <ReviewDetail label="Start date" value={formatDateLabel(parseDateInput(startsOn) ?? new Date(startsOn))} />
@@ -1536,9 +1532,7 @@ function LeaseReviewPropertyAndUnit({
         </div>
       </section>
       <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
-        <div className="border-b border-parcelis-border px-4 py-3">
-          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Deposit</h3>
-        </div>
+        <ReviewSectionHeader onEdit={() => onEdit("residents")} title="Deposit" />
         <div className="flex flex-col gap-4 p-4 md:flex-row">
           <ReviewDetail
             label="Security deposit"
@@ -1570,9 +1564,7 @@ function LeaseReviewPropertyAndUnit({
         </div>
       </section>
       <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
-        <div className="border-b border-parcelis-border px-4 py-3">
-          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Billing</h3>
-        </div>
+        <ReviewSectionHeader onEdit={() => onEdit("residents")} title="Billing" />
         <div className="flex flex-col gap-4 p-4 md:flex-row">
           <ReviewDetail label="Partial payments" value={allowPartialPayments ? "Allowed" : "Not allowed"} />
           <div className="flex flex-1 flex-col gap-1 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
@@ -1586,6 +1578,17 @@ function LeaseReviewPropertyAndUnit({
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ReviewSectionHeader({ onEdit, title }: { onEdit: () => void; title: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-parcelis-border px-4 py-3">
+      <h3 className="font-semibold text-parcelis-charcoal dark:text-white">{title}</h3>
+      <Button onClick={onEdit} size="sm" type="button" variant="secondary">
+        Edit
+      </Button>
     </div>
   );
 }
@@ -1951,6 +1954,10 @@ export default function NewLeasePage() {
                       continueMonthToMonthAfterEnd={draft.continueMonthToMonthAfterEnd}
                       endsOn={draft.endsOn}
                       monthlyRentCents={draft.monthlyRentCents}
+                      onEdit={(stepId) => {
+                        setStepError(null);
+                        setDraft((current) => ({ ...current, currentStep: stepId }));
+                      }}
                       propertyId={draft.propertyId}
                       rentDueDay={draft.rentDueDay}
                       securityDepositCents={draft.securityDepositCents}
