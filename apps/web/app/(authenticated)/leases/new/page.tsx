@@ -418,9 +418,7 @@ export default function NewLeasePage() {
       }
     },
     onSuccess: async ({ imageUploadError, property }) => {
-      setPropertyForm(initialPropertyFormState);
-      setPropertyImageFile(null);
-      setIsPropertyDrawerOpen(false);
+      closePropertyDrawer(false);
       await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
       if (imageUploadError) {
         toast.error(`Property ${property.name} was created, but its image could not be uploaded.`);
@@ -429,6 +427,16 @@ export default function NewLeasePage() {
       }
     },
   });
+
+  function closePropertyDrawer(open: boolean) {
+    setIsPropertyDrawerOpen(open);
+    if (!open) {
+      setPropertyForm(initialPropertyFormState);
+      setPropertyImageFile(null);
+      createProperty.reset();
+    }
+  }
+
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
   const step = leaseCreationSteps[currentIndex];
   const isLastStep = currentIndex === leaseCreationSteps.length - 1;
@@ -509,10 +517,7 @@ export default function NewLeasePage() {
         isPending={createProperty.isPending}
         onFormChange={setPropertyForm}
         onImageChange={setPropertyImageFile}
-        onOpenChange={(open) => {
-          setIsPropertyDrawerOpen(open);
-          if (!open) setPropertyImageFile(null);
-        }}
+        onOpenChange={closePropertyDrawer}
         onSubmit={(input, imageFile) => createProperty.mutate({ imageFile, input })}
         open={isPropertyDrawerOpen}
       />
