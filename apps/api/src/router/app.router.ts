@@ -3526,7 +3526,11 @@ export const appRouter = router({
                         }));
                   for (const periodStartsOn of periods) {
                     const periodEndsOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0);
-                    const dueOn = getMonthlyDueDate(periodStartsOn, createdLease.rentDueDay);
+                    const calculatedDueOn = getMonthlyDueDate(periodStartsOn, createdLease.rentDueDay);
+                    const dueOn =
+                      periodStartsOn.getTime() === firstPeriod.getTime() && calculatedDueOn < createdLease.startsOn
+                        ? createdLease.startsOn
+                        : calculatedDueOn;
 
                     for (const invoicePlan of invoicePlans) {
                       const depositCents =

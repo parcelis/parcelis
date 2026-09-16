@@ -459,7 +459,7 @@ export const leaseTermsStepSchema = z
     endsOn: z.union([z.string().date(), z.literal("")]),
     monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
     rentDueDay: z.number().int().min(1).max(31),
-    continueMonthToMonthAfterEnd: z.boolean(),
+    continueMonthToMonthAfterEnd: z.literal(false),
   })
   .refine((lease) => lease.termType !== "fixed" || Boolean(lease.endsOn), {
     message: "A fixed-term lease requires an end date.",
@@ -579,6 +579,8 @@ export const leaseSchema = z.object({
   propertyId: idSchema,
   unitId: idSchema,
   monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
+  rentDueDay: z.number().int().min(1).max(31),
+  continueMonthToMonthAfterEnd: z.boolean(),
   startsOn: z.coerce.date(),
   endsOn: z.coerce.date().nullable(),
   status: leaseStatusSchema,
@@ -591,7 +593,7 @@ export const createLeaseInputSchema = leaseSchema
     billingResponsibility: leaseBillingResponsibilitySchema.default("joint"),
     allowPartialPayments: z.boolean().default(true),
     rentDueDay: z.number().int().min(1).max(31).default(1),
-    continueMonthToMonthAfterEnd: z.boolean().default(false),
+    continueMonthToMonthAfterEnd: z.literal(false).default(false),
     securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).default(0),
     tenantAllocations: z.array(leaseTenantAllocationSchema).max(50).default([]),
   })

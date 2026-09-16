@@ -92,3 +92,45 @@ test("generated invoices use the lease rent due day", async () => {
     ],
   );
 });
+
+test("the first generated invoice is not due before a mid-month lease starts", async () => {
+  const invoiceData: Array<{ dueOn: Date }> = [];
+  const startsOn = new Date(2026, 7, 20);
+  const createdLease = {
+    id: 19,
+    startsOn,
+    endsOn: new Date(2026, 7, 31),
+    billingResponsibility: "joint",
+    monthlyRentCents: 120_000,
+    rentDueDay: 1,
+  };
+  const tx = {
+    property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    tenant: { findMany: async () => [{ id: 11 }] },
+    lease: { create: async () => createdLease },
+    invoice: {
+      create: async ({ data }: { data: { dueOn: Date } }) => {
+        invoiceData.push(data);
+        return { id: invoiceData.length };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await caller.leases.create({
+    propertyId: 2,
+    unitId: 3,
+    tenantIds: [11],
+    monthlyRentCents: createdLease.monthlyRentCents,
+    startsOn,
+    endsOn: createdLease.endsOn,
+    status: "draft",
+    rentDueDay: createdLease.rentDueDay,
+    generateInvoices: true,
+  });
+
+  assert.equal(invoiceData[0]?.dueOn.getTime(), startsOn.getTime());
+});

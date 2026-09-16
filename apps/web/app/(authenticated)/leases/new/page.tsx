@@ -63,13 +63,12 @@ import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../.
 import { uploadTenantImage } from "../../../../components/tenant-image-upload";
 
 type LeaseDraft = {
-  version: 4;
+  version: 5;
   currentStep: string;
   propertyId: number | null;
   unitId: number | null;
   tenantIds: number[];
   termType: "fixed" | "month_to_month";
-  continueMonthToMonthAfterEnd: boolean;
   startsOn: string;
   endsOn: string;
   monthlyRentCents: number | null;
@@ -85,13 +84,12 @@ type LeaseDraft = {
 };
 
 const initialLeaseDraft: LeaseDraft = {
-  version: 4,
+  version: 5,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
   propertyId: null,
   unitId: null,
   tenantIds: [],
   termType: "fixed",
-  continueMonthToMonthAfterEnd: false,
   startsOn: "",
   endsOn: "",
   monthlyRentCents: null,
@@ -110,14 +108,13 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
   if (!value || typeof value !== "object") return false;
   const draft = value as Record<string, unknown>;
   return (
-    draft.version === 4 &&
+    draft.version === 5 &&
     typeof draft.currentStep === "string" &&
     (typeof draft.propertyId === "number" || draft.propertyId === null) &&
     (typeof draft.unitId === "number" || draft.unitId === null) &&
     Array.isArray(draft.tenantIds) &&
     draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
     (draft.termType === "fixed" || draft.termType === "month_to_month") &&
-    typeof draft.continueMonthToMonthAfterEnd === "boolean" &&
     typeof draft.startsOn === "string" &&
     typeof draft.endsOn === "string" &&
     (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
@@ -135,6 +132,21 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
         typeof (allocation as Record<string, unknown>).depositShareCents === "number",
     )
   );
+}
+
+function migrateLeaseDraft(value: unknown): LeaseDraft | null {
+  if (isLeaseDraft(value)) return value;
+  if (!value || typeof value !== "object") return null;
+
+  const draft = value as Record<string, unknown>;
+  if (draft.version !== 4 || (typeof draft.billingDay !== "number" && draft.billingDay !== null)) return null;
+
+  const { billingDay, continueMonthToMonthAfterEnd: _continueMonthToMonthAfterEnd, ...legacyDraft } = draft;
+  return {
+    ...legacyDraft,
+    version: 5,
+    rentDueDay: typeof billingDay === "number" && billingDay >= 1 && billingDay <= 31 ? billingDay : 1,
+  } as LeaseDraft;
 }
 
 function formatCurrency(cents: number) {
@@ -1058,9 +1070,7 @@ function ResidentsSelector({
 }
 
 function LeaseTermsSelector({
-  continueMonthToMonthAfterEnd,
   error,
-  onContinueMonthToMonthAfterEndChange,
   endsOn,
   onEndsOnChange,
   onRentDueDayChange,
@@ -1072,9 +1082,7 @@ function LeaseTermsSelector({
   termType,
   unitId,
 }: {
-  continueMonthToMonthAfterEnd: boolean;
   error: string | null;
-  onContinueMonthToMonthAfterEndChange: (continueMonthToMonthAfterEnd: boolean) => void;
   endsOn: string;
   onEndsOnChange: (endsOn: string) => void;
   onRentDueDayChange: (rentDueDay: number) => void;
@@ -1089,8 +1097,6 @@ function LeaseTermsSelector({
   const [isEndDatePickerOpen, setIsEndDatePickerOpen] = React.useState(false);
   const [isStartDatePickerOpen, setIsStartDatePickerOpen] = React.useState(false);
   const endDate = parseDateInput(endsOn);
-  const today = new Date();
-  const leaseEndMonth = new Date(today.getFullYear() + 7, today.getMonth(), 1);
   const startDate = parseDateInput(startsOn);
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
@@ -1209,7 +1215,6 @@ function LeaseTermsSelector({
           </PopoverTrigger>
           <PopoverContent align="start" className="w-auto p-0">
             <Calendar
-              endMonth={leaseEndMonth}
               mode="single"
               onSelect={(date) => {
                 if (!date) return;
@@ -1246,7 +1251,6 @@ function LeaseTermsSelector({
             <PopoverContent align="start" className="w-auto p-0">
               <Calendar
                 disabled={startDate ? { before: startDate } : undefined}
-                endMonth={leaseEndMonth}
                 mode="single"
                 onSelect={(date) => {
                   if (!date) return;
@@ -1280,23 +1284,6 @@ function LeaseTermsSelector({
         </Select>
         <p className="text-sm text-parcelis-gray">Rent is due on this day each month.</p>
       </div>
-      {termType === "fixed" ? (
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-parcelis-border p-4 hover:bg-parcelis-porcelain/60">
-          <Checkbox
-            checked={continueMonthToMonthAfterEnd}
-            className="mt-0.5"
-            onCheckedChange={(checked) => onContinueMonthToMonthAfterEndChange(checked === true)}
-          />
-          <span className="flex flex-col gap-1">
-            <span className="font-semibold text-parcelis-charcoal">
-              Continue month-to-month after the end date
-            </span>
-            <span className="text-sm leading-5 text-parcelis-gray">
-              The lease will transition to a month-to-month arrangement once the fixed term ends.
-            </span>
-          </span>
-        </label>
-      ) : null}
     </div>
   );
 }
@@ -1365,7 +1352,8 @@ export default function NewLeasePage() {
       const storedDraft = window.sessionStorage.getItem(storageKey);
       if (storedDraft) {
         const parsedDraft: unknown = JSON.parse(storedDraft);
-        if (isLeaseDraft(parsedDraft)) setDraft(parsedDraft);
+        const migratedDraft = migrateLeaseDraft(parsedDraft);
+        if (migratedDraft) setDraft(migratedDraft);
       }
     } catch {
       setDraft(initialLeaseDraft);
@@ -1411,7 +1399,7 @@ export default function NewLeasePage() {
                 endsOn: draft.endsOn,
                 monthlyRentCents: draft.monthlyRentCents,
                 rentDueDay: draft.rentDueDay,
-                continueMonthToMonthAfterEnd: draft.continueMonthToMonthAfterEnd,
+                continueMonthToMonthAfterEnd: false,
               })
             : null;
 
@@ -1585,13 +1573,8 @@ export default function NewLeasePage() {
                     />
                   ) : currentIndex === 2 ? (
                     <LeaseTermsSelector
-                      continueMonthToMonthAfterEnd={draft.continueMonthToMonthAfterEnd}
                       endsOn={draft.endsOn}
                       error={stepError}
-                      onContinueMonthToMonthAfterEndChange={(continueMonthToMonthAfterEnd) => {
-                        setStepError(null);
-                        setDraft((current) => ({ ...current, continueMonthToMonthAfterEnd }));
-                      }}
                       onEndsOnChange={(endsOn) => {
                         setStepError(null);
                         setDraft((current) => ({ ...current, endsOn }));
@@ -1609,8 +1592,6 @@ export default function NewLeasePage() {
                         setDraft((current) => ({
                           ...current,
                           termType,
-                          continueMonthToMonthAfterEnd:
-                            termType === "fixed" ? current.continueMonthToMonthAfterEnd : false,
                           endsOn: termType === "fixed" ? current.endsOn : "",
                         }));
                       }}
