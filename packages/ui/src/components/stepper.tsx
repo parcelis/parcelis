@@ -235,7 +235,7 @@ function StepperTrigger({
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
     onClick?.(event);
-    if (!event.defaultPrevented) void stepper.goTo(step.id);
+    if (!isDisabled && !event.defaultPrevented) void stepper.goTo(step.id);
   }
 
   const Component = asChild ? Slot : "button";
