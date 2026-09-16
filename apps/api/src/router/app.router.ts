@@ -1847,7 +1847,6 @@ export const appRouter = router({
                 where: {
                   propertyId: input.propertyId,
                   unitId: input.unitId,
-                  securityDepositCents: input.securityDepositCents,
                   status: { in: [LeaseStatus.active, LeaseStatus.notice] },
                 },
                 select: { id: true },
