@@ -33,6 +33,17 @@ const individualLeaseInput = {
 
 for (const [name, input, message] of [
   [
+    "zero rent allocations",
+    {
+      ...individualLeaseInput,
+      tenantAllocations: [
+        { tenantId: 11, rentShareCents: 0, depositShareCents: 1_000 },
+        { tenantId: 12, rentShareCents: 10_000, depositShareCents: 2_000 },
+      ],
+    },
+    "Too small: expected number to be >0",
+  ],
+  [
     "duplicate allocation tenants",
     {
       ...individualLeaseInput,

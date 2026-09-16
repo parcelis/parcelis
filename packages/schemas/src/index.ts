@@ -431,7 +431,7 @@ export const leaseBillingResponsibilitySchema = z.enum(leaseBillingResponsibilit
 
 export const leaseTenantAllocationSchema = z.object({
   tenantId: idSchema,
-  rentShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+  rentShareCents: z.number().int().positive().max(maxDatabaseInteger),
   depositShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
 });
 
