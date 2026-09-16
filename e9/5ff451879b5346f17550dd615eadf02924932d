@@ -1,0 +1,19 @@
+packages/ui/src/components/stepper.tsx
+  s_b3ff8c71d09ffb::t_55bcf39528141d 238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e95ff451879b5346f17550dd615eadf02924932d",
+  "prompts": {},
+  "sessions": {
+    "s_b3ff8c71d09ffb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a812-774f-7222-9c6c-abb1a8a75026",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
