@@ -201,20 +201,22 @@ function StepperTrigger({ asChild = false, className, children, tabIndex, ...pro
     },
     [registerTrigger],
   );
-  const triggerIndex = triggerNodes.findIndex((node) => node === buttonRef.current);
-
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    const previousIndex = (triggerIndex - 1 + triggerNodes.length) % triggerNodes.length;
-    const nextIndex = (triggerIndex + 1) % triggerNodes.length;
+    const enabledTriggerNodes = triggerNodes.filter((node) => !node.disabled);
+    const enabledTriggerIndex = enabledTriggerNodes.findIndex((node) => node === buttonRef.current);
+    if (enabledTriggerIndex === -1) return;
+
+    const previousIndex = (enabledTriggerIndex - 1 + enabledTriggerNodes.length) % enabledTriggerNodes.length;
+    const nextIndex = (enabledTriggerIndex + 1) % enabledTriggerNodes.length;
     if (["ArrowRight", "ArrowDown"].includes(event.key)) {
       event.preventDefault();
-      triggerNodes[nextIndex]?.focus();
+      enabledTriggerNodes[nextIndex]?.focus();
     } else if (["ArrowLeft", "ArrowUp"].includes(event.key)) {
       event.preventDefault();
-      triggerNodes[previousIndex]?.focus();
+      enabledTriggerNodes[previousIndex]?.focus();
     } else if (event.key === "Home" || event.key === "End") {
       event.preventDefault();
-      (event.key === "Home" ? triggerNodes[0] : triggerNodes.at(-1))?.focus();
+      (event.key === "Home" ? enabledTriggerNodes[0] : enabledTriggerNodes.at(-1))?.focus();
     }
   }
 
