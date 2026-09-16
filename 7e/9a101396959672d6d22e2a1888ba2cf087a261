@@ -1,0 +1,27 @@
+packages/db/prisma/migrations/20260916120000_allow_recipient_invoice_payments/migration.sql
+  s_4c1bede568cb85::t_c1018fe3972289 13-17
+  s_4c1bede568cb85::t_36dedb7b0ad4a3 1-12,18-23
+packages/db/prisma/schema.prisma
+  s_4c1bede568cb85::t_36dedb7b0ad4a3 614,640,647
+  s_4c1bede568cb85::t_c1018fe3972289 646
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_4c1bede568cb85::t_36dedb7b0ad4a3 55,64-100
+apps/api/src/router/app.router.ts
+  s_4c1bede568cb85::t_36dedb7b0ad4a3 2195,2284
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "7e9a101396959672d6d22e2a1888ba2cf087a261",
+  "prompts": {},
+  "sessions": {
+    "s_4c1bede568cb85": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0aafd-38d2-7020-a47f-9ed4f6f768fd",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
