@@ -57,15 +57,16 @@ export function RecordPaymentDrawer({
   const [entries, setEntries] = React.useState<PaymentEntry[]>([]);
   const [snapshot, setSnapshot] = React.useState("");
   const [discardOpen, setDiscardOpen] = React.useState(false);
+  const payerTenants = React.useMemo(() => invoice.recipients.map(({ tenant }) => tenant), [invoice.recipients]);
   const subject = invoice.items[0]?.description || invoice.items[0]?.item || "Invoice payment";
   const createEntry = React.useCallback(
     (): PaymentEntry => ({
       amount: "",
       method: "",
       paidOn: getLocalDateInput(),
-      tenantId: String(invoice.tenant.id),
+      tenantId: String(payerTenants[0]?.id ?? invoice.tenant.id),
     }),
-    [invoice.tenant.id],
+    [invoice.tenant.id, payerTenants],
   );
   React.useEffect(() => {
     if (!open) return;
@@ -196,9 +197,11 @@ export function RecordPaymentDrawer({
                       value={entry.tenantId}
                       onChange={(event) => updateEntry(index, { tenantId: event.target.value })}
                     >
-                      <option value={invoice.tenant.id}>
-                        {invoice.tenant.firstName} {invoice.tenant.lastName}
-                      </option>
+                      {payerTenants.map((tenant) => (
+                        <option key={tenant.id} value={tenant.id}>
+                          {tenant.firstName} {tenant.lastName}
+                        </option>
+                      ))}
                     </Select>
                   </Label>
                   <Label className="gap-2">
