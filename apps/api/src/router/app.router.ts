@@ -1923,7 +1923,7 @@ export const appRouter = router({
         if (invoice) await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
         await ctx.prisma.$transaction(async (tx) => {
           const payment = await tx.invoicePayment.findFirst({
-            where: { tenantId: input.id },
+            where: { OR: [{ tenantId: input.id }, { invoice: { tenantId: input.id } }] },
             select: { id: true },
           });
           if (payment) {
