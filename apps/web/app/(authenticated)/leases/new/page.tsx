@@ -1074,10 +1074,19 @@ export default function NewLeasePage() {
     },
     onSuccess: async ({ imageUploadError, tenant }) => {
       setIsTenantDrawerOpen(false);
-      setDraft((current) => ({
-        ...current,
-        tenantIds: current.tenantIds.includes(tenant.id) ? current.tenantIds : [...current.tenantIds, tenant.id],
-      }));
+      setDraft((current) => {
+        const tenantIds = current.tenantIds.includes(tenant.id)
+          ? current.tenantIds
+          : [...current.tenantIds, tenant.id];
+        return {
+          ...current,
+          tenantIds,
+          tenantAllocations:
+            current.billingResponsibility === "individual"
+              ? synchronizeTenantAllocations(tenantIds, current.tenantAllocations)
+              : [],
+        };
+      });
       setTenantForm(initialTenantFormState);
       setTenantImageFile(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
@@ -1288,12 +1297,12 @@ export default function NewLeasePage() {
                       onValueChange={(tenantIds) => {
                         setStepError(null);
                         setDraft((current) => ({
-                           ...current,
-                           tenantIds,
-                           tenantAllocations: synchronizeTenantAllocations(
-                             tenantIds,
-                             current.tenantAllocations,
-                           ),
+                          ...current,
+                          tenantIds,
+                          tenantAllocations:
+                            current.billingResponsibility === "individual"
+                              ? synchronizeTenantAllocations(tenantIds, current.tenantAllocations)
+                              : [],
                         }));
                       }}
                        securityDepositCents={draft.securityDepositCents}
