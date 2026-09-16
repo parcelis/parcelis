@@ -44,8 +44,8 @@ export function Calendar({
         day_button:
           "flex h-9 w-full items-center justify-center rounded-md font-medium text-parcelis-charcoal transition hover:bg-parcelis-porcelain focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green dark:text-parcelis-porcelain dark:hover:bg-parcelis-slate",
         selected: "bg-parcelis-green text-parcelis-charcoal hover:bg-parcelis-green-hover",
-        today: "font-bold text-parcelis-green",
-        outside: "text-parcelis-gray/50",
+        today: "font-bold [&>button]:!font-bold [&>button]:!text-parcelis-green",
+        outside: "[&>button]:!text-parcelis-gray/50",
         disabled: "cursor-not-allowed text-parcelis-gray/50 opacity-50",
         hidden: "invisible",
         ...classNames,

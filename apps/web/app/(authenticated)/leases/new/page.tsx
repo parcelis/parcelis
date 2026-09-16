@@ -211,9 +211,9 @@ function migrateLeaseDraft(value: unknown): LeaseDraft | null {
       propertyId: value.propertyId,
       unitId: value.unitId,
       tenantIds: value.tenantIds,
-      termType: value.termType,
+      termType: value.continueMonthToMonthAfterEnd ? "month_to_month" : value.termType,
       startsOn: value.startsOn,
-      endsOn: value.endsOn,
+      endsOn: value.continueMonthToMonthAfterEnd ? "" : value.endsOn,
       monthlyRentCents: value.monthlyRentCents,
       securityDepositCents: value.depositCents,
       rentDueDay:
@@ -233,9 +233,9 @@ function migrateLeaseDraft(value: unknown): LeaseDraft | null {
     propertyId: value.propertyId,
     unitId: value.unitId,
     tenantIds: value.tenantIds,
-    termType: value.termType,
+    termType: value.continueMonthToMonthAfterEnd ? "month_to_month" : value.termType,
     startsOn: value.startsOn,
-    endsOn: value.endsOn,
+    endsOn: value.continueMonthToMonthAfterEnd ? "" : value.endsOn,
     monthlyRentCents: value.monthlyRentCents,
     securityDepositCents: value.securityDepositCents,
     rentDueDay:
@@ -725,6 +725,9 @@ function ResidentsSelector({
   const billingValidationMessages = [
     ...(monthlyRentCents === null || monthlyRentCents <= 0 ? ["Enter a monthly rent amount greater than $0."] : []),
     ...(securityDepositCents === null ? ["Enter the security deposit amount."] : []),
+    ...(billingResponsibility === "individual" && displayedAllocations.some((allocation) => allocation.rentShareCents <= 0)
+      ? ["Each tenant must have a rent allocation greater than $0.00."]
+      : []),
     ...(billingResponsibility === "individual" && monthlyRentCents !== null && allocatedRentCents !== monthlyRentCents
       ? [
           `Rent allocations total ${formatCurrencyExact(allocatedRentCents)}; ${formatCurrencyExact(
@@ -1577,7 +1580,11 @@ export default function NewLeasePage() {
         onImageChange={setPropertyImageFile}
         onOpenChange={(open) => {
           setIsPropertyDrawerOpen(open);
-          if (!open) setPropertyImageFile(null);
+          if (!open) {
+            setPropertyForm(initialPropertyFormState);
+            setPropertyImageFile(null);
+            createProperty.reset();
+          }
         }}
         onSubmit={(input, imageFile) => createProperty.mutate({ imageFile, input })}
         open={isPropertyDrawerOpen}
