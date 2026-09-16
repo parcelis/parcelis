@@ -1922,6 +1922,17 @@ export const appRouter = router({
         if (lease) await requirePermission(ctx.prisma, ctx.user.role, "leases", "delete");
         if (invoice) await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
         await ctx.prisma.$transaction(async (tx) => {
+          const payment = await tx.invoicePayment.findFirst({
+            where: { tenantId: input.id },
+            select: { id: true },
+          });
+          if (payment) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "A tenant with payment history cannot be deleted.",
+            });
+          }
+
           // Find all active leases this tenant is on
           const tenantLeases = await tx.leaseTenant.findMany({
             where: { tenantId: input.id },
