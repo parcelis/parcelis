@@ -1013,7 +1013,6 @@ export const appRouter = router({
                 select: {
                   leases: {
                     where: {
-                      archivedAt: null,
                       status: { in: [LeaseStatus.active, LeaseStatus.notice] },
                     },
                   },
