@@ -18,6 +18,6 @@ ALTER TABLE "InvoicePayment"
 ADD CONSTRAINT "InvoicePayment_organizationId_invoiceId_tenantId_fkey"
 FOREIGN KEY ("organizationId", "invoiceId", "tenantId")
 REFERENCES "InvoiceRecipient"("organizationId", "invoiceId", "tenantId")
-ON DELETE RESTRICT ON UPDATE CASCADE;
+ON DELETE CASCADE ON UPDATE CASCADE;
 
 CREATE INDEX "InvoicePayment_organizationId_idx" ON "InvoicePayment"("organizationId");
