@@ -524,6 +524,8 @@ export function PropertyDrawer({
   }
 
   function closeAndReset() {
+    if (isPending) return;
+
     if (hasFormChanges || hasUnitDetailsChanges || hasImageChange) {
       setIsDiscardDialogOpen(true);
       return;
