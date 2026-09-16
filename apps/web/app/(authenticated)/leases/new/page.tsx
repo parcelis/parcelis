@@ -76,6 +76,11 @@ type LeaseDraft = {
   }>;
 };
 
+type LeaseDraftV3 = Omit<LeaseDraft, "version" | "securityDepositCents" | "billingResponsibility" | "allowPartialPayments" | "tenantAllocations"> & {
+  version: 3;
+  depositCents: number | null;
+};
+
 type CreatePropertyResult = {
   imageUploadError: Error | null;
   property: Awaited<ReturnType<typeof apiClient.properties.create.mutate>>;
@@ -138,6 +143,42 @@ function isLeaseDraft(value: unknown): value is LeaseDraft {
         typeof (allocation as Record<string, unknown>).depositShareCents === "number",
     )
   );
+}
+
+function isLeaseDraftV3(value: unknown): value is LeaseDraftV3 {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Record<string, unknown>;
+  return (
+    draft.version === 3 &&
+    typeof draft.currentStep === "string" &&
+    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
+    (typeof draft.propertyId === "number" || draft.propertyId === null) &&
+    (typeof draft.unitId === "number" || draft.unitId === null) &&
+    Array.isArray(draft.tenantIds) &&
+    draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
+    (draft.termType === "fixed" || draft.termType === "month_to_month") &&
+    typeof draft.continueMonthToMonthAfterEnd === "boolean" &&
+    typeof draft.startsOn === "string" &&
+    typeof draft.endsOn === "string" &&
+    (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
+    (typeof draft.depositCents === "number" || draft.depositCents === null) &&
+    (typeof draft.billingDay === "number" || draft.billingDay === null)
+  );
+}
+
+function migrateLeaseDraft(value: unknown): LeaseDraft | null {
+  if (isLeaseDraft(value)) return value;
+  if (!isLeaseDraftV3(value)) return null;
+
+  const { depositCents, ...draft } = value;
+  return {
+    ...draft,
+    version: 4,
+    securityDepositCents: depositCents,
+    billingResponsibility: "joint",
+    allowPartialPayments: true,
+    tenantAllocations: [],
+  };
 }
 
 function formatCurrency(cents: number) {
@@ -1055,7 +1096,8 @@ export default function NewLeasePage() {
       const storedDraft = window.sessionStorage.getItem(storageKey);
       if (storedDraft) {
         const parsedDraft: unknown = JSON.parse(storedDraft);
-        if (isLeaseDraft(parsedDraft)) setDraft(parsedDraft);
+        const migratedDraft = migrateLeaseDraft(parsedDraft);
+        if (migratedDraft) setDraft(migratedDraft);
       }
     } catch {
       setDraft(initialLeaseDraft);
