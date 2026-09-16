@@ -1392,15 +1392,22 @@ function LeaseTermsSelector({
   );
 }
 
-function LeaseReviewPropertyAndUnit({ propertyId, unitId }: { propertyId: number | null; unitId: number | null }) {
+function LeaseReviewPropertyAndUnit({ billingResponsibility, propertyId, tenantIds, unitId, }: { billingResponsibility: LeaseDraft["billingResponsibility"]; propertyId: number | null;  tenantIds: number[]; unitId: number | null; }) {
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
   });
+  const tenantsQuery = useQuery({
+    queryKey: queryKeys.tenants.list,
+    queryFn: () => apiClient.tenants.list.query(),
+  });
   const property = propertiesQuery.data?.find((item) => item.id === propertyId);
   const unit = property?.units.find((item) => item.id === unitId);
+  const residents = tenantIds
+    .map((tenantId) => tenantsQuery.data?.find((tenant) => tenant.id === tenantId))
+    .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant));
 
-  if (propertiesQuery.isLoading) return <LoadingState label="Loading selected property" />;
+  if (propertiesQuery.isLoading || tenantsQuery.isLoading) return <LoadingState label="Loading lease details" />;
 
   return (
     <div className="flex w-full flex-1 flex-col gap-6 p-5 md:p-6">
@@ -1432,6 +1439,45 @@ function LeaseReviewPropertyAndUnit({ propertyId, unitId }: { propertyId: number
                 {unit?.name ?? "Not selected"}
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+      <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
+        <div className="border-b border-parcelis-border px-4 py-3">
+          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Residents and responsibility</h3>
+        </div>
+        <div className="flex flex-col gap-4 p-4 md:flex-row">
+          <div className="flex flex-1 flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
+              Residents
+            </p>
+            {residents.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {residents.map((resident) => (
+                  <span
+                    className="rounded-md bg-parcelis-porcelain/60 px-3 py-2 text-sm font-semibold text-parcelis-charcoal dark:bg-parcelis-charcoal/55 dark:text-white"
+                    key={resident.id}
+                  >
+                    {resident.firstName} {resident.lastName}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm font-medium text-parcelis-charcoal dark:text-white">No residents selected</p>
+            )}
+          </div>
+          <div className="flex flex-1 flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
+              Billing responsibility
+            </p>
+            <p className="font-semibold text-parcelis-charcoal dark:text-white">
+              {billingResponsibility === "joint" ? "Joint responsibility" : "Individual responsibility"}
+            </p>
+            <p className="text-sm leading-6 text-parcelis-gray dark:text-white/65">
+              {billingResponsibility === "joint"
+                ? "All residents are responsible for the full lease amount."
+                : "Each resident is responsible for their assigned rent and deposit share."}
+            </p>
           </div>
         </div>
       </section>
@@ -1785,7 +1831,12 @@ export default function NewLeasePage() {
                       unitId={draft.unitId}
                     />
                   ) : currentIndex === 3 ? (
-                    <LeaseReviewPropertyAndUnit propertyId={draft.propertyId} unitId={draft.unitId} />
+                    <LeaseReviewPropertyAndUnit
+                      billingResponsibility={draft.billingResponsibility}
+                      propertyId={draft.propertyId}
+                      tenantIds={draft.tenantIds}
+                      unitId={draft.unitId}
+                    />
                   ) : (
                     <>
                       <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">
