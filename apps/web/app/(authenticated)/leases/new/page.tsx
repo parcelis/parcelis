@@ -198,6 +198,40 @@ function parseCurrencyInput(value: string) {
   return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : null;
 }
 
+function CurrencyInput({
+  cents,
+  onCentsChange,
+}: {
+  cents: number | null;
+  onCentsChange: (cents: number | null) => void;
+}) {
+  const [inputValue, setInputValue] = React.useState(() => formatCurrencyInput(cents));
+  const [isFocused, setIsFocused] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isFocused) setInputValue(formatCurrencyInput(cents));
+  }, [cents, isFocused]);
+
+  return (
+    <Input
+      inputMode="decimal"
+      min="0"
+      onBlur={() => {
+        setIsFocused(false);
+        const nextCents = parseCurrencyInput(inputValue);
+        onCentsChange(nextCents);
+        setInputValue(formatCurrencyInput(nextCents));
+      }}
+      onChange={(event) => setInputValue(event.target.value)}
+      onFocus={() => setIsFocused(true)}
+      placeholder="0.00"
+      step="0.01"
+      type="number"
+      value={inputValue}
+    />
+  );
+}
+
 function formatPercentage(cents: number, totalCents: number | null) {
   if (!totalCents) return "0";
   return ((cents / totalCents) * 100).toFixed(2);
@@ -754,27 +788,11 @@ function ResidentsSelector({
             <div className="flex flex-col gap-4 sm:flex-row">
               <label className="flex flex-1 flex-col gap-2 text-sm font-semibold text-parcelis-charcoal">
                 Monthly rent
-                <Input
-                  inputMode="decimal"
-                  min="0"
-                  onChange={(event) => onMonthlyRentCentsChange(parseCurrencyInput(event.target.value))}
-                  placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                  value={formatCurrencyInput(monthlyRentCents)}
-                />
+                <CurrencyInput cents={monthlyRentCents} onCentsChange={onMonthlyRentCentsChange} />
               </label>
               <label className="flex flex-1 flex-col gap-2 text-sm font-semibold text-parcelis-charcoal">
                 Security deposit
-                <Input
-                  inputMode="decimal"
-                  min="0"
-                  onChange={(event) => onSecurityDepositCentsChange(parseCurrencyInput(event.target.value))}
-                  placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                  value={formatCurrencyInput(securityDepositCents)}
-                />
+                <CurrencyInput cents={securityDepositCents} onCentsChange={onSecurityDepositCentsChange} />
               </label>
             </div>
 
