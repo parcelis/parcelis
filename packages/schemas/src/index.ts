@@ -457,7 +457,7 @@ export const leaseTermsStepSchema = z
     termType: leaseTermTypeSchema,
     startsOn: z.string().date(),
     endsOn: z.union([z.string().date(), z.literal("")]),
-    monthlyRentCents: z.number().int().positive(),
+    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
     continueMonthToMonthAfterEnd: z.boolean(),
   })
   .refine((lease) => lease.termType !== "fixed" || Boolean(lease.endsOn), {
@@ -578,7 +578,7 @@ export const leaseSchema = z.object({
   id: idSchema,
   propertyId: idSchema,
   unitId: idSchema,
-  monthlyRentCents: z.number().int().positive(),
+  monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
   startsOn: z.coerce.date(),
   endsOn: z.coerce.date().nullable(),
   status: leaseStatusSchema,
