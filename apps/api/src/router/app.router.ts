@@ -1865,6 +1865,7 @@ export const appRouter = router({
                   organizationId: ctx.organization.organizationId,
                   propertyId: input.propertyId,
                   unitId: input.unitId,
+                  securityDepositCents: input.securityDepositCents,
                   billingResponsibility: input.billingResponsibility,
                   allowPartialPayments: input.allowPartialPayments,
                   monthlyRentCents: input.monthlyRentCents,
