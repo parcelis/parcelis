@@ -970,7 +970,11 @@ function ResidentsSelector({
                 <h3 className="font-semibold text-parcelis-charcoal">Partial payments</h3>
                 <p className="mt-1 text-sm leading-6 text-parcelis-gray">Tenants may submit partial invoice payments.</p>
               </div>
-              <Switch checked={allowPartialPayments} onCheckedChange={onAllowPartialPaymentsChange} />
+              <Switch
+                aria-label="Allow partial payments"
+                checked={allowPartialPayments}
+                onCheckedChange={onAllowPartialPaymentsChange}
+              />
             </div>
           </div>
         </div>
