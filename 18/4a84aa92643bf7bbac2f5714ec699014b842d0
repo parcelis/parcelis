@@ -1,0 +1,21 @@
+packages/ui/src/components/calendar.tsx
+  s_7f5c5df2de3b63::t_04d21c567fdd53 47-48
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_7f5c5df2de3b63::t_04d21c567fdd53 214,216,236,238,728-730,1583-1587
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "184a84aa92643bf7bbac2f5714ec699014b842d0",
+  "prompts": {},
+  "sessions": {
+    "s_7f5c5df2de3b63": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0abd2-b56a-7bd0-baa2-0d3d9f073d2b",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
