@@ -1392,7 +1392,29 @@ function LeaseTermsSelector({
   );
 }
 
-function LeaseReviewPropertyAndUnit({ billingResponsibility, propertyId, tenantIds, unitId, }: { billingResponsibility: LeaseDraft["billingResponsibility"]; propertyId: number | null;  tenantIds: number[]; unitId: number | null; }) {
+function LeaseReviewPropertyAndUnit({
+  billingResponsibility,
+  continueMonthToMonthAfterEnd,
+  endsOn,
+  monthlyRentCents,
+  propertyId,
+  rentDueDay,
+  startsOn,
+  tenantIds,
+  termType,
+  unitId,
+}: {
+  billingResponsibility: LeaseDraft["billingResponsibility"];
+  continueMonthToMonthAfterEnd: boolean;
+  endsOn: string;
+  monthlyRentCents: number | null;
+  propertyId: number | null;
+  rentDueDay: number;
+  startsOn: string;
+  tenantIds: number[];
+  termType: LeaseDraft["termType"];
+  unitId: number | null;
+}) {
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -1481,6 +1503,40 @@ function LeaseReviewPropertyAndUnit({ billingResponsibility, propertyId, tenantI
           </div>
         </div>
       </section>
+      <section className="rounded-lg border border-parcelis-border dark:bg-parcelis-slate">
+        <div className="border-b border-parcelis-border px-4 py-3">
+          <h3 className="font-semibold text-parcelis-charcoal dark:text-white">Lease terms</h3>
+        </div>
+        <div className="flex flex-wrap gap-4 p-4">
+          <ReviewDetail label="Lease type" value={termType === "fixed" ? "Fixed term" : "Month-to-month"} />
+          <ReviewDetail label="Start date" value={formatDateLabel(parseDateInput(startsOn) ?? new Date(startsOn))} />
+          <ReviewDetail
+            label="End date"
+            value={
+              termType === "month_to_month"
+                ? "Month-to-month"
+                : formatDateLabel(parseDateInput(endsOn) ?? new Date(endsOn))
+            }
+          />
+          <ReviewDetail
+            label="Monthly rent"
+            value={monthlyRentCents === null ? "Not set" : `${formatCurrency(monthlyRentCents)}/month`}
+          />
+          <ReviewDetail label="Rent due" value={`${formatDayOfMonth(rentDueDay)} of each month`} />
+          {termType === "fixed" ? (
+            <ReviewDetail label="Continues month-to-month" value={continueMonthToMonthAfterEnd ? "Yes" : "No"} />
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ReviewDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-40 flex-1 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">{label}</p>
+      <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">{value}</p>
     </div>
   );
 }
@@ -1833,8 +1889,14 @@ export default function NewLeasePage() {
                   ) : currentIndex === 3 ? (
                     <LeaseReviewPropertyAndUnit
                       billingResponsibility={draft.billingResponsibility}
+                      continueMonthToMonthAfterEnd={draft.continueMonthToMonthAfterEnd}
+                      endsOn={draft.endsOn}
+                      monthlyRentCents={draft.monthlyRentCents}
                       propertyId={draft.propertyId}
+                      rentDueDay={draft.rentDueDay}
+                      startsOn={draft.startsOn}
                       tenantIds={draft.tenantIds}
+                      termType={draft.termType}
                       unitId={draft.unitId}
                     />
                   ) : (
