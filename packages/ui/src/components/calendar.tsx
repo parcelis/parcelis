@@ -46,7 +46,7 @@ export function Calendar({
         day: "relative flex h-9 flex-1 p-0 text-center text-sm",
         day_button:
           "flex h-9 w-full items-center justify-center rounded-md font-medium text-parcelis-charcoal transition hover:bg-parcelis-porcelain focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-parcelis-green dark:text-parcelis-porcelain dark:hover:bg-parcelis-slate",
-        selected: "bg-parcelis-green text-parcelis-charcoal hover:bg-parcelis-green-hover",
+        selected: "bg-parcelis-green text-parcelis-charcoal [&>button]:bg-parcelis-green [&>button]:text-parcelis-charcoal [&>button]:hover:bg-parcelis-green-hover",
         today: "font-bold [&>button]:!font-bold [&>button]:!text-parcelis-green",
         outside: "[&>button]:!text-parcelis-gray/50",
         disabled: "cursor-not-allowed text-parcelis-gray/50 opacity-50",
