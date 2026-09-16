@@ -2118,7 +2118,7 @@ export const appRouter = router({
               const existingInvoice = await tx.invoice.findFirst({
                 where: {
                   leaseId: lease.id,
-                  ...(lease.billingResponsibility === "individual" ? { tenantId: input.tenantId } : {}),
+              ...(lease.billingResponsibility === "joint" ? {} : { tenantId: input.tenantId }),
                   periodStartsOn: dueOn,
                 },
                 select: { invoiceNumber: true },
