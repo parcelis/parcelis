@@ -48,6 +48,11 @@ type LeaseDraft = {
   billingDay: number | null;
 };
 
+type CreatePropertyResult = {
+  imageUploadError: Error | null;
+  property: Awaited<ReturnType<typeof apiClient.properties.create.mutate>>;
+};
+
 const initialLeaseDraft: LeaseDraft = {
   version: 3,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
@@ -388,17 +393,40 @@ export default function NewLeasePage() {
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
   const createProperty = useMutation({
-    mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
+    mutationFn: async ({
+      imageFile,
+      input,
+    }: {
+      imageFile: File | null;
+      input: CreatePropertyInput;
+    }): Promise<CreatePropertyResult> => {
       const property = await apiClient.properties.create.mutate(input);
-      if (imageFile) await uploadPropertyImage(property.id, imageFile);
-      return property;
+      if (!imageFile) return { imageUploadError: null, property };
+
+      try {
+        await uploadPropertyImage(property.id, imageFile);
+        return { imageUploadError: null, property };
+      } catch (error) {
+        const imageUploadError =
+          error instanceof Error ? error : new Error("The property image could not be uploaded.");
+        try {
+          await apiClient.properties.delete.mutate({ id: property.id });
+        } catch {
+          return { imageUploadError, property };
+        }
+        throw imageUploadError;
+      }
     },
-    onSuccess: async (property) => {
+    onSuccess: async ({ imageUploadError, property }) => {
       setPropertyForm(initialPropertyFormState);
       setPropertyImageFile(null);
       setIsPropertyDrawerOpen(false);
       await queryClient.invalidateQueries({ queryKey: queryKeys.properties.list });
-      toast.success(entityCreatedMessage("Property", property.name));
+      if (imageUploadError) {
+        toast.error(`Property ${property.name} was created, but its image could not be uploaded.`);
+      } else {
+        toast.success(entityCreatedMessage("Property", property.name));
+      }
     },
   });
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
