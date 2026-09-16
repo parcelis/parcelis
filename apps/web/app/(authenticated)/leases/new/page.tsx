@@ -127,14 +127,9 @@ function PropertySelector({
 
   const propertyGroups = (propertiesQuery.data ?? []).flatMap((property) => {
     if (property.status === "archived") return [];
-    const unavailableUnitNames = new Set(
-      property.leases
-        .filter((lease) => lease.status === "active" || lease.status === "notice")
-        .map((lease) => lease.unitLabel),
-    );
     const units = property.units
       .filter((unit) => !unit.archivedAt)
-      .map((unit) => ({ ...unit, isAvailable: !unavailableUnitNames.has(unit.name) }))
+      .map((unit) => ({ ...unit, isAvailable: !unit.isOccupied }))
       .filter((unit) => availabilityFilter === "all" || unit.isAvailable);
     return units.length > 0 ? [{ property, units }] : [];
   });

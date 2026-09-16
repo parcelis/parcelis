@@ -1009,6 +1009,16 @@ export const appRouter = router({
           units: {
             orderBy: { createdAt: "asc" },
             include: {
+              _count: {
+                select: {
+                  leases: {
+                    where: {
+                      archivedAt: null,
+                      status: { in: [LeaseStatus.active, LeaseStatus.notice] },
+                    },
+                  },
+                },
+              },
               amenities: {
                 select: { option: { select: { id: true, label: true } } },
               },
@@ -1049,7 +1059,10 @@ export const appRouter = router({
               ...property,
               leases,
             }),
-            units: property.units.map(serializeUnit),
+            units: property.units.map(({ _count, ...unit }) => ({
+              ...serializeUnit(unit),
+              isOccupied: _count.leases > 0,
+            })),
           });
           return {
             ...result,
