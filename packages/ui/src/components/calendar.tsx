@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
@@ -24,7 +26,8 @@ export function Calendar({
         months: "flex flex-col gap-4",
         month: "relative flex flex-col gap-4",
         month_caption: "flex h-8 items-center justify-center px-9",
-        caption_label: "sr-only",
+        caption_label:
+          captionLayout === "label" ? "text-sm font-medium text-parcelis-charcoal dark:text-parcelis-porcelain" : "sr-only",
         dropdowns: "flex min-w-0 items-center gap-1",
         dropdown_root: "relative",
         dropdown:
