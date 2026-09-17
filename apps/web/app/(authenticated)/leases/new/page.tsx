@@ -83,6 +83,12 @@ type LeaseDraft = {
   }>;
 };
 
+type LeaseDraftIdentity = {
+  leaseDraftKey: string;
+  leaseId: number | null;
+  revision: number;
+};
+
 type LeaseDraftV4 = Omit<LeaseDraft, "version" | "rentDueDay"> & {
   version: 4;
   billingDay: number | null;
@@ -1616,6 +1622,11 @@ export default function NewLeasePage() {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const [draft, setDraft] = React.useState<LeaseDraft>(initialLeaseDraft);
+  const [draftIdentity, setDraftIdentity] = React.useState<LeaseDraftIdentity>({
+    leaseDraftKey: "",
+    leaseId: null,
+    revision: 0,
+  });
   const [hydratedStorageKey, setHydratedStorageKey] = React.useState<string | null>(null);
   const activeOrganizationQuery = useQuery({
     queryKey: [...queryKeys.organizations.active, pathname],
@@ -1694,6 +1705,12 @@ export default function NewLeasePage() {
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
   const step = leaseCreationSteps[currentIndex];
   const isLastStep = currentIndex === leaseCreationSteps.length - 1;
+
+  React.useEffect(() => {
+    if (!draftIdentity.leaseDraftKey && typeof crypto !== "undefined") {
+      setDraftIdentity((current) => ({ ...current, leaseDraftKey: crypto.randomUUID() }));
+    }
+  }, [draftIdentity.leaseDraftKey]);
 
   React.useEffect(() => {
     if (!storageKey) return;
