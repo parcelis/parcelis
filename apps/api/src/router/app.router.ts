@@ -344,7 +344,7 @@ function serializeUnit<
 function withOperatingMetrics<
   T extends {
     leases: Array<{
-      monthlyRentCents: number;
+      monthlyRentCents: number | null;
       amountOverdueCents: number;
       endsOn: Date | null;
       status: string;
@@ -370,7 +370,7 @@ function withOperatingMetrics<
 
   return {
     ...property,
-    monthlyRentCents: activeLeases.reduce((sum, lease) => sum + lease.monthlyRentCents, 0),
+    monthlyRentCents: activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0),
     amountOverdueCents: activeLeases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0),
     expiringLeases90Days: activeLeases.filter(
       (lease) => lease.endsOn !== null && lease.endsOn >= now && lease.endsOn <= expiresBefore,
@@ -3352,6 +3352,9 @@ export const appRouter = router({
             id: true,
             archivedAt: true,
             status: true,
+            termType: true,
+            draftStep: true,
+            revision: true,
             startsOn: true,
             endsOn: true,
             monthlyRentCents: true,
@@ -3420,6 +3423,12 @@ export const appRouter = router({
     create: permissionProcedure("leases", "create")
       .input(createLeaseWithInvoicesInputSchema)
       .mutation(async ({ ctx, input }) => {
+        if (input.status === LeaseStatus.draft && input.generateInvoices) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Draft leases cannot generate invoices.",
+          });
+        }
         await Promise.all([
           requirePermission(ctx.prisma, ctx.user.role, "properties", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "units", "view"),

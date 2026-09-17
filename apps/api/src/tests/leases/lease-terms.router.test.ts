@@ -56,10 +56,13 @@ test("generated invoices use the lease rent due day", async () => {
     rentDueDay: 31,
   };
   const tx = {
-    property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
+    property: {
+      findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }),
+      update: async () => ({ id: 2, occupiedUnits: 1 }),
+    },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
     tenant: { findMany: async () => [{ id: 11 }] },
-    lease: { create: async () => createdLease },
+    lease: { findFirst: async () => null, create: async () => createdLease },
     invoice: {
       create: async ({ data }: { data: { dueOn: Date } }) => {
         invoiceData.push(data);
@@ -78,7 +81,7 @@ test("generated invoices use the lease rent due day", async () => {
     monthlyRentCents: createdLease.monthlyRentCents,
     startsOn,
     endsOn,
-    status: "draft",
+    status: "active",
     rentDueDay: createdLease.rentDueDay,
     generateInvoices: true,
   });
@@ -105,10 +108,13 @@ test("the first generated invoice is not due before a mid-month lease starts", a
     rentDueDay: 1,
   };
   const tx = {
-    property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
+    property: {
+      findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }),
+      update: async () => ({ id: 2, occupiedUnits: 1 }),
+    },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
     tenant: { findMany: async () => [{ id: 11 }] },
-    lease: { create: async () => createdLease },
+    lease: { findFirst: async () => null, create: async () => createdLease },
     invoice: {
       create: async ({ data }: { data: { dueOn: Date } }) => {
         invoiceData.push(data);
@@ -127,10 +133,29 @@ test("the first generated invoice is not due before a mid-month lease starts", a
     monthlyRentCents: createdLease.monthlyRentCents,
     startsOn,
     endsOn: createdLease.endsOn,
-    status: "draft",
+    status: "active",
     rentDueDay: createdLease.rentDueDay,
     generateInvoices: true,
   });
 
   assert.equal(invoiceData[0]?.dueOn.getTime(), startsOn.getTime());
+});
+
+test("draft leases cannot generate invoices", async () => {
+  const caller = createCaller({});
+
+  await assert.rejects(
+    () =>
+      caller.leases.create({
+        propertyId: 2,
+        unitId: 3,
+        tenantIds: [11],
+        monthlyRentCents: 120_000,
+        startsOn: new Date("2026-01-01"),
+        endsOn: new Date("2026-12-31"),
+        status: "draft",
+        generateInvoices: true,
+      }),
+    { code: "BAD_REQUEST", message: "Draft leases cannot generate invoices." },
+  );
 });

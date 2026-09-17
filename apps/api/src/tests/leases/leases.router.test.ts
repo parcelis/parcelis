@@ -24,7 +24,7 @@ const individualLeaseInput = {
   monthlyRentCents: 10_000,
   startsOn: new Date("2026-01-01"),
   endsOn: new Date("2026-01-01"),
-  status: "draft" as const,
+  status: "active" as const,
   tenantAllocations: [
     { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
     { tenantId: 12, rentShareCents: 6_000, depositShareCents: 2_000 },
@@ -103,10 +103,14 @@ for (const [billingResponsibility, expectedAmounts, expectedRecipients] of [
       generateInvoices: true,
     };
     const tx = {
-      property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
+      property: {
+        findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }),
+        update: async () => ({ id: 2, occupiedUnits: 1 }),
+      },
       unit: { findFirstOrThrow: async () => ({ id: 3 }) },
       tenant: { findMany: async () => [{ id: 11 }, { id: 12 }] },
       lease: {
+        findFirst: async () => null,
         create: async ({ data }: { data: unknown }) => {
           leaseData = data;
           return {
