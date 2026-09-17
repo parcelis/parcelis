@@ -38,7 +38,8 @@ function formatDate(value: Date | string | null) {
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
     : "Month-to-month";
 }
-function formatCurrency(cents: number) {
+function formatCurrency(cents: number | null) {
+  if (cents === null) return "Not set";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
     cents / 100,
   );
