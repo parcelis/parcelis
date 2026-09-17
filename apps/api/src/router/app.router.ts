@@ -1049,7 +1049,7 @@ export const appRouter = router({
             return [
               {
                 ...leaseData,
-                unitLabel: lease.unit.name,
+                unitLabel: lease.unit?.name ?? "Not set",
                 tenant: firstTenant,
                 tenants: lease.tenants.map(({ tenant }) => tenant),
                 invoices,
@@ -1127,7 +1127,7 @@ export const appRouter = router({
           return [
             {
               ...leaseData,
-              unitLabel: lease.unit.name,
+              unitLabel: lease.unit?.name ?? "Not set",
               tenant: firstTenant,
               tenants: lease.tenants.map(({ tenant }) => tenant),
               amountOverdueCents,
@@ -1565,10 +1565,15 @@ export const appRouter = router({
           leases: tenant.leases
             .map(({ lease }) => ({
               ...lease,
-              unitLabel: lease.unit.name,
+              unitLabel: lease.unit?.name ?? "Not set",
               property: lease.property,
             }))
-            .sort((left, right) => right.startsOn.getTime() - left.startsOn.getTime()),
+            .sort((left, right) => {
+              if (left.startsOn && right.startsOn) return right.startsOn.getTime() - left.startsOn.getTime();
+              if (left.startsOn) return -1;
+              if (right.startsOn) return 1;
+              return 0;
+            }),
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
           tenantStatus: getTenantStatus(tenant),
         })),
@@ -1622,7 +1627,7 @@ export const appRouter = router({
           ...tenant,
           leases: tenant.leases.map(({ lease }) => ({
             ...lease,
-            unitLabel: lease.unit.name,
+            unitLabel: lease.unit?.name ?? "Not set",
             property: lease.property,
           })),
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
@@ -1980,7 +1985,10 @@ export const appRouter = router({
 
           const activeLeasesByProperty = new Map<number, number>();
           for (const { lease } of orphanedLeases) {
-            if (lease.status === LeaseStatus.active || lease.status === LeaseStatus.notice) {
+            if (
+              (lease.status === LeaseStatus.active || lease.status === LeaseStatus.notice) &&
+              lease.propertyId !== null
+            ) {
               activeLeasesByProperty.set(lease.propertyId, (activeLeasesByProperty.get(lease.propertyId) ?? 0) + 1);
             }
           }
@@ -2020,7 +2028,7 @@ export const appRouter = router({
 
       return invoices.map(({ lease, ...invoice }) => ({
         ...invoice,
-        lease: { unitLabel: lease.unit.name },
+        lease: { unitLabel: lease.unit?.name ?? "Not set" },
       }));
     }),
     byId: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
@@ -2048,7 +2056,7 @@ export const appRouter = router({
         lease: {
           startsOn: invoice.lease.startsOn,
           endsOn: invoice.lease.endsOn,
-          unitLabel: invoice.lease.unit.name,
+          unitLabel: invoice.lease.unit?.name ?? "Not set",
         },
       };
     }),
@@ -2087,7 +2095,7 @@ export const appRouter = router({
       const fileName = `invoice-${String(invoice.invoiceNumber).padStart(7, "0")}.pdf`;
       const pdfInvoice = {
         ...invoice,
-        lease: { unitLabel: invoice.lease.unit.name },
+        lease: { unitLabel: invoice.lease.unit?.name ?? "Not set" },
       };
       const { renderInvoicePdf } = await import("../modules/invoice-pdf");
       return {
@@ -2107,7 +2115,7 @@ export const appRouter = router({
           tenants: { select: { tenantId: true } },
         },
       });
-      if (!lease || lease.propertyId !== input.propertyId) {
+      if (!lease || lease.propertyId === null || lease.propertyId !== input.propertyId) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property." });
       }
 
@@ -2160,7 +2168,7 @@ export const appRouter = router({
                 data: {
                   organizationId: ctx.organization.organizationId,
                   leaseId: lease.id,
-                  propertyId: lease.propertyId,
+                  propertyId: input.propertyId,
                   tenantId: input.tenantId,
                   recipients: {
                     create: recipientTenantIds.map((tenantId) => ({
@@ -3477,6 +3485,13 @@ export const appRouter = router({
                     tenants: { include: { tenant: true } },
                   },
                 });
+
+                if (createdLease.startsOn === null || createdLease.monthlyRentCents === null) {
+                  throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "A complete lease must include a start date and monthly rent.",
+                  });
+                }
 
                 if (leaseData.status === LeaseStatus.active || leaseData.status === LeaseStatus.notice) {
                   await tx.property.update({
