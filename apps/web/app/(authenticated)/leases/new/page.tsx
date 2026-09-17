@@ -1640,6 +1640,20 @@ export default function NewLeasePage() {
   const [tenantForm, setTenantForm] = React.useState(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = React.useState<File | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
+  const createLeaseDraft = useMutation({
+    mutationFn: (input: { leaseDraftKey: string; propertyId: number; unitId: number }) =>
+      apiClient.leases.createDraft.mutate(input),
+    onSuccess: (lease) => {
+      setDraftIdentity((current) => ({
+        ...current,
+        leaseId: lease.id,
+        leaseDraftKey: lease.leaseDraftKey,
+        revision: lease.revision,
+      }));
+      setStepError(null);
+    },
+    onError: (error) => setStepError(error.message),
+  });
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
       const property = await apiClient.properties.create.mutate(input);
@@ -1887,6 +1901,11 @@ export default function NewLeasePage() {
                       onAddProperty={() => setIsPropertyDrawerOpen(true)}
                       onValueChange={({ propertyId, unitId, monthlyRentCents }) => {
                         setStepError(null);
+                        const leaseDraftKey = draftIdentity.leaseDraftKey || crypto.randomUUID();
+                        if (!draftIdentity.leaseId && !createLeaseDraft.isPending) {
+                          setDraftIdentity((current) => ({ ...current, leaseDraftKey }));
+                          createLeaseDraft.mutate({ leaseDraftKey, propertyId, unitId });
+                        }
                         setDraft((current) => ({
                           ...current,
                           propertyId,
