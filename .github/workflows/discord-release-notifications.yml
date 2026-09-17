@@ -24,9 +24,11 @@ permissions:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    env:
+      DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
     steps:
       - name: Post release changelog
-        if: secrets.DISCORD_RELEASE_WEBHOOK_URL != ''
+        if: env.DISCORD_RELEASE_WEBHOOK_URL != ''
         uses: SethCohen/github-releases-to-discord@v1
         with:
           webhook_url: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
