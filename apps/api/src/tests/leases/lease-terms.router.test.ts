@@ -176,3 +176,29 @@ test("complete leases require a term type", () => {
   assert.equal(result.success, false);
   if (!result.success) assert.equal(result.error.issues.at(-1)?.path[0], "termType");
 });
+
+for (const [name, input] of [
+  [
+    "fixed leases require an end date",
+    { termType: "fixed" as const, endsOn: null },
+  ],
+  [
+    "month-to-month leases reject an end date",
+    { termType: "month_to_month" as const, endsOn: new Date("2026-12-31") },
+  ],
+] as const) {
+  test(name, () => {
+    const result = createLeaseInputSchema.safeParse({
+      propertyId: 2,
+      unitId: 3,
+      tenantIds: [11],
+      monthlyRentCents: 120_000,
+      startsOn: new Date("2026-01-01"),
+      status: "active",
+      ...input,
+    });
+
+    assert.equal(result.success, false);
+    if (!result.success) assert.ok(result.error.issues.some((issue) => issue.path[0] === "endsOn"));
+  });
+}

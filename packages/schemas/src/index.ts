@@ -649,6 +649,20 @@ export const createLeaseInputSchema = leaseSchema
         path: ["termType"],
       });
     }
+    if (lease.status !== "draft" && lease.termType === "fixed" && !lease.endsOn) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A fixed-term lease requires an end date.",
+        path: ["endsOn"],
+      });
+    }
+    if (lease.status !== "draft" && lease.termType === "month_to_month" && lease.endsOn) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A month-to-month lease cannot have an end date.",
+        path: ["endsOn"],
+      });
+    }
     validateLeaseTenantAllocations(lease, ctx);
   });
 
