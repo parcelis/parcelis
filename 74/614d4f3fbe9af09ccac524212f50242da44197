@@ -1,0 +1,29 @@
+apps/api/src/tests/leases/lease-terms.router.test.ts
+  s_7d3631a21b1d01::t_419b74d7d6f0de 59-62,111-114
+  s_7d3631a21b1d01::t_878fb860398496 65,84,117,136,143-160
+apps/api/src/tests/leases/leases.router.test.ts
+  s_7d3631a21b1d01::t_419b74d7d6f0de 106-109
+  s_7d3631a21b1d01::t_878fb860398496 27,113
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_7d3631a21b1d01::t_8c1aa240065622 34,37-42,237,240,270-279,282,287,289-290,292,299
+apps/api/src/router/app.router.ts
+  s_7d3631a21b1d01::t_b1b65f94d30506 347,373
+  s_7d3631a21b1d01::t_878fb860398496 3426-3431
+  s_7d3631a21b1d01::t_8c1aa240065622 3355-3357
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "74614d4f3fbe9af09ccac524212f50242da44197",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
