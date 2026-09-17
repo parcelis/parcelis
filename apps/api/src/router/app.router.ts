@@ -3400,6 +3400,7 @@ export const appRouter = router({
               allowPartialPayments: true,
               draftStep: true,
               revision: true,
+              tenants: { select: { tenantId: true } },
             },
           });
 
@@ -3430,6 +3431,8 @@ export const appRouter = router({
             allowPartialPayments:
               data.allowPartialPayments === undefined ? current.allowPartialPayments : data.allowPartialPayments,
             draftStep: data.draftStep === undefined ? current.draftStep : data.draftStep,
+            tenantIds: data.tenantIds === undefined ? current.tenants.map(({ tenantId }) => tenantId) : data.tenantIds,
+            tenantAllocations: data.tenantAllocations,
           };
           const parsed = leaseDraftDataSchema.safeParse(effective);
           if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: parsed.error.issues[0]?.message });
@@ -3441,6 +3444,13 @@ export const appRouter = router({
             await tx.unit.findFirstOrThrow({
               where: { id: parsed.data.unitId, propertyId: parsed.data.propertyId! },
             });
+          }
+
+          if (data.tenantIds !== undefined) {
+            const tenants = await tx.tenant.findMany({ where: { id: { in: data.tenantIds }, organizationId }, select: { id: true } });
+            if (tenants.length !== data.tenantIds.length) {
+              throw new TRPCError({ code: "NOT_FOUND", message: "One or more residents not found." });
+            }
           }
 
           const updateData: Prisma.LeaseUncheckedUpdateManyInput = {
@@ -3463,6 +3473,26 @@ export const appRouter = router({
             data: updateData,
           });
           if (updated.count !== 1) throw new TRPCError({ code: "CONFLICT", message: "Lease draft has changed. Reload and try again." });
+
+          if (data.tenantIds !== undefined || data.tenantAllocations !== undefined) {
+            await tx.leaseTenant.deleteMany({ where: { organizationId, leaseId: input.leaseId } });
+            const tenantIds = data.tenantIds ?? current.tenants.map(({ tenantId }) => tenantId);
+            const allocations = data.tenantAllocations ?? [];
+            if (tenantIds.length > 0) {
+              await tx.leaseTenant.createMany({
+                data: tenantIds.map((tenantId) => {
+                  const allocation = allocations.find((item) => item.tenantId === tenantId);
+                  return {
+                    organizationId,
+                    leaseId: input.leaseId,
+                    tenantId,
+                    rentShareCents: allocation?.rentShareCents ?? null,
+                    depositShareCents: allocation?.depositShareCents ?? null,
+                  };
+                }),
+              });
+            }
+          }
           return tx.lease.findFirstOrThrow({ where: { id: input.leaseId, organizationId } });
         });
       }),
