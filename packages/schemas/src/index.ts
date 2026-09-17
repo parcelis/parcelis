@@ -437,6 +437,10 @@ export const leaseTenantAllocationSchema = z.object({
   depositShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
 });
 
+const leaseDraftTenantAllocationSchema = leaseTenantAllocationSchema.extend({
+  rentShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+});
+
 const leaseDraftTenantIdsSchema = z
   .array(idSchema)
   .max(50)
@@ -445,28 +449,33 @@ const leaseDraftTenantIdsSchema = z
   });
 
 const leaseDraftTenantAllocationsSchema = z
-  .array(leaseTenantAllocationSchema)
+  .array(leaseDraftTenantAllocationSchema)
   .max(50)
   .refine((allocations) => new Set(allocations.map((allocation) => allocation.tenantId)).size === allocations.length, {
     message: "Each resident can only have one allocation.",
   });
 
-export const leaseDraftDataSchema = z.object({
-  propertyId: idSchema.nullable().optional(),
-  unitId: idSchema.nullable().optional(),
-  tenantIds: leaseDraftTenantIdsSchema.optional(),
-  termType: leaseTermTypeSchema.nullable().optional(),
-  startsOn: z.coerce.date().nullable().optional(),
-  endsOn: z.coerce.date().nullable().optional(),
-  monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger).nullable().optional(),
-  securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).nullable().optional(),
-  rentDueDay: z.number().int().min(1).max(31).optional(),
-  continueMonthToMonthAfterEnd: z.boolean().optional(),
-  billingResponsibility: leaseBillingResponsibilitySchema.nullable().optional(),
-  allowPartialPayments: z.boolean().optional(),
-  tenantAllocations: leaseDraftTenantAllocationsSchema.optional(),
-  draftStep: leaseDraftStepSchema.optional(),
-});
+export const leaseDraftDataSchema = z
+  .object({
+    propertyId: idSchema.nullable().optional(),
+    unitId: idSchema.nullable().optional(),
+    tenantIds: leaseDraftTenantIdsSchema.optional(),
+    termType: leaseTermTypeSchema.nullable().optional(),
+    startsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
+    endsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
+    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger).nullable().optional(),
+    securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).nullable().optional(),
+    rentDueDay: z.number().int().min(1).max(31).optional(),
+    continueMonthToMonthAfterEnd: z.boolean().optional(),
+    billingResponsibility: leaseBillingResponsibilitySchema.nullable().optional(),
+    allowPartialPayments: z.boolean().optional(),
+    tenantAllocations: leaseDraftTenantAllocationsSchema.optional(),
+    draftStep: leaseDraftStepSchema.optional(),
+  })
+  .refine((lease) => lease.unitId === null || lease.unitId === undefined || lease.propertyId != null, {
+    message: "A unit requires a property.",
+    path: ["unitId"],
+  });
 
 export const leaseByIdInputSchema = z.object({ id: idSchema });
 
@@ -607,6 +616,7 @@ export const leaseSchema = z.object({
   id: idSchema,
   propertyId: idSchema,
   unitId: idSchema,
+  termType: leaseTermTypeSchema.nullable(),
   monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
   rentDueDay: z.number().int().min(1).max(31),
   continueMonthToMonthAfterEnd: z.boolean(),
@@ -619,6 +629,7 @@ export const createLeaseInputSchema = leaseSchema
   .omit({ id: true })
   .extend({
     tenantIds: leaseTenantIdsSchema,
+    termType: leaseTermTypeSchema.optional(),
     billingResponsibility: leaseBillingResponsibilitySchema.default("joint"),
     allowPartialPayments: z.boolean().default(true),
     rentDueDay: z.number().int().min(1).max(31).default(1),
@@ -630,7 +641,16 @@ export const createLeaseInputSchema = leaseSchema
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
   })
-  .superRefine(validateLeaseTenantAllocations);
+  .superRefine((lease, ctx) => {
+    if (lease.status !== "draft" && !lease.termType) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A complete lease requires a term type.",
+        path: ["termType"],
+      });
+    }
+    validateLeaseTenantAllocations(lease, ctx);
+  });
 
 export const createLeaseWithInvoicesInputSchema = createLeaseInputSchema.extend({
   generateInvoices: z.boolean().default(false),

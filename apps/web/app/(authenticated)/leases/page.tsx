@@ -22,6 +22,7 @@ import {
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
 import { getLeaseLink, getNewLeaseLink, getTenantLink } from "../../../lib/entity-links";
+import { formatLeaseEndDate } from "../../../lib/format";
 
 type LeaseFilters = {
   status: string;
@@ -36,7 +37,7 @@ const initialFilters: LeaseFilters = {
 function formatDate(value: Date | string | null) {
   return value
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
-    : "Month-to-month";
+    : "Not set";
 }
 function formatCurrency(cents: number | null) {
   if (cents === null) return "Not set";
@@ -296,7 +297,7 @@ function LeaseRow({ lease }: LeaseRowProps) {
       </TableCell>
       <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
         <p>{formatDate(lease.startsOn)}</p>
-        <p className="mt-1">to {formatDate(lease.endsOn)}</p>
+        <p className="mt-1">to {formatLeaseEndDate(lease.endsOn, lease.termType)}</p>
       </TableCell>
       <TableCell className="px-5 py-4 font-semibold text-parcelis-charcoal">
         {formatCurrency(lease.monthlyRentCents)}

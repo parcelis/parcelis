@@ -597,7 +597,7 @@ export default function TenantsPage() {
                                 <p className="font-medium text-parcelis-charcoal">
                                   {activeLease.property?.name ?? "Property not set"}
                                 </p>
-                                <p>Unit {activeLease.unitLabel}</p>
+                                <p>{activeLease.unitLabel === "Not set" ? "Unit not set" : `Unit ${activeLease.unitLabel}`}</p>
                               </>
                             ) : (
                               "No current lease"

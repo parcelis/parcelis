@@ -59,6 +59,7 @@ import {
   getTenantInvoicesLink,
   getUnitLink,
 } from "../../../../../../lib/entity-links";
+import { formatLeaseEndDate } from "../../../../../../lib/format";
 
 function formatStatus(status: string) {
   return status
@@ -82,10 +83,6 @@ function formatDate(date: Date | string | null) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(date));
-}
-
-function formatLeaseEndDate(date: Date | string | null, termType: "fixed" | "month_to_month" | null) {
-  return date ? formatDate(date) : termType === "month_to_month" ? "Month-to-month" : "Not set";
 }
 
 function getInvoiceRows(startDate: Date | string, amountCents: number) {

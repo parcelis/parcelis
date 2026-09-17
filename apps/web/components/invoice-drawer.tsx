@@ -75,9 +75,7 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
   const property = properties.find((item) => item.id === Number(propertyId));
   const unit = property?.units.find((item) => item.id === Number(unitId));
   const leases =
-    property?.leases.filter(
-      (item) => item.unitLabel === unit?.name && (item.status === "active" || item.status === "notice"),
-    ) ?? [];
+    property?.leases.filter((item) => item.unitLabel === unit?.name && item.status !== "draft") ?? [];
   const lease = leases.find((item) => item.id === Number(leaseId));
   const subtotalCents = lines.reduce((total, line) => total + Number(line.quantity || 0) * toCents(line.rate), 0);
   const paidCents = toCents(paid);

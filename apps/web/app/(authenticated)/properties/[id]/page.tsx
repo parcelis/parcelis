@@ -47,6 +47,7 @@ import { EntityLifecycleControls } from "../../../../components/entity-lifecycle
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../lib/entity-links";
+import { formatLeaseEndDate } from "../../../../lib/format";
 
 
 function formatStatus(status: string) {
@@ -72,10 +73,6 @@ function formatDate(date: Date | string | null) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(date));
-}
-
-function formatLeaseEndDate(date: Date | string | null, termType: "fixed" | "month_to_month" | null) {
-  return date ? formatDate(date) : termType === "month_to_month" ? "Month-to-month" : "Not set";
 }
 
 export default function PropertyDetailPage() {

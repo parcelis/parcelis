@@ -970,6 +970,7 @@ export const appRouter = router({
               id: true,
               startsOn: true,
               endsOn: true,
+              termType: true,
               status: true,
               unit: { select: { name: true } },
               tenants: {

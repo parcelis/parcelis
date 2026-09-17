@@ -27,15 +27,12 @@ import { LoadingState } from "../../../../components/loading-state";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { TenantRecordDrawer } from "../../../../components/tenant-record-drawer";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
+import { formatLeaseEndDate } from "../../../../lib/format";
 
 function formatDate(value: Date | string | null) {
   return value
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
     : "Not set";
-}
-
-function formatLeaseEndDate(value: Date | string | null, termType: "fixed" | "month_to_month" | null) {
-  return value ? formatDate(value) : termType === "month_to_month" ? "Month-to-month" : "Not set";
 }
 
 function formatCurrency(cents: number | null) {

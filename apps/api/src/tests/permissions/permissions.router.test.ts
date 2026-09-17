@@ -115,6 +115,7 @@ test("API denies lease creation when create permission is missing", async () => 
       unitId: 1,
       tenantIds: [1],
       monthlyRentCents: 100_000,
+      termType: "fixed",
       startsOn: new Date("2026-01-01"),
       endsOn: null,
       status: "draft",

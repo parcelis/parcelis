@@ -553,7 +553,7 @@ model Lease {
   draftStep                    LeaseDraftStep              @default(property)
   revision                     Int                          @default(0)
   archivedAt                   DateTime?
-  property                     Property?                   @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id])
+  property                     Property?                   @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
   unit                         Unit?                       @relation(fields: [propertyId, unitId], references: [propertyId, id], onDelete: Restrict)
   tenants                      LeaseTenant[]
   invoices                     Invoice[]                   @relation("InvoiceLease")

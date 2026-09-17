@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { leaseTermsStepSchema } from "@parcelis/schemas";
+import { createLeaseInputSchema, leaseTermsStepSchema } from "@parcelis/schemas";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -79,6 +79,7 @@ test("generated invoices use the lease rent due day", async () => {
     unitId: 3,
     tenantIds: [11],
     monthlyRentCents: createdLease.monthlyRentCents,
+    termType: "fixed",
     startsOn,
     endsOn,
     status: "active",
@@ -131,6 +132,7 @@ test("the first generated invoice is not due before a mid-month lease starts", a
     unitId: 3,
     tenantIds: [11],
     monthlyRentCents: createdLease.monthlyRentCents,
+    termType: "fixed",
     startsOn,
     endsOn: createdLease.endsOn,
     status: "active",
@@ -158,4 +160,19 @@ test("draft leases cannot generate invoices", async () => {
       }),
     { code: "BAD_REQUEST", message: "Draft leases cannot generate invoices." },
   );
+});
+
+test("complete leases require a term type", () => {
+  const result = createLeaseInputSchema.safeParse({
+    propertyId: 2,
+    unitId: 3,
+    tenantIds: [11],
+    monthlyRentCents: 120_000,
+    startsOn: new Date("2026-01-01"),
+    endsOn: new Date("2026-12-31"),
+    status: "active",
+  });
+
+  assert.equal(result.success, false);
+  if (!result.success) assert.equal(result.error.issues.at(-1)?.path[0], "termType");
 });

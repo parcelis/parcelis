@@ -22,6 +22,7 @@ const individualLeaseInput = {
   allowPartialPayments: true,
   securityDepositCents: 3_000,
   monthlyRentCents: 10_000,
+  termType: "fixed" as const,
   startsOn: new Date("2026-01-01"),
   endsOn: new Date("2026-01-01"),
   status: "active" as const,

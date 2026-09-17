@@ -30,6 +30,7 @@ import { InvoiceRecordDrawer } from "./invoice-record-drawer";
 import { uploadTenantImage } from "./tenant-image-upload";
 import { entityUpdatedMessage } from "./toast-messages";
 import { getTenantLink } from "../lib/entity-links";
+import { formatLeaseEndDate } from "../lib/format";
 
 type RelatedTenant = {
   id: number;
@@ -55,10 +56,6 @@ function formatDate(value: Date | string | null) {
   return value
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
     : "Not set";
-}
-
-function formatLeaseEndDate(value: Date | string | null, termType: "fixed" | "month_to_month" | null) {
-  return value ? formatDate(value) : termType === "month_to_month" ? "Month-to-month" : "Not set";
 }
 
 export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantId }: TenantRecordDrawerProps) {
