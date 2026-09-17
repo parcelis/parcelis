@@ -887,7 +887,9 @@ function ResidentsSelector({
                     <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                       {currentLease ? (
                         <>
-                          <span className="block font-medium text-parcelis-charcoal">{currentLease.property.name}</span>
+                          <span className="block font-medium text-parcelis-charcoal">
+                            {currentLease.property?.name ?? "Property not set"}
+                          </span>
                           <span>Unit {currentLease.unitLabel}</span>
                         </>
                       ) : (
