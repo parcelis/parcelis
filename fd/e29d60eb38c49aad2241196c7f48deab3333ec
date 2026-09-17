@@ -1,0 +1,24 @@
+apps/api/src/router/app.router.ts
+  s_7d3631a21b1d01::t_2f299fa709125e 8-9,3356-3399
+packages/schemas/src/index.ts
+  s_7d3631a21b1d01::t_7c6fc08ef2f106 487-488
+apps/api/src/tests/leases/lease-draft.router.test.ts
+  s_7d3631a21b1d01::t_30a950c96af978 17
+  s_7d3631a21b1d01::t_d64de504da426c 37-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "fde29d60eb38c49aad2241196c7f48deab3333ec",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
