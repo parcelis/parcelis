@@ -1,0 +1,29 @@
+apps/api/src/router/app.router.ts
+  s_7d3631a21b1d01::t_2306237658f0e8 1568,1571-1576
+  s_7d3631a21b1d01::t_61f1db9eeb6521 2171
+  s_7d3631a21b1d01::t_a75e9e702828ca 3489-3495
+  s_7d3631a21b1d01::t_d523cd4d3e303e 2098
+  s_7d3631a21b1d01::t_020539255ed434 1052
+  s_7d3631a21b1d01::t_c38ed4a3bda93b 2118
+  s_7d3631a21b1d01::t_2ac6e50d06c02a 2059
+  s_7d3631a21b1d01::t_9d2c507ff7fb74 1988-1991
+  s_7d3631a21b1d01::t_e94da6a7510ffc 1630
+  s_7d3631a21b1d01::t_ca85cfe35f0f20 1130
+  s_7d3631a21b1d01::t_5b728453fd3b5f 2031
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "4384c14f71f37be7d4c5c852d7d71ed54d8ba30e",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
