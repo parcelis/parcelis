@@ -1812,7 +1812,7 @@ export default function NewLeasePage() {
     if (!validateCurrentStep()) return;
     const nextStep = leaseCreationSteps[currentIndex + 1];
     if (!nextStep) return;
-    if (currentIndex === 1) {
+    if (currentIndex === 1 || currentIndex === 2) {
       if (!draftIdentity.leaseId) {
         setStepError("Save the property and unit before continuing.");
         return;
@@ -1821,15 +1821,25 @@ export default function NewLeasePage() {
         await updateLeaseDraft.mutateAsync({
           leaseId: draftIdentity.leaseId,
           expectedRevision: draftIdentity.revision,
-          data: {
-            tenantIds: draft.tenantIds,
-            billingResponsibility: draft.billingResponsibility,
-            allowPartialPayments: draft.allowPartialPayments,
-            monthlyRentCents: draft.monthlyRentCents,
-            securityDepositCents: draft.securityDepositCents,
-            tenantAllocations: draft.tenantAllocations,
-            draftStep: nextStep.id,
-          },
+          data:
+            currentIndex === 1
+              ? {
+                  tenantIds: draft.tenantIds,
+                  billingResponsibility: draft.billingResponsibility,
+                  allowPartialPayments: draft.allowPartialPayments,
+                  monthlyRentCents: draft.monthlyRentCents,
+                  securityDepositCents: draft.securityDepositCents,
+                  tenantAllocations: draft.tenantAllocations,
+                  draftStep: nextStep.id,
+                }
+              : {
+                  termType: draft.termType,
+                  startsOn: draft.startsOn,
+                  endsOn: draft.endsOn,
+                  monthlyRentCents: draft.monthlyRentCents,
+                  rentDueDay: draft.rentDueDay,
+                  draftStep: nextStep.id,
+                },
         });
       } catch {
         return;
