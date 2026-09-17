@@ -455,8 +455,7 @@ const leaseDraftTenantAllocationsSchema = z
     message: "Each resident can only have one allocation.",
   });
 
-export const leaseDraftDataSchema = z
-  .object({
+const leaseDraftDataFieldsSchema = z.object({
     propertyId: idSchema.nullable().optional(),
     unitId: idSchema.nullable().optional(),
     tenantIds: leaseDraftTenantIdsSchema.optional(),
@@ -471,7 +470,9 @@ export const leaseDraftDataSchema = z
     allowPartialPayments: z.boolean().optional(),
     tenantAllocations: leaseDraftTenantAllocationsSchema.optional(),
     draftStep: leaseDraftStepSchema.optional(),
-  })
+  });
+
+export const leaseDraftDataSchema = leaseDraftDataFieldsSchema
   .refine((lease) => lease.unitId === null || lease.unitId === undefined || lease.propertyId != null, {
     message: "A unit requires a property.",
     path: ["unitId"],
@@ -486,7 +487,7 @@ export const leaseDraftCreateInputSchema = z.object({
 export const leaseDraftUpdateInputSchema = z.object({
   leaseId: idSchema,
   expectedRevision: z.number().int().nonnegative(),
-  data: leaseDraftDataSchema.refine((data) => Object.keys(data).length > 0, {
+  data: leaseDraftDataFieldsSchema.refine((data) => Object.keys(data).length > 0, {
     message: "Provide at least one draft field to update.",
   }),
 });

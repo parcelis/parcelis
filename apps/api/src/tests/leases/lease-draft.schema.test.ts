@@ -37,6 +37,13 @@ test("lease draft updates distinguish cleared fields from omitted fields", () =>
   if (result.success) assert.equal(result.data.data.unitId, null);
 });
 
+test("lease draft updates allow a unit-only patch", () => {
+  assert.equal(
+    leaseDraftUpdateInputSchema.safeParse({ leaseId: 9, expectedRevision: 0, data: { unitId: 3 } }).success,
+    true,
+  );
+});
+
 test("lease draft updates require a revision and at least one field", () => {
   assert.equal(leaseDraftUpdateInputSchema.safeParse({ leaseId: 9, data: { draftStep: "terms" } }).success, false);
   assert.equal(
