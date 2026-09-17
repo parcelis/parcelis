@@ -121,7 +121,7 @@ const initialLeaseDraft: LeaseDraft = {
 };
 
 function getLeaseDraftStorageKey(organizationId: number) {
-  return `parcelis:lease-creation-draft:${organizationId}`;
+  return `parcelis:lease-server-draft:${organizationId}`;
 }
 
 function isLeaseDraft(value: unknown): value is LeaseDraft {
@@ -1627,12 +1627,13 @@ export default function NewLeasePage() {
     leaseId: null,
     revision: 0,
   });
-  const [hydratedStorageKey, setHydratedStorageKey] = React.useState<string | null>(null);
   const activeOrganizationQuery = useQuery({
     queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
   });
-  const storageKey = activeOrganizationQuery.data ? getLeaseDraftStorageKey(activeOrganizationQuery.data.id) : null;
+  const leaseDraftStorageKey = activeOrganizationQuery.data
+    ? getLeaseDraftStorageKey(activeOrganizationQuery.data.id)
+    : null;
   const [isPropertyDrawerOpen, setIsPropertyDrawerOpen] = React.useState(false);
   const [propertyForm, setPropertyForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
@@ -1730,34 +1731,38 @@ export default function NewLeasePage() {
   const isLastStep = currentIndex === leaseCreationSteps.length - 1;
 
   React.useEffect(() => {
+    if (!leaseDraftStorageKey) return;
+    try {
+      const storedIdentity = window.sessionStorage.getItem(leaseDraftStorageKey);
+      if (storedIdentity) {
+        const parsed = JSON.parse(storedIdentity) as Partial<LeaseDraftIdentity>;
+        if (typeof parsed.leaseDraftKey === "string" && parsed.leaseDraftKey) {
+          setDraftIdentity({
+            leaseDraftKey: parsed.leaseDraftKey,
+            leaseId: typeof parsed.leaseId === "number" ? parsed.leaseId : null,
+            revision: typeof parsed.revision === "number" ? parsed.revision : 0,
+          });
+        }
+      }
+    } catch {
+      setDraftIdentity({ leaseDraftKey: "", leaseId: null, revision: 0 });
+    }
+  }, [leaseDraftStorageKey]);
+
+  React.useEffect(() => {
+    if (!leaseDraftStorageKey || !draftIdentity.leaseDraftKey) return;
+    try {
+      window.sessionStorage.setItem(leaseDraftStorageKey, JSON.stringify(draftIdentity));
+    } catch {
+      // Storage can be unavailable in private browsing or restricted browser contexts.
+    }
+  }, [draftIdentity, leaseDraftStorageKey]);
+
+  React.useEffect(() => {
     if (!draftIdentity.leaseDraftKey && typeof crypto !== "undefined") {
       setDraftIdentity((current) => ({ ...current, leaseDraftKey: crypto.randomUUID() }));
     }
   }, [draftIdentity.leaseDraftKey]);
-
-  React.useEffect(() => {
-    if (!storageKey) return;
-    try {
-      const storedDraft = window.sessionStorage.getItem(storageKey);
-      if (storedDraft) {
-        const parsedDraft: unknown = JSON.parse(storedDraft);
-        const migratedDraft = migrateLeaseDraft(parsedDraft);
-        if (migratedDraft) setDraft(migratedDraft);
-      }
-    } catch {
-      setDraft(initialLeaseDraft);
-    }
-    setHydratedStorageKey(storageKey);
-  }, [storageKey]);
-
-  React.useEffect(() => {
-    if (!storageKey || hydratedStorageKey !== storageKey) return;
-    try {
-      window.sessionStorage.setItem(storageKey, JSON.stringify(draft));
-    } catch {
-      // Storage can be unavailable in private browsing or restricted browser contexts.
-    }
-  }, [draft, hydratedStorageKey, storageKey]);
 
   function goBack() {
     setStepError(null);
