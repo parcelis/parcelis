@@ -1654,6 +1654,15 @@ export default function NewLeasePage() {
     },
     onError: (error) => setStepError(error.message),
   });
+  const updateLeaseDraft = useMutation({
+    mutationFn: (input: {
+      leaseId: number;
+      expectedRevision: number;
+      data: Record<string, unknown>;
+    }) => apiClient.leases.updateDraft.mutate(input as never),
+    onSuccess: (lease) => setDraftIdentity((current) => ({ ...current, revision: lease.revision })),
+    onError: (error) => setStepError(error.message),
+  });
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
       const property = await apiClient.properties.create.mutate(input);
@@ -1799,10 +1808,34 @@ export default function NewLeasePage() {
     return false;
   }
 
-  function goNext() {
+  async function goNext() {
     if (!validateCurrentStep()) return;
     const nextStep = leaseCreationSteps[currentIndex + 1];
-    if (nextStep) setDraft((current) => ({ ...current, currentStep: nextStep.id }));
+    if (!nextStep) return;
+    if (currentIndex === 1) {
+      if (!draftIdentity.leaseId) {
+        setStepError("Save the property and unit before continuing.");
+        return;
+      }
+      try {
+        await updateLeaseDraft.mutateAsync({
+          leaseId: draftIdentity.leaseId,
+          expectedRevision: draftIdentity.revision,
+          data: {
+            tenantIds: draft.tenantIds,
+            billingResponsibility: draft.billingResponsibility,
+            allowPartialPayments: draft.allowPartialPayments,
+            monthlyRentCents: draft.monthlyRentCents,
+            securityDepositCents: draft.securityDepositCents,
+            tenantAllocations: draft.tenantAllocations,
+            draftStep: nextStep.id,
+          },
+        });
+      } catch {
+        return;
+      }
+    }
+    setDraft((current) => ({ ...current, currentStep: nextStep.id }));
   }
 
   function handleStepChange(nextStepId: string) {
