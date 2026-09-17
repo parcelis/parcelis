@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { leaseDraftCreateInputSchema, leaseDraftDataSchema } from "@parcelis/schemas";
+import {
+  leaseDraftCreateInputSchema,
+  leaseDraftDataSchema,
+  leaseDraftUpdateInputSchema,
+} from "@parcelis/schemas";
 
 test("lease draft creation requires a lease draft key and property selection", () => {
   const result = leaseDraftCreateInputSchema.safeParse({
@@ -20,6 +24,25 @@ test("lease draft creation rejects an invalid lease draft key", () => {
   });
 
   assert.equal(result.success, false);
+});
+
+test("lease draft updates distinguish cleared fields from omitted fields", () => {
+  const result = leaseDraftUpdateInputSchema.safeParse({
+    leaseId: 9,
+    expectedRevision: 0,
+    data: { unitId: null, draftStep: "property" },
+  });
+
+  assert.equal(result.success, true);
+  if (result.success) assert.equal(result.data.data.unitId, null);
+});
+
+test("lease draft updates require a revision and at least one field", () => {
+  assert.equal(leaseDraftUpdateInputSchema.safeParse({ leaseId: 9, data: { draftStep: "terms" } }).success, false);
+  assert.equal(
+    leaseDraftUpdateInputSchema.safeParse({ leaseId: 9, expectedRevision: 0, data: {} }).success,
+    false,
+  );
 });
 
 test("lease drafts accept a property-only selection", () => {

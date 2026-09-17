@@ -483,6 +483,14 @@ export const leaseDraftCreateInputSchema = z.object({
   unitId: idSchema,
 });
 
+export const leaseDraftUpdateInputSchema = z.object({
+  leaseId: idSchema,
+  expectedRevision: z.number().int().nonnegative(),
+  data: leaseDraftDataSchema.refine((data) => Object.keys(data).length > 0, {
+    message: "Provide at least one draft field to update.",
+  }),
+});
+
 export const leaseByIdInputSchema = z.object({ id: idSchema });
 
 export const leasePropertyStepSchema = z.object({
