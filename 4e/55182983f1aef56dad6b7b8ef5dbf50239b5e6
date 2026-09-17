@@ -1,0 +1,24 @@
+apps/api/src/router/app.router.ts
+  s_7d3631a21b1d01::t_466c3fc7aed263 1548,1601
+apps/web/components/property-drawer-state.ts
+  s_7d3631a21b1d01::t_ccffec22f0507c 124
+  s_7d3631a21b1d01::t_98402afaadc0cd 23
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_7d3631a21b1d01::t_466c3fc7aed263 63-64,72-77,697,709,861-870,876
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "4e55182983f1aef56dad6b7b8ef5dbf50239b5e6",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
