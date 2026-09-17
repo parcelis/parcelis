@@ -5,6 +5,8 @@ import {
   leaseByIdInputSchema,
   leaseDraftUpdateInputSchema,
   leaseDraftDataSchema,
+  leaseDraftCreateInputSchema,
+  leaseDraftByKeyInputSchema,
   createLeaseWithInvoicesInputSchema,
   deleteInvoiceInputSchema,
   deleteInvoicePaymentInputSchema,
@@ -3351,6 +3353,50 @@ export const appRouter = router({
     }),
   }),
   leases: router({
+    /** Creates or retrieves the draft associated with a wizard session. */
+    createDraft: permissionProcedure("leases", "create")
+      .input(leaseDraftCreateInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+        return ctx.prisma.$transaction(async (tx) => {
+          const existing = await tx.lease.findUnique({
+            where: { organizationId_leaseDraftKey: { organizationId, leaseDraftKey: input.leaseDraftKey } },
+          });
+          if (existing) {
+            if (existing.status !== LeaseStatus.draft || existing.archivedAt !== null) {
+              throw new TRPCError({ code: "CONFLICT", message: "This lease draft key is already in use." });
+            }
+            return existing;
+          }
+
+          await tx.property.findFirstOrThrow({ where: { id: input.propertyId, organizationId } });
+          await tx.unit.findFirstOrThrow({ where: { id: input.unitId, propertyId: input.propertyId } });
+
+          return tx.lease.create({
+            data: {
+              organizationId,
+              leaseDraftKey: input.leaseDraftKey,
+              propertyId: input.propertyId,
+              unitId: input.unitId,
+              status: LeaseStatus.draft,
+            },
+          });
+        });
+      }),
+    /** Loads a lease draft by its stable wizard key. */
+    draftByKey: permissionProcedure("leases", "view")
+      .input(leaseDraftByKeyInputSchema)
+      .query(({ ctx, input }) =>
+        ctx.prisma.lease.findFirst({
+          where: {
+            organizationId: ctx.organization.organizationId,
+            leaseDraftKey: input.leaseDraftKey,
+            status: LeaseStatus.draft,
+            archivedAt: null,
+          },
+          include: { tenants: true },
+        }),
+      ),
     /** Retrieves a lease and its identifying property, unit, and tenant context. */
     byId: permissionProcedure("leases", "view")
       .input(leaseByIdInputSchema)

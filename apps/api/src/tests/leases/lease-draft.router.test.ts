@@ -14,6 +14,7 @@ function createCaller(prisma: unknown) {
 function draft(overrides: Record<string, unknown> = {}) {
   return {
     id: 9,
+    status: "draft",
     propertyId: 2,
     unitId: 3,
     termType: null,
@@ -32,6 +33,56 @@ function draft(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+test("creates a draft from the first property selection", async () => {
+  let created = false;
+  const createdDraft = draft({ leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10" });
+  const tx = {
+    lease: {
+      findUnique: async () => null,
+      create: async () => {
+        created = true;
+        return createdDraft;
+      },
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+  };
+  const caller = createCaller({ $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) });
+
+  const result = await caller.leases.createDraft({
+    leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10",
+    propertyId: 2,
+    unitId: 3,
+  });
+
+  assert.equal(created, true);
+  assert.equal((result as { status: string }).status, "draft");
+});
+
+test("returns the existing draft when the first save is retried", async () => {
+  let created = false;
+  const existingDraft = draft({ leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10" });
+  const tx = {
+    lease: {
+      findUnique: async () => existingDraft,
+      create: async () => {
+        created = true;
+        return existingDraft;
+      },
+    },
+  };
+  const caller = createCaller({ $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) });
+
+  const result = await caller.leases.createDraft({
+    leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10",
+    propertyId: 2,
+    unitId: 3,
+  });
+
+  assert.equal(created, false);
+  assert.equal((result as { id: number }).id, existingDraft.id);
+});
 
 test("updates a draft and increments its revision", async () => {
   const current = draft();
