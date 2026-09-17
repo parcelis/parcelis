@@ -426,6 +426,8 @@ export const leaseStatusValues = ["draft", "active", "notice", "ended"] as const
 export const leaseStatusSchema = z.enum(leaseStatusValues);
 export const leaseTermTypeValues = ["fixed", "month_to_month"] as const;
 export const leaseTermTypeSchema = z.enum(leaseTermTypeValues);
+export const leaseDraftStepValues = ["property", "residents", "terms", "review"] as const;
+export const leaseDraftStepSchema = z.enum(leaseDraftStepValues);
 export const leaseBillingResponsibilityValues = ["joint", "individual"] as const;
 export const leaseBillingResponsibilitySchema = z.enum(leaseBillingResponsibilityValues);
 
@@ -433,6 +435,37 @@ export const leaseTenantAllocationSchema = z.object({
   tenantId: idSchema,
   rentShareCents: z.number().int().positive().max(maxDatabaseInteger),
   depositShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+});
+
+const leaseDraftTenantIdsSchema = z
+  .array(idSchema)
+  .max(50)
+  .refine((tenantIds) => new Set(tenantIds).size === tenantIds.length, {
+    message: "Each resident can only be added once.",
+  });
+
+const leaseDraftTenantAllocationsSchema = z
+  .array(leaseTenantAllocationSchema)
+  .max(50)
+  .refine((allocations) => new Set(allocations.map((allocation) => allocation.tenantId)).size === allocations.length, {
+    message: "Each resident can only have one allocation.",
+  });
+
+export const leaseDraftDataSchema = z.object({
+  propertyId: idSchema.nullable().optional(),
+  unitId: idSchema.nullable().optional(),
+  tenantIds: leaseDraftTenantIdsSchema.optional(),
+  termType: leaseTermTypeSchema.nullable().optional(),
+  startsOn: z.coerce.date().nullable().optional(),
+  endsOn: z.coerce.date().nullable().optional(),
+  monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger).nullable().optional(),
+  securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).nullable().optional(),
+  rentDueDay: z.number().int().min(1).max(31).optional(),
+  continueMonthToMonthAfterEnd: z.boolean().optional(),
+  billingResponsibility: leaseBillingResponsibilitySchema.nullable().optional(),
+  allowPartialPayments: z.boolean().optional(),
+  tenantAllocations: leaseDraftTenantAllocationsSchema.optional(),
+  draftStep: leaseDraftStepSchema.optional(),
 });
 
 export const leaseByIdInputSchema = z.object({ id: idSchema });
