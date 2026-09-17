@@ -1,0 +1,20 @@
+apps/api/src/tests/leases/lease-draft.router.test.ts
+  s_7d3631a21b1d01::t_93272f992d6b94 1-82
+  s_7d3631a21b1d01::t_f6e19901db5ffc 83-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "887db9d5d89d72106755098d380538334ba6e8a6",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
