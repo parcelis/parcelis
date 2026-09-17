@@ -1,6 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { leaseDraftDataSchema } from "@parcelis/schemas";
+import { leaseDraftCreateInputSchema, leaseDraftDataSchema } from "@parcelis/schemas";
+
+test("lease draft creation requires a lease draft key and property selection", () => {
+  const result = leaseDraftCreateInputSchema.safeParse({
+    leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10",
+    propertyId: 2,
+    unitId: 3,
+  });
+
+  assert.equal(result.success, true);
+});
+
+test("lease draft creation rejects an invalid lease draft key", () => {
+  const result = leaseDraftCreateInputSchema.safeParse({
+    leaseDraftKey: "retry-1",
+    propertyId: 2,
+    unitId: 3,
+  });
+
+  assert.equal(result.success, false);
+});
 
 test("lease drafts accept a property-only selection", () => {
   const result = leaseDraftDataSchema.safeParse({ propertyId: 2, draftStep: "property" });

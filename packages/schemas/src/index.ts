@@ -477,6 +477,12 @@ export const leaseDraftDataSchema = z
     path: ["unitId"],
   });
 
+export const leaseDraftCreateInputSchema = z.object({
+  leaseDraftKey: z.string().uuid(),
+  propertyId: idSchema,
+  unitId: idSchema,
+});
+
 export const leaseByIdInputSchema = z.object({ id: idSchema });
 
 export const leasePropertyStepSchema = z.object({
