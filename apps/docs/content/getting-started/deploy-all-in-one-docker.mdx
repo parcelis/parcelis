@@ -4,7 +4,7 @@ title: Deploy with the Single-Image Docker Build
 sidebar_label: Deploy with Single-Image Docker
 ---
 
-Parcelis publishes an optional **single-image** artifact, `parcelis/all`, that bundles the web app, API, documentation site, and nginx edge routing into one container. The published `parcelis/app`, `parcelis/docs`, and `parcelis/proxy` modular images continue to be published alongside it.
+Parcelis publishes an optional **single application image**, `parcelis/all`, that bundles the web app, API, documentation site, and nginx edge routing into one application image. This is not a single-container deployment: PostgreSQL and S3-compatible object storage (such as MinIO) remain separate services. The published `parcelis/app`, `parcelis/docs`, and `parcelis/proxy` modular images continue to be published alongside it.
 
 PostgreSQL and S3-compatible object storage (such as MinIO) remain external services. Database migrations are still an explicit deployment step.
 
@@ -12,11 +12,11 @@ PostgreSQL and S3-compatible object storage (such as MinIO) remain external serv
 
 Use `parcelis/all` when you want:
 
-- One runtime image and one exposed application port.
+- One application image and one exposed application port.
 - A simpler self-hosted setup that is closer to a single deployable unit.
 - The same public URL layout as the modular stack: web app at `/`, tRPC at `/trpc/*`, public API at `/api/*`, documentation at `/docs/`.
 
-Use the modular [`docker-compose.yml`](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose.yml) stack when you need the web app, API, documentation site, and proxy as independently scaled or isolated services, or when you want to keep the proxy on a separate container.
+Use the modular [`docker-compose.yml`](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose.yml) stack when you want the documentation site and proxy as separately deployed or scaled services, or when you want to keep the proxy on a separate container. Note that the web app and API run together inside the `parcelis/app` image in the modular stack, so neither topology scales the web app independently from the API.
 
 ## Image name and tags
 
@@ -28,7 +28,7 @@ The image is published from each GitHub release with the version tag and `latest
 
 ## Required environment variables
 
-The single-image container expects the same environment variables as the modular `parcelis/app` service:
+The single application image expects the same environment variables as the modular `parcelis/app` service:
 
 | Variable | Purpose |
 | --- | --- |
@@ -47,7 +47,7 @@ The single-image container expects the same environment variables as the modular
 
 ## Required working directory
 
-The single-image container still expects the Prisma schema to run the migration job. When you run a migration container from the image, set its working directory to `/repo` (the compose example does this) so the bundled `prisma/schema.prisma` resolves correctly.
+The single application image container still expects the Prisma schema to run the migration job. When you run a migration container from the image, set its working directory to `/repo` (the compose example does this) so the bundled `prisma/schema.prisma` resolves correctly.
 
 ## Running with Docker
 
@@ -100,7 +100,7 @@ docker compose --env-file .env.production -f docker-compose.all-in-one.yml pull
 docker compose --env-file .env.production -f docker-compose.all-in-one.yml up -d --remove-orphans
 ```
 
-The single-image Compose stack will:
+The single application image Compose stack will:
 
 - Run the `migrate-service` job from the same `parcelis/all` image before the application container starts.
 - Run the `minio-init-service` job to create the object storage buckets and upload the public brand assets.
@@ -135,14 +135,15 @@ The pull and up commands rerun the migration job automatically because `app-serv
 
 ## Trade-offs compared with the modular Compose stack
 
-| Concern | Single-image stack | Modular stack |
+| Concern | Single application image stack | Modular stack |
 | --- | --- | --- |
 | Number of running containers | One application container plus the migrate and minio-init one-shots | Separate `app`, `docs`, and `proxy` containers plus the same one-shots |
 | Image publishes | `parcelis/all` only | `parcelis/app`, `parcelis/docs`, and `parcelis/proxy` |
 | Documentation site | Served from the bundled `parcelis/all` image at `/docs/` | Served from the separate `parcelis/docs` container at `/docs/` |
 | Edge routing | nginx inside the `parcelis/all` image | Standalone `parcelis/proxy` image |
-| Independent scaling of web, API, and docs | Not supported | Supported |
-| PostgreSQL and object storage | External services, identical to the modular stack | External services, identical to the modular stack |
+| Independent scaling of docs and proxy | Not supported (bundled into the application image) | Supported |
+| Independent scaling of web vs API | Not supported (both run together in either topology) | Not supported (both run together in the `parcelis/app` image) |
+| PostgreSQL and object storage | Separate services, identical to the modular stack | Separate services, identical to the single-image stack |
 | Migration job | Uses the `parcelis/all` image with `prisma migrate deploy` | Uses the `parcelis/app` image with `prisma migrate deploy` |
 
-Pick the single-image artifact when simpler deployment topology is more valuable than independent scaling. Pick the modular stack when you already run the proxy, app, and documentation as separate services, or when you need to scale them independently.
+Pick the single application image when simpler deployment topology is more valuable than deploying docs and the proxy independently. Pick the modular stack when you already run the proxy, app, and documentation as separate services, or when you need to scale or deploy docs and the proxy independently.

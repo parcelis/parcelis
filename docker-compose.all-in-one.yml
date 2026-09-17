@@ -1,9 +1,10 @@
-# Single-image Compose example.
+# Single application image Compose example.
 #
 # Runs the published `parcelis/all` image, which bundles the Parcelis web app,
-# API, documentation site, and nginx edge routing into one container. PostgreSQL
-# and S3-compatible object storage (MinIO is provided here) remain external
-# services that you can replace with managed equivalents.
+# API, documentation site, and nginx edge routing into one application image.
+# This is not a single-container deployment: PostgreSQL and S3-compatible
+# object storage (MinIO is provided here) remain separate services that you
+# can replace with managed equivalents.
 #
 # This file does not modify the modular `docker-compose.yml` stack. Use it
 # when you want a single runtime image and one exposed application port.
@@ -13,7 +14,6 @@
 #   cp .env.production.example .env.production
 #   # edit .env.production with your production values
 #   docker compose --env-file .env.production -f docker-compose.all-in-one.yml up -d --remove-orphans
-#
 
 name: parcelis-all-in-one
 
@@ -118,6 +118,12 @@ services:
         condition: service_completed_successfully
     networks:
       - parcelis
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/v1/health && wget -q -O /dev/null http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 volumes:
   postgres-data:
