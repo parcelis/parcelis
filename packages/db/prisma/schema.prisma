@@ -538,6 +538,7 @@ model EmergencyContact {
 model Lease {
   id                           Int                         @id @default(autoincrement())
   organizationId               Int
+  leaseDraftKey                String                      @default(uuid())
   propertyId                   Int?
   unitId                       Int?
   monthlyRentCents             Int?
@@ -563,6 +564,7 @@ model Lease {
 
   @@unique([organizationId, id])
   @@unique([organizationId, id, propertyId])
+  @@unique([organizationId, leaseDraftKey])
   @@index([propertyId])
   @@index([unitId])
   @@index([organizationId])
