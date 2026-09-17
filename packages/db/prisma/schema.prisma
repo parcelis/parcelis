@@ -20,6 +20,18 @@ enum LeaseStatus {
   ended
 }
 
+enum LeaseDraftStep {
+  property
+  residents
+  terms
+  review
+}
+
+enum LeaseTermType {
+  fixed
+  month_to_month
+}
+
 enum LeaseBillingResponsibility {
   joint
   individual
@@ -534,12 +546,15 @@ model Lease {
   allowPartialPayments         Boolean                     @default(true)
   rentDueDay                   Int                         @default(1)
   continueMonthToMonthAfterEnd Boolean                     @default(false)
+  termType                     LeaseTermType?
   startsOn                     DateTime?
   endsOn                       DateTime?
   status                       LeaseStatus                 @default(draft)
+  draftStep                    LeaseDraftStep              @default(property)
+  revision                     Int                          @default(0)
   archivedAt                   DateTime?
   property                     Property?                   @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id])
-  unit                         Unit?                       @relation(fields: [propertyId, unitId], references: [propertyId, id])
+  unit                         Unit?                       @relation(fields: [propertyId, unitId], references: [propertyId, id], onDelete: Restrict)
   tenants                      LeaseTenant[]
   invoices                     Invoice[]                   @relation("InvoiceLease")
   createdAt                    DateTime                    @default(now())
