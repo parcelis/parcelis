@@ -1,0 +1,27 @@
+apps/api/src/router/app.router.ts
+  s_7d3631a21b1d01::t_f5a6d8a67563ab 3447-3458
+  s_7d3631a21b1d01::t_140d0c6014b538 6,3380-3411,3413-3414,3416-3445,3459-3467
+  s_7d3631a21b1d01::t_bc932e1f712889 3412,3415
+  s_7d3631a21b1d01::t_dedcbbe6fd1327 3446
+  s_7d3631a21b1d01::t_3228296d459509 7
+apps/api/src/tests/leases/lease-draft.schema.test.ts
+  s_7d3631a21b1d01::t_1aa5e05d50a8e9 40-46
+packages/schemas/src/index.ts
+  s_7d3631a21b1d01::t_80954a29dfa4af 458,473-475,490
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "99b2b9218eab7f299e03ac7cda0aa8e75e57d9a4",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
