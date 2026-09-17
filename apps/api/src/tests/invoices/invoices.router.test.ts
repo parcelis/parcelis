@@ -227,6 +227,7 @@ test("manual joint invoices create recipients for every lease tenant", async () 
       findFirst: async () => ({
         id: 3,
         propertyId: 2,
+        status: "active",
         billingResponsibility: "joint",
         tenants: [{ tenantId: 11 }, { tenantId: 12 }],
       }),
@@ -252,4 +253,25 @@ test("manual joint invoices create recipients for every lease tenant", async () 
       { organizationId: 7, tenantId: 12 },
     ],
   });
+});
+
+test("manual invoices cannot be created for draft leases", async () => {
+  const caller = createCaller({
+    lease: {
+      findFirst: async () => ({ id: 3, propertyId: 2, status: "draft" }),
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      caller.invoices.createManual({
+        propertyId: 2,
+        leaseId: 3,
+        tenantId: 12,
+        dueOn: new Date("2026-09-15"),
+        paidCents: 0,
+        items: [{ item: "Rent", quantity: 1, rateCents: 10_000 }],
+      }),
+    { code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." },
+  );
 });

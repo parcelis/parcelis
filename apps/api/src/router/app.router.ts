@@ -2112,6 +2112,7 @@ export const appRouter = router({
         select: {
           id: true,
           propertyId: true,
+          status: true,
           billingResponsibility: true,
           allowPartialPayments: true,
           tenants: { select: { tenantId: true } },
@@ -2119,6 +2120,9 @@ export const appRouter = router({
       });
       if (!lease || lease.propertyId === null || lease.propertyId !== input.propertyId) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property." });
+      }
+      if (lease.status === LeaseStatus.draft) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." });
       }
 
       // Verify tenant is on this lease
