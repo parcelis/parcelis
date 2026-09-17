@@ -30,7 +30,7 @@ type IncomeProperty = {
   leases: Array<{
     id: number;
     unitLabel: string;
-    startsOn: Date | string;
+    startsOn: Date | string | null;
     endsOn: Date | string | null;
     status: string;
     tenant: { id: number; firstName: string; lastName: string };
@@ -74,7 +74,10 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
 
   const property = properties.find((item) => item.id === Number(propertyId));
   const unit = property?.units.find((item) => item.id === Number(unitId));
-  const leases = property?.leases.filter((item) => item.unitLabel === unit?.name) ?? [];
+  const leases =
+    property?.leases.filter(
+      (item) => item.unitLabel === unit?.name && (item.status === "active" || item.status === "notice"),
+    ) ?? [];
   const lease = leases.find((item) => item.id === Number(leaseId));
   const subtotalCents = lines.reduce((total, line) => total + Number(line.quantity || 0) * toCents(line.rate), 0);
   const paidCents = toCents(paid);
@@ -178,7 +181,7 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
                     <option value="">Select lease</option>
                     {leases.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {formatDate(item.startsOn)} – {item.endsOn ? formatDate(item.endsOn) : "No end date"}
+                        {item.startsOn ? formatDate(item.startsOn) : "Not set"} – {item.endsOn ? formatDate(item.endsOn) : "No end date"}
                       </option>
                     ))}
                   </Select>
