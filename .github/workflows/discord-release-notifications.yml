@@ -1,0 +1,39 @@
+name: Post release notifications to Discord
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_name:
+        description: Release title to post
+        required: true
+        type: string
+      release_body:
+        description: Release notes body to post
+        required: true
+        type: string
+      release_html_url:
+        description: Release URL to link in Discord
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post release changelog
+        if: secrets.DISCORD_RELEASE_WEBHOOK_URL != ''
+        uses: SethCohen/github-releases-to-discord@v1
+        with:
+          webhook_url: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+          release_name: ${{ github.event.release.name || inputs.release_name }}
+          release_body: ${{ github.event.release.body || inputs.release_body }}
+          release_html_url: ${{ github.event.release.html_url || inputs.release_html_url }}
+          color: "2105893"
+          username: "Parcels"
+          footer_title: "Parcelis Changelog"
+          reduce_headings: true
