@@ -97,7 +97,8 @@ function createPrisma() {
             ));
         const removed = tokens.filter(matches).length;
         for (let index = tokens.length - 1; index >= 0; index -= 1) {
-          if (tokens[index] && matches(tokens[index])) tokens.splice(index, 1);
+          const token = tokens[index];
+          if (token && matches(token)) tokens.splice(index, 1);
         }
         return { count: removed };
       },
