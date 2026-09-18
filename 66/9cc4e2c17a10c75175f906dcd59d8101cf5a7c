@@ -1,0 +1,19 @@
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_45a2c9d31f1d36::t_457443876e47f2 100-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "669cc4e2c17a10c75175f906dcd59d8101cf5a7c",
+  "prompts": {},
+  "sessions": {
+    "s_45a2c9d31f1d36": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b62e-a6e2-7c03-8a80-e32690397f7c",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
