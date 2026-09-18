@@ -41,6 +41,7 @@ export default function LoginPage() {
   const router = useRouter();
   const passwordConfirmationErrorId = React.useId();
   const verificationAttempted = React.useRef(false);
+  const verificationRequestActive = React.useRef(false);
 
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -66,11 +67,24 @@ export default function LoginPage() {
         return;
       }
       verificationAttempted.current = true;
+      verificationRequestActive.current = true;
+      setIsSubmitting(true);
       void apiClient.auth.verifyEmail
         .mutate({ token })
-        .then(() => setIsEmailVerified(true))
+        .then(() => {
+          if (!verificationRequestActive.current) return;
+          const verifiedParams = new URLSearchParams(window.location.search);
+          verifiedParams.delete("mode");
+          const query = verifiedParams.toString();
+          window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+          setIsEmailVerified(true);
+        })
         .catch((cause: unknown) => {
+          if (!verificationRequestActive.current) return;
           setError(cause instanceof Error ? cause.message : "Unable to verify your email. Please try again.");
+        })
+        .finally(() => {
+          if (verificationRequestActive.current) setIsSubmitting(false);
         });
     }
   }, []);
@@ -93,6 +107,7 @@ export default function LoginPage() {
   }
 
   function returnToSignIn() {
+    verificationRequestActive.current = false;
     selectLoginMode("sign-in");
     setResetToken(null);
     router.replace("/login");
@@ -168,6 +183,7 @@ export default function LoginPage() {
       router.refresh();
     } catch (cause) {
       setIsLoadingApp(false);
+      if (isRegistering) setPendingVerificationEmail(email);
       if (cause instanceof Error && cause.message === "Please verify your email before signing in.") {
         setPendingVerificationEmail(email);
       }

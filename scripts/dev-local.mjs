@@ -62,10 +62,14 @@ async function stopListener(port) {
 
 await Promise.all([requestedAppPort, requestedDocsPort, requestedApiPort, requestedEmailPreviewPort].map(stopListener));
 
-const apiPort = await findOpenPort(requestedApiPort);
-const appPort = await findOpenPort(requestedAppPort);
-const docsPort = await findOpenPort(requestedDocsPort);
-const emailPreviewPort = await findOpenPort(requestedEmailPreviewPort);
+const reservedPorts = new Set();
+const apiPort = await findOpenPort(requestedApiPort, reservedPorts);
+reservedPorts.add(apiPort);
+const appPort = await findOpenPort(requestedAppPort, reservedPorts);
+reservedPorts.add(appPort);
+const docsPort = await findOpenPort(requestedDocsPort, reservedPorts);
+reservedPorts.add(docsPort);
+const emailPreviewPort = await findOpenPort(requestedEmailPreviewPort, reservedPorts);
 const proxyPort = process.env.PROXY_PORT ?? 80;
 const proxyPortSuffix = Number(proxyPort) === 80 ? "" : `:${proxyPort}`;
 const proxyOrigin = `http://localhost${proxyPortSuffix}`;

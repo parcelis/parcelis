@@ -101,6 +101,8 @@ Use nginx as the normal local entry point:
 | API | `http://localhost/api/v1` |
 | React Email previews | `http://templates.localhost/` |
 
+If `templates.localhost` does not resolve on your system, add `127.0.0.1 templates.localhost` to `/etc/hosts`.
+
 The host processes and local services are also available directly:
 
 | Service | Address |

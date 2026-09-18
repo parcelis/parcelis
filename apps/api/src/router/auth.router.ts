@@ -19,6 +19,7 @@ import {
   createSessionToken,
   getEmailVerificationTokenExpiration,
   getEmailVerificationUrl,
+  getLoginTokenUrl,
   getPasswordResetTokenExpiration,
   getSessionExpiration,
   hashEmailVerificationToken,
@@ -72,14 +73,6 @@ async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: numbe
   setSessionCookie(ctx.res, token);
 }
 
-function getPasswordResetUrl(token: string) {
-  const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
-  const resetUrl = new URL("/login", webOrigin);
-  resetUrl.searchParams.set("mode", "reset");
-  resetUrl.hash = new URLSearchParams({ token }).toString();
-  return resetUrl.toString();
-}
-
 export const authRouter = router({
   register: publicProcedure.input(authRegisterInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
@@ -125,6 +118,10 @@ export const authRouter = router({
       await sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(verificationToken) });
     } catch (error) {
       console.error("Unable to send email verification email.", error);
+      throw new TRPCError({
+        code: "SERVICE_UNAVAILABLE",
+        message: "Your account was created, but we could not send a verification email. Please resend it.",
+      });
     }
     clearLoginRateLimit(rateLimitKey);
     return { user };
@@ -180,8 +177,8 @@ export const authRouter = router({
       const token = createEmailVerificationToken();
 
       if (user?.accountStatus === "pending") {
-        void ctx.prisma
-          .$transaction(async (tx) => {
+        try {
+          await ctx.prisma.$transaction(async (tx) => {
             await tx.emailVerificationToken.deleteMany({ where: { userId: user.id } });
             await tx.emailVerificationToken.create({
               data: {
@@ -190,11 +187,11 @@ export const authRouter = router({
                 expiresAt: getEmailVerificationTokenExpiration(),
               },
             });
-          })
-          .then(() => sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(token) }))
-          .catch((error: unknown) => {
-            console.error("Unable to create email verification token or send verification email.", error);
           });
+          await sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(token) });
+        } catch (error) {
+          console.error("Unable to create email verification token or send verification email.", error);
+        }
       }
 
       return { success: true };
@@ -256,7 +253,7 @@ export const authRouter = router({
           }
 
           return sendPasswordResetEmail({
-            resetUrl: getPasswordResetUrl(token),
+            resetUrl: getLoginTokenUrl("reset", token),
             to: user.email,
             emailConfig,
           });

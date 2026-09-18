@@ -20,14 +20,14 @@ export async function isPortOpen(port) {
   });
 }
 
-export async function findOpenPort(preferredPort) {
+export async function findOpenPort(preferredPort, reservedPorts = new Set()) {
   let port = Number(preferredPort);
 
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
     throw new Error(`Invalid preferred port: ${preferredPort}`);
   }
 
-  while (!(await isPortOpen(port))) {
+  while (reservedPorts.has(port) || !(await isPortOpen(port))) {
     port += 1;
 
     if (port > 65535) {

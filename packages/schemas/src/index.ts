@@ -235,7 +235,7 @@ export const userProfileImageUploadCompleteInputSchema = z
   .strict();
 export const userAccountStatusInputSchema = z.object({
   id: idSchema,
-  accountStatus: userAccountStatusSchema,
+  accountStatus: z.enum(["active", "disabled"]),
 });
 export const deleteUserInputSchema = z.object({ id: idSchema });
 export const roleResourcePermissionSchema = z

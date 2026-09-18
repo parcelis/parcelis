@@ -879,6 +879,10 @@ export const appRouter = router({
             });
           } catch (error) {
             console.error("Unable to send email verification email.", error);
+            throw new TRPCError({
+              code: "SERVICE_UNAVAILABLE",
+              message: "The account was created, but we could not send a verification email. Please resend it.",
+            });
           }
           return user;
         } catch (error) {
@@ -1011,6 +1015,17 @@ export const appRouter = router({
         try {
           return await ctx.prisma.$transaction(
             async (tx) => {
+              const existingUser = await tx.user.findUnique({
+                where: { id: input.id },
+                select: { accountStatus: true, email: true },
+              });
+              if (!existingUser) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+              if (existingUser.accountStatus === "pending" && existingUser.email !== input.email) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "A pending user's email address cannot be changed before verification.",
+                });
+              }
               if (input.role !== "administrator") await assertActiveAdministratorCanBeRemoved(tx, input.id);
               return tx.user.update({
                 where: { id: input.id },

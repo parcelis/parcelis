@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import { TRPCError } from "@trpc/server";
-import { getEmailTransporter } from "@parcelis/email";
+import { getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
 import { hashEmailVerificationToken, hashPassword } from "../../modules/auth";
 import type { PrismaService } from "../../modules/prisma.service";
 import { appRouter } from "../../router/app.router";
@@ -141,18 +141,34 @@ function createAdministratorCaller(prisma: PrismaService) {
 }
 
 function mockEmailDelivery() {
+  const previousEnvironment = Object.fromEntries(
+    ["EMAIL_FROM", "SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASSWORD"].map((name) => [
+      name,
+      process.env[name],
+    ]),
+  );
   process.env.EMAIL_FROM = "Parcelis <no-reply@example.com>";
   process.env.SMTP_HOST = "localhost";
   process.env.SMTP_PORT = "1";
   process.env.SMTP_SECURE = "false";
   process.env.SMTP_USER = "test";
   process.env.SMTP_PASSWORD = "test";
-  return mock.method(getEmailTransporter(), "sendMail", async () => ({ messageId: "test" }) as never);
+  mock.method(getEmailTransporter(), "sendMail", async () => ({ messageId: "test" }) as never);
+  return () => {
+    for (const [name, value] of Object.entries(previousEnvironment)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  };
 }
 
 test("registration creates a pending account and one verification token without a session", async (t) => {
-  mockEmailDelivery();
-  t.after(() => mock.restoreAll());
+  const restoreEnvironment = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    restoreEnvironment();
+    resetEmailTransporter();
+  });
   const state = createPrisma();
   const caller = createCaller(state.prisma);
 
@@ -270,8 +286,12 @@ test("invalid and expired verification tokens are rejected", async () => {
 });
 
 test("resending verification replaces prior tokens for pending accounts", async (t) => {
-  mockEmailDelivery();
-  t.after(() => mock.restoreAll());
+  const restoreEnvironment = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    restoreEnvironment();
+    resetEmailTransporter();
+  });
   const state = createPrisma();
   const user = await state.prisma.user.create({
     data: {
@@ -289,27 +309,31 @@ test("resending verification replaces prior tokens for pending accounts", async 
   });
 
   await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
-  await new Promise((resolve) => setImmediate(resolve));
-
   assert.equal(state.tokens.length, 1);
   assert.notEqual(state.tokens[0]?.tokenHash, "old-token");
 });
 
 test("resending verification does not reveal whether an account exists", async (t) => {
-  mockEmailDelivery();
-  t.after(() => mock.restoreAll());
+  const restoreEnvironment = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    restoreEnvironment();
+    resetEmailTransporter();
+  });
   const state = createPrisma();
 
   const response = await createCaller(state.prisma).auth.requestEmailVerification({ email: "missing@example.com" });
-  await new Promise((resolve) => setImmediate(resolve));
-
   assert.deepEqual(response, { success: true });
   assert.equal(state.tokens.length, 0);
 });
 
 test("authorized user creation creates a pending account and verification token", async (t) => {
-  mockEmailDelivery();
-  t.after(() => mock.restoreAll());
+  const restoreEnvironment = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    restoreEnvironment();
+    resetEmailTransporter();
+  });
   const state = createPrisma();
 
   await createAdministratorCaller(state.prisma).users.create({

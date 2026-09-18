@@ -25,6 +25,10 @@ export function getEmailTransporter() {
   return environmentTransporter;
 }
 
+export function resetEmailTransporter() {
+  environmentTransporter = undefined;
+}
+
 export async function verifyEmailTransport() {
   await getEmailTransporter().verify();
 }

@@ -82,10 +82,14 @@ export function getEmailVerificationTokenExpiration() {
   return new Date(Date.now() + emailVerificationTokenDurationMs);
 }
 
-export function getEmailVerificationUrl(token: string) {
+export function getLoginTokenUrl(mode: "reset" | "verify", token: string) {
   const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
-  const verificationUrl = new URL("/login", webOrigin);
-  verificationUrl.searchParams.set("mode", "verify");
-  verificationUrl.hash = new URLSearchParams({ token }).toString();
-  return verificationUrl.toString();
+  const url = new URL("/login", webOrigin);
+  url.searchParams.set("mode", mode);
+  url.hash = new URLSearchParams({ token }).toString();
+  return url.toString();
+}
+
+export function getEmailVerificationUrl(token: string) {
+  return getLoginTokenUrl("verify", token);
 }
