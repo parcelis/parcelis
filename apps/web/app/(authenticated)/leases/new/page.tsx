@@ -1634,6 +1634,13 @@ export default function NewLeasePage() {
   const leaseDraftStorageKey = activeOrganizationQuery.data
     ? getLeaseDraftStorageKey(activeOrganizationQuery.data.id)
     : null;
+  // Track the loaded draft key to prevent reloading the same draft multiple times.
+  const [loadedDraftKey, setLoadedDraftKey] = React.useState<string | null>(null);
+  const leaseDraftQuery = useQuery({
+    queryKey: ["lease-draft", draftIdentity.leaseDraftKey],
+    queryFn: () => apiClient.leases.draftByKey.query({ leaseDraftKey: draftIdentity.leaseDraftKey }),
+    enabled: Boolean(draftIdentity.leaseDraftKey),
+  });
   const [isPropertyDrawerOpen, setIsPropertyDrawerOpen] = React.useState(false);
   const [propertyForm, setPropertyForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
@@ -1644,13 +1651,15 @@ export default function NewLeasePage() {
   const createLeaseDraft = useMutation({
     mutationFn: (input: { leaseDraftKey: string; propertyId: number; unitId: number }) =>
       apiClient.leases.createDraft.mutate(input),
-    onSuccess: (lease) => {
+    onSuccess: async (lease) => {
       setDraftIdentity((current) => ({
         ...current,
         leaseId: lease.id,
         leaseDraftKey: lease.leaseDraftKey,
         revision: lease.revision,
       }));
+      setLoadedDraftKey(lease.leaseDraftKey);
+      await queryClient.invalidateQueries({ queryKey: ["lease-draft", lease.leaseDraftKey] });
       setStepError(null);
     },
     onError: (error) => setStepError(error.message),
@@ -1763,6 +1772,33 @@ export default function NewLeasePage() {
       setDraftIdentity((current) => ({ ...current, leaseDraftKey: crypto.randomUUID() }));
     }
   }, [draftIdentity.leaseDraftKey]);
+
+  React.useEffect(() => {
+    const lease = leaseDraftQuery.data;
+    if (!lease || loadedDraftKey === lease.leaseDraftKey) return;
+    setDraft({
+      ...initialLeaseDraft,
+      currentStep: lease.draftStep,
+      propertyId: lease.propertyId,
+      unitId: lease.unitId,
+      tenantIds: lease.tenants.map(({ tenantId }) => tenantId),
+      termType: lease.termType ?? "fixed",
+      startsOn: lease.startsOn ? new Date(lease.startsOn).toISOString().slice(0, 10) : "",
+      endsOn: lease.endsOn ? new Date(lease.endsOn).toISOString().slice(0, 10) : "",
+      monthlyRentCents: lease.monthlyRentCents,
+      securityDepositCents: lease.securityDepositCents,
+      rentDueDay: lease.rentDueDay,
+      billingResponsibility: lease.billingResponsibility ?? "joint",
+      allowPartialPayments: lease.allowPartialPayments,
+      tenantAllocations: lease.tenants.map(({ tenantId, rentShareCents, depositShareCents }) => ({
+        tenantId,
+        rentShareCents: rentShareCents ?? 0,
+        depositShareCents: depositShareCents ?? 0,
+      })),
+    });
+    setDraftIdentity((current) => ({ ...current, leaseId: lease.id, revision: lease.revision }));
+    setLoadedDraftKey(lease.leaseDraftKey);
+  }, [loadedDraftKey, leaseDraftQuery.data]);
 
   function goBack() {
     setStepError(null);
