@@ -58,6 +58,11 @@ export function clearLoginRateLimit(key: string) {
   attempts.delete(key);
 }
 
+export function resetRateLimits() {
+  attempts.clear();
+  lastSweepAt = 0;
+}
+
 export function getLoginRateLimitKey(ip: string | undefined, email: string) {
   const normalizedEmail = email.trim().toLowerCase();
   return getRateLimitKey(ip, normalizedEmail);

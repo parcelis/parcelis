@@ -3,6 +3,7 @@ import test, { mock } from "node:test";
 import { TRPCError } from "@trpc/server";
 import { getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
 import { hashEmailVerificationToken, hashPassword } from "../../modules/auth";
+import { resetRateLimits } from "../../modules/login-rate-limit";
 import type { PrismaService } from "../../modules/prisma.service";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
@@ -26,12 +27,24 @@ type VerificationToken = {
   userId: number;
 };
 
+type OrganizationMembership = {
+  organizationId: number;
+  role?: string;
+  userId: number;
+};
+
+test.beforeEach(() => {
+  resetRateLimits();
+});
+
 function createPrisma() {
   const users: User[] = [];
   const tokens: VerificationToken[] = [];
   const sessions: Array<{ userId: number }> = [];
+  const organizationMemberships: OrganizationMembership[] = [];
   let nextUserId = 1;
   let nextTokenId = 1;
+  let nextOrganizationId = 1;
 
   const prisma: PrismaService = {
     user: {
@@ -41,7 +54,11 @@ function createPrisma() {
         return user;
       },
       findUnique: async ({ where }: { where: { email?: string; id?: number } }) =>
-        users.find((user) => user.email === where.email || user.id === where.id) ?? null,
+        users.find(
+          (user) =>
+            (where.email === undefined || user.email === where.email) &&
+            (where.id === undefined || user.id === where.id),
+        ) ?? null,
       update: async ({ where, data }: { where: { id: number }; data: Partial<User> }) => {
         const user = users.find((candidate) => candidate.id === where.id);
         if (!user) throw new Error("User not found.");
@@ -64,11 +81,23 @@ function createPrisma() {
       },
     },
     organization: {
-      create: async () => ({ id: 1 }),
+      create: async () => ({ id: nextOrganizationId++ }),
     },
     organizationMembership: {
-      create: async () => ({}),
-      findUnique: async () => ({ userId: 1 }),
+      create: async ({ data }: { data: OrganizationMembership }) => {
+        organizationMemberships.push(data);
+        return data;
+      },
+      findUnique: async ({
+        where,
+      }: {
+        where: { userId_organizationId: { organizationId: number; userId: number } };
+      }) =>
+        organizationMemberships.find(
+          (membership) =>
+            membership.userId === where.userId_organizationId.userId &&
+            membership.organizationId === where.userId_organizationId.organizationId,
+        ) ?? null,
     },
     organizationEmailSettings: {
       findUnique: async () => null,
@@ -133,7 +162,7 @@ function createPrisma() {
     $transaction: async <T>(callback: (tx: PrismaService) => Promise<T>) => callback(prisma),
   } as unknown as PrismaService;
 
-  return { prisma, sessions, tokens, users };
+  return { organizationMemberships, prisma, sessions, tokens, users };
 }
 
 function createCaller(prisma: PrismaService) {
@@ -436,6 +465,9 @@ test("pending users cannot have their email changed through profile updates", as
       defaultOrganizationId: 1,
     },
   });
+  await state.prisma.organizationMembership.create({
+    data: { userId: user.id, organizationId: 1 },
+  });
 
   await assert.rejects(
     createAdministratorCaller(state.prisma).users.updateProfile({
@@ -448,4 +480,31 @@ test("pending users cannot have their email changed through profile updates", as
       error instanceof TRPCError && error.message === "A pending user's email address cannot be changed before verification.",
   );
   assert.equal(state.users[0]?.email, "pending-profile@example.com");
+});
+
+test("profile updates require membership in the current organization", async () => {
+  const state = createPrisma();
+  const user = await state.prisma.user.create({
+    data: {
+      name: "Other Organization User",
+      email: "other-organization@example.com",
+      passwordHash: await hashPassword("password-for-other-organization-user"),
+      phone: null,
+      role: "property_manager",
+      accountStatus: "active",
+      defaultOrganizationId: 2,
+    },
+  });
+  await state.prisma.organizationMembership.create({
+    data: { userId: user.id, organizationId: 2 },
+  });
+
+  await assert.rejects(
+    createAdministratorCaller(state.prisma).users.updateProfile({
+      id: user.id,
+      name: user.name,
+      phone: null,
+    }),
+    (error: unknown) => error instanceof TRPCError && error.code === "FORBIDDEN",
+  );
 });
