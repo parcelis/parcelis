@@ -48,7 +48,9 @@ test("creates a draft from the first property selection", async () => {
     property: { findFirstOrThrow: async () => ({ id: 2 }) },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
   };
-  const caller = createCaller({ $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) });
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
 
   const result = await caller.leases.createDraft({
     leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10",
@@ -72,7 +74,9 @@ test("returns the existing draft when the first save is retried", async () => {
       },
     },
   };
-  const caller = createCaller({ $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) });
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
 
   const result = await caller.leases.createDraft({
     leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10",
@@ -99,7 +103,9 @@ test("updates a draft and increments its revision", async () => {
     property: { findFirstOrThrow: async () => ({ id: 2 }) },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
   };
-  const caller = createCaller({ $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) });
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
 
   const result = await caller.leases.updateDraft({
     leaseId: 9,
@@ -123,7 +129,9 @@ test("rejects a stale draft revision before writing", async () => {
       },
     },
   };
-  const caller = createCaller({ $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) });
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
 
   await assert.rejects(
     caller.leases.updateDraft({ leaseId: 9, expectedRevision: 1, data: { draftStep: "residents" } }),
@@ -134,10 +142,72 @@ test("rejects a stale draft revision before writing", async () => {
 
 test("does not update a draft outside the organization", async () => {
   const tx = { lease: { findFirst: async () => null } };
-  const caller = createCaller({ $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) });
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
 
   await assert.rejects(
     caller.leases.updateDraft({ leaseId: 9, expectedRevision: 0, data: { draftStep: "residents" } }),
     { code: "NOT_FOUND" },
   );
+});
+
+test("preserves allocations when only resident IDs are patched", async () => {
+  let createdRows: unknown;
+  const current = draft({ tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }] });
+  const tx = {
+    lease: {
+      findFirst: async () => current,
+      updateMany: async () => ({ count: 1 }),
+      findFirstOrThrow: async () => ({ ...current, revision: 1 }),
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    tenant: { findMany: async () => [{ id: 11 }] },
+    leaseTenant: {
+      deleteMany: async () => ({ count: 1 }),
+      createMany: async ({ data }: { data: unknown }) => {
+        createdRows = data;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await caller.leases.updateDraft({ leaseId: 9, expectedRevision: 0, data: { tenantIds: [11] } });
+  assert.deepEqual(createdRows, [
+    { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 },
+  ]);
+});
+
+test("rejects allocation IDs that do not match selected residents", async () => {
+  let deleted = false;
+  const current = draft();
+  const tx = {
+    lease: { findFirst: async () => current },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    tenant: { findMany: async () => [{ id: 11 }] },
+    leaseTenant: {
+      deleteMany: async () => {
+        deleted = true;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await assert.rejects(
+    caller.leases.updateDraft({
+      leaseId: 9,
+      expectedRevision: 0,
+      data: { tenantIds: [11], tenantAllocations: [{ tenantId: 12, rentShareCents: 1, depositShareCents: 1 }] },
+    }),
+    { code: "BAD_REQUEST" },
+  );
+  assert.equal(deleted, false);
 });

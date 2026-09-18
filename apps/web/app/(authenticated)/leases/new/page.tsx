@@ -48,7 +48,12 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@parcelis/ui";
-import { leasePropertyStepSchema, leaseTenantBillingStepSchema, leaseTermsStepSchema, type CreatePropertyInput, } from "@parcelis/schemas";
+import {
+  leasePropertyStepSchema,
+  leaseTenantBillingStepSchema,
+  leaseTermsStepSchema,
+  type CreatePropertyInput,
+} from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
 import { LoadingState } from "../../../../components/loading-state";
@@ -89,20 +94,6 @@ type LeaseDraftIdentity = {
   revision: number;
 };
 
-type LeaseDraftV4 = Omit<LeaseDraft, "version" | "rentDueDay"> & {
-  version: 4;
-  billingDay: number | null;
-  continueMonthToMonthAfterEnd: boolean;
-};
-
-type LeaseDraftV3 = Omit<
-  LeaseDraftV4,
-  "version" | "securityDepositCents" | "billingResponsibility" | "allowPartialPayments" | "tenantAllocations"
-> & {
-  version: 3;
-  depositCents: number | null;
-};
-
 const initialLeaseDraft: LeaseDraft = {
   version: 5,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
@@ -122,134 +113,6 @@ const initialLeaseDraft: LeaseDraft = {
 
 function getLeaseDraftStorageKey(organizationId: number) {
   return `parcelis:lease-server-draft:${organizationId}`;
-}
-
-function isLeaseDraft(value: unknown): value is LeaseDraft {
-  if (!value || typeof value !== "object") return false;
-  const draft = value as Record<string, unknown>;
-  return (
-    draft.version === 5 &&
-    typeof draft.currentStep === "string" &&
-    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
-    (typeof draft.propertyId === "number" || draft.propertyId === null) &&
-    (typeof draft.unitId === "number" || draft.unitId === null) &&
-    Array.isArray(draft.tenantIds) &&
-    draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
-    (draft.termType === "fixed" || draft.termType === "month_to_month") &&
-    typeof draft.startsOn === "string" &&
-    typeof draft.endsOn === "string" &&
-    (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
-    (typeof draft.securityDepositCents === "number" || draft.securityDepositCents === null) &&
-    typeof draft.rentDueDay === "number" &&
-    (draft.billingResponsibility === "joint" || draft.billingResponsibility === "individual") &&
-    typeof draft.allowPartialPayments === "boolean" &&
-    Array.isArray(draft.tenantAllocations) &&
-    draft.tenantAllocations.every(
-      (allocation) =>
-        typeof allocation === "object" &&
-        allocation !== null &&
-        typeof (allocation as Record<string, unknown>).tenantId === "number" &&
-        typeof (allocation as Record<string, unknown>).rentShareCents === "number" &&
-        typeof (allocation as Record<string, unknown>).depositShareCents === "number",
-    )
-  );
-}
-
-function isLeaseDraftV4(value: unknown): value is LeaseDraftV4 {
-  if (!value || typeof value !== "object") return false;
-  const draft = value as Record<string, unknown>;
-  return (
-    draft.version === 4 &&
-    typeof draft.currentStep === "string" &&
-    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
-    (typeof draft.propertyId === "number" || draft.propertyId === null) &&
-    (typeof draft.unitId === "number" || draft.unitId === null) &&
-    Array.isArray(draft.tenantIds) &&
-    draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
-    (draft.termType === "fixed" || draft.termType === "month_to_month") &&
-    typeof draft.continueMonthToMonthAfterEnd === "boolean" &&
-    typeof draft.startsOn === "string" &&
-    typeof draft.endsOn === "string" &&
-    (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
-    (typeof draft.securityDepositCents === "number" || draft.securityDepositCents === null) &&
-    (typeof draft.billingDay === "number" || draft.billingDay === null) &&
-    (draft.billingResponsibility === "joint" || draft.billingResponsibility === "individual") &&
-    typeof draft.allowPartialPayments === "boolean" &&
-    Array.isArray(draft.tenantAllocations) &&
-    draft.tenantAllocations.every(
-      (allocation) =>
-        typeof allocation === "object" &&
-        allocation !== null &&
-        typeof (allocation as Record<string, unknown>).tenantId === "number" &&
-        typeof (allocation as Record<string, unknown>).rentShareCents === "number" &&
-        typeof (allocation as Record<string, unknown>).depositShareCents === "number",
-    )
-  );
-}
-
-function isLeaseDraftV3(value: unknown): value is LeaseDraftV3 {
-  if (!value || typeof value !== "object") return false;
-  const draft = value as Record<string, unknown>;
-  return (
-    draft.version === 3 &&
-    typeof draft.currentStep === "string" &&
-    leaseCreationSteps.some((step) => step.id === draft.currentStep) &&
-    (typeof draft.propertyId === "number" || draft.propertyId === null) &&
-    (typeof draft.unitId === "number" || draft.unitId === null) &&
-    Array.isArray(draft.tenantIds) &&
-    draft.tenantIds.every((tenantId) => typeof tenantId === "number") &&
-    (draft.termType === "fixed" || draft.termType === "month_to_month") &&
-    typeof draft.continueMonthToMonthAfterEnd === "boolean" &&
-    typeof draft.startsOn === "string" &&
-    typeof draft.endsOn === "string" &&
-    (typeof draft.monthlyRentCents === "number" || draft.monthlyRentCents === null) &&
-    (typeof draft.depositCents === "number" || draft.depositCents === null) &&
-    (typeof draft.billingDay === "number" || draft.billingDay === null)
-  );
-}
-
-function migrateLeaseDraft(value: unknown): LeaseDraft | null {
-  if (isLeaseDraft(value)) return value;
-  if (isLeaseDraftV3(value)) {
-    return {
-      version: 5,
-      currentStep: value.currentStep,
-      propertyId: value.propertyId,
-      unitId: value.unitId,
-      tenantIds: value.tenantIds,
-      termType: value.continueMonthToMonthAfterEnd ? "month_to_month" : value.termType,
-      startsOn: value.startsOn,
-      endsOn: value.continueMonthToMonthAfterEnd ? "" : value.endsOn,
-      monthlyRentCents: value.monthlyRentCents,
-      securityDepositCents: value.depositCents,
-      rentDueDay:
-        typeof value.billingDay === "number" && value.billingDay >= 1 && value.billingDay <= 31
-          ? value.billingDay
-          : 1,
-      billingResponsibility: "joint",
-      allowPartialPayments: true,
-      tenantAllocations: [],
-    };
-  }
-  if (!isLeaseDraftV4(value)) return null;
-
-  return {
-    version: 5,
-    currentStep: value.currentStep,
-    propertyId: value.propertyId,
-    unitId: value.unitId,
-    tenantIds: value.tenantIds,
-    termType: value.continueMonthToMonthAfterEnd ? "month_to_month" : value.termType,
-    startsOn: value.startsOn,
-    endsOn: value.continueMonthToMonthAfterEnd ? "" : value.endsOn,
-    monthlyRentCents: value.monthlyRentCents,
-    securityDepositCents: value.securityDepositCents,
-    rentDueDay:
-      typeof value.billingDay === "number" && value.billingDay >= 1 && value.billingDay <= 31 ? value.billingDay : 1,
-    billingResponsibility: value.billingResponsibility,
-    allowPartialPayments: value.allowPartialPayments,
-    tenantAllocations: value.tenantAllocations,
-  };
 }
 
 function formatCurrency(cents: number) {
@@ -738,7 +601,8 @@ function ResidentsSelector({
   const billingValidationMessages = [
     ...(monthlyRentCents === null || monthlyRentCents <= 0 ? ["Enter a monthly rent amount greater than $0."] : []),
     ...(securityDepositCents === null ? ["Enter the security deposit amount."] : []),
-    ...(billingResponsibility === "individual" && displayedAllocations.some((allocation) => allocation.rentShareCents <= 0)
+    ...(billingResponsibility === "individual" &&
+    displayedAllocations.some((allocation) => allocation.rentShareCents <= 0)
       ? ["Each tenant must have a rent allocation greater than $0.00."]
       : []),
     ...(billingResponsibility === "individual" && monthlyRentCents !== null && allocatedRentCents !== monthlyRentCents
@@ -1286,7 +1150,9 @@ function LeaseTermsSelector({
           </span>
           <span className="flex flex-1 flex-col gap-1">
             <span className="font-semibold text-parcelis-charcoal">Fixed term</span>
-            <span className="text-sm leading-5 text-parcelis-gray">This lease runs for a fixed term, starting on the date below and ending on the date below.</span>
+            <span className="text-sm leading-5 text-parcelis-gray">
+              This lease runs for a fixed term, starting on the date below and ending on the date below.
+            </span>
           </span>
           <RadioGroupItem className="mt-1" value="fixed" />
         </label>
@@ -1308,7 +1174,10 @@ function LeaseTermsSelector({
           </span>
           <span className="flex flex-1 flex-col gap-1">
             <span className="font-semibold text-parcelis-charcoal">Month-to-month</span>
-            <span className="text-sm leading-5 text-parcelis-gray">This lease begins on the start date below and automatically renews on a month-to-month basis until terminated.</span>
+            <span className="text-sm leading-5 text-parcelis-gray">
+              This lease begins on the start date below and automatically renews on a month-to-month basis until
+              terminated.
+            </span>
           </span>
           <RadioGroupItem className="mt-1" value="month_to_month" />
         </label>
@@ -1319,70 +1188,70 @@ function LeaseTermsSelector({
           <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="lease-start-date">
             Lease start date
           </label>
-        <Popover onOpenChange={setIsStartDatePickerOpen} open={isStartDatePickerOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              aria-describedby="lease-start-date-description"
-              className="justify-start font-normal"
-              id="lease-start-date"
-              type="button"
-              variant="secondary"
-            >
-              <CalendarDays className="size-4 text-parcelis-gray" />
-              {startDate ? formatDateLabel(startDate) : "Select a start date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-auto p-0">
-            <Calendar
-              mode="single"
-              onSelect={(date) => {
-                if (!date) return;
-                onStartsOnChange(formatDateInput(date));
-                setIsStartDatePickerOpen(false);
-              }}
-              selected={startDate}
-            />
-          </PopoverContent>
-        </Popover>
-        <p className="text-sm text-parcelis-gray" id="lease-start-date-description">
-          The first day of the lease term.
-        </p>
-      </div>
-
-        {termType === "fixed" ? (
-          <div className="flex w-full flex-col gap-2 md:max-w-sm">
-          <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="lease-end-date">
-            Lease end date
-          </label>
-          <Popover onOpenChange={setIsEndDatePickerOpen} open={isEndDatePickerOpen}>
+          <Popover onOpenChange={setIsStartDatePickerOpen} open={isStartDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button
-                aria-describedby="lease-end-date-description"
+                aria-describedby="lease-start-date-description"
                 className="justify-start font-normal"
-                id="lease-end-date"
+                id="lease-start-date"
                 type="button"
                 variant="secondary"
               >
                 <CalendarDays className="size-4 text-parcelis-gray" />
-                {endDate ? formatDateLabel(endDate) : "Select an end date"}
+                {startDate ? formatDateLabel(startDate) : "Select a start date"}
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-auto p-0">
               <Calendar
-                disabled={startDate ? { before: startDate } : undefined}
                 mode="single"
                 onSelect={(date) => {
                   if (!date) return;
-                  onEndsOnChange(formatDateInput(date));
-                  setIsEndDatePickerOpen(false);
+                  onStartsOnChange(formatDateInput(date));
+                  setIsStartDatePickerOpen(false);
                 }}
-                selected={endDate}
+                selected={startDate}
               />
             </PopoverContent>
           </Popover>
-          <p className="text-sm text-parcelis-gray" id="lease-end-date-description">
-            The last day of the lease term.
+          <p className="text-sm text-parcelis-gray" id="lease-start-date-description">
+            The first day of the lease term.
           </p>
+        </div>
+
+        {termType === "fixed" ? (
+          <div className="flex w-full flex-col gap-2 md:max-w-sm">
+            <label className="text-sm font-semibold text-parcelis-charcoal" htmlFor="lease-end-date">
+              Lease end date
+            </label>
+            <Popover onOpenChange={setIsEndDatePickerOpen} open={isEndDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  aria-describedby="lease-end-date-description"
+                  className="justify-start font-normal"
+                  id="lease-end-date"
+                  type="button"
+                  variant="secondary"
+                >
+                  <CalendarDays className="size-4 text-parcelis-gray" />
+                  {endDate ? formatDateLabel(endDate) : "Select an end date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-auto p-0">
+                <Calendar
+                  disabled={startDate ? { before: startDate } : undefined}
+                  mode="single"
+                  onSelect={(date) => {
+                    if (!date) return;
+                    onEndsOnChange(formatDateInput(date));
+                    setIsEndDatePickerOpen(false);
+                  }}
+                  selected={endDate}
+                />
+              </PopoverContent>
+            </Popover>
+            <p className="text-sm text-parcelis-gray" id="lease-end-date-description">
+              The last day of the lease term.
+            </p>
           </div>
         ) : null}
       </div>
@@ -1488,7 +1357,9 @@ function LeaseReviewPropertyAndUnit({
           <div className="flex flex-1 items-center gap-3 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
             <DoorOpen className="h-5 w-5 text-parcelis-green" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">Unit</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
+                Unit
+              </p>
               <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">
                 {unit?.name ?? "Not selected"}
               </p>
@@ -1573,7 +1444,9 @@ function LeaseReviewPropertyAndUnit({
                     </span>
                     <div className="flex flex-col items-end gap-1 text-sm font-semibold text-parcelis-charcoal dark:text-white">
                       <span>Rent: {formatCurrency(allocationsByTenantId.get(resident.id)?.rentShareCents ?? 0)}</span>
-                      <span>Deposit: {formatCurrency(allocationsByTenantId.get(resident.id)?.depositShareCents ?? 0)}</span>
+                      <span>
+                        Deposit: {formatCurrency(allocationsByTenantId.get(resident.id)?.depositShareCents ?? 0)}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -1641,6 +1514,7 @@ export default function NewLeasePage() {
   const leaseDraftStorageKey = activeOrganizationQuery.data
     ? getLeaseDraftStorageKey(activeOrganizationQuery.data.id)
     : null;
+  const [identityStorageLoaded, setIdentityStorageLoaded] = React.useState(false);
   // Track the loaded draft key to prevent reloading the same draft multiple times.
   const [loadedDraftKey, setLoadedDraftKey] = React.useState<string | null>(null);
   const leaseDraftQuery = useQuery({
@@ -1672,11 +1546,8 @@ export default function NewLeasePage() {
     onError: (error) => setStepError(getLeaseDraftErrorMessage(error)),
   });
   const updateLeaseDraft = useMutation({
-    mutationFn: (input: {
-      leaseId: number;
-      expectedRevision: number;
-      data: Record<string, unknown>;
-    }) => apiClient.leases.updateDraft.mutate(input as never),
+    mutationFn: (input: { leaseId: number; expectedRevision: number; data: Record<string, unknown> }) =>
+      apiClient.leases.updateDraft.mutate(input as never),
     onSuccess: (lease) => setDraftIdentity((current) => ({ ...current, revision: lease.revision })),
     onError: (error) => setStepError(getLeaseDraftErrorMessage(error)),
   });
@@ -1715,7 +1586,9 @@ export default function NewLeasePage() {
           try {
             await apiClient.tenants.delete.mutate({ id: tenant.id });
           } catch {
-            throw new Error(`Tenant ${tenant.firstName} ${tenant.lastName} was created, but its image could not be uploaded.`);
+            throw new Error(
+              `Tenant ${tenant.firstName} ${tenant.lastName} was created, but its image could not be uploaded.`,
+            );
           }
           throw error;
         }
@@ -1763,6 +1636,7 @@ export default function NewLeasePage() {
     } catch {
       setDraftIdentity({ leaseDraftKey: "", leaseId: null, revision: 0 });
     }
+    setIdentityStorageLoaded(true);
   }, [leaseDraftStorageKey]);
 
   React.useEffect(() => {
@@ -1775,10 +1649,10 @@ export default function NewLeasePage() {
   }, [draftIdentity, leaseDraftStorageKey]);
 
   React.useEffect(() => {
-    if (!draftIdentity.leaseDraftKey && typeof crypto !== "undefined") {
+    if (identityStorageLoaded && !draftIdentity.leaseDraftKey && typeof crypto !== "undefined") {
       setDraftIdentity((current) => ({ ...current, leaseDraftKey: crypto.randomUUID() }));
     }
-  }, [draftIdentity.leaseDraftKey]);
+  }, [draftIdentity.leaseDraftKey, identityStorageLoaded]);
 
   React.useEffect(() => {
     const lease = leaseDraftQuery.data;
@@ -1868,34 +1742,61 @@ export default function NewLeasePage() {
     if (!validateCurrentStep()) return;
     const nextStep = leaseCreationSteps[currentIndex + 1];
     if (!nextStep) return;
-    if (currentIndex === 1 || currentIndex === 2) {
-      if (!draftIdentity.leaseId) {
+    let leaseId = draftIdentity.leaseId;
+    let revision = draftIdentity.revision;
+    if (currentIndex === 0 && !draftIdentity.leaseId) {
+      if (!draft.propertyId || !draft.unitId || !draftIdentity.leaseDraftKey) {
+        setStepError("Select a property and unit before continuing.");
+        return;
+      }
+      try {
+        const lease = await createLeaseDraft.mutateAsync({
+          leaseDraftKey: draftIdentity.leaseDraftKey,
+          propertyId: draft.propertyId,
+          unitId: draft.unitId,
+        });
+        leaseId = lease.id;
+        revision = lease.revision;
+        setDraftIdentity((current) => ({
+          ...current,
+          leaseId: lease.id,
+          leaseDraftKey: lease.leaseDraftKey,
+          revision: lease.revision,
+        }));
+      } catch {
+        return;
+      }
+    }
+    if (currentIndex === 0 || currentIndex === 1 || currentIndex === 2) {
+      if (!leaseId) {
         setStepError("Save the property and unit before continuing.");
         return;
       }
       try {
         await updateLeaseDraft.mutateAsync({
-          leaseId: draftIdentity.leaseId,
-          expectedRevision: draftIdentity.revision,
+          leaseId,
+          expectedRevision: revision,
           data:
-            currentIndex === 1
-              ? {
-                  tenantIds: draft.tenantIds,
-                  billingResponsibility: draft.billingResponsibility,
-                  allowPartialPayments: draft.allowPartialPayments,
-                  monthlyRentCents: draft.monthlyRentCents,
-                  securityDepositCents: draft.securityDepositCents,
-                  tenantAllocations: draft.tenantAllocations,
-                  draftStep: nextStep.id,
-                }
-              : {
-                  termType: draft.termType,
-                  startsOn: draft.startsOn,
-                  endsOn: draft.endsOn,
-                  monthlyRentCents: draft.monthlyRentCents,
-                  rentDueDay: draft.rentDueDay,
-                  draftStep: nextStep.id,
-                },
+            currentIndex === 0
+              ? { propertyId: draft.propertyId, unitId: draft.unitId, draftStep: nextStep.id }
+              : currentIndex === 1
+                ? {
+                    tenantIds: draft.tenantIds,
+                    billingResponsibility: draft.billingResponsibility,
+                    allowPartialPayments: draft.allowPartialPayments,
+                    monthlyRentCents: draft.monthlyRentCents,
+                    securityDepositCents: draft.securityDepositCents,
+                    tenantAllocations: draft.tenantAllocations,
+                    draftStep: nextStep.id,
+                  }
+                : {
+                    termType: draft.termType,
+                    startsOn: draft.startsOn,
+                    endsOn: draft.endsOn,
+                    monthlyRentCents: draft.monthlyRentCents,
+                    rentDueDay: draft.rentDueDay,
+                    draftStep: nextStep.id,
+                  },
         });
       } catch {
         return;
@@ -1908,15 +1809,19 @@ export default function NewLeasePage() {
     const nextIndex = leaseCreationSteps.findIndex((step) => step.id === nextStepId);
     if (nextIndex === -1 || nextIndex === currentIndex) return;
     if (nextIndex > currentIndex + 1 || (nextIndex > currentIndex && !validateCurrentStep())) return;
+    if (nextIndex > currentIndex) {
+      void goNext();
+      return;
+    }
 
     setStepError(null);
     setDraft((current) => ({ ...current, currentStep: nextStepId }));
   }
 
-  function reloadLatestDraft() {
-    setLoadedDraftKey(null);
+  async function reloadLatestDraft() {
     setStepError(null);
-    void leaseDraftQuery.refetch();
+    const result = await leaseDraftQuery.refetch();
+    if (result.data) setLoadedDraftKey(null);
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
