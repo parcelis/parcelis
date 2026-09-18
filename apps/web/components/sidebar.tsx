@@ -201,6 +201,7 @@ function SidebarContent({ active }: SidebarProps) {
     const previousBodyOverflow = document.body.style.overflow;
     const backgroundElements = Array.from(document.querySelectorAll<HTMLElement>("main, footer"));
     const previousInertStates = backgroundElements.map((element) => element.inert);
+    const navigationButton = mobileNavigationButton.current;
 
     document.body.style.overflow = "hidden";
     backgroundElements.forEach((element) => {
@@ -213,7 +214,7 @@ function SidebarContent({ active }: SidebarProps) {
       backgroundElements.forEach((element, index) => {
         element.inert = previousInertStates[index] ?? false;
       });
-      mobileNavigationButton.current?.focus();
+      navigationButton?.focus();
     };
   }, [isMobileSidebarOpen]);
 

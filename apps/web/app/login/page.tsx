@@ -36,13 +36,17 @@ function getVerificationDestination() {
 function setVerificationDestination(destination: string) {
   try {
     window.localStorage.setItem(verificationDestinationKey, destination);
-  } catch {}
+  } catch {
+    return;
+  }
 }
 
 function clearVerificationDestination() {
   try {
     window.localStorage.removeItem(verificationDestinationKey);
-  } catch {}
+  } catch {
+    return;
+  }
 }
 
 type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password" | "verify-email";
