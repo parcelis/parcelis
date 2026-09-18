@@ -929,15 +929,33 @@ export const appRouter = router({
         });
       }
       try {
-        return await ctx.prisma.user.update({
-          where: { id: input.id },
-          data: {
-            name: input.name,
-            ...(input.email === undefined ? {} : { email: input.email }),
-            phone: input.phone || null,
+        return await ctx.prisma.$transaction(
+          async (tx) => {
+            if (input.email !== undefined) {
+              const existingUser = await tx.user.findUnique({
+                where: { id: input.id },
+                select: { accountStatus: true, email: true },
+              });
+              if (!existingUser) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+              if (existingUser.accountStatus === "pending" && existingUser.email !== input.email) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "A pending user's email address cannot be changed before verification.",
+                });
+              }
+            }
+            return tx.user.update({
+              where: { id: input.id },
+              data: {
+                name: input.name,
+                ...(input.email === undefined ? {} : { email: input.email }),
+                phone: input.phone || null,
+              },
+              select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
+            });
           },
-          select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
-        });
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
           throw new TRPCError({ code: "CONFLICT", message: "An account already uses this email address." });

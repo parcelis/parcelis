@@ -155,7 +155,6 @@ export default function LoginPage() {
     try {
       await apiClient.auth.requestEmailVerification.mutate({ email: pendingVerificationEmail });
       setNotice("If your account needs verification, a new link will arrive shortly.");
-      setPendingVerificationEmail(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to send a verification email. Please try again.");
     } finally {

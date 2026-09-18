@@ -68,6 +68,7 @@ function createPrisma() {
     },
     organizationMembership: {
       create: async () => ({}),
+      findUnique: async () => ({ userId: 1 }),
     },
     organizationEmailSettings: {
       findUnique: async () => null,
@@ -304,7 +305,7 @@ test("invalid and expired verification tokens are rejected", async () => {
   assert.equal(state.tokens[0]?.usedAt, null);
 });
 
-test("resending verification replaces prior tokens for pending accounts", async (t) => {
+test("resending verification preserves prior tokens for pending accounts", async (t) => {
   const emailDelivery = mockEmailDelivery();
   t.after(() => {
     mock.restoreAll();
@@ -329,8 +330,9 @@ test("resending verification replaces prior tokens for pending accounts", async 
 
   await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
   await emailDelivery.sent;
-  assert.equal(state.tokens.length, 1);
-  assert.notEqual(state.tokens[0]?.tokenHash, "old-token");
+  assert.equal(state.tokens.length, 2);
+  assert.ok(state.tokens.some((token) => token.tokenHash === "old-token"));
+  assert.ok(state.tokens.some((token) => token.tokenHash !== "old-token"));
   assert.equal(emailDelivery.messages.length, 1);
   assert.equal(emailDelivery.messages[0]?.to, user.email);
   assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
@@ -372,4 +374,32 @@ test("authorized user creation creates a pending account and verification token"
   assert.equal(emailDelivery.messages.length, 1);
   assert.equal(emailDelivery.messages[0]?.to, "created@example.com");
   assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
+});
+
+test("pending users cannot have their email changed through profile updates", async () => {
+  const state = createPrisma();
+  const passwordHash = await hashPassword("password-for-pending-user");
+  const user = await state.prisma.user.create({
+    data: {
+      name: "Pending User",
+      email: "pending-profile@example.com",
+      passwordHash,
+      phone: null,
+      role: "property_manager",
+      accountStatus: "pending",
+      defaultOrganizationId: 1,
+    },
+  });
+
+  await assert.rejects(
+    createAdministratorCaller(state.prisma).users.updateProfile({
+      id: user.id,
+      name: user.name,
+      email: "changed@example.com",
+      phone: null,
+    }),
+    (error: unknown) =>
+      error instanceof TRPCError && error.message === "A pending user's email address cannot be changed before verification.",
+  );
+  assert.equal(state.users[0]?.email, "pending-profile@example.com");
 });

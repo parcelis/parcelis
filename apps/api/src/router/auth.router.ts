@@ -188,7 +188,6 @@ export const authRouter = router({
         void (async () => {
           try {
             await ctx.prisma.$transaction(async (tx) => {
-              await tx.emailVerificationToken.deleteMany({ where: { userId: user.id } });
               await tx.emailVerificationToken.create({
                 data: {
                   userId: user.id,
