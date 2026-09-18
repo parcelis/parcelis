@@ -126,6 +126,7 @@ import {
   getOrganizationEmailConfig,
   isEmailSettingsEncryptionConfigured,
 } from "../modules/email-settings";
+import { consumeEmailSendRateLimit, getEmailSendRateLimitKey } from "../modules/login-rate-limit";
 
 const propertySelect = {
   id: true,
@@ -844,6 +845,7 @@ export const appRouter = router({
         if (input.role === "administrator" && ctx.user.role !== "administrator") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can create administrator accounts." });
         }
+        consumeEmailSendRateLimit(getEmailSendRateLimitKey(ctx.req.ip));
         const verificationToken = createEmailVerificationToken();
         try {
           const passwordHash = await hashPassword(input.password);

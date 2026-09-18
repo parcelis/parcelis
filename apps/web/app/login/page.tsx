@@ -25,6 +25,26 @@ const benefits = [
 
 const verificationDestinationKey = "parcelis-verification-destination";
 
+function getVerificationDestination() {
+  try {
+    return window.localStorage.getItem(verificationDestinationKey);
+  } catch {
+    return null;
+  }
+}
+
+function setVerificationDestination(destination: string) {
+  try {
+    window.localStorage.setItem(verificationDestinationKey, destination);
+  } catch {}
+}
+
+function clearVerificationDestination() {
+  try {
+    window.localStorage.removeItem(verificationDestinationKey);
+  } catch {}
+}
+
 type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password" | "verify-email";
 
 export default function LoginPage() {
@@ -60,7 +80,7 @@ export default function LoginPage() {
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
     }
     if (mode === "verify") {
-      const storedDestination = window.localStorage.getItem(verificationDestinationKey);
+      const storedDestination = getVerificationDestination();
       if (
         !(nextPath?.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("\\")) &&
         storedDestination?.startsWith("/") &&
@@ -182,13 +202,13 @@ export default function LoginPage() {
       };
       if (isRegistering) {
         await apiClient.auth.register.mutate(input);
-        window.localStorage.setItem(verificationDestinationKey, destination);
+        setVerificationDestination(destination);
         selectLoginMode("sign-in");
         setNotice("Check your email for a link to verify your account.");
         return;
       }
       await apiClient.auth.login.mutate(input);
-      window.localStorage.removeItem(verificationDestinationKey);
+      clearVerificationDestination();
       flushSync(() => setIsLoadingApp(true));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => window.setTimeout(resolve, 5000));

@@ -144,6 +144,11 @@ function createAdministratorCaller(prisma: PrismaService) {
 }
 
 function mockEmailDelivery() {
+  const messages: Array<{ html?: string; to?: string }> = [];
+  let resolveSent: (() => void) | undefined;
+  const sent = new Promise<void>((resolve) => {
+    resolveSent = resolve;
+  });
   const previousEnvironment = Object.fromEntries(
     ["EMAIL_FROM", "SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASSWORD"].map((name) => [
       name,
@@ -156,20 +161,28 @@ function mockEmailDelivery() {
   process.env.SMTP_SECURE = "false";
   process.env.SMTP_USER = "test";
   process.env.SMTP_PASSWORD = "test";
-  mock.method(getEmailTransporter(), "sendMail", async () => ({ messageId: "test" }) as never);
-  return () => {
-    for (const [name, value] of Object.entries(previousEnvironment)) {
-      if (value === undefined) delete process.env[name];
-      else process.env[name] = value;
-    }
+  mock.method(getEmailTransporter(), "sendMail", async (message: unknown) => {
+    messages.push(message as { html?: string; to?: string });
+    resolveSent?.();
+    return { messageId: "test" } as never;
+  });
+  return {
+    messages,
+    sent,
+    restore() {
+      for (const [name, value] of Object.entries(previousEnvironment)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    },
   };
 }
 
 test("registration creates a pending account and one verification token without a session", async (t) => {
-  const restoreEnvironment = mockEmailDelivery();
+  const emailDelivery = mockEmailDelivery();
   t.after(() => {
     mock.restoreAll();
-    restoreEnvironment();
+    emailDelivery.restore();
     resetEmailTransporter();
   });
   const state = createPrisma();
@@ -181,6 +194,9 @@ test("registration creates a pending account and one verification token without 
   assert.equal(state.tokens.length, 1);
   assert.notEqual(state.tokens[0]?.tokenHash, "new@example.com");
   assert.equal(state.sessions.length, 0);
+  assert.equal(emailDelivery.messages.length, 1);
+  assert.equal(emailDelivery.messages[0]?.to, "new@example.com");
+  assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
 });
 
 test("verification activates a pending account and consumes its token", async () => {
@@ -289,10 +305,10 @@ test("invalid and expired verification tokens are rejected", async () => {
 });
 
 test("resending verification replaces prior tokens for pending accounts", async (t) => {
-  const restoreEnvironment = mockEmailDelivery();
+  const emailDelivery = mockEmailDelivery();
   t.after(() => {
     mock.restoreAll();
-    restoreEnvironment();
+    emailDelivery.restore();
     resetEmailTransporter();
   });
   const state = createPrisma();
@@ -312,15 +328,19 @@ test("resending verification replaces prior tokens for pending accounts", async 
   });
 
   await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
+  await emailDelivery.sent;
   assert.equal(state.tokens.length, 1);
   assert.notEqual(state.tokens[0]?.tokenHash, "old-token");
+  assert.equal(emailDelivery.messages.length, 1);
+  assert.equal(emailDelivery.messages[0]?.to, user.email);
+  assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
 });
 
 test("resending verification does not reveal whether an account exists", async (t) => {
-  const restoreEnvironment = mockEmailDelivery();
+  const emailDelivery = mockEmailDelivery();
   t.after(() => {
     mock.restoreAll();
-    restoreEnvironment();
+    emailDelivery.restore();
     resetEmailTransporter();
   });
   const state = createPrisma();
@@ -331,10 +351,10 @@ test("resending verification does not reveal whether an account exists", async (
 });
 
 test("authorized user creation creates a pending account and verification token", async (t) => {
-  const restoreEnvironment = mockEmailDelivery();
+  const emailDelivery = mockEmailDelivery();
   t.after(() => {
     mock.restoreAll();
-    restoreEnvironment();
+    emailDelivery.restore();
     resetEmailTransporter();
   });
   const state = createPrisma();
@@ -349,4 +369,7 @@ test("authorized user creation creates a pending account and verification token"
 
   assert.equal(state.users[0]?.accountStatus, "pending");
   assert.equal(state.tokens.length, 1);
+  assert.equal(emailDelivery.messages.length, 1);
+  assert.equal(emailDelivery.messages[0]?.to, "created@example.com");
+  assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
 });

@@ -185,27 +185,29 @@ export const authRouter = router({
       const token = createEmailVerificationToken();
 
       if (user?.accountStatus === "pending") {
-        try {
-          await ctx.prisma.$transaction(async (tx) => {
-            await tx.emailVerificationToken.deleteMany({ where: { userId: user.id } });
-            await tx.emailVerificationToken.create({
-              data: {
-                userId: user.id,
-                tokenHash: hashEmailVerificationToken(token),
-                expiresAt: getEmailVerificationTokenExpiration(),
-              },
+        void (async () => {
+          try {
+            await ctx.prisma.$transaction(async (tx) => {
+              await tx.emailVerificationToken.deleteMany({ where: { userId: user.id } });
+              await tx.emailVerificationToken.create({
+                data: {
+                  userId: user.id,
+                  tokenHash: hashEmailVerificationToken(token),
+                  expiresAt: getEmailVerificationTokenExpiration(),
+                },
+              });
             });
-          });
-          await sendVerificationEmail({
-            to: user.email,
-            verificationUrl: getEmailVerificationUrl(token),
-            emailConfig: user.defaultOrganizationId
-              ? await getOrganizationEmailConfig(ctx.prisma, user.defaultOrganizationId)
-              : undefined,
-          });
-        } catch (error) {
-          console.error("Unable to create email verification token or send verification email.", error);
-        }
+            await sendVerificationEmail({
+              to: user.email,
+              verificationUrl: getEmailVerificationUrl(token),
+              emailConfig: user.defaultOrganizationId
+                ? await getOrganizationEmailConfig(ctx.prisma, user.defaultOrganizationId)
+                : undefined,
+            });
+          } catch (error) {
+            console.error("Unable to create email verification token or send verification email.", error);
+          }
+        })();
       }
 
       return { success: true };
