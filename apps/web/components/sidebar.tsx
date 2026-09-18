@@ -130,6 +130,7 @@ function SidebarContent({ active }: SidebarProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
   const mobileSidebar = React.useRef<HTMLElement>(null);
   const mobileNavigationButton = React.useRef<HTMLButtonElement>(null);
+  const focusMobileNavigationButton = React.useCallback(() => mobileNavigationButton.current?.focus(), []);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
@@ -201,7 +202,6 @@ function SidebarContent({ active }: SidebarProps) {
     const previousBodyOverflow = document.body.style.overflow;
     const backgroundElements = Array.from(document.querySelectorAll<HTMLElement>("main, footer"));
     const previousInertStates = backgroundElements.map((element) => element.inert);
-    const navigationButton = mobileNavigationButton.current;
 
     document.body.style.overflow = "hidden";
     backgroundElements.forEach((element) => {
@@ -214,9 +214,9 @@ function SidebarContent({ active }: SidebarProps) {
       backgroundElements.forEach((element, index) => {
         element.inert = previousInertStates[index] ?? false;
       });
-      navigationButton?.focus();
+      requestAnimationFrame(focusMobileNavigationButton);
     };
-  }, [isMobileSidebarOpen]);
+  }, [focusMobileNavigationButton, isMobileSidebarOpen]);
 
   React.useEffect(() => {
     const organization = activeOrganizationQuery.data;
