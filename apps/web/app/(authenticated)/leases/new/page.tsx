@@ -260,6 +260,13 @@ function formatCurrency(cents: number) {
   }).format(cents / 100);
 }
 
+function getLeaseDraftErrorMessage(error: Error) {
+  const code = (error as Error & { data?: { code?: string } }).data?.code;
+  return code === "CONFLICT"
+    ? "This lease draft changed in another session. Reload the draft before continuing."
+    : error.message;
+}
+
 function formatCurrencyExact(cents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -1662,7 +1669,7 @@ export default function NewLeasePage() {
       await queryClient.invalidateQueries({ queryKey: ["lease-draft", lease.leaseDraftKey] });
       setStepError(null);
     },
-    onError: (error) => setStepError(error.message),
+    onError: (error) => setStepError(getLeaseDraftErrorMessage(error)),
   });
   const updateLeaseDraft = useMutation({
     mutationFn: (input: {
@@ -1671,7 +1678,7 @@ export default function NewLeasePage() {
       data: Record<string, unknown>;
     }) => apiClient.leases.updateDraft.mutate(input as never),
     onSuccess: (lease) => setDraftIdentity((current) => ({ ...current, revision: lease.revision })),
-    onError: (error) => setStepError(error.message),
+    onError: (error) => setStepError(getLeaseDraftErrorMessage(error)),
   });
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
