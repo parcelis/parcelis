@@ -37,6 +37,7 @@ const sidebars: SidebarsConfig = {
           type: "category",
           label: "App Functionality",
           items: [
+            "platform-user-guide/app-functionality/detail-page-actions",
             "platform-user-guide/app-functionality/add-a-property",
             "platform-user-guide/app-functionality/property-directory",
             "platform-user-guide/app-functionality/manage-a-property",

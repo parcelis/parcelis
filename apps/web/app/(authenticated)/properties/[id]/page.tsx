@@ -27,6 +27,7 @@ import {
   CardHeader,
   Dialog,
   DialogContent,
+  DropdownMenuItem,
   Select,
 } from "@parcelis/ui";
 import { isActiveMaintenanceTicketStatus, type UpdatePropertyInput } from "@parcelis/schemas";
@@ -46,6 +47,7 @@ import { EntityLifecycleControls } from "../../../../components/entity-lifecycle
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../lib/entity-links";
+import { formatLeaseEndDate } from "../../../../lib/format";
 
 
 function formatStatus(status: string) {
@@ -55,7 +57,8 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
-function formatCurrency(cents: number) {
+function formatCurrency(cents: number | null) {
+  if (cents === null) return "Not set";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -63,7 +66,8 @@ function formatCurrency(cents: number) {
   }).format(cents / 100);
 }
 
-function formatDate(date: Date | string) {
+function formatDate(date: Date | string | null) {
+  if (!date) return "Not set";
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
@@ -130,7 +134,7 @@ export default function PropertyDetailPage() {
   const occupiedUnits = property?.occupiedUnits ?? 0;
   const unitCount = property?.unitCount ?? 0;
   const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits / unitCount) * 100) : 0;
-  const monthlyRentCents = activeLeases.reduce((sum, lease) => sum + lease.monthlyRentCents, 0);
+  const monthlyRentCents = activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0);
   const amountOverdueCents = activeLeases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0);
   const expiringLeases90Days = activeLeases.filter((lease) => {
     const now = new Date();
@@ -256,15 +260,26 @@ export default function PropertyDetailPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 md:min-w-40" variant="secondary">
               <Link href="/properties">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Properties</span>
+                <span className="sr-only md:not-sr-only">Properties</span>
               </Link>
             </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div aria-label="Property actions" className="flex items-start rounded-md shadow-sm" role="group">
+            <Button
+              aria-label="Edit Property"
+              className="hidden min-w-40 rounded-r-none md:inline-flex"
+              disabled={!property || !hasPermission(currentUserQuery.data?.permissions, "properties", "edit")}
+              onClick={openEditDrawer}
+            >
+              <PenLine className="h-4 w-4" />
+              <span className="hidden md:inline">Edit Property</span>
+            </Button>
             <EntityLifecycleControls
+              presentation="dropdown"
+              hasLeadingAction
               archiveDescription={
                 <>This will hide {property?.name ?? "this property"} from the default properties view.</>
               }
@@ -306,26 +321,20 @@ export default function PropertyDetailPage() {
                   queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
                 ]);
               }}
-            />
-            <Button
-              aria-label="Add notes"
-              className="min-w-10 sm:min-w-40"
-              disabled={!property}
-              onClick={() => setIsNotesDrawerOpen(true)}
-              variant="secondary"
             >
-              <StickyNotePlusIcon />
-              <span className="hidden sm:inline">Add Notes</span>
-            </Button>
-            <Button
-              aria-label="Edit property"
-              className="min-w-10 sm:min-w-40"
-              disabled={!property}
-              onClick={openEditDrawer}
-            >
-              <PenLine className="h-4 w-4" />
-              <span className="hidden sm:inline">Edit property</span>
-            </Button>
+              <DropdownMenuItem
+                className="md:hidden"
+                disabled={!property || !hasPermission(currentUserQuery.data?.permissions, "properties", "edit")}
+                onSelect={openEditDrawer}
+              >
+                <PenLine className="h-4 w-4" />
+                Edit Property
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!property} onSelect={() => setIsNotesDrawerOpen(true)}>
+                <StickyNotePlusIcon />
+                Add Note
+              </DropdownMenuItem>
+            </EntityLifecycleControls>
           </div>
         </header>
 
@@ -515,7 +524,7 @@ export default function PropertyDetailPage() {
                               </p>
                               <p className="mt-1 text-sm text-parcelis-gray">
                                 {formatDate(lease.startsOn)} to{" "}
-                                {lease.endsOn ? formatDate(lease.endsOn) : "Month-to-Month"}
+                                {formatLeaseEndDate(lease.endsOn, lease.termType)}
                               </p>
                             </div>
                             <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">

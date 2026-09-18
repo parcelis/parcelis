@@ -5,7 +5,7 @@ import type { PrismaService } from "../../modules/prisma.service";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
-function createDeniedCaller() {
+function createDeniedCaller(overrides: Partial<PrismaService> = {}) {
   const user = {
     id: 1,
     name: "Restricted User",
@@ -28,6 +28,7 @@ function createDeniedCaller() {
         invoiceId: null,
       }),
     },
+    ...overrides,
   } as unknown as PrismaService;
   const context = {
     prisma,
@@ -81,6 +82,7 @@ test("API denies resource reads when view permission is missing", async () => {
   const caller = createDeniedCaller();
   await Promise.all([
     expectForbidden(() => caller.properties.list()),
+    expectForbidden(() => caller.leases.byId({ id: 1 })),
     expectForbidden(() => caller.tenants.list()),
     expectForbidden(() => caller.applications.list()),
     expectForbidden(() => caller.maintenance.list()),
@@ -92,6 +94,8 @@ test("API denies resource reads when view permission is missing", async () => {
 test("API denies archive operations when archive permission is missing", async () => {
   const caller = createDeniedCaller();
   await Promise.all([
+    expectForbidden(() => caller.leases.archive({ id: 1 })),
+    expectForbidden(() => caller.leases.reactivate({ id: 1 })),
     expectForbidden(() => caller.properties.archive({ id: 1 })),
     expectForbidden(() => caller.properties.inactivate({ id: 1 })),
     expectForbidden(() => caller.properties.reactivate({ id: 1 })),
@@ -111,6 +115,7 @@ test("API denies lease creation when create permission is missing", async () => 
       unitId: 1,
       tenantIds: [1],
       monthlyRentCents: 100_000,
+      termType: "fixed",
       startsOn: new Date("2026-01-01"),
       endsOn: null,
       status: "draft",
@@ -121,13 +126,16 @@ test("API denies lease creation when create permission is missing", async () => 
 
 test("API denies user creation when create permission is missing", async () => {
   const caller = createDeniedCaller();
+  const userCreateInput = {
+    name: "New User",
+    email: "new-user@example.com",
+    phone: null,
+    role: "property_manager" as const,
+  };
   await expectForbidden(() =>
     caller.users.create({
-      name: "New User",
-      email: "new-user@example.com",
-      phone: null,
-      password: "test-password",
-      role: "property_manager",
+      ...userCreateInput,
+      password: process.env.TEST_USER_PASSWORD ?? "",
     }),
   );
 });
@@ -138,8 +146,8 @@ test("API denies user changes when the matching permission is missing", async ()
     expectForbidden(() =>
       caller.users.update({
         id: 1,
-        name: "Restricted User",
-        email: "restricted@example.com",
+        name: process.env.TEST_USER_NAME ?? "",
+        email: process.env.TEST_USER_EMAIL ?? "",
         phone: null,
         role: "property_manager",
       }),
@@ -168,4 +176,39 @@ test("API denies note create, edit, and delete when the matching permission is m
     expectForbidden(() => caller.notes.update({ id: 1, body: "Restricted" })),
     expectForbidden(() => caller.notes.delete({ id: 1 })),
   ]);
+});
+
+test("API denies lease deletion when delete permission is missing", async () => {
+  await expectForbidden(() => createDeniedCaller().leases.delete({ id: 1 }));
+});
+
+test("lease details allow lease-only viewing and scope reads to the active organization", async () => {
+  const lease = {
+    id: 7,
+    archivedAt: new Date(),
+    property: { id: 2, name: "Example" },
+    unit: { id: 3, name: "1A" },
+    tenants: [{ tenant: { id: 4, firstName: "Sam", lastName: "Tenant" } }],
+    invoices: [],
+  };
+  const caller = createDeniedCaller({
+    rolePermission: {
+      findUnique: async ({ where }: { where: { role_resource: { resource: string } } }) => ({
+        canView: where.role_resource.resource === "leases",
+      }),
+    },
+    lease: {
+      findFirst: async ({ where }: { where: { id: number; organizationId: number } }) => {
+        assert.equal(where.organizationId, 1);
+        return where.id === lease.id ? lease : null;
+      },
+    },
+  } as unknown as Partial<PrismaService>);
+
+  await expectForbidden(() => caller.properties.list());
+  assert.deepEqual(await caller.leases.byId({ id: lease.id }), {
+    ...lease,
+    tenants: lease.tenants.map(({ tenant }) => tenant),
+  });
+  assert.equal(await caller.leases.byId({ id: 99 }), null);
 });

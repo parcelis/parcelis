@@ -18,14 +18,15 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
+import { formatInvoiceNumber } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
 import { InvoiceDrawer } from "../../../components/invoice-drawer";
 import { PageRail } from "../../../components/page-rail";
 import { getInvoiceLink } from "../../../lib/entity-links";
 
-
-function formatCurrency(cents: number) {
+function formatCurrency(cents: number | null) {
+  if (cents === null) return "Not set";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -46,13 +47,14 @@ function formatDate(value: Date | string) {
   );
 }
 
-function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number }) {
+function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number | null }) {
   const now = new Date();
   const dueOn = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const amountCents = lease.monthlyRentCents ?? 0;
 
   return {
-    amountCents: lease.monthlyRentCents,
-    balanceCents: lease.amountOverdueCents || lease.monthlyRentCents,
+    amountCents,
+    balanceCents: lease.amountOverdueCents || amountCents,
     dueOn,
     id: `INV-${dueOn.getUTCFullYear()}-${String(dueOn.getUTCMonth() + 1).padStart(2, "0")}`,
     paidOn: null,
@@ -117,7 +119,7 @@ function IncomePageContent() {
         ...property,
         incomeLeases,
         amountOverdueCents: incomeLeases.reduce((total, lease) => total + lease.amountOverdueCents, 0),
-        monthlyRentCents: incomeLeases.reduce((total, lease) => total + lease.monthlyRentCents, 0),
+        monthlyRentCents: incomeLeases.reduce((total, lease) => total + (lease.monthlyRentCents ?? 0), 0),
       };
     })
     .filter((property) => property.incomeLeases.length > 0);
@@ -337,7 +339,7 @@ function IncomePageContent() {
                                             className="text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
                                             href={getInvoiceLink(Number.parseInt(String(persistedInvoice.id), 10))}
                                           >
-                                            INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                                            {formatInvoiceNumber(persistedInvoice.invoiceNumber)}
                                           </Link>
                                         ) : (
                                           invoice.id
@@ -430,7 +432,7 @@ function IncomePageContent() {
                                 className="font-medium text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
                                 href={getInvoiceLink(Number.parseInt(String(persistedInvoice.id), 10))}
                               >
-                                INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                                {formatInvoiceNumber(persistedInvoice.invoiceNumber)}
                               </Link>
                             ) : (
                               <span className="font-medium text-parcelis-charcoal">{invoice.id}</span>

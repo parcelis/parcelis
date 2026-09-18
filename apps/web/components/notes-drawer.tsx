@@ -169,6 +169,9 @@ export function NotesDrawer({
         setDraft((currentDraft) => (currentDraft === variables.body ? "" : currentDraft));
       }
       await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
+      if ("maintenanceTicketId" in subject) {
+        await queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] });
+      }
     },
   });
   const updateNote = useMutation({

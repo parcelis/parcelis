@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { formatInvoiceNumber } from "@parcelis/schemas";
 import {
   Defs,
   Document,
@@ -58,7 +59,7 @@ export type InvoicePdfInvoice = {
   property: { name: string; line1: string; line2: string | null; city: string; region: string; postalCode: string };
   status: string;
   tenant: { firstName: string; lastName: string };
-};  
+};
 
 export type InvoicePdfOrganizationDetails = {
   addressLine1: string | null;
@@ -130,7 +131,13 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.gray, fontSize: 8, fontFamily: "Inter-Bold", letterSpacing: 1, textTransform: "uppercase" },
   detailText: { fontSize: 11, lineHeight: 1.5, marginTop: 8 },
   table: { marginTop: 36 },
-  tableHeader: { backgroundColor: colors.charcoal, color: colors.white, flexDirection: "row", fontFamily: "Inter-Bold", padding: 10 },
+  tableHeader: {
+    backgroundColor: colors.charcoal,
+    color: colors.white,
+    flexDirection: "row",
+    fontFamily: "Inter-Bold",
+    padding: 10,
+  },
   row: { borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: "row", padding: 10 },
   item: { width: 90 },
   description: { flex: 1 },
@@ -150,7 +157,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 3,
   },
-  paymentTableHeader: { borderBottomColor: colors.border, borderBottomWidth: 1, color: colors.gray, flexDirection: "row", fontFamily: "Inter-Bold", fontSize: 8, paddingBottom: 7 },
+  paymentTableHeader: {
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    color: colors.gray,
+    flexDirection: "row",
+    fontFamily: "Inter-Bold",
+    fontSize: 8,
+    paddingBottom: 7,
+  },
   paymentRow: { borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: "row", paddingVertical: 8 },
   payer: { flex: 1 },
   paidOn: { color: colors.gray, width: 95 },
@@ -158,7 +173,14 @@ const styles = StyleSheet.create({
   paymentAmount: { fontFamily: "Inter-Bold", textAlign: "right", width: 75 },
   totals: { alignSelf: "flex-end", marginTop: 24, width: 200 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 },
-  balance: { borderTopColor: colors.charcoal, borderTopWidth: 1, fontFamily: "Inter-Bold", fontSize: 13, marginTop: 5, paddingTop: 10 },
+  balance: {
+    borderTopColor: colors.charcoal,
+    borderTopWidth: 1,
+    fontFamily: "Inter-Bold",
+    fontSize: 13,
+    marginTop: 5,
+    paddingTop: 10,
+  },
   thankYou: { color: colors.gray, fontSize: 8, marginTop: 30, textAlign: "center" },
   footer: {
     bottom: 10,
@@ -185,7 +207,9 @@ function formatCurrency(cents: number) {
 }
 
 function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", timeZone: "UTC", year: "numeric" }).format(value);
+  return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", timeZone: "UTC", year: "numeric" }).format(
+    value,
+  );
 }
 
 function formatPaymentMethod(method: string) {
@@ -234,7 +258,7 @@ function InvoicePdfDocument({
   organization: InvoicePdfOrganizationDetails | null;
   organizationLogo: string | null;
 }) {
-  const invoiceLabel = `INV-${String(invoice.invoiceNumber).padStart(7, "0")}`;
+  const invoiceLabel = formatInvoiceNumber(invoice.invoiceNumber);
   const paidCents = Math.max(invoice.amountCents - invoice.balanceCents, 0);
   const status = getInvoiceStatus(invoice);
   const items = invoice.items.length
@@ -286,7 +310,9 @@ function InvoicePdfDocument({
             <Text style={styles.muted}>{`${invoice.property.name} - Unit ${invoice.lease.unitLabel}`}</Text>
             <Text style={styles.muted}>{invoice.property.line1}</Text>
             {invoice.property.line2 && <Text style={styles.muted}>{invoice.property.line2}</Text>}
-            <Text style={styles.muted}>{`${invoice.property.city}, ${invoice.property.region} ${invoice.property.postalCode}`}</Text>
+            <Text
+              style={styles.muted}
+            >{`${invoice.property.city}, ${invoice.property.region} ${invoice.property.postalCode}`}</Text>
           </View>
           <View style={styles.detailColumn}>
             <Text style={styles.eyebrow}>Due date</Text>
@@ -361,9 +387,7 @@ function InvoicePdfDocument({
         <Text style={styles.thankYou}>Thank you for your prompt payment.</Text>
         {isWhiteLabeled ? (
           <View fixed style={styles.footer}>
-            {organizationContactLine ? (
-              <Text style={styles.organizationContact}>{organizationContactLine}</Text>
-            ) : null}
+            {organizationContactLine ? <Text style={styles.organizationContact}>{organizationContactLine}</Text> : null}
             <Text style={styles.issuedThrough}>Issued with</Text>
             {brandBanner ? <Image src={brandBanner} style={styles.issuedThroughSignature} /> : null}
           </View>

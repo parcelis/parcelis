@@ -48,6 +48,7 @@ import {
   isActiveMaintenanceTicketStatus,
   isTerminalMaintenanceTicketStatus,
   maintenanceTicketStatuses,
+  formatMaintenanceTicketNumber,
 } from "@parcelis/schemas";
 import { apiClient } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
@@ -91,9 +92,6 @@ function formatDateTime(value: Date | string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
-}
-function formatTicketNumber(ticketNumber: number) {
-  return `MNT-${ticketNumber.toString().padStart(7, "0")}`;
 }
 function ticketUnits(ticket: { units: Array<{ unit: { name: string } }> }) {
   return ticket.units.length ? ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ") : "Property-wide";
@@ -520,7 +518,7 @@ export default function MaintenancePage() {
                             <span>
                               {ticket.title}
                               <span className="mt-1 block text-xs font-medium text-parcelis-gray">
-                                {formatTicketNumber(ticket.ticketNumber)}
+                                {formatMaintenanceTicketNumber(ticket.ticketNumber)}
                               </span>
                             </span>
                           </Link>

@@ -269,7 +269,7 @@ export default function TenantsPage() {
       tenant.lastName,
       tenant.email,
       tenant.phone,
-      activeLease?.property.name,
+      activeLease?.property?.name,
       activeLease?.unitLabel,
     ].some((value) => value?.toLowerCase().includes(query));
     const matchesAccountStatus =
@@ -594,8 +594,10 @@ export default function TenantsPage() {
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             {activeLease ? (
                               <>
-                                <p className="font-medium text-parcelis-charcoal">{activeLease.property.name}</p>
-                                <p>Unit {activeLease.unitLabel}</p>
+                                <p className="font-medium text-parcelis-charcoal">
+                                  {activeLease.property?.name ?? "Property not set"}
+                                </p>
+                                <p>{activeLease.unitLabel === "Not set" ? "Unit not set" : `Unit ${activeLease.unitLabel}`}</p>
                               </>
                             ) : (
                               "No current lease"

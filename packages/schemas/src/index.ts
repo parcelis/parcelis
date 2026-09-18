@@ -5,6 +5,14 @@ const maxDatabaseInteger = 2_147_483_647;
 export const imageUploadMaxSizeBytes = 2 * 1024 * 1024;
 export const imageUploadMaxSizeMessage = `Images must be ${imageUploadMaxSizeBytes / 1024 / 1024} MB or smaller.`;
 
+export function formatInvoiceNumber(invoiceNumber: number) {
+  return `INV-${String(invoiceNumber).padStart(7, "0")}`;
+}
+
+export function formatMaintenanceTicketNumber(ticketNumber: number) {
+  return `MNT-${String(ticketNumber).padStart(7, "0")}`;
+}
+
 export const authCredentialsInputSchema = z.object({
   email: z
     .string()
@@ -440,12 +448,219 @@ export const tenantSchema = z.object({
 
 export const leaseStatusValues = ["draft", "active", "notice", "ended"] as const;
 export const leaseStatusSchema = z.enum(leaseStatusValues);
+export const leaseTermTypeValues = ["fixed", "month_to_month"] as const;
+export const leaseTermTypeSchema = z.enum(leaseTermTypeValues);
+export const leaseDraftStepValues = ["property", "residents", "terms", "review"] as const;
+export const leaseDraftStepSchema = z.enum(leaseDraftStepValues);
+export const leaseBillingResponsibilityValues = ["joint", "individual"] as const;
+export const leaseBillingResponsibilitySchema = z.enum(leaseBillingResponsibilityValues);
+
+export const leaseTenantAllocationSchema = z.object({
+  tenantId: idSchema,
+  rentShareCents: z.number().int().positive().max(maxDatabaseInteger),
+  depositShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+});
+
+const leaseDraftTenantAllocationSchema = leaseTenantAllocationSchema.extend({
+  rentShareCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+});
+
+const leaseDraftTenantIdsSchema = z
+  .array(idSchema)
+  .max(50)
+  .refine((tenantIds) => new Set(tenantIds).size === tenantIds.length, {
+    message: "Each resident can only be added once.",
+  });
+
+const leaseDraftTenantAllocationsSchema = z
+  .array(leaseDraftTenantAllocationSchema)
+  .max(50)
+  .refine((allocations) => new Set(allocations.map((allocation) => allocation.tenantId)).size === allocations.length, {
+    message: "Each resident can only have one allocation.",
+  });
+
+const leaseDraftDataFieldsSchema = z.object({
+    propertyId: idSchema.nullable().optional(),
+    unitId: idSchema.nullable().optional(),
+    tenantIds: leaseDraftTenantIdsSchema.optional(),
+    termType: leaseTermTypeSchema.nullable().optional(),
+    startsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
+    endsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
+    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger).nullable().optional(),
+    securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).nullable().optional(),
+    rentDueDay: z.number().int().min(1).max(31).optional(),
+    continueMonthToMonthAfterEnd: z.boolean().optional(),
+    billingResponsibility: leaseBillingResponsibilitySchema.nullable().optional(),
+    allowPartialPayments: z.boolean().optional(),
+    tenantAllocations: leaseDraftTenantAllocationsSchema.optional(),
+    draftStep: leaseDraftStepSchema.optional(),
+  });
+
+export const leaseDraftDataSchema = leaseDraftDataFieldsSchema
+  .refine((lease) => lease.unitId === null || lease.unitId === undefined || lease.propertyId != null, {
+    message: "A unit requires a property.",
+    path: ["unitId"],
+  });
+
+export const leaseDraftCreateInputSchema = z.object({
+  leaseDraftKey: z.string().uuid(),
+  propertyId: idSchema,
+  unitId: idSchema,
+});
+
+export const leaseDraftByKeyInputSchema = z.object({ leaseDraftKey: z.string().uuid() });
+
+export const leaseDraftUpdateInputSchema = z.object({
+  leaseId: idSchema,
+  expectedRevision: z.number().int().nonnegative(),
+  data: leaseDraftDataFieldsSchema.refine((data) => Object.keys(data).length > 0, {
+    message: "Provide at least one draft field to update.",
+  }),
+});
+
+export const leaseByIdInputSchema = z.object({ id: idSchema });
+
+export const leasePropertyStepSchema = z.object({
+  propertyId: idSchema,
+  unitId: idSchema,
+});
+
+const leaseTenantIdsSchema = z
+  .array(idSchema)
+  .min(1, "Select at least one resident to continue.")
+  .max(50)
+  .refine((tenantIds) => new Set(tenantIds).size === tenantIds.length, {
+    message: "Each resident can only be added once.",
+  });
+
+export const leaseResidentsStepSchema = z.object({ tenantIds: leaseTenantIdsSchema });
+
+export const leaseTermsStepSchema = z
+  .object({
+    termType: leaseTermTypeSchema,
+    startsOn: z.string().date(),
+    endsOn: z.union([z.string().date(), z.literal("")]),
+    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
+    rentDueDay: z.number().int().min(1).max(31),
+    continueMonthToMonthAfterEnd: z.literal(false),
+  })
+  .refine((lease) => lease.termType !== "fixed" || Boolean(lease.endsOn), {
+    message: "A fixed-term lease requires an end date.",
+    path: ["endsOn"],
+  })
+  .refine((lease) => lease.termType !== "month_to_month" || !lease.endsOn, {
+    message: "A month-to-month lease cannot have an end date.",
+    path: ["endsOn"],
+  })
+  .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
+    message: "Lease end date must be on or after the start date.",
+    path: ["endsOn"],
+  });
+
+type LeaseTenantBillingValues = {
+  tenantIds: number[];
+  billingResponsibility: "joint" | "individual";
+  monthlyRentCents: number;
+  securityDepositCents: number;
+  tenantAllocations: Array<{ tenantId: number; rentShareCents: number; depositShareCents: number }>;
+};
+
+function validateLeaseTenantAllocations(lease: LeaseTenantBillingValues, ctx: z.RefinementCtx) {
+  const selectedTenantIds = new Set(lease.tenantIds);
+
+  if (selectedTenantIds.size !== lease.tenantIds.length) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Each tenant can only be selected once.",
+      path: ["tenantIds"],
+    });
+  }
+
+  if (lease.billingResponsibility === "joint") {
+    if (lease.monthlyRentCents + lease.securityDepositCents > maxDatabaseInteger) {
+      ctx.addIssue({
+        code: "custom",
+        message: "The first invoice total exceeds the maximum supported amount.",
+        path: ["securityDepositCents"],
+      });
+    }
+    if (lease.tenantAllocations.length > 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Joint responsibility does not use individual tenant allocations.",
+        path: ["tenantAllocations"],
+      });
+    }
+    return;
+  }
+
+  const allocationTenantIds = new Set(lease.tenantAllocations.map((allocation) => allocation.tenantId));
+
+  if (
+    allocationTenantIds.size !== lease.tenantAllocations.length ||
+    allocationTenantIds.size !== selectedTenantIds.size ||
+    !lease.tenantIds.every((tenantId) => allocationTenantIds.has(tenantId))
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Provide one allocation for each selected tenant.",
+      path: ["tenantAllocations"],
+    });
+    return;
+  }
+
+  const totalRentCents = lease.tenantAllocations.reduce((total, allocation) => total + allocation.rentShareCents, 0);
+  if (totalRentCents !== lease.monthlyRentCents) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Tenant rent allocations must equal the monthly rent.",
+      path: ["tenantAllocations"],
+    });
+  }
+
+  const totalDepositCents = lease.tenantAllocations.reduce(
+    (total, allocation) => total + allocation.depositShareCents,
+    0,
+  );
+  if (totalDepositCents !== lease.securityDepositCents) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Tenant deposit allocations must equal the security deposit.",
+      path: ["tenantAllocations"],
+    });
+  }
+  if (
+    lease.tenantAllocations.some(
+      (allocation) => allocation.rentShareCents + allocation.depositShareCents > maxDatabaseInteger,
+    )
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "The first invoice total exceeds the maximum supported amount.",
+      path: ["tenantAllocations"],
+    });
+  }
+}
+
+export const leaseTenantBillingStepSchema = z
+  .object({
+    tenantIds: leaseTenantIdsSchema,
+    billingResponsibility: leaseBillingResponsibilitySchema,
+    allowPartialPayments: z.boolean(),
+    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
+    securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+    tenantAllocations: z.array(leaseTenantAllocationSchema).max(50),
+  })
+  .superRefine(validateLeaseTenantAllocations);
 
 export const leaseSchema = z.object({
   id: idSchema,
   propertyId: idSchema,
   unitId: idSchema,
-  monthlyRentCents: z.number().int().positive(),
+  termType: leaseTermTypeSchema.nullable(),
+  monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
+  rentDueDay: z.number().int().min(1).max(31),
+  continueMonthToMonthAfterEnd: z.boolean(),
   startsOn: z.coerce.date(),
   endsOn: z.coerce.date().nullable(),
   status: leaseStatusSchema,
@@ -454,16 +669,48 @@ export const leaseSchema = z.object({
 export const createLeaseInputSchema = leaseSchema
   .omit({ id: true })
   .extend({
-    tenantIds: z.array(idSchema).min(1).max(50),
+    tenantIds: leaseTenantIdsSchema,
+    termType: leaseTermTypeSchema.optional(),
+    billingResponsibility: leaseBillingResponsibilitySchema.default("joint"),
+    allowPartialPayments: z.boolean().default(true),
+    rentDueDay: z.number().int().min(1).max(31).default(1),
+    continueMonthToMonthAfterEnd: z.literal(false).default(false),
+    securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).default(0),
+    tenantAllocations: z.array(leaseTenantAllocationSchema).max(50).default([]),
   })
   .refine((lease) => !lease.endsOn || lease.endsOn >= lease.startsOn, {
     message: "Lease end date must be on or after the start date.",
     path: ["endsOn"],
+  })
+  .superRefine((lease, ctx) => {
+    if (lease.status !== "draft" && !lease.termType) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A complete lease requires a term type.",
+        path: ["termType"],
+      });
+    }
+    if (lease.status !== "draft" && lease.termType === "fixed" && !lease.endsOn) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A fixed-term lease requires an end date.",
+        path: ["endsOn"],
+      });
+    }
+    if (lease.status !== "draft" && lease.termType === "month_to_month" && lease.endsOn) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A month-to-month lease cannot have an end date.",
+        path: ["endsOn"],
+      });
+    }
+    validateLeaseTenantAllocations(lease, ctx);
   });
 
 export const createLeaseWithInvoicesInputSchema = createLeaseInputSchema.extend({
   generateInvoices: z.boolean().default(false),
 });
+
 export const invoiceByIdInputSchema = z.object({ id: idSchema });
 export const invoiceListInputSchema = z.object({ tenantId: idSchema.optional() });
 export const invoiceItemInputSchema = z.object({

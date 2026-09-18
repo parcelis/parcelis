@@ -24,7 +24,7 @@
     "@parcelis/config": "workspace:*",
     "@types/pg": "^8.16.0",
     "prisma": "^7.10.0",
-    "tsx": "4.23.12",
+    "tsx": "4.23.13",
     "typescript": "6.0.3"
   }
 }

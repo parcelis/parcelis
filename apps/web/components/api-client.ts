@@ -35,6 +35,9 @@ export const queryKeys = {
     list: ["properties", "list"] as const,
     byId: (id: number) => ["properties", "byId", id] as const,
   },
+  leases: {
+    byId: (id: number) => ["leases", "byId", id] as const,
+  },
   tenants: {
     list: ["tenants", "list"] as const,
     byId: (id: number) => ["tenants", "byId", id] as const,

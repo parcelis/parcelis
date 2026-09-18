@@ -20,7 +20,7 @@ type DrawerProperty = {
   unitCount: number;
   leases?: Array<{
     unitLabel: string;
-    monthlyRentCents: number;
+    monthlyRentCents: number | null;
   }>;
   units: Array<{
     id: number;
@@ -121,7 +121,7 @@ export function getUnitFormStates(
     return {
       id: `synthetic-${index + 1}`,
       unitName,
-      marketRate: lease ? String(lease.monthlyRentCents / 100) : "",
+      marketRate: lease && lease.monthlyRentCents !== null ? String(lease.monthlyRentCents / 100) : "",
       unitType: "Residential",
       bedrooms: "",
       bathrooms: "",

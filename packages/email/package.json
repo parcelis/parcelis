@@ -19,7 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "nodemailer": "^9.0.6",
+    "nodemailer": "^10.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-email": "^6.9.3"
@@ -27,9 +27,8 @@
   "devDependencies": {
     "@parcelis/config": "workspace:*",
     "@react-email/ui": "^6.9.3",
-    "@types/node": "24.13.3",
-    "@types/nodemailer": "^8.0.1",
-    "@types/react": "19.2.18",
+    "@types/node": "24.13.5",
+    "@types/react": "19.3.0",
     "typescript": "6.0.3"
   }
 }

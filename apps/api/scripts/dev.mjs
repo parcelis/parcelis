@@ -3,7 +3,7 @@ import { watch } from "node:fs";
 import { resolve } from "node:path";
 
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
-const apiDirectory = resolve(import.meta.dirname, "..");
+const apiRoot = resolve(import.meta.dirname, "..");
 const emailSource = resolve(repositoryRoot, "packages/email/src");
 const useOpenPort = process.argv.includes("--open-port");
 
@@ -47,7 +47,7 @@ function startApi() {
     : ["start", "--watch"];
 
   apiProcess = spawn(command, args, {
-    cwd: apiDirectory,
+    cwd: apiRoot,
     detached: process.platform !== "win32",
     stdio: "inherit",
     shell: process.platform === "win32",

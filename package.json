@@ -4,7 +4,7 @@
   "version": "0.4.1",
   "description": "Open-source property management platform for boutique operators.",
   "license": "AGPL-3.0-only",
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@12.4.2",
   "engines": {
     "node": ">=24.19.0 <25"
   },
@@ -33,14 +33,14 @@
     "@commitlint/config-conventional": "^21.2.2",
     "@parcelis/config": "workspace:*",
     "@playwright/test": "^1.62.1",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "eslint": "^9.39.5",
     "prettier": "^3.9.6",
     "turbo": "^2.10.11",
     "typescript": "6.0.3"
   },
   "volta": {
-    "node": "24.19.0"
+    "node": "24.21.0"
   }
 }

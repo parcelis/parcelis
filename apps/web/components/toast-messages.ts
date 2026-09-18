@@ -1,4 +1,6 @@
-type EntityLabel = "Property" | "Tenant" | "Maintenance" | "Invoice" | "Unit" | "Application";
+type EntityLabel = "Property" | "Tenant" | "Maintenance" | "Invoice" | "Unit" | "Application" | "User";
+
+type SettingsSection = "Organization" | "Profile" | "Permissions";
 
 export function entityCreatedMessage(entity: EntityLabel, name: string) {
   return `${entity} “${name}” has been created.`;
@@ -18,4 +20,16 @@ export function entityArchivedMessage(entity: EntityLabel, name: string) {
 
 export function entityReactivatedMessage(entity: EntityLabel, name: string) {
   return `${entity} “${name}” has been reactivated.`;
+}
+
+export function entityEnabledMessage(entity: EntityLabel, name: string) {
+  return `${entity} “${name}” has been enabled.`;
+}
+
+export function entityDisabledMessage(entity: EntityLabel, name: string) {
+  return `${entity} “${name}” has been disabled.`;
+}
+
+export function settingUpdatedMessage(section: SettingsSection) {
+  return `${section} has been updated.`;
 }

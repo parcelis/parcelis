@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -15,7 +15,6 @@ import {
   DoorOpen,
   FileText,
   Mail,
-  MoreHorizontal,
   PenLine,
   Phone,
   Plus,
@@ -33,9 +32,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@parcelis/ui";
 import { isActiveMaintenanceTicketStatus, type UpdatePropertyInput } from "@parcelis/schemas";
+import { hasPermission } from "../../../../../../components/property-access";
 import { apiClient, queryKeys } from "../../../../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../../../../components/property-image-upload";
 import {
@@ -46,11 +47,19 @@ import {
 } from "../../../../../../components/property-drawer";
 import { getPropertyFormState, getUnitFormStates } from "../../../../../../components/property-drawer-state";
 import { LoadingState } from "../../../../../../components/loading-state";
+import { MaintenanceDrawer } from "../../../../../../components/maintenance-drawer";
+import { uploadMaintenanceImage } from "../../../../../../components/maintenance-image-upload";
 import { NotesDrawer } from "../../../../../../components/notes-drawer";
-import { entityUpdatedMessage } from "../../../../../../components/toast-messages";
+import { entityCreatedMessage, entityUpdatedMessage } from "../../../../../../components/toast-messages";
 import { StickyNotePlusIcon } from "../../../../../../components/sticky-note-plus-icon";
-import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../../../lib/entity-links";
-
+import {
+  getLeaseLink,
+  getMaintenanceLink,
+  getPropertyLink,
+  getTenantInvoicesLink,
+  getUnitLink,
+} from "../../../../../../lib/entity-links";
+import { formatLeaseEndDate } from "../../../../../../lib/format";
 
 function formatStatus(status: string) {
   return status
@@ -67,7 +76,8 @@ function formatCurrency(cents: number) {
   }).format(cents / 100);
 }
 
-function formatDate(date: Date | string) {
+function formatDate(date: Date | string | null) {
+  if (!date) return "Not set";
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
@@ -91,9 +101,18 @@ function getInvoiceRows(startDate: Date | string, amountCents: number) {
 
 export default function UnitDetailPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const params = useParams<{ id: string; unitId: string }>();
   const propertyId = Number(params.id);
   const unitId = Number(params.unitId);
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditUnit =
+    hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "edit");
+  const canCreateMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "create");
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
@@ -129,7 +148,42 @@ export default function UnitDetailPage() {
       ]);
     },
   });
+  const createMaintenanceTicket = useMutation({
+    mutationFn: async ({
+      input,
+      attachments,
+    }: {
+      input: Parameters<typeof apiClient.maintenance.create.mutate>[0];
+      attachments: File[];
+    }) => {
+      const ticket = await apiClient.maintenance.create.mutate(input);
+      const uploads = await Promise.allSettled(attachments.map((file) => uploadMaintenanceImage(ticket.id, file)));
+      const failedAttachments = attachments.filter((_, index) => uploads[index]?.status === "rejected");
+      return { ticket, failedAttachments };
+    },
+    onSuccess: async ({ ticket, failedAttachments }) => {
+      setIsMaintenanceDrawerOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({ queryKey: ["maintenance", "list"] }),
+      ]);
+      if (failedAttachments.length) {
+        toast.error("Maintenance ticket created, but some photos could not be attached.", {
+          description: `Failed: ${failedAttachments.map((file) => file.name).join(", ")}. A user with maintenance edit permission can add these photos using Edit Maintenance on the ticket.`,
+          duration: Infinity,
+          action: {
+            label: "View ticket",
+            onClick: () => router.push(getMaintenanceLink(ticket.id)),
+          },
+        });
+      } else {
+        toast.success(entityCreatedMessage("Maintenance", ticket.title));
+      }
+    },
+  });
   const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
+  const [isMaintenanceDrawerOpen, setIsMaintenanceDrawerOpen] = React.useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = React.useState(false);
   const [editInitialForm, setEditInitialForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [editInitialUnits, setEditInitialUnits] = React.useState<UnitDetailsFormState[]>([]);
@@ -157,7 +211,7 @@ export default function UnitDetailPage() {
     ["Coming Due", "—", "bg-amber-400"],
     ["Monthly rent", formatCurrency(monthlyRentCents), "bg-parcelis-charcoal"],
   ];
-  const invoiceRows = lease ? getInvoiceRows(lease.startsOn, monthlyRentCents) : [];
+  const invoiceRows = lease?.startsOn ? getInvoiceRows(lease.startsOn, monthlyRentCents) : [];
 
   function openEditUnitDrawer() {
     if (!property) {
@@ -220,22 +274,38 @@ export default function UnitDetailPage() {
         subject={{ unitId }}
         subjectLabel={unit ? `Unit ${unit.name}` : "Unit"}
       />
+      <MaintenanceDrawer
+        error={createMaintenanceTicket.error}
+        initialValues={unit ? { propertyId: String(propertyId), unitIds: [unit.id] } : undefined}
+        isPending={createMaintenanceTicket.isPending}
+        onOpenChange={setIsMaintenanceDrawerOpen}
+        onSubmit={(input, attachments) => createMaintenanceTicket.mutate({ input, attachments })}
+        open={isMaintenanceDrawerOpen}
+      />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between gap-3 border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
-            <Button asChild className="min-w-10 sm:min-w-40" variant="secondary">
+            <Button asChild className="min-w-10 md:min-w-40" variant="secondary">
               <Link href={getPropertyLink(propertyId)}>
                 <ArrowLeft className="h-4 w-4" />
-                <span className="sr-only sm:not-sr-only">Property</span>
+                <span className="sr-only md:not-sr-only">Property</span>
               </Link>
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            {property ? (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div aria-label="Unit actions" className="flex items-center rounded-md shadow-sm" role="group">
+              <Button
+                className="hidden min-w-40 rounded-r-none md:inline-flex"
+                disabled={!unit || !canEditUnit}
+                onClick={openEditUnitDrawer}
+              >
+                <PenLine className="h-4 w-4" />
+                Edit Unit
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="min-w-0 sm:min-w-40" variant="secondary">
+                  <Button className="rounded-r-none md:rounded-none md:border-l-0" variant="secondary">
                     All Units
                     <ChevronDown className="h-4 w-4" />
                   </Button>
@@ -244,7 +314,8 @@ export default function UnitDetailPage() {
                   <DropdownMenuItem asChild>
                     <Link href={getPropertyLink(propertyId)}>All Units</Link>
                   </DropdownMenuItem>
-                  {property.units.map((propertyUnit) => (
+                  <DropdownMenuSeparator />
+                  {property?.units.map((propertyUnit) => (
                     <DropdownMenuItem asChild key={propertyUnit.id}>
                       <Link
                         className={
@@ -258,42 +329,63 @@ export default function UnitDetailPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <Button className="min-w-0 sm:min-w-40" disabled variant="secondary">
-                All Units
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            )}
-            <Button
-              className="hidden min-w-40 xl:inline-flex"
-              disabled={!unit}
-              onClick={() => setIsNotesDrawerOpen(true)}
-              variant="secondary"
-            >
-              <StickyNotePlusIcon />
-              Add Notes
-            </Button>
-            <Button className="hidden min-w-40 xl:inline-flex" disabled={!property} onClick={openEditUnitDrawer}>
-              <PenLine className="h-4 w-4" />
-              Edit Unit
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button aria-label="Unit actions" className="min-w-10 xl:hidden" variant="secondary">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
-                  <StickyNotePlusIcon />
-                  Add Notes
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled={!property} onSelect={openEditUnitDrawer}>
-                  <PenLine className="h-4 w-4" />
-                  Edit Unit
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="rounded-l-none border-l-0 md:min-w-40" disabled={!unit} variant="secondary">
+                    Actions
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-96 min-w-48 overflow-y-auto">
+                  <DropdownMenuItem
+                    className="md:hidden"
+                    disabled={!unit || !canEditUnit}
+                    onSelect={openEditUnitDrawer}
+                  >
+                    <PenLine className="h-4 w-4" />
+                    Edit Unit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
+                    <StickyNotePlusIcon />
+                    Add Notes
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    disabled={!unit || !canCreateMaintenance}
+                    onSelect={() => setIsMaintenanceDrawerOpen(true)}
+                  >
+                    <Wrench className="h-4 w-4" />
+                    Create Maintenance
+                  </DropdownMenuItem>
+                  {tenant ? (
+                    <DropdownMenuItem asChild>
+                      <Link href={getTenantInvoicesLink(tenant.id)}>
+                        <FileText className="h-4 w-4" />
+                        View Invoices
+                      </Link>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      <FileText className="h-4 w-4" />
+                      View Invoices
+                    </DropdownMenuItem>
+                  )}
+                  {lease ? (
+                    <DropdownMenuItem asChild>
+                      <Link href={getLeaseLink(lease.id)}>
+                        <FileText className="h-4 w-4" />
+                        View Lease
+                      </Link>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      <FileText className="h-4 w-4" />
+                      View Lease
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </header>
 
@@ -371,7 +463,7 @@ export default function UnitDetailPage() {
                             <p className="text-sm font-semibold text-parcelis-charcoal">Current Lease</p>
                             <p className="mt-1 text-sm text-parcelis-gray">
                               {formatDate(lease.startsOn)} to{" "}
-                              {lease.endsOn ? formatDate(lease.endsOn) : "Month-to-Month"}
+                              {formatLeaseEndDate(lease.endsOn, lease.termType)}
                             </p>
                           </div>
                           <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
@@ -389,7 +481,7 @@ export default function UnitDetailPage() {
                           <div>
                             <p className="text-xs font-semibold uppercase text-parcelis-gray">End</p>
                             <p className="mt-1 font-semibold text-parcelis-charcoal">
-                              {lease.endsOn ? formatDate(lease.endsOn) : "Month-to-Month"}
+                              {formatLeaseEndDate(lease.endsOn, lease.termType)}
                             </p>
                           </div>
                         </div>

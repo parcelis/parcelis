@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   EllipsisVertical,
   Mail,
@@ -47,6 +48,13 @@ import { PageRail } from "../../../components/page-rail";
 import { hasPermission } from "../../../components/property-access";
 import { SettingsRail } from "../../../components/settings-rail";
 import { formatLabel } from "../../../lib/format";
+import {
+  entityCreatedMessage,
+  entityDeletedMessage,
+  entityDisabledMessage,
+  entityEnabledMessage,
+  entityUpdatedMessage,
+} from "../../../components/toast-messages";
 
 
 type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
@@ -151,32 +159,40 @@ export default function SettingsPage() {
   const updateUserRequest = useMutation({
     mutationFn: (input: EditUserFormState & { id: number }) =>
       apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
-    onSuccess: async () => {
+    onSuccess: async (user) => {
       closeEdit();
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(entityUpdatedMessage("User", user.name));
     },
   });
   const createUserMutation = useMutation({
     mutationFn: () => apiClient.users.create.mutate({ ...createUserForm, phone: createUserForm.phone || null }),
-    onSuccess: async () => {
+    onSuccess: async (user) => {
       setIsCreateUserDrawerOpen(false);
       setCreateUserForm(initialCreateUserFormState);
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(entityCreatedMessage("User", user.name));
     },
   });
   const updateAccountStatusMutation = useMutation({
-    mutationFn: ({ accountStatus, id }: { accountStatus: "active" | "disabled"; id: number }) =>
-      apiClient.users.updateAccountStatus.mutate({ id, accountStatus }),
-    onSuccess: async () => {
+    mutationFn: ({ accountStatus, user }: { accountStatus: "active" | "disabled"; user: UserListItem }) =>
+      apiClient.users.updateAccountStatus.mutate({ id: user.id, accountStatus }),
+    onSuccess: async (result, { user }) => {
       setDisableUser(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(
+        result.accountStatus === "disabled"
+          ? entityDisabledMessage("User", user.name)
+          : entityEnabledMessage("User", user.name),
+      );
     },
   });
   const deleteUserMutation = useMutation({
-    mutationFn: (id: number) => apiClient.users.delete.mutate({ id }),
-    onSuccess: async () => {
+    mutationFn: (user: UserListItem) => apiClient.users.delete.mutate({ id: user.id }),
+    onSuccess: async (_result, user) => {
       setDeleteUser(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(entityDeletedMessage("User", user.name));
     },
   });
 
@@ -239,7 +255,7 @@ export default function SettingsPage() {
               onClick={() =>
                 disableUser &&
                 updateAccountStatusMutation.mutate({
-                  id: disableUser.id,
+                  user: disableUser,
                   accountStatus: disableUser.accountStatus === "disabled" ? "active" : "disabled",
                 })
               }
@@ -265,7 +281,7 @@ export default function SettingsPage() {
             </Button>
             <Button
               disabled={deleteUserMutation.isPending}
-              onClick={() => deleteUser && deleteUserMutation.mutate(deleteUser.id)}
+              onClick={() => deleteUser && deleteUserMutation.mutate(deleteUser)}
               type="button"
               variant="destructive"
             >
