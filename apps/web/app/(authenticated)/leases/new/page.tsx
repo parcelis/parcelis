@@ -1913,6 +1913,12 @@ export default function NewLeasePage() {
     setDraft((current) => ({ ...current, currentStep: nextStepId }));
   }
 
+  function reloadLatestDraft() {
+    setLoadedDraftKey(null);
+    setStepError(null);
+    void leaseDraftQuery.refetch();
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isLastStep) goNext();
@@ -1994,6 +2000,17 @@ export default function NewLeasePage() {
                     currentIndex <= 2 ? "p-0" : "items-center justify-center p-8 text-center"
                   }`}
                 >
+                  {stepError?.includes("changed in another session") ? (
+                    <Alert className="mb-4 w-full" variant="destructive">
+                      <AlertTitle>Draft needs to be reloaded</AlertTitle>
+                      <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+                        <span>{stepError}</span>
+                        <Button onClick={reloadLatestDraft} type="button" variant="secondary">
+                          Reload latest draft
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
                   {currentIndex === 0 ? (
                     <PropertySelector
                       error={stepError}
