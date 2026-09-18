@@ -79,10 +79,25 @@ function createPrisma() {
         tokens.push(token);
         return token;
       },
-      deleteMany: async ({ where }: { where: { userId: number } }) => {
-        const removed = tokens.filter((token) => token.userId === where.userId).length;
+      deleteMany: async ({
+        where,
+      }: {
+        where: {
+          OR?: Array<{ expiresAt?: { lte: Date }; usedAt?: { not: null } }>;
+          userId: number;
+        };
+      }) => {
+        const matches = (token: VerificationToken) =>
+          token.userId === where.userId &&
+          (!where.OR ||
+            where.OR.some(
+              (condition) =>
+                (condition.expiresAt?.lte !== undefined && token.expiresAt <= condition.expiresAt.lte) ||
+                (condition.usedAt?.not !== undefined && token.usedAt !== null),
+            ));
+        const removed = tokens.filter(matches).length;
         for (let index = tokens.length - 1; index >= 0; index -= 1) {
-          if (tokens[index]?.userId === where.userId) tokens.splice(index, 1);
+          if (tokens[index] && matches(tokens[index])) tokens.splice(index, 1);
         }
         return { count: removed };
       },
@@ -222,7 +237,7 @@ test("verification activates a pending account and consumes its token", async ()
   await createCaller(state.prisma).auth.verifyEmail({ token });
 
   assert.equal(state.users[0]?.accountStatus, "active");
-  assert.ok(state.tokens[0]?.usedAt);
+  assert.equal(state.tokens.length, 0);
   await assert.rejects(
     createCaller(state.prisma).auth.verifyEmail({ token }),
     (error: unknown) => error instanceof TRPCError && error.code === "BAD_REQUEST",
@@ -336,6 +351,36 @@ test("resending verification preserves prior tokens for pending accounts", async
   assert.equal(emailDelivery.messages.length, 1);
   assert.equal(emailDelivery.messages[0]?.to, user.email);
   assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
+});
+
+test("resending verification removes expired tokens", async (t) => {
+  const emailDelivery = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    emailDelivery.restore();
+    resetEmailTransporter();
+  });
+  const state = createPrisma();
+  const user = await state.prisma.user.create({
+    data: {
+      name: "Pending User",
+      email: "expired-resend@example.com",
+      phone: null,
+      passwordHash: await hashPassword("password-for-new-user"),
+      role: "property_manager",
+      accountStatus: "pending",
+      defaultOrganizationId: null,
+    },
+  });
+  await state.prisma.emailVerificationToken.create({
+    data: { userId: user.id, tokenHash: "expired-token", expiresAt: new Date(Date.now() - 60_000) },
+  });
+
+  await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
+  await emailDelivery.sent;
+
+  assert.equal(state.tokens.length, 1);
+  assert.notEqual(state.tokens[0]?.tokenHash, "expired-token");
 });
 
 test("resending verification does not reveal whether an account exists", async (t) => {

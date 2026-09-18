@@ -166,6 +166,8 @@ export const authRouter = router({
       if (!activatedUser.count) {
         throw invalidEmailVerificationToken;
       }
+
+      await tx.emailVerificationToken.deleteMany({ where: { userId: verificationToken.userId } });
     });
 
     return { success: true };
@@ -188,6 +190,13 @@ export const authRouter = router({
         void (async () => {
           try {
             await ctx.prisma.$transaction(async (tx) => {
+              const now = new Date();
+              await tx.emailVerificationToken.deleteMany({
+                where: {
+                  userId: user.id,
+                  OR: [{ expiresAt: { lte: now } }, { usedAt: { not: null } }],
+                },
+              });
               await tx.emailVerificationToken.create({
                 data: {
                   userId: user.id,
