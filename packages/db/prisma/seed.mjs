@@ -245,7 +245,14 @@ async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balan
     where: {
       leaseId_tenantId_periodStartsOn: { leaseId: lease.id, tenantId, periodStartsOn },
     },
-    update: {},
+    update: {
+      recipients: {
+        createMany: {
+          data: [{ organizationId: lease.organizationId, tenantId }],
+          skipDuplicates: true,
+        },
+      },
+    },
     create: {
       organizationId: lease.organizationId,
       leaseId: lease.id,
@@ -260,6 +267,9 @@ async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balan
       status: balanceCents === 0 ? "paid" : "overdue",
       paidOn,
       paymentMethod: balanceCents === 0 ? (payments.at(-1)?.paymentMethod ?? null) : null,
+      recipients: {
+        create: { organizationId: lease.organizationId, tenantId },
+      },
       items: {
         create: {
           item: "Rent",
@@ -269,14 +279,14 @@ async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balan
         },
       },
       payments: {
-        create: payments,
+        create: payments.map((payment) => ({ ...payment, organizationId: lease.organizationId, tenantId })),
       },
     },
   });
 }
 
 async function main() {
-  const administratorEmail = "admin@parcelis.dev";
+  const administratorEmail = process.env.SEED_ADMIN_EMAIL?.trim() || "admin@parcelis.dev";
   const organizationName = "Parcelis Property Management";
   const organizationSeedKey = "parcelis-demo";
   const existingOrganization = await prisma.organization.findUnique({

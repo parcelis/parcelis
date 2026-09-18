@@ -37,7 +37,7 @@ import {
   Select,
   Textarea,
 } from "@parcelis/ui";
-import type { CreateMaintenanceTicketInput } from "@parcelis/schemas";
+import { formatMaintenanceTicketNumber, type CreateMaintenanceTicketInput } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "./api-client";
 
 type MaintenanceDrawerProps = {
@@ -253,7 +253,7 @@ export function MaintenanceDrawer({
                   {ticketNumber ? (
                     <Label className="gap-2 md:col-span-2">
                       Ticket Number
-                      <Input readOnly value={`MNT-${ticketNumber.toString().padStart(7, "0")}`} />
+                      <Input readOnly value={formatMaintenanceTicketNumber(ticketNumber)} />
                     </Label>
                   ) : null}
                   <Label className="gap-2 md:col-span-2">

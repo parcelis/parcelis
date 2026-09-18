@@ -39,7 +39,6 @@ import {
   DropdownMenuTrigger,
   Input,
   Label,
-  ParcelisLogo,
   Select,
   Table,
   TableBody,
@@ -62,8 +61,6 @@ import {
 } from "../../../components/toast-messages";
 import { getTenantLink } from "../../../lib/entity-links";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 type TenantFilters = {
   accountStatus: string;
@@ -272,7 +269,7 @@ export default function TenantsPage() {
       tenant.lastName,
       tenant.email,
       tenant.phone,
-      activeLease?.property.name,
+      activeLease?.property?.name,
       activeLease?.unitLabel,
     ].some((value) => value?.toLowerCase().includes(query));
     const matchesAccountStatus =
@@ -418,11 +415,8 @@ export default function TenantsPage() {
         subjectLabel={notesTenant ? `${notesTenant.firstName} ${notesTenant.lastName}` : "Tenant"}
       />
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
-              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-            </div>
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>
@@ -600,8 +594,10 @@ export default function TenantsPage() {
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             {activeLease ? (
                               <>
-                                <p className="font-medium text-parcelis-charcoal">{activeLease.property.name}</p>
-                                <p>Unit {activeLease.unitLabel}</p>
+                                <p className="font-medium text-parcelis-charcoal">
+                                  {activeLease.property?.name ?? "Property not set"}
+                                </p>
+                                <p>{activeLease.unitLabel === "Not set" ? "Unit not set" : `Unit ${activeLease.unitLabel}`}</p>
                               </>
                             ) : (
                               "No current lease"

@@ -60,9 +60,7 @@ async function stopListener(port) {
   console.log(`[parcelis] Stopped existing listener on port ${port}`);
 }
 
-await Promise.all(
-  [requestedAppPort, requestedDocsPort, requestedApiPort, requestedEmailPreviewPort].map(stopListener),
-);
+await Promise.all([requestedAppPort, requestedDocsPort, requestedApiPort, requestedEmailPreviewPort].map(stopListener));
 
 const apiPort = await findOpenPort(requestedApiPort);
 const appPort = await findOpenPort(requestedAppPort);
@@ -115,9 +113,9 @@ function startDevelopmentServices() {
     runCompose(["up", "-d", "--force-recreate", "proxy-service"]);
     runCompose(["up", "-d", "--wait", "postgres-service"]);
     runCompose(["up", "-d", "minio-service"]);
-    runCompose(["up", "minio-init-service"]);
+    runCompose(["run", "--rm", "minio-init-service"]);
   } catch {
-    console.error("[parcelis] Could not start local services. Install and start Docker, then run pnpm dev again.");
+    console.error("[parcelis] Could not start local services. Check Docker and the service output above, then run pnpm dev again.");
     process.exit(1);
   }
 }
@@ -163,11 +161,11 @@ const processes = [
     },
   },
   {
-    name: "email",
+    name: "email preview",
     args: ["--filter", "@parcelis/email", "dev:fixed"],
     env: {
       EMAIL_PREVIEW_PORT: String(emailPreviewPort),
-      WEB_ORIGIN: `http://localhost:${appPort}`,
+      WEB_ORIGIN: proxyOrigin,
     },
   },
 ];
@@ -176,7 +174,7 @@ console.log("[parcelis] Starting local development");
 console.log(`[parcelis] Web:  ${proxyOrigin}`);
 console.log(`[parcelis] API:  ${proxyOrigin}/api/v1`);
 console.log(`[parcelis] Docs: ${proxyOrigin}/docs/`);
-console.log(`[parcelis] Email previews: http://templates.localhost${proxyPortSuffix}/`);
+console.log(`[parcelis] Email preview: http://localhost:${emailPreviewPort}`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);
 
 const children = processes.map(({ name, args, env }) => {

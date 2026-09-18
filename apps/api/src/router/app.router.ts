@@ -2,6 +2,11 @@ import {
   createManualInvoiceInputSchema,
   createPropertyInputSchema,
   createLeaseInputSchema,
+  leaseByIdInputSchema,
+  leaseDraftUpdateInputSchema,
+  leaseDraftDataSchema,
+  leaseDraftCreateInputSchema,
+  leaseDraftByKeyInputSchema,
   createLeaseWithInvoicesInputSchema,
   deleteInvoiceInputSchema,
   deleteInvoicePaymentInputSchema,
@@ -60,6 +65,7 @@ import {
   switchOrganizationInputSchema,
   supportsPermissionAction,
   updateOrganizationInputSchema,
+  saveOrganizationEmailSettingsInputSchema,
   imageUploadMaxSizeBytes,
   imageUploadMaxSizeMessage,
   organizationAvatarUploadCompleteInputSchema,
@@ -69,6 +75,8 @@ import {
   userRoleValues,
   type PermissionAction,
   type PermissionResource,
+  formatInvoiceNumber,
+  formatMaintenanceTicketNumber,
 } from "@parcelis/schemas";
 import { sendVerificationEmail } from "@parcelis/email";
 import {
@@ -112,6 +120,12 @@ import {
 import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
+import { sendSmtpTestEmail } from "@parcelis/email";
+import {
+  encryptEmailSettingsPassword,
+  getOrganizationEmailConfig,
+  isEmailSettingsEncryptionConfigured,
+} from "../modules/email-settings";
 
 const propertySelect = {
   id: true,
@@ -166,6 +180,20 @@ function maintenanceStatusAction(previousStatus: MaintenanceTicketStatus, nextSt
   return "maintenance.status_changed";
 }
 
+async function recordActivityEvent(
+  tx: Prisma.TransactionClient,
+  data: Omit<Prisma.ActivityEventUncheckedCreateInput, "actorId" | "actorLabel">,
+  actor?: { id: string | number; name: string },
+) {
+  await tx.activityEvent.create({
+    data: {
+      ...data,
+      actorId: actor ? String(actor.id) : null,
+      actorLabel: actor?.name ?? null,
+    },
+  });
+}
+
 async function recordMaintenanceStatusEvent(
   tx: Prisma.TransactionClient,
   ticket: { id: number; organizationId: number; propertyId: number; ticketNumber: number; title: string },
@@ -174,18 +202,16 @@ async function recordMaintenanceStatusEvent(
 ) {
   if (previousStatus === nextStatus) return;
 
-  await tx.activityEvent.create({
-    data: {
-      organizationId: ticket.organizationId,
-      subjectType: ActivitySubjectType.maintenance_ticket,
-      subjectId: ticket.id,
-      subjectLabel: ticket.title,
-      subjectReference: `MNT-${ticket.ticketNumber.toString().padStart(7, "0")}`,
-      propertyId: ticket.propertyId,
-      action: maintenanceStatusAction(previousStatus, nextStatus),
-      previousStatus,
-      nextStatus,
-    },
+  await recordActivityEvent(tx, {
+    organizationId: ticket.organizationId,
+    subjectType: ActivitySubjectType.maintenance_ticket,
+    subjectId: ticket.id,
+    subjectLabel: ticket.title,
+    subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
+    propertyId: ticket.propertyId,
+    action: maintenanceStatusAction(previousStatus, nextStatus),
+    previousStatus,
+    nextStatus,
   });
 }
 
@@ -196,20 +222,20 @@ async function recordInvoiceActivity(
   metadata?: Prisma.InputJsonValue,
   actor?: { id: string | number; name: string },
 ) {
-  await tx.activityEvent.create({
-    data: {
+  await recordActivityEvent(
+    tx,
+    {
       organizationId: invoice.organizationId,
       subjectType: ActivitySubjectType.invoice,
       subjectId: invoice.id,
       subjectLabel: `Invoice ${invoice.invoiceNumber}`,
-      subjectReference: `INV-${invoice.invoiceNumber.toString().padStart(7, "0")}`,
+      subjectReference: formatInvoiceNumber(invoice.invoiceNumber),
       propertyId: invoice.propertyId,
       action,
       metadata,
-      actorId: actor ? String(actor.id) : null,
-      actorLabel: actor?.name ?? null,
     },
-  });
+    actor,
+  );
 }
 
 function withPropertyNotes<T extends { legacyNotes: string | null }>(property: T) {
@@ -337,7 +363,7 @@ function serializeUnit<
 function withOperatingMetrics<
   T extends {
     leases: Array<{
-      monthlyRentCents: number;
+      monthlyRentCents: number | null;
       amountOverdueCents: number;
       endsOn: Date | null;
       status: string;
@@ -363,7 +389,7 @@ function withOperatingMetrics<
 
   return {
     ...property,
-    monthlyRentCents: activeLeases.reduce((sum, lease) => sum + lease.monthlyRentCents, 0),
+    monthlyRentCents: activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0),
     amountOverdueCents: activeLeases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0),
     expiringLeases90Days: activeLeases.filter(
       (lease) => lease.endsOn !== null && lease.endsOn >= now && lease.endsOn <= expiresBefore,
@@ -390,6 +416,11 @@ function getInvoiceStatus(dueOn: Date, balanceCents: number) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   return dueOn < today ? ("overdue" as const) : ("open" as const);
+}
+
+export function getMonthlyDueDate(periodStartsOn: Date, rentDueDay: number) {
+  const lastDayOfMonth = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0).getDate();
+  return new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth(), Math.min(rentDueDay, lastDayOfMonth));
 }
 
 async function synchronizeOverdueInvoices(prisma: PrismaClient | Prisma.TransactionClient) {
@@ -626,6 +657,125 @@ export const appRouter = router({
         }
         throw error;
       }
+    }),
+    emailSettings: organizationProcedure.query(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      const settings = await ctx.prisma.organizationEmailSettings.findUnique({
+        where: { organizationId: ctx.organization.organizationId },
+        select: {
+          host: true,
+          securityType: true,
+          port: true,
+          fromName: true,
+          fromEmail: true,
+          requireSignIn: true,
+          username: true,
+          passwordCipher: true,
+        },
+      });
+
+      if (!settings) return null;
+      const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
+      return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
+    }),
+    emailSettingsEncryptionStatus: organizationProcedure.query(({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      return { configured: isEmailSettingsEncryptionConfigured() };
+    }),
+    saveEmailSettings: organizationProcedure
+      .input(saveOrganizationEmailSettingsInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        requireOrganizationAdministrator(ctx.organization.role);
+        const existing = await ctx.prisma.organizationEmailSettings.findUnique({
+          where: { organizationId: ctx.organization.organizationId },
+          select: { passwordCipher: true },
+        });
+        if (input.requireSignIn && !input.password && !existing?.passwordCipher) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Password is required when sign in is enabled." });
+        }
+
+        const settings = await ctx.prisma.organizationEmailSettings.upsert({
+          where: { organizationId: ctx.organization.organizationId },
+          create: {
+            organizationId: ctx.organization.organizationId,
+            host: input.host,
+            securityType: input.securityType,
+            port: input.port,
+            fromName: input.fromName?.trim() || null,
+            fromEmail: input.fromEmail,
+            requireSignIn: input.requireSignIn,
+            username: input.requireSignIn ? input.username : null,
+            passwordCipher: input.requireSignIn && input.password ? encryptEmailSettingsPassword(input.password) : null,
+          },
+          update: {
+            host: input.host,
+            securityType: input.securityType,
+            port: input.port,
+            fromName: input.fromName?.trim() || null,
+            fromEmail: input.fromEmail,
+            requireSignIn: input.requireSignIn,
+            username: input.requireSignIn ? input.username : null,
+            ...(!input.requireSignIn
+              ? { passwordCipher: null }
+              : input.password
+                ? { passwordCipher: encryptEmailSettingsPassword(input.password) }
+                : {}),
+          },
+          select: {
+            host: true,
+            securityType: true,
+            port: true,
+            fromName: true,
+            fromEmail: true,
+            requireSignIn: true,
+            username: true,
+            passwordCipher: true,
+          },
+        });
+        const { passwordCipher: _passwordCipher, ...safeSettings } = settings;
+        return { ...safeSettings, hasPassword: Boolean(_passwordCipher) };
+      }),
+    deleteEmailSettings: organizationProcedure.mutation(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      await ctx.prisma.organizationEmailSettings.deleteMany({
+        where: { organizationId: ctx.organization.organizationId },
+      });
+      return { success: true };
+    }),
+    // Send a test email to verify the organization's SMTP settings
+    sendTestEmail: organizationProcedure.mutation(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+      let emailConfig;
+      try {
+        emailConfig = await getOrganizationEmailConfig(ctx.prisma, ctx.organization.organizationId);
+      } catch (error) {
+        console.error("Failed to load SMTP settings for test email.", {
+          error,
+          organizationId: ctx.organization.organizationId,
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Unable to load SMTP settings.",
+        });
+      }
+      if (!emailConfig) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Save SMTP settings before sending a test email." });
+      }
+
+      try {
+        await sendSmtpTestEmail({
+          emailConfig,
+          to: ctx.user.email,
+        });
+      } catch (error) {
+        console.error("Failed to send SMTP test email.", { error, organizationId: ctx.organization.organizationId });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Unable to send a test email.",
+        });
+      }
+
+      return { recipient: ctx.user.email };
     }),
     createAvatarUploadUrl: organizationProcedure
       .input(organizationAvatarUploadInputSchema)
@@ -963,17 +1113,20 @@ export const appRouter = router({
   properties: router({
     /** Lists properties with units, lease metrics, and maintenance metrics. */
     list: permissionProcedure("properties", "view").query(async ({ ctx }) => {
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
       await synchronizeOverdueInvoices(ctx.prisma);
-      const properties = await ctx.prisma.property.findMany({
+      const query = {
         where: { organizationId: ctx.organization.organizationId },
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
           leases: {
             select: {
               monthlyRentCents: true,
+              archivedAt: true,
               id: true,
               startsOn: true,
               endsOn: true,
+              termType: true,
               status: true,
               unit: { select: { name: true } },
               tenants: {
@@ -1017,6 +1170,15 @@ export const appRouter = router({
           units: {
             orderBy: { createdAt: "asc" },
             include: {
+              _count: {
+                select: {
+                  leases: {
+                    where: {
+                      status: { in: [LeaseStatus.active, LeaseStatus.notice] },
+                    },
+                  },
+                },
+              },
               amenities: {
                 select: { option: { select: { id: true, label: true } } },
               },
@@ -1027,7 +1189,12 @@ export const appRouter = router({
           },
         },
         orderBy: { name: "asc" },
-      });
+      } satisfies Prisma.PropertyFindManyArgs;
+      const properties = permissions.leases.view
+        ? await ctx.prisma.property.findMany(query)
+        : await ctx.prisma.property
+            .findMany({ ...query, include: { ...query.include, leases: false } })
+            .then((properties) => properties.map((property) => ({ ...property, leases: [] })));
 
       return Promise.all(
         properties.map(async (property) => {
@@ -1039,7 +1206,7 @@ export const appRouter = router({
             return [
               {
                 ...leaseData,
-                unitLabel: lease.unit.name,
+                unitLabel: lease.unit?.name ?? "Not set",
                 tenant: firstTenant,
                 tenants: lease.tenants.map(({ tenant }) => tenant),
                 invoices,
@@ -1052,10 +1219,15 @@ export const appRouter = router({
               ...property,
               leases,
             }),
-            units: property.units.map(serializeUnit),
+            units: property.units.map(({ _count, ...unit }) => ({
+              ...serializeUnit(unit),
+              isOccupied: _count.leases > 0,
+            })),
           });
           return {
             ...result,
+            leases: leases.filter((lease) => lease.archivedAt === null),
+            leaseHistory: leases,
             imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
           };
         }),
@@ -1065,7 +1237,8 @@ export const appRouter = router({
     byId: permissionProcedure("properties", "view")
       .input(propertyByIdInputSchema)
       .query(async ({ ctx, input }) => {
-        const property = await ctx.prisma.property.findFirst({
+        const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
+        const query = {
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           include: {
             tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
@@ -1092,7 +1265,12 @@ export const appRouter = router({
               },
             },
           },
-        });
+        } satisfies Prisma.PropertyFindFirstArgs;
+        const property = permissions.leases.view
+          ? await ctx.prisma.property.findFirst(query)
+          : await ctx.prisma.property
+              .findFirst({ ...query, include: { ...query.include, leases: false } })
+              .then((property) => (property ? { ...property, leases: [] } : null));
 
         if (!property) return null;
 
@@ -1106,7 +1284,7 @@ export const appRouter = router({
           return [
             {
               ...leaseData,
-              unitLabel: lease.unit.name,
+              unitLabel: lease.unit?.name ?? "Not set",
               tenant: firstTenant,
               tenants: lease.tenants.map(({ tenant }) => tenant),
               amountOverdueCents,
@@ -1115,7 +1293,11 @@ export const appRouter = router({
         });
 
         return {
-          ...withPropertyNotes({ ...propertyData, leases }),
+          ...withPropertyNotes({
+            ...propertyData,
+            leases: leases.filter((lease) => lease.archivedAt === null),
+            leaseHistory: leases,
+          }),
           units: rawUnits.map(serializeUnit),
           unitStatuses,
           imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
@@ -1520,6 +1702,7 @@ export const appRouter = router({
                   id: true,
                   startsOn: true,
                   status: true,
+                  termType: true,
                   endsOn: true,
                   monthlyRentCents: true,
                   propertyId: true,
@@ -1540,10 +1723,15 @@ export const appRouter = router({
           leases: tenant.leases
             .map(({ lease }) => ({
               ...lease,
-              unitLabel: lease.unit.name,
+              unitLabel: lease.unit?.name ?? "Not set",
               property: lease.property,
             }))
-            .sort((left, right) => right.startsOn.getTime() - left.startsOn.getTime()),
+            .sort((left, right) => {
+              if (left.startsOn && right.startsOn) return right.startsOn.getTime() - left.startsOn.getTime();
+              if (left.startsOn) return -1;
+              if (right.startsOn) return 1;
+              return 0;
+            }),
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
           tenantStatus: getTenantStatus(tenant),
         })),
@@ -1567,13 +1755,14 @@ export const appRouter = router({
                     startsOn: true,
                     endsOn: true,
                     status: true,
+                    termType: true,
                     monthlyRentCents: true,
                     unitId: true,
                     propertyId: true,
                     unit: { select: { name: true } },
                     property: { select: { id: true, name: true } },
                     invoices: {
-                      where: { tenantId: input.id },
+                      where: { recipients: { some: { tenantId: input.id } } },
                       select: {
                         id: true,
                         status: true,
@@ -1597,7 +1786,7 @@ export const appRouter = router({
           ...tenant,
           leases: tenant.leases.map(({ lease }) => ({
             ...lease,
-            unitLabel: lease.unit.name,
+            unitLabel: lease.unit?.name ?? "Not set",
             property: lease.property,
           })),
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
@@ -1836,20 +2025,35 @@ export const appRouter = router({
                 throw new TRPCError({ code: "CONFLICT", message: "The selected unit already has an active lease." });
               }
 
+              const allocationsByTenantId = new Map(
+                input.tenantAllocations.map((allocation) => [allocation.tenantId, allocation]),
+              );
+
               const lease = await tx.lease.create({
                 data: {
                   organizationId: ctx.organization.organizationId,
                   propertyId: input.propertyId,
                   unitId: input.unitId,
+                  securityDepositCents: input.securityDepositCents,
+                  billingResponsibility: input.billingResponsibility,
+                  allowPartialPayments: input.allowPartialPayments,
+                  rentDueDay: input.rentDueDay,
+                  continueMonthToMonthAfterEnd: input.continueMonthToMonthAfterEnd,
                   monthlyRentCents: input.monthlyRentCents,
                   startsOn: input.startsOn,
                   endsOn: input.endsOn,
                   status: input.status,
                   tenants: {
-                    create: input.tenantIds.map((tenantId) => ({
-                      organizationId: ctx.organization.organizationId,
-                      tenantId,
-                    })),
+                    create: input.tenantIds.map((tenantId) => {
+                      const allocation = allocationsByTenantId.get(tenantId);
+
+                      return {
+                        organizationId: ctx.organization.organizationId,
+                        tenantId,
+                        rentShareCents: allocation?.rentShareCents,
+                        depositShareCents: allocation?.depositShareCents,
+                      };
+                    }),
                   },
                 },
                 include: {
@@ -1889,6 +2093,17 @@ export const appRouter = router({
         if (lease) await requirePermission(ctx.prisma, ctx.user.role, "leases", "delete");
         if (invoice) await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
         await ctx.prisma.$transaction(async (tx) => {
+          const payment = await tx.invoicePayment.findFirst({
+            where: { OR: [{ tenantId: input.id }, { invoice: { tenantId: input.id } }] },
+            select: { id: true },
+          });
+          if (payment) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "A tenant with payment history cannot be deleted.",
+            });
+          }
+
           // Find all active leases this tenant is on
           const tenantLeases = await tx.leaseTenant.findMany({
             where: { tenantId: input.id },
@@ -1900,6 +2115,18 @@ export const appRouter = router({
           for (const tl of tenantLeases) {
             leaseIdsToDelete.add(tl.leaseId);
           }
+
+          const jointInvoices = await tx.invoice.findMany({
+            where: { tenantId: input.id, lease: { billingResponsibility: "joint" } },
+            select: { id: true, recipients: { select: { tenantId: true } } },
+          });
+          await Promise.all(
+            jointInvoices.map((invoice) => {
+              const replacementTenantId = invoice.recipients.find(({ tenantId }) => tenantId !== input.id)?.tenantId;
+              if (!replacementTenantId) return Promise.resolve();
+              return tx.invoice.update({ where: { id: invoice.id }, data: { tenantId: replacementTenantId } });
+            }),
+          );
 
           await tx.invoice.deleteMany({ where: { tenantId: input.id } });
           await tx.leaseTenant.deleteMany({ where: { tenantId: input.id } });
@@ -1917,7 +2144,10 @@ export const appRouter = router({
 
           const activeLeasesByProperty = new Map<number, number>();
           for (const { lease } of orphanedLeases) {
-            if (lease.status === LeaseStatus.active || lease.status === LeaseStatus.notice) {
+            if (
+              (lease.status === LeaseStatus.active || lease.status === LeaseStatus.notice) &&
+              lease.propertyId !== null
+            ) {
               activeLeasesByProperty.set(lease.propertyId, (activeLeasesByProperty.get(lease.propertyId) ?? 0) + 1);
             }
           }
@@ -1946,7 +2176,7 @@ export const appRouter = router({
       const invoices = await ctx.prisma.invoice.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
-          ...(input.tenantId ? { tenantId: input.tenantId } : {}),
+          ...(input.tenantId ? { recipients: { some: { tenantId: input.tenantId } } } : {}),
         },
         include: {
           lease: { select: { unit: { select: { name: true } } } },
@@ -1957,7 +2187,7 @@ export const appRouter = router({
 
       return invoices.map(({ lease, ...invoice }) => ({
         ...invoice,
-        lease: { unitLabel: lease.unit.name },
+        lease: { unitLabel: lease.unit?.name ?? "Not set" },
       }));
     }),
     byId: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
@@ -1968,6 +2198,7 @@ export const appRouter = router({
         include: {
           property: { select: { id: true, name: true } },
           tenant: { select: { id: true, firstName: true, lastName: true } },
+          recipients: { include: { tenant: { select: { id: true, firstName: true, lastName: true } } } },
           lease: { select: { startsOn: true, endsOn: true, unit: { select: { name: true } } } },
           items: { orderBy: { id: "asc" } },
           payments: {
@@ -1984,7 +2215,7 @@ export const appRouter = router({
         lease: {
           startsOn: invoice.lease.startsOn,
           endsOn: invoice.lease.endsOn,
-          unitLabel: invoice.lease.unit.name,
+          unitLabel: invoice.lease.unit?.name ?? "Not set",
         },
       };
     }),
@@ -2023,8 +2254,9 @@ export const appRouter = router({
       const fileName = `invoice-${String(invoice.invoiceNumber).padStart(7, "0")}.pdf`;
       const pdfInvoice = {
         ...invoice,
-        lease: { unitLabel: invoice.lease.unit.name },
+        lease: { unitLabel: invoice.lease.unit?.name ?? "Not set" },
       };
+      const { renderInvoicePdf } = await import("../modules/invoice-pdf");
       return {
         contentBase64: (await renderInvoicePdf(pdfInvoice, organizationLogo, organization)).toString("base64"),
         fileName,
@@ -2034,10 +2266,20 @@ export const appRouter = router({
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
       const lease = await ctx.prisma.lease.findFirst({
         where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
-        select: { id: true, propertyId: true },
+        select: {
+          id: true,
+          propertyId: true,
+          status: true,
+          billingResponsibility: true,
+          allowPartialPayments: true,
+          tenants: { select: { tenantId: true } },
+        },
       });
-      if (!lease || lease.propertyId !== input.propertyId) {
+      if (!lease || lease.propertyId === null || lease.propertyId !== input.propertyId) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property." });
+      }
+      if (lease.status === LeaseStatus.draft) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." });
       }
 
       // Verify tenant is on this lease
@@ -2047,6 +2289,8 @@ export const appRouter = router({
       if (!leaseTenant) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "The selected tenant is not on this lease." });
       }
+      const recipientTenantIds =
+        lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [input.tenantId];
 
       const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
       if (amountCents <= 0) {
@@ -2055,61 +2299,85 @@ export const appRouter = router({
       if (input.paidCents > amountCents) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid cannot exceed the invoice total." });
       }
+      if (!lease.allowPartialPayments && input.paidCents > 0 && input.paidCents !== amountCents) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This lease requires the invoice to be paid in full.",
+        });
+      }
       const dueOn = new Date(input.dueOn);
       dueOn.setUTCHours(0, 0, 0, 0);
 
-      try {
-        return await ctx.prisma.$transaction(async (tx) => {
-          const existingInvoice = await tx.invoice.findFirst({
-            where: {
-              leaseId: lease.id,
-              tenantId: input.tenantId,
-              periodStartsOn: dueOn,
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          return await ctx.prisma.$transaction(
+            async (tx) => {
+              const existingInvoice = await tx.invoice.findFirst({
+                where: {
+                  leaseId: lease.id,
+                  ...(lease.billingResponsibility === "joint" ? {} : { tenantId: input.tenantId }),
+                  periodStartsOn: dueOn,
+                },
+                select: { invoiceNumber: true },
+              });
+              if (existingInvoice) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: `An invoice already exists for this lease and billing date (${formatInvoiceNumber(existingInvoice.invoiceNumber)}).`,
+                });
+              }
+              // Create the invoice with its items and recipients
+              const invoice = await tx.invoice.create({
+                data: {
+                  organizationId: ctx.organization.organizationId,
+                  leaseId: lease.id,
+                  propertyId: input.propertyId,
+                  tenantId: input.tenantId,
+                  recipients: {
+                    create: recipientTenantIds.map((tenantId) => ({
+                      organizationId: ctx.organization.organizationId,
+                      tenantId,
+                    })),
+                  },
+                  periodStartsOn: dueOn,
+                  periodEndsOn: dueOn,
+                  dueOn,
+                  amountCents,
+                  balanceCents: amountCents - input.paidCents,
+                  status: getInvoiceStatus(dueOn, amountCents - input.paidCents),
+                  paidOn: input.paidCents === amountCents ? dueOn : null,
+                  items: {
+                    create: input.items.map((item) => ({
+                      ...item,
+                      description: item.description || null,
+                      amountCents: item.quantity * item.rateCents,
+                    })),
+                  },
+                },
+                include: { items: true },
+              });
+              await recordInvoiceActivity(tx, invoice, "invoice.created");
+              return invoice;
             },
-            select: { invoiceNumber: true },
-          });
-          if (existingInvoice) {
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034" && attempt < 2) {
+            continue;
+          }
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            (error.code === "P2002" || error.code === "P2034")
+          ) {
             throw new TRPCError({
               code: "CONFLICT",
-              message: `An invoice already exists for this lease and billing date (INV-${existingInvoice.invoiceNumber.toString().padStart(7, "0")}).`,
+              message: "An invoice already exists for this lease and billing date.",
             });
           }
-
-          const invoice = await tx.invoice.create({
-            data: {
-              organizationId: ctx.organization.organizationId,
-              leaseId: lease.id,
-              propertyId: lease.propertyId,
-              tenantId: input.tenantId,
-              periodStartsOn: dueOn,
-              periodEndsOn: dueOn,
-              dueOn,
-              amountCents,
-              balanceCents: amountCents - input.paidCents,
-              status: getInvoiceStatus(dueOn, amountCents - input.paidCents),
-              paidOn: input.paidCents === amountCents ? dueOn : null,
-              items: {
-                create: input.items.map((item) => ({
-                  ...item,
-                  description: item.description || null,
-                  amountCents: item.quantity * item.rateCents,
-                })),
-              },
-            },
-            include: { items: true },
-          });
-          await recordInvoiceActivity(tx, invoice, "invoice.created");
-          return invoice;
-        });
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "An invoice already exists for this lease and billing date.",
-          });
+          throw error;
         }
-        throw error;
       }
+      throw new TRPCError({ code: "CONFLICT", message: "An invoice already exists for this lease and billing date." });
     }),
     recordPayment: publicProcedure.input(recordInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "edit");
@@ -2124,18 +2392,35 @@ export const appRouter = router({
                 propertyId: true,
                 dueOn: true,
                 balanceCents: true,
-                tenantId: true,
+                recipients: {
+                  select: { tenantId: true },
+                },
+                lease: {
+                  select: { allowPartialPayments: true },
+                },
               },
             });
-            if (input.paidByTenantId !== invoice.tenantId) {
-              throw new TRPCError({ code: "BAD_REQUEST", message: "Select a tenant assigned to this unit." });
+            const responsibleTenantIds = new Set(invoice.recipients.map(({ tenantId }) => tenantId));
+
+            if (!responsibleTenantIds.has(input.paidByTenantId)) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Select a tenant responsible for this invoice.",
+              });
             }
             if (input.amountCents > invoice.balanceCents) {
               throw new TRPCError({ code: "BAD_REQUEST", message: "Payment cannot exceed the remaining balance." });
             }
+            if (!invoice.lease.allowPartialPayments && input.amountCents !== invoice.balanceCents) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This lease requires the invoice to be paid in full.",
+              });
+            }
             const balanceCents = invoice.balanceCents - input.amountCents;
             const payment = await tx.invoicePayment.create({
               data: {
+                organizationId: ctx.organization.organizationId,
                 invoiceId: input.id,
                 tenantId: input.paidByTenantId,
                 amountCents: input.amountCents,
@@ -2186,14 +2471,34 @@ export const appRouter = router({
           async (tx) => {
             const invoice = await tx.invoice.findFirstOrThrow({
               where: { id: input.id, organizationId: ctx.organization.organizationId },
-              select: { dueOn: true, balanceCents: true, tenantId: true },
+              select: {
+                dueOn: true,
+                balanceCents: true,
+                recipients: {
+                  select: { tenantId: true },
+                },
+                lease: {
+                  select: { allowPartialPayments: true },
+                },
+              },
             });
-            if (input.payments.some((payment) => payment.paidByTenantId !== invoice.tenantId)) {
-              throw new TRPCError({ code: "BAD_REQUEST", message: "Select a tenant assigned to this unit." });
+            const responsibleTenantIds = new Set(invoice.recipients.map(({ tenantId }) => tenantId));
+
+            if (input.payments.some(({ paidByTenantId }) => !responsibleTenantIds.has(paidByTenantId))) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Select a tenant responsible for this invoice.",
+              });
             }
             const paymentTotalCents = input.payments.reduce((total, payment) => total + payment.amountCents, 0);
             if (paymentTotalCents > invoice.balanceCents) {
               throw new TRPCError({ code: "BAD_REQUEST", message: "Payments cannot exceed the remaining balance." });
+            }
+            if (!invoice.lease.allowPartialPayments && paymentTotalCents !== invoice.balanceCents) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This lease requires the invoice to be paid in full.",
+              });
             }
             const balanceCents = invoice.balanceCents - paymentTotalCents;
             const latestPayment = input.payments.reduce((latest, payment) =>
@@ -2204,6 +2509,7 @@ export const appRouter = router({
               payments.push(
                 await tx.invoicePayment.create({
                   data: {
+                    organizationId: ctx.organization.organizationId,
                     invoiceId: input.id,
                     tenantId: payment.paidByTenantId,
                     amountCents: payment.amountCents,
@@ -3064,8 +3370,29 @@ export const appRouter = router({
           where: { id: input.invoiceId, organizationId: ctx.organization.organizationId },
         });
       } else {
-        await ctx.prisma.maintenanceTicket.findFirstOrThrow({
-          where: { id: input.maintenanceTicketId, organizationId: ctx.organization.organizationId },
+        return ctx.prisma.$transaction(async (tx) => {
+          const ticket = await tx.maintenanceTicket.findFirstOrThrow({
+            where: { id: input.maintenanceTicketId, organizationId: ctx.organization.organizationId },
+          });
+          const note = await tx.note.create({
+            data: input,
+            select: { id: true, body: true, createdAt: true, updatedAt: true },
+          });
+          await recordActivityEvent(
+            tx,
+            {
+              organizationId: ticket.organizationId,
+              subjectType: ActivitySubjectType.maintenance_ticket,
+              subjectId: ticket.id,
+              subjectLabel: ticket.title,
+              subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
+              propertyId: ticket.propertyId,
+              action: "maintenance.note_added",
+              metadata: { noteId: note.id },
+            },
+            ctx.user,
+          );
+          return note;
         });
       }
       return ctx.prisma.note.create({
@@ -3178,10 +3505,304 @@ export const appRouter = router({
     }),
   }),
   leases: router({
+    /** Creates or retrieves the draft associated with a wizard session. */
+    createDraft: permissionProcedure("leases", "create")
+      .input(leaseDraftCreateInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+        await Promise.all([
+          requirePermission(ctx.prisma, ctx.user.role, "properties", "view"),
+          requirePermission(ctx.prisma, ctx.user.role, "units", "view"),
+        ]);
+        try {
+          return await ctx.prisma.$transaction(async (tx) => {
+            const existing = await tx.lease.findUnique({
+              where: { organizationId_leaseDraftKey: { organizationId, leaseDraftKey: input.leaseDraftKey } },
+            });
+            if (existing) {
+              if (existing.status !== LeaseStatus.draft || existing.archivedAt !== null) {
+                throw new TRPCError({ code: "CONFLICT", message: "This lease draft key is already in use." });
+              }
+              return existing;
+            }
+
+            await tx.property.findFirstOrThrow({ where: { id: input.propertyId, organizationId } });
+            await tx.unit.findFirstOrThrow({ where: { id: input.unitId, propertyId: input.propertyId } });
+
+            return tx.lease.create({
+              data: {
+                organizationId,
+                leaseDraftKey: input.leaseDraftKey,
+                propertyId: input.propertyId,
+                unitId: input.unitId,
+                status: LeaseStatus.draft,
+              },
+            });
+          });
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            const existing = await ctx.prisma.lease.findUnique({
+              where: { organizationId_leaseDraftKey: { organizationId, leaseDraftKey: input.leaseDraftKey } },
+            });
+            if (existing?.status === LeaseStatus.draft && existing.archivedAt === null) return existing;
+          }
+          throw error;
+        }
+      }),
+    /** Loads a lease draft by its stable wizard key. */
+    draftByKey: permissionProcedure("leases", "view")
+      .input(leaseDraftByKeyInputSchema)
+      .query(({ ctx, input }) =>
+        ctx.prisma.lease.findFirst({
+          where: {
+            organizationId: ctx.organization.organizationId,
+            leaseDraftKey: input.leaseDraftKey,
+            status: LeaseStatus.draft,
+            archivedAt: null,
+          },
+          include: { tenants: true },
+        }),
+      ),
+    /** Retrieves a lease and its identifying property, unit, and tenant context. */
+    byId: permissionProcedure("leases", "view")
+      .input(leaseByIdInputSchema)
+      .query(async ({ ctx, input }) => {
+        const lease = await ctx.prisma.lease.findFirst({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          select: {
+            id: true,
+            archivedAt: true,
+            status: true,
+            termType: true,
+            draftStep: true,
+            revision: true,
+            startsOn: true,
+            endsOn: true,
+            monthlyRentCents: true,
+            property: { select: { id: true, name: true } },
+            unit: { select: { id: true, name: true } },
+            tenants: {
+              select: { tenant: { select: { id: true, firstName: true, lastName: true } } },
+            },
+            invoices: { orderBy: { dueOn: "asc" }, take: 1, select: { dueOn: true } },
+          },
+        });
+        return lease ? { ...lease, tenants: lease.tenants.map(({ tenant }) => tenant) } : null;
+      }),
+    /** Saves fields on an editable lease draft using optimistic concurrency. */
+    updateDraft: permissionProcedure("leases", "edit")
+      .input(leaseDraftUpdateInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+        return ctx.prisma.$transaction(async (tx) => {
+          const current = await tx.lease.findFirst({
+            where: { id: input.leaseId, organizationId, status: LeaseStatus.draft, archivedAt: null },
+            select: {
+              id: true,
+              propertyId: true,
+              unitId: true,
+              termType: true,
+              startsOn: true,
+              endsOn: true,
+              monthlyRentCents: true,
+              securityDepositCents: true,
+              rentDueDay: true,
+              continueMonthToMonthAfterEnd: true,
+              billingResponsibility: true,
+              allowPartialPayments: true,
+              draftStep: true,
+              revision: true,
+              tenants: { select: { tenantId: true, rentShareCents: true, depositShareCents: true } },
+            },
+          });
+
+          if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Lease draft not found." });
+          if (current.revision !== input.expectedRevision) {
+            throw new TRPCError({ code: "CONFLICT", message: "Lease draft has changed. Reload and try again." });
+          }
+
+          const data = input.data;
+          const propertyChanged = data.propertyId !== undefined && data.propertyId !== current.propertyId;
+          const effective = {
+            propertyId: data.propertyId === undefined ? current.propertyId : data.propertyId,
+            unitId:
+              data.unitId === undefined && propertyChanged
+                ? null
+                : data.unitId === undefined
+                  ? current.unitId
+                  : data.unitId,
+            termType: data.termType === undefined ? current.termType : data.termType,
+            startsOn: data.startsOn === undefined ? current.startsOn : data.startsOn,
+            endsOn: data.endsOn === undefined ? current.endsOn : data.endsOn,
+            monthlyRentCents: data.monthlyRentCents === undefined ? current.monthlyRentCents : data.monthlyRentCents,
+            securityDepositCents:
+              data.securityDepositCents === undefined ? current.securityDepositCents : data.securityDepositCents,
+            rentDueDay: data.rentDueDay === undefined ? current.rentDueDay : data.rentDueDay,
+            continueMonthToMonthAfterEnd:
+              data.continueMonthToMonthAfterEnd === undefined
+                ? current.continueMonthToMonthAfterEnd
+                : data.continueMonthToMonthAfterEnd,
+            billingResponsibility:
+              data.billingResponsibility === undefined ? current.billingResponsibility : data.billingResponsibility,
+            allowPartialPayments:
+              data.allowPartialPayments === undefined ? current.allowPartialPayments : data.allowPartialPayments,
+            draftStep: data.draftStep === undefined ? current.draftStep : data.draftStep,
+            tenantIds: data.tenantIds === undefined ? current.tenants.map(({ tenantId }) => tenantId) : data.tenantIds,
+            tenantAllocations: data.tenantAllocations,
+          };
+          const parsed = leaseDraftDataSchema.safeParse(effective);
+          if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: parsed.error.issues[0]?.message });
+
+          if (parsed.data.propertyId !== null) {
+            await tx.property.findFirstOrThrow({ where: { id: parsed.data.propertyId, organizationId } });
+          }
+          if (parsed.data.unitId !== null) {
+            await tx.unit.findFirstOrThrow({
+              where: { id: parsed.data.unitId, propertyId: parsed.data.propertyId! },
+            });
+          }
+
+          if (data.tenantIds !== undefined) {
+            const tenants = await tx.tenant.findMany({
+              where: { id: { in: data.tenantIds }, organizationId },
+              select: { id: true },
+            });
+            if (tenants.length !== data.tenantIds.length) {
+              throw new TRPCError({ code: "NOT_FOUND", message: "One or more residents not found." });
+            }
+          }
+
+          if (data.tenantAllocations !== undefined) {
+            const tenantIds = new Set(parsed.data.tenantIds ?? []);
+            const allocationIds = new Set(data.tenantAllocations.map(({ tenantId }) => tenantId));
+            if (
+              tenantIds.size !== allocationIds.size ||
+              [...allocationIds].some((tenantId) => !tenantIds.has(tenantId))
+            ) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Allocations must match the selected residents.",
+              });
+            }
+          }
+
+          const updateData: Prisma.LeaseUncheckedUpdateManyInput = {
+            propertyId: parsed.data.propertyId ?? null,
+            unitId: parsed.data.unitId ?? null,
+            termType: parsed.data.termType ?? null,
+            startsOn: parsed.data.startsOn ?? null,
+            endsOn: parsed.data.endsOn ?? null,
+            monthlyRentCents: parsed.data.monthlyRentCents ?? null,
+            securityDepositCents: parsed.data.securityDepositCents ?? 0,
+            rentDueDay: parsed.data.rentDueDay ?? 1,
+            continueMonthToMonthAfterEnd: parsed.data.continueMonthToMonthAfterEnd ?? false,
+            billingResponsibility: parsed.data.billingResponsibility ?? null,
+            allowPartialPayments: parsed.data.allowPartialPayments ?? true,
+            draftStep: parsed.data.draftStep ?? "property",
+            revision: { increment: 1 },
+          };
+          const updated = await tx.lease.updateMany({
+            where: {
+              id: input.leaseId,
+              organizationId,
+              status: LeaseStatus.draft,
+              archivedAt: null,
+              revision: input.expectedRevision,
+            },
+            data: updateData,
+          });
+          if (updated.count !== 1)
+            throw new TRPCError({ code: "CONFLICT", message: "Lease draft has changed. Reload and try again." });
+
+          if (data.tenantIds !== undefined || data.tenantAllocations !== undefined) {
+            await tx.leaseTenant.deleteMany({ where: { organizationId, leaseId: input.leaseId } });
+            const tenantIds = data.tenantIds ?? current.tenants.map(({ tenantId }) => tenantId);
+            const allocations =
+              data.tenantAllocations ??
+              current.tenants.map(({ tenantId, rentShareCents, depositShareCents }) => ({
+                tenantId,
+                rentShareCents: rentShareCents ?? 0,
+                depositShareCents: depositShareCents ?? 0,
+              }));
+            if (tenantIds.length > 0) {
+              await tx.leaseTenant.createMany({
+                data: tenantIds.map((tenantId) => {
+                  const allocation = allocations.find((item) => item.tenantId === tenantId);
+                  return {
+                    organizationId,
+                    leaseId: input.leaseId,
+                    tenantId,
+                    rentShareCents: allocation?.rentShareCents ?? null,
+                    depositShareCents: allocation?.depositShareCents ?? null,
+                  };
+                }),
+              });
+            }
+          }
+          return tx.lease.findFirstOrThrow({ where: { id: input.leaseId, organizationId } });
+        });
+      }),
+    /** Archives a lease without changing its contractual status. */
+    archive: permissionProcedure("leases", "archive")
+      .input(leaseByIdInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.lease.update({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          data: { archivedAt: new Date() },
+          select: { id: true, archivedAt: true },
+        }),
+      ),
+    /** Restores an archived lease to the default lease directory. */
+    reactivate: permissionProcedure("leases", "archive")
+      .input(leaseByIdInputSchema)
+      .mutation(({ ctx, input }) =>
+        ctx.prisma.lease.update({
+          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          data: { archivedAt: null },
+          select: { id: true, archivedAt: true },
+        }),
+      ),
+    /** Permanently deletes a draft lease without invoices. */
+    delete: permissionProcedure("leases", "delete")
+      .input(leaseByIdInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await ctx.prisma.$transaction(
+            async (tx) => {
+              const lease = await tx.lease.findFirstOrThrow({
+                where: { id: input.id, organizationId: ctx.organization.organizationId },
+                include: { _count: { select: { invoices: true } } },
+              });
+              if (lease.status !== LeaseStatus.draft || lease._count.invoices > 0) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "Only draft leases without invoices can be deleted. Archive the lease instead.",
+                });
+              }
+              return tx.lease.delete({
+                where: { id: input.id, organizationId: ctx.organization.organizationId },
+                select: { id: true },
+              });
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+            throw new TRPCError({ code: "CONFLICT", message: "The lease changed. Please try again." });
+          }
+          throw error;
+        }
+      }),
     /** Creates a new lease with tenants and optionally generates invoices. */
     create: permissionProcedure("leases", "create")
       .input(createLeaseWithInvoicesInputSchema)
       .mutation(async ({ ctx, input }) => {
+        if (input.status === LeaseStatus.draft && input.generateInvoices) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Draft leases cannot generate invoices.",
+          });
+        }
         await Promise.all([
           requirePermission(ctx.prisma, ctx.user.role, "properties", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "units", "view"),
@@ -3190,7 +3811,8 @@ export const appRouter = router({
         if (input.generateInvoices) {
           await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
         }
-        const { propertyId, unitId, tenantIds, generateInvoices, ...leaseData } = input;
+        const { propertyId, unitId, tenantIds, tenantAllocations, generateInvoices, ...leaseData } = input;
+        const allocationsByTenantId = new Map(tenantAllocations.map((allocation) => [allocation.tenantId, allocation]));
         for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
             return await ctx.prisma.$transaction(
@@ -3230,16 +3852,29 @@ export const appRouter = router({
                     unitId,
                     ...leaseData,
                     tenants: {
-                      create: tenantIds.map((tenantId) => ({
-                        organizationId: ctx.organization.organizationId,
-                        tenantId,
-                      })),
+                      create: tenantIds.map((tenantId) => {
+                        const allocation = allocationsByTenantId.get(tenantId);
+
+                        return {
+                          organizationId: ctx.organization.organizationId,
+                          tenantId,
+                          rentShareCents: allocation?.rentShareCents,
+                          depositShareCents: allocation?.depositShareCents,
+                        };
+                      }),
                     },
                   },
                   include: {
                     tenants: { include: { tenant: true } },
                   },
                 });
+
+                if (createdLease.startsOn === null || createdLease.monthlyRentCents === null) {
+                  throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "A complete lease must include a start date and monthly rent.",
+                  });
+                }
 
                 if (leaseData.status === LeaseStatus.active || leaseData.status === LeaseStatus.notice) {
                   await tx.property.update({
@@ -3271,29 +3906,70 @@ export const appRouter = router({
                     }
                   }
 
+                  const invoicePlans =
+                    createdLease.billingResponsibility === "joint"
+                      ? [
+                          {
+                            amountCents: createdLease.monthlyRentCents,
+                            depositCents: createdLease.securityDepositCents,
+                            primaryTenantId: tenantIds[0]!,
+                            recipientIds: tenantIds,
+                          },
+                        ]
+                      : tenantIds.map((tenantId) => ({
+                          amountCents: allocationsByTenantId.get(tenantId)!.rentShareCents,
+                          depositCents: allocationsByTenantId.get(tenantId)!.depositShareCents,
+                          primaryTenantId: tenantId,
+                          recipientIds: [tenantId],
+                        }));
                   for (const periodStartsOn of periods) {
                     const periodEndsOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0);
-                    const dueOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth(), 1);
+                    const calculatedDueOn = getMonthlyDueDate(periodStartsOn, createdLease.rentDueDay);
+                    const dueOn =
+                      periodStartsOn.getTime() === firstPeriod.getTime() && calculatedDueOn < createdLease.startsOn
+                        ? createdLease.startsOn
+                        : calculatedDueOn;
 
-                    for (const tenant of tenants) {
+                    for (const invoicePlan of invoicePlans) {
+                      const depositCents =
+                        periodStartsOn.getTime() === firstPeriod.getTime() ? invoicePlan.depositCents : 0;
+                      const amountCents = invoicePlan.amountCents + depositCents;
                       await tx.invoice.create({
                         data: {
                           organizationId: ctx.organization.organizationId,
                           leaseId: createdLease.id,
                           propertyId,
-                          tenantId: tenant.id,
+                          tenantId: invoicePlan.primaryTenantId,
                           periodStartsOn,
                           periodEndsOn,
                           dueOn,
-                          amountCents: createdLease.monthlyRentCents,
-                          balanceCents: createdLease.monthlyRentCents,
+                          amountCents,
+                          balanceCents: amountCents,
+                          recipients: {
+                            create: invoicePlan.recipientIds.map((tenantId) => ({
+                              organizationId: ctx.organization.organizationId,
+                              tenantId,
+                            })),
+                          },
                           items: {
-                            create: {
-                              item: "Rent",
-                              quantity: 1,
-                              rateCents: createdLease.monthlyRentCents,
-                              amountCents: createdLease.monthlyRentCents,
-                            },
+                            create: [
+                              {
+                                item: "Rent",
+                                quantity: 1,
+                                rateCents: invoicePlan.amountCents,
+                                amountCents: invoicePlan.amountCents,
+                              },
+                              ...(depositCents > 0
+                                ? [
+                                    {
+                                      item: "Security deposit",
+                                      quantity: 1,
+                                      rateCents: depositCents,
+                                      amountCents: depositCents,
+                                    },
+                                  ]
+                                : []),
+                            ],
                           },
                         },
                       });

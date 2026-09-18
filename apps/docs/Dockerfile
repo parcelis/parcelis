@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24.19.0-alpine AS base
+FROM node:24.21.0-alpine AS base
 
 ENV FORCE_COLOR=0
 WORKDIR /repo
@@ -16,7 +16,7 @@ COPY apps/docs apps/docs
 WORKDIR /repo/apps/docs
 RUN DOCS_BASE_URL=/docs/ pnpm build
 
-FROM nginx:1.31.3-alpine AS nginx
+FROM nginx:1.31.6-alpine AS nginx
 COPY apps/docs/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /repo/apps/docs/build /usr/share/nginx/html
 EXPOSE 80

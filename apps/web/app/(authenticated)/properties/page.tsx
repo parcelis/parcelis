@@ -42,7 +42,6 @@ import {
   DropdownMenuTrigger,
   Input,
   Label,
-  ParcelisLogo,
   Select,
   Table,
   TableBody,
@@ -78,8 +77,6 @@ import {
 } from "../../../components/toast-messages";
 import { getPropertyLink, getUnitLink } from "../../../lib/entity-links";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 type PropertyFilters = {
   propertyId: string;
@@ -673,11 +670,8 @@ export default function PropertiesPage() {
       />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
-              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-            </div>
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>

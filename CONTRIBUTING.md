@@ -108,7 +108,7 @@ The host processes and local services are also available directly:
 | Web app | `http://localhost:30000` |
 | Docs | `http://localhost:40000` |
 | API | `http://localhost:40010` |
-| React Email previews | `http://localhost:30001` |
+| Email preview | `http://localhost:30001` |
 | PostgreSQL | `localhost:54320` |
 | pgAdmin | `http://localhost:8000` |
 | MinIO API | `http://localhost:9001` |
@@ -120,7 +120,7 @@ Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `
 
 pgAdmin is available at `http://localhost:8000` with `admin@parcelis.dev` / `parcelis`. The Parcelis database is preconfigured; use `parcelis` as its password when connecting for the first time.
 
-Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first `pnpm db:seed`. It creates the local administrator account without replacing an existing password.
+Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first `pnpm db:seed`. Set `SEED_ADMIN_EMAIL` to use an address other than the default `admin@parcelis.dev`. The seed creates the local administrator account without replacing an existing password.
 
 After pulling schema changes, run:
 
@@ -132,6 +132,7 @@ pnpm db:seed
 #### Useful commands
 
 - `pnpm dev:services:refresh`: recreate nginx, PostgreSQL, and MinIO while preserving their volumes, then rerun MinIO initialization.
+- `pnpm --filter @parcelis/email email:preview`: run only the React Email template preview on `http://localhost:30001`.
 - `pnpm email:verify`: verify the configured SMTP connection and authentication without sending an email.
 - Stop an existing app watcher with `Ctrl+C` before starting another `pnpm dev` process.
 
@@ -215,6 +216,10 @@ Parcelis uses MinIO for local image storage. Docker Compose starts the service a
 | MinIO console | `http://localhost:9010` |
 | `parcelis-images` | Private property and tenant images |
 | `parcelis-assets` | Public brand assets, including `brand/parcelis-light.png` and `brand/parcelis-dark.png` |
+
+MinIO CORS uses the server-level `MINIO_API_CORS_ALLOW_ORIGIN` setting. Development allows
+`http://localhost` and localhost ports; production defaults to `WEB_ORIGIN`. Set a comma-separated
+list of origins to override it. Initialization failures stop `pnpm dev` before the apps start.
 
 #### Using storage in the apps
 

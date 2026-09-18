@@ -7,7 +7,7 @@
     "dev": "node ../../scripts/run-with-open-port.mjs PORT 30000 next dev --turbo --hostname 0.0.0.0 --port {PORT}",
     "dev:fixed": "next dev --turbo --hostname 0.0.0.0 --port ${PORT:-30000}",
     "build": "next build",
-    "start": "node ../../scripts/run-with-open-port.mjs PORT 30000 next start --port {PORT}",
+    "start": "next start --hostname 0.0.0.0 --port ${PORT:-30000}",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -33,7 +33,7 @@
     "@trpc/server": "^11.18.0",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.32.0",
-    "next": "^16.3.1",
+    "next": "^16.3.3",
     "next-themes": "^0.4.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -44,9 +44,9 @@
   "devDependencies": {
     "@parcelis/config": "workspace:*",
     "@tailwindcss/postcss": "4.3.3",
-    "@types/node": "24.13.3",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
+    "@types/node": "24.13.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript": "6.0.3"

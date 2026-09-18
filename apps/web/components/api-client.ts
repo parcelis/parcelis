@@ -25,6 +25,8 @@ export const queryKeys = {
   organizations: {
     active: ["organizations", "active"] as const,
     list: ["organizations", "list"] as const,
+    emailSettings: ["organizations", "email-settings"] as const,
+    emailSettingsEncryptionStatus: ["organizations", "email-settings-encryption-status"] as const,
   },
   users: {
     list: ["users", "list"] as const,
@@ -32,6 +34,9 @@ export const queryKeys = {
   properties: {
     list: ["properties", "list"] as const,
     byId: (id: number) => ["properties", "byId", id] as const,
+  },
+  leases: {
+    byId: (id: number) => ["leases", "byId", id] as const,
   },
   tenants: {
     list: ["tenants", "list"] as const,

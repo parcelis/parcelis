@@ -86,6 +86,7 @@ export function LeaseDrawer({ error, isPending, onOpenChange, onSubmit, open }: 
               propertyId: Number(form.propertyId),
               unitId: Number(form.unitId),
               tenantIds: form.tenantIds,
+              termType: form.endsOn ? "fixed" : "month_to_month",
               monthlyRentCents: Math.round(Number(form.monthlyRent) * 100),
               startsOn: new Date(`${form.startsOn}T12:00:00`),
               endsOn: form.endsOn ? new Date(`${form.endsOn}T12:00:00`) : null,

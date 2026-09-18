@@ -11,7 +11,6 @@ import {
   CardContent,
   CardHeader,
   Input,
-  ParcelisLogo,
   Table,
   TableBody,
   TableCell,
@@ -19,16 +18,15 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
+import { formatInvoiceNumber } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
 import { InvoiceDrawer } from "../../../components/invoice-drawer";
 import { PageRail } from "../../../components/page-rail";
 import { getInvoiceLink } from "../../../lib/entity-links";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
-
-function formatCurrency(cents: number) {
+function formatCurrency(cents: number | null) {
+  if (cents === null) return "Not set";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -49,13 +47,14 @@ function formatDate(value: Date | string) {
   );
 }
 
-function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number }) {
+function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number | null }) {
   const now = new Date();
   const dueOn = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const amountCents = lease.monthlyRentCents ?? 0;
 
   return {
-    amountCents: lease.monthlyRentCents,
-    balanceCents: lease.amountOverdueCents || lease.monthlyRentCents,
+    amountCents,
+    balanceCents: lease.amountOverdueCents || amountCents,
     dueOn,
     id: `INV-${dueOn.getUTCFullYear()}-${String(dueOn.getUTCMonth() + 1).padStart(2, "0")}`,
     paidOn: null,
@@ -120,7 +119,7 @@ function IncomePageContent() {
         ...property,
         incomeLeases,
         amountOverdueCents: incomeLeases.reduce((total, lease) => total + lease.amountOverdueCents, 0),
-        monthlyRentCents: incomeLeases.reduce((total, lease) => total + lease.monthlyRentCents, 0),
+        monthlyRentCents: incomeLeases.reduce((total, lease) => total + (lease.monthlyRentCents ?? 0), 0),
       };
     })
     .filter((property) => property.incomeLeases.length > 0);
@@ -163,11 +162,8 @@ function IncomePageContent() {
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8 dark:bg-parcelis-slate/90">
+        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8 dark:bg-parcelis-slate/90">
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
-              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-            </div>
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>
@@ -341,9 +337,9 @@ function IncomePageContent() {
                                         {persistedInvoice ? (
                                           <Link
                                             className="text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
-                                            href={getInvoiceLink(persistedInvoice.id)}
+                                            href={getInvoiceLink(Number.parseInt(String(persistedInvoice.id), 10))}
                                           >
-                                            INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                                            {formatInvoiceNumber(persistedInvoice.invoiceNumber)}
                                           </Link>
                                         ) : (
                                           invoice.id
@@ -434,9 +430,9 @@ function IncomePageContent() {
                             {persistedInvoice ? (
                               <Link
                                 className="font-medium text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
-                                href={getInvoiceLink(persistedInvoice.id)}
+                                href={getInvoiceLink(Number.parseInt(String(persistedInvoice.id), 10))}
                               >
-                                INV-{String(persistedInvoice.invoiceNumber).padStart(7, "0")}
+                                {formatInvoiceNumber(persistedInvoice.invoiceNumber)}
                               </Link>
                             ) : (
                               <span className="font-medium text-parcelis-charcoal">{invoice.id}</span>

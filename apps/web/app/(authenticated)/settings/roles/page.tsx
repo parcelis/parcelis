@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ChevronDown, ChevronRight, ShieldCheck } from "lucide-react";
 import {
   Button,
@@ -10,7 +11,6 @@ import {
   CardContent,
   CardHeader,
   Checkbox,
-  ParcelisLogo,
   Table,
   TableBody,
   TableCell,
@@ -31,9 +31,8 @@ import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
 import { formatLabel } from "../../../../lib/format";
+import { settingUpdatedMessage } from "../../../../components/toast-messages";
 
-const brandLogoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL;
-const darkBrandLogoUrl = process.env.NEXT_PUBLIC_DARK_BRAND_LOGO_URL;
 
 type PermissionMatrix = Record<PermissionResource, PermissionFlags>;
 type Role = Awaited<ReturnType<typeof apiClient.roles.list.query>>[number];
@@ -71,6 +70,7 @@ export default function RolesSettingsPage() {
       setDraft(null);
       await queryClient.invalidateQueries({ queryKey: ["roles", "list"] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+      toast.success(settingUpdatedMessage("Permissions"));
     },
   });
 
@@ -109,11 +109,8 @@ export default function RolesSettingsPage() {
   return (
     <main className="flex-1">
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
-              <ParcelisLogo darkLogoSrc={darkBrandLogoUrl} logoSrc={brandLogoUrl} markOnly />
-            </div>
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/">Portfolio</Link>
             </Button>

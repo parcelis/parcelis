@@ -27,6 +27,7 @@ import {
   CardContent,
 } from "@parcelis/ui";
 import { apiClient } from "./api-client";
+import { formatInvoiceNumber } from "@parcelis/schemas";
 import { InvoiceActions } from "./invoice-actions";
 import { LoadingState } from "./loading-state";
 import { NavigationRail } from "./navigation-rail";
@@ -200,7 +201,7 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
     <InvoiceDetailContainer embedded={isEmbedded}>
       <section className={isEmbedded ? "" : "lg:pl-[var(--parcelis-sidebar-width)]"}>
         {isEmbedded ? null : (
-          <header className="flex min-h-16 items-center justify-between gap-4 border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
+          <header className="parcelis-mobile-nav-header flex min-h-16 items-center justify-between gap-4 border-b border-parcelis-border bg-white px-4 dark:bg-parcelis-slate md:px-8">
             <Button asChild className="min-w-40" variant="secondary">
               <Link href="/income">
                 <ArrowLeft className="h-4 w-4" />
@@ -241,7 +242,7 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
             (() => {
               const paidCents = Math.max(invoice.amountCents - invoice.balanceCents, 0);
               const payments = invoice.payments ?? [];
-              const invoiceLabel = `INV-${String(invoice.invoiceNumber).padStart(7, "0")}`;
+              const invoiceLabel = formatInvoiceNumber(invoice.invoiceNumber);
               const stamp = getInvoiceStamp(invoice);
               const items = invoice.items.length
                 ? invoice.items
@@ -310,7 +311,7 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
                                         href={getInvoiceLink(item.id)}
                                         key={item.id}
                                       >
-                                        INV-{String(item.invoiceNumber).padStart(7, "0")}
+                                        {formatInvoiceNumber(item.invoiceNumber)}
                                       </Link>
                                     ))}
                                   </div>

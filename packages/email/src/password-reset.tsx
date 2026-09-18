@@ -1,10 +1,12 @@
 import { render, toPlainText } from "react-email";
 import { sendEmail } from "./service.js";
+import type { EmailConfig } from "./config.js";
 import { PasswordResetEmail } from "./templates/password-reset.js";
 
 export type SendPasswordResetEmailInput = {
   resetUrl: string;
   to: string;
+  emailConfig?: EmailConfig;
 };
 
 export async function sendPasswordResetEmail(input: SendPasswordResetEmailInput) {
@@ -16,5 +18,6 @@ export async function sendPasswordResetEmail(input: SendPasswordResetEmailInput)
     subject: "Reset your Parcelis password",
     text,
     to: input.to,
+    emailConfig: input.emailConfig,
   });
 }

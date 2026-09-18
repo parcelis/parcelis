@@ -144,7 +144,7 @@ export function EditInvoiceDrawer({
                   Term / lease
                   <Input
                     readOnly
-                    value={`${formatDate(invoice.lease.startsOn)} – ${invoice.lease.endsOn ? formatDate(invoice.lease.endsOn) : "No end date"}`}
+                    value={`${invoice.lease.startsOn ? formatDate(invoice.lease.startsOn) : "Not set"} – ${invoice.lease.endsOn ? formatDate(invoice.lease.endsOn) : "No end date"}`}
                   />
                 </Label>
                 <Label className="gap-2">
