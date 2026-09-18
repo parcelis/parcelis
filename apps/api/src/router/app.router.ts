@@ -876,6 +876,7 @@ export const appRouter = router({
             await sendVerificationEmail({
               to: user.email,
               verificationUrl: getEmailVerificationUrl(verificationToken),
+              emailConfig: await getOrganizationEmailConfig(ctx.prisma, ctx.organization.organizationId),
             });
           } catch (error) {
             console.error("Unable to send email verification email.", error);
@@ -1059,6 +1060,16 @@ export const appRouter = router({
             },
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
           );
+        }
+        const user = await ctx.prisma.user.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { accountStatus: true },
+        });
+        if (user.accountStatus === "pending") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Pending accounts must be activated through email verification.",
+          });
         }
         return ctx.prisma.user.update({
           where: { id: input.id },

@@ -1,8 +1,10 @@
 import { render, toPlainText } from "react-email";
 import { sendEmail } from "./service.js";
+import type { EmailConfig } from "./config.js";
 import { AccountVerificationEmail } from "./templates/account-verification.js";
 
 export type SendVerificationEmailInput = {
+  emailConfig?: EmailConfig;
   to: string;
   verificationUrl: string;
 };
@@ -16,5 +18,6 @@ export async function sendVerificationEmail(input: SendVerificationEmailInput) {
     subject: "Verify your Parcelis email",
     text,
     to: input.to,
+    emailConfig: input.emailConfig,
   });
 }

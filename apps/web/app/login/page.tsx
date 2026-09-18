@@ -23,6 +23,8 @@ const benefits = [
   },
 ];
 
+const verificationDestinationKey = "parcelis-verification-destination";
+
 type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password" | "verify-email";
 
 export default function LoginPage() {
@@ -58,6 +60,15 @@ export default function LoginPage() {
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
     }
     if (mode === "verify") {
+      const storedDestination = window.localStorage.getItem(verificationDestinationKey);
+      if (
+        !(nextPath?.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("\\")) &&
+        storedDestination?.startsWith("/") &&
+        !storedDestination.startsWith("//") &&
+        !storedDestination.includes("\\")
+      ) {
+        setDestination(storedDestination);
+      }
       const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
       setLoginMode("verify-email");
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
@@ -171,11 +182,13 @@ export default function LoginPage() {
       };
       if (isRegistering) {
         await apiClient.auth.register.mutate(input);
+        window.localStorage.setItem(verificationDestinationKey, destination);
         selectLoginMode("sign-in");
         setNotice("Check your email for a link to verify your account.");
         return;
       }
       await apiClient.auth.login.mutate(input);
+      window.localStorage.removeItem(verificationDestinationKey);
       flushSync(() => setIsLoadingApp(true));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => window.setTimeout(resolve, 5000));
@@ -183,7 +196,13 @@ export default function LoginPage() {
       router.refresh();
     } catch (cause) {
       setIsLoadingApp(false);
-      if (isRegistering) setPendingVerificationEmail(email);
+      if (
+        isRegistering &&
+        cause instanceof Error &&
+        cause.message === "Your account was created, but we could not send a verification email. Please resend it."
+      ) {
+        setPendingVerificationEmail(email);
+      }
       if (cause instanceof Error && cause.message === "Please verify your email before signing in.") {
         setPendingVerificationEmail(email);
       }

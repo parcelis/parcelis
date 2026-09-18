@@ -69,6 +69,9 @@ function createPrisma() {
     organizationMembership: {
       create: async () => ({}),
     },
+    organizationEmailSettings: {
+      findUnique: async () => null,
+    },
     emailVerificationToken: {
       create: async ({ data }: { data: Omit<VerificationToken, "id" | "usedAt"> }) => {
         const token = { ...data, id: nextTokenId++, usedAt: null };

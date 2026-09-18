@@ -33,11 +33,13 @@ import {
 import {
   clearLoginRateLimit,
   consumeEmailVerificationRateLimit,
+  consumeEmailSendRateLimit,
   consumeLoginRateLimit,
   consumePasswordResetRateLimit,
   getLoginRateLimitKey,
   getPasswordChangeRateLimitKey,
   getEmailVerificationRateLimitKey,
+  getEmailSendRateLimitKey,
   getPasswordResetRateLimitKey,
 } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
@@ -82,6 +84,7 @@ export const authRouter = router({
       throw new TRPCError({ code: "CONFLICT", message: "Unable to create account." });
     }
 
+    consumeEmailSendRateLimit(getEmailSendRateLimitKey(ctx.req.ip));
     let user;
     const verificationToken = createEmailVerificationToken();
     try {
@@ -106,7 +109,7 @@ export const authRouter = router({
             expiresAt: getEmailVerificationTokenExpiration(),
           },
         });
-        return createdUser;
+        return { ...createdUser, organizationId: organization.id };
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -115,7 +118,11 @@ export const authRouter = router({
       throw error;
     }
     try {
-      await sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(verificationToken) });
+      await sendVerificationEmail({
+        to: user.email,
+        verificationUrl: getEmailVerificationUrl(verificationToken),
+        emailConfig: await getOrganizationEmailConfig(ctx.prisma, user.organizationId),
+      });
     } catch (error) {
       console.error("Unable to send email verification email.", error);
       throw new TRPCError({
@@ -169,10 +176,11 @@ export const authRouter = router({
     .mutation(async ({ ctx, input }) => {
       const rateLimitKey = getEmailVerificationRateLimitKey(ctx.req.ip, input.email);
       consumeEmailVerificationRateLimit(rateLimitKey);
+      consumeEmailSendRateLimit(getEmailSendRateLimitKey(ctx.req.ip));
 
       const user = await ctx.prisma.user.findUnique({
         where: { email: input.email },
-        select: { id: true, email: true, accountStatus: true },
+        select: { id: true, email: true, accountStatus: true, defaultOrganizationId: true },
       });
       const token = createEmailVerificationToken();
 
@@ -188,7 +196,13 @@ export const authRouter = router({
               },
             });
           });
-          await sendVerificationEmail({ to: user.email, verificationUrl: getEmailVerificationUrl(token) });
+          await sendVerificationEmail({
+            to: user.email,
+            verificationUrl: getEmailVerificationUrl(token),
+            emailConfig: user.defaultOrganizationId
+              ? await getOrganizationEmailConfig(ctx.prisma, user.defaultOrganizationId)
+              : undefined,
+          });
         } catch (error) {
           console.error("Unable to create email verification token or send verification email.", error);
         }
