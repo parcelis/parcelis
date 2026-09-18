@@ -1800,6 +1800,14 @@ export default function NewLeasePage() {
     setLoadedDraftKey(lease.leaseDraftKey);
   }, [loadedDraftKey, leaseDraftQuery.data]);
 
+  React.useEffect(() => {
+    if (leaseDraftQuery.error) {
+      setStepError(`Unable to load the lease draft: ${leaseDraftQuery.error.message}`);
+    } else if (leaseDraftQuery.isSuccess && leaseDraftQuery.data === null && draftIdentity.leaseId !== null) {
+      setStepError("This lease draft is no longer available. Start a new lease draft.");
+    }
+  }, [draftIdentity.leaseId, leaseDraftQuery.data, leaseDraftQuery.error, leaseDraftQuery.isSuccess]);
+
   function goBack() {
     setStepError(null);
     const previousStep = leaseCreationSteps[currentIndex - 1];
