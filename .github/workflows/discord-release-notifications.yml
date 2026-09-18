@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: Post release changelog
         if: env.DISCORD_RELEASE_WEBHOOK_URL != ''
-        uses: SethCohen/github-releases-to-discord@820f5e9b93ec5abf32bf82eb834d5c312b5b3035 # v1
+        uses: SethCohen/github-releases-to-discord@24d166886aee4646d448c8a389ff9e1ebcab3682 # v1
         with:
           webhook_url: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
           release_name: ${{ github.event.release.name || inputs.release_name }}
