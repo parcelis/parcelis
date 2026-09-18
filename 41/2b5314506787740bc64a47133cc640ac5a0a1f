@@ -1,0 +1,24 @@
+apps/api/src/modules/login-rate-limit.ts
+  s_45a2c9d31f1d36::t_1a471b9a05c2ed 61-65
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_45a2c9d31f1d36::t_5d41d5113979c9 30-35,44,47,57-61,84,87-100,165
+  s_45a2c9d31f1d36::t_1a471b9a05c2ed 6,36-38
+  s_45a2c9d31f1d36::t_4b0c5b49952124 484-510
+  s_45a2c9d31f1d36::t_66bea5fe8015cb 468-470
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "412b5314506787740bc64a47133cc640ac5a0a1f",
+  "prompts": {},
+  "sessions": {
+    "s_45a2c9d31f1d36": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b62e-a6e2-7c03-8a80-e32690397f7c",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
