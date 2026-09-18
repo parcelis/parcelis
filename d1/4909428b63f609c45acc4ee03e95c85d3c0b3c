@@ -1,0 +1,21 @@
+DEPENDENCIES.md
+  s_0dc27b52ca6018::t_205c05d71a333b 64
+apps/docs/content/getting-started.mdx
+  s_0dc27b52ca6018::t_205c05d71a333b 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d14909428b63f609c45acc4ee03e95c85d3c0b3c",
+  "prompts": {},
+  "sessions": {
+    "s_0dc27b52ca6018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b4e4-d894-7752-a820-2ddbd921ab2e",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
