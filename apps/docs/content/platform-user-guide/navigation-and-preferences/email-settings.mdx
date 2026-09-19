@@ -5,7 +5,7 @@ title: Email Settings
 
 Open **Settings**, then select **Organization** and **Email** to configure the SMTP server used to send email for the active organization. Only organization owners and administrators can change these settings.
 
-Parcelis uses SMTP for transactional messages such as account verification, password resets, and test emails. A saved organization configuration takes precedence over the deployment's email configuration. If no organization configuration is saved, Parcelis uses the SMTP values in the deployment `.env` file.
+Parcelis uses SMTP for transactional messages such as account verification, password resets, and test emails. A saved organization configuration takes precedence over the deployment's email configuration. If no organization configuration is saved, Parcelis uses the SMTP values from the deployment environment (`.env` for local development or `.env.production` for Docker Compose).
 
 ## Configure SMTP
 
