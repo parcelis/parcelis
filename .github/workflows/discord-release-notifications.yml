@@ -37,5 +37,8 @@ jobs:
           release_html_url: ${{ github.event.release.html_url || inputs.release_html_url }}
           color: "2105893"
           username: "Parcels"
+          content: "🚀 A new Parcelis release is now available"
           footer_title: "Parcelis Changelog"
+          footer_icon_url: ${{ github.server_url }}/${{ github.repository_owner }}.png
+          footer_timestamp: true
           reduce_headings: true
