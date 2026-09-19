@@ -34,3 +34,100 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
+
+  docker-build:
+    needs: quality
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: parcelis
+          POSTGRES_PASSWORD: parcelis
+          POSTGRES_DB: parcelis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U parcelis -d parcelis"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build modular app image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.app
+          target: app
+          tags: parcelis/app:test
+          load: true
+      - name: Build all-in-one image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.app
+          target: all-in-one
+          tags: parcelis/all:test
+          load: true
+      - name: Smoke test all-in-one image
+        env:
+          DATABASE_URL: postgresql://parcelis:parcelis@localhost:5432/parcelis?schema=public
+        run: |
+          # The migration job must run from the image as an explicit deploy step.
+          docker run --rm --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -w /repo \
+            parcelis/all:test \
+            pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
+
+          # Start the single application image; nginx fronts web, API, and docs.
+          docker run -d --name parcelis-all-test --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e WEB_ORIGIN=http://localhost:3000 \
+            -e AUTH_DISABLED=false \
+            -e EMAIL_FROM='Parcelis <no-reply@example.com>' \
+            -e SMTP_HOST=localhost \
+            -e SMTP_PORT=1025 \
+            -e SMTP_SECURE=false \
+            parcelis/all:test
+
+          cleanup() {
+            docker logs parcelis-all-test || true
+            docker rm -f parcelis-all-test || true
+          }
+          trap cleanup EXIT
+
+          # Wait for the container health check (nginx -> API + web).
+          for _ in $(seq 1 36); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' parcelis-all-test)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "Container reported unhealthy"
+              exit 1
+            fi
+            sleep 5
+          done
+          [ "$(docker inspect --format '{{.State.Health.Status}}' parcelis-all-test)" = "healthy" ]
+
+          # Web app (follows / -> /login redirect), REST API, tRPC, docs
+          # index, and a nested docs route.
+          curl -fsSL http://localhost:3000/ -o /dev/null
+          curl -fsS http://localhost:3000/api/v1/health
+          echo
+          # Every /trpc procedure requires a session, so an unauthenticated
+          # call must answer 401 with the API's tRPC envelope (not the web
+          # 404 page): that proves nginx routes /trpc/* to the API.
+          trpc_status="$(curl -s -o /tmp/trpc.json -w '%{http_code}' 'http://localhost:3000/trpc/health?batch=1&input=%7B%220%22%3Anull%7D')"
+          [ "$trpc_status" = "401" ]
+          grep -q '"code":"UNAUTHORIZED"' /tmp/trpc.json
+          grep -q '"path":"health"' /tmp/trpc.json
+          curl -fsS http://localhost:3000/docs/ -o /dev/null
+          curl -fsS http://localhost:3000/docs/getting-started/deploy-with-docker/ -o /dev/null
+
+          trap - EXIT
+          docker rm -f parcelis-all-test
