@@ -53,7 +53,7 @@ The app container expects the following values at minimum:
 - `WEB_ORIGIN`: the public origin used by the web app
 - `AUTH_COOKIE_DOMAIN`: the cookie domain for authentication sessions
 - `AUTH_COOKIE_SECURE`: set to `true` when the app is served over HTTPS
-- `EMAIL_FROM`: sender address for password reset emails
+- `EMAIL_FROM`: sender address for transactional email
 - `SMTP_HOST`, `SMTP_PORT`, and `SMTP_SECURE`: SMTP server connection settings; `SMTP_SECURE` must be `true` or `false`
 - `SMTP_USER` and `SMTP_PASSWORD`: SMTP authentication credentials
 - `EMAIL_SETTINGS_ENCRYPTION_KEY`: base64-encoded 32-byte key used to encrypt saved organization SMTP passwords
@@ -64,4 +64,4 @@ The app container expects the following values at minimum:
 The nginx proxy exposes the web app at `/`, documentation at `/docs/`, and
 the API at `/api/v1`.
 
-Organization administrators can configure SMTP in Settings → Organization → Email. Those settings take precedence for email sent to a user whose default organization has a saved configuration. The environment SMTP values remain the fallback.
+For the complete `.env` reference, including TLS and STARTTLS guidance, see [Email configuration](./email-configuration). Organization administrators can configure SMTP in Settings → Organization → Email. Those settings take precedence for email sent to a user whose default organization has a saved configuration. The environment SMTP values remain the fallback.

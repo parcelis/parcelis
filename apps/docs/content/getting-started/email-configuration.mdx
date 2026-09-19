@@ -1,0 +1,57 @@
+---
+id: email-configuration
+title: Email Configuration
+sidebar_label: Email Configuration
+---
+
+Parcelis sends transactional email through SMTP. The SMTP values in your deployment environment provide the default configuration. An organization owner or administrator can optionally save a separate SMTP configuration in **Settings → Organization → Email**; that configuration takes precedence for email sent for that organization.
+
+## Configure the deployment environment
+
+Add the following values to `.env` for local development or `.env.production` for a Docker Compose deployment. Replace the example values with credentials from your SMTP provider.
+
+```dotenv
+# Transactional Email Configuration
+EMAIL_FROM="Parcelis <no-reply@example.com>"
+SMTP_HOST="smtp.example.com"
+SMTP_PORT="465"
+SMTP_SECURE="true"
+SMTP_USER="your-smtp-user"
+SMTP_PASSWORD="your-smtp-password"
+
+# Required to save organization-level SMTP passwords
+EMAIL_SETTINGS_ENCRYPTION_KEY="your-base64-encoded-32-byte-key"
+```
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `EMAIL_FROM` | Yes | Sender shown on transactional messages. Use a mailbox or domain that your SMTP provider permits. |
+| `SMTP_HOST` | Yes | SMTP server hostname. |
+| `SMTP_PORT` | Yes | SMTP server TCP port, from `1` to `65535`. Common values are `465` for implicit TLS and `587` for STARTTLS. |
+| `SMTP_SECURE` | Yes | Set to `true` for implicit TLS, commonly port `465`; set to `false` for a non-implicit-TLS connection. It must be exactly `true` or `false`. |
+| `SMTP_USER` | Yes | SMTP authentication username. |
+| `SMTP_PASSWORD` | Yes | SMTP authentication password or provider-issued app password. Keep it out of version control. |
+| `EMAIL_SETTINGS_ENCRYPTION_KEY` | Required to save organization SMTP credentials | A base64-encoded 32-byte secret used to encrypt saved organization SMTP passwords. |
+
+For example, generate an encryption key with:
+
+```bash
+openssl rand -base64 32
+```
+
+Keep `EMAIL_SETTINGS_ENCRYPTION_KEY` stable and provide the same value to every application instance. Changing or losing it prevents Parcelis from decrypting previously saved organization SMTP passwords. It does not replace the deployment `SMTP_PASSWORD`.
+
+## TLS and STARTTLS
+
+The deployment variables distinguish only implicit TLS from a non-implicit-TLS connection:
+
+- For a provider that uses implicit TLS, set `SMTP_SECURE="true"` and use its TLS port, commonly `465`.
+- For a provider that uses STARTTLS, set `SMTP_SECURE="false"` and use its STARTTLS port, commonly `587`.
+
+For organization-level settings, choose **TLS** for implicit TLS or **STARTTLS** for STARTTLS in the Email settings page. The organization form also supports an unencrypted connection only when explicitly required by the provider.
+
+## Verify delivery
+
+After starting the application with the new environment values, use **Settings → Organization → Email** and select **Send test email** after saving an organization configuration. If the organization has no saved configuration, account verification and password reset messages use the deployment SMTP values.
+
+Do not commit `.env` or `.env.production` files containing SMTP credentials or encryption keys.

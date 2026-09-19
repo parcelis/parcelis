@@ -1,0 +1,40 @@
+---
+id: email-settings
+title: Email Settings
+---
+
+Open **Settings**, then select **Organization** and **Email** to configure the SMTP server used to send email for the active organization. Only organization owners and administrators can change these settings.
+
+Parcelis uses SMTP for transactional messages such as account verification, password resets, and test emails. A saved organization configuration takes precedence over the deployment's email configuration. If no organization configuration is saved, Parcelis uses the SMTP values in the deployment `.env` file.
+
+## Configure SMTP
+
+Enter the connection details supplied by your email provider:
+
+| Setting | What it does |
+| --- | --- |
+| SMTP host | The hostname of the provider's SMTP server, such as `smtp.example.com`. |
+| Security type | Chooses how Parcelis secures the SMTP connection. Use the option specified by your provider. |
+| Port | The provider's SMTP port. Common combinations are STARTTLS with port `587` and TLS with port `465`. |
+| Sender name | Optional display name shown to recipients. |
+| From email address | The sending email address. It must be permitted by your email provider. |
+| Require sign in | Enables SMTP authentication. When enabled, provide the provider's username and password or app password. |
+| Username and password | Credentials used when SMTP authentication is enabled. The password is stored encrypted. |
+
+The available security types are:
+
+- **None**: no transport encryption. Use only when your provider explicitly requires it and the server is on a trusted network.
+- **STARTTLS**: connects normally, then upgrades the connection to TLS. This commonly uses port `587`.
+- **TLS**: starts the connection with implicit TLS. This commonly uses port `465`.
+
+Select **Save email settings** after entering the values. If you change the password later, leave it blank to retain the saved password or enter a new value to replace it.
+
+## Test and reset the configuration
+
+After saving, select **Send test email** to send a message to your signed-in user's email address. Save any pending changes before sending a test.
+
+Select **Reset configuration** to remove the organization-level settings. Future email for the organization will then use the deployment SMTP configuration until a new organization configuration is saved.
+
+## Deployment fallback and encryption
+
+The deployment SMTP configuration is also used when no organization-specific configuration exists. See [Email configuration](../../getting-started/email-configuration) for the required `.env` variables and instructions for `EMAIL_SETTINGS_ENCRYPTION_KEY`, which must be configured before SMTP passwords can be saved for an organization.

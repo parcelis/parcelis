@@ -60,6 +60,7 @@ const sidebars: SidebarsConfig = {
             "platform-user-guide/navigation-and-preferences/sidebar",
             "platform-user-guide/navigation-and-preferences/profile",
             "platform-user-guide/navigation-and-preferences/organization-settings",
+            "platform-user-guide/navigation-and-preferences/email-settings",
             "platform-user-guide/navigation-and-preferences/users",
             "platform-user-guide/navigation-and-preferences/notifications",
             "platform-user-guide/navigation-and-preferences/collapse-navigation",
@@ -73,7 +74,11 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Deployment",
-      items: ["getting-started/deploy-with-docker", "getting-started/deploy-with-docker-compose"],
+      items: [
+        "getting-started/deploy-with-docker",
+        "getting-started/deploy-with-docker-compose",
+        "getting-started/email-configuration",
+      ],
     },
     {
       type: "category",
