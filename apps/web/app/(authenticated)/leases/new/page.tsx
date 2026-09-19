@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -1500,6 +1500,9 @@ function ReviewDetail({ label, value }: { label: string; value: string }) {
 
 export default function NewLeasePage() {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftKeyFromUrl = searchParams.get("draft");
   const queryClient = useQueryClient();
   const [draft, setDraft] = React.useState<LeaseDraft>(initialLeaseDraft);
   const [draftIdentity, setDraftIdentity] = React.useState<LeaseDraftIdentity>({
@@ -1539,6 +1542,7 @@ export default function NewLeasePage() {
         leaseDraftKey: lease.leaseDraftKey,
         revision: lease.revision,
       }));
+      router.replace(`${pathname}?draft=${encodeURIComponent(lease.leaseDraftKey)}`);
       setLoadedDraftKey(lease.leaseDraftKey);
       await queryClient.invalidateQueries({ queryKey: ["lease-draft", lease.leaseDraftKey] });
       setStepError(null);
@@ -1622,6 +1626,11 @@ export default function NewLeasePage() {
   React.useEffect(() => {
     if (!leaseDraftStorageKey) return;
     try {
+      if (draftKeyFromUrl) {
+        setDraftIdentity((current) => ({ ...current, leaseDraftKey: draftKeyFromUrl }));
+        setIdentityStorageLoaded(true);
+        return;
+      }
       const storedIdentity = window.sessionStorage.getItem(leaseDraftStorageKey);
       if (storedIdentity) {
         const parsed = JSON.parse(storedIdentity) as Partial<LeaseDraftIdentity>;
@@ -1637,7 +1646,7 @@ export default function NewLeasePage() {
       setDraftIdentity({ leaseDraftKey: "", leaseId: null, revision: 0 });
     }
     setIdentityStorageLoaded(true);
-  }, [leaseDraftStorageKey]);
+  }, [draftKeyFromUrl, leaseDraftStorageKey]);
 
   React.useEffect(() => {
     if (!leaseDraftStorageKey || !draftIdentity.leaseDraftKey) return;
