@@ -1579,6 +1579,8 @@ export default function NewLeasePage() {
       setStepError(getLeaseDraftErrorMessage(error));
     },
   });
+  const updateDraftAsync = updateLeaseDraft.mutateAsync;
+  const updateDraftPending = updateLeaseDraft.isPending;
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
       const property = await apiClient.properties.create.mutate(input);
@@ -1726,7 +1728,7 @@ export default function NewLeasePage() {
 
   // Automatically saves the lease draft whenever it changes, with a debounce to avoid excessive requests.
   React.useEffect(() => {
-    if (!draftIdentity.leaseId || updateLeaseDraft.isPending) return;
+    if (!draftIdentity.leaseId || updateDraftPending) return;
     const fingerprint = JSON.stringify(draft);
     if (lastSavedDraftRef.current === fingerprint) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -1734,7 +1736,7 @@ export default function NewLeasePage() {
       if (!draftIdentity.leaseId) return;
       setSaveStatus("saving");
       try {
-        await updateLeaseDraft.mutateAsync({
+        await updateDraftAsync({
           leaseId: draftIdentity.leaseId,
           expectedRevision: draftIdentity.revision,
           data: getLeaseDraftSaveData(draft),
@@ -1748,12 +1750,44 @@ export default function NewLeasePage() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [draft, draftIdentity.leaseId, draftIdentity.revision, updateLeaseDraft.isPending]);
+  }, [draft, draftIdentity.leaseId, draftIdentity.revision, updateDraftAsync, updateDraftPending]);
 
-  function goBack() {
+  async function flushDraftSave() {
+    if (!draftIdentity.leaseId || updateLeaseDraft.isPending) return !updateLeaseDraft.isPending;
+    const fingerprint = JSON.stringify(draft);
+    if (lastSavedDraftRef.current === fingerprint) return true;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSaveStatus("saving");
+    try {
+      await updateLeaseDraft.mutateAsync({
+        leaseId: draftIdentity.leaseId,
+        expectedRevision: draftIdentity.revision,
+        data: getLeaseDraftSaveData(draft),
+      });
+      lastSavedDraftRef.current = fingerprint;
+      setSaveStatus("saved");
+      return true;
+    } catch {
+      setSaveStatus("error");
+      return false;
+    }
+  }
+
+  async function goBack() {
+    if (!(await flushDraftSave())) {
+      setStepError("Save the current changes before going back.");
+      return;
+    }
     setStepError(null);
     const previousStep = leaseCreationSteps[currentIndex - 1];
     if (previousStep) setDraft((current) => ({ ...current, currentStep: previousStep.id }));
+  }
+
+  function preventUnsafeExit(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (updateLeaseDraft.isPending || saveStatus === "error") {
+      event.preventDefault();
+      setStepError("Save or retry the current changes before leaving the wizard.");
+    }
   }
 
   function validateCurrentStep() {
@@ -1887,6 +1921,12 @@ export default function NewLeasePage() {
     if (result.data) setLoadedDraftKey(null);
   }
 
+  function retryDraftSave() {
+    lastSavedDraftRef.current = null;
+    setSaveStatus("idle");
+    setDraft((current) => ({ ...current }));
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isLastStep) goNext();
@@ -1933,7 +1973,7 @@ export default function NewLeasePage() {
         <section className="flex flex-1 flex-col transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
           <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
             <Button asChild className="min-w-40" variant="secondary">
-              <Link href="/leases">
+              <Link href="/leases" onClick={preventUnsafeExit}>
                 <ArrowLeft className="h-4 w-4" />
                 Leases
               </Link>
@@ -1963,14 +2003,16 @@ export default function NewLeasePage() {
                 <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
                   <LeaseCreationStepper onValueChange={handleStepChange} value={draft.currentStep} />
                   {draftIdentity.leaseId ? (
-                    <p className="text-right text-xs text-parcelis-gray dark:text-white/60">
-                      {saveStatus === "saving"
-                        ? "Saving…"
-                        : saveStatus === "error"
-                          ? "Couldn't save"
-                          : saveStatus === "saved"
-                            ? "Saved"
-                            : null}
+                    <p className="flex items-center justify-end gap-2 text-xs text-parcelis-gray dark:text-white/60">
+                      {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : null}
+                      {saveStatus === "error" ? (
+                        <>
+                          <span>Couldn’t save</span>
+                          <Button onClick={retryDraftSave} size="sm" type="button" variant="secondary">
+                            Retry
+                          </Button>
+                        </>
+                      ) : null}
                     </p>
                   ) : null}
                 </CardHeader>
@@ -2122,7 +2164,9 @@ export default function NewLeasePage() {
                 <div className="flex items-center justify-between border-t border-parcelis-border p-4 md:px-6">
                   {currentIndex === 0 ? (
                     <Button asChild className="min-w-40" variant="secondary">
-                      <Link href="/leases">Cancel</Link>
+                      <Link href="/leases" onClick={preventUnsafeExit}>
+                        Cancel
+                      </Link>
                     </Button>
                   ) : (
                     <Button className="min-w-40" onClick={goBack} type="button" variant="secondary">
