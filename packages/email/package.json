@@ -27,7 +27,7 @@
   "devDependencies": {
     "@parcelis/config": "workspace:*",
     "@react-email/ui": "^6.9.3",
-    "@types/node": "24.13.5",
+    "@types/node": "24.13.6",
     "@types/react": "19.3.0",
     "typescript": "6.0.3"
   }
