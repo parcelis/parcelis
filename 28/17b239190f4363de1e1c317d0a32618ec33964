@@ -1,0 +1,24 @@
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_7d3631a21b1d01::t_a9813432023208 133-149
+  s_7d3631a21b1d01::t_148b79df64e11f 1862-1863
+  s_7d3631a21b1d01::t_5c41a622291331 1965-1975
+  s_7d3631a21b1d01::t_9a13b2c1fc4979 1728-1752
+  s_7d3631a21b1d01::t_7cb7febd1f83e0 1693,1712-1714
+  s_7d3631a21b1d01::t_260f9601d93322 1553-1555,1577-1580
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "2817b239190f4363de1e1c317d0a32618ec33964",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
