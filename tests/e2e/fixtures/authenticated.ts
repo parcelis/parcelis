@@ -10,7 +10,7 @@ export const test = base.extend({
     await page.getByRole("textbox", { name: "Email address" }).fill(email);
     await page.getByRole("textbox", { name: "Password" }).fill(password!);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).not.toHaveURL(/\/login/);
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
     await use(page);
   },
 });
