@@ -1,0 +1,21 @@
+tests/e2e/lease-draft.spec.ts
+  s_7d3631a21b1d01::t_20c6a709ca6c87 23-26
+  s_7d3631a21b1d01::t_7f90a7cbcfc9ec 9-12,17-22,27-28
+  s_7d3631a21b1d01::t_d791eca207fba5 13-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e5c24cda6f62e712dae43b39df30a4b0883c84b3",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
