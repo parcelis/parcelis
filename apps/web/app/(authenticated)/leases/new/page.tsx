@@ -129,6 +129,24 @@ function getLeaseDraftErrorMessage(error: Error) {
     ? "This lease draft changed in another session. Reload the draft before continuing."
     : error.message;
 }
+// Extracts the relevant data from a LeaseDraft for saving to the server.
+function getLeaseDraftSaveData(draft: LeaseDraft) {
+  return {
+    propertyId: draft.propertyId,
+    unitId: draft.unitId,
+    tenantIds: draft.tenantIds,
+    termType: draft.termType,
+    startsOn: draft.startsOn,
+    endsOn: draft.endsOn,
+    monthlyRentCents: draft.monthlyRentCents,
+    securityDepositCents: draft.securityDepositCents,
+    rentDueDay: draft.rentDueDay,
+    billingResponsibility: draft.billingResponsibility,
+    allowPartialPayments: draft.allowPartialPayments,
+    tenantAllocations: draft.tenantAllocations,
+    draftStep: draft.currentStep,
+  };
+}
 
 function formatCurrencyExact(cents: number) {
   return new Intl.NumberFormat("en-US", {
@@ -1532,6 +1550,9 @@ export default function NewLeasePage() {
   const [tenantForm, setTenantForm] = React.useState(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = React.useState<File | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+  const lastSavedDraftRef = React.useRef<string | null>(null);
+  const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const createLeaseDraft = useMutation({
     mutationFn: (input: { leaseDraftKey: string; propertyId: number; unitId: number }) =>
       apiClient.leases.createDraft.mutate(input),
@@ -1553,7 +1574,10 @@ export default function NewLeasePage() {
     mutationFn: (input: { leaseId: number; expectedRevision: number; data: Record<string, unknown> }) =>
       apiClient.leases.updateDraft.mutate(input as never),
     onSuccess: (lease) => setDraftIdentity((current) => ({ ...current, revision: lease.revision })),
-    onError: (error) => setStepError(getLeaseDraftErrorMessage(error)),
+    onError: (error) => {
+      setSaveStatus("error");
+      setStepError(getLeaseDraftErrorMessage(error));
+    },
   });
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
@@ -1666,7 +1690,7 @@ export default function NewLeasePage() {
   React.useEffect(() => {
     const lease = leaseDraftQuery.data;
     if (!lease || loadedDraftKey === lease.leaseDraftKey) return;
-    setDraft({
+    const nextDraft = {
       ...initialLeaseDraft,
       currentStep: lease.draftStep,
       propertyId: lease.propertyId,
@@ -1685,7 +1709,9 @@ export default function NewLeasePage() {
         rentShareCents: rentShareCents ?? 0,
         depositShareCents: depositShareCents ?? 0,
       })),
-    });
+    };
+    lastSavedDraftRef.current = JSON.stringify(nextDraft);
+    setDraft(nextDraft);
     setDraftIdentity((current) => ({ ...current, leaseId: lease.id, revision: lease.revision }));
     setLoadedDraftKey(lease.leaseDraftKey);
   }, [loadedDraftKey, leaseDraftQuery.data]);
@@ -1697,6 +1723,32 @@ export default function NewLeasePage() {
       setStepError("This lease draft is no longer available. Start a new lease draft.");
     }
   }, [draftIdentity.leaseId, leaseDraftQuery.data, leaseDraftQuery.error, leaseDraftQuery.isSuccess]);
+
+  // Automatically saves the lease draft whenever it changes, with a debounce to avoid excessive requests.
+  React.useEffect(() => {
+    if (!draftIdentity.leaseId || updateLeaseDraft.isPending) return;
+    const fingerprint = JSON.stringify(draft);
+    if (lastSavedDraftRef.current === fingerprint) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      if (!draftIdentity.leaseId) return;
+      setSaveStatus("saving");
+      try {
+        await updateLeaseDraft.mutateAsync({
+          leaseId: draftIdentity.leaseId,
+          expectedRevision: draftIdentity.revision,
+          data: getLeaseDraftSaveData(draft),
+        });
+        lastSavedDraftRef.current = fingerprint;
+        setSaveStatus("saved");
+      } catch {
+        setSaveStatus("error");
+      }
+    }, 600);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [draft, draftIdentity.leaseId, draftIdentity.revision, updateLeaseDraft.isPending]);
 
   function goBack() {
     setStepError(null);
@@ -1807,6 +1859,8 @@ export default function NewLeasePage() {
                     draftStep: nextStep.id,
                   },
         });
+        lastSavedDraftRef.current = JSON.stringify({ ...draft, currentStep: nextStep.id });
+        setSaveStatus("saved");
       } catch {
         return;
       }
@@ -1908,6 +1962,17 @@ export default function NewLeasePage() {
               <Card className="flex flex-1 flex-col">
                 <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
                   <LeaseCreationStepper onValueChange={handleStepChange} value={draft.currentStep} />
+                  {draftIdentity.leaseId ? (
+                    <p className="text-right text-xs text-parcelis-gray dark:text-white/60">
+                      {saveStatus === "saving"
+                        ? "Saving…"
+                        : saveStatus === "error"
+                          ? "Couldn't save"
+                          : saveStatus === "saved"
+                            ? "Saved"
+                            : null}
+                    </p>
+                  ) : null}
                 </CardHeader>
                 <CardContent
                   className={`flex min-h-80 flex-1 flex-col ${
