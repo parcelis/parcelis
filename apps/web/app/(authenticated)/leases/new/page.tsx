@@ -1868,6 +1868,7 @@ export default function NewLeasePage() {
         return;
       }
       try {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
         await updateLeaseDraft.mutateAsync({
           leaseId,
           expectedRevision: revision,
