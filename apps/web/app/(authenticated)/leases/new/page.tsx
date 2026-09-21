@@ -125,11 +125,20 @@ function formatCurrency(cents: number) {
   }).format(cents / 100);
 }
 
-function getLeaseDraftErrorMessage(error: Error) {
+type LeaseDraftSaveError = {
+  kind: "conflict" | "other";
+  message: string;
+};
+
+function getLeaseDraftSaveError(error: Error): LeaseDraftSaveError {
   const code = (error as Error & { data?: { code?: string } }).data?.code;
-  return code === "CONFLICT"
-    ? "This lease draft changed in another session. Reload the draft before continuing."
-    : error.message;
+  return {
+    kind: code === "CONFLICT" ? "conflict" : "other",
+    message:
+      code === "CONFLICT"
+        ? "This lease draft changed in another session. Reload the draft before continuing."
+        : error.message,
+  };
 }
 // Extracts the relevant data from a LeaseDraft for saving to the server.
 function getLeaseDraftSaveData(draft: LeaseDraft) {
@@ -1553,6 +1562,7 @@ export default function NewLeasePage() {
   const [tenantForm, setTenantForm] = React.useState(initialTenantFormState);
   const [tenantImageFile, setTenantImageFile] = React.useState<File | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
+  const [draftSaveError, setDraftSaveError] = React.useState<LeaseDraftSaveError | null>(null);
   const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
   const lastSavedDraftRef = React.useRef<string | null>(null);
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1605,9 +1615,10 @@ export default function NewLeasePage() {
       router.replace(`${pathname}?draft=${encodeURIComponent(lease.leaseDraftKey)}`);
       setLoadedDraftKey(lease.leaseDraftKey);
       await queryClient.invalidateQueries({ queryKey: ["lease-draft", lease.leaseDraftKey] });
+      setDraftSaveError(null);
       setStepError(null);
     },
-    onError: (error) => setStepError(getLeaseDraftErrorMessage(error)),
+    onError: (error) => setStepError(error.message),
   });
   const updateLeaseDraft = useMutation({
     mutationFn: (input: { leaseId: number; expectedRevision: number; data: Record<string, unknown> }) =>
@@ -1615,10 +1626,13 @@ export default function NewLeasePage() {
     onSuccess: (lease) => {
       draftRevisionRef.current = lease.revision;
       setDraftIdentity((current) => ({ ...current, revision: lease.revision }));
+      setDraftSaveError(null);
     },
     onError: (error) => {
+      const draftError = getLeaseDraftSaveError(error);
       finishDraftSaveStatus("error");
-      setStepError(getLeaseDraftErrorMessage(error));
+      setDraftSaveError(draftError);
+      setStepError(draftError.message);
     },
   });
   const updateDraftAsync = updateLeaseDraft.mutateAsync;
@@ -1690,7 +1704,7 @@ export default function NewLeasePage() {
   const currentIndex = leaseCreationSteps.findIndex((step) => step.id === draft.currentStep);
   const step = leaseCreationSteps[currentIndex];
   const isLastStep = currentIndex === leaseCreationSteps.length - 1;
-  const hasDraftConflict = stepError?.includes("changed in another session") ?? false;
+  const hasDraftConflict = draftSaveError?.kind === "conflict";
   const currentStepError = hasDraftConflict ? null : stepError;
 
   React.useEffect(() => {
@@ -1964,13 +1978,17 @@ export default function NewLeasePage() {
   }
 
   async function reloadLatestDraft() {
-    setStepError(null);
     const result = await leaseDraftQuery.refetch();
-    if (result.data) setLoadedDraftKey(null);
+    if (result.data) {
+      setDraftSaveError(null);
+      setStepError(null);
+      setLoadedDraftKey(null);
+    }
   }
 
   function retryDraftSave() {
     lastSavedDraftRef.current = null;
+    setDraftSaveError(null);
     setSaveStatus("idle");
     setDraft((current) => ({ ...current }));
   }
@@ -2071,24 +2089,24 @@ export default function NewLeasePage() {
                   }`}
                 >
                   {hasDraftConflict ? (
-                    <Alert className="mb-4 w-full" variant="destructive">
-                      <AlertTitle>Draft needs to be reloaded</AlertTitle>
-                      <AlertDescription className="flex flex-wrap items-center gap-3">
+                    <Alert className="m-4 w-auto items-center" variant="destructive">
+                      <AlertDescription className="flex w-full flex-wrap items-center gap-3">
                         <Button onClick={reloadLatestDraft} type="button" variant="secondary">
+                          <TriangleAlert className="h-4 w-4" />
                           Reload latest draft
                         </Button>
-                        <span>{stepError}</span>
+                        <span>{draftSaveError.message}</span>
                       </AlertDescription>
                     </Alert>
                   ) : null}
                   {saveStatus === "error" && !hasDraftConflict ? (
-                    <Alert className="mb-4 w-full" variant="destructive">
-                      <AlertTitle>Unable to save the lease draft</AlertTitle>
-                      <AlertDescription className="flex flex-wrap items-center gap-3">
+                    <Alert className="m-4 w-auto items-center" variant="destructive">
+                      <AlertDescription className="flex w-full flex-wrap items-center gap-3">
                         <Button onClick={retryDraftSave} type="button" variant="secondary">
+                          <TriangleAlert className="h-4 w-4" />
                           Retry save
                         </Button>
-                        <span>{stepError ?? "Your latest changes have not been saved."}</span>
+                        <span>{draftSaveError?.message ?? "Your latest changes have not been saved."}</span>
                       </AlertDescription>
                     </Alert>
                   ) : null}
