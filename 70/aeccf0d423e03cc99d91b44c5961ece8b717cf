@@ -1,0 +1,27 @@
+tests/e2e/lease-draft.spec.ts
+  s_7d3631a21b1d01::t_61de3b77bf039d 85-118
+  s_7d3631a21b1d01::t_d8dd66a11d01b5 52-84
+apps/api/src/router/app.router.ts
+  s_7d3631a21b1d01::t_313d397b8e7f0f 3721,3767-3774
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_7d3631a21b1d01::t_d4a40436a77f33 157-159,1949
+apps/api/src/tests/leases/lease-draft.router.test.ts
+  s_7d3631a21b1d01::t_313d397b8e7f0f 185,187,214-250
+  s_7d3631a21b1d01::t_397af725b7f7e9 251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "70aeccf0d423e03cc99d91b44c5961ece8b717cf",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
