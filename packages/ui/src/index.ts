@@ -18,6 +18,7 @@ export * from "./components/password-input";
 export * from "./components/popover";
 export * from "./components/radio-group";
 export * from "./components/select";
+export * from "./components/spinner";
 export * from "./components/stepper";
 export * from "./components/switch";
 export * from "./components/table";

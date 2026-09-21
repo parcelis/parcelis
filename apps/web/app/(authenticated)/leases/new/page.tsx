@@ -10,6 +10,7 @@ import {
   Building2,
   CalendarDays,
   CalendarRange,
+  Check,
   ChevronRight,
   DoorOpen,
   FileText,
@@ -38,6 +39,7 @@ import {
   RadioGroup,
   RadioGroupItem,
   Select,
+  Spinner,
   Switch,
   Table,
   TableBody,
@@ -1555,9 +1557,12 @@ export default function NewLeasePage() {
   const lastSavedDraftRef = React.useRef<string | null>(null);
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveStatusTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedStatusTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function startDraftSaveStatus() {
     if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+    if (savedStatusTimerRef.current) clearTimeout(savedStatusTimerRef.current);
+    savedStatusTimerRef.current = null;
     saveStatusTimerRef.current = setTimeout(() => {
       setSaveStatus("saving");
       saveStatusTimerRef.current = null;
@@ -1566,13 +1571,22 @@ export default function NewLeasePage() {
 
   function finishDraftSaveStatus(status: "saved" | "error") {
     if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+    if (savedStatusTimerRef.current) clearTimeout(savedStatusTimerRef.current);
     saveStatusTimerRef.current = null;
+    savedStatusTimerRef.current = null;
     setSaveStatus(status);
+    if (status === "saved") {
+      savedStatusTimerRef.current = setTimeout(() => {
+        setSaveStatus("idle");
+        savedStatusTimerRef.current = null;
+      }, 2000);
+    }
   }
 
   React.useEffect(
     () => () => {
       if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+      if (savedStatusTimerRef.current) clearTimeout(savedStatusTimerRef.current);
     },
     [],
   );
@@ -1928,7 +1942,7 @@ export default function NewLeasePage() {
                   },
         });
         lastSavedDraftRef.current = JSON.stringify({ ...draft, currentStep: nextStep.id });
-        setSaveStatus("saved");
+        finishDraftSaveStatus("saved");
       } catch {
         return;
       }
@@ -2038,7 +2052,17 @@ export default function NewLeasePage() {
                   <LeaseCreationStepper onValueChange={handleStepChange} value={draft.currentStep} />
                   <p className="flex min-h-5 items-center justify-end gap-2 text-xs text-parcelis-gray dark:text-white/60">
                     {draftIdentity.leaseId ? (
-                      <>{saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : null}</>
+                      <>
+                        {saveStatus === "saving" ? (
+                          <>
+                            <Spinner /> Saving…
+                          </>
+                        ) : saveStatus === "saved" ? (
+                          <>
+                            <Check className="size-4 text-parcelis-green" /> Saved
+                          </>
+                        ) : null}
+                      </>
                     ) : null}
                   </p>
                 </CardHeader>
