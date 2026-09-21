@@ -1943,7 +1943,9 @@ export default function NewLeasePage() {
                     allowPartialPayments: draft.allowPartialPayments,
                     monthlyRentCents: draft.monthlyRentCents,
                     securityDepositCents: draft.securityDepositCents,
-                    tenantAllocations: draft.tenantAllocations,
+                    ...(draft.billingResponsibility === "individual"
+                      ? { tenantAllocations: draft.tenantAllocations }
+                      : {}),
                     draftStep: nextStep.id,
                   }
                 : {

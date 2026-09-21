@@ -86,3 +86,41 @@ test("autosaves lease terms and resumes on the terms step", async ({ page }) => 
   await expect(page.locator('[role="radio"][value="month_to_month"]')).toHaveAttribute("data-state", "checked");
   await expect(page.locator("#lease-rent-due-day")).toHaveValue("15");
 });
+
+test("autosaves fixed-term dates", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  const residentSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByRole("checkbox").first().click();
+  await residentSave;
+  const deposit = page.getByLabel("Security deposit");
+  await deposit.fill("500");
+  const billingSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await deposit.blur();
+  await billingSave;
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
+
+  await page.locator("#lease-start-date").click();
+  await page.locator('[data-day="2026-09-22"]').click();
+  await page.locator("#lease-end-date").click();
+  const draftSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.locator('[data-day="2026-09-29"]').click();
+  await draftSave;
+
+  await page.reload();
+  await expect(page.locator("#lease-start-date")).toHaveText(/September 22, 2026/);
+  await expect(page.locator("#lease-end-date")).toHaveText(/September 29, 2026/);
+});
