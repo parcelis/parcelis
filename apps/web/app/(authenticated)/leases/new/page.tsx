@@ -154,7 +154,9 @@ function getLeaseDraftSaveData(draft: LeaseDraft) {
     rentDueDay: draft.rentDueDay,
     billingResponsibility: draft.billingResponsibility,
     allowPartialPayments: draft.allowPartialPayments,
-    ...(draft.billingResponsibility === "individual" ? { tenantAllocations: draft.tenantAllocations } : {}),
+    ...(draft.billingResponsibility === "individual"
+      ? { tenantAllocations: synchronizeTenantAllocations(draft.tenantIds, draft.tenantAllocations) }
+      : {}),
     draftStep: draft.currentStep,
   };
 }
@@ -1944,7 +1946,7 @@ export default function NewLeasePage() {
                     monthlyRentCents: draft.monthlyRentCents,
                     securityDepositCents: draft.securityDepositCents,
                     ...(draft.billingResponsibility === "individual"
-                      ? { tenantAllocations: draft.tenantAllocations }
+                      ? { tenantAllocations: synchronizeTenantAllocations(draft.tenantIds, draft.tenantAllocations) }
                       : {}),
                     draftStep: nextStep.id,
                   }

@@ -3718,7 +3718,7 @@ export const appRouter = router({
             }
           }
 
-          if (data.tenantAllocations !== undefined) {
+          if (parsed.data.billingResponsibility === "individual" && data.tenantAllocations !== undefined) {
             const tenantIds = new Set(parsed.data.tenantIds ?? []);
             const allocationIds = new Set(data.tenantAllocations.map(({ tenantId }) => tenantId));
             if (
@@ -3764,12 +3764,14 @@ export const appRouter = router({
             await tx.leaseTenant.deleteMany({ where: { organizationId, leaseId: input.leaseId } });
             const tenantIds = data.tenantIds ?? current.tenants.map(({ tenantId }) => tenantId);
             const allocations =
-              data.tenantAllocations ??
-              current.tenants.map(({ tenantId, rentShareCents, depositShareCents }) => ({
-                tenantId,
-                rentShareCents: rentShareCents ?? 0,
-                depositShareCents: depositShareCents ?? 0,
-              }));
+              parsed.data.billingResponsibility === "joint"
+                ? []
+                : (data.tenantAllocations ??
+                  current.tenants.map(({ tenantId, rentShareCents, depositShareCents }) => ({
+                    tenantId,
+                    rentShareCents: rentShareCents ?? 0,
+                    depositShareCents: depositShareCents ?? 0,
+                  })));
             if (tenantIds.length > 0) {
               await tx.leaseTenant.createMany({
                 data: tenantIds.map((tenantId) => {

@@ -49,6 +49,73 @@ test("autosaves a resident selection", async ({ page }) => {
   await expect(resident).toBeChecked();
 });
 
+test("keeps joint billing aligned with multiple selected residents", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  const firstResidentSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByRole("checkbox").first().click();
+  await firstResidentSave;
+  const secondResidentSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByRole("checkbox").nth(1).click();
+  await secondResidentSave;
+
+  const deposit = page.getByLabel("Security deposit");
+  await deposit.fill("500");
+  const billingSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await deposit.blur();
+  await billingSave;
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry save" })).not.toBeVisible();
+});
+
+test("keeps individual allocations aligned with selected residents", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  const firstResidentSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByRole("checkbox").first().click();
+  await firstResidentSave;
+
+  const billingSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.locator('[role="radio"][value="individual"]').click();
+  await billingSave;
+
+  const secondResidentSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByRole("checkbox").nth(1).click();
+  await secondResidentSave;
+
+  await expect(page.getByRole("button", { name: "Retry save" })).not.toBeVisible();
+  await page.reload();
+  await expect(page.locator('[role="radio"][value="individual"]')).toHaveAttribute("data-state", "checked");
+  await expect(page.getByRole("checkbox").first()).toBeChecked();
+  await expect(page.getByRole("checkbox").nth(1)).toBeChecked();
+});
+
 test("autosaves lease terms and resumes on the terms step", async ({ page }) => {
   await page.goto("/leases/new");
   await page
