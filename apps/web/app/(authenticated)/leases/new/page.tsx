@@ -1529,7 +1529,7 @@ function ReviewDetail({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function NewLeasePage() {
+function NewLeasePageContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2273,5 +2273,13 @@ export default function NewLeasePage() {
         </section>
       </main>
     </>
+  );
+}
+
+export default function NewLeasePage() {
+  return (
+    <React.Suspense fallback={null}>
+      <NewLeasePageContent />
+    </React.Suspense>
   );
 }
