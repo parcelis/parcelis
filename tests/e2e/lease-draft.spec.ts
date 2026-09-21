@@ -26,3 +26,25 @@ test("creates a resumable draft after selecting a unit", async ({ page }) => {
     .click();
   await expect(unit).toBeChecked();
 });
+
+test("autosaves a resident selection", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await expect(page).toHaveURL(/\?draft=[0-9a-f-]{36}$/);
+
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  const resident = page.getByRole("checkbox").first();
+  await expect(resident).toBeVisible();
+  const draftSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await resident.click();
+  await draftSave;
+
+  await page.reload();
+  await expect(resident).toBeChecked();
+});
