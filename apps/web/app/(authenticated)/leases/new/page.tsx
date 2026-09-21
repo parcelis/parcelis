@@ -1866,7 +1866,10 @@ export default function NewLeasePage() {
               allowPartialPayments: draft.allowPartialPayments,
               monthlyRentCents: draft.monthlyRentCents,
               securityDepositCents: draft.securityDepositCents,
-              tenantAllocations: draft.tenantAllocations,
+              tenantAllocations:
+                draft.billingResponsibility === "individual"
+                  ? synchronizeTenantAllocations(draft.tenantIds, draft.tenantAllocations)
+                  : [],
             })
           : currentIndex === 2
             ? leaseTermsStepSchema.safeParse({

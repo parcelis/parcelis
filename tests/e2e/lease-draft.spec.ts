@@ -27,6 +27,48 @@ test("creates a resumable draft after selecting a unit", async ({ page }) => {
   await expect(unit).toBeChecked();
 });
 
+test("reloads the latest draft after a save conflict", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  const draftCreated = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.createDraft"),
+  );
+  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  const createResponse = await draftCreated;
+  const createPayload = (await createResponse.json()) as Array<{
+    result: { data: { id: number; revision: number } };
+  }>;
+  const createdDraft = createPayload[0]?.result.data;
+  if (!createdDraft) throw new Error("Lease draft creation did not return a draft.");
+
+  const apiOrigin = new URL(createResponse.url()).origin;
+  const secondSessionUpdate = await page.evaluate(
+    async ({ apiOrigin, leaseId, revision }) => {
+      const response = await fetch(`${apiOrigin}/trpc/leases.updateDraft?batch=1`, {
+        body: JSON.stringify({
+          0: { leaseId, expectedRevision: revision, data: { draftStep: "residents" } },
+        }),
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      return { body: await response.text(), status: response.status };
+    },
+    { apiOrigin, leaseId: createdDraft.id, revision: createdDraft.revision },
+  );
+  if (secondSessionUpdate.status !== 200) {
+    throw new Error("Unable to update the lease draft from the second session.");
+  }
+
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Reload latest draft" })).toBeVisible();
+  await page.getByRole("button", { name: "Reload latest draft" }).click();
+  await expect(page.getByRole("tab", { name: /Residents/ })).toHaveAttribute("aria-selected", "true");
+});
+
 test("autosaves a resident selection", async ({ page }) => {
   await page.goto("/leases/new");
   await page
