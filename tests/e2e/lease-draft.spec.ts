@@ -91,7 +91,7 @@ test("autosaves a resident selection", async ({ page }) => {
   await expect(resident).toBeChecked();
 });
 
-test("keeps joint billing aligned with multiple selected residents", async ({ page }) => {
+test("continues a reloaded joint billing draft with multiple selected residents", async ({ page }) => {
   await page.goto("/leases/new");
   await page
     .getByRole("button", { name: /Expand .* units/ })
@@ -118,6 +118,10 @@ test("keeps joint billing aligned with multiple selected residents", async ({ pa
   );
   await deposit.blur();
   await billingSave;
+
+  await page.reload();
+  await expect(page.getByRole("checkbox").first()).toBeChecked();
+  await expect(page.getByRole("checkbox").nth(1)).toBeChecked();
   await page.getByRole("button", { name: "Next", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
