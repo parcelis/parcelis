@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import {
   Stepper,
   StepperDescription,
@@ -20,10 +22,11 @@ export const leaseCreationSteps = [
 
 type LeaseCreationStepperProps = {
   onValueChange?: (value: string) => void;
+  saveStatus?: ReactNode;
   value?: string;
 };
 
-export function LeaseCreationStepper({ onValueChange, value }: LeaseCreationStepperProps) {
+export function LeaseCreationStepper({ onValueChange, saveStatus, value }: LeaseCreationStepperProps) {
   return (
     <div className="flex w-full flex-col gap-6">
       <Stepper
@@ -38,9 +41,12 @@ export function LeaseCreationStepper({ onValueChange, value }: LeaseCreationStep
             <StepperItem className="max-md:items-start" key={step.id} stepId={step.id}>
               <StepperTrigger>
                 <StepperIndicator>{index + 1}</StepperIndicator>
-                <div className="flex flex-col items-start justify-center">
+                <div className="flex flex-col items-start justify-center gap-1">
                   <StepperTitle>{step.title}</StepperTitle>
                   <StepperDescription className="text-nowrap">{step.description}</StepperDescription>
+                  <div className="flex min-h-5 items-center gap-2 mt-5 text-xs text-parcelis-gray dark:text-white/60">
+                    {value === step.id ? saveStatus : null}
+                  </div>
                 </div>
               </StepperTrigger>
               <StepperSeparator className="max-md:hidden" />

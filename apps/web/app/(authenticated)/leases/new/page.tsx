@@ -2049,22 +2049,21 @@ export default function NewLeasePage() {
               {/* wizard stepper card for lease creation */}
               <Card className="flex flex-1 flex-col">
                 <CardHeader className="border-b border-parcelis-border p-5 md:p-6">
-                  <LeaseCreationStepper onValueChange={handleStepChange} value={draft.currentStep} />
-                  <p className="flex min-h-5 items-center justify-end gap-2 text-xs text-parcelis-gray dark:text-white/60">
-                    {draftIdentity.leaseId ? (
-                      <>
-                        {saveStatus === "saving" ? (
-                          <>
-                            <Spinner /> Saving…
-                          </>
-                        ) : saveStatus === "saved" ? (
-                          <>
-                            <Check className="size-4 text-parcelis-green" /> Saved
-                          </>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </p>
+                  <LeaseCreationStepper
+                    onValueChange={handleStepChange}
+                    saveStatus={
+                      draftIdentity.leaseId && saveStatus === "saving" ? (
+                        <>
+                          <Spinner /> Saving…
+                        </>
+                      ) : draftIdentity.leaseId && saveStatus === "saved" ? (
+                        <>
+                          <Check className="size-5 text-parcelis-green" /> Lease draft saved
+                        </>
+                      ) : null
+                    }
+                    value={draft.currentStep}
+                  />
                 </CardHeader>
                 <CardContent
                   className={`flex min-h-80 flex-1 flex-col ${
