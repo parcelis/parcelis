@@ -1858,7 +1858,9 @@ function NewLeasePageContent() {
   }
 
   function preventUnsafeExit(event: React.MouseEvent<HTMLAnchorElement>) {
-    if (updateLeaseDraft.isPending || saveStatus === "error") {
+    const hasUnsavedChanges =
+      draftIdentity.leaseId !== null && lastSavedDraftRef.current !== JSON.stringify(draft);
+    if (hasUnsavedChanges || updateLeaseDraft.isPending || saveStatus === "error") {
       event.preventDefault();
       setStepError("Save or retry the current changes before leaving the wizard.");
     }

@@ -287,3 +287,35 @@ test("waits for an in-flight autosave before saving the next step", async ({ pag
   await page.reload();
   await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
 });
+
+for (const exitLabel of ["Cancel", "Leases"]) {
+  test(`blocks ${exitLabel} during the draft save debounce`, async ({ page }) => {
+    await page.goto("/leases/new");
+    await page
+      .getByRole("button", { name: /Expand .* units/ })
+      .first()
+      .click();
+    await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByRole("checkbox").first()).toBeVisible();
+
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await expect(page.getByText("Choose the property and unit")).toBeVisible();
+    const draftUrl = page.url();
+    const exit = page.getByRole("main").getByRole("link", { name: exitLabel, exact: true });
+    await exit.click();
+    await expect(page).toHaveURL(draftUrl);
+    await expect(page.getByText("Save or retry the current changes before leaving the wizard.")).toBeVisible();
+
+    const saved = page.waitForResponse(
+      (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+    );
+    await page.clock.resume();
+    await saved;
+    await expect(page.getByText("Lease draft saved", { exact: true })).toBeVisible();
+    await exit.click();
+    await expect(page).toHaveURL(/\/leases$/);
+  });
+}
