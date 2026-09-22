@@ -306,7 +306,7 @@ test("waits for an in-flight autosave before saving the next step", async ({ pag
     releaseAutosave();
   }
   await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
-  expect(revisions[1]).toBe(savedRevision);
+  await expect.poll(() => revisions[1]).toBe(savedRevision);
   await expect(page.getByRole("button", { name: "Reload latest draft" })).not.toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
