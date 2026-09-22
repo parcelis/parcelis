@@ -182,35 +182,37 @@ test("preserves allocations when only resident IDs are patched", async () => {
   ]);
 });
 
-test("rejects individual allocation IDs that do not match selected residents", async () => {
-  let deleted = false;
-  const current = draft({ billingResponsibility: "individual" });
-  const tx = {
-    lease: { findFirst: async () => current },
-    property: { findFirstOrThrow: async () => ({ id: 2 }) },
-    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
-    tenant: { findMany: async () => [{ id: 11 }] },
-    leaseTenant: {
-      deleteMany: async () => {
-        deleted = true;
-        return { count: 1 };
+for (const billingResponsibility of [null, "individual"] as const) {
+  test(`rejects allocation IDs that do not match selected residents when billing is ${billingResponsibility ?? "unset"}`, async () => {
+    let deleted = false;
+    const current = draft({ billingResponsibility });
+    const tx = {
+      lease: { findFirst: async () => current },
+      property: { findFirstOrThrow: async () => ({ id: 2 }) },
+      unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+      tenant: { findMany: async () => [{ id: 11 }] },
+      leaseTenant: {
+        deleteMany: async () => {
+          deleted = true;
+          return { count: 1 };
+        },
       },
-    },
-  };
-  const caller = createCaller({
-    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
-  });
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    });
 
-  await assert.rejects(
-    caller.leases.updateDraft({
-      leaseId: 9,
-      expectedRevision: 0,
-      data: { tenantIds: [11], tenantAllocations: [{ tenantId: 12, rentShareCents: 1, depositShareCents: 1 }] },
-    }),
-    { code: "BAD_REQUEST" },
-  );
-  assert.equal(deleted, false);
-});
+    await assert.rejects(
+      caller.leases.updateDraft({
+        leaseId: 9,
+        expectedRevision: 0,
+        data: { tenantIds: [11], tenantAllocations: [{ tenantId: 12, rentShareCents: 1, depositShareCents: 1 }] },
+      }),
+      { code: "BAD_REQUEST" },
+    );
+    assert.equal(deleted, false);
+  });
+}
 
 test("accepts joint billing without individual allocations", async () => {
   let createdRows: unknown;

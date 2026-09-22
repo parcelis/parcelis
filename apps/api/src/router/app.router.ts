@@ -3718,7 +3718,7 @@ export const appRouter = router({
             }
           }
 
-          if (parsed.data.billingResponsibility === "individual" && data.tenantAllocations !== undefined) {
+          if (parsed.data.billingResponsibility !== "joint" && data.tenantAllocations !== undefined) {
             const tenantIds = new Set(parsed.data.tenantIds ?? []);
             const allocationIds = new Set(data.tenantAllocations.map(({ tenantId }) => tenantId));
             if (
