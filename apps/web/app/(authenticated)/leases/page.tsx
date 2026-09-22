@@ -21,6 +21,7 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
+import { LeaseDrafts } from "../../../components/lease-drafts";
 import { getLeaseLink, getNewLeaseLink, getTenantLink } from "../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../lib/format";
 
@@ -144,6 +145,7 @@ export default function LeasesPage() {
               <Metric label="Notice given" value={noticeLeases.length} />
             </div>
           </section>
+          <LeaseDrafts />
           <Card>
             <CardHeader>
               <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

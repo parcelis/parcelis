@@ -1,4 +1,7 @@
+import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures/authenticated";
+
+test.describe.configure({ mode: "default" });
 
 test("opens the lease wizard for an authenticated user", async ({ page }) => {
   await page.goto("/leases/new");
@@ -16,7 +19,7 @@ test("creates a resumable draft after selecting a unit", async ({ page }) => {
     .click();
   const unit = page.locator('input[name="lease-unit"]:not(:disabled)').first();
   await expect(unit).toBeVisible();
-  await unit.check();
+  await selectAvailableUnit(page);
 
   await expect(page).toHaveURL(/\?draft=[0-9a-f-]{36}$/);
   await page.reload();
@@ -24,22 +27,104 @@ test("creates a resumable draft after selecting a unit", async ({ page }) => {
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  await expect(unit).toBeChecked();
+  await expect(page.locator('input[name="lease-unit"]:checked')).toHaveCount(1);
 });
 
-test("reloads the latest draft after a save conflict", async ({ page }) => {
+test("starts fresh and offers the existing draft only after selecting its unit", async ({ page }) => {
   await page.goto("/leases/new");
-  await page.clock.install();
-  await page.clock.pauseAt(new Date());
   await page
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  const draftCreated = page.waitForResponse(
-    (response) => response.request().method() === "POST" && response.url().includes("leases.createDraft"),
-  );
-  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
-  const createResponse = await draftCreated;
+  await selectAvailableUnit(page);
+  const draftUrl = page.url();
+  const unitId = await page.locator('input[name="lease-unit"]:checked').inputValue();
+  await page.getByRole("main").getByRole("link", { name: "Cancel", exact: true }).click();
+  await page.goto("/properties");
+  await page.goto("/leases/new");
+  await expect(page.getByText("Choose the property and unit")).toBeVisible();
+  await expect(page.locator('input[name="lease-unit"]:checked')).toHaveCount(0);
+  await expect(page.getByRole("alertdialog")).not.toBeVisible();
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator(`input[name="lease-unit"][value="${unitId}"]`).click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  await page.getByRole("button", { name: "Choose another unit" }).click();
+  await expect(page.locator('input[name="lease-unit"]:checked')).toHaveCount(0);
+  await page.locator(`input[name="lease-unit"][value="${unitId}"]`).click();
+  await page.getByRole("button", { name: "Resume draft", exact: true }).click();
+  await expect(page).toHaveURL(draftUrl);
+  await page.goto("/leases");
+  const resume = page.locator(`a[href$="${new URL(draftUrl).search}"]`);
+  await expect(resume).toBeVisible();
+  await resume.click();
+  await expect(page).toHaveURL(draftUrl);
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await expect(page.locator(`input[name="lease-unit"][value="${unitId}"]`)).toBeChecked();
+});
+
+test("replaces a unit draft only after choosing discard and start new", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await selectAvailableUnit(page);
+  const originalUrl = page.url();
+  const unitId = await page.locator('input[name="lease-unit"]:checked').inputValue();
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator(`input[name="lease-unit"][value="${unitId}"]`).click();
+  await page.getByRole("button", { name: "Discard and start new" }).click();
+  await expect(page).toHaveURL(/\?draft=[0-9a-f-]{36}$/);
+  expect(page.url()).not.toBe(originalUrl);
+  const replacementUrl = page.url();
+  await page.goto("/leases");
+  const row = page.getByRole("row").filter({ has: page.locator(`a[href$="${new URL(replacementUrl).search}"]`) });
+  await row.getByRole("button", { name: "Discard", exact: true }).click();
+  await page.getByRole("button", { name: "Discard draft", exact: true }).click();
+  await expect(row).toHaveCount(0);
+  await page.goto(originalUrl);
+  await expect(page.getByText("This lease draft is no longer available. Start a new lease draft.")).toBeVisible();
+});
+
+test("uses a draft actions menu for an unfinished unit draft on mobile", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await selectAvailableUnit(page);
+  const unitId = await page.locator('input[name="lease-unit"]:checked').inputValue();
+
+  await page.goto("/leases/new");
+  await page.setViewportSize({ height: 844, width: 390 });
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator(`input[name="lease-unit"][value="${unitId}"]`).click();
+  await expect(page.getByRole("button", { name: "Draft actions" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Resume draft" })).not.toBeVisible();
+  await page.getByRole("button", { name: "Draft actions" }).click();
+  await expect(page.getByRole("menuitem", { name: "Resume draft" })).toBeVisible();
+});
+
+test("reloads the latest draft after a save conflict", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  const createResponse = await selectAvailableUnit(page);
   const createPayload = (await createResponse.json()) as Array<{
     result: { data: { id: number; revision: number } };
   }>;
@@ -47,9 +132,16 @@ test("reloads the latest draft after a save conflict", async ({ page }) => {
   if (!createdDraft) throw new Error("Lease draft creation did not return a draft.");
   await expect(page).toHaveURL(/\?draft=[0-9a-f-]{36}$/);
 
+  await expect(page.getByText("Lease draft saved", { exact: true })).toBeVisible();
   const apiOrigin = new URL(createResponse.url()).origin;
   const secondSessionUpdate = await page.evaluate(
-    async ({ apiOrigin, leaseId, revision }) => {
+    async ({ apiOrigin, leaseId, leaseDraftKey }) => {
+      const draftResponse = await fetch(
+        `${apiOrigin}/trpc/leases.draftByKey?batch=1&input=${encodeURIComponent(JSON.stringify({ 0: { leaseDraftKey } }))}`,
+        { credentials: "include" },
+      );
+      const draftPayload = await draftResponse.json();
+      const revision = draftPayload[0].result.data.revision;
       const response = await fetch(`${apiOrigin}/trpc/leases.updateDraft?batch=1`, {
         body: JSON.stringify({
           0: { leaseId, expectedRevision: revision, data: { draftStep: "residents" } },
@@ -60,7 +152,7 @@ test("reloads the latest draft after a save conflict", async ({ page }) => {
       });
       return { body: await response.text(), status: response.status };
     },
-    { apiOrigin, leaseId: createdDraft.id, revision: createdDraft.revision },
+    { apiOrigin, leaseId: createdDraft.id, leaseDraftKey: new URL(page.url()).searchParams.get("draft")! },
   );
   if (secondSessionUpdate.status !== 200) {
     throw new Error("Unable to update the lease draft from the second session.");
@@ -78,7 +170,7 @@ test("autosaves a resident selection", async ({ page }) => {
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await selectAvailableUnit(page);
   await expect(page).toHaveURL(/\?draft=[0-9a-f-]{36}$/);
 
   await page.getByRole("button", { name: "Next", exact: true }).click();
@@ -100,8 +192,10 @@ test("continues a reloaded joint billing draft with multiple selected residents"
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await selectAvailableUnit(page);
   await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  await page.getByRole("radio", { name: "All Tenants", exact: true }).click();
 
   const firstResidentSave = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
@@ -137,8 +231,10 @@ test("keeps individual allocations aligned with selected residents", async ({ pa
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await selectAvailableUnit(page);
   await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  await page.getByRole("radio", { name: "All Tenants", exact: true }).click();
 
   const firstResidentSave = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
@@ -171,7 +267,7 @@ test("autosaves lease terms and resumes on the terms step", async ({ page }) => 
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await selectAvailableUnit(page);
   await expect(page).toHaveURL(/\?draft=[0-9a-f-]{36}$/);
 
   await page.getByRole("button", { name: "Next", exact: true }).click();
@@ -209,7 +305,7 @@ test("autosaves fixed-term dates", async ({ page }) => {
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await selectAvailableUnit(page);
   await page.getByRole("button", { name: "Next", exact: true }).click();
 
   const residentSave = page.waitForResponse(
@@ -268,9 +364,16 @@ test("waits for an in-flight autosave before saving the next step", async ({ pag
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await selectAvailableUnit(page);
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByRole("checkbox").first()).toBeVisible();
+
+  const depositSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByLabel("Security deposit").fill("500");
+  await page.getByLabel("Security deposit").blur();
+  await depositSave;
 
   let releaseAutosave!: () => void;
   const autosaveReleased = new Promise<void>((resolve) => {
@@ -319,7 +422,7 @@ for (const exitLabel of ["Cancel", "Leases"]) {
       .getByRole("button", { name: /Expand .* units/ })
       .first()
       .click();
-    await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+    await selectAvailableUnit(page);
     await page.getByRole("button", { name: "Next", exact: true }).click();
     await expect(page.getByRole("checkbox").first()).toBeVisible();
 
@@ -344,13 +447,13 @@ for (const exitLabel of ["Cancel", "Leases"]) {
   });
 }
 
-test("waits for session-restored draft hydration before autosaving", async ({ page }) => {
+test("waits for explicitly resumed draft hydration before autosaving", async ({ page }) => {
   await page.goto("/leases/new");
   await page
     .getByRole("button", { name: /Expand .* units/ })
     .first()
     .click();
-  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await selectAvailableUnit(page);
   const nextStepSave = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
   );
@@ -364,6 +467,7 @@ test("waits for session-restored draft hydration before autosaving", async ({ pa
   await residentSave;
   await expect(page.getByText("Lease draft saved", { exact: true })).toBeVisible();
 
+  const draftUrl = page.url();
   let releaseLoad!: () => void;
   const loadReleased = new Promise<void>((resolve) => {
     releaseLoad = resolve;
@@ -384,8 +488,7 @@ test("waits for session-restored draft hydration before autosaving", async ({ pa
     await route.continue();
   });
 
-  // Omit the URL key so the lease identity is restored from session storage.
-  await page.goto("/leases/new");
+  await page.goto(draftUrl);
   await loadInFlight;
   try {
     // Keep hydration pending beyond the autosave debounce.
@@ -403,3 +506,24 @@ test("waits for session-restored draft hydration before autosaving", async ({ pa
   await page.reload();
   await expect(page.getByRole("checkbox").first()).not.toBeChecked();
 });
+
+async function selectAvailableUnit(page: Page) {
+  const units = page.locator('input[name="lease-unit"]:not(:disabled)');
+  for (let index = 0; index < (await units.count()); index++) {
+    const created = page.waitForResponse(
+      (response) => response.request().method() === "POST" && response.url().includes("leases.createDraft"),
+    );
+    await units.nth(index).click();
+    const response = await created;
+    await expect
+      .poll(async () => page.url().includes("?draft=") || (await page.getByRole("alertdialog").isVisible()))
+      .toBe(true);
+    if (await page.getByRole("alertdialog").isVisible()) {
+      await page.getByRole("button", { name: "Choose another unit" }).click();
+      continue;
+    }
+    await expect(page).toHaveURL(/\?draft=[0-9a-f-]{36}$/);
+    return response;
+  }
+  throw new Error("No available unit without an existing draft was found.");
+}

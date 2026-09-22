@@ -34,12 +34,104 @@ function draft(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const newDraftInput = {
+  leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10",
+  propertyId: 2,
+  unitId: 3,
+};
+
+test("returns a unit's unfinished draft without creating or changing it", async () => {
+  const existing = draft({ leaseDraftKey: "76ac61cc-d0ef-408f-ade5-42bf27985329" });
+  const tx = {
+    lease: {
+      findUnique: async () => null,
+      findFirst: async ({ where }: { where: unknown }) => {
+        assert.deepEqual(where, { organizationId: 7, unitId: 3, status: "draft", archivedAt: null });
+        return existing;
+      },
+      create: async () => assert.fail("Must not create a competing draft"),
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
+      assert.deepEqual(options, { isolationLevel: "Serializable" });
+      return callback(tx);
+    },
+  });
+  assert.equal(await caller.leases.createDraft(newDraftInput), existing);
+});
+
+test("replaces only the confirmed unchanged draft in the creation transaction", async () => {
+  let deleted = false;
+  const tx = {
+    lease: {
+      findUnique: async () => null,
+      findFirst: async () => (deleted ? null : draft({ revision: 4 })),
+      deleteMany: async ({ where }: { where: unknown }) => {
+        assert.deepEqual(where, { id: 9, organizationId: 7, status: "draft", revision: 4, invoices: { none: {} } });
+        deleted = true;
+        return { count: 1 };
+      },
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        assert.equal(deleted, true);
+        return draft({ ...data, id: 10 });
+      },
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+  const result = await caller.leases.createDraft({ ...newDraftInput, replaceDraft: { id: 9, expectedRevision: 4 } });
+  assert.equal(result.id, 10);
+});
+
+for (const current of [null, draft({ id: 10 }), draft({ revision: 1 })]) {
+  test(`rejects replacement when the confirmed draft is missing, different, or changed: ${JSON.stringify(current && { id: current.id, revision: current.revision })}`, async () => {
+    const tx = {
+      lease: {
+        findUnique: async () => null,
+        findFirst: async () => current,
+        deleteMany: async () => assert.fail("Must preserve unconfirmed changes"),
+        create: async () => assert.fail("Must not create a replacement"),
+      },
+      property: { findFirstOrThrow: async () => ({ id: 2 }) },
+      unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    });
+    await assert.rejects(
+      caller.leases.createDraft({ ...newDraftInput, replaceDraft: { id: 9, expectedRevision: 0 } }),
+      { code: "CONFLICT" },
+    );
+  });
+}
+
+test("lists unfinished drafts within the active organization, including drafts without residents", async () => {
+  const rows = [draft({ tenants: [] })];
+  const caller = createCaller({
+    lease: {
+      findMany: async ({ where, orderBy }: { where: unknown; orderBy: unknown }) => {
+        assert.deepEqual(where, { organizationId: 7, status: "draft", archivedAt: null });
+        assert.deepEqual(orderBy, { updatedAt: "desc" });
+        return rows;
+      },
+    },
+  });
+  assert.equal(await caller.leases.drafts(), rows);
+});
+
 test("creates a draft from the first property selection", async () => {
   let created = false;
   const createdDraft = draft({ leaseDraftKey: "8f7c4b9a-7f50-4c9e-a5d1-3f5d9e3b2a10" });
   const tx = {
     lease: {
       findUnique: async () => null,
+      findFirst: async () => null,
       create: async () => {
         created = true;
         return createdDraft;
@@ -115,6 +207,45 @@ test("updates a draft and increments its revision", async () => {
 
   assert.deepEqual(updatedRevision, { increment: 1 });
   assert.equal((result as { revision: number }).revision, 1);
+});
+
+test("does not move a draft onto a unit with another unfinished lease", async () => {
+  let reads = 0;
+  const tx = {
+    lease: {
+      findFirst: async ({ where }: { where: unknown }) => {
+        if (reads++ === 0) return draft();
+        assert.deepEqual(where, { organizationId: 7, unitId: 4, id: { not: 9 }, status: "draft", archivedAt: null });
+        return { id: 10 };
+      },
+      updateMany: async () => assert.fail("Must not move the draft"),
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+  await assert.rejects(caller.leases.updateDraft({ leaseId: 9, expectedRevision: 0, data: { unitId: 4 } }), {
+    code: "CONFLICT",
+  });
+});
+
+test("does not replace a draft that has invoices", async () => {
+  const tx = {
+    lease: {
+      findUnique: async () => null,
+      findFirst: async () => draft(),
+      deleteMany: async () => ({ count: 0 }),
+      create: async () => assert.fail("Must not replace a draft with invoices"),
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+  await assert.rejects(caller.leases.createDraft({ ...newDraftInput, replaceDraft: { id: 9, expectedRevision: 0 } }), {
+    code: "CONFLICT",
+  });
 });
 
 test("rejects a stale draft revision before writing", async () => {

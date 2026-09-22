@@ -510,6 +510,7 @@ export const leaseDraftCreateInputSchema = z.object({
   leaseDraftKey: z.string().uuid(),
   propertyId: idSchema,
   unitId: idSchema,
+  replaceDraft: z.object({ id: idSchema, expectedRevision: z.number().int().nonnegative() }).optional(),
 });
 
 export const leaseDraftByKeyInputSchema = z.object({ leaseDraftKey: z.string().uuid() });

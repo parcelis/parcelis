@@ -248,7 +248,7 @@ async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balan
     update: {
       recipients: {
         createMany: {
-          data: [{ organizationId: lease.organizationId, tenantId }],
+          data: [{ tenantId }],
           skipDuplicates: true,
         },
       },
@@ -268,7 +268,7 @@ async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balan
       paidOn,
       paymentMethod: balanceCents === 0 ? (payments.at(-1)?.paymentMethod ?? null) : null,
       recipients: {
-        create: { organizationId: lease.organizationId, tenantId },
+        create: { tenantId },
       },
       items: {
         create: {

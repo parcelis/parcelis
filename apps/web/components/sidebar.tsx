@@ -222,7 +222,9 @@ function SidebarContent({ active }: SidebarProps) {
     const organization = activeOrganizationQuery.data;
     if (organization && !window.location.pathname.startsWith(`/o/${organization.slug}`)) {
       const routePath = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
-      router.replace(`/o/${organization.slug}${routePath === "/" ? "" : routePath}`);
+      router.replace(
+        `/o/${organization.slug}${routePath === "/" ? "" : routePath}${window.location.search}${window.location.hash}`,
+      );
     }
     if (isOrganizationAccessError(activeOrganizationQuery.error) && pathname.startsWith("/o/")) {
       document.cookie = "parcelis-organization-slug=; path=/; max-age=0; samesite=lax; secure";

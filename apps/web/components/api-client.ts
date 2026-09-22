@@ -36,6 +36,7 @@ export const queryKeys = {
     byId: (id: number) => ["properties", "byId", id] as const,
   },
   leases: {
+    drafts: ["leases", "drafts"] as const,
     byId: (id: number) => ["leases", "byId", id] as const,
   },
   tenants: {

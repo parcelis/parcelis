@@ -3551,15 +3551,24 @@ export const appRouter = router({
     }),
   }),
   leases: router({
-    /** Creates or retrieves the draft associated with a wizard session. */
+    drafts: permissionProcedure("leases", "view").query(({ ctx }) =>
+      ctx.prisma.lease.findMany({
+        where: { organizationId: ctx.organization.organizationId, status: LeaseStatus.draft, archivedAt: null },
+        include: { property: { select: { name: true } }, unit: { select: { name: true } } },
+        orderBy: { updatedAt: "desc" },
+      }),
+    ),
+    /** Creates a unit draft or returns an existing draft for explicit resumption. */
     createDraft: permissionProcedure("leases", "create")
       .input(leaseDraftCreateInputSchema)
       .mutation(async ({ ctx, input }) => {
         const organizationId = ctx.organization.organizationId;
         await Promise.all([
+          requirePermission(ctx.prisma, ctx.user.role, "leases", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "properties", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "units", "view"),
         ]);
+        if (input.replaceDraft) await requirePermission(ctx.prisma, ctx.user.role, "leases", "delete");
         try {
           return await ctx.prisma.$transaction(async (tx) => {
             const existing = await tx.lease.findUnique({
@@ -3575,6 +3584,29 @@ export const appRouter = router({
             await tx.property.findFirstOrThrow({ where: { id: input.propertyId, organizationId } });
             await tx.unit.findFirstOrThrow({ where: { id: input.unitId, propertyId: input.propertyId } });
 
+            const unitDraft = await tx.lease.findFirst({
+              where: { organizationId, unitId: input.unitId, status: LeaseStatus.draft, archivedAt: null },
+              orderBy: { updatedAt: "desc" },
+            });
+            if (unitDraft) {
+              if (!input.replaceDraft) return unitDraft;
+              if (unitDraft.id !== input.replaceDraft.id || unitDraft.revision !== input.replaceDraft.expectedRevision) {
+                throw new TRPCError({ code: "CONFLICT", message: "This draft has changed. Select the unit again to review it." });
+              }
+              const deleted = await tx.lease.deleteMany({
+                where: { id: unitDraft.id, organizationId, status: LeaseStatus.draft, revision: unitDraft.revision, invoices: { none: {} } },
+              });
+              if (deleted.count !== 1) {
+                throw new TRPCError({ code: "CONFLICT", message: "This draft cannot be discarded because it has invoices." });
+              }
+              const remaining = await tx.lease.findFirst({
+                where: { organizationId, unitId: input.unitId, status: LeaseStatus.draft, archivedAt: null },
+              });
+              if (remaining) throw new TRPCError({ code: "CONFLICT", message: "This unit has multiple drafts. Discard the extra drafts from the lease dashboard first." });
+            } else if (input.replaceDraft) {
+              throw new TRPCError({ code: "CONFLICT", message: "This draft is no longer available. Select the unit again." });
+            }
+
             return tx.lease.create({
               data: {
                 organizationId,
@@ -3584,8 +3616,11 @@ export const appRouter = router({
                 status: LeaseStatus.draft,
               },
             });
-          });
+          }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
         } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+            throw new TRPCError({ code: "CONFLICT", message: "The unit's drafts changed. Select the unit again." });
+          }
           if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
             const existing = await ctx.prisma.lease.findUnique({
               where: { organizationId_leaseDraftKey: { organizationId, leaseDraftKey: input.leaseDraftKey } },
@@ -3696,6 +3731,13 @@ export const appRouter = router({
             tenantIds: data.tenantIds === undefined ? current.tenants.map(({ tenantId }) => tenantId) : data.tenantIds,
             tenantAllocations: data.tenantAllocations,
           };
+          if (effective.unitId !== null && effective.unitId !== current.unitId) {
+            const otherDraft = await tx.lease.findFirst({
+              where: { organizationId, unitId: effective.unitId, id: { not: current.id }, status: LeaseStatus.draft, archivedAt: null },
+              select: { id: true },
+            });
+            if (otherDraft) throw new TRPCError({ code: "CONFLICT", message: "This unit already has an unfinished lease. Reload the draft and select the unit again." });
+          }
           const parsed = leaseDraftDataSchema.safeParse(effective);
           if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: parsed.error.issues[0]?.message });
 
@@ -3788,7 +3830,7 @@ export const appRouter = router({
             }
           }
           return tx.lease.findFirstOrThrow({ where: { id: input.leaseId, organizationId } });
-        });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       }),
     /** Archives a lease without changing its contractual status. */
     archive: permissionProcedure("leases", "archive")

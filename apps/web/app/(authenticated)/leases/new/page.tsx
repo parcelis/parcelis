@@ -11,6 +11,7 @@ import {
   CalendarDays,
   CalendarRange,
   Check,
+  ChevronDown,
   ChevronRight,
   DoorOpen,
   FileText,
@@ -25,6 +26,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   AlertDescription,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
   AlertTitle,
   Button,
   Calendar,
@@ -32,6 +39,11 @@ import {
   CardContent,
   CardHeader,
   Checkbox,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Input,
   Popover,
   PopoverContent,
@@ -58,6 +70,7 @@ import {
 } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LeaseCreationStepper, leaseCreationSteps } from "../../../../components/lease-creation-stepper";
+import { hasPermission } from "../../../../components/property-access";
 import { LoadingState } from "../../../../components/loading-state";
 import {
   initialPropertyFormState,
@@ -112,10 +125,6 @@ const initialLeaseDraft: LeaseDraft = {
   allowPartialPayments: true,
   tenantAllocations: [],
 };
-
-function getLeaseDraftStorageKey(organizationId: number) {
-  return `parcelis:lease-server-draft:${organizationId}`;
-}
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", {
@@ -1543,20 +1552,18 @@ function NewLeasePageContent() {
   });
   const draftRevisionRef = React.useRef(0);
   const draftSaveQueueRef = React.useRef<Promise<unknown>>(Promise.resolve());
-  const activeOrganizationQuery = useQuery({
-    queryKey: [...queryKeys.organizations.active, pathname],
-    queryFn: () => apiClient.organizations.active.query(),
-  });
-  const leaseDraftStorageKey = activeOrganizationQuery.data
-    ? getLeaseDraftStorageKey(activeOrganizationQuery.data.id)
-    : null;
-  const [identityStorageLoaded, setIdentityStorageLoaded] = React.useState(false);
+  const currentUserQuery = useQuery({ queryKey: queryKeys.auth.me, queryFn: () => apiClient.auth.me.query() });
+  const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
+  const [existingUnitDraft, setExistingUnitDraft] = React.useState<{
+    lease: Awaited<ReturnType<typeof apiClient.leases.createDraft.mutate>>;
+    selection: { propertyId: number; unitId: number; monthlyRentCents?: number };
+  } | null>(null);
   // Track the loaded draft key to prevent reloading the same draft multiple times.
   const [loadedDraftKey, setLoadedDraftKey] = React.useState<string | null>(null);
   const leaseDraftQuery = useQuery({
     queryKey: ["lease-draft", draftIdentity.leaseDraftKey],
     queryFn: () => apiClient.leases.draftByKey.query({ leaseDraftKey: draftIdentity.leaseDraftKey }),
-    enabled: Boolean(draftIdentity.leaseDraftKey),
+    enabled: Boolean(draftKeyFromUrl && draftIdentity.leaseDraftKey === draftKeyFromUrl),
   });
   const [isPropertyDrawerOpen, setIsPropertyDrawerOpen] = React.useState(false);
   const [propertyForm, setPropertyForm] = React.useState<PropertyFormState>(initialPropertyFormState);
@@ -1605,9 +1612,29 @@ function NewLeasePageContent() {
   );
 
   const createLeaseDraft = useMutation({
-    mutationFn: (input: { leaseDraftKey: string; propertyId: number; unitId: number }) =>
-      apiClient.leases.createDraft.mutate(input),
-    onSuccess: async (lease) => {
+    mutationFn: (input: {
+      leaseDraftKey: string;
+      propertyId: number;
+      unitId: number;
+      monthlyRentCents?: number;
+      replaceDraft?: { id: number; expectedRevision: number };
+    }) => {
+      const { monthlyRentCents: _rent, ...data } = input;
+      return apiClient.leases.createDraft.mutate(data);
+    },
+    onSuccess: async (lease, input) => {
+      if (lease.leaseDraftKey !== input.leaseDraftKey) {
+        setExistingUnitDraft({ lease, selection: input });
+        return;
+      }
+      setExistingUnitDraft(null);
+      setDraft({
+        ...initialLeaseDraft,
+        propertyId: input.propertyId,
+        unitId: input.unitId,
+        monthlyRentCents: input.monthlyRentCents ?? null,
+      });
+      lastSavedDraftRef.current = null;
       draftRevisionRef.current = lease.revision;
       setDraftIdentity((current) => ({
         ...current,
@@ -1617,7 +1644,11 @@ function NewLeasePageContent() {
       }));
       router.replace(`${pathname}?draft=${encodeURIComponent(lease.leaseDraftKey)}`);
       setLoadedDraftKey(lease.leaseDraftKey);
-      await queryClient.invalidateQueries({ queryKey: ["lease-draft", lease.leaseDraftKey] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["lease-draft", lease.leaseDraftKey] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.leases.drafts }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+      ]);
       setDraftSaveError(null);
       setStepError(null);
     },
@@ -1722,45 +1753,20 @@ function NewLeasePageContent() {
   const currentStepError = hasDraftConflict ? null : stepError;
 
   React.useEffect(() => {
-    if (!leaseDraftStorageKey) return;
-    try {
-      if (draftKeyFromUrl) {
-        setDraftIdentity((current) => ({ ...current, leaseDraftKey: draftKeyFromUrl }));
-        setIdentityStorageLoaded(true);
-        return;
-      }
-      const storedIdentity = window.sessionStorage.getItem(leaseDraftStorageKey);
-      if (storedIdentity) {
-        const parsed = JSON.parse(storedIdentity) as Partial<LeaseDraftIdentity>;
-        if (typeof parsed.leaseDraftKey === "string" && parsed.leaseDraftKey) {
-          setDraftIdentity({
-            leaseDraftKey: parsed.leaseDraftKey,
-            leaseId: typeof parsed.leaseId === "number" ? parsed.leaseId : null,
-            revision: typeof parsed.revision === "number" ? parsed.revision : 0,
-          });
-          draftRevisionRef.current = typeof parsed.revision === "number" ? parsed.revision : 0;
-        }
-      }
-    } catch {
-      setDraftIdentity({ leaseDraftKey: "", leaseId: null, revision: 0 });
+    setDraftIdentity((current) => {
+      if (draftKeyFromUrl && current.leaseDraftKey === draftKeyFromUrl) return current;
+      return { leaseDraftKey: draftKeyFromUrl || crypto.randomUUID(), leaseId: null, revision: 0 };
+    });
+    if (!draftKeyFromUrl) {
+      setDraft(initialLeaseDraft);
+      setLoadedDraftKey(null);
+      draftRevisionRef.current = 0;
+      lastSavedDraftRef.current = null;
+      setDraftSaveError(null);
+      setSaveStatus("idle");
+      setStepError(null);
     }
-    setIdentityStorageLoaded(true);
-  }, [draftKeyFromUrl, leaseDraftStorageKey]);
-
-  React.useEffect(() => {
-    if (!leaseDraftStorageKey || !draftIdentity.leaseDraftKey) return;
-    try {
-      window.sessionStorage.setItem(leaseDraftStorageKey, JSON.stringify(draftIdentity));
-    } catch {
-      // Storage can be unavailable in private browsing or restricted browser contexts.
-    }
-  }, [draftIdentity, leaseDraftStorageKey]);
-
-  React.useEffect(() => {
-    if (identityStorageLoaded && !draftIdentity.leaseDraftKey && typeof crypto !== "undefined") {
-      setDraftIdentity((current) => ({ ...current, leaseDraftKey: crypto.randomUUID() }));
-    }
-  }, [draftIdentity.leaseDraftKey, identityStorageLoaded]);
+  }, [draftKeyFromUrl]);
 
   React.useEffect(() => {
     const lease = leaseDraftQuery.data;
@@ -1795,10 +1801,21 @@ function NewLeasePageContent() {
   React.useEffect(() => {
     if (leaseDraftQuery.error) {
       setStepError(`Unable to load the lease draft: ${leaseDraftQuery.error.message}`);
-    } else if (leaseDraftQuery.isSuccess && leaseDraftQuery.data === null && draftIdentity.leaseId !== null) {
+    } else if (
+      draftKeyFromUrl &&
+      leaseDraftQuery.isSuccess &&
+      !leaseDraftQuery.isFetching &&
+      leaseDraftQuery.data === null
+    ) {
       setStepError("This lease draft is no longer available. Start a new lease draft.");
     }
-  }, [draftIdentity.leaseId, leaseDraftQuery.data, leaseDraftQuery.error, leaseDraftQuery.isSuccess]);
+  }, [
+    draftKeyFromUrl,
+    leaseDraftQuery.data,
+    leaseDraftQuery.error,
+    leaseDraftQuery.isFetching,
+    leaseDraftQuery.isSuccess,
+  ]);
 
   // Automatically saves the lease draft whenever it changes, with a debounce to avoid excessive requests.
   React.useEffect(() => {
@@ -1866,8 +1883,7 @@ function NewLeasePageContent() {
   }
 
   function preventUnsafeExit(event: React.MouseEvent<HTMLAnchorElement>) {
-    const hasUnsavedChanges =
-      draftIdentity.leaseId !== null && lastSavedDraftRef.current !== JSON.stringify(draft);
+    const hasUnsavedChanges = draftIdentity.leaseId !== null && lastSavedDraftRef.current !== JSON.stringify(draft);
     if (hasUnsavedChanges || updateLeaseDraft.isPending || saveStatus === "error") {
       event.preventDefault();
       setStepError("Save or retry the current changes before leaving the wizard.");
@@ -1936,6 +1952,7 @@ function NewLeasePageContent() {
           propertyId: draft.propertyId,
           unitId: draft.unitId,
         });
+        if (lease.leaseDraftKey !== draftIdentity.leaseDraftKey) return;
         leaseId = lease.id;
         draftRevisionRef.current = lease.revision;
         setDraftIdentity((current) => ({
@@ -2024,6 +2041,26 @@ function NewLeasePageContent() {
     if (!isLastStep) goNext();
   }
 
+  function discardExistingDraft() {
+    if (!existingUnitDraft) return;
+    createLeaseDraft.mutate({
+      ...existingUnitDraft.selection,
+      leaseDraftKey: crypto.randomUUID(),
+      replaceDraft: {
+        id: existingUnitDraft.lease.id,
+        expectedRevision: existingUnitDraft.lease.revision,
+      },
+    });
+  }
+
+  function resumeExistingDraft() {
+    if (!existingUnitDraft) return;
+    setLoadedDraftKey(null);
+    setStepError(null);
+    router.replace(`${pathname}?draft=${encodeURIComponent(existingUnitDraft.lease.leaseDraftKey)}`);
+    setExistingUnitDraft(null);
+  }
+
   return (
     <>
       <PropertyDrawer
@@ -2062,6 +2099,71 @@ function NewLeasePageContent() {
         submitLabel="Add Tenant"
       />
       <main className="flex flex-1 flex-col">
+        <AlertDialog
+          open={Boolean(existingUnitDraft)}
+          onOpenChange={(open) => {
+            if (!open && !createLeaseDraft.isPending) setExistingUnitDraft(null);
+          }}
+        >
+          <AlertDialogContent className="max-w-lg p-6">
+            <AlertDialogHeader>
+              <AlertDialogTitle>An unfinished lease exists for this unit.</AlertDialogTitle>
+              <AlertDialogDescription>
+                Resume the saved draft, or permanently discard it and start a new lease. Choosing another unit keeps the
+                draft.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {createLeaseDraft.error ? (
+              <p role="alert" className="text-sm text-red-700">
+                {createLeaseDraft.error.message}
+              </p>
+            ) : null}
+            <AlertDialogFooter className="hidden md:flex">
+              <Button
+                variant="secondary"
+                disabled={createLeaseDraft.isPending}
+                onClick={() => setExistingUnitDraft(null)}
+              >
+                Choose another unit
+              </Button>
+              {hasPermission(currentUserQuery.data?.permissions, "leases", "delete") ? (
+                <Button variant="destructive" disabled={createLeaseDraft.isPending} onClick={discardExistingDraft}>
+                  Discard and start new
+                </Button>
+              ) : null}
+              <Button disabled={createLeaseDraft.isPending} onClick={resumeExistingDraft}>
+                Resume draft
+              </Button>
+            </AlertDialogFooter>
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="w-full justify-between" disabled={createLeaseDraft.isPending} variant="secondary">
+                    Draft actions
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="z-[70] min-w-56">
+                  <DropdownMenuItem onSelect={() => setExistingUnitDraft(null)}>Choose another unit</DropdownMenuItem>
+                  {hasPermission(currentUserQuery.data?.permissions, "leases", "delete") ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-red-700 focus:bg-red-50 focus:text-red-700"
+                        onSelect={discardExistingDraft}
+                      >
+                        Discard and start new
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={resumeExistingDraft}>Resume draft</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <section className="flex flex-1 flex-col transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
           <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
             <Button asChild className="min-w-40" variant="secondary">
@@ -2137,25 +2239,50 @@ function NewLeasePageContent() {
                     </Alert>
                   ) : null}
                   {currentIndex === 0 ? (
-                    <PropertySelector
-                      error={currentStepError}
-                      onAddProperty={() => setIsPropertyDrawerOpen(true)}
-                      onValueChange={({ propertyId, unitId, monthlyRentCents }) => {
-                        setStepError(null);
-                        const leaseDraftKey = draftIdentity.leaseDraftKey || crypto.randomUUID();
-                        if (!draftIdentity.leaseId && !createLeaseDraft.isPending) {
-                          setDraftIdentity((current) => ({ ...current, leaseDraftKey }));
-                          createLeaseDraft.mutate({ leaseDraftKey, propertyId, unitId });
-                        }
-                        setDraft((current) => ({
-                          ...current,
-                          propertyId,
-                          unitId,
-                          monthlyRentCents,
-                        }));
-                      }}
-                      value={draft.unitId}
-                    />
+                    <fieldset
+                      disabled={
+                        isSelectingUnit ||
+                        createLeaseDraft.isPending ||
+                        Boolean(draftKeyFromUrl && leaseDraftQuery.isPending)
+                      }
+                    >
+                      <PropertySelector
+                        error={currentStepError}
+                        onAddProperty={() => setIsPropertyDrawerOpen(true)}
+                        onValueChange={async (selection) => {
+                          if (createLeaseDraft.isPending || isSelectingUnit || selection.unitId === draft.unitId)
+                            return;
+                          setIsSelectingUnit(true);
+                          try {
+                            if (!(await flushDraftSave())) return;
+                            setStepError(null);
+                            if (draftIdentity.leaseId) {
+                              const drafts = await apiClient.leases.drafts.query();
+                              const existing = drafts.find(
+                                (lease) => lease.unitId === selection.unitId && lease.id !== draftIdentity.leaseId,
+                              );
+                              if (existing) {
+                                setExistingUnitDraft({ lease: existing, selection });
+                              } else {
+                                setDraft((current) => ({ ...current, ...selection }));
+                              }
+                              return;
+                            }
+                            createLeaseDraft.mutate({
+                              ...selection,
+                              leaseDraftKey: draftIdentity.leaseDraftKey || crypto.randomUUID(),
+                            });
+                          } catch (error) {
+                            setStepError(
+                              error instanceof Error ? error.message : "Unable to check drafts for this unit.",
+                            );
+                          } finally {
+                            setIsSelectingUnit(false);
+                          }
+                        }}
+                        value={draft.unitId}
+                      />
+                    </fieldset>
                   ) : currentIndex === 1 ? (
                     <ResidentsSelector
                       allowPartialPayments={draft.allowPartialPayments}
@@ -2279,7 +2406,13 @@ function NewLeasePageContent() {
                   )}
                   <Button
                     className="min-w-40"
-                    disabled={isLastStep || (currentIndex === 0 && draft.unitId === null)}
+                    disabled={
+                      isLastStep ||
+                      createLeaseDraft.isPending ||
+                      isSelectingUnit ||
+                      Boolean(existingUnitDraft) ||
+                      (currentIndex === 0 && draft.unitId === null)
+                    }
                     type="submit"
                   >
                     {isLastStep ? "Create lease" : "Next"}

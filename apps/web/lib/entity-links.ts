@@ -18,6 +18,10 @@ export function getNewLeaseLink() {
   return "/leases/new";
 }
 
+export function getLeaseDraftLink(key: string) {
+  return `/leases/new?draft=${encodeURIComponent(key)}`;
+}
+
 export function getTenantInvoicesLink(tenantId: number) {
   return `/income?tenantId=${tenantId}`;
 }
