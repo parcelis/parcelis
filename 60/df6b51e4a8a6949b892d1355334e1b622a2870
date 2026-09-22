@@ -1,0 +1,69 @@
+apps/web/components/lease-drafts.tsx
+  s_e48dd4f4ccc52a::t_3be50b8e764179 7-22,47-49,51-59,62-65,67-69,71,73-96,100-105,109,111-112,114-118,120-131
+  s_e48dd4f4ccc52a::t_74f5b0e601815a 1-6,23-46,60,66,97-99,106-108,113,119,132-137
+  s_e48dd4f4ccc52a::t_f752ecfea5d117 50,61,70
+  s_e48dd4f4ccc52a::t_484931efa4c026 72,110
+apps/web/app/(authenticated)/leases/page.tsx
+  s_e48dd4f4ccc52a::t_74f5b0e601815a 24,148
+apps/web/lib/entity-links.ts
+  s_e48dd4f4ccc52a::t_74f5b0e601815a 21-24
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_e48dd4f4ccc52a::t_484931efa4c026 73,1555
+  s_e48dd4f4ccc52a::t_6a11f356ed2423 1556,1647-1651,2255-2260,2264-2270,2275,2279-2281,2412
+  s_e48dd4f4ccc52a::t_29eb25958e00e5 2108
+  s_e48dd4f4ccc52a::t_f8426b8a7cae68 2243-2247,2253-2254,2261-2263,2271-2274,2276-2278
+  s_e48dd4f4ccc52a::t_de213235b93168 29-34,1557-1560,1566,1615-1630,1637,1756-1767,1769,1955,2166,2285
+  s_e48dd4f4ccc52a::t_3be50b8e764179 1631-1636,1804-1809,1812-1818,1886,2102-2107,2109-2120,2127-2128,2135-2137,2164-2165,2242,2248-2252,2282-2284,2409-2411,2413-2415
+  s_e48dd4f4ccc52a::t_41db0da4006968 2129,2131-2133
+  s_e48dd4f4ccc52a::t_4e6cee72ea5c2e 14,42-46,2044-2063,2121,2134,2138-2150,2155-2163
+  s_e48dd4f4ccc52a::t_5d0ece6b20c68f 2122-2126,2130,2151-2154
+apps/api/src/tests/leases/lease-draft.router.test.ts
+  s_e48dd4f4ccc52a::t_72dfdb24e5e37b 37-56,63-70,72-84,88-103,111-115,125-127
+  s_e48dd4f4ccc52a::t_2cecbbfce70ad5 134
+  s_e48dd4f4ccc52a::t_67f090f2ac02c4 212-223,230-242,249-250
+  s_e48dd4f4ccc52a::t_f8426b8a7cae68 57-62,71,85-87,104-110,116-124
+  s_e48dd4f4ccc52a::t_80164764f02437 224-229,243-248
+packages/schemas/src/index.ts
+  s_e48dd4f4ccc52a::t_d95268b9360257 513
+apps/web/components/sidebar.tsx
+  s_e48dd4f4ccc52a::t_fcfa7c6388f88f 225-227
+packages/db/prisma/seed.mjs
+  s_e48dd4f4ccc52a::t_1b44de8c977d49 251,271
+tests/e2e/lease-draft.spec.ts
+  s_e48dd4f4ccc52a::t_ae6767ab793170 374-377
+  s_e48dd4f4ccc52a::t_fcfa7c6388f88f 64-67,371-373
+  s_e48dd4f4ccc52a::t_f752ecfea5d117 60-63,68,89-94
+  s_e48dd4f4ccc52a::t_efa8dfd78750eb 34,45,87,97-98
+  s_e48dd4f4ccc52a::t_5d0ece6b20c68f 101-104,110-113,139-142
+  s_e48dd4f4ccc52a::t_80164764f02437 512-515,518-520
+  s_e48dd4f4ccc52a::t_2cecbbfce70ad5 1,33,40,42-44,46-47,53-55,57-59,69-72,78,80,86,88,95-96,450,470,491,509,527,529
+  s_e48dd4f4ccc52a::t_b089d4a2de4018 135,138,143-144,155,198-199,237
+  s_e48dd4f4ccc52a::t_3be50b8e764179 35-38,48-51,73-76,81-84
+  s_e48dd4f4ccc52a::t_91da21f9c7d045 4-5
+  s_e48dd4f4ccc52a::t_1076784c0e3d52 99-100,105-109,114-118
+  s_e48dd4f4ccc52a::t_a091c717f3e3e4 22,30,39,41,52,56,77,79,85,127,173,195,234,270,308,367,425,456,510-511,516-517,521-526,528
+apps/api/src/router/app.router.ts
+  s_e48dd4f4ccc52a::t_6a11f356ed2423 3734-3740,3833
+  s_e48dd4f4ccc52a::t_80164764f02437 3561
+  s_e48dd4f4ccc52a::t_d95268b9360257 3554-3560,3567,3571,3587-3609,3619,3621-3623
+apps/web/components/api-client.ts
+  s_e48dd4f4ccc52a::t_e304e9485447b6 39
+apps/docs/content/platform-user-guide/app-functionality/lease-dashboard.mdx
+  s_e48dd4f4ccc52a::t_2cecbbfce70ad5 22-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "60df6b51e4a8a6949b892d1355334e1b622a2870",
+  "prompts": {},
+  "sessions": {
+    "s_e48dd4f4ccc52a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cac3-1ece-70f0-9fe9-dba273a1a6d2",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
