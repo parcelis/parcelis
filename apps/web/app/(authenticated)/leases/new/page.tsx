@@ -1542,6 +1542,7 @@ function NewLeasePageContent() {
     revision: 0,
   });
   const draftRevisionRef = React.useRef(0);
+  const draftSaveQueueRef = React.useRef<Promise<unknown>>(Promise.resolve());
   const activeOrganizationQuery = useQuery({
     queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
@@ -1637,7 +1638,18 @@ function NewLeasePageContent() {
       setStepError(draftError.message);
     },
   });
-  const updateDraftAsync = updateLeaseDraft.mutateAsync;
+  const mutateDraftAsync = updateLeaseDraft.mutateAsync;
+  const updateDraftAsync = React.useCallback(
+    (input: { leaseId: number; data: Record<string, unknown> }) => {
+      const save = draftSaveQueueRef.current.then(() =>
+        mutateDraftAsync({ ...input, expectedRevision: draftRevisionRef.current }),
+      );
+      // Keep subsequent saves available after a failed request.
+      draftSaveQueueRef.current = save.catch(() => undefined);
+      return save;
+    },
+    [mutateDraftAsync],
+  );
   const updateDraftPending = updateLeaseDraft.isPending;
   const createProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: CreatePropertyInput }) => {
@@ -1800,7 +1812,6 @@ function NewLeasePageContent() {
       try {
         await updateDraftAsync({
           leaseId: draftIdentity.leaseId,
-          expectedRevision: draftRevisionRef.current,
           data: getLeaseDraftSaveData(draft),
         });
         lastSavedDraftRef.current = fingerprint;
@@ -1815,15 +1826,16 @@ function NewLeasePageContent() {
   }, [draft, draftIdentity.leaseId, draftIdentity.revision, updateDraftAsync, updateDraftPending]);
 
   async function flushDraftSave() {
-    if (!draftIdentity.leaseId || updateLeaseDraft.isPending) return !updateLeaseDraft.isPending;
+    if (!draftIdentity.leaseId) return true;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    await draftSaveQueueRef.current;
     const fingerprint = JSON.stringify(draft);
     if (lastSavedDraftRef.current === fingerprint) return true;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     startDraftSaveStatus();
     try {
-      await updateLeaseDraft.mutateAsync({
+      await updateDraftAsync({
         leaseId: draftIdentity.leaseId,
-        expectedRevision: draftRevisionRef.current,
         data: getLeaseDraftSaveData(draft),
       });
       lastSavedDraftRef.current = fingerprint;
@@ -1903,7 +1915,6 @@ function NewLeasePageContent() {
     const nextStep = leaseCreationSteps[currentIndex + 1];
     if (!nextStep) return;
     let leaseId = draftIdentity.leaseId;
-    let revision = draftRevisionRef.current;
     if (currentIndex === 0 && !draftIdentity.leaseId) {
       if (!draft.propertyId || !draft.unitId || !draftIdentity.leaseDraftKey) {
         setStepError("Select a property and unit before continuing.");
@@ -1916,7 +1927,6 @@ function NewLeasePageContent() {
           unitId: draft.unitId,
         });
         leaseId = lease.id;
-        revision = lease.revision;
         draftRevisionRef.current = lease.revision;
         setDraftIdentity((current) => ({
           ...current,
@@ -1935,9 +1945,8 @@ function NewLeasePageContent() {
       }
       try {
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-        await updateLeaseDraft.mutateAsync({
+        await updateDraftAsync({
           leaseId,
-          expectedRevision: revision,
           data:
             currentIndex === 0
               ? { propertyId: draft.propertyId, unitId: draft.unitId, draftStep: nextStep.id }

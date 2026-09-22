@@ -237,3 +237,53 @@ test("autosaves fixed-term dates", async ({ page }) => {
   await expect(page.locator("#lease-start-date")).toHaveText(/September 22, 2026/);
   await expect(page.locator("#lease-end-date")).toHaveText(/September 29, 2026/);
 });
+
+test("waits for an in-flight autosave before saving the next step", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.getByRole("checkbox").first()).toBeVisible();
+
+  let releaseAutosave!: () => void;
+  const autosaveReleased = new Promise<void>((resolve) => {
+    releaseAutosave = resolve;
+  });
+  let autosaveStarted!: () => void;
+  const autosaveInFlight = new Promise<void>((resolve) => {
+    autosaveStarted = resolve;
+  });
+  const revisions: number[] = [];
+  let savedRevision: number | undefined;
+  await page.route("**/trpc/leases.updateDraft*", async (route) => {
+    const input = route.request().postDataJSON() as Record<string, { expectedRevision: number }>;
+    revisions.push(input["0"].expectedRevision);
+    const response = await route.fetch();
+    if (revisions.length === 1) {
+      const payload = await response.json();
+      savedRevision = payload[0].result.data.revision;
+      autosaveStarted();
+      await autosaveReleased;
+    }
+    await route.fulfill({ response });
+  });
+
+  await page.getByRole("checkbox").first().click();
+  await autosaveInFlight;
+  try {
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    // Hold the response beyond the debounce window to expose overlapping saves.
+    await page.waitForTimeout(800);
+    expect(revisions).toHaveLength(1);
+  } finally {
+    releaseAutosave();
+  }
+  await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
+  expect(revisions[1]).toBe(savedRevision);
+  await expect(page.getByRole("button", { name: "Reload latest draft" })).not.toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
+});
