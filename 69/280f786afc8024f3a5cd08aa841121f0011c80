@@ -1,0 +1,22 @@
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_622937ebde2b90::t_28f6d8a550a765 1861-1863
+tests/e2e/lease-draft.spec.ts
+  s_622937ebde2b90::t_28f6d8a550a765 290-316,318-321
+  s_622937ebde2b90::t_06bc70ae672f0d 317
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "69280f786afc8024f3a5cd08aa841121f0011c80",
+  "prompts": {},
+  "sessions": {
+    "s_622937ebde2b90": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c762-eba5-7802-bf9a-067bcc2f9182",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
