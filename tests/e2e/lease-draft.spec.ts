@@ -29,6 +29,8 @@ test("creates a resumable draft after selecting a unit", async ({ page }) => {
 
 test("reloads the latest draft after a save conflict", async ({ page }) => {
   await page.goto("/leases/new");
+  await page.clock.install();
+  await page.clock.pauseAt(new Date());
   await page
     .getByRole("button", { name: /Expand .* units/ })
     .first()
@@ -43,6 +45,7 @@ test("reloads the latest draft after a save conflict", async ({ page }) => {
   }>;
   const createdDraft = createPayload[0]?.result.data;
   if (!createdDraft) throw new Error("Lease draft creation did not return a draft.");
+  await expect(page).toHaveURL(/\?draft=[0-9a-f-]{36}$/);
 
   const apiOrigin = new URL(createResponse.url()).origin;
   const secondSessionUpdate = await page.evaluate(
@@ -224,18 +227,39 @@ test("autosaves fixed-term dates", async ({ page }) => {
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
 
+  const dates = await page.evaluate(() =>
+    [14, 21].map((daysAhead) => {
+      const date = new Date();
+      date.setDate(date.getDate() + daysAhead);
+      return {
+        value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+        label: new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", year: "numeric" }).format(date),
+      };
+    }),
+  );
+  const [startDate, endDate] = dates;
+  if (!startDate || !endDate) throw new Error("Unable to choose lease dates.");
+
+  async function selectDate(value: string) {
+    const day = page.locator(`[data-day="${value}"]`);
+    for (let month = 0; month < 2 && !(await day.isVisible()); month++) {
+      await page.getByRole("button", { name: "Go to the Next Month" }).click();
+    }
+    await day.click();
+  }
+
   await page.locator("#lease-start-date").click();
-  await page.locator('[data-day="2026-09-22"]').click();
+  await selectDate(startDate.value);
   await page.locator("#lease-end-date").click();
   const draftSave = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
   );
-  await page.locator('[data-day="2026-09-29"]').click();
+  await selectDate(endDate.value);
   await draftSave;
 
   await page.reload();
-  await expect(page.locator("#lease-start-date")).toHaveText(/September 22, 2026/);
-  await expect(page.locator("#lease-end-date")).toHaveText(/September 29, 2026/);
+  await expect(page.locator("#lease-start-date")).toHaveText(startDate.label);
+  await expect(page.locator("#lease-end-date")).toHaveText(endDate.label);
 });
 
 test("waits for an in-flight autosave before saving the next step", async ({ page }) => {
