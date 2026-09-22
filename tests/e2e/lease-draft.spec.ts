@@ -10,6 +10,19 @@ test("opens the lease wizard for an authenticated user", async ({ page }) => {
   await expect(page.getByText("Choose the property and unit")).toBeVisible();
 });
 
+test("uses a view options menu for property filters on mobile", async ({ page }) => {
+  await page.setViewportSize({ height: 844, width: 390 });
+  await page.goto("/leases/new");
+
+  await expect(page.getByRole("link", { name: "Back to leases" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add Property" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "View options" })).toBeVisible();
+  await expect(page.getByRole("radiogroup", { name: "Property availability" })).not.toBeVisible();
+  await page.getByRole("button", { name: "View options" }).click();
+  await expect(page.getByRole("menuitem", { name: "All properties" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "List view" })).toBeVisible();
+});
+
 test("creates a resumable draft after selecting a unit", async ({ page }) => {
   await page.goto("/leases/new");
 

@@ -262,13 +262,11 @@ function synchronizeTenantAllocations(tenantIds: number[], allocations: LeaseDra
 }
 
 function PropertySelector({
-  onAddProperty,
   onValueChange,
   error,
   value,
 }: {
   error: string | null;
-  onAddProperty: () => void;
   onValueChange: (selection: { propertyId: number; unitId: number; monthlyRentCents: number }) => void;
   value: number | null;
 }) {
@@ -306,7 +304,7 @@ function PropertySelector({
   return (
     <div className="w-full text-left">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-parcelis-border px-5 py-4">
-        <div className="flex items-center gap-2">
+        <div className="hidden items-center gap-2 md:flex">
           <ToggleGroup
             aria-label="Property availability"
             onValueChange={(nextValue) => setAvailabilityFilter(nextValue as "available" | "all")}
@@ -319,10 +317,39 @@ function PropertySelector({
             {groupByProperty ? "Grouped By Property" : "Not Grouped"}
           </Button>
         </div>
-        <Button onClick={onAddProperty} type="button">
-          <Plus className="h-4 w-4" />
-          Add Property
-        </Button>
+        <div className="flex w-full gap-2 md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex-1 justify-between" type="button" variant="secondary">
+                View options
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-56">
+              <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
+                Availability
+              </p>
+              <DropdownMenuItem onSelect={() => setAvailabilityFilter("available")}>
+                <Check className={`h-4 w-4 ${availabilityFilter === "available" ? "opacity-100" : "opacity-0"}`} />
+                Available
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setAvailabilityFilter("all")}>
+                <Check className={`h-4 w-4 ${availabilityFilter === "all" ? "opacity-100" : "opacity-0"}`} />
+                All properties
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">View</p>
+              <DropdownMenuItem onSelect={() => setGroupByProperty(true)}>
+                <Check className={`h-4 w-4 ${groupByProperty ? "opacity-100" : "opacity-0"}`} />
+                Grouped by property
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setGroupByProperty(false)}>
+                <Check className={`h-4 w-4 ${!groupByProperty ? "opacity-100" : "opacity-0"}`} />
+                List view
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       {error ? (
         <Alert className="rounded-none border-x-0" variant="destructive">
@@ -2106,11 +2133,10 @@ function NewLeasePageContent() {
           }}
         >
           <AlertDialogContent className="max-w-lg p-6">
-            <AlertDialogHeader>
+            <AlertDialogHeader className="gap-4 md:gap-2">
               <AlertDialogTitle>An unfinished lease exists for this unit.</AlertDialogTitle>
               <AlertDialogDescription>
-                Resume the saved draft, or permanently discard it and start a new lease. Choosing another unit keeps the
-                draft.
+                Resume this draft, discard it to start over, or choose another unit.
               </AlertDialogDescription>
             </AlertDialogHeader>
             {createLeaseDraft.error ? (
@@ -2118,8 +2144,9 @@ function NewLeasePageContent() {
                 {createLeaseDraft.error.message}
               </p>
             ) : null}
-            <AlertDialogFooter className="hidden md:flex">
+            <AlertDialogFooter className="hidden gap-2 p-2 md:flex">
               <Button
+                className="h-11 py-6"
                 variant="secondary"
                 disabled={createLeaseDraft.isPending}
                 onClick={() => setExistingUnitDraft(null)}
@@ -2127,15 +2154,20 @@ function NewLeasePageContent() {
                 Choose another unit
               </Button>
               {hasPermission(currentUserQuery.data?.permissions, "leases", "delete") ? (
-                <Button variant="destructive" disabled={createLeaseDraft.isPending} onClick={discardExistingDraft}>
+                <Button
+                  className="h-11 py-6"
+                  variant="destructive"
+                  disabled={createLeaseDraft.isPending}
+                  onClick={discardExistingDraft}
+                >
                   Discard and start new
                 </Button>
               ) : null}
-              <Button disabled={createLeaseDraft.isPending} onClick={resumeExistingDraft}>
+              <Button className="h-11 py-6" disabled={createLeaseDraft.isPending} onClick={resumeExistingDraft}>
                 Resume draft
               </Button>
             </AlertDialogFooter>
-            <div className="md:hidden">
+            <div className="mt-8 md:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button className="w-full justify-between" disabled={createLeaseDraft.isPending} variant="secondary">
@@ -2166,15 +2198,30 @@ function NewLeasePageContent() {
 
         <section className="flex flex-1 flex-col transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
           <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
-            <Button asChild className="min-w-40" variant="secondary">
+            <Button
+              asChild
+              aria-label="Back to leases"
+              className="h-10 w-10 px-0 md:min-w-40 md:px-4"
+              variant="secondary"
+            >
               <Link href="/leases" onClick={preventUnsafeExit}>
                 <ArrowLeft className="h-4 w-4" />
-                Leases
+                <span className="hidden md:inline">Leases</span>
               </Link>
             </Button>
-            <span className="text-sm font-medium text-parcelis-gray">
-              Step {currentIndex + 1} of {leaseCreationSteps.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-sm font-medium text-parcelis-gray ${currentIndex === 0 ? "hidden md:inline" : ""}`}
+              >
+                Step {currentIndex + 1} of {leaseCreationSteps.length}
+              </span>
+              {currentIndex === 0 ? (
+                <Button className="min-w-40" onClick={() => setIsPropertyDrawerOpen(true)} type="button">
+                  <Plus className="h-4 w-4" />
+                  Add Property
+                </Button>
+              ) : null}
+            </div>
           </header>
 
           <div className="parcelis-page-shell flex flex-1 flex-col">
@@ -2248,7 +2295,6 @@ function NewLeasePageContent() {
                     >
                       <PropertySelector
                         error={currentStepError}
-                        onAddProperty={() => setIsPropertyDrawerOpen(true)}
                         onValueChange={async (selection) => {
                           if (createLeaseDraft.isPending || isSelectingUnit || selection.unitId === draft.unitId)
                             return;
