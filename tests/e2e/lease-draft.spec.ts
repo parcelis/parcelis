@@ -319,3 +319,63 @@ for (const exitLabel of ["Cancel", "Leases"]) {
     await expect(page).toHaveURL(/\/leases$/);
   });
 }
+
+test("waits for session-restored draft hydration before autosaving", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await page.locator('input[name="lease-unit"]:not(:disabled)').first().check();
+  const nextStepSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await nextStepSave;
+  await expect(page.getByRole("checkbox").first()).toBeVisible();
+  const residentSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByRole("checkbox").first().click();
+  await residentSave;
+  await expect(page.getByText("Lease draft saved", { exact: true })).toBeVisible();
+
+  let releaseLoad!: () => void;
+  const loadReleased = new Promise<void>((resolve) => {
+    releaseLoad = resolve;
+  });
+  let loadStarted!: () => void;
+  const loadInFlight = new Promise<void>((resolve) => {
+    loadStarted = resolve;
+  });
+  const saves: unknown[] = [];
+  await page.route("**/trpc/**", async (route) => {
+    if (route.request().url().includes("leases.updateDraft")) {
+      saves.push(route.request().postDataJSON());
+    }
+    if (route.request().url().includes("leases.draftByKey")) {
+      loadStarted();
+      await loadReleased;
+    }
+    await route.continue();
+  });
+
+  // Omit the URL key so the lease identity is restored from session storage.
+  await page.goto("/leases/new");
+  await loadInFlight;
+  try {
+    // Keep hydration pending beyond the autosave debounce.
+    await page.waitForTimeout(1200);
+    expect(saves).toHaveLength(0);
+  } finally {
+    releaseLoad();
+  }
+  await expect(page.getByRole("checkbox").first()).toBeChecked();
+  const resumedSave = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("leases.updateDraft"),
+  );
+  await page.getByRole("checkbox").first().uncheck();
+  await resumedSave;
+  await page.reload();
+  await expect(page.getByRole("checkbox").first()).not.toBeChecked();
+});

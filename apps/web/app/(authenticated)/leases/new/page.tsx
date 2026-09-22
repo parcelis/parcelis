@@ -1802,7 +1802,7 @@ function NewLeasePageContent() {
 
   // Automatically saves the lease draft whenever it changes, with a debounce to avoid excessive requests.
   React.useEffect(() => {
-    if (!draftIdentity.leaseId || updateDraftPending) return;
+    if (!draftIdentity.leaseId || loadedDraftKey !== draftIdentity.leaseDraftKey || updateDraftPending) return;
     const fingerprint = JSON.stringify(draft);
     if (lastSavedDraftRef.current === fingerprint) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -1823,7 +1823,15 @@ function NewLeasePageContent() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [draft, draftIdentity.leaseId, draftIdentity.revision, updateDraftAsync, updateDraftPending]);
+  }, [
+    draft,
+    draftIdentity.leaseId,
+    draftIdentity.leaseDraftKey,
+    draftIdentity.revision,
+    loadedDraftKey,
+    updateDraftAsync,
+    updateDraftPending,
+  ]);
 
   async function flushDraftSave() {
     if (!draftIdentity.leaseId) return true;
