@@ -1,0 +1,31 @@
+tests/e2e/lease-draft.spec.ts
+  s_e48dd4f4ccc52a::t_72bcad05f18f4d 18
+  s_e48dd4f4ccc52a::t_1aeffb84fd1130 13-16,19-25
+  s_e48dd4f4ccc52a::t_eca9ffc1ccd6f3 17
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_e48dd4f4ccc52a::t_168e8e2f23ce1c 2213-2215
+  s_e48dd4f4ccc52a::t_1a98b736971fde 2147
+  s_e48dd4f4ccc52a::t_85b69b08743a86 307,320-352
+  s_e48dd4f4ccc52a::t_f334b11902cac0 2139,2149,2158,2166
+  s_e48dd4f4ccc52a::t_e76270b4776369 2157,2159-2162
+  s_e48dd4f4ccc52a::t_71db524cbab069 2201-2206
+  s_e48dd4f4ccc52a::t_8cc8dae36b16d8 2136,2170
+  s_e48dd4f4ccc52a::t_4c35b3440f94f3 2209
+  s_e48dd4f4ccc52a::t_26943f8803cc03 2212,2216-2224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "232a63f5e5bcd7ee6d7a6c5bc743622aa93c3d0e",
+  "prompts": {},
+  "sessions": {
+    "s_e48dd4f4ccc52a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cac3-1ece-70f0-9fe9-dba273a1a6d2",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
