@@ -1164,6 +1164,7 @@ function LeaseTermsSelector({
   const endDate = parseDateInput(endsOn);
   const today = new Date();
   const leaseEndMonth = new Date(today.getFullYear() + 7, today.getMonth(), 1);
+  const leaseEndDate = new Date(today.getFullYear() + 7, today.getMonth() + 1, 0);
   const startDate = parseDateInput(startsOn);
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
@@ -1287,6 +1288,7 @@ function LeaseTermsSelector({
             </PopoverTrigger>
             <PopoverContent align="start" className="w-auto p-0">
               <Calendar
+                disabled={{ after: leaseEndDate }}
                 endMonth={leaseEndMonth}
                 mode="single"
                 onSelect={(date) => {
@@ -1323,7 +1325,7 @@ function LeaseTermsSelector({
               </PopoverTrigger>
               <PopoverContent align="start" className="w-auto p-0">
                 <Calendar
-                  disabled={startDate ? { before: startDate } : undefined}
+                  disabled={startDate ? [{ before: startDate }, { after: leaseEndDate }] : { after: leaseEndDate }}
                   endMonth={leaseEndMonth}
                   mode="single"
                   onSelect={(date) => {
