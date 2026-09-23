@@ -1040,14 +1040,16 @@ function ResidentsSelector({
                           </TableRow>
                         );
                       })}
-                      <TableRow className="bg-parcelis-porcelain/60">
-                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal">Total</TableCell>
-                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal">
+                      <TableRow className="bg-parcelis-porcelain/60 dark:bg-parcelis-charcoal/55">
+                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal dark:text-white">
+                          Total
+                        </TableCell>
+                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal dark:text-white">
                           {rentAllocationMode === "percentage"
                             ? `${formatPercentage(allocatedRentCents, monthlyRentCents)}%`
                             : formatCurrency(allocatedRentCents)}
                         </TableCell>
-                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal">
+                        <TableCell className="px-4 py-3 font-semibold text-parcelis-charcoal dark:text-white">
                           {depositAllocationMode === "percentage"
                             ? `${formatPercentage(allocatedDepositCents, securityDepositCents)}%`
                             : formatCurrency(allocatedDepositCents)}
