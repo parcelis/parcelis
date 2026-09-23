@@ -1,0 +1,19 @@
+apps/web/components/lease-drafts.tsx
+  s_f4e9b0db311cda::t_1c296ce6fd23b1 3,29,107,109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "072236493128ca6c386d03751e7662937709211c",
+  "prompts": {},
+  "sessions": {
+    "s_f4e9b0db311cda": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cc9b-6d7b-7dd3-bd17-4e43fdc93103",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
