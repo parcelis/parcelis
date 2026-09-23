@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Prisma } from "@parcelis/db";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -208,6 +209,56 @@ test("updates a draft and increments its revision", async () => {
   assert.deepEqual(updatedRevision, { increment: 1 });
   assert.equal((result as { revision: number }).revision, 1);
 });
+
+test("moves a draft to an available unit in a serializable transaction", async () => {
+  const current = draft();
+  let reads = 0;
+  const tx = {
+    lease: {
+      findFirst: async () => (reads++ === 0 ? current : null),
+      updateMany: async ({ data }: { data: { unitId: number } }) => {
+        assert.equal(reads, 2);
+        assert.equal(data.unitId, 4);
+        return { count: 1 };
+      },
+      findFirstOrThrow: async () => ({ ...current, unitId: 4, revision: 1 }),
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 4 }) },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
+      assert.deepEqual(options, { isolationLevel: "Serializable" });
+      return callback(tx);
+    },
+  });
+  const result = await caller.leases.updateDraft({
+    leaseId: 9,
+    expectedRevision: 0,
+    data: { unitId: 4 },
+  });
+  assert.equal(result.unitId, 4);
+  assert.equal(result.revision, 1);
+});
+
+for (const procedure of ["createDraft", "updateDraft"] as const) {
+  test(`${procedure} translates serialization failures into a unit draft conflict`, async () => {
+    const caller = createCaller({
+      $transaction: async () => {
+        throw new Prisma.PrismaClientKnownRequestError("Transaction failed", {
+          code: "P2034",
+          clientVersion: "test",
+        });
+      },
+    });
+    await assert.rejects(
+      procedure === "createDraft"
+        ? caller.leases.createDraft(newDraftInput)
+        : caller.leases.updateDraft({ leaseId: 9, expectedRevision: 0, data: { unitId: 4 } }),
+      { code: "CONFLICT", message: "The unit's drafts changed. Select the unit again." },
+    );
+  });
+}
 
 test("does not move a draft onto a unit with another unfinished lease", async () => {
   let reads = 0;
