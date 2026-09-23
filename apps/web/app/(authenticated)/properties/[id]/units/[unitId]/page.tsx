@@ -123,6 +123,7 @@ export default function UnitDetailPage() {
   const leaseDraftsQuery = useQuery({
     queryKey: queryKeys.leases.drafts,
     queryFn: () => apiClient.leases.drafts.query(),
+    enabled: hasPermission(currentUserQuery.data?.permissions, "leases", "view"),
   });
   const updateProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: UpdatePropertyInput }) => {
