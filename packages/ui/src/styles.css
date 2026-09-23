@@ -33,10 +33,6 @@
   color: var(--parcelis-porcelain);
 }
 
-.dark [data-slot="switch-thumb"][data-state="checked"] {
-  background-color: var(--parcelis-green);
-}
-
 .parcelis-wordmark-is {
   color: var(--parcelis-green);
 }
