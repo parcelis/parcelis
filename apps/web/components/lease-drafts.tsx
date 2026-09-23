@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,6 +26,7 @@ import { hasPermission } from "./property-access";
 import { getLeaseDraftLink } from "../lib/entity-links";
 
 export function LeaseDrafts() {
+  const discardTitleId = useId();
   const queryClient = useQueryClient();
   const draftsQuery = useQuery({ queryKey: queryKeys.leases.drafts, queryFn: () => apiClient.leases.drafts.query() });
   const userQuery = useQuery({ queryKey: queryKeys.auth.me, queryFn: () => apiClient.auth.me.query() });
@@ -103,9 +104,9 @@ export function LeaseDrafts() {
           if (!open && !discard.isPending) setDiscarding(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent aria-labelledby={discardTitleId}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard lease draft?</AlertDialogTitle>
+            <AlertDialogTitle id={discardTitleId}>Discard lease draft?</AlertDialogTitle>
             <AlertDialogDescription>
               This permanently deletes the unfinished lease for {discarding?.property?.name ?? "Not set"} · Unit{" "}
               {discarding?.unit?.name ?? "Not set"}.
