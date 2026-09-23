@@ -322,7 +322,6 @@ export const saveOrganizationEmailSettingsInputSchema = z
     }
   });
 
-
 export const addressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().nullable().optional(),
@@ -484,27 +483,29 @@ const leaseDraftTenantAllocationsSchema = z
   });
 
 const leaseDraftDataFieldsSchema = z.object({
-    propertyId: idSchema.nullable().optional(),
-    unitId: idSchema.nullable().optional(),
-    tenantIds: leaseDraftTenantIdsSchema.optional(),
-    termType: leaseTermTypeSchema.nullable().optional(),
-    startsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
-    endsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
-    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger).nullable().optional(),
-    securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).nullable().optional(),
-    rentDueDay: z.number().int().min(1).max(31).optional(),
-    continueMonthToMonthAfterEnd: z.boolean().optional(),
-    billingResponsibility: leaseBillingResponsibilitySchema.nullable().optional(),
-    allowPartialPayments: z.boolean().optional(),
-    tenantAllocations: leaseDraftTenantAllocationsSchema.optional(),
-    draftStep: leaseDraftStepSchema.optional(),
-  });
+  propertyId: idSchema.nullable().optional(),
+  unitId: idSchema.nullable().optional(),
+  tenantIds: leaseDraftTenantIdsSchema.optional(),
+  termType: leaseTermTypeSchema.nullable().optional(),
+  startsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
+  endsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
+  monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger).nullable().optional(),
+  securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).nullable().optional(),
+  rentDueDay: z.number().int().min(1).max(31).optional(),
+  continueMonthToMonthAfterEnd: z.boolean().optional(),
+  billingResponsibility: leaseBillingResponsibilitySchema.nullable().optional(),
+  allowPartialPayments: z.boolean().optional(),
+  tenantAllocations: leaseDraftTenantAllocationsSchema.optional(),
+  draftStep: leaseDraftStepSchema.optional(),
+});
 
-export const leaseDraftDataSchema = leaseDraftDataFieldsSchema
-  .refine((lease) => lease.unitId === null || lease.unitId === undefined || lease.propertyId != null, {
+export const leaseDraftDataSchema = leaseDraftDataFieldsSchema.refine(
+  (lease) => lease.unitId === null || lease.unitId === undefined || lease.propertyId != null,
+  {
     message: "A unit requires a property.",
     path: ["unitId"],
-  });
+  },
+);
 
 export const leaseDraftCreateInputSchema = z.object({
   leaseDraftKey: z.string().uuid(),
@@ -543,8 +544,8 @@ export const leaseResidentsStepSchema = z.object({ tenantIds: leaseTenantIdsSche
 export const leaseTermsStepSchema = z
   .object({
     termType: leaseTermTypeSchema,
-    startsOn: z.string().date(),
-    endsOn: z.union([z.string().date(), z.literal("")]),
+    startsOn: z.string().date({ error: "Enter a valid lease start date." }),
+    endsOn: z.union([z.string().date({ error: "Enter a valid lease end date." }), z.literal("")]),
     monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
     rentDueDay: z.number().int().min(1).max(31),
     continueMonthToMonthAfterEnd: z.literal(false),

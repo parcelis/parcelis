@@ -23,11 +23,7 @@ const validTerms = {
 
 for (const [name, terms, path] of [
   ["fixed terms require an end date", { ...validTerms, endsOn: "" }, "endsOn"],
-  [
-    "month-to-month terms reject an end date",
-    { ...validTerms, termType: "month_to_month" as const },
-    "endsOn",
-  ],
+  ["month-to-month terms reject an end date", { ...validTerms, termType: "month_to_month" as const }, "endsOn"],
   [
     "month-to-month terms reject fixed-term continuation",
     { ...validTerms, termType: "month_to_month" as const, endsOn: "", continueMonthToMonthAfterEnd: true },
@@ -42,6 +38,22 @@ for (const [name, terms, path] of [
     if (!result.success) assert.equal(result.error.issues[0]?.path[0], path);
   });
 }
+
+test("lease term dates use user-facing validation messages", () => {
+  const result = leaseTermsStepSchema.safeParse({ ...validTerms, startsOn: "invalid", endsOn: "also-invalid" });
+
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.equal(
+      result.error.issues.find((issue) => issue.path[0] === "startsOn")?.message,
+      "Enter a valid lease start date.",
+    );
+    assert.equal(
+      result.error.issues.find((issue) => issue.path[0] === "endsOn")?.message,
+      "Enter a valid lease end date.",
+    );
+  }
+});
 
 test("generated invoices use the lease rent due day", async () => {
   const invoiceData: Array<{ dueOn: Date }> = [];
@@ -178,14 +190,8 @@ test("complete leases require a term type", () => {
 });
 
 for (const [name, input] of [
-  [
-    "fixed leases require an end date",
-    { termType: "fixed" as const, endsOn: null },
-  ],
-  [
-    "month-to-month leases reject an end date",
-    { termType: "month_to_month" as const, endsOn: new Date("2026-12-31") },
-  ],
+  ["fixed leases require an end date", { termType: "fixed" as const, endsOn: null }],
+  ["month-to-month leases reject an end date", { termType: "month_to_month" as const, endsOn: new Date("2026-12-31") }],
 ] as const) {
   test(name, () => {
     const result = createLeaseInputSchema.safeParse({
