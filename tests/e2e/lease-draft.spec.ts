@@ -1,8 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures/authenticated";
 
-test.describe.configure({ mode: "default" });
-
 test("opens the lease wizard for an authenticated user", async ({ page }) => {
   await page.goto("/leases/new");
 
@@ -177,8 +175,16 @@ test("reloads the latest draft after a save conflict", async ({ page }) => {
         `${apiOrigin}/trpc/leases.draftByKey?batch=1&input=${encodeURIComponent(JSON.stringify({ 0: { leaseDraftKey } }))}`,
         { credentials: "include" },
       );
-      const draftPayload = await draftResponse.json();
-      const revision = draftPayload[0].result.data.revision;
+      if (!draftResponse.ok) {
+        throw new Error(`Unable to load the lease draft from the second session (${draftResponse.status}).`);
+      }
+      const draftPayload = (await draftResponse.json()) as Array<{
+        result?: { data?: { revision?: number } };
+      }> | null;
+      const revision = draftPayload?.[0]?.result?.data?.revision;
+      if (typeof revision !== "number") {
+        throw new Error("Lease draft lookup did not return a revision.");
+      }
       const response = await fetch(`${apiOrigin}/trpc/leases.updateDraft?batch=1`, {
         body: JSON.stringify({
           0: { leaseId, expectedRevision: revision, data: { draftStep: "residents" } },
