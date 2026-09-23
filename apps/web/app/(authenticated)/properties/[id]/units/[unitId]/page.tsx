@@ -19,11 +19,13 @@ import {
   Phone,
   Plus,
   Ruler,
+  TriangleAlert,
   UserRound,
   Wrench,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -53,6 +55,7 @@ import { NotesDrawer } from "../../../../../../components/notes-drawer";
 import { entityCreatedMessage, entityUpdatedMessage } from "../../../../../../components/toast-messages";
 import { StickyNotePlusIcon } from "../../../../../../components/sticky-note-plus-icon";
 import {
+  getLeaseDraftLink,
   getLeaseLink,
   getMaintenanceLink,
   getPropertyLink,
@@ -116,6 +119,10 @@ export default function UnitDetailPage() {
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
+  });
+  const leaseDraftsQuery = useQuery({
+    queryKey: queryKeys.leases.drafts,
+    queryFn: () => apiClient.leases.drafts.query(),
   });
   const updateProperty = useMutation({
     mutationFn: async ({ imageFile, input }: { imageFile: File | null; input: UpdatePropertyInput }) => {
@@ -192,6 +199,7 @@ export default function UnitDetailPage() {
 
   const property = propertyQuery.data;
   const unit = property?.units.find((item) => item.id === unitId) ?? null;
+  const unitLeaseDrafts = (leaseDraftsQuery.data ?? []).filter((draft) => draft.unit?.id === unitId);
   const lease =
     property?.leases.find(
       (item) => unit && item.unitLabel === unit.name && (item.status === "active" || item.status === "notice"),
@@ -446,6 +454,31 @@ export default function UnitDetailPage() {
                 </div>
               </section>
 
+              {unitLeaseDrafts.length > 0 ? (
+                <Alert className="mt-5 border-amber-500 bg-amber-50 text-amber-800">
+                  <TriangleAlert className="mt-0.5 size-5 shrink-0" />
+                  <div className="flex flex-1 flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">
+                        {unitLeaseDrafts.length === 1 ? "Pending lease draft" : "Pending lease drafts"}
+                      </p>
+                      <p className="mt-1 text-sm">
+                        {unitLeaseDrafts.length === 1
+                          ? "This unit has a lease draft ready to complete."
+                          : "This unit has multiple lease drafts ready to complete."}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {unitLeaseDrafts.map((draft) => (
+                        <Button asChild key={draft.id} size="sm" variant="secondary">
+                          <Link href={getLeaseDraftLink(draft.leaseDraftKey)}>Continue draft</Link>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </Alert>
+              ) : null}
+
               <section className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
                 <Card>
                   <CardHeader className="flex items-center justify-between gap-3 sm:flex-row">
@@ -462,8 +495,7 @@ export default function UnitDetailPage() {
                           <div>
                             <p className="text-sm font-semibold text-parcelis-charcoal">Current Lease</p>
                             <p className="mt-1 text-sm text-parcelis-gray">
-                              {formatDate(lease.startsOn)} to{" "}
-                              {formatLeaseEndDate(lease.endsOn, lease.termType)}
+                              {formatDate(lease.startsOn)} to {formatLeaseEndDate(lease.endsOn, lease.termType)}
                             </p>
                           </div>
                           <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">

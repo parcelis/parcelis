@@ -65,6 +65,28 @@ test("creates a resumable draft after selecting a unit", async ({ page }) => {
   await expect(page.locator('input[name="lease-unit"]:checked')).toHaveCount(1);
 });
 
+test("shows a pending draft warning on the selected unit", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  const createResponse = await selectAvailableUnit(page);
+  const createPayload = (await createResponse.json()) as Array<{
+    result: { data: { leaseDraftKey: string; propertyId: number; unitId: number } };
+  }>;
+  const draft = createPayload[0]?.result.data;
+  if (!draft) throw new Error("Lease draft creation did not return a draft.");
+
+  await page.goto(`/properties/${draft.propertyId}/units/${draft.unitId}`);
+
+  await expect(page.getByText("Pending lease draft", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Continue draft" })).toHaveAttribute(
+    "href",
+    `/leases/new?draft=${draft.leaseDraftKey}`,
+  );
+});
+
 test("starts fresh and offers the existing draft only after selecting its unit", async ({ page }) => {
   await page.goto("/leases/new");
   await page

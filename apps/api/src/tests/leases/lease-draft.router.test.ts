@@ -116,9 +116,13 @@ test("lists unfinished drafts within the active organization, including drafts w
   const rows = [draft({ tenants: [] })];
   const caller = createCaller({
     lease: {
-      findMany: async ({ where, orderBy }: { where: unknown; orderBy: unknown }) => {
+      findMany: async ({ include, where, orderBy }: { include: unknown; where: unknown; orderBy: unknown }) => {
         assert.deepEqual(where, { organizationId: 7, status: "draft", archivedAt: null });
         assert.deepEqual(orderBy, { updatedAt: "desc" });
+        assert.deepEqual(include, {
+          property: { select: { id: true, name: true } },
+          unit: { select: { id: true, name: true } },
+        });
         return rows;
       },
     },

@@ -3554,7 +3554,10 @@ export const appRouter = router({
     drafts: permissionProcedure("leases", "view").query(({ ctx }) =>
       ctx.prisma.lease.findMany({
         where: { organizationId: ctx.organization.organizationId, status: LeaseStatus.draft, archivedAt: null },
-        include: { property: { select: { name: true } }, unit: { select: { name: true } } },
+        include: {
+          property: { select: { id: true, name: true } },
+          unit: { select: { id: true, name: true } },
+        },
         orderBy: { updatedAt: "desc" },
       }),
     ),
