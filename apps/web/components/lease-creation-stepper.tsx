@@ -44,7 +44,7 @@ export function LeaseCreationStepper({ onValueChange, saveStatus, value }: Lease
                 <div className="flex min-w-0 flex-col items-start justify-center gap-1">
                   <StepperTitle>{step.title}</StepperTitle>
                   <StepperDescription className="hidden text-nowrap lg:block">{step.description}</StepperDescription>
-                  <div className="mt-5 hidden min-h-5 items-center gap-2 text-xs text-parcelis-gray dark:text-white/60 lg:flex">
+                  <div className="mt-5 flex min-h-5 items-center gap-2 text-xs text-parcelis-gray dark:text-white/60">
                     {value === step.id ? saveStatus : null}
                   </div>
                 </div>
