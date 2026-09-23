@@ -317,10 +317,10 @@ function PropertySelector({
             {groupByProperty ? "Grouped By Property" : "Not Grouped"}
           </Button>
         </div>
-        <div className="flex w-full gap-2 md:hidden">
+        <div className="flex w-full md:hidden">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="flex-1 justify-between" type="button" variant="secondary">
+              <Button className="w-full justify-between" type="button" variant="secondary">
                 View options
                 <ChevronDown className="h-4 w-4" />
               </Button>
@@ -591,7 +591,6 @@ function ResidentsSelector({
   allowPartialPayments,
   billingResponsibility,
   error,
-  onAddTenant,
   onAllowPartialPaymentsChange,
   onBillingResponsibilityChange,
   onMonthlyRentCentsChange,
@@ -606,7 +605,6 @@ function ResidentsSelector({
   allowPartialPayments: boolean;
   billingResponsibility: LeaseDraft["billingResponsibility"];
   error?: string | null;
-  onAddTenant: () => void;
   onAllowPartialPaymentsChange: (allowPartialPayments: boolean) => void;
   onBillingResponsibilityChange: (billingResponsibility: LeaseDraft["billingResponsibility"]) => void;
   onMonthlyRentCentsChange: (monthlyRentCents: number | null) => void;
@@ -619,6 +617,8 @@ function ResidentsSelector({
   value: number[];
 }) {
   const [search, setSearch] = React.useState("");
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
   const [availabilityFilter, setAvailabilityFilter] = React.useState<"available" | "all">("available");
   const [rentAllocationMode, setRentAllocationMode] = React.useState<"percentage" | "amount">("percentage");
   const [depositAllocationMode, setDepositAllocationMode] = React.useState<"percentage" | "amount">("percentage");
@@ -639,6 +639,10 @@ function ResidentsSelector({
   React.useEffect(() => {
     setSecurityDepositInput(formatCurrencyInput(securityDepositCents));
   }, [securityDepositCents]);
+
+  React.useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
 
   const tenants = (tenantsQuery.data ?? []).filter((tenant) => tenant.tenantStatus !== "archived");
   const query = search.trim().toLowerCase();
@@ -719,7 +723,7 @@ function ResidentsSelector({
   return (
     <div className="w-full text-left">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-parcelis-border px-5 py-4">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 md:w-auto md:justify-start">
           <ToggleGroup
             aria-label="Tenant availability"
             onValueChange={(nextValue) => setAvailabilityFilter(nextValue as "available" | "all")}
@@ -728,13 +732,26 @@ function ResidentsSelector({
             <ToggleGroupItem value="available">Available</ToggleGroupItem>
             <ToggleGroupItem value="all">All Tenants</ToggleGroupItem>
           </ToggleGroup>
-          <label className="flex h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray md:min-w-80">
+          <Button
+            aria-expanded={isSearchOpen}
+            aria-label="Search tenants"
+            className="h-10 w-10 px-0 md:hidden"
+            onClick={() => setIsSearchOpen((open) => !open)}
+            type="button"
+            variant="secondary"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          <label
+            className={`${isSearchOpen ? "flex w-full" : "hidden"} h-10 items-center gap-2 rounded-md border border-parcelis-border bg-white px-3 text-sm text-parcelis-gray md:flex md:min-w-80`}
+          >
             <Search className="h-4 w-4" />
             <Input
               aria-label="Search tenants"
               className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 focus:border-transparent"
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search tenants"
+              ref={searchInputRef}
               value={search}
             />
           </label>
@@ -743,10 +760,6 @@ function ResidentsSelector({
           <span className="text-sm font-semibold text-parcelis-charcoal">
             {value.length} {value.length === 1 ? "resident" : "residents"} selected
           </span>
-          <Button onClick={onAddTenant} type="button">
-            <Plus className="h-4 w-4" />
-            Add Tenant
-          </Button>
         </div>
       </div>
       {error && value.length === 0 ? (
@@ -2215,10 +2228,14 @@ function NewLeasePageContent() {
               >
                 Step {currentIndex + 1} of {leaseCreationSteps.length}
               </span>
-              {currentIndex === 0 ? (
-                <Button className="min-w-40" onClick={() => setIsPropertyDrawerOpen(true)} type="button">
+              {currentIndex === 0 || currentIndex === 1 ? (
+                <Button
+                  className="min-w-40"
+                  onClick={() => (currentIndex === 0 ? setIsPropertyDrawerOpen(true) : setIsTenantDrawerOpen(true))}
+                  type="button"
+                >
                   <Plus className="h-4 w-4" />
-                  Add Property
+                  {currentIndex === 0 ? "Add Property" : "Add Tenant"}
                 </Button>
               ) : null}
             </div>
@@ -2287,6 +2304,7 @@ function NewLeasePageContent() {
                   ) : null}
                   {currentIndex === 0 ? (
                     <fieldset
+                      className="min-w-0"
                       disabled={
                         isSelectingUnit ||
                         createLeaseDraft.isPending ||
@@ -2335,7 +2353,6 @@ function NewLeasePageContent() {
                       billingResponsibility={draft.billingResponsibility}
                       error={currentStepError}
                       monthlyRentCents={draft.monthlyRentCents}
-                      onAddTenant={() => setIsTenantDrawerOpen(true)}
                       onAllowPartialPaymentsChange={(allowPartialPayments) =>
                         setDraft((current) => ({ ...current, allowPartialPayments }))
                       }

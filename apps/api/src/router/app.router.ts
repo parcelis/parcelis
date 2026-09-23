@@ -3830,7 +3830,7 @@ export const appRouter = router({
             }
           }
           return tx.lease.findFirstOrThrow({ where: { id: input.leaseId, organizationId } });
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        });
       }),
     /** Archives a lease without changing its contractual status. */
     archive: permissionProcedure("leases", "archive")

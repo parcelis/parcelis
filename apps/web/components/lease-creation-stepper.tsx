@@ -38,13 +38,13 @@ export function LeaseCreationStepper({ onValueChange, saveStatus, value }: Lease
       >
         <StepperNav className="max-md:items-start">
           {leaseCreationSteps.map((step, index) => (
-            <StepperItem className="max-md:items-start" key={step.id} stepId={step.id}>
-              <StepperTrigger>
+            <StepperItem className="min-w-0 max-md:items-start" key={step.id} stepId={step.id}>
+              <StepperTrigger className="min-w-0">
                 <StepperIndicator>{index + 1}</StepperIndicator>
-                <div className="flex flex-col items-start justify-center gap-1">
+                <div className="flex min-w-0 flex-col items-start justify-center gap-1">
                   <StepperTitle>{step.title}</StepperTitle>
-                  <StepperDescription className="text-nowrap">{step.description}</StepperDescription>
-                  <div className="flex min-h-5 items-center gap-2 mt-5 text-xs text-parcelis-gray dark:text-white/60">
+                  <StepperDescription className="hidden text-nowrap lg:block">{step.description}</StepperDescription>
+                  <div className="mt-5 hidden min-h-5 items-center gap-2 text-xs text-parcelis-gray dark:text-white/60 lg:flex">
                     {value === step.id ? saveStatus : null}
                   </div>
                 </div>

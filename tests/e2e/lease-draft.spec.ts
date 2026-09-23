@@ -18,9 +18,33 @@ test("uses a view options menu for property filters on mobile", async ({ page })
   await expect(page.getByRole("button", { name: "Add Property" })).toBeVisible();
   await expect(page.getByRole("button", { name: "View options" })).toBeVisible();
   await expect(page.getByRole("radiogroup", { name: "Property availability" })).not.toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole("button", { name: "View options" }).click();
   await expect(page.getByRole("menuitem", { name: "All properties" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "List view" })).toBeVisible();
+});
+
+test("keeps every lease step visible on an iPad in portrait", async ({ page }) => {
+  await page.setViewportSize({ height: 1024, width: 768 });
+  await page.goto("/leases/new");
+
+  const reviewStep = page.getByRole("tab", { name: "Review" });
+  await expect(reviewStep).toBeVisible();
+  await expect.poll(() => reviewStep.evaluate((element) => element.getBoundingClientRect().right <= window.innerWidth)).toBe(
+    true,
+  );
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("keeps the lease dashboard within the mobile viewport", async ({ page }) => {
+  await page.setViewportSize({ height: 844, width: 390 });
+  await page.goto("/leases");
+
+  await expect(page.getByRole("link", { name: "Portfolio" })).toBeVisible();
+  const createLease = page.getByRole("link", { name: "Create lease" });
+  await expect(createLease).toBeVisible();
+  await expect(createLease).toHaveText("Lease");
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test("creates a resumable draft after selecting a unit", async ({ page }) => {

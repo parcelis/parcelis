@@ -118,11 +118,14 @@ export default function LeasesPage() {
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
-            <Button asChild className="min-w-40" variant="secondary">
-              <Link href="/">Portfolio</Link>
+            <Button asChild aria-label="Portfolio" className="h-10 w-10 px-0 md:min-w-40 md:px-4" variant="secondary">
+              <Link href="/">
+                <Building2 className="h-4 w-4" />
+                <span className="hidden md:inline">Portfolio</span>
+              </Link>
             </Button>
           </div>
-          <Button asChild className="min-w-40">
+          <Button asChild aria-label="Create lease" className="min-w-40">
             <Link href={getNewLeaseLink()}>
               <Plus className="h-4 w-4" />
               Lease
