@@ -1,0 +1,19 @@
+apps/web/components/lease-creation-stepper.tsx
+  s_eff3a6915e768e::t_912ad86304ecae 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "8f43259b40ee3c31cb1cc64576fae634227b7c30",
+  "prompts": {},
+  "sessions": {
+    "s_eff3a6915e768e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cc99-5a91-7cd2-8f96-89d4661d8491",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
