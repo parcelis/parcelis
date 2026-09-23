@@ -1,0 +1,37 @@
+apps/api/src/router/app.router.ts
+  s_e48dd4f4ccc52a::t_7c55881c23b1bd 3833
+apps/web/components/lease-creation-stepper.tsx
+  s_e48dd4f4ccc52a::t_148d038d16499f 41-42,44,46-47
+tests/e2e/lease-draft.spec.ts
+  s_e48dd4f4ccc52a::t_926b5754f28963 21
+  s_e48dd4f4ccc52a::t_2fd78d0aaafe16 39-43,47-49
+  s_e48dd4f4ccc52a::t_0d7f96cc94d095 44-46
+  s_e48dd4f4ccc52a::t_148d038d16499f 27-38
+apps/web/app/(authenticated)/leases/page.tsx
+  s_e48dd4f4ccc52a::t_be7f869e6eedd6 121
+  s_e48dd4f4ccc52a::t_94c0247f038f00 128
+  s_e48dd4f4ccc52a::t_7003c2c73033f2 122-125
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_e48dd4f4ccc52a::t_2fb039b626ff6e 323
+  s_e48dd4f4ccc52a::t_f0bc241c79f48c 2231-2236,2238
+  s_e48dd4f4ccc52a::t_dd99901cd419d4 320
+  s_e48dd4f4ccc52a::t_969c94a7fa6da2 726
+  s_e48dd4f4ccc52a::t_8940c0692e46dc 620-621,643-646,735-747,754
+  s_e48dd4f4ccc52a::t_926b5754f28963 2307
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6d175ea9953e347aacb7921850f13554cb5c739f",
+  "prompts": {},
+  "sessions": {
+    "s_e48dd4f4ccc52a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cac3-1ece-70f0-9fe9-dba273a1a6d2",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
