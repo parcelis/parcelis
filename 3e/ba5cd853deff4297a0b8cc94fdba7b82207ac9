@@ -1,0 +1,36 @@
+apps/worker/src/main.ts
+  s_7d3631a21b1d01::t_bb76043908dbe1 1-3,6,8-31
+  s_7d3631a21b1d01::t_72ce530f8ca1bb 5,7
+packages/jobs/src/index.ts
+  s_7d3631a21b1d01::t_b9e849274f2904 1-4,8-21,26-52
+  s_7d3631a21b1d01::t_f127e8d703650f 22-25
+pnpm-workspace.yaml
+  s_7d3631a21b1d01::t_7db877e8f61278 8
+packages/jobs/tsconfig.json
+  s_7d3631a21b1d01::t_4b2d1ddd4f2869 1-5,7-11
+  s_7d3631a21b1d01::t_b9e849274f2904 6
+apps/worker/tsconfig.json
+  s_7d3631a21b1d01::t_90ce1c5ba74c97 1-11
+apps/worker/package.json
+  s_7d3631a21b1d01::t_1f8273398bb880 1-14,18-25
+packages/jobs/package.json
+  s_7d3631a21b1d01::t_4b2d1ddd4f2869 1-15,17-19,23-24,26-28
+  s_7d3631a21b1d01::t_bc812c2db35a19 16
+  s_7d3631a21b1d01::t_b9e849274f2904 20-22,25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "3eba5cd853deff4297a0b8cc94fdba7b82207ac9",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
