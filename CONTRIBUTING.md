@@ -90,7 +90,7 @@ pnpm dev
 
 #### What `pnpm dev` starts
 
-`pnpm dev` starts the web, API, docs, and React Email preview apps with hot reload. It also starts nginx, PostgreSQL, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
+`pnpm dev` starts the web, API, docs, React Email preview, shared jobs compiler, and worker apps with hot reload. It also starts nginx, PostgreSQL, Redis, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
 
 Use nginx as the normal local entry point:
 
@@ -115,6 +115,7 @@ The host processes and local services are also available directly:
 | pgAdmin       | `http://localhost:8000`  |
 | MinIO API     | `http://localhost:9001`  |
 | MinIO console | `http://localhost:9010`  |
+| Redis         | `localhost:63790`        |
 
 #### Local database
 
@@ -133,7 +134,7 @@ pnpm db:seed
 
 #### Useful commands
 
-- `pnpm dev:services:refresh`: recreate nginx, PostgreSQL, and MinIO while preserving their volumes, then rerun MinIO initialization.
+- `pnpm dev:services:refresh`: recreate nginx, PostgreSQL, Redis, and MinIO while preserving their volumes, then rerun MinIO initialization.
 - `pnpm --filter @parcelis/email email:preview`: run only the React Email template preview on `http://localhost:30001`.
 - `pnpm email:verify`: verify the configured SMTP connection and authentication without sending an email.
 - Stop an existing app watcher with `Ctrl+C` before starting another `pnpm dev` process.
@@ -171,7 +172,7 @@ Review generated code before committing it; replace fragile selectors and add ou
 
 Parcelis uses two Compose workflows:
 
-- `docker-compose-dev.yml` starts nginx and the local infrastructure services needed for development: PostgreSQL, pgAdmin, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, and docs processes stay on the host so you get hot reload.
+- `docker-compose-dev.yml` starts nginx and the local infrastructure services needed for development: PostgreSQL, pgAdmin, Redis, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, docs, jobs, and worker processes stay on the host so you get hot reload.
 - `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, plus PostgreSQL, Redis, and MinIO.
 
 #### Local development dependencies
@@ -182,7 +183,7 @@ cp .env.example .env
 docker compose -f docker-compose-dev.yml up -d
 ```
 
-The development stack provides the nginx proxy and local dependencies. `pnpm dev` starts nginx, PostgreSQL, MinIO, and MinIO initialization before starting the host-based web, API, docs, and React Email preview processes. Keep the compose stack running while you work, then stop it when you are done. Set `PROXY_PORT` when port 80 is already in use.
+The development stack provides the nginx proxy and local dependencies. `pnpm dev` starts nginx, PostgreSQL, Redis, MinIO, and MinIO initialization before starting the host-based web, API, docs, React Email preview, jobs, and worker processes. Keep the compose stack running while you work, then stop it when you are done. Set `PROXY_PORT` when port 80 is already in use.
 
 #### Production-style deployment
 

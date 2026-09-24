@@ -30,8 +30,7 @@ asset URLs are served by MinIO / S3-compatible storage.
 
 During local development, nginx listens on `http://localhost` and routes `/` to
 the web app, `/trpc/*` and `/api/*` to the API, and `/docs/*` to Docusaurus.
-The three application processes continue to run on their own host ports for hot
-reload.
+The web, API, docs, and worker application processes continue to run on their own host runtime for hot reload.
 
 ## Monorepo structure
 
@@ -42,6 +41,7 @@ reload.
 | `@parcelis/web`  | `apps/web`  | Next.js App Router operational UI                                | 30000        |
 | `@parcelis/api`  | `apps/api`  | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
 | `@parcelis/docs` | `apps/docs` | Docusaurus user, contributor, and generated API documentation    | 40000        |
+| `@parcelis/worker` | `apps/worker` | BullMQ queue connections and background job processing          | —            |
 
 ### Shared packages
 
