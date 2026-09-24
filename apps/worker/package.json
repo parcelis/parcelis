@@ -1,0 +1,25 @@
+{
+  "name": "@parcelis/worker",
+  "version": "0.4.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev:fixed": "tsx watch src/main.ts",
+    "lint": "eslint .",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@parcelis/jobs": "workspace:*",
+    "bullmq": "^6.3.8",
+    "ioredis": "^6.0.0"
+  },
+  "devDependencies": {
+    "@parcelis/config": "workspace:*",
+    "@types/node": "24.13.6",
+    "tsx": "^4.21.0",
+    "typescript": "6.0.3"
+  }
+}
