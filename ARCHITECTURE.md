@@ -162,7 +162,7 @@ Update the applicable user guide and generated API reference whenever a user-fac
 
 ## Local development
 
-`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, MinIO, and the MinIO initialization job for host-based development. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` runs published Parcelis application and documentation images with PostgreSQL and MinIO.
+`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, Redis, MinIO, and the MinIO initialization job for host-based development. Redis is password-protected and reserved for background jobs. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` runs published Parcelis application and documentation images with PostgreSQL, Redis, and MinIO.
 
 ```bash
 pnpm install

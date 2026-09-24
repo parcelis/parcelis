@@ -172,7 +172,7 @@ Review generated code before committing it; replace fragile selectors and add ou
 Parcelis uses two Compose workflows:
 
 - `docker-compose-dev.yml` starts nginx and the local infrastructure services needed for development: PostgreSQL, pgAdmin, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, and docs processes stay on the host so you get hot reload.
-- `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, plus PostgreSQL and MinIO.
+- `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, plus PostgreSQL, Redis, and MinIO.
 
 #### Local development dependencies
 
@@ -188,7 +188,7 @@ The development stack provides the nginx proxy and local dependencies. `pnpm dev
 
 Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/app`, `parcelis/docs`, and `parcelis/proxy`.
 
-Copy `.env.production.example` to `.env.production`, replace every placeholder, and set `PARCELIS_VERSION` to a release tag such as `v0.4.1` rather than using `latest`.
+Copy `.env.production.example` to `.env.production`, replace every placeholder (including `REDIS_PASSWORD`), and set `PARCELIS_VERSION` to a release tag such as `v0.4.1` rather than using `latest`.
 
 ```bash
 docker compose --env-file .env.production pull
