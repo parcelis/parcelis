@@ -1,0 +1,21 @@
+scripts/dev-local.mjs
+  s_7d3631a21b1d01::t_201f7a067f1d03 176-181,219
+  s_7d3631a21b1d01::t_ae97464daeb7b9 137-148,150
+  s_7d3631a21b1d01::t_7446f351f438e4 171-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "47e4ebebcdabfc6675c8116b1a33d4d2c4da2819",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
