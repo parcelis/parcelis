@@ -33,6 +33,22 @@ services:
       timeout: 5s
       retries: 10
 
+  redis-service:
+    image: redis:8-alpine
+    container_name: parcelis-dev-redis
+    command: ["/bin/sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-parcelis-redis}
+    ports:
+      - "${REDIS_PORT:-63790}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   pgadmin-service:
     image: dpage/pgadmin4:latest
     container_name: parcelis-dev-pgadmin
@@ -86,6 +102,7 @@ services:
 
 volumes:
   postgres-data:
+  redis-data:
   pgadmin-data:
   minio-data:
 
