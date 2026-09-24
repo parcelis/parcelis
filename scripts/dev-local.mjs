@@ -134,7 +134,20 @@ function startDevelopmentServices() {
   }
 }
 
+function buildJobsPackage() {
+  try {
+    execFileSync("pnpm", ["--filter", "@parcelis/jobs", "build"], {
+      cwd: resolve(import.meta.dirname, ".."),
+      stdio: "inherit",
+    });
+  } catch {
+    console.error("[parcelis] Could not build the shared jobs package.");
+    process.exit(1);
+  }
+}
+
 startDevelopmentServices();
+buildJobsPackage();
 
 const processes = [
   {
@@ -152,6 +165,18 @@ const processes = [
       REDIS_URL: redisUrl,
       ...emailEnvironment,
       WEB_ORIGIN: proxyOrigin,
+    },
+  },
+  {
+    name: "jobs",
+    args: ["--filter", "@parcelis/jobs", "dev:fixed"],
+    env: {},
+  },
+  {
+    name: "worker",
+    args: ["--filter", "@parcelis/worker", "dev:fixed"],
+    env: {
+      REDIS_URL: redisUrl,
     },
   },
   {
@@ -191,6 +216,7 @@ console.log(`[parcelis] API:  ${proxyOrigin}/api/v1`);
 console.log(`[parcelis] Docs: ${proxyOrigin}/docs/`);
 console.log(`[parcelis] Email preview: http://localhost:${emailPreviewPort}`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);
+console.log(`[parcelis] Worker: Redis queues ready`);
 
 const children = processes.map(({ name, args, env }) => {
   const child = spawn("pnpm", args, {
