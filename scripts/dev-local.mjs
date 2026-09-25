@@ -15,6 +15,9 @@ const requestedAppPort = Number(process.env.APP_PORT ?? process.env.PORT ?? 3000
 const requestedDocsPort = Number(process.env.DOCS_PORT ?? 40000);
 const requestedEmailPreviewPort = Number(process.env.EMAIL_PREVIEW_PORT ?? 30001);
 const requestedRedisPort = Number(process.env.REDIS_PORT ?? 63790);
+if (!Number.isInteger(requestedRedisPort) || requestedRedisPort < 1 || requestedRedisPort > 65535) {
+  throw new Error(`Invalid Redis port: ${requestedRedisPort}`);
+}
 
 function getListenerProcessIds(port) {
   try {
