@@ -522,6 +522,9 @@ importers:
       pg:
         specifier: ^8.20.0
         version: 8.23.0
+      prisma:
+        specifier: ^7.10.0
+        version: 7.10.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
     devDependencies:
       '@parcelis/config':
         specifier: workspace:*
@@ -529,9 +532,6 @@ importers:
       '@types/pg':
         specifier: ^8.16.0
         version: 8.23.1
-      prisma:
-        specifier: ^7.10.0
-        version: 7.10.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
       tsx:
         specifier: 4.23.14
         version: 4.23.14

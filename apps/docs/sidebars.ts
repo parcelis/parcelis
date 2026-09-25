@@ -77,6 +77,7 @@ const sidebars: SidebarsConfig = {
       items: [
         "getting-started/deploy-with-docker",
         "getting-started/deploy-with-docker-compose",
+        "getting-started/deploy-all-in-one-docker",
         "getting-started/email-configuration",
       ],
     },

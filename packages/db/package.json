@@ -18,12 +18,12 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "argon2": "^0.45.1",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "prisma": "^7.10.0"
   },
   "devDependencies": {
     "@parcelis/config": "workspace:*",
     "@types/pg": "^8.16.0",
-    "prisma": "^7.10.0",
     "tsx": "4.23.14",
     "typescript": "6.0.3"
   }
