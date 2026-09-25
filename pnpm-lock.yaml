@@ -287,7 +287,7 @@ importers:
         version: 24.13.6
       tsx:
         specifier: ^4.23.12
-        version: 4.23.13
+        version: 4.23.15
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -482,7 +482,7 @@ importers:
         version: 24.13.6
       tsx:
         specifier: ^4.21.0
-        version: 4.23.14
+        version: 4.23.15
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -574,7 +574,7 @@ importers:
     dependencies:
       bullmq:
         specifier: ^6.3.8
-        version: 6.3.8(pg@8.23.0)
+        version: 6.3.8(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.0)
     devDependencies:
       '@parcelis/config':
         specifier: workspace:*
@@ -10421,13 +10421,13 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
-  tsx@4.23.13:
-    resolution: {integrity: sha512-BL5MGkRln6aDYhb0xbQlEAGw743BaZYWdbWtdJOBriYJboKgUUYCadFp2/FpBBZquBC/ezNBn7wMMPx7FDZUDw==}
+  tsx@4.23.14:
+    resolution: {integrity: sha512-yFwMnbAsUFz/T3kR8P2ENc/DDUaYd9tKg4oVYo0lhkX0LlK4UuqYAO6mpQ2y6lmcyip1uPJ34C2kPACopDwG4w==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  tsx@4.23.14:
-    resolution: {integrity: sha512-yFwMnbAsUFz/T3kR8P2ENc/DDUaYd9tKg4oVYo0lhkX0LlK4UuqYAO6mpQ2y6lmcyip1uPJ34C2kPACopDwG4w==}
+  tsx@4.23.15:
+    resolution: {integrity: sha512-Yiex1Ovn8z2xPpOWckIiysV1SSyRMY9BkLF++q0yKiDxCqRhosKfMg3janKkiLBwZ5c/YryloKwGZcrEmtwxKw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -17060,16 +17060,6 @@ snapshots:
       ioredis: 6.0.0(supports-color@8.1.1)
       pg: 8.23.0
 
-  bullmq@6.3.8(pg@8.23.0):
-    dependencies:
-      cron-parser: 5.10.1
-      msgpackr: 2.1.0
-      node-abort-controller: 3.1.1
-      semver: 7.8.5
-      tslib: 2.8.1
-    optionalDependencies:
-      pg: 8.23.0
-
   bundle-name@4.1.0:
     dependencies:
       run-applescript: 7.1.0
@@ -22929,13 +22919,13 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tsx@4.23.13:
+  tsx@4.23.14:
     dependencies:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
 
-  tsx@4.23.14:
+  tsx@4.23.15:
     dependencies:
       esbuild: 0.28.2
     optionalDependencies:
