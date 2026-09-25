@@ -1,0 +1,19 @@
+packages/jobs/package.json
+  s_fef7785d7c2622::t_9dc5c43c1bf9a0 7,10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "fc54d6ccdea55d0ba9fa8f87600ae5fa0da7f0a6",
+  "prompts": {},
+  "sessions": {
+    "s_fef7785d7c2622": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0d8db-a73c-74e0-bc2f-1b41881faca9",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
