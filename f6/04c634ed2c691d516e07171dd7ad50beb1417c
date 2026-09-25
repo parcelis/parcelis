@@ -1,0 +1,21 @@
+scripts/dev-local.mjs
+  s_fb6ee0ee7c9d3d::t_bb8f5d4be5380b 222
+apps/worker/src/main.ts
+  s_fb6ee0ee7c9d3d::t_bb8f5d4be5380b 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "f604c634ed2c691d516e07171dd7ad50beb1417c",
+  "prompts": {},
+  "sessions": {
+    "s_fb6ee0ee7c9d3d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0da8d-99da-7802-9383-2893bb9e3fb8",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
