@@ -1,0 +1,19 @@
+ARCHITECTURE.md
+  s_bc62b33ce4e9c2::t_e66d80dc1a40f8 7,10,12-15,17,20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6861b6610cd115ae7da6542b0cc2ef76a193cbcf",
+  "prompts": {},
+  "sessions": {
+    "s_bc62b33ce4e9c2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0da7f-70e5-73d2-8a7c-34dd7e0f2cb3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
