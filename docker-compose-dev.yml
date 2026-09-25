@@ -36,7 +36,7 @@ services:
   redis-service:
     image: redis:8-alpine
     container_name: parcelis-dev-redis
-    command: ["/bin/sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-parcelis-redis}"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-parcelis-redis}
     ports:
@@ -44,7 +44,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping"]
       interval: 5s
       timeout: 5s
       retries: 10

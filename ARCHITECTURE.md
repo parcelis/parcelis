@@ -4,7 +4,7 @@ This document gives contributors a practical map of the Parcelis codebase, its r
 
 ## Overview
 
-Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has three applications and shared packages for UI, API contracts, configuration, and persistence.
+Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has four applications—the web app, API, docs, and worker—and shared packages for UI, API contracts, configuration, and persistence.
 
 ```text
                               Browser
