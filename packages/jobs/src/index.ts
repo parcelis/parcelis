@@ -24,7 +24,7 @@ export function getRedisConnectionOptions(environment: NodeJS.ProcessEnv = proce
     }
 
     return {
-      host: url.hostname,
+      host: url.hostname.replace(/^\[(.*)\]$/, "$1"),
       port: Number(url.port || 6379),
       ...(url.username ? { username: decodeURIComponent(url.username) } : {}),
       ...(url.password ? { password: decodeURIComponent(url.password) } : {}),
