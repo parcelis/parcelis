@@ -22,7 +22,7 @@ async function shutdown(signal: NodeJS.Signals) {
 
   isShuttingDown = true;
   console.info(`[parcelis] Worker received ${signal}; closing queue connections.`);
-  await Promise.all(queues.map((queue) => queue.close()));
+  await Promise.allSettled(queues.map((queue) => queue.close()));
   process.exit(0);
 }
 
