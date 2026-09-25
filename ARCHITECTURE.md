@@ -4,29 +4,21 @@ This document gives contributors a practical map of the Parcelis codebase, its r
 
 ## Overview
 
-Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has three applications and shared packages for UI, API contracts, configuration, and persistence.
+Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, docs, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
 ```text
-                              Browser
-                                 |
-                                 v
-            Parcelis application image (app)
-                     |
-          +----------+----------+
-          |                     |
-          v                     v
-Next.js web application     NestJS API
-     (apps/web)             (apps/api)
-                                  |
-                                  | Prisma
-                                  v
-                              PostgreSQL
+app image: Next.js web + NestJS API + worker + @parcelis/jobs
+
+Browser --> proxy container --+--> application container (app image)
+                              |       +--> Next.js web (apps/web)
+                              |       +--> NestJS API (apps/api) --Prisma--> PostgreSQL
+                              +--> documentation container (docs image)
+
+worker container (app image) --> worker (apps/worker) --> Redis
+```
 
 The browser reaches the API through the same application origin. Direct public
 asset URLs are served by MinIO / S3-compatible storage.
-
-      Docusaurus documentation site (apps/docs) is built and deployed separately.
-```
 
 During local development, nginx listens on `http://localhost` and routes `/` to
 the web app, `/trpc/*` and `/api/*` to the API, and `/docs/*` to Docusaurus.
