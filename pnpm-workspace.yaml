@@ -5,6 +5,7 @@ allowBuilds:
   argon2: true
   core-js: true
   esbuild: true
+  msgpackr-extract: false
   postman-code-generators: true
   prisma: true
 

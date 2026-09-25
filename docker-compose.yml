@@ -18,6 +18,22 @@ services:
     networks:
       - parcelis
 
+  redis-service:
+    image: redis:8-alpine
+    container_name: parcelis-redis
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - parcelis
+
   minio-service:
     image: minio/minio:latest
     container_name: parcelis-minio
@@ -119,6 +135,7 @@ services:
 
 volumes:
   postgres-data:
+  redis-data:
   minio-data:
 
 networks:

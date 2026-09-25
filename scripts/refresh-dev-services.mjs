@@ -12,8 +12,8 @@ function runCompose(args) {
 }
 
 try {
-  console.log("[parcelis] Refreshing nginx, PostgreSQL, and MinIO");
-  runCompose(["up", "-d", "--force-recreate", "proxy-service", "postgres-service", "minio-service"]);
+  console.log("[parcelis] Refreshing nginx, PostgreSQL, Redis, and MinIO");
+  runCompose(["up", "-d", "--force-recreate", "proxy-service", "postgres-service", "redis-service", "minio-service"]);
   runCompose(["up", "--force-recreate", "minio-init-service"]);
 } catch {
   console.error("[parcelis] Could not refresh local services. Ensure Docker is running, then try again.");

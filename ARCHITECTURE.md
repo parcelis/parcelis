@@ -4,7 +4,7 @@ This document gives contributors a practical map of the Parcelis codebase, its r
 
 ## Overview
 
-Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has three applications and shared packages for UI, API contracts, configuration, and persistence.
+Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has four applications—the web app, API, docs, and worker—and shared packages for UI, API contracts, configuration, and persistence.
 
 ```text
                               Browser
@@ -30,8 +30,7 @@ asset URLs are served by MinIO / S3-compatible storage.
 
 During local development, nginx listens on `http://localhost` and routes `/` to
 the web app, `/trpc/*` and `/api/*` to the API, and `/docs/*` to Docusaurus.
-The three application processes continue to run on their own host ports for hot
-reload.
+The web, API, docs, and worker application processes continue to run on their own host runtime for hot reload.
 
 ## Monorepo structure
 
@@ -42,6 +41,7 @@ reload.
 | `@parcelis/web`  | `apps/web`  | Next.js App Router operational UI                                | 30000        |
 | `@parcelis/api`  | `apps/api`  | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
 | `@parcelis/docs` | `apps/docs` | Docusaurus user, contributor, and generated API documentation    | 40000        |
+| `@parcelis/worker` | `apps/worker` | BullMQ queue connections and background job processing          | —            |
 
 ### Shared packages
 
@@ -162,7 +162,7 @@ Update the applicable user guide and generated API reference whenever a user-fac
 
 ## Local development
 
-`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, MinIO, and the MinIO initialization job for host-based development. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` runs published Parcelis application and documentation images with PostgreSQL and MinIO.
+`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, Redis, MinIO, and the MinIO initialization job for host-based development. Redis is password-protected and reserved for background jobs. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` runs published Parcelis application and documentation images with PostgreSQL, Redis, and MinIO.
 
 ```bash
 pnpm install

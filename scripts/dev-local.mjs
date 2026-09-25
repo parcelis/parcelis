@@ -14,6 +14,10 @@ const requestedApiPort = Number(process.env.API_PORT ?? 40010);
 const requestedAppPort = Number(process.env.APP_PORT ?? process.env.PORT ?? 30000);
 const requestedDocsPort = Number(process.env.DOCS_PORT ?? 40000);
 const requestedEmailPreviewPort = Number(process.env.EMAIL_PREVIEW_PORT ?? 30001);
+const requestedRedisPort = Number(process.env.REDIS_PORT ?? 63790);
+if (!Number.isInteger(requestedRedisPort) || requestedRedisPort < 1 || requestedRedisPort > 65535) {
+  throw new Error(`Invalid Redis port: ${requestedRedisPort}`);
+}
 
 function getListenerProcessIds(port) {
   try {
@@ -70,6 +74,8 @@ reservedPorts.add(appPort);
 const docsPort = await findOpenPort(requestedDocsPort, reservedPorts);
 reservedPorts.add(docsPort);
 const emailPreviewPort = await findOpenPort(requestedEmailPreviewPort, reservedPorts);
+reservedPorts.add(emailPreviewPort);
+const redisPort = await findOpenPort(requestedRedisPort, reservedPorts);
 const proxyPort = process.env.PROXY_PORT ?? 80;
 const proxyPortSuffix = Number(proxyPort) === 80 ? "" : `:${proxyPort}`;
 const proxyOrigin = `http://localhost${proxyPortSuffix}`;
@@ -80,6 +86,8 @@ const databaseUrl =
 const objectStorageEndpoint = process.env.S3_ENDPOINT ?? `http://localhost:${minioPort}`;
 const objectStoragePublicEndpoint =
   process.env.S3_PUBLIC_ENDPOINT ?? process.env.NEXT_PUBLIC_S3_URL ?? `http://localhost:${minioPort}`;
+const redisPassword = process.env.REDIS_PASSWORD ?? "parcelis-redis";
+const redisUrl = process.env.REDIS_URL ?? `redis://:${encodeURIComponent(redisPassword)}@localhost:${redisPort}`;
 const objectStorageBucket = process.env.S3_BUCKET ?? process.env.MINIO_BUCKET ?? "parcelis-images";
 const objectStorageAccessKeyId = process.env.S3_ACCESS_KEY_ID ?? process.env.MINIO_ROOT_USER ?? "parcelis-minio";
 const objectStorageSecretAccessKey =
@@ -106,6 +114,8 @@ function runCompose(args) {
       DOCS_PORT: String(docsPort),
       APP_PORT: String(appPort),
       EMAIL_PREVIEW_PORT: String(emailPreviewPort),
+      REDIS_PORT: String(redisPort),
+      REDIS_PASSWORD: redisPassword,
     },
     stdio: "inherit",
   });
@@ -116,15 +126,31 @@ function startDevelopmentServices() {
     console.log("[parcelis] Ensuring local services are running");
     runCompose(["up", "-d", "--force-recreate", "proxy-service"]);
     runCompose(["up", "-d", "--wait", "postgres-service"]);
+    runCompose(["up", "-d", "--wait", "redis-service"]);
     runCompose(["up", "-d", "minio-service"]);
     runCompose(["run", "--rm", "minio-init-service"]);
   } catch {
-    console.error("[parcelis] Could not start local services. Check Docker and the service output above, then run pnpm dev again.");
+    console.error(
+      "[parcelis] Could not start local services. Check Docker and the service output above, then run pnpm dev again.",
+    );
+    process.exit(1);
+  }
+}
+
+function buildJobsPackage() {
+  try {
+    execFileSync("pnpm", ["--filter", "@parcelis/jobs", "build"], {
+      cwd: resolve(import.meta.dirname, ".."),
+      stdio: "inherit",
+    });
+  } catch {
+    console.error("[parcelis] Could not build the shared jobs package.");
     process.exit(1);
   }
 }
 
 startDevelopmentServices();
+buildJobsPackage();
 
 const processes = [
   {
@@ -139,8 +165,21 @@ const processes = [
       S3_PUBLIC_ENDPOINT: objectStoragePublicEndpoint,
       S3_REGION: process.env.S3_REGION ?? "us-east-1",
       S3_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,
+      REDIS_URL: redisUrl,
       ...emailEnvironment,
       WEB_ORIGIN: proxyOrigin,
+    },
+  },
+  {
+    name: "jobs",
+    args: ["--filter", "@parcelis/jobs", "dev:fixed"],
+    env: {},
+  },
+  {
+    name: "worker",
+    args: ["--filter", "@parcelis/worker", "dev:fixed"],
+    env: {
+      REDIS_URL: redisUrl,
     },
   },
   {
@@ -180,6 +219,7 @@ console.log(`[parcelis] API:  ${proxyOrigin}/api/v1`);
 console.log(`[parcelis] Docs: ${proxyOrigin}/docs/`);
 console.log(`[parcelis] Email preview: http://localhost:${emailPreviewPort}`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);
+console.log(`[parcelis] Worker: Redis queues ready`);
 
 const children = processes.map(({ name, args, env }) => {
   const child = spawn("pnpm", args, {
