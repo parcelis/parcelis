@@ -4,29 +4,21 @@ This document gives contributors a practical map of the Parcelis codebase, its r
 
 ## Overview
 
-Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has four applications—the web app, API, docs, and worker—and shared packages for UI, API contracts, configuration, and persistence.
+Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, docs, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
 ```text
-                              Browser
-                                 |
-                                 v
-            Parcelis application image (app)
-                     |
-          +----------+----------+
-          |                     |
-          v                     v
-Next.js web application     NestJS API
-     (apps/web)             (apps/api)
-                                  |
-                                  | Prisma
-                                  v
-                              PostgreSQL
+app image: Next.js web + NestJS API + worker + @parcelis/jobs
+
+Browser --> proxy container --+--> application container (app image)
+                              |       +--> Next.js web (apps/web)
+                              |       +--> NestJS API (apps/api) --Prisma--> PostgreSQL
+                              +--> documentation container (docs image)
+
+worker container (app image) --> worker (apps/worker) --> Redis
+```
 
 The browser reaches the API through the same application origin. Direct public
 asset URLs are served by MinIO / S3-compatible storage.
-
-      Docusaurus documentation site (apps/docs) is built and deployed separately.
-```
 
 During local development, nginx listens on `http://localhost` and routes `/` to
 the web app, `/trpc/*` and `/api/*` to the API, and `/docs/*` to Docusaurus.
@@ -36,12 +28,12 @@ The web, API, docs, and worker application processes continue to run on their ow
 
 ### Applications
 
-| Package          | Location    | Responsibility                                                   | Default port |
-| ---------------- | ----------- | ---------------------------------------------------------------- | ------------ |
-| `@parcelis/web`  | `apps/web`  | Next.js App Router operational UI                                | 30000        |
-| `@parcelis/api`  | `apps/api`  | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
-| `@parcelis/docs` | `apps/docs` | Docusaurus user, contributor, and generated API documentation    | 40000        |
-| `@parcelis/worker` | `apps/worker` | BullMQ queue connections and background job processing          | —            |
+| Package            | Location      | Responsibility                                                   | Default port |
+| ------------------ | ------------- | ---------------------------------------------------------------- | ------------ |
+| `@parcelis/web`    | `apps/web`    | Next.js App Router operational UI                                | 30000        |
+| `@parcelis/api`    | `apps/api`    | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
+| `@parcelis/docs`   | `apps/docs`   | Docusaurus user, contributor, and generated API documentation    | 40000        |
+| `@parcelis/worker` | `apps/worker` | BullMQ queue connections and background job processing           | —            |
 
 ### Shared packages
 
@@ -50,7 +42,8 @@ The web, API, docs, and worker application processes continue to run on their ow
 | `@parcelis/ui`      | `packages/ui`      | Shared Tailwind and shadcn-style UI primitives, dialogs, drawers, and brand components |
 | `@parcelis/schemas` | `packages/schemas` | Zod input schemas and inferred TypeScript contracts shared by web and API              |
 | `@parcelis/db`      | `packages/db`      | Prisma schema, migrations, seed data, and database client exports                      |
-| `@parcelis/email`   | `packages/email`   | Server-only SMTP transport and reusable email delivery capabilities                     |
+| `@parcelis/jobs`    | `packages/jobs`    | Queue names and Redis connection configuration                                         |
+| `@parcelis/email`   | `packages/email`   | Server-only SMTP transport and reusable email delivery capabilities                    |
 | `@parcelis/config`  | `packages/config`  | Shared TypeScript, ESLint, Prettier, and Tailwind configuration                        |
 
 ## Request flow
@@ -186,7 +179,7 @@ For scoped work, prefer the package-level command, for example `pnpm --filter @p
 
 ## Container deployment
 
-`Dockerfile.app` builds `apps/web` and `apps/api` into the single `app` image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the container. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `app`, `docs`, and `proxy` to Docker Hub when a GitHub release is published.
+`Dockerfile.app` builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the single `app` image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the application container. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `app`, `docs`, and `proxy` to Docker Hub when a GitHub release is published.
 
 ## Design rules
 

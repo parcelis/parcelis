@@ -8,6 +8,8 @@ RUN apk add --no-cache nginx openssl supervisor && corepack enable
 COPY . .
 
 RUN pnpm install --frozen-lockfile \
+  && pnpm --filter @parcelis/jobs build \
+  && pnpm --filter @parcelis/worker build \
   && pnpm --filter @parcelis/api build \
   && pnpm --filter @parcelis/web build
 
