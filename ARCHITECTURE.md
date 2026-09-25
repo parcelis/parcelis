@@ -186,7 +186,7 @@ For scoped work, prefer the package-level command, for example `pnpm --filter @p
 
 ## Container deployment
 
-`Dockerfile.app` builds `apps/web` and `apps/api` into the single `app` image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the container. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `app`, `docs`, and `proxy` to Docker Hub when a GitHub release is published.
+`Dockerfile.app` builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the single `app` image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the application container. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `app`, `docs`, and `proxy` to Docker Hub when a GitHub release is published.
 
 ## Design rules
 

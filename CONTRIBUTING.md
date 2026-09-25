@@ -173,7 +173,7 @@ Review generated code before committing it; replace fragile selectors and add ou
 Parcelis uses two Compose workflows:
 
 - `docker-compose-dev.yml` starts nginx and the local infrastructure services needed for development: PostgreSQL, pgAdmin, Redis, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, docs, jobs, and worker processes stay on the host so you get hot reload.
-- `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, plus PostgreSQL, Redis, and MinIO.
+- `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, a separate worker container from the app image, plus PostgreSQL, Redis, and MinIO.
 
 #### Local development dependencies
 
@@ -196,7 +196,7 @@ docker compose --env-file .env.production pull
 docker compose --env-file .env.production up -d --remove-orphans
 ```
 
-The Compose stack runs the database migration job and MinIO provisioning before the application services become available. The `migrate` and `minio-init` containers exit after that initialization work; MinIO continues running and the app/docs services remain up. Put a TLS reverse proxy in front of the exposed web, docs, and object-storage endpoints configured in `.env.production`.
+The Compose stack runs the database migration job and MinIO provisioning before the application services become available. The `migrate` and `minio-init` containers exit after that initialization work; MinIO continues running and the app, docs, and worker services remain up. Put a TLS reverse proxy in front of the exposed web, docs, and object-storage endpoints configured in `.env.production`.
 The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `APP_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
 
 For logs and cleanup:

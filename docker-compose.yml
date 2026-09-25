@@ -119,11 +119,31 @@ services:
       S3_BUCKET: ${S3_BUCKET}
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      REDIS_HOST: redis-service
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     depends_on:
       migrate-service:
         condition: service_completed_successfully
       minio-init-service:
         condition: service_completed_successfully
+    networks:
+      - parcelis
+
+  worker-service:
+    image: parcelis/app:${PARCELIS_VERSION:-v0.4.1}
+    container_name: parcelis-worker
+    command: pnpm --filter @parcelis/worker start
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-service:5432/${POSTGRES_DB}?schema=public
+      REDIS_HOST: redis-service
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    depends_on:
+      migrate-service:
+        condition: service_completed_successfully
+      redis-service:
+        condition: service_healthy
     networks:
       - parcelis
 
