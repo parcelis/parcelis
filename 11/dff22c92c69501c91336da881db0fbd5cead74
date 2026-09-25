@@ -1,0 +1,21 @@
+ARCHITECTURE.md
+  s_fef7785d7c2622::t_15b1f06894f345 7
+docker-compose-dev.yml
+  s_fef7785d7c2622::t_c6939d6beaca0d 39,47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "11dff22c92c69501c91336da881db0fbd5cead74",
+  "prompts": {},
+  "sessions": {
+    "s_fef7785d7c2622": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0d8db-a73c-74e0-bc2f-1b41881faca9",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
