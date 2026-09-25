@@ -1,0 +1,19 @@
+packages/jobs/src/index.ts
+  s_fef7785d7c2622::t_0e050e63f67549 26-31,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b88768baced0a2f9aa19a43d58a23f89807bdb16",
+  "prompts": {},
+  "sessions": {
+    "s_fef7785d7c2622": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0d8db-a73c-74e0-bc2f-1b41881faca9",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
