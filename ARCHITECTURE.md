@@ -28,12 +28,12 @@ The web, API, docs, and worker application processes continue to run on their ow
 
 ### Applications
 
-| Package          | Location    | Responsibility                                                   | Default port |
-| ---------------- | ----------- | ---------------------------------------------------------------- | ------------ |
-| `@parcelis/web`  | `apps/web`  | Next.js App Router operational UI                                | 30000        |
-| `@parcelis/api`  | `apps/api`  | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
-| `@parcelis/docs` | `apps/docs` | Docusaurus user, contributor, and generated API documentation    | 40000        |
-| `@parcelis/worker` | `apps/worker` | BullMQ queue connections and background job processing          | —            |
+| Package            | Location      | Responsibility                                                   | Default port |
+| ------------------ | ------------- | ---------------------------------------------------------------- | ------------ |
+| `@parcelis/web`    | `apps/web`    | Next.js App Router operational UI                                | 30000        |
+| `@parcelis/api`    | `apps/api`    | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
+| `@parcelis/docs`   | `apps/docs`   | Docusaurus user, contributor, and generated API documentation    | 40000        |
+| `@parcelis/worker` | `apps/worker` | BullMQ queue connections and background job processing           | —            |
 
 ### Shared packages
 
@@ -42,7 +42,8 @@ The web, API, docs, and worker application processes continue to run on their ow
 | `@parcelis/ui`      | `packages/ui`      | Shared Tailwind and shadcn-style UI primitives, dialogs, drawers, and brand components |
 | `@parcelis/schemas` | `packages/schemas` | Zod input schemas and inferred TypeScript contracts shared by web and API              |
 | `@parcelis/db`      | `packages/db`      | Prisma schema, migrations, seed data, and database client exports                      |
-| `@parcelis/email`   | `packages/email`   | Server-only SMTP transport and reusable email delivery capabilities                     |
+| `@parcelis/jobs`    | `packages/jobs`    | Queue names and Redis connection configuration                                         |
+| `@parcelis/email`   | `packages/email`   | Server-only SMTP transport and reusable email delivery capabilities                    |
 | `@parcelis/config`  | `packages/config`  | Shared TypeScript, ESLint, Prettier, and Tailwind configuration                        |
 
 ## Request flow

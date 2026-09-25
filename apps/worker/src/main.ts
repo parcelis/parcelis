@@ -3,9 +3,7 @@ import { getRedisConnectionOptions, queueNames } from "@parcelis/jobs";
 
 // Initialize Redis connection and create queues.
 const connection = getRedisConnectionOptions();
-const queues = Object.values(queueNames).map(
-  (name) => new Queue(name, { connection }),
-);
+const queues = Object.values(queueNames).map((name) => new Queue(name, { connection }));
 
 // Wait until all queues are ready before starting the worker.
 await Promise.all(queues.map((queue) => queue.waitUntilReady()));
@@ -22,7 +20,7 @@ async function shutdown(signal: NodeJS.Signals) {
 
   isShuttingDown = true;
   console.info(`[parcelis] Worker received ${signal}; closing queue connections.`);
-  await Promise.all(queues.map((queue) => queue.close()));
+  await Promise.allSettled(queues.map((queue) => queue.close()));
   process.exit(0);
 }
 

@@ -23,9 +23,15 @@ export function getRedisConnectionOptions(environment: NodeJS.ProcessEnv = proce
       throw new Error("REDIS_URL must include a password.");
     }
 
+    const port = Number(url.port || 6379);
+
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      throw new Error("REDIS_URL port must be an integer between 1 and 65535.");
+    }
+
     return {
-      host: url.hostname,
-      port: Number(url.port || 6379),
+      host: url.hostname.replace(/^\[(.*)\]$/, "$1"),
+      port,
       ...(url.username ? { username: decodeURIComponent(url.username) } : {}),
       ...(url.password ? { password: decodeURIComponent(url.password) } : {}),
       ...(url.protocol === "rediss:" ? { tls: {} } : {}),
