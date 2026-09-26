@@ -99,7 +99,7 @@ export async function claimAvailableOutboxEvents(
   const claimToken = options.claimToken ?? randomUUID();
   const lockedUntil = new Date(now.getTime() + lockDurationMs);
   const claimableWhere = getClaimableOutboxEventWhere(now);
-  
+
   // Retrieve the candidate outbox events that are eligible for claiming.
   const candidates = await prisma.outboxEvent.findMany({
     where: claimableWhere,
@@ -239,4 +239,31 @@ export async function markOutboxEventFailed(
     claimToken: null,
     lastError: input.error,
   });
+}
+
+// Replays a failed outbox event by marking it as pending and resetting its relevant timestamps and claim information. Ensures the event belongs to the specified organization.
+export async function replayFailedOutboxEvent(
+  prisma: OutboxEventClient,
+  input: { organizationId: number; eventId: number; availableAt?: Date },
+) {
+  const updated = await prisma.outboxEvent.updateMany({
+    where: {
+      id: input.eventId,
+      organizationId: input.organizationId,
+      status: OutboxEventStatus.failed,
+    },
+    data: {
+      status: OutboxEventStatus.pending,
+      availableAt: input.availableAt ?? new Date(),
+      failedAt: null,
+      lockedUntil: null,
+      claimToken: null,
+    },
+  });
+
+  if (updated.count !== 1) {
+    return null;
+  }
+
+  return prisma.outboxEvent.findUniqueOrThrow({ where: { id: input.eventId } });
 }

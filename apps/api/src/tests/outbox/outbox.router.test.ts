@@ -1,0 +1,61 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { appRouter } from "../../router/app.router";
+import type { Context } from "../../router/context";
+
+function createCaller(prisma: unknown, role: string) {
+  return appRouter.createCaller({
+    prisma,
+    session: { user: { id: 1, role } },
+    organization: { organizationId: 7 },
+  } as unknown as Context);
+}
+
+test("only application administrators can list failed outbox events", async () => {
+  let queried = false;
+  const caller = createCaller(
+    {
+      outboxEvent: {
+        findMany: async ({ where, take }: { where: unknown; take: number }) => {
+          queried = true;
+          assert.deepEqual(where, { organizationId: 7, status: "failed" });
+          assert.equal(take, 50);
+          return [];
+        },
+      },
+    },
+    "administrator",
+  );
+
+  assert.deepEqual(await caller.outboxEvents.failed({}), []);
+  assert.equal(queried, true);
+
+  const unauthorizedCaller = createCaller({}, "property_manager");
+  await assert.rejects(unauthorizedCaller.outboxEvents.failed({}), { code: "FORBIDDEN" });
+});
+
+test("only application administrators can replay a failed event in the active organization", async () => {
+  let updated = false;
+  const caller = createCaller(
+    {
+      outboxEvent: {
+        updateMany: async ({ where, data }: { where: unknown; data: Record<string, unknown> }) => {
+          assert.deepEqual(where, { id: 21, organizationId: 7, status: "failed" });
+          assert.equal(data.status, "pending");
+          assert.equal(data.failedAt, null);
+          updated = true;
+          return { count: 1 };
+        },
+        findUniqueOrThrow: async () => ({ id: 21, organizationId: 7, status: "pending" }),
+      },
+    },
+    "administrator",
+  );
+
+  const result = await caller.outboxEvents.replay({ id: 21 });
+  assert.deepEqual(result, { id: 21, organizationId: 7, status: "pending" });
+  assert.equal(updated, true);
+
+  const unauthorizedCaller = createCaller({}, "property_manager");
+  await assert.rejects(unauthorizedCaller.outboxEvents.replay({ id: 21 }), { code: "FORBIDDEN" });
+});

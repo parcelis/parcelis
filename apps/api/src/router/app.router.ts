@@ -3,6 +3,8 @@ import {
   createPropertyInputSchema,
   createLeaseInputSchema,
   leaseByIdInputSchema,
+  outboxEventByIdInputSchema,
+  outboxEventListInputSchema,
   leaseDraftUpdateInputSchema,
   leaseDraftDataSchema,
   leaseDraftCreateInputSchema,
@@ -87,6 +89,7 @@ import {
   PrismaClient,
   UnitType,
   type UserRole,
+  replayFailedOutboxEvent,
 } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -1147,6 +1150,43 @@ export const appRouter = router({
           }),
         ),
       );
+    }),
+  }),
+  outboxEvents: router({
+    failed: publicProcedure.input(outboxEventListInputSchema).query(({ ctx, input }) => {
+      requireAdministrator(ctx.user.role as UserRole);
+
+      return ctx.prisma.outboxEvent.findMany({
+        where: { organizationId: ctx.organization.organizationId, status: "failed" },
+        orderBy: [{ failedAt: "desc" }, { id: "desc" }],
+        take: input.limit,
+        select: {
+          id: true,
+          eventType: true,
+          schemaVersion: true,
+          payload: true,
+          idempotencyKey: true,
+          attemptCount: true,
+          lastAttemptAt: true,
+          failedAt: true,
+          lastError: true,
+          createdAt: true,
+        },
+      });
+    }),
+    replay: publicProcedure.input(outboxEventByIdInputSchema).mutation(async ({ ctx, input }) => {
+      requireAdministrator(ctx.user.role as UserRole);
+
+      const event = await replayFailedOutboxEvent(ctx.prisma, {
+        organizationId: ctx.organization.organizationId,
+        eventId: input.id,
+      });
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Failed outbox event not found in this organization." });
+      }
+
+      return event;
     }),
   }),
   /** Reports API health and the public object-storage configuration. */

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { OutboxEventStatus, type OutboxEvent, type PrismaClient } from "@prisma/client";
-import { claimAvailableOutboxEvents, getOutboxRetryDelayMs } from "../outbox.js";
+import { claimAvailableOutboxEvents, getOutboxRetryDelayMs, replayFailedOutboxEvent } from "../outbox.js";
 
 function createEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
   const now = new Date("2026-09-26T12:00:00.000Z");
@@ -136,4 +136,38 @@ test("retry delay grows exponentially and stops at fifteen minutes", () => {
   assert.equal(getOutboxRetryDelayMs(2), 2_000);
   assert.equal(getOutboxRetryDelayMs(4), 8_000);
   assert.equal(getOutboxRetryDelayMs(20), 15 * 60_000);
+});
+
+test("authorized replay returns a failed event to pending without resetting its attempts", async () => {
+  let event = createEvent({
+    status: OutboxEventStatus.failed,
+    attemptCount: 4,
+    failedAt: new Date("2026-09-26T11:00:00.000Z"),
+    lastError: "Unsupported outbox event.",
+  });
+  const now = new Date("2026-09-26T12:30:00.000Z");
+  const prisma = {
+    outboxEvent: {
+      updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+        assert.equal(where.organizationId, event.organizationId);
+        assert.equal(where.status, OutboxEventStatus.failed);
+        event = { ...event, ...data } as OutboxEvent;
+        return { count: 1 };
+      },
+      findUniqueOrThrow: async () => event,
+    },
+  } as unknown as PrismaClient;
+
+  const replayed = await replayFailedOutboxEvent(prisma, {
+    organizationId: event.organizationId,
+    eventId: event.id,
+    availableAt: now,
+  });
+
+  assert.ok(replayed);
+  assert.equal(replayed.status, OutboxEventStatus.pending);
+  assert.equal(replayed.availableAt, now);
+  assert.equal(replayed.attemptCount, 4);
+  assert.equal(replayed.failedAt, null);
+  assert.equal(replayed.lastError, "Unsupported outbox event.");
 });

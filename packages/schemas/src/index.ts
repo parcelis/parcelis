@@ -525,6 +525,8 @@ export const leaseDraftUpdateInputSchema = z.object({
 });
 
 export const leaseByIdInputSchema = z.object({ id: idSchema });
+export const outboxEventByIdInputSchema = z.object({ id: idSchema });
+export const outboxEventListInputSchema = z.object({ limit: z.number().int().min(1).max(100).default(50) });
 
 export const leasePropertyStepSchema = z.object({
   propertyId: idSchema,
