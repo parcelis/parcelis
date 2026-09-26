@@ -1,3 +1,4 @@
+export * from "./outbox.js";
 export {
   ActivitySubjectType,
   LeaseStatus,
