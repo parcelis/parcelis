@@ -1,0 +1,33 @@
+packages/db/src/outbox.ts
+  s_7d3631a21b1d01::t_0f656d9b4a6163 243,245-264,266-269
+  s_7d3631a21b1d01::t_a7490ee6fd5abf 102,244,265
+ARCHITECTURE.md
+  s_7d3631a21b1d01::t_a734febd2a9f1f 78
+apps/api/src/router/app.router.ts
+  s_7d3631a21b1d01::t_47716d59812568 6-7,92,1155-1179,1187
+  s_7d3631a21b1d01::t_a7490ee6fd5abf 1180-1186,1188-1189
+apps/api/src/tests/outbox/outbox.router.test.ts
+  s_7d3631a21b1d01::t_6a80c2dec338e0 1-29,31-33,35-61
+  s_7d3631a21b1d01::t_324c1990bde313 30,34
+packages/db/src/tests/outbox.test.ts
+  s_7d3631a21b1d01::t_e304e3acb27a32 140-166,168-172
+  s_7d3631a21b1d01::t_808cafe2fd4864 4,167
+packages/schemas/src/index.ts
+  s_7d3631a21b1d01::t_3ffdad56174837 528-529
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "0968096ac3dd33657f5c7519bb1854e17eb9142f",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
