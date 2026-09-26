@@ -464,6 +464,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@parcelis/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@parcelis/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs

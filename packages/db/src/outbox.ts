@@ -99,6 +99,8 @@ export async function claimAvailableOutboxEvents(
   const claimToken = options.claimToken ?? randomUUID();
   const lockedUntil = new Date(now.getTime() + lockDurationMs);
   const claimableWhere = getClaimableOutboxEventWhere(now);
+  
+  // Retrieve the candidate outbox events that are eligible for claiming.
   const candidates = await prisma.outboxEvent.findMany({
     where: claimableWhere,
     select: { id: true },
