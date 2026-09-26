@@ -4,13 +4,15 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, ChevronRight, DoorOpen, Plus, Search } from "lucide-react";
+import { Building2, ChevronRight, DoorOpen, Filter, Plus, Search } from "lucide-react";
 import {
   Button,
   Card,
   CardContent,
   CardHeader,
   Input,
+  Label,
+  Select,
   Table,
   TableBody,
   TableCell,
@@ -72,6 +74,11 @@ function getTenantName(lease: { tenant: { firstName: string; lastName: string } 
   return `${lease.tenant.firstName} ${lease.tenant.lastName}`;
 }
 
+function parseEntityId(value: string | null) {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
 function getLeaseInvoices<T>(lease: { invoices?: T[] }) {
   return lease.invoices ?? [];
 }
@@ -89,11 +96,14 @@ function IncomePageContent() {
   const [groupByProperty, setGroupByProperty] = React.useState(true);
   const [search, setSearch] = React.useState("");
   const [isInvoiceDrawerOpen, setIsInvoiceDrawerOpen] = React.useState(false);
+  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [draftUnitId, setDraftUnitId] = React.useState("all");
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const tenantId = Number(searchParams.get("tenantId"));
   const selectedTenantId = Number.isInteger(tenantId) && tenantId > 0 ? tenantId : null;
+  const selectedUnitId = parseEntityId(searchParams.get("unitId"));
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -113,7 +123,8 @@ function IncomePageContent() {
       const incomeLeases = property.leases.filter(
         (lease) =>
           (lease.status === "active" || lease.status === "notice") &&
-          (selectedTenantId === null || lease.tenant.id === selectedTenantId),
+          (selectedTenantId === null || lease.tenant.id === selectedTenantId) &&
+          (selectedUnitId === null || lease.unitId === selectedUnitId),
       );
       return {
         ...property,
@@ -149,6 +160,15 @@ function IncomePageContent() {
       persistedInvoice,
     }));
   });
+
+  function setUnitFilter(unitId: number | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (unitId === null) params.delete("unitId");
+    else params.set("unitId", String(unitId));
+    const query = params.toString();
+    router.replace(query ? `/income?${query}` : "/income", { scroll: false });
+    setIsFilterOpen(false);
+  }
 
   function toggleProperty(propertyId: number) {
     setExpandedPropertyIds((current) => {
@@ -196,7 +216,7 @@ function IncomePageContent() {
 
           <Card>
             <CardHeader>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="font-semibold text-parcelis-charcoal">
                     {groupByProperty ? "Income by property" : "Income rent roll"}
@@ -217,10 +237,55 @@ function IncomePageContent() {
                       value={search}
                     />
                   </label>
+                  <Button
+                    onClick={() => {
+                      setDraftUnitId(selectedUnitId === null ? "all" : String(selectedUnitId));
+                      setIsFilterOpen((isOpen) => !isOpen);
+                    }}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    {selectedUnitId !== null ? " (1)" : ""}
+                  </Button>
                   <Button onClick={() => setGroupByProperty((grouped) => !grouped)} type="button" variant="secondary">
                     {groupByProperty ? "Grouped By Property" : " Not Grouped"}
                   </Button>
                 </div>
+                {isFilterOpen ? (
+                  <div className="absolute right-0 top-full z-20 mt-3 w-full max-w-sm rounded-lg border border-parcelis-border bg-white p-5 shadow-lg">
+                    <Label className="gap-2">
+                      <span>Unit</span>
+                      <Select onChange={(event) => setDraftUnitId(event.target.value)} value={draftUnitId}>
+                        <option value="all">All units</option>
+                        {properties
+                          .filter((property) => property.units.length > 0)
+                          .map((property) => (
+                            <optgroup key={property.id} label={property.name}>
+                              {property.units.map((unit) => (
+                                <option key={unit.id} value={String(unit.id)}>
+                                  {unit.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                      </Select>
+                    </Label>
+                    <div className="mt-5 flex items-center justify-between border-t border-parcelis-border pt-4">
+                      <button
+                        className="text-sm font-semibold text-red-600 hover:underline"
+                        onClick={() => setUnitFilter(null)}
+                        type="button"
+                      >
+                        Clear Filters
+                      </button>
+                      <Button onClick={() => setUnitFilter(parseEntityId(draftUnitId))} type="button">
+                        Apply Filters
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
@@ -232,9 +297,11 @@ function IncomePageContent() {
                 </div>
               ) : filteredIncomeProperties.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">
-                  {incomeProperties.length === 0
-                    ? "No active leases are available to report income yet."
-                    : "No income records match your search."}
+                  {selectedUnitId !== null && incomeProperties.length === 0
+                    ? "No active leases for the selected unit."
+                    : incomeProperties.length === 0
+                      ? "No active leases are available to report income yet."
+                      : "No income records match your search."}
                 </div>
               ) : groupByProperty ? (
                 <Table className="min-w-[1360px] border-collapse text-left">
