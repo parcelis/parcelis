@@ -105,6 +105,13 @@ enum UserAccountStatus {
   disabled
 }
 
+enum OutboxEventStatus {
+  pending
+  processing
+  dispatched
+  failed
+}
+
 enum PermissionResource {
   users
   properties
@@ -157,6 +164,7 @@ model Organization {
   invoiceRecipients     InvoiceRecipient[]
   maintenanceTickets    MaintenanceTicket[]
   activityEvents        ActivityEvent[]
+  outboxEvents          OutboxEvent[]
   defaultUsers          User[]                   @relation("UserDefaultOrganization")
   activeSessions        Session[]                @relation("SessionActiveOrganization")
   emailSettings         OrganizationEmailSettings?
@@ -764,6 +772,32 @@ model ActivityEvent {
   @@index([propertyId, createdAt, id])
   @@index([action, createdAt])
   @@index([organizationId, createdAt])
+}
+
+model OutboxEvent {
+  id             Int               @id @default(autoincrement())
+  organizationId Int
+  eventType      String
+  schemaVersion  Int               @default(1)
+  payload        Json
+  idempotencyKey String
+  availableAt    DateTime          @default(now())
+  status         OutboxEventStatus @default(pending)
+  attemptCount   Int               @default(0)
+  lastAttemptAt  DateTime?
+  lockedUntil    DateTime?
+  claimToken     String?
+  dispatchedAt   DateTime?
+  failedAt       DateTime?
+  lastError      String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([status, availableAt, id])
+  @@index([status, lockedUntil, id])
+  @@index([organizationId, status, createdAt])
 }
 
 model MaintenanceAttachment {
