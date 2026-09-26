@@ -47,6 +47,7 @@ When adding or removing a primary technology or service, update this file in the
 | [Prisma](https://www.prisma.io/) and [PostgreSQL](https://www.postgresql.org/) | Database schema, migrations, and application data. |
 | [MinIO](https://min.io/) | Local S3-compatible object storage for images and assets. |
 | [Redis](https://redis.io/) | Background-job queue and transient coordination foundation. |
+| [BullMQ](https://bullmq.io/) | Redis-backed queues and delivery of validated background jobs from the PostgreSQL outbox. |
 | [Zod](https://zod.dev/) | Shared validation for application data. |
 
 ## Interface

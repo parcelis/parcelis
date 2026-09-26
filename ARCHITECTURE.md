@@ -33,7 +33,7 @@ The web, API, docs, and worker application processes continue to run on their ow
 | `@parcelis/web`    | `apps/web`    | Next.js App Router operational UI                                | 30000        |
 | `@parcelis/api`    | `apps/api`    | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
 | `@parcelis/docs`   | `apps/docs`   | Docusaurus user, contributor, and generated API documentation    | 40000        |
-| `@parcelis/worker` | `apps/worker` | BullMQ queue connections and background job processing           | —            |
+| `@parcelis/worker` | `apps/worker` | PostgreSQL outbox dispatch and BullMQ background job processing  | —            |
 
 ### Shared packages
 
@@ -41,8 +41,8 @@ The web, API, docs, and worker application processes continue to run on their ow
 | ------------------- | ------------------ | -------------------------------------------------------------------------------------- |
 | `@parcelis/ui`      | `packages/ui`      | Shared Tailwind and shadcn-style UI primitives, dialogs, drawers, and brand components |
 | `@parcelis/schemas` | `packages/schemas` | Zod input schemas and inferred TypeScript contracts shared by web and API              |
-| `@parcelis/db`      | `packages/db`      | Prisma schema, migrations, seed data, and database client exports                      |
-| `@parcelis/jobs`    | `packages/jobs`    | Queue names and Redis connection configuration                                         |
+| `@parcelis/db`      | `packages/db`      | Prisma schema, migrations, seed data, database client, and durable outbox operations   |
+| `@parcelis/jobs`    | `packages/jobs`    | Queue names, Redis configuration, and versioned event and job contracts                |
 | `@parcelis/email`   | `packages/email`   | Server-only SMTP transport and reusable email delivery capabilities                    |
 | `@parcelis/config`  | `packages/config`  | Shared TypeScript, ESLint, Prettier, and Tailwind configuration                        |
 
@@ -72,6 +72,12 @@ appRouter procedure
 The web app creates a typed tRPC proxy client in `apps/web/components/api-client.ts`. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies Nest's `PrismaService`, authenticated user and session, and the active organization to every procedure.
 
 The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
+
+## Background jobs and outbox
+
+Business code records an `OutboxEvent` in PostgreSQL in the same transaction as the related database change. The worker claims due events with a time-limited claim token, validates each versioned contract from `@parcelis/jobs`, and adds a BullMQ job to Redis with a deterministic job ID. It then records dispatch success in PostgreSQL. A temporary queue error returns the event to `pending` with capped exponential backoff; unsupported event versions or malformed payloads remain `failed` for inspection and authorized replay.
+
+PostgreSQL is the durable source of truth and Redis is the delivery mechanism. Delivery is at least once: a worker can crash after enqueueing a job but before recording success, so job consumers must be idempotent. Expired claims make interrupted events eligible for recovery after a worker restart.
 
 ## Frontend
 
@@ -176,6 +182,13 @@ pnpm build
 ```
 
 For scoped work, prefer the package-level command, for example `pnpm --filter @parcelis/web typecheck`.
+
+The durable outbox and dispatcher checks can be run with:
+
+```bash
+pnpm --filter @parcelis/db test
+pnpm --filter @parcelis/worker test
+```
 
 ## Container deployment
 

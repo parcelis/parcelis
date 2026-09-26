@@ -148,6 +148,13 @@ Keep API unit and router tests in feature folders under `apps/api/src/tests`, su
 pnpm --filter @parcelis/api test
 ```
 
+The durable outbox and worker dispatcher use the same Node test runner:
+
+```bash
+pnpm --filter @parcelis/db test
+pnpm --filter @parcelis/worker test
+```
+
 ### End-to-end tests
 
 Parcelis uses Playwright for browser-level tests. Install Chromium once after installing dependencies:
