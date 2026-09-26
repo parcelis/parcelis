@@ -2,6 +2,7 @@ import {
   claimAvailableOutboxEvents,
   markOutboxEventDispatched,
   markOutboxEventFailed,
+  type OutboxEvent,
   PrismaClient,
   rescheduleOutboxEvent,
 } from "@parcelis/db";
@@ -14,6 +15,64 @@ const pollIntervalMs = 1_000;
 // Extracts the error message from an unknown error object. If the error is an instance of Error, returns its message; otherwise, converts it to a string.
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<string, Queue>, event: OutboxEvent) {
+  const claimToken = event.claimToken;
+
+  if (!claimToken) {
+    return;
+  }
+
+  let contract;
+  let jobData;
+
+  try {
+    contract = getOutboxEventContract(event.eventType, event.schemaVersion);
+    const payload = parseOutboxEventPayload(event.eventType, event.schemaVersion, event.payload);
+    jobData = contract.jobSchema.parse({ ...payload, outboxEventId: event.id });
+  } catch (error) {
+    await markOutboxEventFailed(prisma, {
+      id: event.id,
+      claimToken,
+      error: getErrorMessage(error),
+    });
+    return;
+  }
+
+  const queue = queues.get(contract.queueName);
+
+  if (!queue) {
+    await markOutboxEventFailed(prisma, {
+      id: event.id,
+      claimToken,
+      error: `No queue is configured for ${contract.queueName}.`,
+    });
+    return;
+  }
+
+  try {
+    await queue.add(contract.jobName, jobData, {
+      jobId: getOutboxEventJobId(event.id),
+    });
+  } catch (error) {
+    try {
+      await rescheduleOutboxEvent(prisma, {
+        id: event.id,
+        claimToken,
+        error: getErrorMessage(error),
+      });
+    } catch (rescheduleError) {
+      console.error(`[parcelis] Could not reschedule outbox event ${event.id}: ${getErrorMessage(rescheduleError)}`);
+    }
+    return;
+  }
+
+  try {
+    await markOutboxEventDispatched(prisma, { id: event.id, claimToken });
+  } catch (error) {
+    console.error(`[parcelis] Could not mark outbox event ${event.id} as dispatched: ${getErrorMessage(error)}`);
+  }
 }
 
 // Starts the outbox dispatcher, which continuously polls for available outbox events, claims them, and dispatches them to the appropriate queues. Returns a function to stop the dispatcher.
@@ -34,65 +93,10 @@ export function startOutboxDispatcher(prisma: PrismaClient, queues: Map<string, 
       const events = await claimAvailableOutboxEvents(prisma);
 
       for (const event of events) {
-        const claimToken = event.claimToken;
-
-        if (!claimToken) {
-          continue;
-        }
-
-        let contract;
-        let payload;
-
-        // Validate the outbox event payload against the expected contract schema. If validation fails, mark the event as failed and continue to the next event.
         try {
-          contract = getOutboxEventContract(event.eventType, event.schemaVersion);
-          payload = parseOutboxEventPayload(event.eventType, event.schemaVersion, event.payload);
-          contract.jobSchema.parse({ ...payload, outboxEventId: event.id });
+          await dispatchOutboxEvent(prisma, queues, event);
         } catch (error) {
-          await markOutboxEventFailed(prisma, {
-            id: event.id,
-            claimToken,
-            error: getErrorMessage(error),
-          });
-          continue;
-        }
-
-        const queue = queues.get(contract.queueName);
-
-        if (!queue) {
-          await markOutboxEventFailed(prisma, {
-            id: event.id,
-            claimToken,
-            error: `No queue is configured for ${contract.queueName}.`,
-          });
-          continue;
-        }
-
-        const jobData = contract.jobSchema.parse({ ...payload, outboxEventId: event.id });
-
-        try {
-          await queue.add(contract.jobName, jobData, {
-            jobId: getOutboxEventJobId(event.id),
-          });
-        } catch (error) {
-          try {
-            await rescheduleOutboxEvent(prisma, {
-              id: event.id,
-              claimToken,
-              error: getErrorMessage(error),
-            });
-          } catch (rescheduleError) {
-            console.error(
-              `[parcelis] Could not reschedule outbox event ${event.id}: ${getErrorMessage(rescheduleError)}`,
-            );
-          }
-          continue;
-        }
-
-        try {
-          await markOutboxEventDispatched(prisma, { id: event.id, claimToken });
-        } catch (error) {
-          console.error(`[parcelis] Could not mark outbox event ${event.id} as dispatched: ${getErrorMessage(error)}`);
+          console.error(`[parcelis] Could not process outbox event ${event.id}: ${getErrorMessage(error)}`);
         }
       }
     } catch (error) {
