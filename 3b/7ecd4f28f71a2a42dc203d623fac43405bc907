@@ -1,0 +1,21 @@
+packages/db/src/index.ts
+  s_7d3631a21b1d01::t_885e56f2ef4805 1
+packages/db/src/outbox.ts
+  s_7d3631a21b1d01::t_885e56f2ef4805 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "3b7ecd4f28f71a2a42dc203d623fac43405bc907",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
