@@ -18,7 +18,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "bullmq": "^6.3.8"
+    "bullmq": "^6.3.8",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@parcelis/config": "workspace:*",

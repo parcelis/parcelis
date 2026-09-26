@@ -1,12 +1,7 @@
 import type { ConnectionOptions } from "bullmq";
 
-// Queue names used throughout the application.
-export const queueNames = {
-  accountNotifications: "account-notifications",
-  leasingNotifications: "leasing-notifications",
-  billingNotifications: "billing-notifications",
-  outboxDispatch: "outbox-dispatch",
-} as const;
+export * from "./contracts.js";
+export * from "./queue-names.js";
 
 // Retrieves Redis connection options based on environment variables.
 export function getRedisConnectionOptions(environment: NodeJS.ProcessEnv = process.env): ConnectionOptions {
