@@ -1,0 +1,24 @@
+CONTRIBUTING.md
+  s_7d3631a21b1d01::t_dbba8b4e32b020 151-157
+DEPENDENCIES.md
+  s_7d3631a21b1d01::t_dbba8b4e32b020 50
+ARCHITECTURE.md
+  s_7d3631a21b1d01::t_dbba8b4e32b020 44-45,76-81,186-191
+  s_7d3631a21b1d01::t_c8b8257eb19fed 36,192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1114cbc00b15abf35d8cd442ee578492efb7c7a1",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
