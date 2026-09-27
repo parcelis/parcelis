@@ -151,12 +151,12 @@ Keep API unit and router tests in feature folders under `apps/api/src/tests`, su
 pnpm --filter @parcelis/api test
 ```
 
-The durable outbox and worker dispatcher use the same Node test runner:
+The durable outbox and worker dispatcher use the same Node test runner. Script tests also run in the CI quality job:
 
 ```bash
 pnpm --filter @parcelis/db test
 pnpm --filter @parcelis/worker test
-node --test scripts/outbox-test-database.test.mjs
+pnpm test:scripts
 ```
 
 The outbox PostgreSQL integration tests require a separate test database whose name
