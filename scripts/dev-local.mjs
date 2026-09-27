@@ -179,6 +179,7 @@ const processes = [
     name: "worker",
     args: ["--filter", "@parcelis/worker", "dev:fixed"],
     env: {
+      DATABASE_URL: databaseUrl,
       REDIS_URL: redisUrl,
     },
   },
