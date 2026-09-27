@@ -1,0 +1,27 @@
+CONTRIBUTING.md
+  s_7d3631a21b1d01::t_0379766214e096 158,160,166
+packages/db/src/tests/outbox.integration.test.ts
+  s_7d3631a21b1d01::t_bc0ae27366bbfb 102,105
+  s_7d3631a21b1d01::t_0e5a122bb0a856 67-101,103-104,106-117
+apps/worker/src/tests/outbox-dispatcher.integration.test.ts
+  s_7d3631a21b1d01::t_7ed25acdb2e90a 4,24-30,33-46,49-51,53-69,71-126,128-129
+  s_7d3631a21b1d01::t_f6f6ab0d0f759a 1-3,5-23,31-32,47-48,52,70,127
+apps/worker/package.json
+  s_7d3631a21b1d01::t_f6f6ab0d0f759a 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "dcbe95903f89d3c557e6e442d6147eeb7baa0694",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
