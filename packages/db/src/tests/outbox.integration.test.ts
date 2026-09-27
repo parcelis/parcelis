@@ -64,3 +64,54 @@ test("PostgreSQL allows only one concurrent dispatcher to claim an outbox event"
     await prisma.$disconnect();
   }
 });
+
+test("PostgreSQL makes an event claimable again after a dispatcher lock expires", { skip: !databaseUrl }, async () => {
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl! }) });
+  const testId = randomUUID();
+  let organizationId: number | undefined;
+
+  try {
+    const organization = await prisma.organization.create({
+      data: { name: `Outbox recovery ${testId}`, slug: `outbox-recovery-${testId}` },
+    });
+    organizationId = organization.id;
+
+    const event = await prisma.$transaction((tx) =>
+      recordOutboxEvent(tx, {
+        organizationId: organization.id,
+        eventType: "lease.activate",
+        schemaVersion: 1,
+        payload: { organizationId: organization.id, leaseId: 1 },
+        idempotencyKey: `recovery:${testId}`,
+        availableAt: new Date(0),
+      }),
+    );
+
+    const claimTime = new Date();
+    const firstClaim = await claimAvailableOutboxEvents(prisma, {
+      now: claimTime,
+      lockDurationMs: 10,
+      claimToken: `crashed-dispatcher-${testId}`,
+    });
+    const recoveredClaim = await claimAvailableOutboxEvents(prisma, {
+      now: new Date(claimTime.getTime() + 11),
+      claimToken: `replacement-dispatcher-${testId}`,
+    });
+
+    assert.equal(firstClaim.length, 1);
+    assert.ok(firstClaim[0]);
+    assert.equal(firstClaim[0].id, event.id);
+    assert.equal(recoveredClaim.length, 1);
+    assert.ok(recoveredClaim[0]);
+    assert.equal(recoveredClaim[0].id, event.id);
+    assert.equal(recoveredClaim[0].status, OutboxEventStatus.processing);
+    assert.equal(recoveredClaim[0].attemptCount, 2);
+    assert.equal(recoveredClaim[0].claimToken, `replacement-dispatcher-${testId}`);
+  } finally {
+    if (organizationId !== undefined) {
+      await prisma.outboxEvent.deleteMany({ where: { organizationId } });
+      await prisma.organization.delete({ where: { id: organizationId } });
+    }
+    await prisma.$disconnect();
+  }
+});
