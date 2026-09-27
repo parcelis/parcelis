@@ -4,6 +4,9 @@ import { OutboxEventStatus, Prisma, type OutboxEvent, type PrismaClient } from "
 import {
   claimAvailableOutboxEvents,
   getOutboxRetryDelayMs,
+  markOutboxEventDispatched,
+  markOutboxEventFailed,
+  rescheduleOutboxEvent,
   recordOutboxEvent,
   replayFailedOutboxEvent,
 } from "../outbox.js";
@@ -271,3 +274,55 @@ test("claim queries use the supplied clock and exclude future events and active 
   assert.equal((await claimAvailableOutboxEvents(prisma, { now, lockDurationMs: 1234 })).length, 1);
   assert.equal(getEvent().lockedUntil?.getTime(), now.getTime() + 1234);
 });
+
+for (const operation of ["dispatched", "failed", "rescheduled"] as const) {
+  for (const validClaim of [true, false]) {
+    test(`${operation} updates require a current processing claim (${validClaim})`, async () => {
+      const now = new Date("2030-01-01T00:00:00Z");
+      const input = { id: 1, claimToken: "current-claim" };
+      let updatedData: Record<string, unknown> | undefined;
+      const where = { ...input, status: "processing" };
+      const prisma = {
+        outboxEvent: {
+          findFirstOrThrow: async (args: { where: unknown }) => {
+            assert.deepEqual(args.where, where);
+            return { attemptCount: 3 };
+          },
+          updateMany: async (args: { where: unknown; data: Record<string, unknown> }) => {
+            assert.deepEqual(args.where, where);
+            updatedData = args.data;
+            return { count: validClaim ? 1 : 0 };
+          },
+          findUniqueOrThrow: async (args: { where: unknown }) => {
+            assert.ok(validClaim);
+            assert.deepEqual(args.where, { id: 1 });
+            return createEvent(updatedData as Partial<OutboxEvent>);
+          },
+        },
+      } as unknown as PrismaClient;
+      const result =
+        operation === "dispatched"
+          ? markOutboxEventDispatched(prisma, { ...input, dispatchedAt: now })
+          : operation === "failed"
+            ? markOutboxEventFailed(prisma, { ...input, failedAt: now, error: "bad payload" })
+            : rescheduleOutboxEvent(prisma, { ...input, now, error: "Redis unavailable" });
+      if (!validClaim) {
+        await assert.rejects(result, /Outbox event claim is no longer valid/);
+        return;
+      }
+      await result;
+      const expected =
+        operation === "dispatched"
+          ? { status: "dispatched", dispatchedAt: now, lastError: null }
+          : operation === "failed"
+            ? { status: "failed", failedAt: now, lastError: "bad payload" }
+            : {
+                status: "pending",
+                availableAt: new Date(now.getTime() + 4000),
+                failedAt: null,
+                lastError: "Redis unavailable",
+              };
+      assert.deepEqual(updatedData, { ...expected, lockedUntil: null, claimToken: null });
+    });
+  }
+}
