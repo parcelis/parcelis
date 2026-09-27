@@ -1,0 +1,9 @@
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  ai_agent 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "afcd6f6cc4c8bf248b65f23703d6a405f390bad8",
+  "prompts": {}
+}
