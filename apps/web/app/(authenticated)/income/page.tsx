@@ -118,13 +118,19 @@ function IncomePageContent() {
       setIsInvoiceDrawerOpen(false);
     },
   });
+  const isEligibleIncomeLease = (lease: (typeof properties)[number]["leases"][number]) =>
+    (lease.status === "active" || lease.status === "notice") &&
+    (selectedTenantId === null || lease.tenant.id === selectedTenantId);
+  const unitFilterOptions = properties
+    .map((property) => {
+      const eligibleUnitIds = new Set(property.leases.filter(isEligibleIncomeLease).map((lease) => lease.unitId));
+      return { ...property, units: property.units.filter((unit) => eligibleUnitIds.has(unit.id)) };
+    })
+    .filter((property) => property.units.length > 0);
   const incomeProperties = properties
     .map((property) => {
       const incomeLeases = property.leases.filter(
-        (lease) =>
-          (lease.status === "active" || lease.status === "notice") &&
-          (selectedTenantId === null || lease.tenant.id === selectedTenantId) &&
-          (selectedUnitId === null || lease.unitId === selectedUnitId),
+        (lease) => isEligibleIncomeLease(lease) && (selectedUnitId === null || lease.unitId === selectedUnitId),
       );
       return {
         ...property,
@@ -259,17 +265,15 @@ function IncomePageContent() {
                       <span>Unit</span>
                       <Select onChange={(event) => setDraftUnitId(event.target.value)} value={draftUnitId}>
                         <option value="all">All units</option>
-                        {properties
-                          .filter((property) => property.units.length > 0)
-                          .map((property) => (
-                            <optgroup key={property.id} label={property.name}>
-                              {property.units.map((unit) => (
-                                <option key={unit.id} value={String(unit.id)}>
-                                  {unit.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ))}
+                        {unitFilterOptions.map((property) => (
+                          <optgroup key={property.id} label={property.name}>
+                            {property.units.map((unit) => (
+                              <option key={unit.id} value={String(unit.id)}>
+                                {unit.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
                       </Select>
                     </Label>
                     <div className="mt-5 flex items-center justify-between border-t border-parcelis-border pt-4">
