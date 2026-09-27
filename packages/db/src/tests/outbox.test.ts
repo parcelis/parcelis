@@ -33,7 +33,13 @@ function createEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
   };
 }
 
-function createPrismaMock(initialEvent: OutboxEvent) {
+function createPrismaMock(initialEvent: OutboxEvent, now = new Date("2026-09-26T12:00:00.000Z")) {
+  const expectedWhere = {
+    OR: [
+      { status: "pending", availableAt: { lte: now } },
+      { status: "processing", OR: [{ lockedUntil: { lte: now } }, { lockedUntil: null }] },
+    ],
+  };
   let event = initialEvent;
 
   const prisma = {
@@ -49,11 +55,10 @@ function createPrismaMock(initialEvent: OutboxEvent) {
         take?: number;
       }) => {
         if (args.select?.id) {
-          const isPendingAndDue =
-            event.status === OutboxEventStatus.pending && event.availableAt <= new Date("2026-09-26T12:00:00.000Z");
+          assert.deepEqual(args.where, expectedWhere);
+          const isPendingAndDue = event.status === OutboxEventStatus.pending && event.availableAt <= now;
           const isProcessingAndExpired =
-            event.status === OutboxEventStatus.processing &&
-            (event.lockedUntil === null || event.lockedUntil <= new Date("2026-09-26T12:00:00.000Z"));
+            event.status === OutboxEventStatus.processing && (event.lockedUntil === null || event.lockedUntil <= now);
 
           return isPendingAndDue || isProcessingAndExpired ? [{ id: event.id }].slice(0, args.take) : [];
         }
@@ -73,10 +78,10 @@ function createPrismaMock(initialEvent: OutboxEvent) {
           claimToken: string;
         };
       }) => {
+        assert.deepEqual(args.where, { id: event.id, ...expectedWhere });
         const eligible =
-          event.status === OutboxEventStatus.pending ||
-          (event.status === OutboxEventStatus.processing &&
-            (event.lockedUntil === null || event.lockedUntil <= new Date("2026-09-26T12:00:00.000Z")));
+          (event.status === OutboxEventStatus.pending && event.availableAt <= now) ||
+          (event.status === OutboxEventStatus.processing && (event.lockedUntil === null || event.lockedUntil <= now));
 
         if (args.where.id !== event.id || !eligible) return { count: 0 };
 
@@ -251,4 +256,18 @@ test("recording the same outbox idempotency key with a different payload is reje
     recordOutboxEvent(tx, { ...input, payload: { organizationId: 3, leaseId: 15 } }),
     /already used by a different event/,
   );
+});
+
+test("claim queries use the supplied clock and exclude future events and active locks", async () => {
+  const now = new Date("2030-01-01T00:00:00Z");
+  for (const event of [
+    createEvent({ availableAt: new Date(now.getTime() + 1) }),
+    createEvent({ status: OutboxEventStatus.processing, lockedUntil: new Date(now.getTime() + 1) }),
+  ]) {
+    const { prisma } = createPrismaMock(event, now);
+    assert.deepEqual(await claimAvailableOutboxEvents(prisma, { now }), []);
+  }
+  const { prisma, getEvent } = createPrismaMock(createEvent({ availableAt: now }), now);
+  assert.equal((await claimAvailableOutboxEvents(prisma, { now, lockDurationMs: 1234 })).length, 1);
+  assert.equal(getEvent().lockedUntil?.getTime(), now.getTime() + 1234);
 });
