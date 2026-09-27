@@ -4,6 +4,7 @@ export {
   LeaseStatus,
   MaintenanceTicketStatus,
   OrganizationMemberRole,
+  OutboxEventStatus,
   Prisma,
   PrismaClient,
   UnitType,
