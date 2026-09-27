@@ -12,7 +12,9 @@ organization, ensure that you are authorized to accept the agreement on its beha
 
 Search existing issues before opening a new one. Use the matching GitHub issue form for feature
 requests, bug reports, or documentation changes, and complete its required fields. For new
-features, wait for maintainer approval before opening a pull request.
+features, wait for maintainer approval before opening a pull request. Adding the
+`ready for development` label removes the approval notice from the feature issue body;
+removing the label restores it. Approval also creates or links a Kanban card.
 
 ## Commit messages
 
