@@ -13,7 +13,7 @@
     "build": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "test": "tsx --test \"src/tests/**/*.test.ts\"",
-    "test:integration": "tsx --test src/tests/outbox.integration.test.ts",
+    "test:integration": "tsx --test src/tests/outbox.integration.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
