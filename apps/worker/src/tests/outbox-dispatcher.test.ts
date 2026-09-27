@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { OutboxEvent, PrismaClient } from "@parcelis/db";
 import type { Queue } from "bullmq";
-import { dispatchOutboxEvent } from "../outbox-dispatcher.js";
+import { dispatchOutboxEvent, startOutboxDispatcher } from "../outbox-dispatcher.js";
 
 function createEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
   return {
@@ -116,4 +116,63 @@ test("an event with a mismatched payload organization fails before enqueueing", 
   assert.equal(getEvent().status, "failed");
   assert.match(getEvent().lastError ?? "", /organization does not match/);
   assert.equal(getEvent().claimToken, null);
+});
+
+test("graceful shutdown drains the already claimed batch", async () => {
+  const events = [
+    createEvent({ id: 21, status: "pending", claimToken: null }),
+    createEvent({ id: 22, status: "pending", claimToken: null }),
+  ];
+  const prisma = {
+    outboxEvent: {
+      findMany: async ({ select }: { select?: unknown }) =>
+        select ? events.map(({ id }) => ({ id })) : events.map((event) => ({ ...event })),
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: number; claimToken?: string };
+        data: Record<string, unknown>;
+      }) => {
+        const event = events.find((event) => event.id === where.id);
+        if (!event || (where.claimToken && event.claimToken !== where.claimToken)) return { count: 0 };
+        const { attemptCount, ...fields } = data;
+        Object.assign(event, fields);
+        if (attemptCount) event.attemptCount += (attemptCount as { increment: number }).increment;
+        return { count: 1 };
+      },
+      findUniqueOrThrow: async ({ where }: { where: { id: number } }) => events.find((event) => event.id === where.id),
+    },
+  } as unknown as PrismaClient;
+  let releaseFirst!: () => void;
+  let notifyStarted!: () => void;
+  const firstJobStarted = new Promise<void>((resolve) => {
+    notifyStarted = resolve;
+  });
+  const firstJobReleased = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const jobIds: string[] = [];
+  const queue = {
+    add: async (_name: string, _data: unknown, options: { jobId: string }) => {
+      jobIds.push(options.jobId);
+      if (jobIds.length === 1) {
+        notifyStarted();
+        await firstJobReleased;
+      }
+      return {};
+    },
+  } as unknown as Queue;
+  const stop = startOutboxDispatcher(prisma, new Map([["leasing-notifications", queue]]));
+  try {
+    await firstJobStarted;
+    const stopping = stop();
+    releaseFirst();
+    await stopping;
+    assert.deepEqual(jobIds, ["outbox-event-21", "outbox-event-22"]);
+    assert.ok(events.every((event) => event.status === "dispatched" && event.claimToken === null));
+  } finally {
+    releaseFirst();
+    await stop();
+  }
 });
