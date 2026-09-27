@@ -30,6 +30,9 @@ export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<stri
   try {
     contract = getOutboxEventContract(event.eventType, event.schemaVersion);
     const payload = parseOutboxEventPayload(event.eventType, event.schemaVersion, event.payload);
+    if (payload.organizationId !== event.organizationId) {
+      throw new Error("Outbox payload organization does not match the event organization.");
+    }
     jobData = contract.jobSchema.parse({ ...payload, outboxEventId: event.id });
   } catch (error) {
     await markOutboxEventFailed(prisma, {
