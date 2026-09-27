@@ -153,11 +153,12 @@ The durable outbox and worker dispatcher use the same Node test runner:
 ```bash
 pnpm --filter @parcelis/db test
 pnpm --filter @parcelis/worker test
+node --test scripts/outbox-test-database.test.mjs
 ```
 
 The outbox PostgreSQL integration tests require a separate, migrated test database whose name
 contains `test`. Create the database, apply migrations, then point `OUTBOX_TEST_DATABASE_URL` at it.
-The tests refuse to use the configured `DATABASE_URL` as their target:
+The tests compare normalized host, port, database, and schema against `DATABASE_URL`, ignoring credentials and unrelated connection parameters. Host aliases are not resolved, so use a genuinely separate test database:
 
 ```bash
 createdb -h localhost -p 54320 -U parcelis parcelis_test

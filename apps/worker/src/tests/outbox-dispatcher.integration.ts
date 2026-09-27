@@ -1,3 +1,4 @@
+import { validateOutboxTestDatabaseUrl } from "../../../../scripts/outbox-test-database.mjs";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
@@ -8,17 +9,7 @@ import { dispatchOutboxEvent } from "../outbox-dispatcher.js";
 const databaseUrl = process.env.OUTBOX_TEST_DATABASE_URL;
 
 if (databaseUrl) {
-  const testUrl = new URL(databaseUrl);
-  const testDatabaseName = decodeURIComponent(testUrl.pathname.slice(1));
-  const configuredDatabaseUrl = process.env.DATABASE_URL;
-
-  if (!testDatabaseName.toLowerCase().includes("test")) {
-    throw new Error("OUTBOX_TEST_DATABASE_URL must point to a database with 'test' in its name.");
-  }
-
-  if (configuredDatabaseUrl && new URL(configuredDatabaseUrl).href === testUrl.href) {
-    throw new Error("OUTBOX_TEST_DATABASE_URL must be different from DATABASE_URL.");
-  }
+  validateOutboxTestDatabaseUrl(databaseUrl, process.env.DATABASE_URL);
 }
 
 test(
