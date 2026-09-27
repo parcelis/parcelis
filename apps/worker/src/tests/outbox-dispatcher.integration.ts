@@ -21,12 +21,13 @@ test(
       await admin.$disconnect();
       throw error;
     });
-    const prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
-    });
+    let prisma: PrismaClient | undefined;
     const testId = randomUUID();
 
     try {
+      prisma = new PrismaClient({
+        adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
+      });
       const organization = await prisma.organization.create({
         data: { name: `Outbox dispatch recovery ${testId}`, slug: `outbox-dispatch-recovery-${testId}` },
       });
@@ -118,7 +119,7 @@ test(
       assert.equal(storedEvent.attemptCount, 2);
     } finally {
       try {
-        await prisma.$disconnect();
+        await prisma?.$disconnect();
       } finally {
         try {
           await isolated.cleanup();

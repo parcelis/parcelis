@@ -18,12 +18,13 @@ test("PostgreSQL allows only one concurrent dispatcher to claim an outbox event"
     await admin.$disconnect();
     throw error;
   });
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
-  });
+  let prisma: PrismaClient | undefined;
   const testId = randomUUID();
 
   try {
+    prisma = new PrismaClient({
+      adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
+    });
     const organization = await prisma.organization.create({
       data: { name: `Outbox integration ${testId}`, slug: `outbox-integration-${testId}` },
     });
@@ -54,7 +55,7 @@ test("PostgreSQL allows only one concurrent dispatcher to claim an outbox event"
     assert.ok(claimedEvent.claimToken);
   } finally {
     try {
-      await prisma.$disconnect();
+      await prisma?.$disconnect();
     } finally {
       try {
         await isolated.cleanup();
@@ -71,12 +72,13 @@ test("PostgreSQL makes an event claimable again after a dispatcher lock expires"
     await admin.$disconnect();
     throw error;
   });
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
-  });
+  let prisma: PrismaClient | undefined;
   const testId = randomUUID();
 
   try {
+    prisma = new PrismaClient({
+      adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
+    });
     const organization = await prisma.organization.create({
       data: { name: `Outbox recovery ${testId}`, slug: `outbox-recovery-${testId}` },
     });
@@ -114,7 +116,7 @@ test("PostgreSQL makes an event claimable again after a dispatcher lock expires"
     assert.equal(recoveredClaim[0].claimToken, `replacement-dispatcher-${testId}`);
   } finally {
     try {
-      await prisma.$disconnect();
+      await prisma?.$disconnect();
     } finally {
       try {
         await isolated.cleanup();
