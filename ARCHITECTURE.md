@@ -77,6 +77,8 @@ The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. T
 
 `recordOutboxEvent` is available for recording an `OutboxEvent` in PostgreSQL in the same transaction as a related database change. Production features do not yet call it, and BullMQ consumers are not implemented. The worker claims due events with a time-limited claim token, validates each versioned contract from `@parcelis/jobs`, and adds a BullMQ job to Redis with a deterministic job ID. It then records dispatch success in PostgreSQL. A temporary queue error returns the event to `pending` with capped exponential backoff and continues retrying until it succeeds. Unsupported event versions or malformed payloads remain `failed`; application administrators can inspect and replay failed events within the active organization.
 
+Idempotency keys preserve the first recorded event and its initial schedule. Repeating a key does not reschedule the event; `availableAt` can subsequently change through retry backoff or administrator replay.
+
 PostgreSQL is the durable source of truth and Redis is the delivery mechanism. Delivery is at least once: a worker can crash after enqueueing a job but before recording success, so job consumers must be idempotent. Expired claims make interrupted events eligible for recovery after a worker restart.
 
 Outbox rows are retained indefinitely in the initial implementation; no automatic cleanup runs. This preserves the organization-scoped idempotency-key constraint. Add archival before introducing deletion, and retain idempotency tombstones if archived rows are removed.

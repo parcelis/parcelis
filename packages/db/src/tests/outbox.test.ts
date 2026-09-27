@@ -189,7 +189,7 @@ test("authorized replay returns a failed event to pending without resetting its 
   assert.equal(replayed.lastError, "Unsupported outbox event.");
 });
 
-test("recording the same outbox idempotency key returns the original event", async () => {
+test("recording the same outbox idempotency key preserves the original event and schedule", async () => {
   let storedEvent: Record<string, unknown> | null = null;
   let insertCount = 0;
   const tx = {
@@ -224,14 +224,16 @@ test("recording the same outbox idempotency key returns the original event", asy
     schemaVersion: 1,
     payload: { organizationId: 3, leaseId: 14 } satisfies Prisma.InputJsonValue,
     idempotencyKey: "lease:14:activate",
+    availableAt: new Date("2026-09-26T12:00:00Z"),
   };
 
   const first = await recordOutboxEvent(tx, input);
-  const second = await recordOutboxEvent(tx, input);
+  const second = await recordOutboxEvent(tx, { ...input, availableAt: new Date("2030-01-01T00:00:00Z") });
 
   assert.equal(insertCount, 1);
   assert.equal(first.id, second.id);
   assert.equal(second.id, 13);
+  assert.equal(second.availableAt, input.availableAt);
 });
 
 test("recording the same outbox idempotency key with a different payload is rejected", async () => {
