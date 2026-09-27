@@ -65,3 +65,19 @@ test("only application administrators can replay a failed event in the active or
   const unauthorizedCaller = createCaller({}, "property_manager");
   await assert.rejects(unauthorizedCaller.outboxEvents.replay({ id: 21 }), { code: "FORBIDDEN" });
 });
+
+test("replay returns NOT_FOUND when no failed event belongs to the active organization", async () => {
+  const caller = createCaller(
+    {
+      outboxEvent: {
+        updateMany: async ({ where }: { where: unknown }) => {
+          assert.deepEqual(where, { id: 21, organizationId: 7, status: "failed" });
+          return { count: 0 };
+        },
+        findUniqueOrThrow: async () => assert.fail("Unmatched events must not be retrieved"),
+      },
+    },
+    "administrator",
+  );
+  await assert.rejects(caller.outboxEvents.replay({ id: 21 }), { code: "NOT_FOUND" });
+});
