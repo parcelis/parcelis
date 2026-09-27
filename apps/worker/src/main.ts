@@ -33,10 +33,21 @@ async function shutdown(signal: NodeJS.Signals) {
 
   isShuttingDown = true;
   console.info(`[parcelis] Worker received ${signal}; stopping outbox dispatch and closing connections.`);
-  await stopOutboxDispatcher();
-  await Promise.allSettled(queues.map((queue) => queue.close()));
-  await prisma.$disconnect();
-  process.exit(0);
+  const deadline = setTimeout(() => {
+    console.error("[parcelis] Worker shutdown timed out; outstanding claims will expire.");
+    process.exit(1);
+  }, 10_000);
+
+  try {
+    await stopOutboxDispatcher();
+    await Promise.allSettled(queues.map((queue) => queue.close()));
+    await prisma.$disconnect();
+    clearTimeout(deadline);
+    process.exit(0);
+  } catch (error) {
+    console.error("[parcelis] Worker shutdown failed:", error);
+    process.exit(1);
+  }
 }
 
 // Handle graceful shutdown on SIGINT and SIGTERM signals.

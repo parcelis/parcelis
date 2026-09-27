@@ -96,6 +96,7 @@ export function startOutboxDispatcher(prisma: PrismaClient, queues: Map<string, 
       const events = await claimAvailableOutboxEvents(prisma);
 
       for (const event of events) {
+        if (stopped) break;
         try {
           await dispatchOutboxEvent(prisma, queues, event);
         } catch (error) {
