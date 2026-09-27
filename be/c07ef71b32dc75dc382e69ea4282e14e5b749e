@@ -1,0 +1,13 @@
+packages/db/src/index.ts
+  ai_agent 1
+packages/config/tsconfig.base.json
+  ai_agent 13
+CONTRIBUTING.md
+  ai_agent 76-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "bec07ef71b32dc75dc382e69ea4282e14e5b749e",
+  "prompts": {}
+}
