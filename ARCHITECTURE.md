@@ -33,7 +33,7 @@ The web, API, docs, and worker application processes continue to run on their ow
 | `@parcelis/web`    | `apps/web`    | Next.js App Router operational UI                                | 30000        |
 | `@parcelis/api`    | `apps/api`    | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
 | `@parcelis/docs`   | `apps/docs`   | Docusaurus user, contributor, and generated API documentation    | 40000        |
-| `@parcelis/worker` | `apps/worker` | PostgreSQL outbox dispatch and BullMQ background job processing  | —            |
+| `@parcelis/worker` | `apps/worker` | PostgreSQL outbox dispatch and BullMQ job enqueueing             | —            |
 
 ### Shared packages
 
