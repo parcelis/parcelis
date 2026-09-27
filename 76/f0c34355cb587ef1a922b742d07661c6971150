@@ -1,0 +1,9 @@
+apps/api/src/tests/outbox/outbox.router.test.ts
+  ai_agent 68-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "76f0c34355cb587ef1a922b742d07661c6971150",
+  "prompts": {}
+}
