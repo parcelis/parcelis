@@ -269,7 +269,7 @@ function IncomePageContent() {
                           <optgroup key={property.id} label={property.name}>
                             {property.units.map((unit) => (
                               <option key={unit.id} value={String(unit.id)}>
-                                {unit.name}
+                                Unit {unit.name}
                               </option>
                             ))}
                           </optgroup>
