@@ -118,7 +118,7 @@ test("an event with a mismatched payload organization fails before enqueueing", 
   assert.equal(getEvent().claimToken, null);
 });
 
-test("graceful shutdown drains the already claimed batch", async () => {
+test("graceful shutdown drains the already claimed batch", { timeout: 10_000 }, async (t) => {
   const events = [
     createEvent({ id: 21, status: "pending", claimToken: null }),
     createEvent({ id: 22, status: "pending", claimToken: null }),
@@ -164,15 +164,14 @@ test("graceful shutdown drains the already claimed batch", async () => {
     },
   } as unknown as Queue;
   const stop = startOutboxDispatcher(prisma, new Map([["leasing-notifications", queue]]));
-  try {
-    await firstJobStarted;
-    const stopping = stop();
-    releaseFirst();
-    await stopping;
-    assert.deepEqual(jobIds, ["outbox-event-21", "outbox-event-22"]);
-    assert.ok(events.every((event) => event.status === "dispatched" && event.claimToken === null));
-  } finally {
+  t.after(async () => {
     releaseFirst();
     await stop();
-  }
+  });
+  await firstJobStarted;
+  const stopping = stop();
+  releaseFirst();
+  await stopping;
+  assert.deepEqual(jobIds, ["outbox-event-21", "outbox-event-22"]);
+  assert.ok(events.every((event) => event.status === "dispatched" && event.claimToken === null));
 });
