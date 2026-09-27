@@ -1,0 +1,9 @@
+packages/db/src/tests/outbox.test.ts
+  ai_agent 7-9,277-328
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d776a28148ac44b64ba92d0c7be026f30ab32594",
+  "prompts": {}
+}
