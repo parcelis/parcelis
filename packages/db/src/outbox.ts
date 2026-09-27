@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import { OutboxEventStatus, Prisma, PrismaClient } from "@prisma/client";
 
@@ -37,8 +38,12 @@ export async function recordOutboxEvent(tx: Prisma.TransactionClient, input: Rec
   });
 
   // Ensure the retrieved event matches the expected event type and schema version.
-  if (event.eventType !== input.eventType || event.schemaVersion !== input.schemaVersion) {
-    throw new Error(`Outbox idempotency key is already used by ${event.eventType} v${event.schemaVersion}.`);
+  if (
+    event.eventType !== input.eventType ||
+    event.schemaVersion !== input.schemaVersion ||
+    !isDeepStrictEqual(event.payload, input.payload)
+  ) {
+    throw new Error("Outbox idempotency key is already used by a different event.");
   }
 
   return event;

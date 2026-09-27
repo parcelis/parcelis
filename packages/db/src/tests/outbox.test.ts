@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { OutboxEventStatus, type OutboxEvent, type PrismaClient } from "@prisma/client";
-import { claimAvailableOutboxEvents, getOutboxRetryDelayMs, replayFailedOutboxEvent } from "../outbox.js";
+import { OutboxEventStatus, Prisma, type OutboxEvent, type PrismaClient } from "@prisma/client";
+import {
+  claimAvailableOutboxEvents,
+  getOutboxRetryDelayMs,
+  recordOutboxEvent,
+  replayFailedOutboxEvent,
+} from "../outbox.js";
 
 function createEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
   const now = new Date("2026-09-26T12:00:00.000Z");
@@ -170,4 +175,76 @@ test("authorized replay returns a failed event to pending without resetting its 
   assert.equal(replayed.attemptCount, 4);
   assert.equal(replayed.failedAt, null);
   assert.equal(replayed.lastError, "Unsupported outbox event.");
+});
+
+test("recording the same outbox idempotency key returns the original event", async () => {
+  let storedEvent: Record<string, unknown> | null = null;
+  let insertCount = 0;
+  const tx = {
+    outboxEvent: {
+      createMany: async ({ data, skipDuplicates }: { data: Record<string, unknown>; skipDuplicates: boolean }) => {
+        assert.equal(skipDuplicates, true);
+        if (storedEvent) return { count: 0 };
+        insertCount += 1;
+        storedEvent = {
+          id: 13,
+          ...data,
+          schemaVersion: 1,
+          status: OutboxEventStatus.pending,
+          attemptCount: 0,
+          lastAttemptAt: null,
+          lockedUntil: null,
+          claimToken: null,
+          dispatchedAt: null,
+          failedAt: null,
+          lastError: null,
+          createdAt: new Date("2026-09-26T12:00:00.000Z"),
+          updatedAt: new Date("2026-09-26T12:00:00.000Z"),
+        };
+        return { count: 1 };
+      },
+      findUniqueOrThrow: async () => storedEvent,
+    },
+  } as unknown as Prisma.TransactionClient;
+  const input = {
+    organizationId: 3,
+    eventType: "lease.activate",
+    schemaVersion: 1,
+    payload: { organizationId: 3, leaseId: 14 } satisfies Prisma.InputJsonValue,
+    idempotencyKey: "lease:14:activate",
+  };
+
+  const first = await recordOutboxEvent(tx, input);
+  const second = await recordOutboxEvent(tx, input);
+
+  assert.equal(insertCount, 1);
+  assert.equal(first.id, second.id);
+  assert.equal(second.id, 13);
+});
+
+test("recording the same outbox idempotency key with a different payload is rejected", async () => {
+  let storedEvent: Record<string, unknown> | null = null;
+  const tx = {
+    outboxEvent: {
+      createMany: async ({ data }: { data: Record<string, unknown> }) => {
+        if (storedEvent) return { count: 0 };
+        storedEvent = { id: 13, ...data };
+        return { count: 1 };
+      },
+      findUniqueOrThrow: async () => storedEvent,
+    },
+  } as unknown as Prisma.TransactionClient;
+  const input = {
+    organizationId: 3,
+    eventType: "lease.activate",
+    schemaVersion: 1,
+    payload: { organizationId: 3, leaseId: 14 } satisfies Prisma.InputJsonValue,
+    idempotencyKey: "lease:14:activate",
+  };
+
+  await recordOutboxEvent(tx, input);
+  await assert.rejects(
+    recordOutboxEvent(tx, { ...input, payload: { organizationId: 3, leaseId: 15 } }),
+    /already used by a different event/,
+  );
 });

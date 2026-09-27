@@ -75,9 +75,11 @@ The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. T
 
 ## Background jobs and outbox
 
-Business code records an `OutboxEvent` in PostgreSQL in the same transaction as the related database change. The worker claims due events with a time-limited claim token, validates each versioned contract from `@parcelis/jobs`, and adds a BullMQ job to Redis with a deterministic job ID. It then records dispatch success in PostgreSQL. A temporary queue error returns the event to `pending` with capped exponential backoff and continues retrying until it succeeds. Unsupported event versions or malformed payloads remain `failed`; application administrators can inspect and replay failed events within the active organization.
+Feature code records an `OutboxEvent` in PostgreSQL in the same transaction as the related database change. The worker claims due events with a time-limited claim token, validates each versioned contract from `@parcelis/jobs`, and adds a BullMQ job to Redis with a deterministic job ID. It then records dispatch success in PostgreSQL. A temporary queue error returns the event to `pending` with capped exponential backoff and continues retrying until it succeeds. Unsupported event versions or malformed payloads remain `failed`; application administrators can inspect and replay failed events within the active organization.
 
 PostgreSQL is the durable source of truth and Redis is the delivery mechanism. Delivery is at least once: a worker can crash after enqueueing a job but before recording success, so job consumers must be idempotent. Expired claims make interrupted events eligible for recovery after a worker restart.
+
+Outbox rows are retained indefinitely in the initial implementation; no automatic cleanup runs. This preserves the organization-scoped idempotency-key constraint. Add archival before introducing deletion, and retain idempotency tombstones if archived rows are removed.
 
 ## Frontend
 
