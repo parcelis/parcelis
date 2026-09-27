@@ -12,7 +12,7 @@ function createEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
     schemaVersion: 1,
     payload: { organizationId: 7, leaseId: 35 },
     idempotencyKey: "lease:35:activate",
-    availableAt: new Date("2026-09-26T00:00:00.000Z"),
+    availableAt: new Date(0),
     status: "processing",
     attemptCount: 1,
     lastAttemptAt: new Date("2026-09-26T00:00:00.000Z"),
