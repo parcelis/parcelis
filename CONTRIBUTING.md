@@ -73,6 +73,9 @@ Packages:
 - `packages/db`: Prisma schema, migrations, and database client exports.
 - `packages/config`: shared TypeScript, ESLint, and Prettier configuration.
 
+`@parcelis/db` exposes TypeScript source to native Node. Relative source imports must use the
+actual `.ts` extension; the shared TypeScript configuration rewrites these to `.js` in builds.
+
 ### Local development
 
 Install dependencies and run the apps on your machine with hot reload:

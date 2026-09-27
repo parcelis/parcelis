@@ -1,4 +1,4 @@
-export * from "./outbox.js";
+export * from "./outbox.ts";
 export {
   ActivitySubjectType,
   LeaseStatus,
