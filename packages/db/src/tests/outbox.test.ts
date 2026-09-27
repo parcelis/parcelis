@@ -149,6 +149,8 @@ test("authorized replay returns a failed event to pending without resetting its 
     attemptCount: 4,
     failedAt: new Date("2026-09-26T11:00:00.000Z"),
     lastError: "Unsupported outbox event.",
+    lockedUntil: new Date("2026-09-26T11:01:00.000Z"),
+    claimToken: "expired",
   });
   const now = new Date("2026-09-26T12:30:00.000Z");
   const prisma = {
@@ -174,6 +176,8 @@ test("authorized replay returns a failed event to pending without resetting its 
   assert.equal(replayed.availableAt, now);
   assert.equal(replayed.attemptCount, 4);
   assert.equal(replayed.failedAt, null);
+  assert.equal(replayed.lockedUntil, null);
+  assert.equal(replayed.claimToken, null);
   assert.equal(replayed.lastError, "Unsupported outbox event.");
 });
 

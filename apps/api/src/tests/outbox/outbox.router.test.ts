@@ -35,6 +35,7 @@ test("only application administrators can list failed outbox events", async () =
 });
 
 test("only application administrators can replay a failed event in the active organization", async () => {
+  const startedAt = Date.now();
   let updated = false;
   const caller = createCaller(
     {
@@ -43,6 +44,11 @@ test("only application administrators can replay a failed event in the active or
           assert.deepEqual(where, { id: 21, organizationId: 7, status: "failed" });
           assert.equal(data.status, "pending");
           assert.equal(data.failedAt, null);
+          assert.equal(data.lockedUntil, null);
+          assert.equal(data.claimToken, null);
+          assert.ok(data.availableAt instanceof Date);
+          assert.ok(data.availableAt.getTime() >= startedAt);
+          assert.ok(data.availableAt.getTime() <= Date.now());
           updated = true;
           return { count: 1 };
         },
