@@ -155,6 +155,16 @@ pnpm --filter @parcelis/db test
 pnpm --filter @parcelis/worker test
 ```
 
+The outbox PostgreSQL concurrency test requires a separate, migrated test database whose name
+contains `test`. Create the database, apply migrations, then point `OUTBOX_TEST_DATABASE_URL` at it.
+The test refuses to use the configured `DATABASE_URL` as its target:
+
+```bash
+createdb -h localhost -p 54320 -U parcelis parcelis_test
+DATABASE_URL=postgresql://parcelis:parcelis@localhost:54320/parcelis_test?schema=public pnpm --filter @parcelis/db db:migrate
+OUTBOX_TEST_DATABASE_URL=postgresql://parcelis:parcelis@localhost:54320/parcelis_test?schema=public pnpm --filter @parcelis/db test:integration
+```
+
 ### End-to-end tests
 
 Parcelis uses Playwright for browser-level tests. Install Chromium once after installing dependencies:
