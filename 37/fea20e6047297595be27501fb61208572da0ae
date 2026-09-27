@@ -1,0 +1,17 @@
+CONTRIBUTING.md
+  ai_agent 159-161
+apps/worker/src/tests/outbox-dispatcher.integration.ts
+  ai_agent 1,19-26,34,51,112,115,120-127
+scripts/outbox-test-database.d.mts
+  ai_agent 2-5
+scripts/outbox-test-database.mjs
+  ai_agent 1-5,25-43
+packages/db/src/tests/outbox.integration.ts
+  ai_agent 1,16-23,56-63,69-76,116-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "37fea20e6047297595be27501fb61208572da0ae",
+  "prompts": {}
+}
