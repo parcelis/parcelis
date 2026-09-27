@@ -156,9 +156,9 @@ pnpm --filter @parcelis/worker test
 node --test scripts/outbox-test-database.test.mjs
 ```
 
-The outbox PostgreSQL integration tests require a separate, migrated test database whose name
-contains `test`. Create the database, apply migrations, then point `OUTBOX_TEST_DATABASE_URL` at it.
-The tests compare normalized host, port, database, and schema against `DATABASE_URL`, ignoring credentials and unrelated connection parameters. Host aliases are not resolved, so use a genuinely separate test database:
+The outbox PostgreSQL integration tests require a separate test database whose name
+contains `test`. Create the database, then point `OUTBOX_TEST_DATABASE_URL` at it.
+The tests compare normalized host, port, database, and schema against `DATABASE_URL`, ignoring credentials and unrelated connection parameters. Host aliases are not resolved, so use a genuinely separate test database. Each test creates a unique temporary schema from the current Prisma schema with `prisma db push` and drops it afterward; the test user needs schema creation privileges. Interrupted runs may leave isolated schemas, but subsequent runs do not claim their events. Unit test commands exclude integration suites:
 
 ```bash
 createdb -h localhost -p 54320 -U parcelis parcelis_test

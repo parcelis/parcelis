@@ -1,4 +1,4 @@
-import { validateOutboxTestDatabaseUrl } from "../../../../scripts/outbox-test-database.mjs";
+import { createOutboxTestSchema, validateOutboxTestDatabaseUrl } from "../../../../scripts/outbox-test-database.mjs";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
@@ -16,17 +16,22 @@ test(
   "a retry after Redis accepts a job uses the same job ID if dispatch marking fails",
   { skip: !databaseUrl },
   async () => {
-    const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl! }) });
+    const admin = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl! }) });
+    const isolated = await createOutboxTestSchema(admin, databaseUrl!).catch(async (error) => {
+      await admin.$disconnect();
+      throw error;
+    });
+    const prisma = new PrismaClient({
+      adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
+    });
     const testId = randomUUID();
-    let organizationId: number | undefined;
 
     try {
       const organization = await prisma.organization.create({
         data: { name: `Outbox dispatch recovery ${testId}`, slug: `outbox-dispatch-recovery-${testId}` },
       });
-      organizationId = organization.id;
 
-      await prisma.$transaction((tx) =>
+      const recordedEvent = await prisma.$transaction((tx) =>
         recordOutboxEvent(tx, {
           organizationId: organization.id,
           eventType: "lease.activate",
@@ -43,6 +48,7 @@ test(
       });
       assert.equal(initialClaim.length, 1);
       assert.ok(initialClaim[0]);
+      assert.equal(initialClaim[0].id, recordedEvent.id);
 
       let shouldFailDispatchUpdate = true;
       const dispatchPrisma = new Proxy(prisma, {
@@ -103,18 +109,23 @@ test(
 
       assert.equal(recoveredClaim.length, 1);
       assert.ok(recoveredClaim[0]);
+      assert.equal(recoveredClaim[0].id, recordedEvent.id);
       await dispatchOutboxEvent(dispatchPrisma, new Map([["leasing-notifications", queue]]), recoveredClaim[0]);
 
-      const storedEvent = await prisma.outboxEvent.findFirstOrThrow({ where: { organizationId } });
+      const storedEvent = await prisma.outboxEvent.findFirstOrThrow({ where: { id: recordedEvent.id } });
       assert.deepEqual(jobIds, [`outbox-event-${storedEvent.id}`, `outbox-event-${storedEvent.id}`]);
       assert.equal(storedEvent.status, "dispatched");
       assert.equal(storedEvent.attemptCount, 2);
     } finally {
-      if (organizationId !== undefined) {
-        await prisma.outboxEvent.deleteMany({ where: { organizationId } });
-        await prisma.organization.delete({ where: { id: organizationId } });
+      try {
+        await prisma.$disconnect();
+      } finally {
+        try {
+          await isolated.cleanup();
+        } finally {
+          await admin.$disconnect();
+        }
       }
-      await prisma.$disconnect();
     }
   },
 );
