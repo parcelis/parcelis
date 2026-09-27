@@ -1,0 +1,19 @@
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  s_f04eb52593fe3f::t_971611081a03fb 121,167,170-176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "5d732477517aacb2dbc7feb79caac7d390acb395",
+  "prompts": {},
+  "sessions": {
+    "s_f04eb52593fe3f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e379-21cd-7083-a653-02b4c37397cb",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
