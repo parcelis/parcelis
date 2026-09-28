@@ -242,6 +242,9 @@ importers:
       '@parcelis/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@parcelis/jobs':
+        specifier: workspace:*
+        version: link:../../packages/jobs
       '@parcelis/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -254,6 +257,9 @@ importers:
       argon2:
         specifier: ^0.45.1
         version: 0.45.1
+      bullmq:
+        specifier: ^6.3.9
+        version: 6.3.9(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.0)
       cors:
         specifier: ^2.8.5
         version: 2.8.6

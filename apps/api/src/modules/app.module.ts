@@ -1,10 +1,12 @@
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { TrpcMiddleware } from "../router/trpc.middleware";
 import { OpenApiMiddleware } from "../router/openapi.middleware";
-import { PrismaService } from "./prisma.service";
+import { JobDashboardModule } from "./job-dashboard.module";
+import { PrismaModule } from "./prisma.module";
 
 @Module({
-  providers: [PrismaService, OpenApiMiddleware, TrpcMiddleware],
+  imports: [PrismaModule, JobDashboardModule],
+  providers: [OpenApiMiddleware, TrpcMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

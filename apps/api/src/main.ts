@@ -8,6 +8,7 @@ async function bootstrap() {
   process.env.DATABASE_URL ??= `postgresql://parcelis:parcelis@localhost:${process.env.POSTGRES_PORT ?? 54320}/parcelis?schema=public`;
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.enableShutdownHooks();
   app.set("query parser", "extended");
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`,

@@ -48,6 +48,7 @@ When adding or removing a primary technology or service, update this file in the
 | [MinIO](https://min.io/) | Local S3-compatible object storage for images and assets. |
 | [Redis](https://redis.io/) | Background-job queue and transient coordination foundation. |
 | [BullMQ](https://bullmq.io/) | Redis-backed queues and delivery of validated background jobs from the PostgreSQL outbox. |
+| [Bull Board](https://github.com/felixmosh/bull-board) | Administrator-only, read-only queue monitoring in the API. |
 | [Zod](https://zod.dev/) | Shared validation for application data. |
 
 ## Interface
