@@ -29,6 +29,14 @@ const nextConfig = {
         source: "/trpc/:path*",
         destination: `${apiUrl}/trpc/:path*`,
       },
+      {
+        source: "/admin/jobs",
+        destination: `${apiUrl}/admin/jobs/`,
+      },
+      {
+        source: "/admin/jobs/:path*",
+        destination: `${apiUrl}/admin/jobs/:path*`,
+      },
     ];
   },
   turbopack: {

@@ -77,7 +77,7 @@ The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. T
 
 `recordOutboxEvent` is available for recording an `OutboxEvent` in PostgreSQL in the same transaction as a related database change. Production features do not yet call it, and BullMQ consumers are not implemented. The worker claims due events with a time-limited claim token, validates each versioned contract from `@parcelis/jobs`, and adds a BullMQ job to Redis with a deterministic job ID. It then records dispatch success in PostgreSQL. A temporary queue error returns the event to `pending` with capped exponential backoff and continues retrying until it succeeds. Unsupported event versions or malformed payloads remain `failed`; application administrators can inspect and replay failed outbox events within the active organization.
 
-The API mounts Bull Board at `/admin/jobs` for application administrators. The dashboard is read-only, hides Redis connection details, and redacts job payloads and error diagnostics before returning them.
+The API mounts Bull Board at `/admin/jobs` for application administrators. The dashboard is read-only, hides Redis connection details, and redacts job payloads and error diagnostics before returning them. Local and production proxies expose it at `/admin/jobs/` on the Parcelis host.
 
 Idempotency keys preserve the first recorded event and its initial schedule. Repeating a key does not reschedule the event; `availableAt` can subsequently change through retry backoff or administrator replay.
 
