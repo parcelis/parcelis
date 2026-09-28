@@ -1,6 +1,5 @@
-import { Queue } from "bullmq";
 import { PrismaClient, PrismaPg } from "@parcelis/db";
-import { getRedisConnectionOptions, queueNames } from "@parcelis/jobs";
+import { createQueueRegistry, getRedisConnectionOptions } from "@parcelis/jobs";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -13,8 +12,7 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: data
 await prisma.$connect();
 
 // Initialize Redis connection and create queues.
-const connection = getRedisConnectionOptions();
-const queues = Object.values(queueNames).map((name) => new Queue(name, { connection }));
+const queues = Object.values(createQueueRegistry(getRedisConnectionOptions()));
 const queueByName = new Map(queues.map((queue) => [queue.name, queue]));
 
 // Wait until all queues are ready before starting the worker.

@@ -2,6 +2,7 @@ import type { ConnectionOptions } from "bullmq";
 
 export * from "./contracts.js";
 export * from "./queue-names.js";
+export * from "./queue-registry.js";
 
 // Retrieves Redis connection options based on environment variables.
 export function getRedisConnectionOptions(environment: NodeJS.ProcessEnv = process.env): ConnectionOptions {
