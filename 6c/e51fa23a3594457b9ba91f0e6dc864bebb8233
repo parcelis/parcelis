@@ -1,0 +1,27 @@
+apps/web/next.config.mjs
+  s_7d3631a21b1d01::t_b7096911903da0 32-39
+infra/docker/proxy/nginx.conf
+  s_7d3631a21b1d01::t_b7096911903da0 13-16,33
+infra/nginx/proxy.conf.template
+  s_7d3631a21b1d01::t_b7096911903da0 28-31,49
+ARCHITECTURE.md
+  s_7d3631a21b1d01::t_b7096911903da0 80
+infra/docker/app/nginx.conf
+  s_7d3631a21b1d01::t_b7096911903da0 12-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6ce51fa23a3594457b9ba91f0e6dc864bebb8233",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
