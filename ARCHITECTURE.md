@@ -77,7 +77,7 @@ The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. T
 
 `recordOutboxEvent` is available for recording an `OutboxEvent` in PostgreSQL in the same transaction as a related database change. Production features do not yet call it, and BullMQ consumers are not implemented. The worker claims due events with a time-limited claim token, validates each versioned contract from `@parcelis/jobs`, and adds a BullMQ job to Redis with a deterministic job ID. It then records dispatch success in PostgreSQL. A temporary queue error returns the event to `pending` with capped exponential backoff and continues retrying until it succeeds. Unsupported event versions or malformed payloads remain `failed`; application administrators can inspect and replay failed outbox events within the active organization.
 
-The API mounts Bull Board at `/admin/jobs` for application administrators. The dashboard is read-only, hides Redis connection details, and redacts job payloads and error diagnostics before returning them. Local and production proxies expose it at `/admin/jobs/` on the Parcelis host.
+The API mounts Bull Board at `/admin/jobs` for application administrators. Administrators can operate queue jobs from the dashboard; unsafe requests require the configured web origin. The dashboard hides Redis connection details and redacts job payloads and error diagnostics before returning them. Local and production proxies expose it at `/admin/jobs/` on the Parcelis host.
 
 Idempotency keys preserve the first recorded event and its initial schedule. Repeating a key does not reschedule the event; `availableAt` can subsequently change through retry backoff or administrator replay.
 
@@ -101,7 +101,7 @@ The NestJS application starts in `apps/api/src/main.ts`. `AppModule` mounts:
 
 - `TrpcMiddleware` at `/trpc` and `/trpc/*` for application procedures.
 - `OpenApiMiddleware` at `/api/v1` and `/api/v1/*` for documented public procedures.
-- Bull Board at `/admin/jobs` for administrator-only, read-only queue monitoring.
+- Bull Board at `/admin/jobs` for administrator-only queue monitoring and job operations.
 
 Object storage is configured in `apps/api/src/modules/object-storage.config.ts`. The API generates signed download and upload URLs for private property and tenant images; the browser uploads directly to object storage after receiving a signed URL.
 

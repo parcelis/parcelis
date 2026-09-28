@@ -16,9 +16,9 @@ import { PrismaService } from "./prisma.service";
 
 const queues = createQueueRegistry(getRedisConnectionOptions());
 
-class ReadOnlyBullMQAdapter extends BullMQAdapter {
+class JobDashboardBullMQAdapter extends BullMQAdapter {
   constructor(queue: ConstructorParameters<typeof BullMQAdapter>[0]) {
-    super(queue, { readOnlyMode: true });
+    super(queue);
     this.setFormatter("data", sanitizeJobData);
     this.setFormatter("progress", () => "[redacted]");
     this.setFormatter("returnValue", () => "[redacted]");
@@ -124,8 +124,7 @@ class JobQueueShutdown implements OnApplicationShutdown {
     BullBoardModule.forFeature(
       ...Object.values(queues).map((queue) => ({
         queue,
-        adapter: ReadOnlyBullMQAdapter,
-        options: { readOnlyMode: true },
+        adapter: JobDashboardBullMQAdapter,
       })),
     ),
   ],

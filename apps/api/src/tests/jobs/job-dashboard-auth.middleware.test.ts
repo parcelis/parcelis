@@ -66,7 +66,25 @@ test("job dashboard permits active administrators using safe read-only requests"
   assert.equal(continued, true);
 });
 
-test("job dashboard rejects non-administrators and write methods", async () => {
+test("job dashboard permits same-origin writes from active administrators", async () => {
+  const { prisma } = createPrisma("administrator");
+  const { response, result } = createResponse();
+  let continued = false;
+  const webOrigin = new URL(process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`).origin;
+
+  await createJobDashboardAuthMiddleware(prisma)(
+    { method: "PUT", headers: { cookie: "parcelis_session=test-token", origin: webOrigin } } as never,
+    response as never,
+    () => {
+      continued = true;
+    },
+  );
+
+  assert.equal(result.statusCode, 200);
+  assert.equal(continued, true);
+});
+
+test("job dashboard rejects non-administrators, cross-origin writes, and unsupported methods", async () => {
   const nonAdministrator = createPrisma("property_manager");
   const nonAdminResponse = createResponse();
   await createJobDashboardAuthMiddleware(nonAdministrator.prisma)(
@@ -79,9 +97,20 @@ test("job dashboard rejects non-administrators and write methods", async () => {
   const administrator = createPrisma("administrator");
   const writeResponse = createResponse();
   await createJobDashboardAuthMiddleware(administrator.prisma)(
-    { method: "POST", headers: { cookie: "parcelis_session=test-token" } } as never,
+    {
+      method: "POST",
+      headers: { cookie: "parcelis_session=test-token", origin: "https://attacker.example" },
+    } as never,
     writeResponse.response as never,
-    () => assert.fail("Write methods must be rejected by the read-only dashboard."),
+    () => assert.fail("Cross-origin dashboard writes must be rejected."),
   );
-  assert.equal(writeResponse.result.statusCode, 405);
+  assert.equal(writeResponse.result.statusCode, 403);
+
+  const unsupportedMethodResponse = createResponse();
+  await createJobDashboardAuthMiddleware(administrator.prisma)(
+    { method: "OPTIONS", headers: { cookie: "parcelis_session=test-token" } } as never,
+    unsupportedMethodResponse.response as never,
+    () => assert.fail("Unsupported methods must be rejected."),
+  );
+  assert.equal(unsupportedMethodResponse.result.statusCode, 405);
 });
