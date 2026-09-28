@@ -5,7 +5,11 @@ import { ExpressAdapter } from "@bull-board/express";
 import type { NextFunction, Request, Response } from "express";
 import { createQueueRegistry, getRedisConnectionOptions } from "@parcelis/jobs";
 import { createJobDashboardAuthMiddleware } from "./job-dashboard-auth.middleware";
-import { jobDashboardLightLogoUrl, jobDashboardLogoMiddleware } from "./job-dashboard-logo.middleware";
+import {
+  jobDashboardFavIcon,
+  jobDashboardLightLogoUrl,
+  jobDashboardLogoMiddleware,
+} from "./job-dashboard-logo.middleware";
 import { jobDashboardRedactionMiddleware, sanitizeJobData } from "./job-dashboard-redaction.middleware";
 import { PrismaModule } from "./prisma.module";
 import { PrismaService } from "./prisma.service";
@@ -42,6 +46,7 @@ class JobQueueShutdown implements OnApplicationShutdown {
             uiConfig: {
               boardTitle: "Parcelis Jobs",
               boardLogo: { path: jobDashboardLightLogoUrl, width: 36, height: 36 },
+              favIcon: jobDashboardFavIcon,
               hideDocsLink: true,
               hideRedisDetails: true,
               theme: {
