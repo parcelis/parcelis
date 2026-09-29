@@ -81,3 +81,61 @@ test("replay returns NOT_FOUND when no failed event belongs to the active organi
   );
   await assert.rejects(caller.outboxEvents.replay({ id: 21 }), { code: "NOT_FOUND" });
 });
+
+for (const kind of ["password-reset", "email-verification"]) {
+  test(`failed-event listing and replay do not expose ${kind} bearer links`, async () => {
+    const token = `secret-${kind}-token`;
+    const link = `https://parcelis.example.com/auth?token=${token}`;
+    const payload = {
+      organizationId: 7,
+      recipientId: 12,
+      recipientType: "user",
+      email: "person@example.com",
+      subject: kind,
+      body: `Follow this link: ${link}`,
+    };
+    const event: Record<string, unknown> = {
+      id: 21,
+      organizationId: 7,
+      status: "failed",
+      eventType: "notification.email",
+      schemaVersion: 1,
+      payload,
+      idempotencyKey: `${kind}:12:token:123`,
+      attemptCount: 3,
+      lastAttemptAt: new Date(),
+      failedAt: new Date(),
+      lastError: `Invalid payload: ${JSON.stringify(payload)}`,
+      createdAt: new Date(),
+    };
+    const caller = createCaller(
+      {
+        outboxEvent: {
+          findMany: async ({ select }: { select: Record<string, boolean> }) => {
+            assert.equal(select.payload, undefined);
+            assert.equal(select.lastError, undefined);
+            return [Object.fromEntries(Object.keys(select).map((key) => [key, event[key]]))];
+          },
+          updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+            Object.assign(event, data);
+            return { count: 1 };
+          },
+          findUniqueOrThrow: async () => event,
+        },
+      },
+      "administrator",
+    );
+
+    const failed = await caller.outboxEvents.failed({});
+    assert.equal(failed[0]?.id, 21);
+    assert.equal(failed[0]?.attemptCount, 3);
+    const replayed = await caller.outboxEvents.replay({ id: 21 });
+    assert.deepEqual(replayed, { id: 21, organizationId: 7, status: "pending" });
+    for (const response of [failed, replayed]) {
+      assert.equal(JSON.stringify(response).includes(token), false);
+      assert.equal(JSON.stringify(response).includes("person@example.com"), false);
+    }
+    assert.deepEqual(event.payload, payload);
+    assert.equal(event.status, "pending");
+  });
+}

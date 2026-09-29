@@ -1160,12 +1160,10 @@ export const appRouter = router({
           id: true,
           eventType: true,
           schemaVersion: true,
-          payload: true,
           idempotencyKey: true,
           attemptCount: true,
           lastAttemptAt: true,
           failedAt: true,
-          lastError: true,
           createdAt: true,
         },
       });
@@ -1182,7 +1180,7 @@ export const appRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Failed outbox event not found in this organization." });
       }
 
-      return event;
+      return { id: event.id, organizationId: event.organizationId, status: event.status };
     }),
   }),
   /** Reports API health and the public object-storage configuration. */
