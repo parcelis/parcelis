@@ -94,10 +94,17 @@ test("queues an immediate notification.email outbox event", async () => {
 
   const notificationDelivery = getNotificationDeliveryCreateManyData();
   assert.ok(notificationDelivery);
-  assert.equal(notificationDelivery.outboxEventId, 44);
-  assert.equal(notificationDelivery.channel, "email");
-  assert.equal(notificationDelivery.status, "queued");
-  assert.equal(notificationDelivery.idempotencyKey, "verify-email:7:abc123");
+  assert.deepEqual(notificationDelivery, {
+    organizationId: 7,
+    outboxEventId: 44,
+    channel: "email",
+    status: "queued",
+    recipientId: 5,
+    recipientType: "tenant",
+    destination: "tenant@example.com",
+    subject: "Lease reminder",
+    idempotencyKey: "verify-email:7:abc123",
+  });
 });
 
 test("queues a delayed notification.email outbox event", async () => {
