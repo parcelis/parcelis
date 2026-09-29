@@ -1,0 +1,21 @@
+apps/api/src/modules/notification-outbox.ts
+  s_384b6f95bf492e::t_c5cbf55aff41e4 1-39
+apps/api/src/tests/notifications/notification-outbox.test.ts
+  s_384b6f95bf492e::t_8208c472993a71 1-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "7781496c6c99c3d60e4f9977b5963cd9e3d6dd5b",
+  "prompts": {},
+  "sessions": {
+    "s_384b6f95bf492e": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "eaa9de57-80fe-481b-8386-de0c63e35cee",
+        "model": "gpt-5-mini"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
