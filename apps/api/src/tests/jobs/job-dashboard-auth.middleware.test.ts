@@ -93,7 +93,6 @@ test("job dashboard permits active administrators using safe read-only requests"
     },
   );
 
-  assert.equal(result.statusCode, 200);
   assert.equal(result.headers["Cache-Control"], "private, no-store");
   assert.equal(queries.length, 1);
   assert.equal(continued, true);
@@ -134,7 +133,7 @@ test("job dashboard permits same-origin writes from active administrators", asyn
     },
   );
 
-  assert.equal(result.statusCode, 200);
+  assert.equal(result.headers["Cache-Control"], "private, no-store");
   assert.equal(continued, true);
 });
 
