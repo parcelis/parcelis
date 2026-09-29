@@ -80,7 +80,6 @@ import {
   formatInvoiceNumber,
   formatMaintenanceTicketNumber,
 } from "@parcelis/schemas";
-import { sendVerificationEmail } from "@parcelis/email";
 import {
   ActivitySubjectType,
   LeaseStatus,
@@ -130,6 +129,7 @@ import {
   isEmailSettingsEncryptionConfigured,
 } from "../modules/email-settings";
 import { consumeEmailSendRateLimit, getEmailSendRateLimitKey } from "../modules/login-rate-limit";
+import { queueNotificationEmailOutboxEvent } from "../modules/notification-outbox";
 
 const propertySelect = {
   id: true,
@@ -868,28 +868,24 @@ export const appRouter = router({
             await tx.organizationMembership.create({
               data: { userId: user.id, organizationId: ctx.organization.organizationId },
             });
-            await tx.emailVerificationToken.create({
+            const createdToken = await tx.emailVerificationToken.create({
               data: {
                 userId: user.id,
                 tokenHash: hashEmailVerificationToken(verificationToken),
                 expiresAt: getEmailVerificationTokenExpiration(),
               },
             });
+            await queueNotificationEmailOutboxEvent(tx, {
+              organizationId: ctx.organization.organizationId,
+              recipientId: user.id,
+              recipientType: "user",
+              email: user.email,
+              subject: "Verify your Parcelis email",
+              body: `Verify your Parcelis email: ${getEmailVerificationUrl(verificationToken)}`,
+              idempotencyKey: `users.create:${user.id}:token:${createdToken.id}`,
+            });
             return user;
           });
-          try {
-            await sendVerificationEmail({
-              to: user.email,
-              verificationUrl: getEmailVerificationUrl(verificationToken),
-              emailConfig: await getOrganizationEmailConfig(ctx.prisma, ctx.organization.organizationId),
-            });
-          } catch (error) {
-            console.error("Unable to send email verification email.", error);
-            throw new TRPCError({
-              code: "SERVICE_UNAVAILABLE",
-              message: "The account was created, but we could not send a verification email. Please resend it.",
-            });
-          }
           return user;
         } catch (error) {
           if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

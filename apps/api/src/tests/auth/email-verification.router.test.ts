@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import { TRPCError } from "@trpc/server";
 import { getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
-import { hashEmailVerificationToken, hashPassword } from "../../modules/auth";
+import { hashEmailVerificationToken, hashPassword, hashPasswordResetToken } from "../../modules/auth";
 import { resetRateLimits } from "../../modules/login-rate-limit";
 import type { PrismaService } from "../../modules/prisma.service";
 import { appRouter } from "../../router/app.router";
@@ -20,6 +20,14 @@ type User = {
 };
 
 type VerificationToken = {
+  expiresAt: Date;
+  id: number;
+  tokenHash: string;
+  usedAt: Date | null;
+  userId: number;
+};
+
+type PasswordResetToken = {
   expiresAt: Date;
   id: number;
   tokenHash: string;
@@ -50,6 +58,7 @@ test.beforeEach(() => {
 function createPrisma() {
   const users: User[] = [];
   const tokens: VerificationToken[] = [];
+  const passwordResetTokens: PasswordResetToken[] = [];
   const sessions: Array<{ userId: number }> = [];
   const organizationMemberships: OrganizationMembership[] = [];
   const outboxEvents: OutboxEvent[] = [];
@@ -165,11 +174,50 @@ function createPrisma() {
         return { count: 1 };
       },
     },
+    passwordResetToken: {
+      create: async ({ data }: { data: Omit<PasswordResetToken, "id" | "usedAt"> }) => {
+        const token = { ...data, id: nextTokenId++, usedAt: null };
+        passwordResetTokens.push(token);
+        return token;
+      },
+      deleteMany: async ({ where }: { where: { userId: number } }) => {
+        const removed = passwordResetTokens.filter((token) => token.userId === where.userId).length;
+        for (let index = passwordResetTokens.length - 1; index >= 0; index -= 1) {
+          const token = passwordResetTokens[index];
+          if (token && token.userId === where.userId) {
+            passwordResetTokens.splice(index, 1);
+          }
+        }
+        return { count: removed };
+      },
+      findUnique: async ({ where }: { where: { tokenHash: string } }) => {
+        const token = passwordResetTokens.find((candidate) => candidate.tokenHash === where.tokenHash);
+        if (!token) return null;
+        const user = users.find((candidate) => candidate.id === token.userId);
+        return user ? { ...token, user: { accountStatus: user.accountStatus } } : null;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { expiresAt: { gt: Date }; id: number; usedAt: null };
+        data: { usedAt: Date };
+      }) => {
+        const token = passwordResetTokens.find(
+          (candidate) =>
+            candidate.id === where.id && candidate.usedAt === null && candidate.expiresAt > where.expiresAt.gt,
+        );
+        if (!token) return { count: 0 };
+        token.usedAt = data.usedAt;
+        return { count: 1 };
+      },
+    },
     session: {
       create: async ({ data }: { data: { userId: number } }) => {
         sessions.push({ userId: data.userId });
         return {};
       },
+      updateMany: async () => ({ count: 1 }),
     },
     outboxEvent: {
       createMany: async ({ data }: { data: Omit<OutboxEvent, "id"> }) => {
@@ -201,7 +249,7 @@ function createPrisma() {
     $transaction: async <T>(callback: (tx: PrismaService) => Promise<T>) => callback(prisma),
   } as unknown as PrismaService;
 
-  return { organizationMemberships, outboxEvents, prisma, sessions, tokens, users };
+  return { organizationMemberships, outboxEvents, passwordResetTokens, prisma, sessions, tokens, users };
 }
 
 function createCaller(prisma: PrismaService) {
@@ -279,9 +327,13 @@ test("registration creates a pending account and one verification token without 
   assert.equal(state.tokens.length, 1);
   assert.notEqual(state.tokens[0]?.tokenHash, "new@example.com");
   assert.equal(state.sessions.length, 0);
-  assert.equal(emailDelivery.messages.length, 1);
-  assert.equal(emailDelivery.messages[0]?.to, "new@example.com");
-  assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
+  assert.equal(emailDelivery.messages.length, 0);
+  assert.equal(state.outboxEvents.length, 1);
+  assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
+  assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /auth\.register/);
+  const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
+  assert.equal(payload.email, "new@example.com");
+  assert.match(payload.body, /mode=verify/);
 });
 
 test("verification activates a pending account and consumes its token", async () => {
@@ -472,6 +524,64 @@ test("resending verification does not reveal whether an account exists", async (
   assert.equal(state.tokens.length, 0);
 });
 
+test("requesting password reset for active users creates one token and enqueues notification", async (t) => {
+  const emailDelivery = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    emailDelivery.restore();
+    resetEmailTransporter();
+  });
+  const state = createPrisma();
+  const user = await state.prisma.user.create({
+    data: {
+      name: "Active User",
+      email: "reset-active@example.com",
+      phone: null,
+      passwordHash: await hashPassword("password-for-active-user"),
+      role: "property_manager",
+      accountStatus: "active",
+      defaultOrganizationId: 1,
+    },
+  });
+  await state.prisma.passwordResetToken.create({
+    data: {
+      userId: user.id,
+      tokenHash: hashPasswordResetToken("old-token"),
+      expiresAt: new Date(Date.now() + 60_000),
+    },
+  });
+
+  const response = await createCaller(state.prisma).auth.requestPasswordReset({ email: user.email });
+
+  assert.deepEqual(response, { success: true });
+  assert.equal(emailDelivery.messages.length, 0);
+  assert.equal(state.passwordResetTokens.length, 1);
+  assert.notEqual(state.passwordResetTokens[0]?.tokenHash, hashPasswordResetToken("old-token"));
+  assert.equal(state.outboxEvents.length, 1);
+  assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
+  assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /auth\.request-password-reset/);
+  const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
+  assert.equal(payload.email, user.email);
+  assert.match(payload.body, /mode=reset/);
+});
+
+test("requesting password reset does not reveal account existence", async (t) => {
+  const emailDelivery = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    emailDelivery.restore();
+    resetEmailTransporter();
+  });
+  const state = createPrisma();
+
+  const response = await createCaller(state.prisma).auth.requestPasswordReset({ email: "missing-reset@example.com" });
+
+  assert.deepEqual(response, { success: true });
+  assert.equal(emailDelivery.messages.length, 0);
+  assert.equal(state.passwordResetTokens.length, 0);
+  assert.equal(state.outboxEvents.length, 0);
+});
+
 test("authorized user creation creates a pending account and verification token", async (t) => {
   const emailDelivery = mockEmailDelivery();
   t.after(() => {
@@ -491,9 +601,13 @@ test("authorized user creation creates a pending account and verification token"
 
   assert.equal(state.users[0]?.accountStatus, "pending");
   assert.equal(state.tokens.length, 1);
-  assert.equal(emailDelivery.messages.length, 1);
-  assert.equal(emailDelivery.messages[0]?.to, "created@example.com");
-  assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
+  assert.equal(emailDelivery.messages.length, 0);
+  assert.equal(state.outboxEvents.length, 1);
+  assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
+  assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /users\.create/);
+  const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
+  assert.equal(payload.email, "created@example.com");
+  assert.match(payload.body, /mode=verify/);
 });
 
 test("pending users cannot have their email changed through profile updates", async () => {

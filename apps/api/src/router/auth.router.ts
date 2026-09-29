@@ -10,7 +10,6 @@ import {
   verifyEmailInputSchema,
 } from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
-import { sendPasswordResetEmail, sendVerificationEmail } from "@parcelis/email";
 import { TRPCError } from "@trpc/server";
 import {
   clearSessionCookie,
@@ -47,7 +46,6 @@ import { protectedProcedure, publicProcedure, router } from "./trpc";
 import type { Context } from "./context";
 import { createUserProfileImageDownloadUrl } from "../modules/object-storage.config";
 import { getRolePermissions } from "../modules/permissions";
-import { getOrganizationEmailConfig } from "../modules/email-settings";
 
 const invalidCredentials = new TRPCError({
   code: "UNAUTHORIZED",
@@ -103,12 +101,21 @@ export const authRouter = router({
           data: { userId: createdUser.id, organizationId: organization.id, role: "owner" },
         });
         await tx.user.update({ where: { id: createdUser.id }, data: { defaultOrganizationId: organization.id } });
-        await tx.emailVerificationToken.create({
+        const createdToken = await tx.emailVerificationToken.create({
           data: {
             userId: createdUser.id,
             tokenHash: hashEmailVerificationToken(verificationToken),
             expiresAt: getEmailVerificationTokenExpiration(),
           },
+        });
+        await queueNotificationEmailOutboxEvent(tx, {
+          organizationId: organization.id,
+          recipientId: createdUser.id,
+          recipientType: "user",
+          email: createdUser.email,
+          subject: "Verify your Parcelis email",
+          body: `Verify your Parcelis email: ${getEmailVerificationUrl(verificationToken)}`,
+          idempotencyKey: `auth.register:${createdUser.id}:token:${createdToken.id}`,
         });
         return { ...createdUser, organizationId: organization.id };
       });
@@ -117,19 +124,6 @@ export const authRouter = router({
         throw new TRPCError({ code: "CONFLICT", message: "Unable to create account." });
       }
       throw error;
-    }
-    try {
-      await sendVerificationEmail({
-        to: user.email,
-        verificationUrl: getEmailVerificationUrl(verificationToken),
-        emailConfig: await getOrganizationEmailConfig(ctx.prisma, user.organizationId),
-      });
-    } catch (error) {
-      console.error("Unable to send email verification email.", error);
-      throw new TRPCError({
-        code: "SERVICE_UNAVAILABLE",
-        message: "Your account was created, but we could not send a verification email. Please resend it.",
-      });
     }
     clearLoginRateLimit(rateLimitKey);
     return { user };
@@ -264,32 +258,28 @@ export const authRouter = router({
       void ctx.prisma
         .$transaction(async (tx) => {
           await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
-          await tx.passwordResetToken.create({
+          const createdToken = await tx.passwordResetToken.create({
             data: {
               userId: user.id,
               tokenHash: hashPasswordResetToken(token),
               expiresAt: getPasswordResetTokenExpiration(),
             },
           });
-        })
-        .then(async () => {
-          let emailConfig;
-          if (user.defaultOrganizationId) {
-            try {
-              emailConfig = await getOrganizationEmailConfig(ctx.prisma, user.defaultOrganizationId);
-            } catch (error: unknown) {
-              console.error("Unable to load organization email settings; using default SMTP configuration.", error);
-            }
-          }
 
-          return sendPasswordResetEmail({
-            resetUrl: getLoginTokenUrl("reset", token),
-            to: user.email,
-            emailConfig,
-          });
+          if (user.defaultOrganizationId) {
+            await queueNotificationEmailOutboxEvent(tx, {
+              organizationId: user.defaultOrganizationId,
+              recipientId: user.id,
+              recipientType: "user",
+              email: user.email,
+              subject: "Reset your Parcelis password",
+              body: `Reset your Parcelis password: ${getLoginTokenUrl("reset", token)}`,
+              idempotencyKey: `auth.request-password-reset:${user.id}:token:${createdToken.id}`,
+            });
+          }
         })
         .catch((error: unknown) => {
-          console.error("Unable to create password reset token or send reset email.", error);
+          console.error("Unable to create password reset token or enqueue reset email notification.", error);
         });
     }
 

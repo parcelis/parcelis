@@ -19,31 +19,23 @@ const redisConnection = getRedisConnectionOptions();
 const queues = Object.values(createQueueRegistry(redisConnection));
 const queueByName = new Map(queues.map((queue) => [queue.name, queue]));
 
-const enableNotificationEmailWorker = process.env.ENABLE_NOTIFICATION_EMAIL_WORKER === "true";
-const notificationEmailWorker = enableNotificationEmailWorker
-  ? new Worker(
-      queueNames.accountNotifications,
-      async (job) => {
-        if (job.name !== notificationEmailJobName) {
-          throw new Error(`Unsupported account notification job: ${job.name}.`);
-        }
+const notificationEmailWorker = new Worker(
+  queueNames.accountNotifications,
+  async (job) => {
+    if (job.name !== notificationEmailJobName) {
+      throw new Error(`Unsupported account notification job: ${job.name}.`);
+    }
 
-        return processNotificationEmailJob(job.data);
-      },
-      { connection: redisConnection },
-    )
-  : null;
+    return processNotificationEmailJob(job.data);
+  },
+  { connection: redisConnection },
+);
 
 // Wait until all queues are ready before starting the worker.
 await Promise.all(queues.map((queue) => queue.waitUntilReady()));
-if (notificationEmailWorker) {
-  await notificationEmailWorker.waitUntilReady();
-}
+await notificationEmailWorker.waitUntilReady();
 
 console.info(`[parcelis] Worker connected to Redis for ${queues.length} queues.`);
-if (!enableNotificationEmailWorker) {
-  console.info("[parcelis] Notification email worker is disabled. Set ENABLE_NOTIFICATION_EMAIL_WORKER=true to enable.");
-}
 const stopOutboxDispatcher = startOutboxDispatcher(prisma, queueByName);
 
 let isShuttingDown = false;
@@ -63,9 +55,7 @@ async function shutdown(signal: NodeJS.Signals) {
 
   try {
     await stopOutboxDispatcher();
-    if (notificationEmailWorker) {
-      await notificationEmailWorker.close();
-    }
+    await notificationEmailWorker.close();
     await Promise.allSettled(queues.map((queue) => queue.close()));
     await prisma.$disconnect();
     clearTimeout(deadline);
