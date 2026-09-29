@@ -3,6 +3,7 @@ export type EmailConfig = {
   host: string;
   password?: string;
   port: number;
+  ignoreTLS?: boolean;
   requireTLS?: boolean;
   secure: boolean;
   user?: string;

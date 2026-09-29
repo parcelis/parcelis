@@ -76,7 +76,7 @@ export async function getOrganizationEmailConfig(
       : settings.securityType === "starttls"
         ? { requireTLS: true, secure: false }
         : settings.securityType === "none"
-          ? { secure: false }
+          ? { ignoreTLS: true, secure: false }
           : null;
   if (!security) throw new Error("Organization email settings have an invalid security type.");
 

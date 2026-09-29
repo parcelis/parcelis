@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
+import { createEmailTransporter } from "@parcelis/email";
 import { TRPCError } from "@trpc/server";
 import type { PrismaService } from "../../modules/prisma.service";
 import {
@@ -71,6 +72,36 @@ test("uses environment SMTP when an organization has no saved configuration", as
   } as unknown as PrismaClient;
 
   assert.equal(await getOrganizationEmailConfig(prisma, 42), undefined);
+});
+
+test("none disables STARTTLS for an organization's SMTP transport", async () => {
+  const prisma = {
+    organizationEmailSettings: {
+      findUnique: async () => ({
+        host: "smtp.example.com",
+        securityType: "none",
+        port: 25,
+        fromName: null,
+        fromEmail: "notices@example.com",
+        requireSignIn: false,
+        username: null,
+        passwordCipher: null,
+      }),
+    },
+  } as unknown as PrismaClient;
+
+  const config = await getOrganizationEmailConfig(prisma, 42);
+  assert.deepEqual(config, {
+    from: "notices@example.com",
+    host: "smtp.example.com",
+    port: 25,
+    ignoreTLS: true,
+    secure: false,
+  });
+  assert.ok(config);
+  const transport = createEmailTransporter(config);
+  const options = (transport.transporter as { options: { ignoreTLS?: boolean } }).options;
+  assert.equal(options.ignoreTLS, true);
 });
 
 test("returns a bad request when saved SMTP credentials cannot be decrypted for a test email", async () => {
