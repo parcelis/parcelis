@@ -1,14 +1,47 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { hashSessionToken } from "../../modules/auth";
 import type { PrismaService } from "../../modules/prisma.service";
 import { createJobDashboardAuthMiddleware } from "../../modules/job-dashboard-auth.middleware";
 
-function createPrisma(role: "administrator" | "property_manager" | null) {
+function createPrisma(
+  role: "administrator" | "property_manager" | null,
+  overrides: Partial<{
+    tokenHash: string;
+    expiresAt: Date;
+    revokedAt: Date | null;
+    accountStatus: string;
+  }> = {},
+) {
+  const session = {
+    tokenHash: hashSessionToken("test-token"),
+    expiresAt: new Date("2100-01-01"),
+    revokedAt: null as Date | null,
+    accountStatus: "active",
+    ...overrides,
+  };
   const queries: unknown[] = [];
   const prisma = {
     session: {
-      findFirst: async (query: unknown) => {
+      findFirst: async (query: {
+        where: {
+          tokenHash?: string;
+          expiresAt?: { gt: Date };
+          revokedAt?: Date | null;
+          user?: { accountStatus?: string };
+        };
+      }) => {
         queries.push(query);
+        const { where } = query;
+        if (
+          (where.tokenHash !== undefined && session.tokenHash !== where.tokenHash) ||
+          (where.expiresAt !== undefined && session.expiresAt <= where.expiresAt.gt) ||
+          (where.revokedAt !== undefined && session.revokedAt !== where.revokedAt) ||
+          (where.user?.accountStatus !== undefined &&
+            session.accountStatus !== where.user.accountStatus)
+        ) {
+          return null;
+        }
         return role ? { user: { role } } : null;
       },
     },
@@ -65,6 +98,27 @@ test("job dashboard permits active administrators using safe read-only requests"
   assert.equal(queries.length, 1);
   assert.equal(continued, true);
 });
+
+for (const [name, overrides] of [
+  ["expired", { expiresAt: new Date("2000-01-01") }],
+  ["revoked", { revokedAt: new Date("2000-01-01") }],
+  ["inactive", { accountStatus: "disabled" }],
+  ["unmatched token", { tokenHash: hashSessionToken("another-token") }],
+] as const) {
+  test(`job dashboard rejects ${name} sessions`, async () => {
+    const { prisma, queries } = createPrisma("administrator", overrides);
+    const { response, result } = createResponse();
+
+    await createJobDashboardAuthMiddleware(prisma)(
+      { method: "GET", headers: { cookie: "parcelis_session=test-token" } } as never,
+      response as never,
+      () => assert.fail(`${name} sessions must not reach the dashboard.`),
+    );
+
+    assert.equal(result.statusCode, 401);
+    assert.equal(queries.length, 1);
+  });
+}
 
 test("job dashboard permits same-origin writes from active administrators", async () => {
   const { prisma } = createPrisma("administrator");
