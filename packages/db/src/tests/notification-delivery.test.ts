@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 import {
   markNotificationDeliveryFailed,
+  markNotificationDeliveryRetrying,
   markNotificationDeliverySending,
   markNotificationDeliverySent,
   recordNotificationDeliveryQueued,
@@ -162,6 +163,25 @@ test("markNotificationDeliveryFailed stores error and failure time", async () =>
   assert.equal(updated.status, NotificationDeliveryStatus.failed);
   assert.equal(updated.lastError, "SMTP unavailable");
   assert.equal(updated.failedAt?.toISOString(), "2026-09-26T12:07:00.000Z");
+});
+
+test("markNotificationDeliveryRetrying keeps transient failures recoverable", async () => {
+  const { prisma } = createPrismaMock(
+    createDelivery({
+      status: NotificationDeliveryStatus.sending,
+      attemptCount: 1,
+      failedAt: new Date("2026-09-26T12:07:00.000Z"),
+    }),
+  );
+
+  const updated = await markNotificationDeliveryRetrying(prisma, {
+    outboxEventId: 44,
+    error: "SMTP unavailable",
+  });
+
+  assert.equal(updated.status, NotificationDeliveryStatus.queued);
+  assert.equal(updated.lastError, "SMTP unavailable");
+  assert.equal(updated.failedAt, null);
 });
 
 test("sent delivery remains terminal for stale sending, sent, and failed updates", async () => {

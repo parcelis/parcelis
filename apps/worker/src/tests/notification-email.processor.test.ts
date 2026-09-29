@@ -44,7 +44,7 @@ test("processNotificationEmailJob validates payload and sends plain-text body as
   assert.deepEqual(marks, ["sending:42", "sent:42:msg-123"]);
 });
 
-test("processNotificationEmailJob marks delivery as failed when send throws", async () => {
+test("processNotificationEmailJob keeps a temporary failure queued for BullMQ retry", async () => {
   const marks: string[] = [];
 
   await assert.rejects(
@@ -70,12 +70,82 @@ test("processNotificationEmailJob marks delivery as failed when send throws", as
         markDeliveryFailed: async ({ outboxEventId, error }) => {
           marks.push(`failed:${outboxEventId}:${error}`);
         },
+        markDeliveryRetrying: async ({ outboxEventId, error }) => {
+          marks.push(`retrying:${outboxEventId}:${error}`);
+        },
       },
     ),
     /SMTP unavailable/,
   );
 
-  assert.deepEqual(marks, ["sending:42", "failed:42:SMTP unavailable"]);
+  assert.deepEqual(marks, ["sending:42", "retrying:42:SMTP unavailable"]);
+});
+
+test("permanent SMTP errors fail immediately without consuming remaining attempts", async () => {
+  const marks: string[] = [];
+  const error = Object.assign(new Error("Authentication failed"), { code: "EAUTH", responseCode: 535 });
+
+  await assert.rejects(
+    processNotificationEmailJob(
+      {
+        organizationId: 7,
+        recipientId: 12,
+        recipientType: "user",
+        email: "person@example.com",
+        subject: "Verify your Parcelis email",
+        body: "Hello",
+        outboxEventId: 42,
+      },
+      {
+        rememberAccepted: async () => {},
+        getEmailConfig: async () => undefined,
+        send: async () => {
+          throw error;
+        },
+        markDeliveryFailed: async ({ outboxEventId, error: message }) => {
+          marks.push(`failed:${outboxEventId}:${message}`);
+        },
+        markDeliveryRetrying: async () => assert.fail("Permanent errors must not be retried"),
+      },
+      { attemptsMade: 0, attempts: 3 },
+    ),
+    /Authentication failed/,
+  );
+
+  assert.deepEqual(marks, ["failed:42:Authentication failed"]);
+});
+
+test("temporary SMTP errors become failed after the final configured attempt", async () => {
+  const marks: string[] = [];
+
+  await assert.rejects(
+    processNotificationEmailJob(
+      {
+        organizationId: 7,
+        recipientId: 12,
+        recipientType: "user",
+        email: "person@example.com",
+        subject: "Verify your Parcelis email",
+        body: "Hello",
+        outboxEventId: 42,
+      },
+      {
+        rememberAccepted: async () => {},
+        getEmailConfig: async () => undefined,
+        send: async () => {
+          throw new Error("SMTP unavailable");
+        },
+        markDeliveryFailed: async ({ outboxEventId, error }) => {
+          marks.push(`failed:${outboxEventId}:${error}`);
+        },
+        markDeliveryRetrying: async () => assert.fail("Final attempt must not be queued again"),
+      },
+      { attemptsMade: 2, attempts: 3 },
+    ),
+    /SMTP unavailable/,
+  );
+
+  assert.deepEqual(marks, ["failed:42:SMTP unavailable"]);
 });
 
 test("processNotificationEmailJob rejects malformed payloads", async () => {
@@ -139,8 +209,8 @@ for (const configured of [true, false]) {
   });
 }
 
-test("configuration errors mark delivery failed without sending through environment SMTP", async () => {
-  const failures: unknown[] = [];
+test("configuration errors are retryable without sending through environment SMTP", async () => {
+  const retrying: unknown[] = [];
   let sent = false;
   await assert.rejects(
     processNotificationEmailJob(
@@ -156,21 +226,21 @@ test("configuration errors mark delivery failed without sending through environm
       {
         rememberAccepted: async () => {},
         getEmailConfig: async () => {
-          throw new Error("Cannot decrypt saved credentials");
+          throw new Error("Database temporarily unavailable");
         },
         send: async () => {
           sent = true;
           return { messageId: "unexpected" };
         },
-        markDeliveryFailed: async (failure) => {
-          failures.push(failure);
+        markDeliveryRetrying: async (failure) => {
+          retrying.push(failure);
         },
       },
     ),
-    /Cannot decrypt saved credentials/,
+    /Database temporarily unavailable/,
   );
   assert.equal(sent, false);
-  assert.deepEqual(failures, [{ outboxEventId: 42, error: "Cannot decrypt saved credentials" }]);
+  assert.deepEqual(retrying, [{ outboxEventId: 42, error: "Database temporarily unavailable" }]);
 });
 
 test("a stale job skips SMTP when the delivery is already sent", async () => {

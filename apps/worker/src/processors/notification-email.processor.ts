@@ -1,5 +1,19 @@
 import type { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
 import { notificationEmailDeliveryJobSchema, type NotificationEmailOutboxJob } from "@parcelis/jobs";
+import { UnrecoverableError } from "bullmq";
+
+const permanentEmailErrorCodes = new Set([
+  "EAUTH",
+  "ENOAUTH",
+  "EOAUTH2",
+  "EENVELOPE",
+  "EMAXRECIPIENTS",
+  "ECONFIG",
+  "EREQUIRETLS",
+  "EFILEACCESS",
+  "EURLACCESS",
+  "EFETCH",
+]);
 
 function escapeHtml(value: string) {
   return value
@@ -18,6 +32,7 @@ export type ProcessNotificationEmailJobDependencies = {
   send: typeof sendEmail;
   getEmailConfig: (organizationId: number) => ReturnType<typeof getOrganizationEmailConfig>;
   markDeliveryFailed?: (input: { error: string; outboxEventId: number }) => Promise<void>;
+  markDeliveryRetrying?: (input: { error: string; outboxEventId: number }) => Promise<void>;
   markDeliverySending?: (input: { outboxEventId: number }) => Promise<{ status: string } | void>;
   markDeliverySent?: (input: { messageId: string; outboxEventId: number }) => Promise<void>;
   rememberAccepted: (input: NotificationEmailOutboxJob & { acceptedMessageId: string }) => Promise<void>;
@@ -27,9 +42,32 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function getErrorCode(error: unknown) {
+  if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
+  return typeof error.code === "string" ? error.code : undefined;
+}
+
+function getResponseCode(error: unknown) {
+  if (typeof error !== "object" || error === null || !("responseCode" in error)) return undefined;
+  return typeof error.responseCode === "number" ? error.responseCode : undefined;
+}
+
+function isPermanentEmailError(error: unknown) {
+  const responseCode = getResponseCode(error);
+  if (responseCode !== undefined) return responseCode >= 500;
+
+  return permanentEmailErrorCodes.has(getErrorCode(error) ?? "");
+}
+
+export type NotificationEmailJobRetry = {
+  attemptsMade: number;
+  attempts: number;
+};
+
 export async function processNotificationEmailJob(
   data: unknown,
   dependencies: ProcessNotificationEmailJobDependencies,
+  retry: NotificationEmailJobRetry = { attemptsMade: 0, attempts: 3 },
 ) {
   const payload = notificationEmailDeliveryJobSchema.parse(data);
   const delivery = await dependencies.markDeliverySending?.({ outboxEventId: payload.outboxEventId });
@@ -56,7 +94,14 @@ export async function processNotificationEmailJob(
       html: formatPlainTextAsHtml(payload.body),
     });
   } catch (error) {
-    await dependencies.markDeliveryFailed?.({ outboxEventId: payload.outboxEventId, error: getErrorMessage(error) });
+    const message = getErrorMessage(error);
+    const finalAttempt = retry.attemptsMade + 1 >= retry.attempts;
+    if (isPermanentEmailError(error) || finalAttempt) {
+      await dependencies.markDeliveryFailed?.({ outboxEventId: payload.outboxEventId, error: message });
+      if (isPermanentEmailError(error)) throw new UnrecoverableError(message);
+    } else {
+      await dependencies.markDeliveryRetrying?.({ outboxEventId: payload.outboxEventId, error: message });
+    }
     throw error;
   }
 

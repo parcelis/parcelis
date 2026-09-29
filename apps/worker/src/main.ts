@@ -1,5 +1,6 @@
 import {
   markNotificationDeliveryFailed,
+  markNotificationDeliveryRetrying,
   markNotificationDeliverySending,
   markNotificationDeliverySent,
   PrismaClient,
@@ -33,20 +34,27 @@ const notificationEmailWorker = new Worker(
       throw new Error(`Unsupported account notification job: ${job.name}.`);
     }
 
-    return processNotificationEmailJob(job.data, {
-      send: sendEmail,
-      rememberAccepted: (data) => job.updateData(data),
-      getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
-      markDeliverySending: async ({ outboxEventId }) => {
-        return markNotificationDeliverySending(prisma, { outboxEventId });
+    return processNotificationEmailJob(
+      job.data,
+      {
+        send: sendEmail,
+        rememberAccepted: (data) => job.updateData(data),
+        getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
+        markDeliverySending: async ({ outboxEventId }) => {
+          return markNotificationDeliverySending(prisma, { outboxEventId });
+        },
+        markDeliverySent: async ({ outboxEventId, messageId }) => {
+          await markNotificationDeliverySent(prisma, { outboxEventId, providerMessageId: messageId });
+        },
+        markDeliveryFailed: async ({ outboxEventId, error }) => {
+          await markNotificationDeliveryFailed(prisma, { outboxEventId, error });
+        },
+        markDeliveryRetrying: async ({ outboxEventId, error }) => {
+          await markNotificationDeliveryRetrying(prisma, { outboxEventId, error });
+        },
       },
-      markDeliverySent: async ({ outboxEventId, messageId }) => {
-        await markNotificationDeliverySent(prisma, { outboxEventId, providerMessageId: messageId });
-      },
-      markDeliveryFailed: async ({ outboxEventId, error }) => {
-        await markNotificationDeliveryFailed(prisma, { outboxEventId, error });
-      },
-    });
+      { attemptsMade: job.attemptsMade, attempts: job.opts.attempts ?? 1 },
+    );
   },
   { connection: redisConnection },
 );

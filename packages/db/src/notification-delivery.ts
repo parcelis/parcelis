@@ -91,4 +91,20 @@ export async function markNotificationDeliveryFailed(
   return prisma.notificationDelivery.findUniqueOrThrow({ where: { outboxEventId: input.outboxEventId } });
 }
 
+export async function markNotificationDeliveryRetrying(
+  prisma: NotificationDeliveryClient,
+  input: { outboxEventId: number; error: string },
+) {
+  await prisma.notificationDelivery.updateMany({
+    where: { outboxEventId: input.outboxEventId, status: { not: NotificationDeliveryStatus.sent } },
+    data: {
+      status: NotificationDeliveryStatus.queued,
+      failedAt: null,
+      lastError: input.error,
+    },
+  });
+
+  return prisma.notificationDelivery.findUniqueOrThrow({ where: { outboxEventId: input.outboxEventId } });
+}
+
 export { NotificationDeliveryChannel, NotificationDeliveryStatus };
