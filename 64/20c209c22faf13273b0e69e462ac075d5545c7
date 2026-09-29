@@ -1,0 +1,22 @@
+packages/db/prisma/schema.prisma
+  s_bb3c74f935ba83::t_39502b3367d441 811,837
+  s_bb3c74f935ba83::t_e2aa3e6e217d25 840
+ARCHITECTURE.md
+  s_bb3c74f935ba83::t_4723da18bdae04 78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6420c209c22faf13273b0e69e462ac075d5545c7",
+  "prompts": {},
+  "sessions": {
+    "s_bb3c74f935ba83": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ee98-6e78-79a2-a252-bcd5b7590f84",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
