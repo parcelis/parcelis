@@ -1,0 +1,11 @@
+infra/nginx/proxy.conf.template
+  ai_agent 29
+infra/docker/proxy/nginx.conf
+  ai_agent 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "83bff3240e1122e9d8b758310afaadc92be66915",
+  "prompts": {}
+}

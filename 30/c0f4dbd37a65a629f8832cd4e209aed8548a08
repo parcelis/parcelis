@@ -1,0 +1,9 @@
+apps/api/src/tests/jobs/job-dashboard-redaction.middleware.test.ts
+  ai_agent 20,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "30c0f4dbd37a65a629f8832cd4e209aed8548a08",
+  "prompts": {}
+}

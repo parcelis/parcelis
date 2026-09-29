@@ -1,0 +1,19 @@
+apps/api/src/tests/jobs/job-dashboard-logo.middleware.test.ts
+  s_892ed42acbab12::t_e69a76a326b8b7 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e15fe503d4e8aa0acc5fec4797d15f82c5b359c4",
+  "prompts": {},
+  "sessions": {
+    "s_892ed42acbab12": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0eb55-2b8f-7b11-8d20-635d410ecd1f",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
