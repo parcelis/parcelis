@@ -76,6 +76,7 @@ function createPrisma() {
   const organizationMemberships: OrganizationMembership[] = [];
   const outboxEvents: OutboxEvent[] = [];
   const notificationDeliveries: NotificationDelivery[] = [];
+  const transactions: Promise<unknown>[] = [];
   let nextUserId = 1;
   let nextTokenId = 1;
   let nextOrganizationId = 1;
@@ -124,11 +125,7 @@ function createPrisma() {
         organizationMemberships.push(data);
         return data;
       },
-      findUnique: async ({
-        where,
-      }: {
-        where: { userId_organizationId: { organizationId: number; userId: number } };
-      }) =>
+      findUnique: async ({ where }: { where: { userId_organizationId: { organizationId: number; userId: number } } }) =>
         organizationMemberships.find(
           (membership) =>
             membership.userId === where.userId_organizationId.userId &&
@@ -237,9 +234,7 @@ function createPrisma() {
     outboxEvent: {
       createMany: async ({ data }: { data: Omit<OutboxEvent, "id"> }) => {
         const duplicate = outboxEvents.some(
-          (event) =>
-            event.organizationId === data.organizationId &&
-            event.idempotencyKey === data.idempotencyKey,
+          (event) => event.organizationId === data.organizationId && event.idempotencyKey === data.idempotencyKey,
         );
         if (!duplicate) {
           outboxEvents.push({ ...data, id: nextOutboxEventId++ });
@@ -276,10 +271,27 @@ function createPrisma() {
         return delivery;
       },
     },
-    $transaction: async <T>(callback: (tx: PrismaService) => Promise<T>) => callback(prisma),
+    $transaction: <T>(callback: (tx: PrismaService) => Promise<T>) => {
+      const transaction = callback(prisma);
+      transactions.push(transaction);
+      return transaction;
+    },
   } as unknown as PrismaService;
 
-  return { organizationMemberships, outboxEvents, passwordResetTokens, prisma, sessions, tokens, users };
+  return {
+    organizationMemberships,
+    outboxEvents,
+    passwordResetTokens,
+    prisma,
+    sessions,
+    tokens,
+    users,
+    waitForTransaction: async () => {
+      const transaction = transactions.at(-1);
+      assert.ok(transaction, "Expected a background transaction");
+      await transaction;
+    },
+  };
 }
 
 function createCaller(prisma: PrismaService) {
@@ -495,6 +507,7 @@ test("resending verification preserves prior tokens for pending accounts", async
   });
 
   await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
+  await state.waitForTransaction();
   assert.equal(state.tokens.length, 2);
   assert.ok(state.tokens.some((token) => token.tokenHash === "old-token"));
   assert.ok(state.tokens.some((token) => token.tokenHash !== "old-token"));
@@ -533,6 +546,7 @@ test("resending verification removes expired tokens", async (t) => {
   });
 
   await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
+  await state.waitForTransaction();
 
   assert.equal(state.tokens.length, 1);
   assert.notEqual(state.tokens[0]?.tokenHash, "expired-token");
@@ -575,6 +589,8 @@ test("requesting email verification without a default organization sends email d
   });
 
   const response = await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
+  await state.waitForTransaction();
+  await emailDelivery.sent;
 
   assert.deepEqual(response, { success: true });
   assert.equal(state.tokens.length, 1);
@@ -612,6 +628,7 @@ test("requesting password reset for active users creates one token and enqueues 
   });
 
   const response = await createCaller(state.prisma).auth.requestPasswordReset({ email: user.email });
+  await state.waitForTransaction();
 
   assert.deepEqual(response, { success: true });
   assert.equal(emailDelivery.messages.length, 0);
@@ -646,6 +663,8 @@ test("requesting password reset without a default organization sends email direc
   });
 
   const response = await createCaller(state.prisma).auth.requestPasswordReset({ email: user.email });
+  await state.waitForTransaction();
+  await emailDelivery.sent;
 
   assert.deepEqual(response, { success: true });
   assert.equal(state.passwordResetTokens.length, 1);
@@ -726,7 +745,8 @@ test("pending users cannot have their email changed through profile updates", as
       phone: null,
     }),
     (error: unknown) =>
-      error instanceof TRPCError && error.message === "A pending user's email address cannot be changed before verification.",
+      error instanceof TRPCError &&
+      error.message === "A pending user's email address cannot be changed before verification.",
   );
   assert.equal(state.users[0]?.email, "pending-profile@example.com");
 });
