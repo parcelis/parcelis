@@ -26,7 +26,7 @@ server {
   }
 
   location = /admin/jobs {
-    return 308 /admin/jobs/;
+    return 308 /admin/jobs/$is_args$args;
   }
 
   location ^~ /docs/ {
