@@ -482,6 +482,9 @@ importers:
       '@parcelis/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@parcelis/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@parcelis/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs

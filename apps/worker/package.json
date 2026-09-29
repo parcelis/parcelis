@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@parcelis/db": "workspace:*",
+    "@parcelis/email": "workspace:*",
     "@parcelis/jobs": "workspace:*",
     "bullmq": "^6.3.8",
     "ioredis": "^6.0.0"
