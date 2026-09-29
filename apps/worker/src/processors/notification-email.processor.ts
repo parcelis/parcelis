@@ -16,19 +16,36 @@ function formatPlainTextAsHtml(text: string) {
 
 export type ProcessNotificationEmailJobDependencies = {
   send: typeof sendEmail;
+  markDeliveryFailed?: (input: { error: string; outboxEventId: number }) => Promise<void>;
+  markDeliverySending?: (input: { outboxEventId: number }) => Promise<void>;
+  markDeliverySent?: (input: { messageId: string; outboxEventId: number }) => Promise<void>;
 };
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export async function processNotificationEmailJob(
   data: unknown,
   dependencies: ProcessNotificationEmailJobDependencies = { send: sendEmail },
 ) {
   const payload = notificationEmailOutboxJobSchema.parse(data);
-  const result = await dependencies.send({
-    to: payload.email,
-    subject: payload.subject,
-    text: payload.body,
-    html: formatPlainTextAsHtml(payload.body),
-  });
+  await dependencies.markDeliverySending?.({ outboxEventId: payload.outboxEventId });
+
+  let result;
+  try {
+    result = await dependencies.send({
+      to: payload.email,
+      subject: payload.subject,
+      text: payload.body,
+      html: formatPlainTextAsHtml(payload.body),
+    });
+  } catch (error) {
+    await dependencies.markDeliveryFailed?.({ outboxEventId: payload.outboxEventId, error: getErrorMessage(error) });
+    throw error;
+  }
+
+  await dependencies.markDeliverySent?.({ outboxEventId: payload.outboxEventId, messageId: result.messageId });
 
   return {
     messageId: result.messageId,

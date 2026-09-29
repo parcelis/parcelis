@@ -1,8 +1,11 @@
 export * from "./outbox.ts";
+export * from "./notification-delivery.ts";
 export {
   ActivitySubjectType,
   LeaseStatus,
   MaintenanceTicketStatus,
+  NotificationDeliveryChannel,
+  NotificationDeliveryStatus,
   OrganizationMemberRole,
   OutboxEventStatus,
   Prisma,

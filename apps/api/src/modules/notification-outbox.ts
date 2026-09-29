@@ -1,5 +1,5 @@
 import type { Prisma } from "@parcelis/db";
-import { recordOutboxEvent } from "@parcelis/db";
+import { NotificationDeliveryChannel, recordNotificationDeliveryQueued, recordOutboxEvent } from "@parcelis/db";
 import {
   getOutboxEventContract,
   notificationEmailJobSchema,
@@ -28,7 +28,7 @@ export async function queueNotificationEmailOutboxEvent(
   const { idempotencyKey, delayMs, ...payload } = parsed;
   const contract = getOutboxEventContract(outboxEventTypes.notificationEmail, 1);
 
-  return recordOutboxEvent(tx, {
+  const outboxEvent = await recordOutboxEvent(tx, {
     organizationId: payload.organizationId,
     eventType: outboxEventTypes.notificationEmail,
     schemaVersion: contract.schemaVersion,
@@ -36,4 +36,17 @@ export async function queueNotificationEmailOutboxEvent(
     idempotencyKey,
     ...(typeof delayMs === "number" ? { availableAt: new Date(Date.now() + delayMs) } : {}),
   });
+
+  await recordNotificationDeliveryQueued(tx, {
+    organizationId: payload.organizationId,
+    outboxEventId: outboxEvent.id,
+    channel: NotificationDeliveryChannel.email,
+    recipientId: payload.recipientId,
+    recipientType: payload.recipientType,
+    destination: payload.email,
+    subject: payload.subject,
+    idempotencyKey,
+  });
+
+  return outboxEvent;
 }

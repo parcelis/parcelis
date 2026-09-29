@@ -51,6 +51,19 @@ type OutboxEvent = {
   schemaVersion: number;
 };
 
+type NotificationDelivery = {
+  channel: "email";
+  destination: string;
+  id: number;
+  idempotencyKey: string;
+  organizationId: number;
+  outboxEventId: number;
+  recipientId: number;
+  recipientType: string;
+  status: "queued";
+  subject: string;
+};
+
 test.beforeEach(() => {
   resetRateLimits();
 });
@@ -62,10 +75,12 @@ function createPrisma() {
   const sessions: Array<{ userId: number }> = [];
   const organizationMemberships: OrganizationMembership[] = [];
   const outboxEvents: OutboxEvent[] = [];
+  const notificationDeliveries: NotificationDelivery[] = [];
   let nextUserId = 1;
   let nextTokenId = 1;
   let nextOrganizationId = 1;
   let nextOutboxEventId = 1;
+  let nextNotificationDeliveryId = 1;
 
   const prisma: PrismaService = {
     user: {
@@ -244,6 +259,21 @@ function createPrisma() {
         );
         if (!event) throw new Error("Outbox event not found.");
         return event;
+      },
+    },
+    notificationDelivery: {
+      createMany: async ({ data }: { data: Omit<NotificationDelivery, "id"> }) => {
+        const duplicate = notificationDeliveries.some((delivery) => delivery.outboxEventId === data.outboxEventId);
+        if (!duplicate) {
+          notificationDeliveries.push({ ...data, id: nextNotificationDeliveryId++ });
+          return { count: 1 };
+        }
+        return { count: 0 };
+      },
+      findUniqueOrThrow: async ({ where }: { where: { outboxEventId: number } }) => {
+        const delivery = notificationDeliveries.find((candidate) => candidate.outboxEventId === where.outboxEventId);
+        if (!delivery) throw new Error("Notification delivery not found.");
+        return delivery;
       },
     },
     $transaction: async <T>(callback: (tx: PrismaService) => Promise<T>) => callback(prisma),

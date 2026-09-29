@@ -5,6 +5,8 @@ import { queueNotificationEmailOutboxEvent } from "../../modules/notification-ou
 
 function createTransactionClient() {
   let createManyData: Record<string, unknown> | undefined;
+  let notificationDeliveryCreateManyData: Record<string, unknown> | undefined;
+  let outboxEventId = 44;
 
   const tx = {
     outboxEvent: {
@@ -15,7 +17,7 @@ function createTransactionClient() {
       findUniqueOrThrow: async ({ where }: { where: { organizationId_idempotencyKey: unknown } }) => {
         const key = where.organizationId_idempotencyKey as { organizationId: number; idempotencyKey: string };
         return {
-          id: 44,
+          id: outboxEventId,
           organizationId: key.organizationId,
           eventType: "notification.email",
           schemaVersion: 1,
@@ -31,16 +33,38 @@ function createTransactionClient() {
         };
       },
     },
+    notificationDelivery: {
+      createMany: async ({ data }: { data: Record<string, unknown> }) => {
+        notificationDeliveryCreateManyData = data;
+        if (typeof data.outboxEventId === "number") {
+          outboxEventId = data.outboxEventId;
+        }
+        return { count: 1 };
+      },
+      findUniqueOrThrow: async ({ where }: { where: { outboxEventId: number } }) => ({
+        id: 77,
+        organizationId: 7,
+        outboxEventId: where.outboxEventId,
+        channel: "email",
+        status: "queued",
+        recipientId: 5,
+        recipientType: "tenant",
+        destination: "tenant@example.com",
+        subject: "Lease reminder",
+        idempotencyKey: "verify-email:7:abc123",
+      }),
+    },
   } as unknown as Prisma.TransactionClient;
 
   return {
     tx,
     getCreateManyData: () => createManyData,
+    getNotificationDeliveryCreateManyData: () => notificationDeliveryCreateManyData,
   };
 }
 
 test("queues an immediate notification.email outbox event", async () => {
-  const { tx, getCreateManyData } = createTransactionClient();
+  const { tx, getCreateManyData, getNotificationDeliveryCreateManyData } = createTransactionClient();
 
   const created = await queueNotificationEmailOutboxEvent(tx, {
     organizationId: 7,
@@ -67,6 +91,13 @@ test("queues an immediate notification.email outbox event", async () => {
     subject: "Lease reminder",
     body: "Your lease renews soon.",
   });
+
+  const notificationDelivery = getNotificationDeliveryCreateManyData();
+  assert.ok(notificationDelivery);
+  assert.equal(notificationDelivery.outboxEventId, 44);
+  assert.equal(notificationDelivery.channel, "email");
+  assert.equal(notificationDelivery.status, "queued");
+  assert.equal(notificationDelivery.idempotencyKey, "verify-email:7:abc123");
 });
 
 test("queues a delayed notification.email outbox event", async () => {

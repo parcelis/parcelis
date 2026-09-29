@@ -1,4 +1,11 @@
-import { PrismaClient, PrismaPg } from "@parcelis/db";
+import {
+  markNotificationDeliveryFailed,
+  markNotificationDeliverySending,
+  markNotificationDeliverySent,
+  PrismaClient,
+  PrismaPg,
+} from "@parcelis/db";
+import { sendEmail } from "@parcelis/email";
 import { createQueueRegistry, getRedisConnectionOptions, notificationEmailJobName, queueNames } from "@parcelis/jobs";
 import { Worker } from "bullmq";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
@@ -26,7 +33,18 @@ const notificationEmailWorker = new Worker(
       throw new Error(`Unsupported account notification job: ${job.name}.`);
     }
 
-    return processNotificationEmailJob(job.data);
+    return processNotificationEmailJob(job.data, {
+      send: sendEmail,
+      markDeliverySending: async ({ outboxEventId }) => {
+        await markNotificationDeliverySending(prisma, { outboxEventId });
+      },
+      markDeliverySent: async ({ outboxEventId, messageId }) => {
+        await markNotificationDeliverySent(prisma, { outboxEventId, providerMessageId: messageId });
+      },
+      markDeliveryFailed: async ({ outboxEventId, error }) => {
+        await markNotificationDeliveryFailed(prisma, { outboxEventId, error });
+      },
+    });
   },
   { connection: redisConnection },
 );

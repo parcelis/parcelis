@@ -112,6 +112,17 @@ enum OutboxEventStatus {
   failed
 }
 
+enum NotificationDeliveryChannel {
+  email
+}
+
+enum NotificationDeliveryStatus {
+  queued
+  sending
+  sent
+  failed
+}
+
 enum PermissionResource {
   users
   properties
@@ -165,6 +176,7 @@ model Organization {
   maintenanceTickets    MaintenanceTicket[]
   activityEvents        ActivityEvent[]
   outboxEvents          OutboxEvent[]
+  notificationDeliveries NotificationDelivery[]
   defaultUsers          User[]                   @relation("UserDefaultOrganization")
   activeSessions        Session[]                @relation("SessionActiveOrganization")
   emailSettings         OrganizationEmailSettings?
@@ -793,11 +805,39 @@ model OutboxEvent {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  notificationDelivery NotificationDelivery?
 
   @@unique([organizationId, idempotencyKey])
   @@index([status, availableAt, id])
   @@index([status, lockedUntil, id])
   @@index([organizationId, status, failedAt, id])
+}
+
+model NotificationDelivery {
+  id                Int                       @id @default(autoincrement())
+  organizationId    Int
+  outboxEventId     Int                       @unique
+  channel           NotificationDeliveryChannel
+  status            NotificationDeliveryStatus @default(queued)
+  recipientId       Int
+  recipientType     String
+  destination       String
+  subject           String
+  idempotencyKey    String
+  attemptCount      Int                       @default(0)
+  lastAttemptAt     DateTime?
+  providerMessageId String?
+  sentAt            DateTime?
+  failedAt          DateTime?
+  lastError         String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  organization      Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  outboxEvent       OutboxEvent               @relation(fields: [outboxEventId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, status, createdAt, id])
+  @@index([status, updatedAt, id])
 }
 
 model MaintenanceAttachment {
