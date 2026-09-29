@@ -1,5 +1,5 @@
 import type { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
-import { notificationEmailOutboxJobSchema, type NotificationEmailOutboxJob } from "@parcelis/jobs";
+import { notificationEmailDeliveryJobSchema, type NotificationEmailOutboxJob } from "@parcelis/jobs";
 
 function escapeHtml(value: string) {
   return value
@@ -20,6 +20,7 @@ export type ProcessNotificationEmailJobDependencies = {
   markDeliveryFailed?: (input: { error: string; outboxEventId: number }) => Promise<void>;
   markDeliverySending?: (input: { outboxEventId: number }) => Promise<{ status: string } | void>;
   markDeliverySent?: (input: { messageId: string; outboxEventId: number }) => Promise<void>;
+  rememberAccepted: (input: NotificationEmailOutboxJob & { acceptedMessageId: string }) => Promise<void>;
 };
 
 function getErrorMessage(error: unknown) {
@@ -30,10 +31,18 @@ export async function processNotificationEmailJob(
   data: unknown,
   dependencies: ProcessNotificationEmailJobDependencies,
 ) {
-  const payload = notificationEmailOutboxJobSchema.parse(data);
+  const payload = notificationEmailDeliveryJobSchema.parse(data);
   const delivery = await dependencies.markDeliverySending?.({ outboxEventId: payload.outboxEventId });
   if (delivery?.status === "sent") {
     return { outboxEventId: payload.outboxEventId, skipped: true };
+  }
+
+  if (payload.acceptedMessageId) {
+    await dependencies.markDeliverySent?.({
+      outboxEventId: payload.outboxEventId,
+      messageId: payload.acceptedMessageId,
+    });
+    return { messageId: payload.acceptedMessageId, outboxEventId: payload.outboxEventId };
   }
 
   let result;
@@ -51,7 +60,20 @@ export async function processNotificationEmailJob(
     throw error;
   }
 
-  await dependencies.markDeliverySent?.({ outboxEventId: payload.outboxEventId, messageId: result.messageId });
+  let checkpointError: unknown;
+  try {
+    await dependencies.rememberAccepted({ ...payload, acceptedMessageId: result.messageId });
+  } catch (error) {
+    checkpointError = error;
+  }
+
+  try {
+    await dependencies.markDeliverySent?.({ outboxEventId: payload.outboxEventId, messageId: result.messageId });
+  } catch (error) {
+    if (checkpointError)
+      throw new AggregateError([checkpointError, error], "Could not record accepted email delivery.");
+    throw error;
+  }
 
   return {
     messageId: result.messageId,

@@ -35,6 +35,7 @@ const notificationEmailWorker = new Worker(
 
     return processNotificationEmailJob(job.data, {
       send: sendEmail,
+      rememberAccepted: (data) => job.updateData(data),
       getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
       markDeliverySending: async ({ outboxEventId }) => {
         return markNotificationDeliverySending(prisma, { outboxEventId });

@@ -24,6 +24,10 @@ export const notificationEmailOutboxJobSchema = notificationEmailJobSchema
   .extend({ outboxEventId: z.number().int().positive() })
   .strict();
 
+export const notificationEmailDeliveryJobSchema = notificationEmailOutboxJobSchema
+  .extend({ acceptedMessageId: z.string().min(1).optional() })
+  .strict();
+
 // Type for the notification email job.
 export type NotificationEmailJob = z.infer<typeof notificationEmailJobSchema>;
 
