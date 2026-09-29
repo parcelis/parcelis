@@ -218,15 +218,8 @@ export const authRouter = router({
                 });
               }
             });
-            await sendVerificationEmail({
-              to: user.email,
-              verificationUrl: getEmailVerificationUrl(token),
-              emailConfig: user.defaultOrganizationId
-                ? await getOrganizationEmailConfig(ctx.prisma, user.defaultOrganizationId)
-                : undefined,
-            });
           } catch (error) {
-            console.error("Unable to create email verification token or send verification email.", error);
+            console.error("Unable to create email verification token or enqueue notification email.", error);
           }
         })();
       }

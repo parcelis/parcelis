@@ -413,18 +413,18 @@ test("resending verification preserves prior tokens for pending accounts", async
   });
 
   await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
-  await emailDelivery.sent;
   assert.equal(state.tokens.length, 2);
   assert.ok(state.tokens.some((token) => token.tokenHash === "old-token"));
   assert.ok(state.tokens.some((token) => token.tokenHash !== "old-token"));
-  assert.equal(emailDelivery.messages.length, 1);
-  assert.equal(emailDelivery.messages[0]?.to, user.email);
-  assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
+  assert.equal(emailDelivery.messages.length, 0);
   assert.equal(state.outboxEvents.length, 1);
   assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
   assert.equal(state.outboxEvents[0]?.organizationId, 1);
   assert.equal(state.outboxEvents[0]?.schemaVersion, 1);
   assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /auth\.request-email-verification/);
+  const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
+  assert.equal(payload.email, user.email);
+  assert.match(payload.body, /mode=verify/);
 });
 
 test("resending verification removes expired tokens", async (t) => {
@@ -443,7 +443,7 @@ test("resending verification removes expired tokens", async (t) => {
       passwordHash: await hashPassword("password-for-new-user"),
       role: "property_manager",
       accountStatus: "pending",
-      defaultOrganizationId: null,
+      defaultOrganizationId: 1,
     },
   });
   await state.prisma.emailVerificationToken.create({
@@ -451,10 +451,11 @@ test("resending verification removes expired tokens", async (t) => {
   });
 
   await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
-  await emailDelivery.sent;
 
   assert.equal(state.tokens.length, 1);
   assert.notEqual(state.tokens[0]?.tokenHash, "expired-token");
+  assert.equal(emailDelivery.messages.length, 0);
+  assert.equal(state.outboxEvents.length, 1);
 });
 
 test("resending verification does not reveal whether an account exists", async (t) => {
