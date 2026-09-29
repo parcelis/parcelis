@@ -1,0 +1,22 @@
+packages/jobs/src/notification-jobs.ts
+  s_384b6f95bf492e::t_dde3714e32b5bb 38-42,57,59
+packages/jobs/src/notification-jobs.test.ts
+  s_384b6f95bf492e::t_c0a8d671c665b3 6,41
+  s_384b6f95bf492e::t_a2f62832ef597a 31,63,86,98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d84125905a2ac94f02ebc94c7a00265498fdbbf2",
+  "prompts": {},
+  "sessions": {
+    "s_384b6f95bf492e": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "eaa9de57-80fe-481b-8386-de0c63e35cee",
+        "model": "gpt-5-mini"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
