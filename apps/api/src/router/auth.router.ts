@@ -11,6 +11,7 @@ import {
 } from "@parcelis/schemas";
 import { Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@parcelis/email";
 import {
   clearSessionCookie,
   createEmailVerificationToken,
@@ -184,6 +185,7 @@ export const authRouter = router({
       if (user?.accountStatus === "pending") {
         void (async () => {
           try {
+            let shouldSendDirectly = false;
             await ctx.prisma.$transaction(async (tx) => {
               const now = new Date();
               await tx.emailVerificationToken.deleteMany({
@@ -210,8 +212,17 @@ export const authRouter = router({
                   body: `Verify your Parcelis email: ${getEmailVerificationUrl(token)}`,
                   idempotencyKey: `auth.request-email-verification:${user.id}:token:${createdToken.id}`,
                 });
+              } else {
+                shouldSendDirectly = true;
               }
             });
+
+            if (shouldSendDirectly) {
+              await sendVerificationEmail({
+                to: user.email,
+                verificationUrl: getEmailVerificationUrl(token),
+              });
+            }
           } catch (error) {
             console.error("Unable to create email verification token or enqueue notification email.", error);
           }
@@ -255,8 +266,11 @@ export const authRouter = router({
     const token = createPasswordResetToken();
 
     if (user?.accountStatus === "active") {
-      void ctx.prisma
-        .$transaction(async (tx) => {
+      void (async () => {
+        try {
+          let shouldSendDirectly = false;
+
+          await ctx.prisma.$transaction(async (tx) => {
           await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
           const createdToken = await tx.passwordResetToken.create({
             data: {
@@ -276,11 +290,21 @@ export const authRouter = router({
               body: `Reset your Parcelis password: ${getLoginTokenUrl("reset", token)}`,
               idempotencyKey: `auth.request-password-reset:${user.id}:token:${createdToken.id}`,
             });
+            } else {
+              shouldSendDirectly = true;
+            }
+          });
+
+          if (shouldSendDirectly) {
+            await sendPasswordResetEmail({
+              to: user.email,
+              resetUrl: getLoginTokenUrl("reset", token),
+            });
           }
-        })
-        .catch((error: unknown) => {
+        } catch (error) {
           console.error("Unable to create password reset token or enqueue reset email notification.", error);
-        });
+        }
+      })();
     }
 
     return { success: true };

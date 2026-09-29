@@ -554,6 +554,36 @@ test("resending verification does not reveal whether an account exists", async (
   assert.equal(state.tokens.length, 0);
 });
 
+test("requesting email verification without a default organization sends email directly", async (t) => {
+  const emailDelivery = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    emailDelivery.restore();
+    resetEmailTransporter();
+  });
+  const state = createPrisma();
+  const user = await state.prisma.user.create({
+    data: {
+      name: "Pending User",
+      email: "no-org-verify@example.com",
+      phone: null,
+      passwordHash: await hashPassword("password-for-new-user"),
+      role: "property_manager",
+      accountStatus: "pending",
+      defaultOrganizationId: null,
+    },
+  });
+
+  const response = await createCaller(state.prisma).auth.requestEmailVerification({ email: user.email });
+
+  assert.deepEqual(response, { success: true });
+  assert.equal(state.tokens.length, 1);
+  assert.equal(state.outboxEvents.length, 0);
+  assert.equal(emailDelivery.messages.length, 1);
+  assert.equal(emailDelivery.messages[0]?.to, user.email);
+  assert.match(emailDelivery.messages[0]?.html ?? "", /Verify your Parcelis email/);
+});
+
 test("requesting password reset for active users creates one token and enqueues notification", async (t) => {
   const emailDelivery = mockEmailDelivery();
   t.after(() => {
@@ -593,6 +623,36 @@ test("requesting password reset for active users creates one token and enqueues 
   const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
   assert.equal(payload.email, user.email);
   assert.match(payload.body, /mode=reset/);
+});
+
+test("requesting password reset without a default organization sends email directly", async (t) => {
+  const emailDelivery = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    emailDelivery.restore();
+    resetEmailTransporter();
+  });
+  const state = createPrisma();
+  const user = await state.prisma.user.create({
+    data: {
+      name: "Active User",
+      email: "no-org-reset@example.com",
+      phone: null,
+      passwordHash: await hashPassword("password-for-active-user"),
+      role: "property_manager",
+      accountStatus: "active",
+      defaultOrganizationId: null,
+    },
+  });
+
+  const response = await createCaller(state.prisma).auth.requestPasswordReset({ email: user.email });
+
+  assert.deepEqual(response, { success: true });
+  assert.equal(state.passwordResetTokens.length, 1);
+  assert.equal(state.outboxEvents.length, 0);
+  assert.equal(emailDelivery.messages.length, 1);
+  assert.equal(emailDelivery.messages[0]?.to, user.email);
+  assert.match(emailDelivery.messages[0]?.html ?? "", /Reset your Parcelis password/);
 });
 
 test("requesting password reset does not reveal account existence", async (t) => {
