@@ -15,6 +15,8 @@
     "build": "tsc -p tsconfig.json",
     "dev:fixed": "tsc -p tsconfig.json --watch",
     "lint": "eslint .",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "test:notification": "tsx --test src/notification-jobs.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -24,6 +26,7 @@
   "devDependencies": {
     "@parcelis/config": "workspace:*",
     "@types/node": "24.13.6",
+    "tsx": "^4.23.12",
     "typescript": "6.0.3"
   }
 }

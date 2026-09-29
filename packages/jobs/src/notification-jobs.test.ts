@@ -30,13 +30,14 @@ test("sendEmail enqueues a validated email job with delay when provided", async 
     body: "Rent is due tomorrow",
     delayMs: 3_000,
   };
+  const { delayMs: _delayMs, ...expectedJobData } = input;
 
   const result = await jobs.sendEmail(input);
 
   assert.deepEqual(result, { id: "job-1" });
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.name, notificationEmailJobName);
-  assert.deepEqual(calls[0]?.data, notificationEmailJobSchema.parse(input));
+  assert.deepEqual(calls[0]?.data, notificationEmailJobSchema.parse(expectedJobData));
   assert.deepEqual(calls[0]?.opts, { delay: 3_000 });
 });
 
