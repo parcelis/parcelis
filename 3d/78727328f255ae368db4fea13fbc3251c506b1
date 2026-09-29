@@ -1,0 +1,27 @@
+packages/jobs/src/index.ts
+  s_384b6f95bf492e::t_4dc777a0e05578 4
+packages/jobs/src/notification-jobs.ts
+  s_384b6f95bf492e::t_ec8aa150ca6c9b 1-61
+packages/jobs/src/notification-jobs.test.ts
+  s_384b6f95bf492e::t_f0038dabbe4828 1-124
+packages/jobs/src/contracts.ts
+  s_384b6f95bf492e::t_2665b1d0bc275c 2-6,13,30-32,41-46
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  s_384b6f95bf492e::t_3ec5acd7186c12 121-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "3d78727328f255ae368db4fea13fbc3251c506b1",
+  "prompts": {},
+  "sessions": {
+    "s_384b6f95bf492e": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "eaa9de57-80fe-481b-8386-de0c63e35cee",
+        "model": "gpt-5-mini"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
