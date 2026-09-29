@@ -35,6 +35,11 @@ export type NotificationEmailJobInput = NotificationEmailJob & {
   delayMs?: number;
 };
 
+// Type for the input to the notification email job dispatched from the outbox.
+export type NotificationEmailOutboxJobInput = NotificationEmailOutboxJob & {
+  delayMs?: number;
+};
+
 // Type for the notification queue.
 // Type for the collection of notification queues.
 export type NotificationQueue = {
@@ -49,9 +54,9 @@ export type NotificationQueues = {
 // Creates an object with methods for enqueuing notification jobs.
 export function createNotificationJobs(queues: NotificationQueues) {
   return {
-    async sendEmail(input: NotificationEmailJobInput) {
+    async sendEmail(input: NotificationEmailOutboxJobInput) {
       const { delayMs, ...jobData } = input;
-      const parsed = notificationEmailJobSchema.parse(jobData);
+      const parsed = notificationEmailOutboxJobSchema.parse(jobData);
       const normalizedDelayMs = notificationDelayMsSchema.parse(delayMs);
       const opts = typeof normalizedDelayMs === "number" ? { delay: normalizedDelayMs } : undefined;
 

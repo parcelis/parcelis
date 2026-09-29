@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createNotificationJobs,
   notificationEmailJobName,
-  notificationEmailJobSchema,
+  notificationEmailOutboxJobSchema,
   getOutboxEventContract,
   outboxEventTypes,
   parseOutboxEventPayload,
@@ -28,6 +28,7 @@ test("sendEmail enqueues a validated email job with delay when provided", async 
     email: "tenant@example.com",
     subject: "Rent reminder",
     body: "Rent is due tomorrow",
+    outboxEventId: 88,
     delayMs: 3_000,
   };
   const { delayMs: _delayMs, ...expectedJobData } = input;
@@ -37,7 +38,7 @@ test("sendEmail enqueues a validated email job with delay when provided", async 
   assert.deepEqual(result, { id: "job-1" });
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.name, notificationEmailJobName);
-  assert.deepEqual(calls[0]?.data, notificationEmailJobSchema.parse(expectedJobData));
+  assert.deepEqual(calls[0]?.data, notificationEmailOutboxJobSchema.parse(expectedJobData));
   assert.deepEqual(calls[0]?.opts, { delay: 3_000 });
 });
 
@@ -59,6 +60,7 @@ test("sendEmail enqueues without delay options when no delay is provided", async
     email: "tenant2@example.com",
     subject: "Lease notice",
     body: "Your lease has been updated",
+    outboxEventId: 89,
   });
 
   assert.equal(calls.length, 1);
@@ -81,6 +83,7 @@ test("sendEmail validates delay and payload", async () => {
       email: "not-an-email",
       subject: "Hello",
       body: "Body",
+      outboxEventId: 90,
     }),
   );
 
@@ -92,6 +95,7 @@ test("sendEmail validates delay and payload", async () => {
       email: "tenant3@example.com",
       subject: "Hello",
       body: "Body",
+      outboxEventId: 91,
       delayMs: -1,
     }),
   );
