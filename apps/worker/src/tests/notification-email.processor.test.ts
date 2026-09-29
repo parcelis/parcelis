@@ -167,3 +167,25 @@ test("configuration errors mark delivery failed without sending through environm
   assert.equal(sent, false);
   assert.deepEqual(failures, [{ outboxEventId: 42, error: "Cannot decrypt saved credentials" }]);
 });
+
+test("a stale job skips SMTP when the delivery is already sent", async () => {
+  const result = await processNotificationEmailJob(
+    {
+      organizationId: 7,
+      recipientId: 12,
+      recipientType: "user",
+      email: "person@example.com",
+      subject: "Verify your Parcelis email",
+      body: "Verification link",
+      outboxEventId: 42,
+    },
+    {
+      markDeliverySending: async () => ({ status: "sent" }),
+      getEmailConfig: async () => assert.fail("Completed delivery must not load SMTP settings"),
+      send: async () => assert.fail("Completed delivery must not send another email"),
+      markDeliverySent: async () => assert.fail("Completed delivery must not be updated"),
+    },
+  );
+
+  assert.deepEqual(result, { outboxEventId: 42, skipped: true });
+});

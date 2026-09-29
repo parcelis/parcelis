@@ -59,9 +59,17 @@ function createPrismaMock(initialDelivery?: NotificationDelivery) {
         assert.equal(where.outboxEventId, delivery?.outboxEventId);
         return delivery;
       },
-      updateMany: async ({ where, data }: { where: { outboxEventId: number }; data: Record<string, unknown> }) => {
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { outboxEventId: number; status: { not: NotificationDeliveryStatus } };
+        data: Record<string, unknown>;
+      }) => {
         assert.ok(delivery);
         assert.equal(where.outboxEventId, delivery.outboxEventId);
+        assert.deepEqual(where.status, { not: NotificationDeliveryStatus.sent });
+        if (delivery.status === NotificationDeliveryStatus.sent) return { count: 0 };
 
         const nextAttemptCount =
           typeof data.attemptCount === "object" && data.attemptCount !== null && "increment" in data.attemptCount
@@ -154,4 +162,27 @@ test("markNotificationDeliveryFailed stores error and failure time", async () =>
   assert.equal(updated.status, NotificationDeliveryStatus.failed);
   assert.equal(updated.lastError, "SMTP unavailable");
   assert.equal(updated.failedAt?.toISOString(), "2026-09-26T12:07:00.000Z");
+});
+
+test("sent delivery remains terminal for stale sending, sent, and failed updates", async () => {
+  const original = createDelivery({
+    status: NotificationDeliveryStatus.sent,
+    attemptCount: 1,
+    providerMessageId: "msg-original",
+    sentAt: new Date("2026-09-26T12:06:00.000Z"),
+  });
+  const { prisma, getDelivery } = createPrismaMock(original);
+
+  assert.strictEqual(await markNotificationDeliverySending(prisma, { outboxEventId: 44 }), original);
+  assert.strictEqual(
+    await markNotificationDeliveryFailed(prisma, { outboxEventId: 44, error: "late failure" }),
+    original,
+  );
+  assert.strictEqual(
+    await markNotificationDeliverySent(prisma, { outboxEventId: 44, providerMessageId: "msg-late" }),
+    original,
+  );
+  assert.strictEqual(getDelivery(), original);
+  assert.equal(getDelivery().attemptCount, 1);
+  assert.equal(getDelivery().providerMessageId, "msg-original");
 });

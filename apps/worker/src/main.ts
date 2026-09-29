@@ -37,7 +37,7 @@ const notificationEmailWorker = new Worker(
       send: sendEmail,
       getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
       markDeliverySending: async ({ outboxEventId }) => {
-        await markNotificationDeliverySending(prisma, { outboxEventId });
+        return markNotificationDeliverySending(prisma, { outboxEventId });
       },
       markDeliverySent: async ({ outboxEventId, messageId }) => {
         await markNotificationDeliverySent(prisma, { outboxEventId, providerMessageId: messageId });

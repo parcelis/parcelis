@@ -44,7 +44,7 @@ export async function markNotificationDeliverySending(
   const attemptedAt = input.attemptedAt ?? new Date();
 
   await prisma.notificationDelivery.updateMany({
-    where: { outboxEventId: input.outboxEventId },
+    where: { outboxEventId: input.outboxEventId, status: { not: NotificationDeliveryStatus.sent } },
     data: {
       status: NotificationDeliveryStatus.sending,
       attemptCount: { increment: 1 },
@@ -62,7 +62,7 @@ export async function markNotificationDeliverySent(
   input: { outboxEventId: number; providerMessageId?: string | null; sentAt?: Date },
 ) {
   await prisma.notificationDelivery.updateMany({
-    where: { outboxEventId: input.outboxEventId },
+    where: { outboxEventId: input.outboxEventId, status: { not: NotificationDeliveryStatus.sent } },
     data: {
       status: NotificationDeliveryStatus.sent,
       sentAt: input.sentAt ?? new Date(),
@@ -80,7 +80,7 @@ export async function markNotificationDeliveryFailed(
   input: { outboxEventId: number; error: string; failedAt?: Date },
 ) {
   await prisma.notificationDelivery.updateMany({
-    where: { outboxEventId: input.outboxEventId },
+    where: { outboxEventId: input.outboxEventId, status: { not: NotificationDeliveryStatus.sent } },
     data: {
       status: NotificationDeliveryStatus.failed,
       failedAt: input.failedAt ?? new Date(),

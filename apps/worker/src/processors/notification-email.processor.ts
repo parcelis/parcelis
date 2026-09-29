@@ -18,7 +18,7 @@ export type ProcessNotificationEmailJobDependencies = {
   send: typeof sendEmail;
   getEmailConfig: (organizationId: number) => ReturnType<typeof getOrganizationEmailConfig>;
   markDeliveryFailed?: (input: { error: string; outboxEventId: number }) => Promise<void>;
-  markDeliverySending?: (input: { outboxEventId: number }) => Promise<void>;
+  markDeliverySending?: (input: { outboxEventId: number }) => Promise<{ status: string } | void>;
   markDeliverySent?: (input: { messageId: string; outboxEventId: number }) => Promise<void>;
 };
 
@@ -31,7 +31,10 @@ export async function processNotificationEmailJob(
   dependencies: ProcessNotificationEmailJobDependencies,
 ) {
   const payload = notificationEmailOutboxJobSchema.parse(data);
-  await dependencies.markDeliverySending?.({ outboxEventId: payload.outboxEventId });
+  const delivery = await dependencies.markDeliverySending?.({ outboxEventId: payload.outboxEventId });
+  if (delivery?.status === "sent") {
+    return { outboxEventId: payload.outboxEventId, skipped: true };
+  }
 
   let result;
   try {
