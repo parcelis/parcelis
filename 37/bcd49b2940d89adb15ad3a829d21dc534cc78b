@@ -1,0 +1,29 @@
+packages/db/src/tests/notification-delivery.test.ts
+  s_bb3c74f935ba83::t_ec355141dd2af8 62-68,71-72,166-176,181-187
+  s_bb3c74f935ba83::t_1e9c8d3f6532ba 177-180
+packages/db/src/notification-delivery.ts
+  s_bb3c74f935ba83::t_1140dcc7ff8045 65,83
+  s_bb3c74f935ba83::t_a281786432fe63 47
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_bb3c74f935ba83::t_f4b1c6d5b9fc54 170-191
+apps/worker/src/main.ts
+  s_bb3c74f935ba83::t_999244a4970ee9 40
+apps/worker/src/processors/notification-email.processor.ts
+  s_bb3c74f935ba83::t_583e274ecfd325 21,34-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "37bcd49b2940d89adb15ad3a829d21dc534cc78b",
+  "prompts": {},
+  "sessions": {
+    "s_bb3c74f935ba83": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ee98-6e78-79a2-a252-bcd5b7590f84",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
