@@ -30,6 +30,7 @@ import {
   verifyPassword,
   isAuthenticationDisabled,
 } from "../modules/auth";
+import { queueNotificationEmailOutboxEvent } from "../modules/notification-outbox";
 import {
   clearLoginRateLimit,
   consumeEmailVerificationRateLimit,
@@ -197,13 +198,25 @@ export const authRouter = router({
                   OR: [{ expiresAt: { lte: now } }, { usedAt: { not: null } }],
                 },
               });
-              await tx.emailVerificationToken.create({
+              const createdToken = await tx.emailVerificationToken.create({
                 data: {
                   userId: user.id,
                   tokenHash: hashEmailVerificationToken(token),
                   expiresAt: getEmailVerificationTokenExpiration(),
                 },
               });
+
+              if (user.defaultOrganizationId) {
+                await queueNotificationEmailOutboxEvent(tx, {
+                  organizationId: user.defaultOrganizationId,
+                  recipientId: user.id,
+                  recipientType: "user",
+                  email: user.email,
+                  subject: "Verify your Parcelis email",
+                  body: `Verify your Parcelis email: ${getEmailVerificationUrl(token)}`,
+                  idempotencyKey: `auth.request-email-verification:${user.id}:token:${createdToken.id}`,
+                });
+              }
             });
             await sendVerificationEmail({
               to: user.email,

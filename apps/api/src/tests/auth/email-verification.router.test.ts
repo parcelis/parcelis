@@ -33,6 +33,16 @@ type OrganizationMembership = {
   userId: number;
 };
 
+type OutboxEvent = {
+  availableAt: Date;
+  eventType: string;
+  id: number;
+  idempotencyKey: string;
+  organizationId: number;
+  payload: unknown;
+  schemaVersion: number;
+};
+
 test.beforeEach(() => {
   resetRateLimits();
 });
@@ -42,9 +52,11 @@ function createPrisma() {
   const tokens: VerificationToken[] = [];
   const sessions: Array<{ userId: number }> = [];
   const organizationMemberships: OrganizationMembership[] = [];
+  const outboxEvents: OutboxEvent[] = [];
   let nextUserId = 1;
   let nextTokenId = 1;
   let nextOrganizationId = 1;
+  let nextOutboxEventId = 1;
 
   const prisma: PrismaService = {
     user: {
@@ -159,10 +171,37 @@ function createPrisma() {
         return {};
       },
     },
+    outboxEvent: {
+      createMany: async ({ data }: { data: Omit<OutboxEvent, "id"> }) => {
+        const duplicate = outboxEvents.some(
+          (event) =>
+            event.organizationId === data.organizationId &&
+            event.idempotencyKey === data.idempotencyKey,
+        );
+        if (!duplicate) {
+          outboxEvents.push({ ...data, id: nextOutboxEventId++ });
+          return { count: 1 };
+        }
+        return { count: 0 };
+      },
+      findUniqueOrThrow: async ({
+        where,
+      }: {
+        where: { organizationId_idempotencyKey: { idempotencyKey: string; organizationId: number } };
+      }) => {
+        const event = outboxEvents.find(
+          (candidate) =>
+            candidate.organizationId === where.organizationId_idempotencyKey.organizationId &&
+            candidate.idempotencyKey === where.organizationId_idempotencyKey.idempotencyKey,
+        );
+        if (!event) throw new Error("Outbox event not found.");
+        return event;
+      },
+    },
     $transaction: async <T>(callback: (tx: PrismaService) => Promise<T>) => callback(prisma),
   } as unknown as PrismaService;
 
-  return { organizationMemberships, prisma, sessions, tokens, users };
+  return { organizationMemberships, outboxEvents, prisma, sessions, tokens, users };
 }
 
 function createCaller(prisma: PrismaService) {
@@ -366,7 +405,7 @@ test("resending verification preserves prior tokens for pending accounts", async
       passwordHash: await hashPassword("password-for-new-user"),
       role: "property_manager",
       accountStatus: "pending",
-      defaultOrganizationId: null,
+      defaultOrganizationId: 1,
     },
   });
   await state.prisma.emailVerificationToken.create({
@@ -381,6 +420,11 @@ test("resending verification preserves prior tokens for pending accounts", async
   assert.equal(emailDelivery.messages.length, 1);
   assert.equal(emailDelivery.messages[0]?.to, user.email);
   assert.match(emailDelivery.messages[0]?.html ?? "", /mode=verify/);
+  assert.equal(state.outboxEvents.length, 1);
+  assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
+  assert.equal(state.outboxEvents[0]?.organizationId, 1);
+  assert.equal(state.outboxEvents[0]?.schemaVersion, 1);
+  assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /auth\.request-email-verification/);
 });
 
 test("resending verification removes expired tokens", async (t) => {
