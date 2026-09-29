@@ -132,7 +132,11 @@ test("notification email events dispatch to account-notifications", async () => 
   });
   const { prisma, getEvent } = createPrisma(event);
   const queue = {
-    add: async (name: string, data: unknown, options: { jobId: string }) => {
+    add: async (
+      name: string,
+      data: unknown,
+      options: { jobId: string; attempts: number; backoff: { type: string; delay: number } },
+    ) => {
       assert.equal(name, "notification.email.v1");
       assert.deepEqual(data, {
         organizationId: 7,
@@ -144,6 +148,8 @@ test("notification email events dispatch to account-notifications", async () => 
         outboxEventId: 21,
       });
       assert.equal(options.jobId, "outbox-event-21");
+      assert.equal(options.attempts, 3);
+      assert.deepEqual(options.backoff, { type: "exponential", delay: 1_000 });
       return {};
     },
   } as unknown as Queue;

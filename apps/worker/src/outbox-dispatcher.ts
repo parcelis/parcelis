@@ -11,6 +11,7 @@ import type { Queue } from "bullmq";
 
 // Interval in milliseconds between polling for available outbox events.
 const pollIntervalMs = 1_000;
+const jobRetryOptions = { attempts: 3, backoff: { type: "exponential" as const, delay: 1_000 } };
 
 // Extracts the error message from an unknown error object. If the error is an instance of Error, returns its message; otherwise, converts it to a string.
 function getErrorMessage(error: unknown) {
@@ -57,6 +58,7 @@ export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<stri
   try {
     await queue.add(contract.jobName, jobData, {
       jobId: getOutboxEventJobId(event.id),
+      ...jobRetryOptions,
     });
   } catch (error) {
     try {
