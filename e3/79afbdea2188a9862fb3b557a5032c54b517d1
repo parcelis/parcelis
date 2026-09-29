@@ -1,0 +1,29 @@
+apps/api/src/modules/email-settings.ts
+  s_bb3c74f935ba83::t_dbdbcc6c46ce1c 1-6
+apps/worker/src/processors/notification-email.processor.ts
+  s_bb3c74f935ba83::t_db9b3f5f418866 1
+docker-compose.yml
+  s_bb3c74f935ba83::t_db9b3f5f418866 138-144
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_bb3c74f935ba83::t_17b6397b69e4dd 9-17,19-30,32,37,61,81-165,167-168
+packages/email/src/organization-settings.ts
+  s_bb3c74f935ba83::t_17b6397b69e4dd 43-57
+packages/email/src/index.ts
+  s_bb3c74f935ba83::t_17b6397b69e4dd 5-10,16-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e379afbdea2188a9862fb3b557a5032c54b517d1",
+  "prompts": {},
+  "sessions": {
+    "s_bb3c74f935ba83": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ee98-6e78-79a2-a252-bcd5b7590f84",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
