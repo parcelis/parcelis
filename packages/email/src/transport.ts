@@ -15,7 +15,6 @@ export function createEmailTransporter(config: EmailConfig) {
     },
     { from: config.from },
   );
-
 }
 
 export function getEmailTransporter() {

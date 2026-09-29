@@ -100,7 +100,7 @@ test("none disables STARTTLS for an organization's SMTP transport", async () => 
   });
   assert.ok(config);
   const transport = createEmailTransporter(config);
-  const options = (transport.transporter as { options: { ignoreTLS?: boolean } }).options;
+  const options = (transport.transporter as unknown as { options: { ignoreTLS?: boolean } }).options;
   assert.equal(options.ignoreTLS, true);
 });
 
