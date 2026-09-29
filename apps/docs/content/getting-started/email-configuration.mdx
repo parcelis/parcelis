@@ -39,7 +39,7 @@ For example, generate an encryption key with:
 openssl rand -base64 32
 ```
 
-Keep `EMAIL_SETTINGS_ENCRYPTION_KEY` stable and provide the same value to every application instance. Changing or losing it prevents Parcelis from decrypting previously saved organization SMTP passwords. It does not replace the deployment `SMTP_PASSWORD`.
+Keep `EMAIL_SETTINGS_ENCRYPTION_KEY` stable and provide the same value to every API and worker instance. The worker loads the organization’s current saved SMTP settings when delivering queued email. Changing or losing it prevents Parcelis from decrypting previously saved organization SMTP passwords. It does not replace the deployment `SMTP_PASSWORD`.
 
 ## TLS and STARTTLS
 

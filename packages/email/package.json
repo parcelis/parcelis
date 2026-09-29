@@ -19,6 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@parcelis/db": "workspace:*",
     "nodemailer": "^10.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

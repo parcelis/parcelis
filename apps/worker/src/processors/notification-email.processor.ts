@@ -1,4 +1,4 @@
-import { sendEmail } from "@parcelis/email";
+import type { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
 import { notificationEmailOutboxJobSchema, type NotificationEmailOutboxJob } from "@parcelis/jobs";
 
 function escapeHtml(value: string) {
@@ -16,6 +16,7 @@ function formatPlainTextAsHtml(text: string) {
 
 export type ProcessNotificationEmailJobDependencies = {
   send: typeof sendEmail;
+  getEmailConfig: (organizationId: number) => ReturnType<typeof getOrganizationEmailConfig>;
   markDeliveryFailed?: (input: { error: string; outboxEventId: number }) => Promise<void>;
   markDeliverySending?: (input: { outboxEventId: number }) => Promise<void>;
   markDeliverySent?: (input: { messageId: string; outboxEventId: number }) => Promise<void>;
@@ -27,14 +28,16 @@ function getErrorMessage(error: unknown) {
 
 export async function processNotificationEmailJob(
   data: unknown,
-  dependencies: ProcessNotificationEmailJobDependencies = { send: sendEmail },
+  dependencies: ProcessNotificationEmailJobDependencies,
 ) {
   const payload = notificationEmailOutboxJobSchema.parse(data);
   await dependencies.markDeliverySending?.({ outboxEventId: payload.outboxEventId });
 
   let result;
   try {
+    const emailConfig = await dependencies.getEmailConfig(payload.organizationId);
     result = await dependencies.send({
+      emailConfig,
       to: payload.email,
       subject: payload.subject,
       text: payload.body,

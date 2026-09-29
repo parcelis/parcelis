@@ -135,6 +135,13 @@ services:
     container_name: parcelis-worker
     command: pnpm --filter @parcelis/worker start
     environment:
+      EMAIL_FROM: ${EMAIL_FROM}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      EMAIL_SETTINGS_ENCRYPTION_KEY: ${EMAIL_SETTINGS_ENCRYPTION_KEY}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-service:5432/${POSTGRES_DB}?schema=public
       REDIS_HOST: redis-service
       REDIS_PORT: "6379"

@@ -5,7 +5,7 @@ import {
   PrismaClient,
   PrismaPg,
 } from "@parcelis/db";
-import { sendEmail } from "@parcelis/email";
+import { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
 import { createQueueRegistry, getRedisConnectionOptions, notificationEmailJobName, queueNames } from "@parcelis/jobs";
 import { Worker } from "bullmq";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
@@ -35,6 +35,7 @@ const notificationEmailWorker = new Worker(
 
     return processNotificationEmailJob(job.data, {
       send: sendEmail,
+      getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
       markDeliverySending: async ({ outboxEventId }) => {
         await markNotificationDeliverySending(prisma, { outboxEventId });
       },
