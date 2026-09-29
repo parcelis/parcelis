@@ -1,0 +1,9 @@
+infra/docker/app/nginx.conf
+  ai_agent 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1827034259481894a2a598607c31935e8f78bca6",
+  "prompts": {}
+}
