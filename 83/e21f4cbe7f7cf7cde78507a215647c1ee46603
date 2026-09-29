@@ -1,0 +1,9 @@
+infra/nginx/proxy.conf.template
+  ai_agent 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "83e21f4cbe7f7cf7cde78507a215647c1ee46603",
+  "prompts": {}
+}
