@@ -40,24 +40,27 @@ function createDelivery(overrides: Partial<NotificationDelivery> = {}): Notifica
   };
 }
 
-function createPrismaMock(initialDelivery: NotificationDelivery) {
+function createPrismaMock(initialDelivery?: NotificationDelivery) {
   let delivery = initialDelivery;
+  let insertedCount = 0;
 
   const prisma = {
     notificationDelivery: {
       createMany: async ({ data, skipDuplicates }: { data: Record<string, unknown>; skipDuplicates: boolean }) => {
         assert.equal(skipDuplicates, true);
-        if (delivery.outboxEventId === (data.outboxEventId as number)) {
+        if (delivery?.outboxEventId === (data.outboxEventId as number)) {
           return { count: 0 };
         }
         delivery = createDelivery(data as Partial<NotificationDelivery>);
+        insertedCount++;
         return { count: 1 };
       },
       findUniqueOrThrow: async ({ where }: { where: { outboxEventId: number } }) => {
-        assert.equal(where.outboxEventId, delivery.outboxEventId);
+        assert.equal(where.outboxEventId, delivery?.outboxEventId);
         return delivery;
       },
       updateMany: async ({ where, data }: { where: { outboxEventId: number }; data: Record<string, unknown> }) => {
+        assert.ok(delivery);
         assert.equal(where.outboxEventId, delivery.outboxEventId);
 
         const nextAttemptCount =
@@ -76,15 +79,21 @@ function createPrismaMock(initialDelivery: NotificationDelivery) {
     },
   };
 
-  return { prisma: prisma as unknown as PrismaClient, getDelivery: () => delivery };
+  return {
+    prisma: prisma as unknown as PrismaClient,
+    getDelivery: () => {
+      assert.ok(delivery);
+      return delivery;
+    },
+    getInsertedCount: () => insertedCount,
+  };
 }
 
 test("recordNotificationDeliveryQueued is idempotent by outbox event", async () => {
-  const initial = createDelivery();
-  const { prisma } = createPrismaMock(initial);
+  const { prisma, getDelivery, getInsertedCount } = createPrismaMock();
 
   const tx = prisma as unknown as Prisma.TransactionClient;
-  const first = await recordNotificationDeliveryQueued(tx, {
+  const input = {
     organizationId: 7,
     outboxEventId: 44,
     channel: NotificationDeliveryChannel.email,
@@ -93,10 +102,15 @@ test("recordNotificationDeliveryQueued is idempotent by outbox event", async () 
     destination: "person@example.com",
     subject: "Verify your Parcelis email",
     idempotencyKey: "auth.register:7:token-123",
-  });
+  };
+  const first = await recordNotificationDeliveryQueued(tx, input);
+  const second = await recordNotificationDeliveryQueued(tx, input);
 
+  assert.equal(getInsertedCount(), 1);
   assert.equal(first.outboxEventId, 44);
   assert.equal(first.status, NotificationDeliveryStatus.queued);
+  assert.strictEqual(second, first);
+  assert.strictEqual(getDelivery(), first);
 });
 
 test("markNotificationDeliverySending increments attempt count", async () => {
