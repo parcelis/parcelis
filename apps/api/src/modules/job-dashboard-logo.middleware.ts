@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 
 const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
-const lightLogo = new URL("/brand/parcelis-lettermark-dark.svg", webOrigin).toString();
+const lightLogo = new URL("/brand/parcelis-lettermark-light.svg", webOrigin).toString();
 const darkLogo = new URL("/brand/parcelis-lettermark-dark.svg", webOrigin).toString();
 export const jobDashboardFavIcon = {
   default: new URL("/brand/favicon.svg", webOrigin).toString(),

@@ -5,7 +5,7 @@ import {
   jobDashboardLogoMiddleware,
 } from "../../modules/job-dashboard-logo.middleware";
 
-test("dashboard HTML keeps the existing Parcelis logo mapping", () => {
+test("dashboard HTML maps distinct Parcelis logos to each theme", () => {
   let body = "";
   const response = {
     send(value: string) {
@@ -17,7 +17,9 @@ test("dashboard HTML keeps the existing Parcelis logo mapping", () => {
   jobDashboardLogoMiddleware({} as never, response as never, () => {});
   response.send('<html><body><script id="__UI_CONFIG__"></script></body></html>');
 
-  assert.match(body, /parcelis-lettermark-dark\.svg/);
+  const sources = JSON.parse(body.match(/const sources=(\{.*?\});/)![1]!);
+  assert.match(sources.light, /\/brand\/parcelis-lettermark-light\.svg$/);
+  assert.match(sources.dark, /\/brand\/parcelis-lettermark-dark\.svg$/);
   assert.match(body, /dark-mode/);
 });
 
