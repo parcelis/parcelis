@@ -118,6 +118,42 @@ test("an event with a mismatched payload organization fails before enqueueing", 
   assert.equal(getEvent().claimToken, null);
 });
 
+test("notification email events dispatch to account-notifications", async () => {
+  const event = createEvent({
+    eventType: "notification.email",
+    payload: {
+      organizationId: 7,
+      recipientId: 9,
+      recipientType: "tenant",
+      email: "tenant@example.com",
+      subject: "Reminder",
+      body: "Your rent is due",
+    },
+  });
+  const { prisma, getEvent } = createPrisma(event);
+  const queue = {
+    add: async (name: string, data: unknown, options: { jobId: string }) => {
+      assert.equal(name, "notification.email.v1");
+      assert.deepEqual(data, {
+        organizationId: 7,
+        recipientId: 9,
+        recipientType: "tenant",
+        email: "tenant@example.com",
+        subject: "Reminder",
+        body: "Your rent is due",
+        outboxEventId: 21,
+      });
+      assert.equal(options.jobId, "outbox-event-21");
+      return {};
+    },
+  } as unknown as Queue;
+
+  await dispatchOutboxEvent(prisma, new Map([["account-notifications", queue]]), event);
+
+  assert.equal(getEvent().status, "dispatched");
+  assert.equal(getEvent().claimToken, null);
+});
+
 test("graceful shutdown drains the already claimed batch", { timeout: 10_000 }, async (t) => {
   const events = [
     createEvent({ id: 21, status: "pending", claimToken: null }),

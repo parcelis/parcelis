@@ -1,10 +1,16 @@
 import { z } from "zod";
+import {
+  notificationEmailJobName,
+  notificationEmailJobSchema,
+  notificationEmailOutboxJobSchema,
+} from "./notification-jobs.js";
 import { queueNames } from "./queue-names.js";
 
 const idSchema = z.number().int().positive();
 
 export const outboxEventTypes = {
   leaseActivation: "lease.activate",
+  notificationEmail: "notification.email",
 } as const;
 
 export const leaseActivationOutboxPayloadSchema = z
@@ -21,6 +27,9 @@ export const leaseActivationJobSchema = leaseActivationOutboxPayloadSchema
   .strict();
 export type LeaseActivationJob = z.infer<typeof leaseActivationJobSchema>;
 
+export const notificationEmailOutboxPayloadSchema = notificationEmailJobSchema;
+export type NotificationEmailOutboxPayload = z.infer<typeof notificationEmailOutboxPayloadSchema>;
+
 const outboxEventContracts = {
   [outboxEventTypes.leaseActivation]: {
     schemaVersion: 1,
@@ -28,6 +37,13 @@ const outboxEventContracts = {
     jobName: leaseActivationJobName,
     payloadSchema: leaseActivationOutboxPayloadSchema,
     jobSchema: leaseActivationJobSchema,
+  },
+  [outboxEventTypes.notificationEmail]: {
+    schemaVersion: 1,
+    queueName: queueNames.accountNotifications,
+    jobName: notificationEmailJobName,
+    payloadSchema: notificationEmailOutboxPayloadSchema,
+    jobSchema: notificationEmailOutboxJobSchema,
   },
 } as const;
 
