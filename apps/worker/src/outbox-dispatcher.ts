@@ -2,6 +2,8 @@ import {
   claimAvailableOutboxEvents,
   markOutboxEventDispatched,
   markOutboxEventFailed,
+  NotificationDeliveryStatus,
+  OutboxEventStatus,
   type OutboxEvent,
   PrismaClient,
   rescheduleOutboxEvent,
@@ -11,11 +13,25 @@ import type { Queue } from "bullmq";
 
 // Interval in milliseconds between polling for available outbox events.
 const pollIntervalMs = 1_000;
+const notificationRecoveryIntervalMs = 60_000;
+const notificationRecoveryBatchSize = 100;
 const jobRetryOptions = { attempts: 3, backoff: { type: "exponential" as const, delay: 1_000 } };
 
 // Extracts the error message from an unknown error object. If the error is an instance of Error, returns its message; otherwise, converts it to a string.
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getOutboxJob(event: OutboxEvent) {
+  const contract = getOutboxEventContract(event.eventType, event.schemaVersion);
+  const payload = parseOutboxEventPayload(event.eventType, event.schemaVersion, event.payload);
+  if (payload.organizationId !== event.organizationId) {
+    throw new Error("Outbox payload organization does not match the event organization.");
+  }
+  return {
+    contract,
+    jobData: contract.jobSchema.parse({ ...payload, outboxEventId: event.id }),
+  };
 }
 
 export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<string, Queue>, event: OutboxEvent) {
@@ -29,12 +45,7 @@ export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<stri
   let jobData;
 
   try {
-    contract = getOutboxEventContract(event.eventType, event.schemaVersion);
-    const payload = parseOutboxEventPayload(event.eventType, event.schemaVersion, event.payload);
-    if (payload.organizationId !== event.organizationId) {
-      throw new Error("Outbox payload organization does not match the event organization.");
-    }
-    jobData = contract.jobSchema.parse({ ...payload, outboxEventId: event.id });
+    ({ contract, jobData } = getOutboxJob(event));
   } catch (error) {
     await markOutboxEventFailed(prisma, {
       id: event.id,
@@ -80,10 +91,59 @@ export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<stri
   }
 }
 
+export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, queues: Map<string, Queue>) {
+  let lastDeliveryId = 0;
+
+  while (true) {
+    const deliveries = await prisma.notificationDelivery.findMany({
+      where: {
+        id: { gt: lastDeliveryId },
+        status: { in: [NotificationDeliveryStatus.queued, NotificationDeliveryStatus.sending] },
+        outboxEvent: { is: { status: OutboxEventStatus.dispatched } },
+      },
+      include: { outboxEvent: true },
+      orderBy: { id: "asc" },
+      take: notificationRecoveryBatchSize,
+    });
+
+    if (deliveries.length === 0) {
+      return;
+    }
+
+    for (const delivery of deliveries) {
+      lastDeliveryId = delivery.id;
+
+      try {
+        const event = delivery.outboxEvent;
+        const { contract, jobData } = getOutboxJob(event);
+        const queue = queues.get(contract.queueName);
+
+        if (!queue) {
+          throw new Error(`No queue is configured for ${contract.queueName}.`);
+        }
+
+        const jobId = getOutboxEventJobId(event.id);
+        if (await queue.getJob(jobId)) {
+          continue;
+        }
+
+        await queue.add(contract.jobName, jobData, { jobId, ...jobRetryOptions });
+      } catch (error) {
+        console.error(`[parcelis] Could not recover notification delivery ${delivery.id}: ${getErrorMessage(error)}`);
+      }
+    }
+
+    if (deliveries.length < notificationRecoveryBatchSize) {
+      return;
+    }
+  }
+}
+
 // Starts the outbox dispatcher, which continuously polls for available outbox events, claims them, and dispatches them to the appropriate queues. Returns a function to stop the dispatcher.
 export function startOutboxDispatcher(prisma: PrismaClient, queues: Map<string, Queue>) {
   let stopped = false;
   let dispatchInProgress = false;
+  let nextNotificationRecoveryAt = 0;
 
   // Dispatches available outbox events by claiming them, validating their payloads, and adding them to the appropriate queues. Handles failures and rescheduling as needed.
   const dispatchAvailableEvents = async () => {
@@ -103,6 +163,11 @@ export function startOutboxDispatcher(prisma: PrismaClient, queues: Map<string, 
         } catch (error) {
           console.error(`[parcelis] Could not process outbox event ${event.id}: ${getErrorMessage(error)}`);
         }
+      }
+
+      if (Date.now() >= nextNotificationRecoveryAt) {
+        nextNotificationRecoveryAt = Date.now() + notificationRecoveryIntervalMs;
+        await reconcileDispatchedNotificationJobs(prisma, queues);
       }
     } catch (error) {
       if (!stopped) {

@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { OutboxEvent, PrismaClient } from "@parcelis/db";
 import type { Queue } from "bullmq";
-import { dispatchOutboxEvent, startOutboxDispatcher } from "../outbox-dispatcher.js";
+import {
+  dispatchOutboxEvent,
+  reconcileDispatchedNotificationJobs,
+  startOutboxDispatcher,
+} from "../outbox-dispatcher.js";
 
 function createEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
   return {
@@ -51,6 +55,9 @@ function createPrisma(event: OutboxEvent, failDispatchedUpdate = false) {
         current = { ...current, ...data } as OutboxEvent;
         return { count: 1 };
       },
+    },
+    notificationDelivery: {
+      findMany: async () => [],
     },
   };
 
@@ -160,6 +167,108 @@ test("notification email events dispatch to account-notifications", async () => 
   assert.equal(getEvent().claimToken, null);
 });
 
+test("reconciles dispatched email deliveries when their BullMQ job is missing", async () => {
+  const event = createEvent({
+    eventType: "notification.email",
+    status: "dispatched",
+    claimToken: null,
+    lockedUntil: null,
+    dispatchedAt: new Date("2026-09-26T00:00:00.000Z"),
+    payload: {
+      organizationId: 7,
+      recipientId: 9,
+      recipientType: "tenant",
+      email: "tenant@example.com",
+      subject: "Reminder",
+      body: "Your rent is due",
+    },
+  });
+  let readDeliveries = false;
+  const prisma = {
+    notificationDelivery: {
+      findMany: async (args: {
+        where: { status: { in: string[] }; outboxEvent: { is: { status: string } } };
+        take: number;
+      }) => {
+        assert.deepEqual(args.where.status.in, ["queued", "sending"]);
+        assert.equal(args.where.outboxEvent.is.status, "dispatched");
+        assert.equal(args.take, 100);
+        if (readDeliveries) return [];
+        readDeliveries = true;
+        return [{ id: 14, status: "queued", outboxEvent: event }];
+      },
+    },
+  } as unknown as PrismaClient;
+  const added: Array<{
+    name: string;
+    data: unknown;
+    options: { jobId: string; attempts: number; backoff: { type: string; delay: number } };
+  }> = [];
+  const queue = {
+    getJob: async (jobId: string) => {
+      assert.equal(jobId, "outbox-event-21");
+      return undefined;
+    },
+    add: async (
+      name: string,
+      data: unknown,
+      options: { jobId: string; attempts: number; backoff: { type: string; delay: number } },
+    ) => added.push({ name, data, options }),
+  } as unknown as Queue;
+
+  await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
+
+  assert.deepEqual(added, [
+    {
+      name: "notification.email.v1",
+      data: {
+        organizationId: 7,
+        recipientId: 9,
+        recipientType: "tenant",
+        email: "tenant@example.com",
+        subject: "Reminder",
+        body: "Your rent is due",
+        outboxEventId: 21,
+      },
+      options: { jobId: "outbox-event-21", attempts: 3, backoff: { type: "exponential", delay: 1_000 } },
+    },
+  ]);
+});
+
+test("does not redispatch a notification when its BullMQ job still exists", async () => {
+  const event = createEvent({
+    eventType: "notification.email",
+    status: "dispatched",
+    claimToken: null,
+    lockedUntil: null,
+    dispatchedAt: new Date("2026-09-26T00:00:00.000Z"),
+    payload: {
+      organizationId: 7,
+      recipientId: 9,
+      recipientType: "tenant",
+      email: "tenant@example.com",
+      subject: "Reminder",
+      body: "Your rent is due",
+    },
+  });
+  let readDeliveries = false;
+  const prisma = {
+    notificationDelivery: {
+      findMany: async () => {
+        if (readDeliveries) return [];
+        readDeliveries = true;
+        return [{ id: 14, status: "sending", outboxEvent: event }];
+      },
+    },
+  } as unknown as PrismaClient;
+  const queue = {
+    getJob: async () => ({ id: "outbox-event-21" }),
+    add: async () => assert.fail("Existing BullMQ jobs must not be re-added"),
+  } as unknown as Queue;
+
+  await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
+});
+
 test("graceful shutdown drains the already claimed batch", { timeout: 10_000 }, async (t) => {
   const events = [
     createEvent({ id: 21, status: "pending", claimToken: null }),
@@ -184,6 +293,9 @@ test("graceful shutdown drains the already claimed batch", { timeout: 10_000 }, 
         return { count: 1 };
       },
       findUniqueOrThrow: async ({ where }: { where: { id: number } }) => events.find((event) => event.id === where.id),
+    },
+    notificationDelivery: {
+      findMany: async () => [],
     },
   } as unknown as PrismaClient;
   let releaseFirst!: () => void;
