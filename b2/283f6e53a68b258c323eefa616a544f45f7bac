@@ -1,0 +1,22 @@
+apps/api/src/router/auth.router.ts
+  s_384b6f95bf492e::t_86bac500b3e456 222
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_384b6f95bf492e::t_70811cef4c601d 419,425-427,457-458
+  s_384b6f95bf492e::t_335226a3ce961d 446
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b2283f6e53a68b258c323eefa616a544f45f7bac",
+  "prompts": {},
+  "sessions": {
+    "s_384b6f95bf492e": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "eaa9de57-80fe-481b-8386-de0c63e35cee",
+        "model": "gpt-5-mini"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
