@@ -1,0 +1,42 @@
+packages/db/src/notification-delivery.ts
+  s_7d3631a21b1d01::t_2690d7ec8e29a6 109
+packages/email/src/config.ts
+  s_7d3631a21b1d01::t_2690d7ec8e29a6 1-2,19,30,42,53
+packages/email/src/email-configuration-error.ts
+  s_7d3631a21b1d01::t_2690d7ec8e29a6 1-6
+apps/worker/src/processors/notification-email.processor.ts
+  s_7d3631a21b1d01::t_2690d7ec8e29a6 1,59
+apps/docs/content/getting-started/email-configuration.mdx
+  s_7d3631a21b1d01::t_2690d7ec8e29a6 63
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  s_7d3631a21b1d01::t_ad69fb34af47c0 265-306
+  s_7d3631a21b1d01::t_5231f3d43a896d 250
+packages/db/src/tests/notification-delivery.test.ts
+  s_7d3631a21b1d01::t_5231f3d43a896d 67,72-76,190-199,201-202
+packages/email/src/index.ts
+  s_7d3631a21b1d01::t_2690d7ec8e29a6 5
+CONTRIBUTING.md
+  s_7d3631a21b1d01::t_2690d7ec8e29a6 175
+packages/email/src/organization-settings.ts
+  s_7d3631a21b1d01::t_2690d7ec8e29a6 4,12-15,19,85,91-98,104
+apps/worker/src/tests/notification-recovery.integration.ts
+  s_7d3631a21b1d01::t_ad69fb34af47c0 45-50,64,67
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_7d3631a21b1d01::t_5f0fbccc1e5536 3,121-217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "be64a5b7d9378011ad774c1750132bf1f75fd774",
+  "prompts": {},
+  "sessions": {
+    "s_7d3631a21b1d01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a66e-3fcb-7b83-86b7-a39a80c808ed",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
