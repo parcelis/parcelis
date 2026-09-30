@@ -71,6 +71,12 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("reason") === "timeout") {
+      setNotice("Your session expired after 15 minutes without activity. Sign in to continue.");
+      searchParams.delete("reason");
+      const query = searchParams.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    }
     const nextPath = searchParams.get("next");
     if (nextPath?.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("\\")) {
       setDestination(nextPath);

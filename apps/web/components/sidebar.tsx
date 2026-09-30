@@ -44,6 +44,7 @@ import { useShortcut } from "./shortcut-provider";
 import { isMacPlatform, shortcutKeyParts, shortcutList, shortcuts } from "./shortcuts";
 import { apiClient, queryKeys } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
+import { broadcastSessionLogout } from "./session-events";
 
 const navItems = [
   { label: "Portfolio", href: "/", key: "portfolio", icon: Home },
@@ -284,6 +285,7 @@ function SidebarContent({ active }: SidebarProps) {
     setIsSigningOut(true);
     try {
       await apiClient.auth.logout.mutate();
+      broadcastSessionLogout();
       router.replace("/login");
       router.refresh();
     } catch {
