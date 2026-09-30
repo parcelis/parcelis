@@ -9,9 +9,15 @@ export type SendVerificationEmailInput = {
   verificationUrl: string;
 };
 
-export async function sendVerificationEmail(input: SendVerificationEmailInput) {
-  const html = await render(<AccountVerificationEmail verificationUrl={input.verificationUrl} />);
+export async function renderVerificationEmail(verificationUrl: string) {
+  const html = await render(<AccountVerificationEmail verificationUrl={verificationUrl} />);
   const text = toPlainText(html);
+
+  return { html, text };
+}
+
+export async function sendVerificationEmail(input: SendVerificationEmailInput) {
+  const { html, text } = await renderVerificationEmail(input.verificationUrl);
 
   return sendEmail({
     html,

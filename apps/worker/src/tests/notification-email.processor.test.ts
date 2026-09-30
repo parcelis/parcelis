@@ -47,6 +47,43 @@ test("processNotificationEmailJob validates payload and sends plain-text body as
   assert.deepEqual(marks, ["sending:42", "sent:42:msg-123"]);
 });
 
+for (const template of [
+  { kind: "account-verification", url: "https://parcelis.example/login?mode=verify#token=verify-token" },
+  { kind: "password-reset", url: "https://parcelis.example/login?mode=reset#token=reset-token" },
+] as const) {
+  test(`processNotificationEmailJob renders the ${template.kind} template`, async () => {
+    let sent: { html: string; text: string } | undefined;
+
+    await processNotificationEmailJob(
+      {
+        organizationId: 7,
+        recipientId: 12,
+        recipientType: "user",
+        email: "person@example.com",
+        subject:
+          template.kind === "account-verification" ? "Verify your Parcelis email" : "Reset your Parcelis password",
+        body: "Legacy fallback body",
+        template,
+        outboxEventId: 42,
+      },
+      {
+        rememberAccepted: async () => {},
+        getEmailConfig: async () => undefined,
+        send: async (message) => {
+          sent = message;
+          return { messageId: "msg-123" };
+        },
+      },
+    );
+
+    assert.ok(sent);
+    assert.match(sent.html, new RegExp(template.kind === "account-verification" ? "Verify email" : "Reset password"));
+    assert.ok(sent.html.includes(template.url.replaceAll("&", "&amp;")));
+    assert.match(sent.text, /parcelis\.example\/login/);
+    assert.ok(!sent.html.includes("Legacy fallback body"));
+  });
+}
+
 test("processNotificationEmailJob keeps a temporary failure queued for BullMQ retry", async () => {
   const marks: string[] = [];
 

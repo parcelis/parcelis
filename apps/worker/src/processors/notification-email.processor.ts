@@ -1,4 +1,10 @@
-import { EmailConfigurationError, type getOrganizationEmailConfig, type sendEmail } from "@parcelis/email";
+import {
+  EmailConfigurationError,
+  renderPasswordResetEmail,
+  renderVerificationEmail,
+  type getOrganizationEmailConfig,
+  type sendEmail,
+} from "@parcelis/email";
 import { notificationEmailDeliveryJobSchema, type NotificationEmailOutboxJob } from "@parcelis/jobs";
 import { UnrecoverableError } from "bullmq";
 
@@ -91,12 +97,16 @@ export async function processNotificationEmailJob(
   let result;
   try {
     const emailConfig = await dependencies.getEmailConfig(payload.organizationId);
+    const content = payload.template
+      ? payload.template.kind === "account-verification"
+        ? await renderVerificationEmail(payload.template.url)
+        : await renderPasswordResetEmail(payload.template.url)
+      : { text: payload.body, html: formatPlainTextAsHtml(payload.body) };
     result = await dependencies.send({
       emailConfig,
       to: payload.email,
       subject: payload.subject,
-      text: payload.body,
-      html: formatPlainTextAsHtml(payload.body),
+      ...content,
     });
   } catch (error) {
     const message = getErrorMessage(error);

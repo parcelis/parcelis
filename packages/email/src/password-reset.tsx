@@ -9,9 +9,15 @@ export type SendPasswordResetEmailInput = {
   emailConfig?: EmailConfig;
 };
 
-export async function sendPasswordResetEmail(input: SendPasswordResetEmailInput) {
-  const html = await render(<PasswordResetEmail resetUrl={input.resetUrl} />);
+export async function renderPasswordResetEmail(resetUrl: string) {
+  const html = await render(<PasswordResetEmail resetUrl={resetUrl} />);
   const text = toPlainText(html);
+
+  return { html, text };
+}
+
+export async function sendPasswordResetEmail(input: SendPasswordResetEmailInput) {
+  const { html, text } = await renderPasswordResetEmail(input.resetUrl);
 
   return sendEmail({
     html,

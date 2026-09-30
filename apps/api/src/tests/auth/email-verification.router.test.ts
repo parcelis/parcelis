@@ -373,9 +373,15 @@ test("registration creates a pending account and one verification token without 
   assert.equal(state.outboxEvents.length, 1);
   assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
   assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /auth\.register/);
-  const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
+  const payload = state.outboxEvents[0]?.payload as {
+    body: string;
+    email: string;
+    template: { kind: string; url: string };
+  };
   assert.equal(payload.email, "new@example.com");
   assert.match(payload.body, /mode=verify/);
+  assert.equal(payload.template.kind, "account-verification");
+  assert.match(payload.template.url, /mode=verify/);
 });
 
 test("verification activates a pending account and consumes its token", async () => {
@@ -517,9 +523,15 @@ test("resending verification preserves prior tokens for pending accounts", async
   assert.equal(state.outboxEvents[0]?.organizationId, 1);
   assert.equal(state.outboxEvents[0]?.schemaVersion, 1);
   assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /auth\.request-email-verification/);
-  const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
+  const payload = state.outboxEvents[0]?.payload as {
+    body: string;
+    email: string;
+    template: { kind: string; url: string };
+  };
   assert.equal(payload.email, user.email);
   assert.match(payload.body, /mode=verify/);
+  assert.equal(payload.template.kind, "account-verification");
+  assert.match(payload.template.url, /mode=verify/);
 });
 
 test("resending verification removes expired tokens", async (t) => {
@@ -637,9 +649,15 @@ test("requesting password reset for active users creates one token and enqueues 
   assert.equal(state.outboxEvents.length, 1);
   assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
   assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /auth\.request-password-reset/);
-  const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
+  const payload = state.outboxEvents[0]?.payload as {
+    body: string;
+    email: string;
+    template: { kind: string; url: string };
+  };
   assert.equal(payload.email, user.email);
   assert.match(payload.body, /mode=reset/);
+  assert.equal(payload.template.kind, "password-reset");
+  assert.match(payload.template.url, /mode=reset/);
 });
 
 test("requesting password reset without a default organization sends email directly", async (t) => {
@@ -714,9 +732,15 @@ test("authorized user creation creates a pending account and verification token"
   assert.equal(state.outboxEvents.length, 1);
   assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
   assert.match(state.outboxEvents[0]?.idempotencyKey ?? "", /users\.create/);
-  const payload = state.outboxEvents[0]?.payload as { body: string; email: string };
+  const payload = state.outboxEvents[0]?.payload as {
+    body: string;
+    email: string;
+    template: { kind: string; url: string };
+  };
   assert.equal(payload.email, "created@example.com");
   assert.match(payload.body, /mode=verify/);
+  assert.equal(payload.template.kind, "account-verification");
+  assert.match(payload.template.url, /mode=verify/);
 });
 
 test("pending users cannot have their email changed through profile updates", async () => {

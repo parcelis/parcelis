@@ -882,6 +882,10 @@ export const appRouter = router({
               email: user.email,
               subject: "Verify your Parcelis email",
               body: `Verify your Parcelis email: ${getEmailVerificationUrl(verificationToken)}`,
+              template: {
+                kind: "account-verification",
+                url: getEmailVerificationUrl(verificationToken),
+              },
               idempotencyKey: `users.create:${user.id}:token:${createdToken.id}`,
             });
             return user;

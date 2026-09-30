@@ -6,6 +6,10 @@ export const notificationEmailJobName = "notification.email.v1";
 // Schema for the recipient type and notification delay.
 const recipientTypeSchema = z.string().min(1).max(100);
 const notificationDelayMsSchema = z.number().int().nonnegative().optional();
+const notificationEmailTemplateSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("account-verification"), url: z.url() }).strict(),
+  z.object({ kind: z.literal("password-reset"), url: z.url() }).strict(),
+]);
 
 // Schema for the notification email job.
 export const notificationEmailJobSchema = z
@@ -16,6 +20,7 @@ export const notificationEmailJobSchema = z
     email: z.email(),
     subject: z.string().min(1).max(300),
     body: z.string().min(1).max(50_000),
+    template: notificationEmailTemplateSchema.optional(),
   })
   .strict();
 

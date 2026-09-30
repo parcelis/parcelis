@@ -120,6 +120,19 @@ test("notification.email outbox payload parser validates payload shape", () => {
 
   assert.deepEqual(parseOutboxEventPayload(outboxEventTypes.notificationEmail, 1, payload), payload);
 
+  const templated = {
+    ...payload,
+    template: { kind: "account-verification", url: "https://parcelis.example/login?mode=verify#token=abc" },
+  };
+  assert.deepEqual(parseOutboxEventPayload(outboxEventTypes.notificationEmail, 1, templated), templated);
+
+  assert.throws(() =>
+    parseOutboxEventPayload(outboxEventTypes.notificationEmail, 1, {
+      ...payload,
+      template: { kind: "account-verification", url: "invalid-url" },
+    }),
+  );
+
   assert.throws(() =>
     parseOutboxEventPayload(outboxEventTypes.notificationEmail, 1, {
       ...payload,

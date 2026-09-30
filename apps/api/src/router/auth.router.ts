@@ -116,6 +116,10 @@ export const authRouter = router({
           email: createdUser.email,
           subject: "Verify your Parcelis email",
           body: `Verify your Parcelis email: ${getEmailVerificationUrl(verificationToken)}`,
+          template: {
+            kind: "account-verification",
+            url: getEmailVerificationUrl(verificationToken),
+          },
           idempotencyKey: `auth.register:${createdUser.id}:token:${createdToken.id}`,
         });
         return { ...createdUser, organizationId: organization.id };
@@ -210,6 +214,7 @@ export const authRouter = router({
                   email: user.email,
                   subject: "Verify your Parcelis email",
                   body: `Verify your Parcelis email: ${getEmailVerificationUrl(token)}`,
+                  template: { kind: "account-verification", url: getEmailVerificationUrl(token) },
                   idempotencyKey: `auth.request-email-verification:${user.id}:token:${createdToken.id}`,
                 });
               } else {
@@ -288,6 +293,7 @@ export const authRouter = router({
               email: user.email,
               subject: "Reset your Parcelis password",
               body: `Reset your Parcelis password: ${getLoginTokenUrl("reset", token)}`,
+              template: { kind: "password-reset", url: getLoginTokenUrl("reset", token) },
               idempotencyKey: `auth.request-password-reset:${user.id}:token:${createdToken.id}`,
             });
             } else {
