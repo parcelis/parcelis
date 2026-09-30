@@ -187,6 +187,7 @@ pnpm exec playwright install chromium
 ```
 
 Run the suite with `pnpm test:e2e`. It starts the web app automatically unless `PLAYWRIGHT_TEST_BASE_URL` points to an existing environment. Use `pnpm test:e2e:ui` to run tests in Playwright UI mode.
+The proxy-origin session test is skipped by default. Point `PLAYWRIGHT_TEST_BASE_URL` to the running proxy when running the full suite.
 
 Place tests in `tests/e2e`. Cover a changed user workflow with stable role, label, or text locators and assertions that verify the user-visible outcome. Do not commit `playwright-report` or `test-results`.
 

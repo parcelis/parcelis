@@ -22,8 +22,12 @@ pnpm test:e2e
 The command starts the web app automatically at `http://127.0.0.1:30000`. To test an existing environment instead, set `PLAYWRIGHT_TEST_BASE_URL`:
 
 ```bash
-PLAYWRIGHT_TEST_BASE_URL=http://127.0.0.1:30000 pnpm test:e2e
+PLAYWRIGHT_TEST_BASE_URL=http://localhost:3000 pnpm test:e2e
 ```
+
+The proxy-origin session test is skipped by default. When running the full suite with `PLAYWRIGHT_TEST_BASE_URL`, point
+it to the running proxy so that test covers the proxy path. Sign-in and test navigation must use the same hostname for
+the host-only session cookie.
 
 Use Playwright UI mode while developing a test:
 

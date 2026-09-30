@@ -186,25 +186,31 @@ test("an already open page picks up a changed server deadline", async ({ page })
   }
 });
 
-test("the proxy origin serves session status and shows the warning", async ({ page }) => {
-  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl! }) });
-  try {
-    const id = await sessionFor(page, prisma);
-    await prisma.session.update({
-      where: { id },
-      data: { lastSeenAt: new Date(Date.now() - 14.5 * 60_000) },
-    });
-    await page.goto("http://localhost/properties");
-    await expect(page).toHaveURL(/^http:\/\/localhost\//);
-    const sessionResponse = await page.evaluate(async () => {
-      const response = await fetch("/trpc/auth.session?input=%7B%22json%22%3Anull%7D", {
-        credentials: "include",
+const proxyBaseURL = process.env.PLAYWRIGHT_TEST_BASE_URL;
+
+test.describe("proxy origin", () => {
+  test.skip(!proxyBaseURL, "Set PLAYWRIGHT_TEST_BASE_URL to the running proxy origin.");
+
+  test("serves session status and shows the warning", async ({ page }) => {
+    const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl! }) });
+    try {
+      const id = await sessionFor(page, prisma);
+      await prisma.session.update({
+        where: { id },
+        data: { lastSeenAt: new Date(Date.now() - 14.5 * 60_000) },
       });
-      return { status: response.status, body: await response.text() };
-    });
-    expect(sessionResponse.status, sessionResponse.body).toBe(200);
-    await expect(page.getByRole("alertdialog", { name: "Your session is about to expire" })).toBeVisible();
-  } finally {
-    await prisma.$disconnect();
-  }
+      await page.goto("/properties");
+      expect(new URL(page.url()).origin).toBe(new URL(proxyBaseURL!).origin);
+      const sessionResponse = await page.evaluate(async () => {
+        const response = await fetch("/trpc/auth.session?input=%7B%22json%22%3Anull%7D", {
+          credentials: "include",
+        });
+        return { status: response.status, body: await response.text() };
+      });
+      expect(sessionResponse.status, sessionResponse.body).toBe(200);
+      await expect(page.getByRole("alertdialog", { name: "Your session is about to expire" })).toBeVisible();
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
 });
