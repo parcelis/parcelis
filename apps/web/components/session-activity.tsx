@@ -34,7 +34,7 @@ export function SessionActivity() {
   const [renewalError, setRenewalError] = React.useState(false);
 
   React.useEffect(() => {
-    const channel = new BroadcastChannel(sessionChannelName);
+    const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(sessionChannelName);
     let warningTimer: number | undefined;
     let expirationTimer: number | undefined;
 
@@ -48,7 +48,7 @@ export function SessionActivity() {
       ended.current = true;
       void queryClient.cancelQueries();
       queryClient.clear();
-      channel.postMessage({ type: "logout" } satisfies SessionMessage);
+      channel?.postMessage({ type: "logout" } satisfies SessionMessage);
       router.replace(reason === "timeout" ? "/login?reason=timeout" : "/login");
     }
 
@@ -63,7 +63,7 @@ export function SessionActivity() {
         warningTimer = window.setTimeout(() => setWarning(true), remaining - next.warningMs);
       }
       expirationTimer = window.setTimeout(() => void checkExpiration(), Math.max(0, remaining));
-      if (broadcast) channel.postMessage({ type: "status", status: next } satisfies SessionMessage);
+      if (broadcast) channel?.postMessage({ type: "status", status: next } satisfies SessionMessage);
     }
 
     async function checkSession(): Promise<SessionCheckResult> {
@@ -143,10 +143,12 @@ export function SessionActivity() {
       if (document.visibilityState === "visible") void checkSession();
     }
 
-    channel.onmessage = (event: MessageEvent<SessionMessage>) => {
-      if (event.data?.type === "logout") leave("logout");
-      if (event.data?.type === "status") accept(event.data.status);
-    };
+    if (channel) {
+      channel.onmessage = (event: MessageEvent<SessionMessage>) => {
+        if (event.data?.type === "logout") leave("logout");
+        if (event.data?.type === "status") accept(event.data.status);
+      };
+    }
 
     void checkSession();
     const events = ["pointerdown", "pointermove", "keydown", "touchstart", "scroll", "wheel"];
@@ -162,7 +164,7 @@ export function SessionActivity() {
 
     return () => {
       renewRef.current = () => {};
-      channel.close();
+      channel?.close();
       clearTimers();
       window.clearInterval(sessionRefresh);
       for (const event of events) document.removeEventListener(event, onActivity);
