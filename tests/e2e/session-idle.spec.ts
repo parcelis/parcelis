@@ -177,6 +177,7 @@ test("an already open page picks up a changed server deadline", async ({ page })
       where: { id },
       data: { lastSeenAt: new Date(Date.now() - 13.5 * 60_000) },
     });
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
     await expect(page.getByRole("alertdialog", { name: "Your session is about to expire" })).toBeVisible({
       timeout: 75_000,
     });
