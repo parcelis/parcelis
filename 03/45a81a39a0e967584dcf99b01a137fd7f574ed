@@ -1,0 +1,20 @@
+tests/e2e/session-idle.spec.ts
+  s_df66c856c23212::t_226c412b5bccdb 30
+  s_df66c856c23212::t_cc7fe85b430bd2 29,31-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "0345a81a39a0e967584dcf99b01a137fd7f574ed",
+  "prompts": {},
+  "sessions": {
+    "s_df66c856c23212": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f437-dbcc-74b2-980e-48653d3fdacb",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
