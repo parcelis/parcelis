@@ -110,7 +110,16 @@ for (const [name, overrides] of [
   ["inactive", { accountStatus: "disabled" }],
   ["unmatched token", { tokenHash: hashSessionToken("another-token") }],
 ] as const) {
-  test(`job dashboard rejects ${name} sessions`, async () => {
+  test(`job dashboard rejects ${name} sessions`, async (t) => {
+    if (name === "idle") {
+      const previous = process.env.SESSION_IDLE_TIMEOUT_ENABLED;
+      process.env.SESSION_IDLE_TIMEOUT_ENABLED = "true";
+      t.after(() => {
+        if (previous === undefined) delete process.env.SESSION_IDLE_TIMEOUT_ENABLED;
+        else process.env.SESSION_IDLE_TIMEOUT_ENABLED = previous;
+      });
+    }
+
     const { prisma, queries } = createPrisma("administrator", overrides);
     const { response, result } = createResponse();
 
