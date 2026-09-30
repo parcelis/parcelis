@@ -1,0 +1,47 @@
+packages/jobs/src/notification-jobs.test.ts
+  s_b4f014f7009419::t_5c4aec13861c33 123-135
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_b4f014f7009419::t_b6558e4ac546b0 55
+  s_b4f014f7009419::t_b3ab2c15c86d6e 63-64
+  s_b4f014f7009419::t_b4f03bfca0e5b7 50-54,56-62,65-86
+packages/jobs/src/notification-jobs.ts
+  s_b4f014f7009419::t_55310d0c91ba69 9-12,23
+packages/email/src/verification.tsx
+  s_b4f014f7009419::t_55310d0c91ba69 12-13,16-20
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_b4f014f7009419::t_425a5c460dd6d3 383-384,659-660
+  s_b4f014f7009419::t_1a043b7a465b64 533-534,742-743
+  s_b4f014f7009419::t_b3ab2c15c86d6e 376-380,526-530,652-656,735-739
+packages/email/src/password-reset.tsx
+  s_b4f014f7009419::t_55310d0c91ba69 12-13,16-20
+apps/docs/content/getting-started/email-configuration.mdx
+  s_b4f014f7009419::t_5c4aec13861c33 80
+apps/api/src/router/auth.router.ts
+  s_b4f014f7009419::t_0f580fa502beb5 296
+  s_b4f014f7009419::t_7762b832307afb 217
+  s_b4f014f7009419::t_8eac72a54fa456 119-122
+apps/api/src/router/app.router.ts
+  s_b4f014f7009419::t_8eac72a54fa456 885-888
+ARCHITECTURE.md
+  s_b4f014f7009419::t_4d5c1278b78f9c 80
+apps/worker/src/processors/notification-email.processor.ts
+  s_b4f014f7009419::t_7762b832307afb 1-7,100-104,109
+packages/email/src/index.ts
+  s_b4f014f7009419::t_55310d0c91ba69 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e160efee99656c3e47edbd83e89093e00d89bc3e",
+  "prompts": {},
+  "sessions": {
+    "s_b4f014f7009419": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f0be-2ce9-7942-a64b-bf575c561aed",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
