@@ -60,6 +60,23 @@ Do not commit `.env` or `.env.production` files containing SMTP credentials or e
 
 For accounts with a default organization, account verification and password reset emails are recorded in PostgreSQL before they are sent. A scheduled email remains there until its due time, so a Redis outage does not erase the pending work. The worker dispatches due events to BullMQ and checks about once a minute for dispatched emails whose Redis job is missing. It restores those jobs using the original job ID. Legacy accounts without a default organization still use direct SMTP delivery and do not have this outbox recovery.
 
+```mermaid
+flowchart LR
+    A["Account email requested"] --> B["PostgreSQL saves<br/>token + email work"]
+    B -->|"When due"| C["Dispatcher"]
+    C --> D["Redis job<br/>with stable ID"]
+    D --> E["Email worker"]
+    E --> F["SMTP provider"]
+    F -->|"Accepted"| G["Mark sent"]
+    F -->|"Temporary error"| H["Retry, up to 3 attempts"]
+    H --> E
+    F -->|"Permanent error or final failure"| I["Mark failed"]
+
+    B -. "Durable record" .-> J["Recovery check<br/>about every minute"]
+    D -. "Job disappears" .-> J
+    J -->|"Restore using same ID"| D
+```
+
 The worker makes up to three delivery attempts. Temporary SMTP failures are retried with exponential backoff; permanent SMTP failures, such as an invalid recipient or authentication error, stop immediately. The delivery record tracks attempts and ends as `sent` or `failed`.
 
 Recovery avoids adding another queued job when the original still exists. Email delivery is nevertheless **at least once**: if an SMTP server accepts an email immediately before the worker loses its progress record, a recovered job can send that email again. Parcelis cannot guarantee exactly one email across an SMTP and Redis failure.

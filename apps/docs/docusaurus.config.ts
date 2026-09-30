@@ -14,6 +14,7 @@ const config: Config = {
     },
   },
   markdown: {
+    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: "warn",
     },
@@ -60,7 +61,7 @@ const config: Config = {
       },
     ],
   ],
-  themes: ["docusaurus-theme-openapi-docs"],
+  themes: ["docusaurus-theme-openapi-docs", "@docusaurus/theme-mermaid"],
   themeConfig: {
     api: {
       schemaExpansion: {
