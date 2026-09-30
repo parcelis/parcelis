@@ -1,0 +1,21 @@
+apps/web/components/session-activity.tsx
+  s_df66c856c23212::t_641a2165dde344 37,51,66,146-151,167
+apps/web/components/session-events.ts
+  s_df66c856c23212::t_641a2165dde344 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "f160a679f98f9a3dbac7ede06ebeb03e7378ffa8",
+  "prompts": {},
+  "sessions": {
+    "s_df66c856c23212": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f437-dbcc-74b2-980e-48653d3fdacb",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
