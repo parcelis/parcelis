@@ -172,6 +172,12 @@ OUTBOX_TEST_DATABASE_URL=postgresql://parcelis:parcelis@localhost:54320/parcelis
 OUTBOX_TEST_DATABASE_URL=postgresql://parcelis:parcelis@localhost:54320/parcelis_test?schema=public pnpm --filter @parcelis/worker test:integration
 ```
 
+The worker integration suite also includes a Redis recovery test. Set `OUTBOX_TEST_REDIS_URL` to a local Redis instance to run it; otherwise that test is skipped. It creates and removes only a uniquely named test queue. Use the Redis port printed by `pnpm dev` if it differs from the default:
+
+```bash
+OUTBOX_TEST_REDIS_URL=redis://:parcelis-redis@localhost:63790 pnpm --filter @parcelis/worker test:integration
+```
+
 ### End-to-end tests
 
 Parcelis uses Playwright for browser-level tests. Install Chromium once after installing dependencies:

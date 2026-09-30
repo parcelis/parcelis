@@ -23,15 +23,15 @@ SMTP_PASSWORD="your-smtp-password"
 EMAIL_SETTINGS_ENCRYPTION_KEY="your-base64-encoded-32-byte-key"
 ```
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `EMAIL_FROM` | Yes | Sender shown on transactional messages. Use a mailbox or domain that your SMTP provider permits. |
-| `SMTP_HOST` | Yes | SMTP server hostname. |
-| `SMTP_PORT` | Yes | SMTP server TCP port, from `1` to `65535`. Common values are `465` for implicit TLS and `587` for STARTTLS. |
-| `SMTP_SECURE` | Yes | Set to `true` for implicit TLS, commonly port `465`; set to `false` for a non-implicit-TLS connection. It must be exactly `true` or `false`. |
-| `SMTP_USER` | Yes | SMTP authentication username. |
-| `SMTP_PASSWORD` | Yes | SMTP authentication password or provider-issued app password. Keep it out of version control. |
-| `EMAIL_SETTINGS_ENCRYPTION_KEY` | Required to save organization SMTP credentials | A base64-encoded 32-byte secret used to encrypt saved organization SMTP passwords. |
+| Variable                        | Required                                       | Description                                                                                                                                  |
+| ------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EMAIL_FROM`                    | Yes                                            | Sender shown on transactional messages. Use a mailbox or domain that your SMTP provider permits.                                             |
+| `SMTP_HOST`                     | Yes                                            | SMTP server hostname.                                                                                                                        |
+| `SMTP_PORT`                     | Yes                                            | SMTP server TCP port, from `1` to `65535`. Common values are `465` for implicit TLS and `587` for STARTTLS.                                  |
+| `SMTP_SECURE`                   | Yes                                            | Set to `true` for implicit TLS, commonly port `465`; set to `false` for a non-implicit-TLS connection. It must be exactly `true` or `false`. |
+| `SMTP_USER`                     | Yes                                            | SMTP authentication username.                                                                                                                |
+| `SMTP_PASSWORD`                 | Yes                                            | SMTP authentication password or provider-issued app password. Keep it out of version control.                                                |
+| `EMAIL_SETTINGS_ENCRYPTION_KEY` | Required to save organization SMTP credentials | A base64-encoded 32-byte secret used to encrypt saved organization SMTP passwords.                                                           |
 
 For example, generate an encryption key with:
 
@@ -55,3 +55,11 @@ For organization-level settings, choose **TLS** for implicit TLS or **STARTTLS**
 After starting the application with the new environment values, use **Settings → Organization → Email** and select **Send test email** after saving an organization configuration. If the organization has no saved configuration, account verification and password reset messages use the deployment SMTP values.
 
 Do not commit `.env` or `.env.production` files containing SMTP credentials or encryption keys.
+
+## Background delivery and recovery
+
+For accounts with a default organization, account verification and password reset emails are recorded in PostgreSQL before they are sent. A scheduled email remains there until its due time, so a Redis outage does not erase the pending work. The worker dispatches due events to BullMQ and checks about once a minute for dispatched emails whose Redis job is missing. It restores those jobs using the original job ID. Legacy accounts without a default organization still use direct SMTP delivery and do not have this outbox recovery.
+
+The worker makes up to three delivery attempts. Temporary SMTP failures are retried with exponential backoff; permanent SMTP failures, such as an invalid recipient or authentication error, stop immediately. The delivery record tracks attempts and ends as `sent` or `failed`.
+
+Recovery avoids adding another queued job when the original still exists. Email delivery is nevertheless **at least once**: if an SMTP server accepts an email immediately before the worker loses its progress record, a recovered job can send that email again. Parcelis cannot guarantee exactly one email across an SMTP and Redis failure.

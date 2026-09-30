@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "start": "node dist/main.js",
     "test": "tsx --test \"src/tests/**/*.test.ts\"",
-    "test:integration": "tsx --test src/tests/outbox-dispatcher.integration.ts",
+    "test:integration": "tsx --test \"src/tests/*.integration.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
