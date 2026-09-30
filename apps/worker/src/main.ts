@@ -1,4 +1,5 @@
 import {
+  markNotificationDeliveryAccepted,
   markNotificationDeliveryFailed,
   markNotificationDeliveryRetrying,
   markNotificationDeliverySending,
@@ -39,6 +40,8 @@ const notificationEmailWorker = new Worker(
       {
         send: sendEmail,
         rememberAccepted: (data) => job.updateData(data),
+        rememberAcceptedDelivery: ({ outboxEventId, messageId }) =>
+          markNotificationDeliveryAccepted(prisma, { outboxEventId, providerMessageId: messageId }),
         getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
         markDeliverySending: async ({ outboxEventId }) => {
           return markNotificationDeliverySending(prisma, { outboxEventId });

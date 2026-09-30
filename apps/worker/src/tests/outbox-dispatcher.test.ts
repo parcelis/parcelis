@@ -261,12 +261,56 @@ test("does not redispatch a notification when its BullMQ job still exists", asyn
       },
     },
   } as unknown as PrismaClient;
+  let readded = false;
   const queue = {
     getJob: async () => ({ id: "outbox-event-21" }),
-    add: async () => assert.fail("Existing BullMQ jobs must not be re-added"),
+    add: async () => {
+      readded = true;
+    },
   } as unknown as Queue;
 
   await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
+  assert.equal(readded, false);
+});
+
+test("recovery carries the accepted SMTP message ID into a replacement job", async () => {
+  const event = createEvent({
+    eventType: "notification.email",
+    status: "dispatched",
+    payload: {
+      organizationId: 7,
+      recipientId: 9,
+      recipientType: "tenant",
+      email: "tenant@example.com",
+      subject: "Reminder",
+      body: "Your rent is due",
+    },
+  });
+  const prisma = {
+    notificationDelivery: {
+      findMany: async () => [{ id: 14, status: "sending", providerMessageId: "smtp-accepted-123", outboxEvent: event }],
+    },
+  } as unknown as PrismaClient;
+  let recoveredData: unknown;
+  const queue = {
+    getJob: async () => undefined,
+    add: async (_name: string, data: unknown) => {
+      recoveredData = data;
+    },
+  } as unknown as Queue;
+
+  await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
+
+  assert.deepEqual(recoveredData, {
+    organizationId: 7,
+    recipientId: 9,
+    recipientType: "tenant",
+    email: "tenant@example.com",
+    subject: "Reminder",
+    body: "Your rent is due",
+    outboxEventId: event.id,
+    acceptedMessageId: "smtp-accepted-123",
+  });
 });
 
 test("graceful shutdown drains the already claimed batch", { timeout: 10_000 }, async (t) => {
