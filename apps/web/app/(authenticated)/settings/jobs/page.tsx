@@ -11,7 +11,19 @@ export default function JobsPage() {
   function onLoad() {
     const document = frame.current?.contentDocument;
     if (!document) return;
-    const onActivity = () => window.dispatchEvent(new Event(sessionUserActivityEventName));
+    const onActivity = (event: Event) => {
+      if (event.type === "keydown") {
+        const keyboardEvent = event as KeyboardEvent;
+        window.dispatchEvent(
+          new KeyboardEvent(sessionUserActivityEventName, {
+            key: keyboardEvent.key,
+            repeat: keyboardEvent.repeat,
+          }),
+        );
+      } else {
+        window.dispatchEvent(new Event(sessionUserActivityEventName));
+      }
+    };
     for (const event of activityEvents) document.addEventListener(event, onActivity, { passive: true });
   }
 
