@@ -1,0 +1,19 @@
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_b4f014f7009419::t_42be43fb8fb344 4,51-52,81,87-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "c8563a1acbf23f7c272e54f4de819ed0ff6fdc9d",
+  "prompts": {},
+  "sessions": {
+    "s_b4f014f7009419": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f0be-2ce9-7942-a64b-bf575c561aed",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
