@@ -43,11 +43,21 @@ async function hasValidSession(request: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  if (pathname.startsWith("/admin/jobs/") && pathname !== "/admin/jobs/") {
+    return NextResponse.next();
+  }
   if (!isAuthenticationDisabled && !(await hasValidSession(request))) return redirectToLogin(request);
 
   if (request.headers.get("x-parcelis-internal-rewrite") === "1") return NextResponse.next();
 
-  const { pathname } = request.nextUrl;
+  if (pathname === "/admin/jobs" || pathname === "/admin/jobs/") {
+    if (request.nextUrl.searchParams.get("embedded") !== "1") {
+      return NextResponse.redirect(new URL("/settings/jobs", request.url));
+    }
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/o/")) {
     const [, , slug, ...path] = pathname.split("/");
     if (!slug) return NextResponse.redirect(new URL("/", request.url));
@@ -87,6 +97,7 @@ export const config = {
   matcher: [
     "/",
     "/applications/:path*",
+    "/admin/jobs/:path*",
     "/o/:path*",
     "/income/:path*",
     "/maintenance/:path*",

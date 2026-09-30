@@ -8,7 +8,7 @@ import { sessionExpiredEventName } from "./session-events";
 export const apiClient = createTRPCProxyClient<AppRouter>({
   links: [
     httpBatchLink({
-      url: `${process.env.NEXT_PUBLIC_API_URL ?? ""}/trpc`,
+      url: "/trpc",
       async fetch(url, options) {
         const organizationSlug =
           typeof window === "undefined" ? null : window.location.pathname.match(/^\/o\/([^/]+)/)?.[1];

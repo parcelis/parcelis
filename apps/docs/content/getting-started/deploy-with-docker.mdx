@@ -53,6 +53,7 @@ The app container expects the following values at minimum:
 - `WEB_ORIGIN`: the public origin used by the web app
 - `AUTH_COOKIE_DOMAIN`: the cookie domain for authentication sessions
 - `AUTH_COOKIE_SECURE`: set to `true` when the app is served over HTTPS
+- `SESSION_IDLE_TIMEOUT_ENABLED`: defaults to `true`; set to `false` to disable the 15-minute inactivity timeout
 - `EMAIL_FROM`: sender address for transactional email
 - `SMTP_HOST`, `SMTP_PORT`, and `SMTP_SECURE`: SMTP server connection settings; `SMTP_SECURE` must be `true` or `false`
 - `SMTP_USER` and `SMTP_PASSWORD`: SMTP authentication credentials

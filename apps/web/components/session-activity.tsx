@@ -14,7 +14,7 @@ import {
   Button,
 } from "@parcelis/ui";
 import { apiClient } from "./api-client";
-import { sessionChannelName, sessionExpiredEventName } from "./session-events";
+import { sessionChannelName, sessionExpiredEventName, sessionUserActivityEventName } from "./session-events";
 
 type SessionMessage = { type: "status"; status: SessionStatus } | { type: "logout" };
 
@@ -34,6 +34,13 @@ export function SessionActivity() {
 
   React.useEffect(() => {
     const channel = new BroadcastChannel(sessionChannelName);
+    let warningTimer: number | undefined;
+    let expirationTimer: number | undefined;
+
+    function clearTimers() {
+      window.clearTimeout(warningTimer);
+      window.clearTimeout(expirationTimer);
+    }
 
     function leave(reason: "timeout" | "logout") {
       if (ended.current) return;
@@ -48,7 +55,13 @@ export function SessionActivity() {
       if (ended.current) return;
       status.current = next;
       deadline.current = Date.now() + next.expiresAt - next.serverTime;
-      setWarning(next.idleTimeoutEnabled && deadline.current - Date.now() <= next.warningMs);
+      clearTimers();
+      const remaining = deadline.current - Date.now();
+      setWarning(next.idleTimeoutEnabled && remaining <= next.warningMs);
+      if (next.idleTimeoutEnabled && remaining > next.warningMs) {
+        warningTimer = window.setTimeout(() => setWarning(true), remaining - next.warningMs);
+      }
+      expirationTimer = window.setTimeout(() => void checkExpiration(), Math.max(0, remaining));
       if (broadcast) channel.postMessage({ type: "status", status: next } satisfies SessionMessage);
     }
 
@@ -61,9 +74,22 @@ export function SessionActivity() {
       }
     }
 
+    async function checkExpiration() {
+      if (ended.current || expirationCheck.current) return;
+      expirationCheck.current = checkSession()
+        .then(() => {
+          if (deadline.current <= Date.now()) leave("timeout");
+        })
+        .finally(() => {
+          expirationCheck.current = null;
+        });
+      await expirationCheck.current;
+    }
+
     async function renew(force = false) {
       const current = status.current;
       if (ended.current || !current?.idleTimeoutEnabled) return;
+      if (!force && deadline.current - Date.now() <= current.warningMs) return;
       if (activityRequest.current) return activityRequest.current;
       if (!force && Date.now() < nextActivityAt.current) return;
       nextActivityAt.current = Date.now() + current.activityIntervalMs;
@@ -109,32 +135,22 @@ export function SessionActivity() {
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", onVisibility);
     window.addEventListener(sessionExpiredEventName, onSessionExpired);
+    window.addEventListener(sessionUserActivityEventName, onActivity);
 
-    const timer = window.setInterval(() => {
-      const current = status.current;
-      if (!current || ended.current) return;
-      const remaining = deadline.current - Date.now();
-      if (remaining <= 0 && !expirationCheck.current) {
-        expirationCheck.current = checkSession()
-          .then(() => {
-            if (deadline.current <= Date.now()) leave("timeout");
-          })
-          .finally(() => {
-            expirationCheck.current = null;
-          });
-      } else {
-        setWarning(current.idleTimeoutEnabled && remaining <= current.warningMs);
-      }
-    }, 1000);
+    const sessionRefresh = window.setInterval(() => {
+      if (document.visibilityState === "visible") void checkSession();
+    }, 60_000);
 
     return () => {
       renewRef.current = () => {};
       channel.close();
-      window.clearInterval(timer);
+      clearTimers();
+      window.clearInterval(sessionRefresh);
       for (const event of events) document.removeEventListener(event, onActivity);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onVisibility);
       window.removeEventListener(sessionExpiredEventName, onSessionExpired);
+      window.removeEventListener(sessionUserActivityEventName, onActivity);
     };
   }, [queryClient, router]);
 
@@ -150,7 +166,7 @@ export function SessionActivity() {
 
   return (
     <AlertDialog open={warning} onOpenChange={() => {}}>
-      <AlertDialogContent>
+      <AlertDialogContent aria-label="Your session is about to expire">
         <AlertDialogHeader>
           <AlertDialogTitle>Your session is about to expire</AlertDialogTitle>
           <AlertDialogDescription>

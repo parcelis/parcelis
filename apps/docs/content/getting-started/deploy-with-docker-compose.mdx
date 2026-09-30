@@ -29,6 +29,10 @@ docker compose --env-file .env.production up -d --remove-orphans
 
 The stack will run the migration job first, then start the app and docs services once the database and object storage are ready.
 
+`SESSION_IDLE_TIMEOUT_ENABLED` defaults to `true` and ends sessions after 15 minutes without user activity. Set it to
+`false` in `.env.production` only if you need to disable the idle timeout; the seven-day session lifetime and normal
+revocation still apply. Deploying the timeout requires currently signed-in users to sign in again.
+
 :::caution
 If you are planning to run Parcelis in a production environment, update the values in the secrets, authentication, and transactional email sections of `.env.production` before you go live. Use strong, unique values for the database, MinIO, SMTP, and authentication settings so only you can access the platform services.
 :::

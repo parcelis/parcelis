@@ -71,6 +71,8 @@ appRouter procedure
 
 The web app creates a typed tRPC proxy client in `apps/web/components/api-client.ts`. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies Nest's `PrismaService`, authenticated user and session, and the active organization to every procedure.
 
+PostgreSQL stores hashed session tokens, revocation state, a seven-day absolute expiration, and `lastSeenAt`. The shared API session check rejects revoked, disabled-account, absolutely expired, and idle sessions after 15 minutes without activity. `SESSION_IDLE_TIMEOUT_ENABLED=false` disables only the idle check. Authenticated browser interaction calls `auth.activity`; a conditional update accepts at most one activity timestamp per minute and rechecks validity so concurrent revocation cannot be undone. Background requests never renew activity. The browser uses the server's expiration timestamp for its warning and shares renewals and logout across tabs. The `parcelis_session_v2` cookie requires existing users to sign in again when this policy is deployed. Redis remains dedicated to background jobs.
+
 The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
 
 ## Background jobs and outbox
@@ -81,7 +83,7 @@ The worker also consumes `notification.email` jobs from the `account-notificatio
 
 The account email flow and recovery paths are illustrated in [Email Configuration](apps/docs/content/getting-started/email-configuration.mdx#background-delivery-and-recovery).
 
-The API mounts Bull Board at `/admin/jobs` for application administrators. Administrators can operate queue jobs from the dashboard; unsafe requests require the configured web origin. The dashboard hides Redis connection details and redacts job payloads and error diagnostics before returning them. Local and production proxies expose it at `/admin/jobs/` on the Parcelis host.
+The API mounts Bull Board at `/admin/jobs` for application administrators. Administrators can operate queue jobs from the dashboard; unsafe requests require the configured web origin. The dashboard hides Redis connection details and redacts job payloads and error diagnostics before returning them. Local and production proxies expose it at `/admin/jobs/` on the Parcelis host. The web app routes dashboard visits through `/settings/jobs`, where Bull Board runs in a same-origin frame. User interaction in the frame reaches the shared browser session monitor; Bull Board's background requests do not renew the session. The API enforces the same PostgreSQL idle check on every dashboard request.
 
 Idempotency keys preserve the first recorded event and its initial schedule. Repeating a key does not reschedule the event; `availableAt` can subsequently change through retry backoff or administrator replay.
 
