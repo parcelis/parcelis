@@ -20,7 +20,7 @@ export const router = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
   const session = ctx.session;
-  if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: sessionExpiredMessage });
+  if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Please sign in to continue." });
   return next({ ctx: { ...ctx, session, user: session.user } });
 });
 
