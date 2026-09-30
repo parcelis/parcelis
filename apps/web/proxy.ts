@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { sessionCookieName } from "@parcelis/schemas";
+const sessionCookieName = "parcelis_session_v2";
 const organizationCookieName = "parcelis-organization-slug";
 const isAuthenticationDisabled =
   process.env.AUTH_DISABLED === "true" && ["development", "test"].includes(process.env.NODE_ENV ?? "");

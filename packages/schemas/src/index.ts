@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-export const sessionCookieName = "parcelis_session_v2";
 export const sessionStatusSchema = z.object({
   expiresAt: z.number(),
   serverTime: z.number(),
