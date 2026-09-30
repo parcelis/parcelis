@@ -26,7 +26,23 @@ test("active editing renews an almost idle session; expired sessions return to l
       where: { id },
       data: { lastSeenAt: new Date(Date.now() - 13.5 * 60_000) },
     });
-    await page.goto("/settings/profile");
+    await Promise.all([
+      page.waitForResponse((response) => response.url().includes("auth.session") && response.ok()),
+      page.goto("/settings/profile"),
+    ]);
+    const beforeRead = await prisma.session.findUniqueOrThrow({ where: { id } });
+    expect(Date.now() - beforeRead.lastSeenAt.getTime()).toBeLessThan(14 * 60_000);
+    await page.mouse.move(300, 300);
+    await page.waitForTimeout(1200);
+    const afterPointerMove = await prisma.session.findUniqueOrThrow({ where: { id } });
+    expect(afterPointerMove.lastSeenAt).toEqual(beforeRead.lastSeenAt);
+    const readSucceeded = await page.evaluate(async () => {
+      const input = encodeURIComponent(JSON.stringify({ json: null }));
+      return (await fetch(`/trpc/auth.session?input=${input}`, { credentials: "include" })).ok;
+    });
+    expect(readSucceeded).toBe(true);
+    const afterRead = await prisma.session.findUniqueOrThrow({ where: { id } });
+    expect(afterRead.lastSeenAt).toEqual(beforeRead.lastSeenAt);
     await page.getByRole("textbox", { name: "Phone" }).press("1");
     await expect(async () => {
       const session = await prisma.session.findUniqueOrThrow({ where: { id } });
@@ -40,19 +56,6 @@ test("active editing renews an almost idle session; expired sessions return to l
     await page.reload();
     const warning = page.getByRole("alertdialog", { name: "Your session is about to expire" });
     await expect(warning).toBeVisible();
-    const beforeRead = await prisma.session.findUniqueOrThrow({ where: { id } });
-    await page.mouse.move(300, 300);
-    await page.waitForTimeout(1200);
-    await expect(warning).toBeVisible();
-    const afterPointerMove = await prisma.session.findUniqueOrThrow({ where: { id } });
-    expect(afterPointerMove.lastSeenAt).toEqual(beforeRead.lastSeenAt);
-    const readSucceeded = await page.evaluate(async () => {
-      const input = encodeURIComponent(JSON.stringify({ json: null }));
-      return (await fetch(`/trpc/auth.session?input=${input}`, { credentials: "include" })).ok;
-    });
-    expect(readSucceeded).toBe(true);
-    const afterRead = await prisma.session.findUniqueOrThrow({ where: { id } });
-    expect(afterRead.lastSeenAt).toEqual(beforeRead.lastSeenAt);
     await warning.getByRole("button", { name: "Stay signed in" }).click();
     await expect(async () => {
       const session = await prisma.session.findUniqueOrThrow({ where: { id } });
