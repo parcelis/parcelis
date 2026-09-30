@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
-import { getOrganizationEmailConfig } from "@parcelis/email";
+import { EmailConfigurationError, getOrganizationEmailConfig } from "@parcelis/email";
 import { UnrecoverableError } from "bullmq";
 import { processNotificationEmailJob } from "../processors/notification-email.processor.js";
 
@@ -117,6 +117,105 @@ test("permanent SMTP errors fail immediately without consuming remaining attempt
   );
 
   assert.deepEqual(marks, ["failed:42:Authentication failed"]);
+});
+
+test("SMTP authentication errors without a response code stop retries", async () => {
+  const marks: string[] = [];
+  await assert.rejects(
+    processNotificationEmailJob(
+      {
+        organizationId: 7,
+        recipientId: 12,
+        recipientType: "user",
+        email: "person@example.com",
+        subject: "Verify your Parcelis email",
+        body: "Hello",
+        outboxEventId: 42,
+      },
+      {
+        rememberAccepted: async () => {},
+        getEmailConfig: async () => undefined,
+        send: async () => {
+          throw Object.assign(new Error("Authentication failed"), { code: "EAUTH" });
+        },
+        markDeliveryFailed: async () => {
+          marks.push("failed");
+        },
+        markDeliveryRetrying: async () => {
+          marks.push("retrying");
+        },
+      },
+    ),
+    (error: unknown) => error instanceof UnrecoverableError && error.message === "Authentication failed",
+  );
+  assert.deepEqual(marks, ["failed"]);
+});
+
+test("SMTP 421 errors remain retryable", async () => {
+  const marks: string[] = [];
+  await assert.rejects(
+    processNotificationEmailJob(
+      {
+        organizationId: 7,
+        recipientId: 12,
+        recipientType: "user",
+        email: "person@example.com",
+        subject: "Verify your Parcelis email",
+        body: "Hello",
+        outboxEventId: 42,
+      },
+      {
+        rememberAccepted: async () => {},
+        getEmailConfig: async () => undefined,
+        send: async () => {
+          throw Object.assign(new Error("SMTP temporarily unavailable"), { responseCode: 421 });
+        },
+        markDeliveryFailed: async () => {
+          marks.push("failed");
+        },
+        markDeliveryRetrying: async () => {
+          marks.push("retrying");
+        },
+      },
+    ),
+    (error: unknown) =>
+      error instanceof Error &&
+      !(error instanceof UnrecoverableError) &&
+      error.message === "SMTP temporarily unavailable",
+  );
+  assert.deepEqual(marks, ["retrying"]);
+});
+
+test("invalid saved email settings stop retries", async () => {
+  const marks: string[] = [];
+  await assert.rejects(
+    processNotificationEmailJob(
+      {
+        organizationId: 7,
+        recipientId: 12,
+        recipientType: "user",
+        email: "person@example.com",
+        subject: "Verify your Parcelis email",
+        body: "Hello",
+        outboxEventId: 42,
+      },
+      {
+        rememberAccepted: async () => {},
+        getEmailConfig: async () => {
+          throw new EmailConfigurationError("Invalid saved email settings");
+        },
+        send: async () => assert.fail("Invalid settings must not send email"),
+        markDeliveryFailed: async () => {
+          marks.push("failed");
+        },
+        markDeliveryRetrying: async () => {
+          marks.push("retrying");
+        },
+      },
+    ),
+    (error: unknown) => error instanceof UnrecoverableError && error.message === "Invalid saved email settings",
+  );
+  assert.deepEqual(marks, ["failed"]);
 });
 
 test("temporary SMTP errors become failed after the final configured attempt", async () => {

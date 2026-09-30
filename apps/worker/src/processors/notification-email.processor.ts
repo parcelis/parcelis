@@ -1,4 +1,4 @@
-import type { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
+import { EmailConfigurationError, type getOrganizationEmailConfig, type sendEmail } from "@parcelis/email";
 import { notificationEmailDeliveryJobSchema, type NotificationEmailOutboxJob } from "@parcelis/jobs";
 import { UnrecoverableError } from "bullmq";
 
@@ -56,6 +56,7 @@ function getResponseCode(error: unknown) {
 }
 
 function isPermanentEmailError(error: unknown) {
+  if (error instanceof EmailConfigurationError) return true;
   const responseCode = getResponseCode(error);
   if (responseCode !== undefined) return responseCode >= 500;
 

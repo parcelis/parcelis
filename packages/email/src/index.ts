@@ -2,6 +2,7 @@ export { sendPasswordResetEmail } from "./password-reset.js";
 export { sendVerificationEmail } from "./verification.js";
 export { sendSmtpTestEmail } from "./smtp-test.js";
 export { sendEmail } from "./service.js";
+export { EmailConfigurationError } from "./email-configuration-error.js";
 export {
   createEmailTransporter,
   getEmailTransporter,

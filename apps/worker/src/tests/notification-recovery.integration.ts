@@ -8,7 +8,7 @@ import { reconcileDispatchedNotificationJobs } from "../outbox-dispatcher.js";
 
 const redisUrl = process.env.OUTBOX_TEST_REDIS_URL;
 
-test("restores a dispatched email job lost from Redis without adding a duplicate", { skip: !redisUrl }, async (t) => {
+test("restores a dispatched email job lost from Redis without adding a duplicate", { skip: !redisUrl }, async () => {
   const event = {
     id: 24701,
     organizationId: 7,
@@ -42,6 +42,12 @@ test("restores a dispatched email job lost from Redis without adding a duplicate
   const queues = new Map([[queueNames.accountNotifications, queue]]);
   const jobId = getOutboxEventJobId(event.id);
   const jobData = { ...event.payload, outboxEventId: event.id };
+  const addJob = queue.add.bind(queue);
+  let addCalls = 0;
+  queue.add = ((...args: Parameters<typeof queue.add>) => {
+    addCalls++;
+    return addJob(...args);
+  }) as typeof queue.add;
 
   try {
     await queue.add(notificationEmailJobName, jobData, { jobId });
@@ -50,16 +56,15 @@ test("restores a dispatched email job lost from Redis without adding a duplicate
     await original.remove();
     assert.equal(await queue.getJob(jobId), undefined);
 
-    const add = t.mock.method(queue, "add");
     await reconcileDispatchedNotificationJobs(prisma, queues);
-    assert.equal(add.mock.callCount(), 1);
     const restored = await queue.getJob(jobId);
     assert.ok(restored);
     assert.equal(restored.name, notificationEmailJobName);
     assert.deepEqual(restored.data, jobData);
+    assert.equal(addCalls, 2);
 
     await reconcileDispatchedNotificationJobs(prisma, queues);
-    assert.equal(add.mock.callCount(), 1);
+    assert.equal(addCalls, 2);
     const waiting = await queue.getJobs(["waiting"]);
     assert.deepEqual(
       waiting.map((job) => job.id),

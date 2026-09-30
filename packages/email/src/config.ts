@@ -1,3 +1,5 @@
+import { EmailConfigurationError } from "./email-configuration-error.js";
+
 export type EmailConfig = {
   from: string;
   host: string;
@@ -14,7 +16,7 @@ function getRequiredEnvironmentVariable(name: string) {
   const value = process.env[name]?.trim();
 
   if (!value) {
-    throw new Error(`${name} must be configured before sending email.`);
+    throw new EmailConfigurationError(`${name} must be configured before sending email.`);
   }
 
   return value;
@@ -25,7 +27,7 @@ function getRequiredSecret(name: string) {
   const value = process.env[name];
 
   if (!value?.trim()) {
-    throw new Error(`${name} must be configured before sending email.`);
+    throw new EmailConfigurationError(`${name} must be configured before sending email.`);
   }
 
   return value;
@@ -37,7 +39,7 @@ function getSmtpPort() {
   const port = Number(value);
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error("SMTP_PORT must be a valid TCP port number.");
+    throw new EmailConfigurationError("SMTP_PORT must be a valid TCP port number.");
   }
 
   return port;
@@ -48,7 +50,7 @@ function getSmtpSecure() {
   const value = getRequiredEnvironmentVariable("SMTP_SECURE");
 
   if (value !== "true" && value !== "false") {
-    throw new Error('SMTP_SECURE must be either "true" or "false".');
+    throw new EmailConfigurationError('SMTP_SECURE must be either "true" or "false".');
   }
 
   return value === "true";

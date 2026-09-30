@@ -187,6 +187,21 @@ test("markNotificationDeliveryRetrying keeps transient failures recoverable", as
   assert.equal(updated.failedAt, null);
 });
 
+test("markNotificationDeliveryRetrying does not reopen a failed delivery", async () => {
+  const original = createDelivery({
+    status: NotificationDeliveryStatus.failed,
+    failedAt: new Date("2026-09-26T12:07:00.000Z"),
+    lastError: "Final attempt failed",
+  });
+  const { prisma, getDelivery } = createPrismaMock(original);
+
+  assert.strictEqual(
+    await markNotificationDeliveryRetrying(prisma, { outboxEventId: 44, error: "late retry" }),
+    original,
+  );
+  assert.strictEqual(getDelivery(), original);
+});
+
 test("sent delivery remains terminal for stale sending, sent, and failed updates", async () => {
   const original = createDelivery({
     status: NotificationDeliveryStatus.sent,

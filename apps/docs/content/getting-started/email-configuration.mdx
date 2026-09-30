@@ -77,6 +77,6 @@ flowchart LR
     J -->|"Restore using same ID"| D
 ```
 
-The worker makes up to three delivery attempts. Temporary SMTP failures are retried with exponential backoff; permanent SMTP failures, such as an invalid recipient or authentication error, stop immediately. The delivery record tracks attempts and ends as `sent` or `failed`.
+The worker makes up to three delivery attempts. Temporary SMTP and database failures are retried with exponential backoff; permanent SMTP failures and invalid email settings stop immediately. The delivery record tracks attempts and ends as `sent` or `failed`.
 
 Recovery avoids adding another queued job when the original still exists. Email delivery is nevertheless **at least once**: if an SMTP server accepts an email immediately before the worker loses its progress record, a recovered job can send that email again. Parcelis cannot guarantee exactly one email across an SMTP and Redis failure.
