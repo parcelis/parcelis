@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
-import { EmailConfigurationError, getOrganizationEmailConfig } from "@parcelis/email";
+import { EmailConfigurationError, getOrganizationEmailConfig, renderVerificationEmail } from "@parcelis/email";
 import { UnrecoverableError } from "bullmq";
 import { processNotificationEmailJob } from "../processors/notification-email.processor.js";
 
@@ -48,8 +48,8 @@ test("processNotificationEmailJob validates payload and sends plain-text body as
 });
 
 for (const template of [
-  { kind: "account-verification", url: "https://parcelis.example/login?mode=verify&source=email#token=verify-token" },
-  { kind: "password-reset", url: "https://parcelis.example/login?mode=reset&source=email#token=reset-token" },
+  { kind: "account-verification", url: "https://parcelis.example/login?mode=verify#token=verify-token" },
+  { kind: "password-reset", url: "https://parcelis.example/login?mode=reset#token=reset-token" },
 ] as const) {
   test(`processNotificationEmailJob renders the ${template.kind} template`, async () => {
     let sent: { html: string; text: string } | undefined;
@@ -78,11 +78,19 @@ for (const template of [
 
     assert.ok(sent);
     assert.match(sent.html, new RegExp(template.kind === "account-verification" ? "Verify email" : "Reset password"));
-    assert.ok(sent.html.includes(template.url.replaceAll("&", "&amp;")));
+    assert.ok(sent.html.includes(template.url));
     assert.match(sent.text, /parcelis\.example\/login/);
     assert.ok(!sent.html.includes("Legacy fallback body"));
   });
 }
+
+test("React Email escapes ampersands in an action URL", async () => {
+  const url = "https://parcelis.example/login?mode=verify&campaign=example#token=verify-token";
+  const { html } = await renderVerificationEmail(url);
+
+  assert.ok(html.includes(url.replaceAll("&", "&amp;")));
+  assert.ok(!html.includes(url));
+});
 
 test("processNotificationEmailJob keeps a temporary failure queued for BullMQ retry", async () => {
   const marks: string[] = [];
