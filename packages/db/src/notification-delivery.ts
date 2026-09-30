@@ -75,6 +75,16 @@ export async function markNotificationDeliverySent(
   return prisma.notificationDelivery.findUniqueOrThrow({ where: { outboxEventId: input.outboxEventId } });
 }
 
+export async function markNotificationDeliveryAccepted(
+  prisma: NotificationDeliveryClient,
+  input: { outboxEventId: number; providerMessageId: string },
+) {
+  await prisma.notificationDelivery.updateMany({
+    where: { outboxEventId: input.outboxEventId, status: { not: NotificationDeliveryStatus.sent } },
+    data: { providerMessageId: input.providerMessageId },
+  });
+}
+
 export async function markNotificationDeliveryFailed(
   prisma: NotificationDeliveryClient,
   input: { outboxEventId: number; error: string; failedAt?: Date },

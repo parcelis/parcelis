@@ -25,8 +25,15 @@ test("restores a dispatched email job lost from Redis without adding a duplicate
   };
   const prisma = {
     notificationDelivery: {
-      findMany: async ({ where }: { where: { id: { gt: number } } }) =>
-        where.id.gt === 0 ? [{ id: 1, status: "queued", outboxEvent: event }] : [],
+      findMany: async ({
+        where,
+      }: {
+        where: { id: { gt: number }; status: { in: string[] }; outboxEvent: { is: { status: string } } };
+      }) => {
+        assert.deepEqual(where.status.in, ["queued", "sending"]);
+        assert.equal(where.outboxEvent.is.status, "dispatched");
+        return where.id.gt === 0 ? [{ id: 1, status: "queued", providerMessageId: null, outboxEvent: event }] : [];
+      },
     },
   } as unknown as PrismaClient;
   const queue = new Queue(`parcelis-notification-recovery-test-${randomUUID()}`, {

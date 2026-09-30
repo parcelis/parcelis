@@ -127,7 +127,11 @@ export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, 
           continue;
         }
 
-        await queue.add(contract.jobName, jobData, { jobId, ...jobRetryOptions });
+        await queue.add(
+          contract.jobName,
+          delivery.providerMessageId ? { ...jobData, acceptedMessageId: delivery.providerMessageId } : jobData,
+          { jobId, ...jobRetryOptions },
+        );
       } catch (error) {
         console.error(`[parcelis] Could not recover notification delivery ${delivery.id}: ${getErrorMessage(error)}`);
       }

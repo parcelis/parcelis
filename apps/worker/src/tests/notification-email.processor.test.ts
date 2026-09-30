@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { UnrecoverableError } from "bullmq";
 import { processNotificationEmailJob } from "../processors/notification-email.processor.js";
 
 test("processNotificationEmailJob validates payload and sends plain-text body as email", async () => {
@@ -75,7 +76,8 @@ test("processNotificationEmailJob keeps a temporary failure queued for BullMQ re
         },
       },
     ),
-    /SMTP unavailable/,
+    (error: unknown) =>
+      error instanceof Error && !(error instanceof UnrecoverableError) && /SMTP unavailable/.test(error.message),
   );
 
   assert.deepEqual(marks, ["sending:42", "retrying:42:SMTP unavailable"]);
@@ -109,7 +111,7 @@ test("permanent SMTP errors fail immediately without consuming remaining attempt
       },
       { attemptsMade: 0, attempts: 3 },
     ),
-    /Authentication failed/,
+    (error: unknown) => error instanceof UnrecoverableError && /Authentication failed/.test(error.message),
   );
 
   assert.deepEqual(marks, ["failed:42:Authentication failed"]);
@@ -142,7 +144,8 @@ test("temporary SMTP errors become failed after the final configured attempt", a
       },
       { attemptsMade: 2, attempts: 3 },
     ),
-    /SMTP unavailable/,
+    (error: unknown) =>
+      error instanceof Error && !(error instanceof UnrecoverableError) && /SMTP unavailable/.test(error.message),
   );
 
   assert.deepEqual(marks, ["failed:42:SMTP unavailable"]);
@@ -303,6 +306,45 @@ test("a failed post-send database write recovers without sending twice", async (
   });
   assert.equal(sends, 1);
   assert.equal(writes, 2);
+});
+
+test("a database acceptance checkpoint survives a missing Redis job", async () => {
+  const payload = {
+    organizationId: 7,
+    recipientId: 12,
+    recipientType: "user",
+    email: "person@example.com",
+    subject: "Verify your Parcelis email",
+    body: "Verification link",
+    outboxEventId: 42,
+  };
+  let providerMessageId: string | null = null;
+  let sends = 0;
+  let sentWrites = 0;
+  const dependencies = {
+    getEmailConfig: async () => undefined,
+    send: async () => {
+      sends++;
+      return { messageId: "smtp-accepted-123" };
+    },
+    rememberAccepted: async () => {},
+    rememberAcceptedDelivery: async ({ messageId }: { messageId: string; outboxEventId: number }) => {
+      providerMessageId = messageId;
+    },
+    markDeliverySending: async () => ({ status: "sending", providerMessageId }),
+    markDeliverySent: async () => {
+      sentWrites++;
+      if (sentWrites === 1) throw new Error("database temporarily unavailable");
+    },
+  };
+
+  await assert.rejects(processNotificationEmailJob(payload, dependencies), /database temporarily unavailable/);
+  assert.equal(providerMessageId, "smtp-accepted-123");
+  assert.deepEqual(await processNotificationEmailJob(payload, dependencies), {
+    messageId: "smtp-accepted-123",
+    outboxEventId: 42,
+  });
+  assert.equal(sends, 1);
 });
 
 test("a checkpoint failure still records an accepted email when the database is available", async () => {
