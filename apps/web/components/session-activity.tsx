@@ -52,7 +52,7 @@ export function SessionActivity() {
     }
 
     function accept(next: SessionStatus, broadcast = false) {
-      if (ended.current) return;
+      if (ended.current || (status.current && next.serverTime < status.current.serverTime)) return;
       status.current = next;
       deadline.current = Date.now() + next.expiresAt - next.serverTime;
       clearTimers();
