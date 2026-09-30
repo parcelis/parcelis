@@ -1,0 +1,19 @@
+apps/api/src/tests/jobs/job-dashboard-auth.middleware.test.ts
+  s_df66c856c23212::t_6e1fde3ad832fd 113-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "4c6649b5f928ecce8514cb64795cb3bc292c3075",
+  "prompts": {},
+  "sessions": {
+    "s_df66c856c23212": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f437-dbcc-74b2-980e-48653d3fdacb",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
