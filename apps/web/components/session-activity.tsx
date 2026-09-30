@@ -17,6 +17,7 @@ import { apiClient } from "./api-client";
 import { sessionChannelName, sessionExpiredEventName, sessionUserActivityEventName } from "./session-events";
 
 type SessionMessage = { type: "status"; status: SessionStatus } | { type: "logout" };
+type SessionCheckResult = "valid" | "unauthorized" | "failed";
 
 export function SessionActivity() {
   const queryClient = useQueryClient();
@@ -65,20 +66,38 @@ export function SessionActivity() {
       if (broadcast) channel.postMessage({ type: "status", status: next } satisfies SessionMessage);
     }
 
-    async function checkSession() {
-      if (ended.current) return;
+    async function checkSession(): Promise<SessionCheckResult> {
+      if (ended.current) return "failed";
       try {
         accept(await apiClient.auth.session.query());
-      } catch {
-        // A network failure does not prove that the session expired.
+        return "valid";
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "data" in error &&
+          typeof error.data === "object" &&
+          error.data !== null &&
+          "code" in error.data &&
+          error.data.code === "UNAUTHORIZED"
+        ) {
+          return "unauthorized";
+        }
+        return "failed";
       }
     }
 
     async function checkExpiration() {
       if (ended.current || expirationCheck.current) return;
       expirationCheck.current = checkSession()
-        .then(() => {
-          if (deadline.current <= Date.now()) leave("timeout");
+        .then((result) => {
+          if (ended.current) return;
+          if (result === "failed") {
+            if (deadline.current <= Date.now()) {
+              expirationTimer = window.setTimeout(() => void checkExpiration(), 10_000);
+            }
+            return;
+          }
+          if (result === "unauthorized" || deadline.current <= Date.now()) leave("timeout");
         })
         .finally(() => {
           expirationCheck.current = null;
