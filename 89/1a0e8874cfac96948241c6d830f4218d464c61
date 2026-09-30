@@ -1,0 +1,27 @@
+packages/email/src/config.ts
+  s_b4f014f7009419::t_77e03fd7698cf7 1-2,19,30,42,53
+packages/db/src/tests/notification-delivery.test.ts
+  s_b4f014f7009419::t_77e03fd7698cf7 190-204
+packages/email/src/index.ts
+  s_b4f014f7009419::t_77e03fd7698cf7 5
+packages/email/src/email-configuration-error.ts
+  s_b4f014f7009419::t_77e03fd7698cf7 1-6
+apps/worker/src/processors/notification-email.processor.ts
+  s_b4f014f7009419::t_77e03fd7698cf7 1,59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "891a0e8874cfac96948241c6d830f4218d464c61",
+  "prompts": {},
+  "sessions": {
+    "s_b4f014f7009419": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f0be-2ce9-7942-a64b-bf575c561aed",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
