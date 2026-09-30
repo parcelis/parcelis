@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const sessionCookieName = "parcelis_session_v2";
+export const sessionStatusSchema = z.object({
+  expiresAt: z.number(),
+  serverTime: z.number(),
+  idleTimeoutEnabled: z.boolean(),
+  activityIntervalMs: z.number(),
+  warningMs: z.number(),
+});
+export type SessionStatus = z.infer<typeof sessionStatusSchema>;
+
 const idSchema = z.coerce.number().int().positive();
 const maxDatabaseInteger = 2_147_483_647;
 export const imageUploadMaxSizeBytes = 2 * 1024 * 1024;

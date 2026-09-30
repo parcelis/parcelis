@@ -1,34 +1,10 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-import { getSessionToken, hashSessionToken } from "../modules/auth";
+import { readSession } from "../modules/session";
 import type { PrismaService } from "../modules/prisma.service";
 
 export function createContext(prisma: PrismaService) {
   return async (opts: CreateExpressContextOptions) => {
-    const sessionToken = getSessionToken(opts.req);
-    const session = sessionToken
-      ? await prisma.session.findFirst({
-          where: {
-            tokenHash: hashSessionToken(sessionToken),
-            expiresAt: { gt: new Date() },
-            revokedAt: null,
-            user: { accountStatus: "active" },
-          },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
-                profileImageObjectKey: true,
-                role: true,
-                accountStatus: true,
-                defaultOrganizationId: true,
-              },
-            },
-          },
-        })
-      : null;
+    const session = await readSession(prisma, opts.req, opts.res);
 
     const requestedOrganizationSlug = opts.req.headers["x-parcelis-organization-slug"];
     const organizationSlug = Array.isArray(requestedOrganizationSlug) ? requestedOrganizationSlug[0] : requestedOrganizationSlug;

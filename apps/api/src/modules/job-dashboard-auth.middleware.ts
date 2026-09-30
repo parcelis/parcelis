@@ -1,4 +1,4 @@
-import { hashSessionToken, getSessionToken } from "./auth";
+import { readSession } from "./session";
 import type { PrismaService } from "./prisma.service";
 import type { RequestHandler } from "express";
 
@@ -7,23 +7,8 @@ const safeMethods = new Set(["GET", "HEAD"]);
 
 export function createJobDashboardAuthMiddleware(prisma: PrismaService): RequestHandler {
   return async (request, response, next) => {
-    const sessionToken = getSessionToken(request);
-
-    if (!sessionToken) {
-      response.sendStatus(401);
-      return;
-    }
-
     try {
-      const session = await prisma.session.findFirst({
-        where: {
-          tokenHash: hashSessionToken(sessionToken),
-          expiresAt: { gt: new Date() },
-          revokedAt: null,
-          user: { accountStatus: "active" },
-        },
-        select: { user: { select: { role: true } } },
-      });
+      const session = await readSession(prisma, request, response);
 
       if (!session) {
         response.sendStatus(401);

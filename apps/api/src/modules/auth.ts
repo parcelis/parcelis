@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import * as argon2 from "argon2";
 import type { Request, Response } from "express";
 
-const sessionCookieName = "parcelis_session";
+import { sessionCookieName } from "@parcelis/schemas";
 const sessionDurationMs = 1000 * 60 * 60 * 24 * 7;
 const passwordResetTokenDurationMs = 1000 * 60 * 30;
 const emailVerificationTokenDurationMs = 1000 * 60 * 60 * 24;

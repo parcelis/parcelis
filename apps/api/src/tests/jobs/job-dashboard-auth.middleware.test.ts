@@ -9,6 +9,7 @@ function createPrisma(
   overrides: Partial<{
     tokenHash: string;
     expiresAt: Date;
+    lastSeenAt: Date;
     revokedAt: Date | null;
     accountStatus: string;
   }> = {},
@@ -17,6 +18,7 @@ function createPrisma(
     tokenHash: hashSessionToken("test-token"),
     expiresAt: new Date("2100-01-01"),
     revokedAt: null as Date | null,
+    lastSeenAt: new Date(),
     accountStatus: "active",
     ...overrides,
   };
@@ -27,6 +29,7 @@ function createPrisma(
         where: {
           tokenHash?: string;
           expiresAt?: { gt: Date };
+          lastSeenAt?: { gt: Date };
           revokedAt?: Date | null;
           user?: { accountStatus?: string };
         };
@@ -35,6 +38,7 @@ function createPrisma(
         const { where } = query;
         if (
           (where.tokenHash !== undefined && session.tokenHash !== where.tokenHash) ||
+          (where.lastSeenAt !== undefined && session.lastSeenAt <= where.lastSeenAt.gt) ||
           (where.expiresAt !== undefined && session.expiresAt <= where.expiresAt.gt) ||
           (where.revokedAt !== undefined && session.revokedAt !== where.revokedAt) ||
           (where.user?.accountStatus !== undefined &&
@@ -53,6 +57,7 @@ function createPrisma(
 function createResponse() {
   const result = { statusCode: 200, headers: {} as Record<string, string> };
   const response = {
+    clearCookie() {},
     sendStatus(statusCode: number) {
       result.statusCode = statusCode;
       return response;
@@ -86,7 +91,7 @@ test("job dashboard permits active administrators using safe read-only requests"
   let continued = false;
 
   await createJobDashboardAuthMiddleware(prisma)(
-    { method: "GET", headers: { cookie: "parcelis_session=test-token" } } as never,
+    { method: "GET", headers: { cookie: "parcelis_session_v2=test-token" } } as never,
     response as never,
     () => {
       continued = true;
@@ -100,6 +105,7 @@ test("job dashboard permits active administrators using safe read-only requests"
 
 for (const [name, overrides] of [
   ["expired", { expiresAt: new Date("2000-01-01") }],
+  ["idle", { lastSeenAt: new Date("2000-01-01") }],
   ["revoked", { revokedAt: new Date("2000-01-01") }],
   ["inactive", { accountStatus: "disabled" }],
   ["unmatched token", { tokenHash: hashSessionToken("another-token") }],
@@ -109,7 +115,7 @@ for (const [name, overrides] of [
     const { response, result } = createResponse();
 
     await createJobDashboardAuthMiddleware(prisma)(
-      { method: "GET", headers: { cookie: "parcelis_session=test-token" } } as never,
+      { method: "GET", headers: { cookie: "parcelis_session_v2=test-token" } } as never,
       response as never,
       () => assert.fail(`${name} sessions must not reach the dashboard.`),
     );
@@ -126,7 +132,7 @@ test("job dashboard permits same-origin writes from active administrators", asyn
   const webOrigin = new URL(process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`).origin;
 
   await createJobDashboardAuthMiddleware(prisma)(
-    { method: "PUT", headers: { cookie: "parcelis_session=test-token", origin: webOrigin } } as never,
+    { method: "PUT", headers: { cookie: "parcelis_session_v2=test-token", origin: webOrigin } } as never,
     response as never,
     () => {
       continued = true;
@@ -141,7 +147,7 @@ test("job dashboard rejects non-administrators, cross-origin writes, and unsuppo
   const nonAdministrator = createPrisma("property_manager");
   const nonAdminResponse = createResponse();
   await createJobDashboardAuthMiddleware(nonAdministrator.prisma)(
-    { method: "GET", headers: { cookie: "parcelis_session=test-token" } } as never,
+    { method: "GET", headers: { cookie: "parcelis_session_v2=test-token" } } as never,
     nonAdminResponse.response as never,
     () => assert.fail("Non-administrators must not reach the dashboard."),
   );
@@ -152,7 +158,7 @@ test("job dashboard rejects non-administrators, cross-origin writes, and unsuppo
   await createJobDashboardAuthMiddleware(administrator.prisma)(
     {
       method: "POST",
-      headers: { cookie: "parcelis_session=test-token", origin: "https://attacker.example" },
+      headers: { cookie: "parcelis_session_v2=test-token", origin: "https://attacker.example" },
     } as never,
     writeResponse.response as never,
     () => assert.fail("Cross-origin dashboard writes must be rejected."),
@@ -161,7 +167,7 @@ test("job dashboard rejects non-administrators, cross-origin writes, and unsuppo
 
   const unsupportedMethodResponse = createResponse();
   await createJobDashboardAuthMiddleware(administrator.prisma)(
-    { method: "OPTIONS", headers: { cookie: "parcelis_session=test-token" } } as never,
+    { method: "OPTIONS", headers: { cookie: "parcelis_session_v2=test-token" } } as never,
     unsupportedMethodResponse.response as never,
     () => assert.fail("Unsupported methods must be rejected."),
   );

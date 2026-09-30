@@ -1,3 +1,5 @@
+import { sessionStatusSchema } from "@parcelis/schemas";
+import { getSessionStatus, renewSession, sessionExpiredMessage } from "../modules/session";
 import {
   authLoginInputSchema,
   authRegisterInputSchema,
@@ -76,6 +78,17 @@ async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: numbe
 }
 
 export const authRouter = router({
+  session: protectedProcedure.output(sessionStatusSchema).query(({ ctx }) => getSessionStatus(ctx.session)),
+
+  activity: protectedProcedure.output(sessionStatusSchema).mutation(async ({ ctx }) => {
+    const status = await renewSession(ctx.prisma, ctx.session.id);
+    if (!status) {
+      clearSessionCookie(ctx.res);
+      throw new TRPCError({ code: "UNAUTHORIZED", message: sessionExpiredMessage });
+    }
+    return status;
+  }),
+
   register: publicProcedure.input(authRegisterInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
     consumeLoginRateLimit(rateLimitKey);
