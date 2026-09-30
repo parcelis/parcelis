@@ -64,13 +64,16 @@ function createPrismaMock(initialDelivery?: NotificationDelivery) {
         where,
         data,
       }: {
-        where: { outboxEventId: number; status: { not: NotificationDeliveryStatus } };
+        where: { outboxEventId: number; status: NotificationDeliveryStatus | { not: NotificationDeliveryStatus } };
         data: Record<string, unknown>;
       }) => {
         assert.ok(delivery);
         assert.equal(where.outboxEventId, delivery.outboxEventId);
-        assert.deepEqual(where.status, { not: NotificationDeliveryStatus.sent });
-        if (delivery.status === NotificationDeliveryStatus.sent) return { count: 0 };
+        if (typeof where.status === "string") {
+          if (delivery.status !== where.status) return { count: 0 };
+        } else if (delivery.status === where.status.not) {
+          return { count: 0 };
+        }
 
         const nextAttemptCount =
           typeof data.attemptCount === "object" && data.attemptCount !== null && "increment" in data.attemptCount
@@ -206,3 +209,22 @@ test("sent delivery remains terminal for stale sending, sent, and failed updates
   assert.equal(getDelivery().attemptCount, 1);
   assert.equal(getDelivery().providerMessageId, "msg-original");
 });
+
+for (const status of [NotificationDeliveryStatus.failed, NotificationDeliveryStatus.sent]) {
+  test(`a stale retry cannot resurrect a ${status} delivery`, async () => {
+    const original = createDelivery({
+      status,
+      lastError: status === NotificationDeliveryStatus.failed ? "final failure" : null,
+      failedAt: status === NotificationDeliveryStatus.failed ? new Date("2026-09-26T12:07:00.000Z") : null,
+    });
+    const { prisma, getDelivery } = createPrismaMock(original);
+
+    const updated = await markNotificationDeliveryRetrying(prisma, {
+      outboxEventId: 44,
+      error: "stale transient failure",
+    });
+
+    assert.strictEqual(updated, original);
+    assert.strictEqual(getDelivery(), original);
+  });
+}

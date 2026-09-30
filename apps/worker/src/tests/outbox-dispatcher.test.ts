@@ -56,9 +56,6 @@ function createPrisma(event: OutboxEvent, failDispatchedUpdate = false) {
         return { count: 1 };
       },
     },
-    notificationDelivery: {
-      findMany: async () => [],
-    },
   };
 
   return { prisma: prisma as unknown as PrismaClient, getEvent: () => current };
@@ -183,19 +180,24 @@ test("reconciles dispatched email deliveries when their BullMQ job is missing", 
       body: "Your rent is due",
     },
   });
-  let readDeliveries = false;
+  const deliveries = Array.from({ length: 101 }, (_, index) => ({
+    id: index + 14,
+    status: "queued",
+    outboxEvent: { ...event, id: event.id + index },
+  }));
+  const cursors: number[] = [];
   const prisma = {
     notificationDelivery: {
       findMany: async (args: {
-        where: { status: { in: string[] }; outboxEvent: { is: { status: string } } };
+        where: { id: { gt: number }; status: { in: string[] }; outboxEvent: { is: { status: string } } };
         take: number;
       }) => {
         assert.deepEqual(args.where.status.in, ["queued", "sending"]);
         assert.equal(args.where.outboxEvent.is.status, "dispatched");
         assert.equal(args.take, 100);
-        if (readDeliveries) return [];
-        readDeliveries = true;
-        return [{ id: 14, status: "queued", outboxEvent: event }];
+        assert.equal(args.where.id.gt, [0, 113][cursors.length]);
+        cursors.push(args.where.id.gt);
+        return deliveries.filter((delivery) => delivery.id > args.where.id.gt).slice(0, args.take);
       },
     },
   } as unknown as PrismaClient;
@@ -205,10 +207,7 @@ test("reconciles dispatched email deliveries when their BullMQ job is missing", 
     options: { jobId: string; attempts: number; backoff: { type: string; delay: number } };
   }> = [];
   const queue = {
-    getJob: async (jobId: string) => {
-      assert.equal(jobId, "outbox-event-21");
-      return undefined;
-    },
+    getJob: async () => undefined,
     add: async (
       name: string,
       data: unknown,
@@ -218,8 +217,10 @@ test("reconciles dispatched email deliveries when their BullMQ job is missing", 
 
   await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
 
-  assert.deepEqual(added, [
-    {
+  assert.deepEqual(cursors, [0, 113]);
+  assert.deepEqual(
+    added,
+    deliveries.map((delivery) => ({
       name: "notification.email.v1",
       data: {
         organizationId: 7,
@@ -228,11 +229,15 @@ test("reconciles dispatched email deliveries when their BullMQ job is missing", 
         email: "tenant@example.com",
         subject: "Reminder",
         body: "Your rent is due",
-        outboxEventId: 21,
+        outboxEventId: delivery.outboxEvent.id,
       },
-      options: { jobId: "outbox-event-21", attempts: 3, backoff: { type: "exponential", delay: 1_000 } },
-    },
-  ]);
+      options: {
+        jobId: `outbox-event-${delivery.outboxEvent.id}`,
+        attempts: 3,
+        backoff: { type: "exponential", delay: 1_000 },
+      },
+    })),
+  );
 });
 
 test("does not redispatch a notification when its BullMQ job still exists", async () => {
@@ -251,14 +256,9 @@ test("does not redispatch a notification when its BullMQ job still exists", asyn
       body: "Your rent is due",
     },
   });
-  let readDeliveries = false;
   const prisma = {
     notificationDelivery: {
-      findMany: async () => {
-        if (readDeliveries) return [];
-        readDeliveries = true;
-        return [{ id: 14, status: "sending", outboxEvent: event }];
-      },
+      findMany: async () => [{ id: 14, status: "sending", outboxEvent: event }],
     },
   } as unknown as PrismaClient;
   let readded = false;

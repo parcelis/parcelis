@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { PrismaClient } from "@parcelis/db";
+import { getOrganizationEmailConfig } from "@parcelis/email";
 import { UnrecoverableError } from "bullmq";
 import { processNotificationEmailJob } from "../processors/notification-email.processor.js";
 
@@ -212,7 +214,7 @@ for (const configured of [true, false]) {
   });
 }
 
-test("configuration errors are retryable without sending through environment SMTP", async () => {
+test("database configuration lookup errors are retryable without sending through environment SMTP", async () => {
   const retrying: unknown[] = [];
   let sent = false;
   await assert.rejects(
@@ -327,7 +329,9 @@ test("a database acceptance checkpoint survives a missing Redis job", async () =
       sends++;
       return { messageId: "smtp-accepted-123" };
     },
-    rememberAccepted: async () => {},
+    rememberAccepted: async () => {
+      throw new Error("Redis unavailable");
+    },
     rememberAcceptedDelivery: async ({ messageId }: { messageId: string; outboxEventId: number }) => {
       providerMessageId = messageId;
     },
@@ -338,7 +342,14 @@ test("a database acceptance checkpoint survives a missing Redis job", async () =
     },
   };
 
-  await assert.rejects(processNotificationEmailJob(payload, dependencies), /database temporarily unavailable/);
+  await assert.rejects(processNotificationEmailJob(payload, dependencies), (error: unknown) => {
+    assert.ok(error instanceof AggregateError);
+    assert.deepEqual(
+      error.errors.map((cause: Error) => cause.message),
+      ["Redis unavailable", "database temporarily unavailable"],
+    );
+    return true;
+  });
   assert.equal(providerMessageId, "smtp-accepted-123");
   assert.deepEqual(await processNotificationEmailJob(payload, dependencies), {
     messageId: "smtp-accepted-123",
@@ -372,3 +383,93 @@ test("a checkpoint failure still records an accepted email when the database is 
 
   assert.deepEqual(result, { messageId: "smtp-accepted-123", outboxEventId: 42 });
 });
+
+for (const code of ["EAUTH", "ENOAUTH", "EENVELOPE"]) {
+  test(`code-only ${code} errors fail without retrying`, async () => {
+    const error = Object.assign(new Error("Permanent SMTP failure"), { code });
+    let failed = false;
+    await assert.rejects(
+      processNotificationEmailJob(classificationPayload, {
+        rememberAccepted: async () => {},
+        getEmailConfig: async () => undefined,
+        send: async () => {
+          throw error;
+        },
+        markDeliveryFailed: async () => {
+          failed = true;
+        },
+        markDeliveryRetrying: async () => assert.fail("Permanent errors must not be retried"),
+      }),
+      UnrecoverableError,
+    );
+    assert.equal(failed, true);
+  });
+}
+
+test("SMTP 421 remains retryable even with a permanent error code", async () => {
+  const error = Object.assign(new Error("SMTP temporarily unavailable"), { code: "EAUTH", responseCode: 421 });
+  let retrying = false;
+  await assert.rejects(
+    processNotificationEmailJob(classificationPayload, {
+      rememberAccepted: async () => {},
+      getEmailConfig: async () => undefined,
+      send: async () => {
+        throw error;
+      },
+      markDeliveryRetrying: async () => {
+        retrying = true;
+      },
+      markDeliveryFailed: async () => assert.fail("SMTP 421 must be retried"),
+    }),
+    (actual: unknown) => actual === error,
+  );
+  assert.equal(retrying, true);
+});
+
+for (const [label, overrides] of [
+  ["invalid security", { securityType: "invalid" }],
+  ["missing credentials", { username: null }],
+  ["unreadable credentials", { passwordCipher: "invalid-ciphertext" }],
+] as const) {
+  test(`saved SMTP ${label} fails immediately without sending`, async () => {
+    const prisma = {
+      organizationEmailSettings: {
+        findUnique: async () => ({
+          host: "smtp.example.com",
+          port: 587,
+          securityType: "starttls",
+          fromEmail: "notices@example.com",
+          fromName: null,
+          requireSignIn: true,
+          username: "smtp-user",
+          passwordCipher: "invalid-ciphertext",
+          ...overrides,
+        }),
+      },
+    } as unknown as PrismaClient;
+    let failed = false;
+    await assert.rejects(
+      processNotificationEmailJob(classificationPayload, {
+        rememberAccepted: async () => {},
+        getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
+        send: async () => assert.fail("Invalid settings must not send"),
+        markDeliveryFailed: async () => {
+          failed = true;
+        },
+        markDeliveryRetrying: async () => assert.fail("Invalid settings must not be retried"),
+      }),
+      UnrecoverableError,
+    );
+    assert.equal(failed, true);
+  });
+}
+
+const classificationPayload = {
+  organizationId: 7,
+  recipientId: 12,
+  recipientType: "user",
+  email: "person@example.com",
+  subject: "Notification",
+  body: "Hello",
+  outboxEventId: 42,
+};

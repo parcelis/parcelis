@@ -106,7 +106,7 @@ export async function markNotificationDeliveryRetrying(
   input: { outboxEventId: number; error: string },
 ) {
   await prisma.notificationDelivery.updateMany({
-    where: { outboxEventId: input.outboxEventId, status: { not: NotificationDeliveryStatus.sent } },
+    where: { outboxEventId: input.outboxEventId, status: NotificationDeliveryStatus.sending },
     data: {
       status: NotificationDeliveryStatus.queued,
       failedAt: null,
