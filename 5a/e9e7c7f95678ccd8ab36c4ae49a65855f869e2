@@ -1,0 +1,25 @@
+tests/e2e/session-idle.spec.ts
+  s_df66c856c23212::t_2ac2d469d6cf63 189-200,202-215
+apps/docs/content/contributing/end-to-end-testing.mdx
+  s_df66c856c23212::t_4011dfaff45462 25
+  s_df66c856c23212::t_55cca7f12a6a28 28-30
+  s_df66c856c23212::t_2ac2d469d6cf63 31
+CONTRIBUTING.md
+  s_df66c856c23212::t_55cca7f12a6a28 190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "5ae9e7c7f95678ccd8ab36c4ae49a65855f869e2",
+  "prompts": {},
+  "sessions": {
+    "s_df66c856c23212": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f437-dbcc-74b2-980e-48653d3fdacb",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
