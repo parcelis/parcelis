@@ -48,8 +48,8 @@ test("processNotificationEmailJob validates payload and sends plain-text body as
 });
 
 for (const template of [
-  { kind: "account-verification", url: "https://parcelis.example/login?mode=verify#token=verify-token" },
-  { kind: "password-reset", url: "https://parcelis.example/login?mode=reset#token=reset-token" },
+  { kind: "account-verification", url: "https://parcelis.example/login?mode=verify&source=email#token=verify-token" },
+  { kind: "password-reset", url: "https://parcelis.example/login?mode=reset&source=email#token=reset-token" },
 ] as const) {
   test(`processNotificationEmailJob renders the ${template.kind} template`, async () => {
     let sent: { html: string; text: string } | undefined;

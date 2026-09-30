@@ -79,4 +79,6 @@ flowchart LR
 
 The worker renders account verification and password-reset notifications with the Parcelis email templates before sending them. Older queued notifications with a plain-text body remain deliverable. The worker makes up to three delivery attempts. Temporary SMTP and database failures are retried with exponential backoff; permanent SMTP failures and invalid email settings stop immediately. The delivery record tracks attempts and ends as `sent` or `failed`.
 
+When rolling out this version, deploy the updated worker before the API. Older workers reject notification jobs with the new template field, so deploying the API first would prevent verification and password-reset emails from being delivered.
+
 Recovery avoids adding another queued job when the original still exists. Email delivery is nevertheless **at least once**: if an SMTP server accepts an email immediately before the worker loses its progress record, a recovered job can send that email again. Parcelis cannot guarantee exactly one email across an SMTP and Redis failure.
