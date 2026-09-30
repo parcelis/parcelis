@@ -1,0 +1,19 @@
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_df66c856c23212::t_fc2b4b996f9957 34-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "fec5ef16201564ea7ba30d108ae9dad3d2744d1b",
+  "prompts": {},
+  "sessions": {
+    "s_df66c856c23212": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f437-dbcc-74b2-980e-48653d3fdacb",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
