@@ -32,6 +32,53 @@ const individualLeaseInput = {
   ],
 };
 
+for (const route of ["tenants", "leases"] as const) {
+  test(`${route} lease creation rejects a future active start`, async () => {
+    const startsOn = new Date();
+    startsOn.setUTCFullYear(startsOn.getUTCFullYear() + 1);
+    const caller = createCaller({});
+    const input = { ...individualLeaseInput, startsOn, endsOn: startsOn };
+    await assert.rejects(
+      route === "tenants"
+        ? caller.tenants.createLease(input)
+        : caller.leases.create({ ...input, generateInvoices: false }),
+      { code: "BAD_REQUEST", message: /Future leases must be completed/ },
+    );
+  });
+
+  test(`${route} lease creation rejects overlap with a scheduled lease`, async () => {
+    const tx = {
+      property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
+      unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+      tenant: {
+        findFirstOrThrow: async () => ({ id: 11 }),
+        findMany: async () => [{ id: 11 }, { id: 12 }],
+      },
+      lease: {
+        findFirst: async ({
+          where,
+        }: {
+          where: { organizationId: number; status: { in: string[] }; OR: unknown[] };
+        }) => {
+          assert.equal(where.organizationId, 7);
+          assert.deepEqual(where.status.in, ["active", "notice", "scheduled"]);
+          assert.deepEqual(where.OR, [{ endsOn: null }, { endsOn: { gte: individualLeaseInput.startsOn } }]);
+          return { id: 30 };
+        },
+      },
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    });
+    await assert.rejects(
+      route === "tenants"
+        ? caller.tenants.createLease(individualLeaseInput)
+        : caller.leases.create({ ...individualLeaseInput, generateInvoices: false }),
+      { code: "CONFLICT", message: /overlapping dates/ },
+    );
+  });
+}
+
 for (const [name, input, message] of [
   [
     "zero rent allocations",

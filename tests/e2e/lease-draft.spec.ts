@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { PrismaClient, PrismaPg } from "../../packages/db/src/index";
 import type { Page, Response } from "@playwright/test";
 import { expect, test } from "./fixtures/authenticated";
 
@@ -574,75 +575,122 @@ test("waits for explicitly resumed draft hydration before autosaving", async ({ 
 });
 
 test("resumes a draft and creates the same lease from Review", async ({ page }) => {
-  await page.goto("/leases/new");
-  await expect(page).toHaveURL(/\/o\/[^/]+\/leases\/new/);
-  const organizationSlug = new URL(page.url()).pathname.match(/^\/o\/([^/]+)/)?.[1];
-  if (!organizationSlug) throw new Error("Organization URL was not found.");
-  const tenantSuffix = randomUUID().slice(0, 8);
-  const tenantResponse = await page.request.post("/trpc/tenants.create?batch=1", {
-    headers: { "x-parcelis-organization-slug": organizationSlug },
-    data: {
-      "0": {
-        firstName: "LeaseE2E",
-        lastName: tenantSuffix,
-        email: `${randomUUID()}@example.test`,
-        accountStatus: "invitation_pending",
-        insuranceStatus: "not_on_file",
+  test.skip(!process.env.DATABASE_URL, "DATABASE_URL is required to clean up the lease test records.");
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
+  let createdTenantId: number | undefined;
+  let createdLeaseId: number | undefined;
+  let createdDraftKey: string | null = null;
+  try {
+    await page.goto("/leases/new");
+    await expect(page).toHaveURL(/\/o\/[^/]+\/leases\/new/);
+    const organizationSlug = new URL(page.url()).pathname.match(/^\/o\/([^/]+)/)?.[1];
+    if (!organizationSlug) throw new Error("Organization URL was not found.");
+    const tenantSuffix = randomUUID().slice(0, 8);
+    const tenantResponse = await page.request.post("/trpc/tenants.create?batch=1", {
+      headers: { "x-parcelis-organization-slug": organizationSlug },
+      data: {
+        "0": {
+          firstName: "LeaseE2E",
+          lastName: tenantSuffix,
+          email: `${randomUUID()}@example.test`,
+          accountStatus: "invitation_pending",
+          insuranceStatus: "not_on_file",
+        },
       },
-    },
-  });
-  if (!tenantResponse.ok()) throw new Error(`Tenant setup failed: ${tenantResponse.status()}`);
-  await page.reload();
-  await page
-    .getByRole("button", { name: /Expand .* units/ })
-    .first()
-    .click();
-  const createResponses: Response[] = [];
-  page.on("response", (response) => {
-    if (response.request().method() === "POST" && response.url().includes("leases.createDraft")) {
-      createResponses.push(response);
+    });
+    if (!tenantResponse.ok()) throw new Error(`Tenant setup failed: ${tenantResponse.status()}`);
+    const tenantPayload = (await tenantResponse.json()) as Array<{ result?: { data?: { id?: number } } }>;
+    createdTenantId = tenantPayload.find((entry) => entry.result?.data?.id)?.result?.data?.id;
+    if (!createdTenantId) throw new Error("Tenant setup did not return an ID.");
+    await page.reload();
+    await page
+      .getByRole("button", { name: /Expand .* units/ })
+      .first()
+      .click();
+    const createResponses: Response[] = [];
+    page.on("response", (response) => {
+      if (response.request().method() === "POST" && response.url().includes("leases.createDraft")) {
+        createResponses.push(response);
+      }
+    });
+    await selectAvailableUnit(
+      page,
+      async (unitId) =>
+        (await prisma.lease.count({
+          where: { unitId, status: { in: ["active", "notice", "scheduled"] } },
+        })) === 0,
+    );
+    const draftKey = new URL(page.url()).searchParams.get("draft");
+    const payloads = await Promise.all(
+      createResponses.map(
+        (response) =>
+          response.json() as Promise<Array<{ result?: { data?: { id?: number; leaseDraftKey?: string } } }>>,
+      ),
+    );
+    const leaseId = payloads.flat().find((entry) => entry.result?.data?.leaseDraftKey === draftKey)?.result?.data?.id;
+    if (!leaseId) throw new Error("Lease draft creation did not return an ID.");
+    createdLeaseId = leaseId;
+    createdDraftKey = draftKey;
+
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await page.getByRole("checkbox", { name: `Select LeaseE2E ${tenantSuffix}` }).click();
+    await page.getByLabel("Monthly rent").fill("1000");
+    await page.getByLabel("Monthly rent").blur();
+    await page.getByLabel("Security deposit").fill("500");
+    await page.getByRole("radio", { name: /All tenants are equally responsible/ }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+
+    await page.getByText("Month-to-month", { exact: true }).click();
+    const startDate = await page.evaluate(() => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    });
+    await page.locator("#lease-start-date").click();
+    await page.locator(`[data-day="${startDate}"]`).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Review lease" })).toBeVisible();
+
+    const draftSearch = new URL(page.url()).search;
+    await page.goto("/leases");
+    await page.locator(`a[href$="${draftSearch}"]`).click();
+    await expect(page.getByRole("heading", { name: "Review lease" })).toBeVisible();
+    await page.getByRole("button", { name: "Create lease" }).click();
+    await expect(page).toHaveURL(new RegExp(`/leases/${leaseId}$`));
+    await expect(page.getByText("1st of each month").first()).toBeVisible();
+  } finally {
+    try {
+      await prisma.$transaction(async (tx) => {
+        if (createdLeaseId && createdDraftKey && createdTenantId) {
+          const lease = await tx.lease.findFirst({
+            where: {
+              id: createdLeaseId,
+              leaseDraftKey: createdDraftKey,
+              OR: [{ status: "draft" }, { tenants: { some: { tenantId: createdTenantId } } }],
+            },
+          });
+          if (lease) {
+            if ((lease.status === "active" || lease.status === "notice") && lease.propertyId) {
+              await tx.property.update({
+                where: { id: lease.propertyId },
+                data: { occupiedUnits: { decrement: 1 } },
+              });
+            }
+            await tx.outboxEvent.deleteMany({ where: { idempotencyKey: `lease:${lease.id}:activate` } });
+            await tx.lease.delete({ where: { id: lease.id } });
+          }
+        }
+        if (createdTenantId) await tx.tenant.delete({ where: { id: createdTenantId } });
+      });
+    } finally {
+      await prisma.$disconnect();
     }
-  });
-  await selectAvailableUnit(page);
-  const draftKey = new URL(page.url()).searchParams.get("draft");
-  const payloads = await Promise.all(
-    createResponses.map(
-      (response) => response.json() as Promise<Array<{ result?: { data?: { id?: number; leaseDraftKey?: string } } }>>,
-    ),
-  );
-  const leaseId = payloads.flat().find((entry) => entry.result?.data?.leaseDraftKey === draftKey)?.result?.data?.id;
-  if (!leaseId) throw new Error("Lease draft creation did not return an ID.");
-
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-  await page.getByRole("checkbox", { name: `Select LeaseE2E ${tenantSuffix}` }).click();
-  await page.getByLabel("Monthly rent").fill("1000");
-  await page.getByLabel("Monthly rent").blur();
-  await page.getByLabel("Security deposit").fill("500");
-  await page.getByRole("radio", { name: /All tenants are equally responsible/ }).click();
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-
-  await page.getByText("Month-to-month", { exact: true }).click();
-  const startDate = await page.evaluate(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  });
-  await page.locator("#lease-start-date").click();
-  await page.locator(`[data-day="${startDate}"]`).click();
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Review lease" })).toBeVisible();
-
-  const draftSearch = new URL(page.url()).search;
-  await page.goto("/leases");
-  await page.locator(`a[href$="${draftSearch}"]`).click();
-  await expect(page.getByRole("heading", { name: "Review lease" })).toBeVisible();
-  await page.getByRole("button", { name: "Create lease" }).click();
-  await expect(page).toHaveURL(new RegExp(`/leases/${leaseId}$`));
-  await expect(page.getByText("1st of each month").first()).toBeVisible();
+  }
 });
 
-async function selectAvailableUnit(page: Page) {
+async function selectAvailableUnit(page: Page, isUsable?: (unitId: number) => Promise<boolean>) {
   const units = page.locator('input[name="lease-unit"]:not(:disabled)');
   for (let index = 0; index < (await units.count()); index++) {
+    if (isUsable && !(await isUsable(Number(await units.nth(index).getAttribute("value"))))) continue;
     const created = page.waitForResponse(
       (response) => response.request().method() === "POST" && response.url().includes("leases.createDraft"),
     );

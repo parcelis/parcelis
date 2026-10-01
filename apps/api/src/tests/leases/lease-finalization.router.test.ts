@@ -49,6 +49,7 @@ function createDatabase(
   const lease = { ...draft(start), ...overrides };
   let created = false;
   let currentStatus = lease.status;
+  let previousStatus = existingLease?.status;
   let occupiedIncrements = 0;
   let outboxWrites = 0;
   let invoiceWrites = 0;
@@ -58,6 +59,14 @@ function createDatabase(
         assert.equal(where.organizationId, 7);
         if (where.unitId) {
           assert.deepEqual(where.id, { not: lease.id });
+          if (where.endsOn) {
+            assert.deepEqual(where.endsOn, { lt: lease.startsOn });
+            return existingLease?.endsOn &&
+              existingLease.endsOn < lease.startsOn &&
+              ["active", "notice"].includes(previousStatus ?? "")
+              ? { id: 30, status: previousStatus, propertyId: 2 }
+              : null;
+          }
           assert.deepEqual(where.status, { in: ["active", "notice", "scheduled"] });
           assert.deepEqual(where.startsOn, lease.endsOn ? { lte: lease.endsOn } : undefined);
           assert.deepEqual(where.OR, [{ endsOn: null }, { endsOn: { gte: lease.startsOn } }]);
@@ -65,7 +74,7 @@ function createDatabase(
           if (!existingLease) return null;
           const startsBeforeEnd = !lease.endsOn || existingLease.startsOn <= lease.endsOn;
           const endsAfterStart = !existingLease.endsOn || existingLease.endsOn >= lease.startsOn;
-          const eligibleStatus = ["active", "notice", "scheduled"].includes(existingLease.status);
+          const eligibleStatus = ["active", "notice", "scheduled"].includes(previousStatus ?? "");
           return startsBeforeEnd && endsAfterStart && eligibleStatus ? { id: 30 } : null;
         }
         return { ...lease, status: currentStatus, revision: created ? 5 : 4 };
@@ -73,7 +82,11 @@ function createDatabase(
       create: async () => {
         throw new Error("Finalization must not create another lease.");
       },
-      updateMany: async ({ where, data }: { where: { id: number; revision: number }; data: { status: string } }) => {
+      updateMany: async ({ where, data }: { where: { id: number; revision?: number }; data: { status: string } }) => {
+        if (where.id === 30) {
+          previousStatus = data.status;
+          return { count: 1 };
+        }
         assert.equal(where.id, 9);
         assert.equal(where.revision, 4);
         currentStatus = data.status;
@@ -87,6 +100,10 @@ function createDatabase(
       update: async () => {
         occupiedIncrements += 1;
         return { id: 2 };
+      },
+      updateMany: async () => {
+        occupiedIncrements -= 1;
+        return { count: 1 };
       },
     },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
@@ -114,6 +131,7 @@ function createDatabase(
     caller: createCaller(prisma),
     counts: () => ({ occupiedIncrements, outboxWrites }),
     invoiceWrites: () => invoiceWrites,
+    previousStatus: () => previousStatus,
   };
 }
 
@@ -192,6 +210,20 @@ test("allows a lease starting after the previous lease ends", async () => {
   );
   const lease = await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
   assert.equal(lease.status, "scheduled");
+});
+
+test("immediate finalization ends an expired predecessor and transfers occupancy", async () => {
+  const start = calendarDay(0);
+  const { caller, counts, previousStatus } = createDatabase(
+    start,
+    false,
+    {},
+    { startsOn: calendarDay(-30), endsOn: calendarDay(-1), status: "active" },
+  );
+  const lease = await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
+  assert.equal(lease.status, "active");
+  assert.equal(previousStatus(), "ended");
+  assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
 });
 
 test("rejects overlap with an open-ended lease", async () => {
