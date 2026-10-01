@@ -1,0 +1,39 @@
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_5f4b236d903762::t_62fc6f4ff4cf22 9,47,89,100,107,138,212,306-314,358-361
+apps/api/src/router/app.router.ts
+  s_5f4b236d903762::t_6e579e9682a9d6 610,660,672
+packages/db/prisma/schema.prisma
+  s_5f4b236d903762::t_02c5a2f84eb16c 154
+packages/db/prisma/migrations/20260930010000_add_organization_timezone/migration.sql
+  s_5f4b236d903762::t_bf3c406cbdcba7 1
+apps/docs/content/platform-user-guide/navigation-and-preferences/organization-settings.mdx
+  s_5f4b236d903762::t_bf3c406cbdcba7 11-14
+packages/ui/package.json
+  s_5f4b236d903762::t_e520855fdc4e60 30
+packages/ui/src/index.ts
+  s_5f4b236d903762::t_2bcb42d3f41b64 26
+packages/schemas/src/index.ts
+  s_5f4b236d903762::t_02c5a2f84eb16c 288-300,311
+DEPENDENCIES.md
+  s_5f4b236d903762::t_2703ebcb74d7bb 57-62
+packages/ui/src/components/timezone-select.tsx
+  s_5f4b236d903762::t_2bcb42d3f41b64 1-75
+pnpm-lock.yaml
+  s_5f4b236d903762::t_aea9a5931645dd 679-681,2331-2371,5022-5024,5051-5055,5533-5536,6024-6026,6082-6085,6613-6615,6673-6676,7093-7095,8409-8411,9952-9957,9968-9980,10526-10529,10545-10548,10701-10703,10832-10835,11124-11132,14439-14502,17030-17031,17065-17068,17705-17710,18241-18242,18293-18300,18915-18919,18990-18991,19638-19639,21064-21065,21565,22886-22902,22911-22927,23638-23639,23648-23649,23815-23822,23836-23837,23983-23986,24298-24303
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ad65f441f0c686e7f715ba662329aa40754a01bb",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
