@@ -1,0 +1,30 @@
+apps/worker/src/lease-activation.ts
+  s_5f4b236d903762::t_51847f237a0fc6 30,33-48
+  s_5f4b236d903762::t_e2a20ce64bb6ae 1-29,31-32,49-112
+apps/worker/src/main.ts
+  s_5f4b236d903762::t_ee690eb9c47ca4 11-18
+  s_5f4b236d903762::t_e2a20ce64bb6ae 20,73-84,88,92,111,113
+ARCHITECTURE.md
+  s_5f4b236d903762::t_2cc8b8dbbc44bf 84
+  s_5f4b236d903762::t_36ca8478729c22 85
+apps/worker/src/tests/lease-activation.test.ts
+  s_5f4b236d903762::t_79e984beaa3369 32-38
+  s_5f4b236d903762::t_51847f237a0fc6 6,8-9,14-17,20-25,39-41,53,76-87
+  s_5f4b236d903762::t_cc1bf3151e2f4a 1-5,7,10-13,18-19,26-31,42-52,54-75,88-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "63509faf340d679a9af45b714fab2be658a568f6",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
