@@ -1,0 +1,19 @@
+apps/docs/content/contributing/database-erd.mdx
+  s_c591c3ff00b5c7::t_5b303840905465 86,121,267,276
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f5d2966afd268db4035b8292b05283604e7dc37",
+  "prompts": {},
+  "sessions": {
+    "s_c591c3ff00b5c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f541-36f6-7691-924c-8578cafde0c7",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
