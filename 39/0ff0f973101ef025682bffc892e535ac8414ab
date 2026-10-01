@@ -1,0 +1,41 @@
+apps/api/src/tests/leases/leases.router.test.ts
+  s_5f4b236d903762::t_90834d6a33f370 58-62,70-72
+  s_5f4b236d903762::t_c63faa5d44187b 35-57,63-69,73-81
+packages/db/prisma/migrations/20260930000000_add_scheduled_lease_status/migration.sql
+  s_5f4b236d903762::t_d7e5899c5afbf2 1
+apps/api/src/router/app.router.ts
+  s_5f4b236d903762::t_d66a1412b0cf31 437-443,2086-2093,2134-2139,4006,4008-4012,4050-4051,4141-4148,4183-4184,4186-4188
+  s_5f4b236d903762::t_faf64731d640ac 2094,2132-2133,2140-2144,4019,4034-4049,4052-4057,4181,4194
+  s_5f4b236d903762::t_d7e5899c5afbf2 433-436,444-453
+tests/e2e/lease-draft.spec.ts
+  s_5f4b236d903762::t_2f0843bcc0021e 578-583,660-667,669-687
+  s_5f4b236d903762::t_7221e03928f674 2
+  s_5f4b236d903762::t_8c9a1cf63506e7 616-621
+  s_5f4b236d903762::t_211d9e50bcfca5 622
+  s_5f4b236d903762::t_fd9cff121d8f49 690,693
+  s_5f4b236d903762::t_3e0c5a8cff879f 584-598,600-615,623-633,635-641,643-659
+  s_5f4b236d903762::t_88ad7dfb702d26 668
+apps/docs/content/platform-user-guide/app-functionality/lease-dashboard.mdx
+  s_5f4b236d903762::t_61668586248a75 30-31
+  s_5f4b236d903762::t_9453d36ef3b33f 32
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_5f4b236d903762::t_52add16626cbdd 52,62-63,67-69,77,85-89,104-107,134,215-226
+  s_5f4b236d903762::t_90834d6a33f370 64-66
+  s_5f4b236d903762::t_3a6931584ea2bd 227-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "390ff0f973101ef025682bffc892e535ac8414ab",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
