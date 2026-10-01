@@ -241,7 +241,10 @@
                         "minLength": 1
                       },
                       "line2": {
-                        "type": "string"
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "city": {
                         "type": "string",
@@ -270,7 +273,7 @@
                   "contactEmail": {
                     "type": "string",
                     "format": "email",
-                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   },
                   "contactPhone": {
                     "type": "string"
@@ -467,7 +470,6 @@
                           "type": "object",
                           "properties": {
                             "unitStatuses": {
-                              "description": "Unit status values available for filtering.",
                               "type": "array",
                               "items": {
                                 "anyOf": [
@@ -479,13 +481,15 @@
                                     "type": "string",
                                     "enum": [
                                       "draft",
+                                      "scheduled",
                                       "active",
                                       "notice",
                                       "ended"
                                     ]
                                   }
                                 ]
-                              }
+                              },
+                              "description": "Unit status values available for filtering."
                             }
                           },
                           "required": [
@@ -627,7 +631,10 @@
                         "minLength": 1
                       },
                       "line2": {
-                        "type": "string"
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "city": {
                         "type": "string",
@@ -656,7 +663,7 @@
                   "contactEmail": {
                     "type": "string",
                     "format": "email",
-                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   },
                   "contactPhone": {
                     "type": "string"
@@ -963,7 +970,7 @@
                   },
                   "fileSize": {
                     "type": "integer",
-                    "exclusiveMinimum": 0,
+                    "minimum": 1,
                     "maximum": 2097152
                   },
                   "fileName": {
@@ -1678,7 +1685,7 @@
                   },
                   "fileSize": {
                     "type": "integer",
-                    "exclusiveMinimum": 0,
+                    "minimum": 1,
                     "maximum": 2097152
                   },
                   "fileName": {
@@ -3059,24 +3066,61 @@
   "components": {
     "schemas": {
       "error.BAD_REQUEST": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The error message",
+            "example": "Invalid input data"
+          },
+          "code": {
+            "type": "string",
+            "description": "The error code",
+            "example": "BAD_REQUEST"
+          },
+          "issues": {
+            "description": "An array of issues that were responsible for the error",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "message",
+          "code"
+        ],
+        "additionalProperties": false,
         "title": "Invalid input data error (400)",
         "description": "The error information",
         "example": {
           "code": "BAD_REQUEST",
           "message": "Invalid input data",
           "issues": []
-        },
+        }
+      },
+      "error.UNAUTHORIZED": {
         "type": "object",
         "properties": {
           "message": {
+            "type": "string",
             "description": "The error message",
-            "example": "Invalid input data",
-            "type": "string"
+            "example": "Authorization not provided"
           },
           "code": {
+            "type": "string",
             "description": "The error code",
-            "example": "BAD_REQUEST",
-            "type": "string"
+            "example": "UNAUTHORIZED"
           },
           "issues": {
             "description": "An array of issues that were responsible for the error",
@@ -3100,27 +3144,27 @@
           "message",
           "code"
         ],
-        "additionalProperties": false
-      },
-      "error.UNAUTHORIZED": {
+        "additionalProperties": false,
         "title": "Authorization not provided error (401)",
         "description": "The error information",
         "example": {
           "code": "UNAUTHORIZED",
           "message": "Authorization not provided",
           "issues": []
-        },
+        }
+      },
+      "error.FORBIDDEN": {
         "type": "object",
         "properties": {
           "message": {
+            "type": "string",
             "description": "The error message",
-            "example": "Authorization not provided",
-            "type": "string"
+            "example": "Insufficient access"
           },
           "code": {
+            "type": "string",
             "description": "The error code",
-            "example": "UNAUTHORIZED",
-            "type": "string"
+            "example": "FORBIDDEN"
           },
           "issues": {
             "description": "An array of issues that were responsible for the error",
@@ -3144,27 +3188,27 @@
           "message",
           "code"
         ],
-        "additionalProperties": false
-      },
-      "error.FORBIDDEN": {
+        "additionalProperties": false,
         "title": "Insufficient access error (403)",
         "description": "The error information",
         "example": {
           "code": "FORBIDDEN",
           "message": "Insufficient access",
           "issues": []
-        },
+        }
+      },
+      "error.NOT_FOUND": {
         "type": "object",
         "properties": {
           "message": {
+            "type": "string",
             "description": "The error message",
-            "example": "Insufficient access",
-            "type": "string"
+            "example": "Not found"
           },
           "code": {
+            "type": "string",
             "description": "The error code",
-            "example": "FORBIDDEN",
-            "type": "string"
+            "example": "NOT_FOUND"
           },
           "issues": {
             "description": "An array of issues that were responsible for the error",
@@ -3188,27 +3232,27 @@
           "message",
           "code"
         ],
-        "additionalProperties": false
-      },
-      "error.NOT_FOUND": {
+        "additionalProperties": false,
         "title": "Not found error (404)",
         "description": "The error information",
         "example": {
           "code": "NOT_FOUND",
           "message": "Not found",
           "issues": []
-        },
+        }
+      },
+      "error.INTERNAL_SERVER_ERROR": {
         "type": "object",
         "properties": {
           "message": {
+            "type": "string",
             "description": "The error message",
-            "example": "Not found",
-            "type": "string"
+            "example": "Internal server error"
           },
           "code": {
+            "type": "string",
             "description": "The error code",
-            "example": "NOT_FOUND",
-            "type": "string"
+            "example": "INTERNAL_SERVER_ERROR"
           },
           "issues": {
             "description": "An array of issues that were responsible for the error",
@@ -3232,51 +3276,14 @@
           "message",
           "code"
         ],
-        "additionalProperties": false
-      },
-      "error.INTERNAL_SERVER_ERROR": {
+        "additionalProperties": false,
         "title": "Internal server error error (500)",
         "description": "The error information",
         "example": {
           "code": "INTERNAL_SERVER_ERROR",
           "message": "Internal server error",
           "issues": []
-        },
-        "type": "object",
-        "properties": {
-          "message": {
-            "description": "The error message",
-            "example": "Internal server error",
-            "type": "string"
-          },
-          "code": {
-            "description": "The error code",
-            "example": "INTERNAL_SERVER_ERROR",
-            "type": "string"
-          },
-          "issues": {
-            "description": "An array of issues that were responsible for the error",
-            "example": [],
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "message"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "message",
-          "code"
-        ],
-        "additionalProperties": false
+        }
       }
     },
     "securitySchemes": {

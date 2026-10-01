@@ -572,6 +572,38 @@ test("waits for explicitly resumed draft hydration before autosaving", async ({ 
   await expect(page.getByRole("checkbox").first()).not.toBeChecked();
 });
 
+test("resumes a draft and creates the same lease from Review", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page.getByRole("button", { name: /Expand .* units/ }).first().click();
+  const response = await selectAvailableUnit(page);
+  const payload = (await response.json()) as Array<{ result: { data: { id: number } } }>;
+  const leaseId = payload[0]?.result.data.id;
+  if (!leaseId) throw new Error("Lease draft creation did not return an ID.");
+
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.getByRole("checkbox").first().click();
+  await page.getByLabel("Monthly rent").fill("1000");
+  await page.getByLabel("Monthly rent").blur();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  await page.getByText("Month-to-month", { exact: true }).click();
+  const startDate = await page.evaluate(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  });
+  await page.locator("#lease-start-date").click();
+  await page.locator(`[data-day="${startDate}"]`).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Review lease" })).toBeVisible();
+
+  const draftSearch = new URL(page.url()).search;
+  await page.goto("/leases");
+  await page.locator(`a[href$="${draftSearch}"]`).click();
+  await expect(page.getByRole("heading", { name: "Review lease" })).toBeVisible();
+  await page.getByRole("button", { name: "Create lease" }).click();
+  await expect(page).toHaveURL(new RegExp(`/leases/${leaseId}$`));
+});
+
 async function selectAvailableUnit(page: Page) {
   const units = page.locator('input[name="lease-unit"]:not(:disabled)');
   for (let index = 0; index < (await units.count()); index++) {

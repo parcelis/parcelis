@@ -109,6 +109,7 @@ test("API denies archive operations when archive permission is missing", async (
 
 test("API denies lease creation when create permission is missing", async () => {
   const caller = createDeniedCaller();
+  await expectForbidden(() => caller.leases.finalizeDraft({ leaseId: 1, expectedRevision: 0 }));
   await expectForbidden(() =>
     caller.leases.create({
       propertyId: 1,

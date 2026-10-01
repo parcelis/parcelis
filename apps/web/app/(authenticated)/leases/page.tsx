@@ -189,6 +189,7 @@ export default function LeasesPage() {
                       >
                         <option value="all">All statuses</option>
                         <option value="draft">Draft</option>
+                        <option value="scheduled">Scheduled</option>
                         <option value="active">Active</option>
                         <option value="notice">Notice given</option>
                         <option value="ended">Ended</option>

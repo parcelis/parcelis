@@ -458,7 +458,7 @@ export const tenantSchema = z.object({
   phone: z.string().optional(),
 });
 
-export const leaseStatusValues = ["draft", "active", "notice", "ended"] as const;
+export const leaseStatusValues = ["draft", "scheduled", "active", "notice", "ended"] as const;
 export const leaseStatusSchema = z.enum(leaseStatusValues);
 export const leaseTermTypeValues = ["fixed", "month_to_month"] as const;
 export const leaseTermTypeSchema = z.enum(leaseTermTypeValues);
@@ -531,6 +531,11 @@ export const leaseDraftUpdateInputSchema = z.object({
   data: leaseDraftDataFieldsSchema.refine((data) => Object.keys(data).length > 0, {
     message: "Provide at least one draft field to update.",
   }),
+});
+
+export const leaseDraftFinalizeInputSchema = z.object({
+  leaseId: idSchema,
+  expectedRevision: z.number().int().nonnegative(),
 });
 
 export const leaseByIdInputSchema = z.object({ id: idSchema });

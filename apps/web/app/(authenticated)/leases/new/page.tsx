@@ -81,6 +81,7 @@ import { uploadPropertyImage } from "../../../../components/property-image-uploa
 import { entityCreatedMessage } from "../../../../components/toast-messages";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../../components/tenant-drawer";
 import { uploadTenantImage } from "../../../../components/tenant-image-upload";
+import { getLeaseLink } from "../../../../lib/entity-links";
 
 type LeaseDraft = {
   version: 5;
@@ -1555,9 +1556,9 @@ function LeaseReviewPropertyAndUnit({
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
               Rent invoices
             </p>
-            <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">Not generated for draft leases</p>
+            <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">No invoices generated</p>
             <p className="mt-1 text-sm leading-6 text-parcelis-gray dark:text-white/65">
-              Generate rent invoices when this lease is activated.
+              Create rent invoices separately when needed.
             </p>
           </div>
         </div>
@@ -1716,6 +1717,9 @@ function NewLeasePageContent() {
       setDraftSaveError(draftError);
       setStepError(draftError.message);
     },
+  });
+  const finalizeLeaseDraft = useMutation({
+    mutationFn: (input: { leaseId: number; expectedRevision: number }) => apiClient.leases.finalizeDraft.mutate(input),
   });
   const mutateDraftAsync = updateLeaseDraft.mutateAsync;
   const updateDraftAsync = React.useCallback(
@@ -2084,9 +2088,32 @@ function NewLeasePageContent() {
     setDraft((current) => ({ ...current }));
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!isLastStep) goNext();
+    if (!isLastStep) {
+      await goNext();
+      return;
+    }
+    if (finalizeLeaseDraft.isPending || !draftIdentity.leaseId) return;
+    if (!(await flushDraftSave())) {
+      setStepError("Save the current changes before creating the lease.");
+      return;
+    }
+    try {
+      const lease = await finalizeLeaseDraft.mutateAsync({
+        leaseId: draftIdentity.leaseId,
+        expectedRevision: draftRevisionRef.current,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["leases"] }),
+        queryClient.invalidateQueries({ queryKey: ["properties"] }),
+        queryClient.invalidateQueries({ queryKey: ["tenants"] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.unitOptions.list }),
+      ]);
+      router.push(getLeaseLink(lease.id));
+    } catch (error) {
+      setStepError(error instanceof Error ? error.message : "Unable to create the lease.");
+    }
   }
 
   function discardExistingDraft() {
@@ -2433,24 +2460,33 @@ function NewLeasePageContent() {
                       unitId={draft.unitId}
                     />
                   ) : currentIndex === 3 ? (
-                    <LeaseReviewPropertyAndUnit
-                      allowPartialPayments={draft.allowPartialPayments}
-                      billingResponsibility={draft.billingResponsibility}
-                      endsOn={draft.endsOn}
-                      monthlyRentCents={draft.monthlyRentCents}
-                      onEdit={(stepId) => {
-                        setStepError(null);
-                        setDraft((current) => ({ ...current, currentStep: stepId }));
-                      }}
-                      propertyId={draft.propertyId}
-                      rentDueDay={draft.rentDueDay}
-                      securityDepositCents={draft.securityDepositCents}
-                      startsOn={draft.startsOn}
-                      tenantIds={draft.tenantIds}
-                      tenantAllocations={draft.tenantAllocations}
-                      termType={draft.termType}
-                      unitId={draft.unitId}
-                    />
+                    <>
+                      {currentStepError ? (
+                        <Alert className="mx-5 mt-5 md:mx-6" variant="destructive">
+                          <TriangleAlert className="h-4 w-4" />
+                          <AlertTitle>Unable to create lease</AlertTitle>
+                          <AlertDescription>{currentStepError}</AlertDescription>
+                        </Alert>
+                      ) : null}
+                      <LeaseReviewPropertyAndUnit
+                        allowPartialPayments={draft.allowPartialPayments}
+                        billingResponsibility={draft.billingResponsibility}
+                        endsOn={draft.endsOn}
+                        monthlyRentCents={draft.monthlyRentCents}
+                        onEdit={(stepId) => {
+                          setStepError(null);
+                          setDraft((current) => ({ ...current, currentStep: stepId }));
+                        }}
+                        propertyId={draft.propertyId}
+                        rentDueDay={draft.rentDueDay}
+                        securityDepositCents={draft.securityDepositCents}
+                        startsOn={draft.startsOn}
+                        tenantIds={draft.tenantIds}
+                        tenantAllocations={draft.tenantAllocations}
+                        termType={draft.termType}
+                        unitId={draft.unitId}
+                      />
+                    </>
                   ) : (
                     <>
                       <p className="text-sm font-semibold uppercase tracking-[0.14em] text-parcelis-green">
@@ -2478,7 +2514,7 @@ function NewLeasePageContent() {
                   <Button
                     className="min-w-40"
                     disabled={
-                      isLastStep ||
+                      finalizeLeaseDraft.isPending ||
                       createLeaseDraft.isPending ||
                       isSelectingUnit ||
                       Boolean(existingUnitDraft) ||

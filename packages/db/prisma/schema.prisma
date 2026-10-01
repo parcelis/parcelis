@@ -15,6 +15,7 @@ enum PropertyStatus {
 
 enum LeaseStatus {
   draft
+  scheduled
   active
   notice
   ended
