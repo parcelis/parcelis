@@ -8,8 +8,16 @@ import {
   PrismaPg,
 } from "@parcelis/db";
 import { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
-import { createQueueRegistry, getRedisConnectionOptions, notificationEmailJobName, queueNames } from "@parcelis/jobs";
+import {
+  createQueueRegistry,
+  getRedisConnectionOptions,
+  leaseActivationJobName,
+  leaseActivationJobSchema,
+  notificationEmailJobName,
+  queueNames,
+} from "@parcelis/jobs";
 import { Worker } from "bullmq";
+import { activateScheduledLease, startLeaseActivationReconciler } from "./lease-activation.js";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
 import { processNotificationEmailJob } from "./processors/notification-email.processor.js";
 
@@ -62,12 +70,26 @@ const notificationEmailWorker = new Worker(
   { connection: redisConnection },
 );
 
+const leaseActivationWorker = new Worker(
+  queueNames.leasingNotifications,
+  async (job) => {
+    if (job.name !== leaseActivationJobName) {
+      throw new Error(`Unsupported lease activation job: ${job.name}.`);
+    }
+    const { organizationId, leaseId } = leaseActivationJobSchema.parse(job.data);
+    return activateScheduledLease(prisma, organizationId, leaseId);
+  },
+  { connection: redisConnection },
+);
+
 // Wait until all queues are ready before starting the worker.
 await Promise.all(queues.map((queue) => queue.waitUntilReady()));
 await notificationEmailWorker.waitUntilReady();
+await leaseActivationWorker.waitUntilReady();
 
 console.info(`[parcelis] Worker connected to Redis for ${queues.length} queues.`);
 const stopOutboxDispatcher = startOutboxDispatcher(prisma, queueByName);
+const stopLeaseActivationReconciler = startLeaseActivationReconciler(prisma);
 
 let isShuttingDown = false;
 
@@ -86,7 +108,9 @@ async function shutdown(signal: NodeJS.Signals) {
 
   try {
     await stopOutboxDispatcher();
+    await stopLeaseActivationReconciler();
     await notificationEmailWorker.close();
+    await leaseActivationWorker.close();
     await Promise.allSettled(queues.map((queue) => queue.close()));
     await prisma.$disconnect();
     clearTimeout(deadline);
