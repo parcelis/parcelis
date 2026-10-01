@@ -1,0 +1,23 @@
+apps/docs/content/contributing/database-erd.mdx
+  s_8d7848aef69bf5::t_3d8134cb90119e 10
+  s_8d7848aef69bf5::t_ed15ec59487dd7 1-8,11-379
+  s_8d7848aef69bf5::t_20f1ab3bd82ff6 9
+apps/docs/sidebars.ts
+  s_8d7848aef69bf5::t_ed15ec59487dd7 86-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "de51bf9d1f1188189bf8ca7398bd8a422a01fe54",
+  "prompts": {},
+  "sessions": {
+    "s_8d7848aef69bf5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f4df-0db6-7783-8b34-b99d06336fd8",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
