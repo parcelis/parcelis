@@ -54,11 +54,12 @@ When adding or removing a primary technology or service, update this file in the
 
 ## Interface
 
-| Technology                               | Purpose                                              |
-| ---------------------------------------- | ---------------------------------------------------- |
-| [Tailwind CSS](https://tailwindcss.com/) | Application styling.                                 |
-| [Radix UI](https://www.radix-ui.com/)    | Accessible building blocks for interface components. |
-| [Lucide](https://lucide.dev/)            | Interface icons.                                     |
+| Technology                                                               | Purpose                                              |
+| ------------------------------------------------------------------------ | ---------------------------------------------------- |
+| [Tailwind CSS](https://tailwindcss.com/)                                 | Application styling.                                 |
+| [Radix UI](https://www.radix-ui.com/)                                    | Accessible building blocks for interface components. |
+| [Lucide](https://lucide.dev/)                                            | Interface icons.                                     |
+| [react-timezone-select](https://github.com/ndom91/react-timezone-select) | Timezone options for the organization setting.       |
 
 ## Development and delivery
 

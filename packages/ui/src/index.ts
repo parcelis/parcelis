@@ -23,4 +23,5 @@ export * from "./components/stepper";
 export * from "./components/switch";
 export * from "./components/table";
 export * from "./components/textarea";
+export * from "./components/timezone-select";
 export * from "./components/toggle-group";

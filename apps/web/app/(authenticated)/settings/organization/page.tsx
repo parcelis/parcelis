@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
-import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label } from "@parcelis/ui";
+import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label, TimezoneSelect } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../components/image-upload";
 import { LoadingState } from "../../../../components/loading-state";
@@ -44,6 +44,7 @@ export default function OrganizationSettingsPage() {
   });
   const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
   const [phone, setPhone] = React.useState("");
+  const [timeZone, setTimeZone] = React.useState("UTC");
   const updateAddressField = React.useCallback((field: keyof typeof addressForm, value: string) => {
     setAddressForm((current) => ({ ...current, [field]: value }));
   }, []);
@@ -85,6 +86,7 @@ export default function OrganizationSettingsPage() {
         postalCode: activeOrganizationQuery.data.address.postalCode ?? "",
       });
       setPhone(activeOrganizationQuery.data.phone ?? "");
+      setTimeZone(activeOrganizationQuery.data.timeZone);
     }
   }, [activeOrganizationQuery.data]);
   const canManageOrganization = ["owner", "administrator"].includes(activeOrganizationQuery.data?.role ?? "");
@@ -95,12 +97,14 @@ export default function OrganizationSettingsPage() {
       slug,
       address,
       phone,
+      timeZone,
       avatarChanges,
     }: {
       name: string;
       slug: string;
       address: { line1: string; line2: string; city: string; region: string; postalCode: string };
       phone: string;
+      timeZone: string;
       avatarChanges: AvatarChanges;
     }) => {
       await Promise.all(
@@ -131,6 +135,7 @@ export default function OrganizationSettingsPage() {
             }
           : null,
         phone: phone.trim() || null,
+        timeZone,
       });
       return organization;
     },
@@ -204,6 +209,7 @@ export default function OrganizationSettingsPage() {
                             region: addressForm.region.toUpperCase(),
                           },
                           phone,
+                          timeZone,
                           avatarChanges,
                         });
                       }}
@@ -297,6 +303,15 @@ export default function OrganizationSettingsPage() {
                           value={phone}
                         />
                       </Label>
+                      <div>
+                        <Label>Organization Timezone</Label>
+                        <div className="mt-1">
+                          <TimezoneSelect onChange={setTimeZone} value={timeZone} />
+                        </div>
+                        <p className="mt-1 text-xs text-parcelis-gray">
+                          Lease dates will follow this timezone when lifecycle scheduling is enabled.
+                        </p>
+                      </div>
                       <Button
                         className="min-w-40 self-start"
                         disabled={saveOrganizationDetails.isPending}
@@ -339,6 +354,10 @@ export default function OrganizationSettingsPage() {
                         <p className="mt-1 text-parcelis-gray">
                           {activeOrganizationQuery.data?.phone ?? "Not provided"}
                         </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-parcelis-charcoal">Timezone for lease dates</p>
+                        <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.timeZone}</p>
                       </div>
                     </div>
                   )}

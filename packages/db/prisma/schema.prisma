@@ -151,6 +151,7 @@ model Organization {
   id                    Int                      @id @default(autoincrement())
   name                  String
   slug                  String                   @unique
+  timeZone              String                   @default("UTC")
   seedKey               String?                  @unique
   avatarObjectKey       String?
   darkAvatarObjectKey   String?

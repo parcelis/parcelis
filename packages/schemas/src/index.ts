@@ -285,6 +285,19 @@ export const organizationAddressSchema = z.object({
   region: z.string().trim().max(2).optional(),
   postalCode: z.string().trim().max(20).optional(),
 });
+export const organizationTimeZoneSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .refine((timeZone) => {
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone });
+      return true;
+    } catch {
+      return false;
+    }
+  }, "Select a valid timezone.");
 export const updateOrganizationInputSchema = z.object({
   name: z.string().trim().min(2).max(100),
   slug: z
@@ -295,6 +308,7 @@ export const updateOrganizationInputSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
   address: organizationAddressSchema.nullable(),
   phone: z.string().trim().max(50).nullable(),
+  timeZone: organizationTimeZoneSchema.optional(),
 });
 export const organizationAvatarUploadInputSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),

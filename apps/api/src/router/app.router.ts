@@ -607,6 +607,7 @@ export const appRouter = router({
       id: ctx.organization.organization.id,
       name: ctx.organization.organization.name,
       slug: ctx.organization.organization.slug,
+      timeZone: ctx.organization.organization.timeZone,
       avatarObjectKey: ctx.organization.organization.avatarObjectKey,
       avatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.avatarObjectKey),
       darkAvatarObjectKey: ctx.organization.organization.darkAvatarObjectKey,
@@ -656,6 +657,7 @@ export const appRouter = router({
             region: input.address?.region || null,
             postalCode: input.address?.postalCode || null,
             phone: input.phone?.trim() || null,
+            ...(input.timeZone ? { timeZone: input.timeZone } : {}),
           },
           select: {
             id: true,
@@ -667,6 +669,7 @@ export const appRouter = router({
             region: true,
             postalCode: true,
             phone: true,
+            timeZone: true,
           },
         });
         return {
