@@ -83,7 +83,7 @@ erDiagram
     Int id PK
   }
   Property {
-    Int id PK
+    Int id PK,FK
     Int organizationId FK
     Int legacyNoteId FK
     PropertyStatus status
@@ -118,7 +118,7 @@ erDiagram
     Int optionId PK,FK
   }
   Tenant {
-    Int id PK
+    Int id PK,FK
     Int organizationId FK
     Int legacyNoteId FK
     String email
@@ -264,7 +264,7 @@ erDiagram
     Int id PK
   }
   Property {
-    Int id PK
+    Int id PK,FK
     Int organizationId FK
     Int legacyNoteId FK
   }
@@ -273,7 +273,7 @@ erDiagram
     Int propertyId FK
   }
   Tenant {
-    Int id PK
+    Int id PK,FK
     Int organizationId FK
     Int legacyNoteId FK
   }
