@@ -1,0 +1,39 @@
+apps/api/src/router/app.router.ts
+  s_5f4b236d903762::t_cba9f10b74c18e 3708
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_5f4b236d903762::t_c733b7701e0bbe 60-61,258,302
+  s_5f4b236d903762::t_e4192b3ff8979e 301
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_5f4b236d903762::t_447a582c2c85d5 190,211
+  s_5f4b236d903762::t_75de7e0e622575 203-209
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_5f4b236d903762::t_3fc79c7591a122 41-48,54,57,59,64-70,73-75,105-110,176-182,193-198,209-216,227-236
+  s_5f4b236d903762::t_4f90372dba2cae 60-63
+  s_5f4b236d903762::t_0f550b4c58d027 113-117,183-192,199-208,217-226
+  s_5f4b236d903762::t_f8fa2938421c57 58,164-175
+tests/e2e/lease-draft.spec.ts
+  s_5f4b236d903762::t_ad9e2db6f83953 621
+  s_5f4b236d903762::t_c733b7701e0bbe 640
+  s_5f4b236d903762::t_984f7ddef0825f 2,600-604,607-608,612-613
+  s_5f4b236d903762::t_5270bb7f1252bf 1,579-595,617
+  s_5f4b236d903762::t_447a582c2c85d5 606
+  s_5f4b236d903762::t_db4ba330dacf73 32-34,596-599,609-611
+  s_5f4b236d903762::t_740ecb78f46621 605,620
+  s_5f4b236d903762::t_f9a1c3e754a932 578
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ca1c554f51ca0a4f29ef1cdc177f2b54906b8ac",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
