@@ -1,0 +1,379 @@
+---
+id: database-erd
+title: Database ERD
+sidebar_label: Database ERD
+---
+
+These diagrams describe the PostgreSQL data model in [`schema.prisma`](https://github.com/parcelis/parcelis/blob/main/packages/db/prisma/schema.prisma). They show primary keys, foreign keys, and selected fields that explain each relationship. The Prisma schema is the source of truth for every column, index, enum, and delete action.
+
+[Download the editable Visio drawing](/diagrams/parcelis-database-erd.vsdx). It includes a complete overview followed by eight detail pages. The overview is also available as a [single-page Visio drawing](/diagrams/parcelis-database-erd-overview.vsdx) or a [PNG image](/diagrams/parcelis-database-erd-overview.png).
+
+`PK` marks a primary key, `FK` a foreign key, and `UK` a unique key. A field can have more than one marker. A crow's foot means many; a circle means optional. Shared entities appear in more than one diagram so each area can be read on its own.
+
+## Organizations and access
+
+```mermaid
+erDiagram
+  Organization {
+    Int id PK
+    String slug UK
+    String name
+  }
+  OrganizationEmailSettings {
+    Int id PK
+    Int organizationId FK,UK
+    String host
+    String fromEmail
+  }
+  OrganizationMembership {
+    Int id PK
+    Int organizationId FK
+    Int userId FK
+    OrganizationMemberRole role
+  }
+  User {
+    Int id PK
+    String email UK
+    UserRole role
+    Int defaultOrganizationId FK
+  }
+  RolePermission {
+    UserRole role PK
+    PermissionResource resource PK
+    Boolean canView
+    Boolean canCreate
+    Boolean canEdit
+    Boolean canArchive
+    Boolean canDelete
+  }
+  Session {
+    Int id PK
+    Int userId FK
+    Int activeOrganizationId FK
+    String tokenHash UK
+  }
+  PasswordResetToken {
+    Int id PK
+    Int userId FK
+    String tokenHash UK
+  }
+  EmailVerificationToken {
+    Int id PK
+    Int userId FK
+    String tokenHash UK
+  }
+
+  Organization ||--o| OrganizationEmailSettings : configures
+  Organization ||--o{ OrganizationMembership : has
+  User ||--o{ OrganizationMembership : joins
+  Organization o|--o{ User : default_for
+  User ||--o{ Session : owns
+  Organization o|--o{ Session : active_in
+  User ||--o{ PasswordResetToken : receives
+  User ||--o{ EmailVerificationToken : receives
+```
+
+`OrganizationMembership` has a unique `(userId, organizationId)` pair. `RolePermission` has a composite `(role, resource)` primary key and no foreign key to `User`; `role` is a shared enum.
+
+## Portfolio and applications
+
+```mermaid
+erDiagram
+  Organization {
+    Int id PK
+  }
+  Property {
+    Int id PK
+    Int organizationId FK
+    Int legacyNoteId FK
+    PropertyStatus status
+  }
+  Tag {
+    Int id PK
+    Int organizationId FK
+    String label
+  }
+  Unit {
+    Int id PK
+    Int propertyId FK
+    String name
+    UnitType unitType
+  }
+  UtilityType {
+    Int id PK
+    Int organizationId FK
+    String label
+  }
+  AmenityType {
+    Int id PK
+    Int organizationId FK
+    String label
+  }
+  UnitUtility {
+    Int unitId PK,FK
+    Int optionId PK,FK
+  }
+  UnitAmenity {
+    Int unitId PK,FK
+    Int optionId PK,FK
+  }
+  Tenant {
+    Int id PK
+    Int organizationId FK
+    Int legacyNoteId FK
+    String email
+  }
+  EmergencyContact {
+    Int id PK
+    Int tenantId FK
+  }
+  Landlord {
+    Int id PK
+    Int organizationId FK
+    String email
+  }
+  Applicant {
+    Int id PK
+    Int organizationId FK
+    String email
+  }
+  ApplicationStatus {
+    Int id PK
+    Int organizationId FK
+    String label
+  }
+  Application {
+    Int id PK
+    Int organizationId FK
+    Int propertyId FK
+    Int applicantId FK
+    Int statusId FK
+  }
+
+  Organization ||--o{ Property : owns
+  Organization ||--o{ Tag : defines
+  Organization ||--o{ UtilityType : defines
+  Organization ||--o{ AmenityType : defines
+  Organization ||--o{ Tenant : owns
+  Organization ||--o{ Landlord : owns
+  Organization ||--o{ Applicant : owns
+  Organization ||--o{ ApplicationStatus : defines
+  Organization ||--o{ Application : owns
+  Property }o--o{ Tag : tagged_with
+  Property ||--o{ Unit : contains
+  Unit ||--o{ UnitUtility : has
+  UtilityType ||--o{ UnitUtility : selected_for
+  Unit ||--o{ UnitAmenity : has
+  AmenityType ||--o{ UnitAmenity : selected_for
+  Tenant ||--o{ EmergencyContact : has
+  Property ||--o{ Application : receives
+  Applicant ||--o{ Application : submits
+  ApplicationStatus ||--o{ Application : classifies
+```
+
+The Property–Tag many-to-many link is implicit in Prisma. `UnitUtility` and `UnitAmenity` are explicit join models with composite primary keys. Each application uses composite foreign keys with `organizationId` to keep its property, applicant, and status in the same organization. `Landlord` connects to maintenance requests in the next diagram.
+
+## Leases and billing
+
+```mermaid
+erDiagram
+  Organization {
+    Int id PK
+  }
+  Property {
+    Int id PK
+    Int organizationId FK
+  }
+  Unit {
+    Int id PK
+    Int propertyId FK
+  }
+  Tenant {
+    Int id PK
+    Int organizationId FK
+  }
+  Lease {
+    Int id PK
+    Int organizationId FK
+    Int propertyId FK
+    Int unitId FK
+    String leaseDraftKey
+    LeaseStatus status
+  }
+  LeaseTenant {
+    Int organizationId PK,FK
+    Int leaseId PK,FK
+    Int tenantId PK,FK
+    Int rentShareCents
+  }
+  Invoice {
+    Int id PK
+    Int organizationId FK
+    Int leaseId FK
+    Int propertyId FK
+    Int tenantId FK
+    Int paidByTenantId FK
+    Int invoiceNumber UK
+    InvoiceStatus status
+  }
+  InvoiceRecipient {
+    Int organizationId PK,FK
+    Int invoiceId PK,FK
+    Int tenantId PK,FK
+  }
+  InvoiceItem {
+    Int id PK
+    Int invoiceId FK
+    Int amountCents
+  }
+  InvoicePayment {
+    Int id PK
+    Int organizationId FK
+    Int invoiceId FK
+    Int tenantId FK
+    Int amountCents
+  }
+
+  Organization ||--o{ Lease : owns
+  Property o|--o{ Lease : assigned_to
+  Unit o|--o{ Lease : assigned_to
+  Lease ||--o{ LeaseTenant : includes
+  Tenant ||--o{ LeaseTenant : signs
+  Organization ||--o{ Invoice : owns
+  Lease ||--o{ Invoice : billed_by
+  Property ||--o{ Invoice : billed_for
+  Tenant ||--o{ Invoice : billed_to
+  Tenant o|--o{ Invoice : paid_by
+  LeaseTenant ||--o{ Invoice : billed_resident
+  Organization ||--o{ InvoiceRecipient : owns
+  Invoice ||--o{ InvoiceRecipient : sent_to
+  Tenant ||--o{ InvoiceRecipient : receives
+  Invoice ||--o{ InvoiceItem : contains
+  Invoice ||--o{ InvoicePayment : records
+  InvoiceRecipient ||--o{ InvoicePayment : makes
+  Tenant ||--o{ InvoicePayment : pays
+```
+
+Draft leases can have no property or unit. A lease's unit foreign key includes `propertyId`, so the selected unit belongs to the selected property. An invoice's composite lease foreign key includes `organizationId` and `propertyId`; its `LeaseTenant` foreign key also includes `tenantId`. A payment must match an `InvoiceRecipient` for its organization, invoice, and tenant.
+
+## Maintenance, notes, and activity
+
+```mermaid
+erDiagram
+  Organization {
+    Int id PK
+  }
+  Property {
+    Int id PK
+    Int organizationId FK
+    Int legacyNoteId FK
+  }
+  Unit {
+    Int id PK
+    Int propertyId FK
+  }
+  Tenant {
+    Int id PK
+    Int organizationId FK
+    Int legacyNoteId FK
+  }
+  Landlord {
+    Int id PK
+    Int organizationId FK
+  }
+  Application {
+    Int id PK
+  }
+  Invoice {
+    Int id PK
+  }
+  MaintenanceCategory {
+    Int id PK
+    Int organizationId FK
+    String label
+  }
+  MaintenanceTicket {
+    Int id PK
+    Int organizationId FK
+    Int propertyId FK
+    Int categoryId FK
+    Int requestedByTenantId FK
+    Int requestedByLandlordId FK
+    MaintenanceTicketStatus status
+  }
+  MaintenanceTicketUnit {
+    Int ticketId PK,FK
+    Int unitId PK,FK
+  }
+  MaintenanceAttachment {
+    Int id PK
+    Int ticketId FK
+    String objectKey UK
+  }
+  Note {
+    Int id PK
+    Int propertyId FK
+    Int unitId FK
+    Int tenantId FK
+    Int maintenanceTicketId FK
+    Int applicationId FK
+    Int invoiceId FK
+  }
+  ActivityEvent {
+    Int id PK
+    Int organizationId FK
+    Int propertyId FK
+    ActivitySubjectType subjectType
+    Int subjectId
+  }
+
+  Organization ||--o{ MaintenanceCategory : defines
+  Organization ||--o{ MaintenanceTicket : owns
+  Organization ||--o{ ActivityEvent : records
+  Property ||--o{ MaintenanceTicket : has
+  MaintenanceCategory o|--o{ MaintenanceTicket : classifies
+  Tenant o|--o{ MaintenanceTicket : requests
+  Landlord o|--o{ MaintenanceTicket : requests
+  MaintenanceTicket ||--o{ MaintenanceTicketUnit : affects
+  Unit ||--o{ MaintenanceTicketUnit : affected_by
+  MaintenanceTicket ||--o{ MaintenanceAttachment : has
+  Property o|--o{ Note : has
+  Unit o|--o{ Note : has
+  Tenant o|--o{ Note : has
+  MaintenanceTicket o|--o{ Note : has
+  Application o|--o{ Note : has
+  Invoice o|--o{ Note : has
+  Note o|--o| Property : legacy_note_for
+  Note o|--o| Tenant : legacy_note_for
+  Property o|--o{ ActivityEvent : associated_with
+```
+
+The six nullable foreign keys on `Note` connect it to the corresponding record types. The schema does not constrain a note to exactly one parent. `Property.legacyNoteId` and `Tenant.legacyNoteId` are optional composite references back to a note belonging to that same record. `ActivityEvent.subjectType` and `subjectId` identify a subject in application data; `subjectId` is not a database foreign key. A ticket's requester can be a tenant or landlord; both requester foreign keys are optional in the schema.
+
+## Outbox and notifications
+
+```mermaid
+erDiagram
+  Organization {
+    Int id PK
+  }
+  OutboxEvent {
+    Int id PK
+    Int organizationId FK
+    String idempotencyKey
+    OutboxEventStatus status
+  }
+  NotificationDelivery {
+    Int id PK
+    Int organizationId FK
+    Int outboxEventId FK,UK
+    String idempotencyKey
+    NotificationDeliveryStatus status
+  }
+
+  Organization ||--o{ OutboxEvent : records
+  Organization ||--o{ NotificationDelivery : owns
+  OutboxEvent ||--o| NotificationDelivery : delivers
+```
+
+The delivery's `(organizationId, outboxEventId)` foreign key requires its outbox event to belong to the same organization. Each outbox event has at most one delivery. Both tables also enforce organization-scoped idempotency keys.

@@ -83,7 +83,12 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "For contributors",
-      items: ["getting-started", "contributing/end-to-end-testing", "contributing/commit-conventions"],
+      items: [
+        "getting-started",
+        "contributing/database-erd",
+        "contributing/end-to-end-testing",
+        "contributing/commit-conventions",
+      ],
     },
     {
       type: "category",
