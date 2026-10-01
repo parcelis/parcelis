@@ -45,12 +45,14 @@ function createDatabase(
   overlap = false,
   overrides: Record<string, unknown> = {},
   existingLease?: ExistingLease,
+  predecessorOccupiedUnits = 1,
 ) {
   const lease = { ...draft(start), ...overrides };
   let created = false;
   let currentStatus = lease.status;
   let previousStatus = existingLease?.status;
   let occupiedIncrements = 0;
+  let occupiedUnits = existingLease ? predecessorOccupiedUnits : 0;
   let outboxWrites = 0;
   let invoiceWrites = 0;
   const tx = {
@@ -82,12 +84,21 @@ function createDatabase(
       create: async () => {
         throw new Error("Finalization must not create another lease.");
       },
-      updateMany: async ({ where, data }: { where: { id: number; revision?: number }; data: { status: string } }) => {
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: number; organizationId: number; status?: string; revision?: number };
+        data: { status: string };
+      }) => {
         if (where.id === 30) {
+          assert.deepEqual(where, { id: 30, organizationId: 7, status: previousStatus });
+          assert.deepEqual(data, { status: "ended" });
           previousStatus = data.status;
           return { count: 1 };
         }
         assert.equal(where.id, 9);
+        assert.equal(where.organizationId, 7);
         assert.equal(where.revision, 4);
         currentStatus = data.status;
         created = true;
@@ -99,10 +110,21 @@ function createDatabase(
       findFirstOrThrow: async () => ({ id: 2 }),
       update: async () => {
         occupiedIncrements += 1;
+        occupiedUnits += 1;
         return { id: 2 };
       },
-      updateMany: async () => {
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: number; organizationId: number; occupiedUnits: { gt: number } };
+        data: { occupiedUnits: { decrement: number } };
+      }) => {
+        assert.deepEqual(where, { id: 2, organizationId: 7, occupiedUnits: { gt: 0 } });
+        assert.deepEqual(data, { occupiedUnits: { decrement: 1 } });
+        if (occupiedUnits <= 0) return { count: 0 };
         occupiedIncrements -= 1;
+        occupiedUnits -= 1;
         return { count: 1 };
       },
     },
@@ -223,6 +245,19 @@ test("immediate finalization ends an expired predecessor and transfers occupancy
   const lease = await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
   assert.equal(lease.status, "active");
   assert.equal(previousStatus(), "ended");
+  assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
+});
+
+test("immediate finalization rejects inconsistent predecessor occupancy", async () => {
+  const start = calendarDay(0);
+  const { caller, counts } = createDatabase(
+    start,
+    false,
+    {},
+    { startsOn: calendarDay(-30), endsOn: calendarDay(-1), status: "active" },
+    0,
+  );
+  await assert.rejects(caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 }), /occupancy is inconsistent/);
   assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
 });
 
