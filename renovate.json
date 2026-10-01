@@ -5,9 +5,9 @@
     "dependencyDashboardApproval": true
   },
   "timezone": "America/Chicago",
-  "schedule": ["before 9am on friday"],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 2,
+  "schedule": ["before 9am on tuesday", "before 9am on friday"],
+  "prConcurrentLimit": 12,
+  "prHourlyLimit": 8,
   "dependencyDashboard": true,
   "lockFileMaintenance": {
     "enabled": true,
