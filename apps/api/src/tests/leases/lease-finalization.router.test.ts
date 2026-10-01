@@ -38,17 +38,40 @@ function draft(startsOn: Date) {
   };
 }
 
-function createDatabase(start: Date, overlap = false, overrides: Record<string, unknown> = {}) {
+type ExistingLease = { startsOn: Date; endsOn: Date | null; status: string };
+
+function createDatabase(
+  start: Date,
+  overlap = false,
+  overrides: Record<string, unknown> = {},
+  existingLease?: ExistingLease,
+) {
   const lease = { ...draft(start), ...overrides };
   let created = false;
   let currentStatus = lease.status;
   let occupiedIncrements = 0;
   let outboxWrites = 0;
+  let invoiceWrites = 0;
   const tx = {
     lease: {
-      findFirst: async ({ where }: { where: { id?: number; unitId?: number } }) => {
-        if (where.unitId) return overlap ? { id: 30 } : null;
+      findFirst: async ({ where }: { where: Record<string, unknown> }) => {
+        assert.equal(where.organizationId, 7);
+        if (where.unitId) {
+          assert.deepEqual(where.id, { not: lease.id });
+          assert.deepEqual(where.status, { in: ["active", "notice", "scheduled"] });
+          assert.deepEqual(where.startsOn, lease.endsOn ? { lte: lease.endsOn } : undefined);
+          assert.deepEqual(where.OR, [{ endsOn: null }, { endsOn: { gte: lease.startsOn } }]);
+          if (overlap) return { id: 30 };
+          if (!existingLease) return null;
+          const startsBeforeEnd = !lease.endsOn || existingLease.startsOn <= lease.endsOn;
+          const endsAfterStart = !existingLease.endsOn || existingLease.endsOn >= lease.startsOn;
+          const eligibleStatus = ["active", "notice", "scheduled"].includes(existingLease.status);
+          return startsBeforeEnd && endsAfterStart && eligibleStatus ? { id: 30 } : null;
+        }
         return { ...lease, status: currentStatus, revision: created ? 5 : 4 };
+      },
+      create: async () => {
+        throw new Error("Finalization must not create another lease.");
       },
       updateMany: async ({ where, data }: { where: { id: number; revision: number }; data: { status: string } }) => {
         assert.equal(where.id, 9);
@@ -79,9 +102,19 @@ function createDatabase(start: Date, overlap = false, overrides: Record<string, 
         payload: { organizationId: 7, leaseId: 9 },
       }),
     },
+    invoice: {
+      create: async () => {
+        invoiceWrites += 1;
+        throw new Error("Finalization must not create an invoice.");
+      },
+    },
   };
   const prisma = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) };
-  return { caller: createCaller(prisma), counts: () => ({ occupiedIncrements, outboxWrites }) };
+  return {
+    caller: createCaller(prisma),
+    counts: () => ({ occupiedIncrements, outboxWrites }),
+    invoiceWrites: () => invoiceWrites,
+  };
 }
 
 test("finalizes today's draft in place and increments occupancy once", async () => {
@@ -127,4 +160,77 @@ test("rejects stale draft revisions", async () => {
     code: "CONFLICT",
   });
   assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
+});
+
+test("rejects a discarded draft", async () => {
+  const { caller, counts } = createDatabase(calendarDay(0), false, { archivedAt: new Date() });
+  await assert.rejects(caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 }), {
+    code: "NOT_FOUND",
+  });
+  assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
+});
+
+test("rejects a lease outside the draft state", async () => {
+  const { caller, counts } = createDatabase(calendarDay(0), false, { status: "notice" });
+  await assert.rejects(caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 }), {
+    code: "CONFLICT",
+  });
+  assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
+});
+
+test("allows a lease starting after the previous lease ends", async () => {
+  const start = calendarDay(10);
+  const { caller } = createDatabase(
+    start,
+    false,
+    {},
+    {
+      startsOn: calendarDay(-30),
+      endsOn: calendarDay(9),
+      status: "active",
+    },
+  );
+  const lease = await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
+  assert.equal(lease.status, "scheduled");
+});
+
+test("rejects overlap with an open-ended lease", async () => {
+  const start = calendarDay(10);
+  const { caller, counts } = createDatabase(
+    start,
+    false,
+    {},
+    {
+      startsOn: calendarDay(-30),
+      endsOn: null,
+      status: "notice",
+    },
+  );
+  await assert.rejects(caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 }), {
+    code: "CONFLICT",
+  });
+  assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
+});
+
+test("rejects overlap with a scheduled lease", async () => {
+  const start = calendarDay(10);
+  const { caller } = createDatabase(
+    start,
+    false,
+    {},
+    {
+      startsOn: calendarDay(20),
+      endsOn: calendarDay(50),
+      status: "scheduled",
+    },
+  );
+  await assert.rejects(caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 }), {
+    code: "CONFLICT",
+  });
+});
+
+test("does not generate invoices when completing a draft", async () => {
+  const { caller, invoiceWrites } = createDatabase(calendarDay(0));
+  await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
+  assert.equal(invoiceWrites(), 0);
 });

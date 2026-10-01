@@ -57,9 +57,8 @@ function statusTone(status: string) {
   return "text-red-400";
 }
 
-function dueDay(value: Date | string | undefined) {
-  if (!value) return "Not set";
-  const day = new Date(value).getDate();
+function dueDay(day: number | undefined) {
+  if (!day) return "Not set";
   const suffix =
     day % 10 === 1 && day !== 11
       ? "st"
@@ -90,7 +89,6 @@ export default function LeaseDetailPage() {
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
   const unit = leaseRecord?.unit;
-  const firstInvoice = leaseRecord?.invoices[0];
   const refreshLeaseData = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["leases"] }),
@@ -257,7 +255,7 @@ export default function LeaseDetailPage() {
                   label="Monthly Rent"
                   value={formatCurrency(leaseRecord.monthlyRentCents)}
                 />
-                <Metric icon={CalendarDays} label="Rent Due" value={dueDay(firstInvoice?.dueOn)} />
+                <Metric icon={CalendarDays} label="Rent Due" value={dueDay(leaseRecord.rentDueDay)} />
               </section>
               <section className="mt-5 flex flex-col gap-5 lg:flex-row">
                 <Card className="flex-1">
@@ -300,8 +298,8 @@ export default function LeaseDetailPage() {
                     <Detail icon={CircleDollarSign} label="Monthly Rent">
                       {formatCurrency(leaseRecord.monthlyRentCents)}
                     </Detail>
-                    <Detail icon={CalendarDays} label="Rent Due Date">
-                      {dueDay(firstInvoice?.dueOn)}
+                    <Detail icon={CalendarDays} label="Rent Due Day">
+                      {dueDay(leaseRecord.rentDueDay)}
                     </Detail>
                   </CardContent>
                 </Card>

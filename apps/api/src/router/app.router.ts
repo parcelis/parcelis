@@ -3705,12 +3705,12 @@ export const appRouter = router({
             startsOn: true,
             endsOn: true,
             monthlyRentCents: true,
+            rentDueDay: true,
             property: { select: { id: true, name: true } },
             unit: { select: { id: true, name: true } },
             tenants: {
               select: { tenant: { select: { id: true, firstName: true, lastName: true } } },
             },
-            invoices: { orderBy: { dueOn: "asc" }, take: 1, select: { dueOn: true } },
           },
         });
         return lease ? { ...lease, tenants: lease.tenants.map(({ tenant }) => tenant) } : null;

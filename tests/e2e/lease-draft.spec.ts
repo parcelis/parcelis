@@ -1,4 +1,5 @@
-import type { Page } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import type { Page, Response } from "@playwright/test";
 import { expect, test } from "./fixtures/authenticated";
 
 test("opens the lease wizard for an authenticated user", async ({ page }) => {
@@ -28,9 +29,9 @@ test("keeps every lease step visible on an iPad in portrait", async ({ page }) =
 
   const reviewStep = page.getByRole("tab", { name: "Review" });
   await expect(reviewStep).toBeVisible();
-  await expect.poll(() => reviewStep.evaluate((element) => element.getBoundingClientRect().right <= window.innerWidth)).toBe(
-    true,
-  );
+  await expect
+    .poll(() => reviewStep.evaluate((element) => element.getBoundingClientRect().right <= window.innerWidth))
+    .toBe(true);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -574,16 +575,50 @@ test("waits for explicitly resumed draft hydration before autosaving", async ({ 
 
 test("resumes a draft and creates the same lease from Review", async ({ page }) => {
   await page.goto("/leases/new");
-  await page.getByRole("button", { name: /Expand .* units/ }).first().click();
-  const response = await selectAvailableUnit(page);
-  const payload = (await response.json()) as Array<{ result: { data: { id: number } } }>;
-  const leaseId = payload[0]?.result.data.id;
+  await expect(page).toHaveURL(/\/o\/[^/]+\/leases\/new/);
+  const organizationSlug = new URL(page.url()).pathname.match(/^\/o\/([^/]+)/)?.[1];
+  if (!organizationSlug) throw new Error("Organization URL was not found.");
+  const tenantSuffix = randomUUID().slice(0, 8);
+  const tenantResponse = await page.request.post("/trpc/tenants.create?batch=1", {
+    headers: { "x-parcelis-organization-slug": organizationSlug },
+    data: {
+      "0": {
+        firstName: "LeaseE2E",
+        lastName: tenantSuffix,
+        email: `${randomUUID()}@example.test`,
+        accountStatus: "invitation_pending",
+        insuranceStatus: "not_on_file",
+      },
+    },
+  });
+  if (!tenantResponse.ok()) throw new Error(`Tenant setup failed: ${tenantResponse.status()}`);
+  await page.reload();
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  const createResponses: Response[] = [];
+  page.on("response", (response) => {
+    if (response.request().method() === "POST" && response.url().includes("leases.createDraft")) {
+      createResponses.push(response);
+    }
+  });
+  await selectAvailableUnit(page);
+  const draftKey = new URL(page.url()).searchParams.get("draft");
+  const payloads = await Promise.all(
+    createResponses.map(
+      (response) => response.json() as Promise<Array<{ result?: { data?: { id?: number; leaseDraftKey?: string } } }>>,
+    ),
+  );
+  const leaseId = payloads.flat().find((entry) => entry.result?.data?.leaseDraftKey === draftKey)?.result?.data?.id;
   if (!leaseId) throw new Error("Lease draft creation did not return an ID.");
 
   await page.getByRole("button", { name: "Next", exact: true }).click();
-  await page.getByRole("checkbox").first().click();
+  await page.getByRole("checkbox", { name: `Select LeaseE2E ${tenantSuffix}` }).click();
   await page.getByLabel("Monthly rent").fill("1000");
   await page.getByLabel("Monthly rent").blur();
+  await page.getByLabel("Security deposit").fill("500");
+  await page.getByRole("radio", { name: /All tenants are equally responsible/ }).click();
   await page.getByRole("button", { name: "Next", exact: true }).click();
 
   await page.getByText("Month-to-month", { exact: true }).click();
@@ -602,6 +637,7 @@ test("resumes a draft and creates the same lease from Review", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Review lease" })).toBeVisible();
   await page.getByRole("button", { name: "Create lease" }).click();
   await expect(page).toHaveURL(new RegExp(`/leases/${leaseId}$`));
+  await expect(page.getByText("1st of each month").first()).toBeVisible();
 });
 
 async function selectAvailableUnit(page: Page) {

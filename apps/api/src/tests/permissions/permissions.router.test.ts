@@ -187,6 +187,7 @@ test("lease details allow lease-only viewing and scope reads to the active organ
   const lease = {
     id: 7,
     archivedAt: new Date(),
+    rentDueDay: 1,
     property: { id: 2, name: "Example" },
     unit: { id: 3, name: "1A" },
     tenants: [{ tenant: { id: 4, firstName: "Sam", lastName: "Tenant" } }],
@@ -199,8 +200,15 @@ test("lease details allow lease-only viewing and scope reads to the active organ
       }),
     },
     lease: {
-      findFirst: async ({ where }: { where: { id: number; organizationId: number } }) => {
+      findFirst: async ({
+        where,
+        select,
+      }: {
+        where: { id: number; organizationId: number };
+        select: { rentDueDay: boolean };
+      }) => {
         assert.equal(where.organizationId, 1);
+        assert.equal(select.rentDueDay, true);
         return where.id === lease.id ? lease : null;
       },
     },
