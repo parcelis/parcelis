@@ -17,14 +17,14 @@ export const leaseActivationOutboxPayloadSchema = z
   .object({
     organizationId: idSchema,
     leaseId: idSchema,
+    activateAt: z.iso.datetime().optional(),
   })
   .strict();
 export type LeaseActivationOutboxPayload = z.infer<typeof leaseActivationOutboxPayloadSchema>;
 
 export const leaseActivationJobName = "lease.activate.v1";
-export const leaseActivationJobSchema = leaseActivationOutboxPayloadSchema
-  .extend({ outboxEventId: idSchema })
-  .strict();
+export const leaseReconciliationJobName = "lease.reconcile.v1";
+export const leaseActivationJobSchema = leaseActivationOutboxPayloadSchema.extend({ outboxEventId: idSchema }).strict();
 export type LeaseActivationJob = z.infer<typeof leaseActivationJobSchema>;
 
 export const notificationEmailOutboxPayloadSchema = notificationEmailJobSchema;

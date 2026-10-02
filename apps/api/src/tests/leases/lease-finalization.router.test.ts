@@ -56,6 +56,7 @@ function createDatabase(
   let occupiedUnits = existingLease ? predecessorOccupiedUnits : 0;
   let outboxWrites = 0;
   let activationAt: Date | undefined;
+  let eventPayload: { organizationId: number; leaseId: number; activateAt: string } | undefined;
   let invoiceWrites = 0;
   const tx = {
     lease: {
@@ -134,15 +135,21 @@ function createDatabase(
     organization: { findUniqueOrThrow: async () => ({ timeZone }) },
     tenant: { findMany: async () => [{ id: 11 }] },
     outboxEvent: {
-      createMany: async ({ data }: { data: { availableAt: Date } }) => {
+      createMany: async ({
+        data,
+      }: {
+        data: { payload: { organizationId: number; leaseId: number; activateAt: string }; availableAt?: Date };
+      }) => {
         outboxWrites += 1;
-        activationAt = data.availableAt;
+        assert.equal(data.availableAt, undefined);
+        eventPayload = data.payload;
+        activationAt = new Date(data.payload.activateAt);
         return { count: 1 };
       },
       findUniqueOrThrow: async () => ({
         eventType: "lease.activate",
         schemaVersion: 1,
-        payload: { organizationId: 7, leaseId: 9 },
+        payload: eventPayload,
       }),
     },
     invoice: {

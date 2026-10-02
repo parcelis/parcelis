@@ -13,11 +13,12 @@ import {
   getRedisConnectionOptions,
   leaseActivationJobName,
   leaseActivationJobSchema,
+  leaseReconciliationJobName,
   notificationEmailJobName,
   queueNames,
 } from "@parcelis/jobs";
 import { Worker } from "bullmq";
-import { activateScheduledLease, startLeaseReconciler } from "./lease-activation.js";
+import { activateScheduledLease, reconcileLeaseLifecycle, startLeaseReconciler } from "./lease-activation.js";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
 import { processNotificationEmailJob } from "./processors/notification-email.processor.js";
 
@@ -33,7 +34,8 @@ await prisma.$connect();
 const redisConnection = getRedisConnectionOptions();
 
 // Initialize Redis connection and create queues.
-const queues = Object.values(createQueueRegistry(redisConnection));
+const queueRegistry = createQueueRegistry(redisConnection);
+const queues = Object.values(queueRegistry);
 const queueByName = new Map(queues.map((queue) => [queue.name, queue]));
 
 const notificationEmailWorker = new Worker(
@@ -73,6 +75,9 @@ const notificationEmailWorker = new Worker(
 const leaseActivationWorker = new Worker(
   queueNames.leasingNotifications,
   async (job) => {
+    if (job.name === leaseReconciliationJobName) {
+      return reconcileLeaseLifecycle(prisma);
+    }
     if (job.name !== leaseActivationJobName) {
       throw new Error(`Unsupported lease activation job: ${job.name}.`);
     }
@@ -89,7 +94,7 @@ await leaseActivationWorker.waitUntilReady();
 
 console.info(`[parcelis] Worker connected to Redis for ${queues.length} queues.`);
 const stopOutboxDispatcher = startOutboxDispatcher(prisma, queueByName);
-const stopLeaseReconciler = startLeaseReconciler(prisma);
+const stopLeaseReconciler = startLeaseReconciler(prisma, queueRegistry.leasingNotifications);
 
 let isShuttingDown = false;
 

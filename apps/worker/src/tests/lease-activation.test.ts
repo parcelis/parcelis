@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { type PrismaClient } from "@parcelis/db";
-import { activateScheduledLease, endExpiredLease, reconcileLeaseLifecycle } from "../lease-activation.js";
+import { leaseReconciliationJobName } from "@parcelis/jobs";
+import type { Queue } from "bullmq";
+import {
+  activateScheduledLease,
+  endExpiredLease,
+  reconcileLeaseLifecycle,
+  startLeaseReconciler,
+} from "../lease-activation.js";
 
 function createDatabase(input: {
   startsOn: Date;
@@ -200,5 +207,28 @@ test("reconciliation ends a predecessor before activating its successor", async 
   });
   await reconcileLeaseLifecycle(prisma, new Date("2026-10-01T12:00:00.000Z"));
   assert.equal(previous(), "ended");
+  assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
+});
+
+test("database reconciliation activates a lease after its organization timezone changes", async () => {
+  const { prisma, current } = createDatabase({
+    startsOn: new Date("2026-10-02T00:00:00.000Z"),
+    timeZone: "America/Chicago",
+  });
+  await reconcileLeaseLifecycle(prisma, new Date("2026-10-02T05:00:00.000Z"));
+  assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
+});
+
+test("worker startup schedules recurring reconciliation and scans PostgreSQL", async () => {
+  const { prisma, current } = createDatabase({ startsOn: new Date("2026-10-01T00:00:00.000Z") });
+  const calls: Array<{ id: string; every: number; name: string }> = [];
+  const queue = {
+    upsertJobScheduler: async (id: string, repeat: { every: number }, template: { name: string }) => {
+      calls.push({ id, every: repeat.every, name: template.name });
+    },
+  } as unknown as Queue;
+  const stop = startLeaseReconciler(prisma, queue);
+  await stop();
+  assert.deepEqual(calls, [{ id: leaseReconciliationJobName, every: 60_000, name: leaseReconciliationJobName }]);
   assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
 });

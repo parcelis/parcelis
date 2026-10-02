@@ -4073,12 +4073,15 @@ export const appRouter = router({
                     organizationId,
                     eventType: outboxEventTypes.leaseActivation,
                     schemaVersion: 1,
-                    payload: { organizationId, leaseId: lease.id },
+                    payload: {
+                      organizationId,
+                      leaseId: lease.id,
+                      activateAt: getStartOfCalendarDate(
+                        completeLease.startsOn.toISOString().slice(0, 10),
+                        organization.timeZone,
+                      ).toISOString(),
+                    },
                     idempotencyKey: `lease:${lease.id}:activate`,
-                    availableAt: getStartOfCalendarDate(
-                      completeLease.startsOn.toISOString().slice(0, 10),
-                      organization.timeZone,
-                    ),
                   });
                 }
                 return tx.lease.findFirstOrThrow({ where: { id: lease.id, organizationId } });

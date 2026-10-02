@@ -14,6 +14,8 @@ shown as **Month-to-Month**.
 
 Scheduled leases activate on their start date in the organization's timezone. Fixed-term leases end after their
 last day, unless they continue month-to-month. These changes update occupancy without generating invoices.
+The worker checks PostgreSQL at startup and periodically, so leases still transition after a missed queue job or
+worker downtime.
 
 The metric cards show the monthly rent and the rent due day. If no rent due date is available, Parcelis shows
 **Not set**.

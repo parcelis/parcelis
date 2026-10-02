@@ -8,7 +8,7 @@ import {
   PrismaClient,
   rescheduleOutboxEvent,
 } from "@parcelis/db";
-import { getOutboxEventContract, getOutboxEventJobId, parseOutboxEventPayload } from "@parcelis/jobs";
+import { getOutboxEventContract, getOutboxEventJobId, outboxEventTypes, parseOutboxEventPayload } from "@parcelis/jobs";
 import type { Queue } from "bullmq";
 
 // Interval in milliseconds between polling for available outbox events.
@@ -31,6 +31,10 @@ function getOutboxJob(event: OutboxEvent) {
   return {
     contract,
     jobData: contract.jobSchema.parse({ ...payload, outboxEventId: event.id }),
+    delay:
+      event.eventType === outboxEventTypes.leaseActivation && "activateAt" in payload && payload.activateAt
+        ? Math.max(0, Date.parse(payload.activateAt) - Date.now())
+        : 0,
   };
 }
 
@@ -43,9 +47,10 @@ export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<stri
 
   let contract;
   let jobData;
+  let delay;
 
   try {
-    ({ contract, jobData } = getOutboxJob(event));
+    ({ contract, jobData, delay } = getOutboxJob(event));
   } catch (error) {
     await markOutboxEventFailed(prisma, {
       id: event.id,
@@ -69,6 +74,7 @@ export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<stri
   try {
     await queue.add(contract.jobName, jobData, {
       jobId: getOutboxEventJobId(event.id),
+      ...(delay ? { delay } : {}),
       ...jobRetryOptions,
     });
   } catch (error) {

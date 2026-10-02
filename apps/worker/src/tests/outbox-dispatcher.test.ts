@@ -112,6 +112,23 @@ test("a retry after enqueue succeeds uses the same BullMQ job ID", async () => {
   assert.deepEqual(jobIds, ["outbox-event-21", "outbox-event-21"]);
 });
 
+test("lease activation events enqueue a delayed job", async () => {
+  const activateAt = new Date(Date.now() + 60_000).toISOString();
+  const event = createEvent({ payload: { organizationId: 7, leaseId: 35, activateAt } });
+  const { prisma } = createPrisma(event);
+  let delay = 0;
+  const queue = {
+    add: async (_name: string, _data: unknown, options: { delay: number }) => {
+      delay = options.delay;
+      return {};
+    },
+  } as unknown as Queue;
+
+  await dispatchOutboxEvent(prisma, new Map([["leasing-notifications", queue]]), event);
+
+  assert.ok(delay > 0 && delay <= 60_000);
+});
+
 test("an event with a mismatched payload organization fails before enqueueing", async () => {
   const event = createEvent({ payload: { organizationId: 8, leaseId: 35 } });
   const { prisma, getEvent } = createPrisma(event);

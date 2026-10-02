@@ -1,7 +1,9 @@
 import { LeaseStatus, Prisma, type PrismaClient } from "@parcelis/db";
-import { getCalendarDate } from "@parcelis/jobs";
+import { getCalendarDate, leaseReconciliationJobName } from "@parcelis/jobs";
+import type { Queue } from "bullmq";
 
-const reconciliationIntervalMs = 60_000;
+const reconciliationIntervalMs = 5 * 60_000;
+const scheduledReconciliationIntervalMs = 60_000;
 const batchSize = 100;
 
 function leaseDate(date: Date) {
@@ -168,11 +170,27 @@ export async function reconcileLeaseLifecycle(prisma: PrismaClient, now = new Da
   }
 }
 
-export function startLeaseReconciler(prisma: PrismaClient) {
+export function startLeaseReconciler(prisma: PrismaClient, queue: Queue) {
   let stopped = false;
   let running: Promise<void> | null = null;
+  let refreshing: Promise<unknown> | null = null;
   const run = () => {
     if (stopped || running) return;
+    if (!refreshing) {
+      refreshing = queue
+        .upsertJobScheduler(
+          leaseReconciliationJobName,
+          { every: scheduledReconciliationIntervalMs },
+          {
+            name: leaseReconciliationJobName,
+            data: {},
+          },
+        )
+        .catch((error) => console.error("[parcelis] Could not schedule lease reconciliation:", error))
+        .finally(() => {
+          refreshing = null;
+        });
+    }
     running = reconcileLeaseLifecycle(prisma)
       .catch((error) => console.error("[parcelis] Lease lifecycle reconciliation failed:", error))
       .finally(() => {
@@ -185,5 +203,6 @@ export function startLeaseReconciler(prisma: PrismaClient) {
     stopped = true;
     clearInterval(timer);
     await running;
+    await refreshing;
   };
 }
