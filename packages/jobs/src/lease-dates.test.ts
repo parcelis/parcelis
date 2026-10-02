@@ -11,4 +11,6 @@ test("organization calendar dates differ from UTC around midnight", () => {
 test("local midnight follows daylight saving changes", () => {
   assert.equal(getStartOfCalendarDate("2026-03-08", "America/Chicago").toISOString(), "2026-03-08T06:00:00.000Z");
   assert.equal(getStartOfCalendarDate("2026-03-09", "America/Chicago").toISOString(), "2026-03-09T05:00:00.000Z");
+  assert.equal(getStartOfCalendarDate("2026-11-01", "America/Chicago").toISOString(), "2026-11-01T05:00:00.000Z");
+  assert.equal(getStartOfCalendarDate("2026-11-02", "America/Chicago").toISOString(), "2026-11-02T06:00:00.000Z");
 });

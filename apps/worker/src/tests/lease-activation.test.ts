@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { type PrismaClient } from "@parcelis/db";
+import { Prisma, type PrismaClient } from "@parcelis/db";
 import { leaseReconciliationJobName } from "@parcelis/jobs";
 import type { Queue } from "bullmq";
 import {
@@ -15,11 +15,12 @@ function createDatabase(input: {
   startsOn: Date;
   status?: string;
   occupiedLeaseId?: number;
+  previousStatus?: "active" | "notice";
   previousEndsOn?: Date;
   timeZone?: string;
 }) {
   let status = input.status ?? "scheduled";
-  let previousStatus = input.occupiedLeaseId ? "active" : null;
+  let previousStatus: string | null = input.occupiedLeaseId ? (input.previousStatus ?? "active") : null;
   let occupiedUnits = input.occupiedLeaseId ? 1 : 0;
   const activity: Array<{ subjectId: number; action: string }> = [];
   const tx = {
@@ -158,6 +159,29 @@ test("activation ends an expired predecessor and transfers occupancy", async () 
   ]);
 });
 
+test("activation ends an expired predecessor on notice", async () => {
+  const { prisma, current, previous } = createDatabase({
+    startsOn: new Date("2026-10-02T00:00:00.000Z"),
+    occupiedLeaseId: 30,
+    previousStatus: "notice",
+    previousEndsOn: new Date("2026-10-01T00:00:00.000Z"),
+  });
+  assert.equal(await activateScheduledLease(prisma, 7, 9, new Date("2026-10-02T12:00:00.000Z")), true);
+  assert.equal(previous(), "ended");
+  assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
+});
+
+test("an open-ended predecessor blocks activation", async () => {
+  const { prisma, current, previous } = createDatabase({
+    startsOn: new Date("2026-10-02T00:00:00.000Z"),
+    occupiedLeaseId: 30,
+    previousStatus: "notice",
+  });
+  await assert.rejects(activateScheduledLease(prisma, 7, 9, new Date("2026-10-02T12:00:00.000Z")), /lease 30/);
+  assert.equal(previous(), "notice");
+  assert.deepEqual(current(), { status: "scheduled", occupiedUnits: 1 });
+});
+
 test("activation rejects a predecessor whose final local day has not passed", async () => {
   const { prisma, current } = createDatabase({
     startsOn: new Date("2026-10-02T00:00:00.000Z"),
@@ -210,6 +234,46 @@ test("an eligible fixed-term lease ends once after its final local day", async (
   assert.equal(await endExpiredLease(prisma, 7, 30, new Date("2026-10-02T05:00:00.000Z")), true);
   assert.equal(await endExpiredLease(prisma, 7, 30, new Date("2026-10-02T05:00:00.000Z")), false);
   assert.deepEqual({ status, occupiedUnits }, { status: "ended", occupiedUnits: 0 });
+});
+
+test("a fixed-term lease continuing month to month is not expired", async () => {
+  const prisma = {
+    $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
+      callback({
+        lease: {
+          findFirst: async () => ({
+            id: 30,
+            organizationId: 7,
+            status: "notice",
+            termType: "fixed",
+            continueMonthToMonthAfterEnd: true,
+            endsOn: new Date("2026-10-01T00:00:00.000Z"),
+            organization: { timeZone: "UTC" },
+          }),
+          updateMany: async () => assert.fail("continuing lease must not be ended"),
+        },
+      }),
+  } as unknown as PrismaClient;
+  assert.equal(await endExpiredLease(prisma, 7, 30, new Date("2026-10-02T12:00:00.000Z")), false);
+});
+
+test("activation retries a serialization conflict without duplicating occupancy", async () => {
+  const { prisma, current, activity } = createDatabase({ startsOn: new Date("2026-10-01T00:00:00.000Z") });
+  const transaction = prisma.$transaction.bind(prisma);
+  let attempts = 0;
+  const conflictingPrisma = {
+    $transaction: async (...args: Parameters<typeof transaction>) => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Prisma.PrismaClientKnownRequestError("Write conflict", { code: "P2034", clientVersion: "0" });
+      }
+      return transaction(...args);
+    },
+  } as unknown as PrismaClient;
+  assert.equal(await activateScheduledLease(conflictingPrisma, 7, 9, new Date("2026-10-01T12:00:00.000Z")), true);
+  assert.equal(attempts, 2);
+  assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
+  assert.deepEqual(activity(), [{ subjectId: 9, action: "lease.activated" }]);
 });
 
 test("lifecycle failures are recorded once with a safe message", async () => {
