@@ -919,7 +919,7 @@ export const setApplicationStatusInputSchema = z.object({
   statusId: idSchema,
 });
 
-export const activitySubjectTypes = ["maintenance_ticket", "tenant", "property", "invoice"] as const;
+export const activitySubjectTypes = ["maintenance_ticket", "tenant", "property", "invoice", "lease"] as const;
 export const activitySubjectTypeSchema = z.enum(activitySubjectTypes);
 export const activityEventListInputSchema = z
   .object({

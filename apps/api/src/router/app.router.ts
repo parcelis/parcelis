@@ -3377,11 +3377,14 @@ export const appRouter = router({
   }),
   activityEvents: router({
     /** Lists immutable activity events globally or for one subject. */
-    list: publicProcedure.input(activityEventListInputSchema).query(({ ctx, input }) =>
-      ctx.prisma.activityEvent.findMany({
+    list: publicProcedure.input(activityEventListInputSchema).query(async ({ ctx, input }) => {
+      if (input.subjectType === ActivitySubjectType.lease) {
+        await requirePermission(ctx.prisma, ctx.user.role, "leases", "view");
+      }
+      return ctx.prisma.activityEvent.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
-          subjectType: input.subjectType,
+          subjectType: input.subjectType ?? { not: ActivitySubjectType.lease },
           subjectId: input.subjectId,
           propertyId: input.propertyId,
         },
@@ -3402,8 +3405,8 @@ export const appRouter = router({
           createdAt: true,
           property: { select: { name: true } },
         },
-      }),
-    ),
+      });
+    }),
   }),
   unitOptions: router({
     /** Lists the available utility and amenity options for units. */
@@ -3748,6 +3751,22 @@ export const appRouter = router({
           },
         });
         return lease ? { ...lease, tenants: lease.tenants.map(({ tenant }) => tenant) } : null;
+      }),
+    lifecycleEvents: permissionProcedure("leases", "view")
+      .input(leaseByIdInputSchema)
+      .query(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+        const lease = await ctx.prisma.lease.findFirst({
+          where: { id: input.id, organizationId },
+          select: { id: true },
+        });
+        if (!lease) throw new TRPCError({ code: "NOT_FOUND", message: "Lease not found." });
+        return ctx.prisma.activityEvent.findMany({
+          where: { organizationId, subjectType: ActivitySubjectType.lease, subjectId: input.id },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 20,
+          select: { id: true, action: true, metadata: true, createdAt: true, actorLabel: true },
+        });
       }),
     /** Saves fields on an editable lease draft using optimistic concurrency. */
     updateDraft: permissionProcedure("leases", "edit")
@@ -4097,6 +4116,66 @@ export const appRouter = router({
           }
         }
         throw new TRPCError({ code: "CONFLICT", message: "The lease changed. Please try again." });
+      }),
+    /** Queues another activation attempt for a due scheduled lease. */
+    retryActivation: permissionProcedure("leases", "edit")
+      .input(leaseByIdInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+        return ctx.prisma.$transaction(async (tx) => {
+          const lease = await tx.lease.findFirst({
+            where: { id: input.id, organizationId },
+            include: { organization: { select: { timeZone: true } } },
+          });
+          if (!lease) throw new TRPCError({ code: "NOT_FOUND", message: "Lease not found." });
+          if (lease.status !== LeaseStatus.scheduled || !lease.startsOn) {
+            throw new TRPCError({ code: "CONFLICT", message: "Only scheduled leases can retry activation." });
+          }
+          if (lease.startsOn.toISOString().slice(0, 10) > getCalendarDate(new Date(), lease.organization.timeZone)) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "This lease's start date has not arrived." });
+          }
+          const retryMinute = Math.floor(Date.now() / 60_000);
+          const event = await recordOutboxEvent(tx, {
+            organizationId,
+            eventType: outboxEventTypes.leaseActivation,
+            schemaVersion: 1,
+            payload: { organizationId, leaseId: lease.id, activateAt: new Date(retryMinute * 60_000).toISOString() },
+            idempotencyKey: `lease:${lease.id}:activate:retry:${retryMinute}`,
+          });
+          return { id: event.id, status: event.status };
+        });
+      }),
+    retryExpiration: permissionProcedure("leases", "edit")
+      .input(leaseByIdInputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+        return ctx.prisma.$transaction(async (tx) => {
+          const lease = await tx.lease.findFirst({
+            where: { id: input.id, organizationId },
+            include: { organization: { select: { timeZone: true } } },
+          });
+          if (!lease) throw new TRPCError({ code: "NOT_FOUND", message: "Lease not found." });
+          if (
+            (lease.status !== LeaseStatus.active && lease.status !== LeaseStatus.notice) ||
+            lease.termType !== "fixed" ||
+            lease.continueMonthToMonthAfterEnd ||
+            !lease.endsOn
+          ) {
+            throw new TRPCError({ code: "CONFLICT", message: "Only active fixed-term leases can retry expiration." });
+          }
+          if (lease.endsOn.toISOString().slice(0, 10) >= getCalendarDate(new Date(), lease.organization.timeZone)) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "This lease's end date has not passed." });
+          }
+          const retryMinute = Math.floor(Date.now() / 60_000);
+          const event = await recordOutboxEvent(tx, {
+            organizationId,
+            eventType: outboxEventTypes.leaseExpiration,
+            schemaVersion: 1,
+            payload: { organizationId, leaseId: lease.id },
+            idempotencyKey: `lease:${lease.id}:expire:retry:${retryMinute}`,
+          });
+          return { id: event.id, status: event.status };
+        });
       }),
     /** Archives a lease without changing its contractual status. */
     archive: permissionProcedure("leases", "archive")

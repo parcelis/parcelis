@@ -1,4 +1,4 @@
-import { LeaseStatus, Prisma, type PrismaClient } from "@parcelis/db";
+import { ActivitySubjectType, LeaseStatus, Prisma, type PrismaClient } from "@parcelis/db";
 import { getCalendarDate, leaseReconciliationJobName } from "@parcelis/jobs";
 import type { Queue } from "bullmq";
 
@@ -8,6 +8,64 @@ const batchSize = 100;
 
 function leaseDate(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+type FailureAction = "lease.activation_failed" | "lease.expiration_failed";
+
+function failureMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("occupies its unit")) return "Another active lease still occupies this unit.";
+  if (message.includes("incomplete")) return "The lease is missing required details.";
+  if (message.includes("occupancy") || message.includes("Property for scheduled lease")) {
+    return "The unit occupancy count needs review.";
+  }
+  return "The lease transition failed. Retry or contact support.";
+}
+
+export async function recordLeaseLifecycleFailure(
+  prisma: PrismaClient,
+  organizationId: number,
+  leaseId: number,
+  action: FailureAction,
+  error: unknown,
+) {
+  const lease = await prisma.lease.findFirst({
+    where: { id: leaseId, organizationId },
+    select: { propertyId: true },
+  });
+  if (!lease) return;
+  const message = failureMessage(error);
+  const recent = await prisma.activityEvent.findFirst({
+    where: {
+      organizationId,
+      subjectType: ActivitySubjectType.lease,
+      subjectId: leaseId,
+      action,
+      createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+    },
+    select: { metadata: true },
+    orderBy: { createdAt: "desc" },
+  });
+  if (
+    recent?.metadata &&
+    typeof recent.metadata === "object" &&
+    !Array.isArray(recent.metadata) &&
+    "message" in recent.metadata &&
+    recent.metadata.message === message
+  ) {
+    return;
+  }
+  await prisma.activityEvent.create({
+    data: {
+      organizationId,
+      subjectType: ActivitySubjectType.lease,
+      subjectId: leaseId,
+      subjectLabel: `Lease #${leaseId}`,
+      propertyId: lease.propertyId,
+      action,
+      metadata: { message },
+    },
+  });
 }
 
 export async function endExpiredLease(prisma: PrismaClient, organizationId: number, leaseId: number, now = new Date()) {
@@ -40,6 +98,17 @@ export async function endExpiredLease(prisma: PrismaClient, organizationId: numb
             data: { occupiedUnits: { decrement: 1 } },
           });
           if (released.count !== 1) throw new Error(`Lease ${leaseId} occupancy is inconsistent.`);
+          await tx.activityEvent.create({
+            data: {
+              organizationId,
+              subjectType: ActivitySubjectType.lease,
+              subjectId: leaseId,
+              subjectLabel: `Lease #${leaseId}`,
+              propertyId: lease.propertyId,
+              action: "lease.expired",
+              metadata: { previousStatus: lease.status, nextStatus: LeaseStatus.ended },
+            },
+          });
           return true;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -99,6 +168,17 @@ export async function activateScheduledLease(
               data: { occupiedUnits: { decrement: 1 } },
             });
             if (released.count !== 1) throw new Error(`Occupied lease ${occupiedLease.id} has inconsistent occupancy.`);
+            await tx.activityEvent.create({
+              data: {
+                organizationId,
+                subjectType: ActivitySubjectType.lease,
+                subjectId: occupiedLease.id,
+                subjectLabel: `Lease #${occupiedLease.id}`,
+                propertyId: occupiedLease.propertyId,
+                action: "lease.expired",
+                metadata: { previousStatus: occupiedLease.status, nextStatus: LeaseStatus.ended },
+              },
+            });
           }
 
           const updated = await tx.lease.updateMany({
@@ -111,6 +191,17 @@ export async function activateScheduledLease(
             data: { occupiedUnits: { increment: 1 } },
           });
           if (property.count !== 1) throw new Error(`Property for scheduled lease ${leaseId} was not found.`);
+          await tx.activityEvent.create({
+            data: {
+              organizationId,
+              subjectType: ActivitySubjectType.lease,
+              subjectId: leaseId,
+              subjectLabel: `Lease #${leaseId}`,
+              propertyId: lease.propertyId,
+              action: "lease.activated",
+              metadata: { previousStatus: LeaseStatus.scheduled, nextStatus: LeaseStatus.active },
+            },
+          });
           return true;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -145,6 +236,15 @@ export async function reconcileLeaseLifecycle(prisma: PrismaClient, now = new Da
         await endExpiredLease(prisma, lease.organizationId, lease.id, now);
       } catch (error) {
         console.error(`[parcelis] Could not end expired lease ${lease.id}:`, error);
+        await recordLeaseLifecycleFailure(
+          prisma,
+          lease.organizationId,
+          lease.id,
+          "lease.expiration_failed",
+          error,
+        ).catch((recordError) =>
+          console.error(`[parcelis] Could not record expiration failure for lease ${lease.id}:`, recordError),
+        );
       }
     }
     if (leases.length < batchSize) break;
@@ -164,6 +264,15 @@ export async function reconcileLeaseLifecycle(prisma: PrismaClient, now = new Da
         await activateScheduledLease(prisma, lease.organizationId, lease.id, now);
       } catch (error) {
         console.error(`[parcelis] Could not activate scheduled lease ${lease.id}:`, error);
+        await recordLeaseLifecycleFailure(
+          prisma,
+          lease.organizationId,
+          lease.id,
+          "lease.activation_failed",
+          error,
+        ).catch((recordError) =>
+          console.error(`[parcelis] Could not record activation failure for lease ${lease.id}:`, recordError),
+        );
       }
     }
     if (leases.length < batchSize) return;

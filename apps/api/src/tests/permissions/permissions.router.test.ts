@@ -83,6 +83,8 @@ test("API denies resource reads when view permission is missing", async () => {
   await Promise.all([
     expectForbidden(() => caller.properties.list()),
     expectForbidden(() => caller.leases.byId({ id: 1 })),
+    expectForbidden(() => caller.leases.lifecycleEvents({ id: 1 })),
+    expectForbidden(() => caller.activityEvents.list({ subjectType: "lease", subjectId: 1 })),
     expectForbidden(() => caller.tenants.list()),
     expectForbidden(() => caller.applications.list()),
     expectForbidden(() => caller.maintenance.list()),
@@ -105,6 +107,12 @@ test("API denies archive operations when archive permission is missing", async (
     expectForbidden(() => caller.applications.reactivate({ id: 1 })),
     expectForbidden(() => caller.maintenance.archive({ id: 1 })),
   ]);
+});
+
+test("API denies lease activation retry when edit permission is missing", async () => {
+  const caller = createDeniedCaller();
+  await expectForbidden(() => caller.leases.retryActivation({ id: 1 }));
+  await expectForbidden(() => caller.leases.retryExpiration({ id: 1 }));
 });
 
 test("API denies lease creation when create permission is missing", async () => {

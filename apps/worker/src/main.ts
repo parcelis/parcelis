@@ -13,12 +13,20 @@ import {
   getRedisConnectionOptions,
   leaseActivationJobName,
   leaseActivationJobSchema,
+  leaseExpirationJobName,
+  leaseExpirationJobSchema,
   leaseReconciliationJobName,
   notificationEmailJobName,
   queueNames,
 } from "@parcelis/jobs";
 import { Worker } from "bullmq";
-import { activateScheduledLease, reconcileLeaseLifecycle, startLeaseReconciler } from "./lease-activation.js";
+import {
+  activateScheduledLease,
+  endExpiredLease,
+  reconcileLeaseLifecycle,
+  recordLeaseLifecycleFailure,
+  startLeaseReconciler,
+} from "./lease-activation.js";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
 import { processNotificationEmailJob } from "./processors/notification-email.processor.js";
 
@@ -78,11 +86,31 @@ const leaseActivationWorker = new Worker(
     if (job.name === leaseReconciliationJobName) {
       return reconcileLeaseLifecycle(prisma);
     }
+    if (job.name === leaseExpirationJobName) {
+      const { organizationId, leaseId } = leaseExpirationJobSchema.parse(job.data);
+      try {
+        return await endExpiredLease(prisma, organizationId, leaseId);
+      } catch (error) {
+        await recordLeaseLifecycleFailure(prisma, organizationId, leaseId, "lease.expiration_failed", error).catch(
+          (recordError) =>
+            console.error(`[parcelis] Could not record expiration failure for lease ${leaseId}:`, recordError),
+        );
+        throw error;
+      }
+    }
     if (job.name !== leaseActivationJobName) {
       throw new Error(`Unsupported lease activation job: ${job.name}.`);
     }
     const { organizationId, leaseId } = leaseActivationJobSchema.parse(job.data);
-    return activateScheduledLease(prisma, organizationId, leaseId);
+    try {
+      return await activateScheduledLease(prisma, organizationId, leaseId);
+    } catch (error) {
+      await recordLeaseLifecycleFailure(prisma, organizationId, leaseId, "lease.activation_failed", error).catch(
+        (recordError) =>
+          console.error(`[parcelis] Could not record activation failure for lease ${leaseId}:`, recordError),
+      );
+      throw error;
+    }
   },
   { connection: redisConnection },
 );

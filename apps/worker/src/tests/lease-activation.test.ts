@@ -6,6 +6,7 @@ import type { Queue } from "bullmq";
 import {
   activateScheduledLease,
   endExpiredLease,
+  recordLeaseLifecycleFailure,
   reconcileLeaseLifecycle,
   startLeaseReconciler,
 } from "../lease-activation.js";
@@ -20,7 +21,14 @@ function createDatabase(input: {
   let status = input.status ?? "scheduled";
   let previousStatus = input.occupiedLeaseId ? "active" : null;
   let occupiedUnits = input.occupiedLeaseId ? 1 : 0;
+  const activity: Array<{ subjectId: number; action: string }> = [];
   const tx = {
+    activityEvent: {
+      create: async ({ data }: { data: { subjectId: number; action: string } }) => {
+        activity.push({ subjectId: data.subjectId, action: data.action });
+        return { id: activity.length };
+      },
+    },
     lease: {
       findFirst: async ({ where }: { where: { id?: number; organizationId: number; unitId?: number } }) => {
         assert.equal(where.organizationId, 7);
@@ -93,15 +101,21 @@ function createDatabase(input: {
       },
     },
   } as unknown as PrismaClient;
-  return { prisma, current: () => ({ status, occupiedUnits }), previous: () => previousStatus };
+  return {
+    prisma,
+    current: () => ({ status, occupiedUnits }),
+    previous: () => previousStatus,
+    activity: () => activity,
+  };
 }
 
 test("activation changes status and occupancy only once", async () => {
-  const { prisma, current } = createDatabase({ startsOn: new Date("2026-10-01T00:00:00.000Z") });
+  const { prisma, current, activity } = createDatabase({ startsOn: new Date("2026-10-01T00:00:00.000Z") });
   const now = new Date("2026-10-01T12:00:00.000Z");
   assert.equal(await activateScheduledLease(prisma, 7, 9, now), true);
   assert.equal(await activateScheduledLease(prisma, 7, 9, now), false);
   assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
+  assert.deepEqual(activity(), [{ subjectId: 9, action: "lease.activated" }]);
 });
 
 test("activation waits until the lease start", async () => {
@@ -130,7 +144,7 @@ test("an occupied unit keeps the lease scheduled for recovery", async () => {
 });
 
 test("activation ends an expired predecessor and transfers occupancy", async () => {
-  const { prisma, current, previous } = createDatabase({
+  const { prisma, current, previous, activity } = createDatabase({
     startsOn: new Date("2026-10-01T00:00:00.000Z"),
     occupiedLeaseId: 30,
     previousEndsOn: new Date("2026-09-30T00:00:00.000Z"),
@@ -138,6 +152,10 @@ test("activation ends an expired predecessor and transfers occupancy", async () 
   assert.equal(await activateScheduledLease(prisma, 7, 9, new Date("2026-10-01T12:00:00.000Z")), true);
   assert.equal(previous(), "ended");
   assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
+  assert.deepEqual(activity(), [
+    { subjectId: 30, action: "lease.expired" },
+    { subjectId: 9, action: "lease.activated" },
+  ]);
 });
 
 test("activation rejects a predecessor whose final local day has not passed", async () => {
@@ -154,6 +172,7 @@ test("an eligible fixed-term lease ends once after its final local day", async (
   let status = "active";
   let occupiedUnits = 1;
   const tx = {
+    activityEvent: { create: async () => ({ id: 1 }) },
     lease: {
       findFirst: async () => ({
         id: 30,
@@ -191,6 +210,35 @@ test("an eligible fixed-term lease ends once after its final local day", async (
   assert.equal(await endExpiredLease(prisma, 7, 30, new Date("2026-10-02T05:00:00.000Z")), true);
   assert.equal(await endExpiredLease(prisma, 7, 30, new Date("2026-10-02T05:00:00.000Z")), false);
   assert.deepEqual({ status, occupiedUnits }, { status: "ended", occupiedUnits: 0 });
+});
+
+test("lifecycle failures are recorded once with a safe message", async () => {
+  const events: Array<{ organizationId: number; subjectId: number; action: string; metadata: { message: string } }> =
+    [];
+  const prisma = {
+    lease: { findFirst: async () => ({ propertyId: 2 }) },
+    activityEvent: {
+      findFirst: async () => events.at(-1) ?? null,
+      create: async ({ data }: { data: (typeof events)[number] }) => {
+        events.push(data);
+        return { id: events.length };
+      },
+    },
+  } as unknown as PrismaClient;
+  const error = new Error("Scheduled lease 9 cannot activate while lease 30 occupies its unit.");
+  await recordLeaseLifecycleFailure(prisma, 7, 9, "lease.activation_failed", error);
+  await recordLeaseLifecycleFailure(prisma, 7, 9, "lease.activation_failed", error);
+  assert.deepEqual(events, [
+    {
+      organizationId: 7,
+      subjectType: "lease",
+      subjectId: 9,
+      subjectLabel: "Lease #9",
+      propertyId: 2,
+      action: "lease.activation_failed",
+      metadata: { message: "Another active lease still occupies this unit." },
+    },
+  ]);
 });
 
 test("reconciliation activates a due lease after a missing queue delivery", async () => {

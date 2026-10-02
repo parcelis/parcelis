@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -70,6 +71,26 @@ function dueDay(day: number | undefined) {
   return `${day}${suffix} of each month`;
 }
 
+function lifecycleLabel(action: string) {
+  if (action === "lease.activated") return "Lease activated";
+  if (action === "lease.expired") return "Lease ended";
+  if (action === "lease.activation_failed") return "Activation needs attention";
+  if (action === "lease.expiration_failed") return "Expiration needs attention";
+  return "Lease activity";
+}
+
+function lifecycleMessage(metadata: unknown) {
+  if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) return null;
+  return "message" in metadata && typeof metadata.message === "string" ? metadata.message : null;
+}
+
+type LeaseLifecycleEvent = {
+  id: number;
+  action: string;
+  metadata: unknown;
+  createdAt: Date | string;
+};
+
 export default function LeaseDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -87,7 +108,34 @@ export default function LeaseDetailPage() {
     queryKey: queryKeys.leases.byId(leaseId),
     queryFn: () => apiClient.leases.byId.query({ id: leaseId }),
   });
+  const lifecycleQuery = useQuery({
+    enabled: canViewLease && Boolean(leaseQuery.data),
+    queryKey: ["leases", "lifecycleEvents", leaseId],
+    queryFn: () => apiClient.leases.lifecycleEvents.query({ id: leaseId }),
+  });
+  const retryActivation = useMutation({
+    mutationFn: () => apiClient.leases.retryActivation.mutate({ id: leaseId }),
+    onSuccess: async () => {
+      toast.success("Activation retry queued.");
+      await queryClient.invalidateQueries({ queryKey: ["leases", "lifecycleEvents", leaseId] });
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const retryExpiration = useMutation({
+    mutationFn: () => apiClient.leases.retryExpiration.mutate({ id: leaseId }),
+    onSuccess: () => toast.success("Expiration retry queued."),
+    onError: (error) => toast.error(error.message),
+  });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
+  const lifecycleEvents = (lifecycleQuery.data ?? []) as LeaseLifecycleEvent[];
+  const canRetryActivation =
+    canEditLease &&
+    leaseRecord?.status === "scheduled" &&
+    lifecycleEvents.some((event) => event.action === "lease.activation_failed");
+  const canRetryExpiration =
+    canEditLease &&
+    (leaseRecord?.status === "active" || leaseRecord?.status === "notice") &&
+    lifecycleEvents.some((event) => event.action === "lease.expiration_failed");
   const unit = leaseRecord?.unit;
   const refreshLeaseData = async () => {
     await Promise.all([
@@ -176,6 +224,18 @@ export default function LeaseDetailPage() {
                 <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
                   Lease Actions
                 </p>
+                {canRetryActivation ? (
+                  <DropdownMenuItem disabled={retryActivation.isPending} onSelect={() => retryActivation.mutate()}>
+                    <RefreshCw className="h-4 w-4 text-parcelis-green" />
+                    Retry activation
+                  </DropdownMenuItem>
+                ) : null}
+                {canRetryExpiration ? (
+                  <DropdownMenuItem disabled={retryExpiration.isPending} onSelect={() => retryExpiration.mutate()}>
+                    <RefreshCw className="h-4 w-4 text-parcelis-green" />
+                    Retry expiration
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem disabled={!canEditLease}>
                   <ClipboardEdit className="h-4 w-4 text-parcelis-green" />
                   Initiate Damage Report
@@ -257,6 +317,36 @@ export default function LeaseDetailPage() {
                 />
                 <Metric icon={CalendarDays} label="Rent Due" value={dueDay(leaseRecord.rentDueDay)} />
               </section>
+              <Card className="mt-5">
+                <CardHeader>
+                  <h2 className="font-semibold text-parcelis-charcoal">Lease activity</h2>
+                </CardHeader>
+                <CardContent>
+                  {lifecycleQuery.isLoading ? (
+                    <LoadingState label="Loading lease activity…" />
+                  ) : lifecycleQuery.error ? (
+                    <p className="text-sm text-red-700">{lifecycleQuery.error.message}</p>
+                  ) : lifecycleEvents.length ? (
+                    <ul className="divide-y divide-parcelis-border">
+                      {lifecycleEvents.map((event) => (
+                        <li className="py-3" key={event.id}>
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                            <span className="font-semibold text-parcelis-charcoal">{lifecycleLabel(event.action)}</span>
+                            <time className="text-parcelis-gray" dateTime={new Date(event.createdAt).toISOString()}>
+                              {new Date(event.createdAt).toLocaleString()}
+                            </time>
+                          </div>
+                          {lifecycleMessage(event.metadata) ? (
+                            <p className="mt-1 text-sm text-parcelis-gray">{lifecycleMessage(event.metadata)}</p>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-parcelis-gray">No lifecycle activity yet.</p>
+                  )}
+                </CardContent>
+              </Card>
               <section className="mt-5 flex flex-col gap-5 lg:flex-row">
                 <Card className="flex-1">
                   <CardHeader>

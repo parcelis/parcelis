@@ -32,7 +32,9 @@ function getOutboxJob(event: OutboxEvent) {
     contract,
     jobData: contract.jobSchema.parse({ ...payload, outboxEventId: event.id }),
     delay:
-      event.eventType === outboxEventTypes.leaseActivation && "activateAt" in payload && payload.activateAt
+      event.eventType === outboxEventTypes.leaseActivation &&
+      "activateAt" in payload &&
+      typeof payload.activateAt === "string"
         ? Math.max(0, Date.parse(payload.activateAt) - Date.now())
         : 0,
   };

@@ -10,6 +10,7 @@ const idSchema = z.number().int().positive();
 
 export const outboxEventTypes = {
   leaseActivation: "lease.activate",
+  leaseExpiration: "lease.expire",
   notificationEmail: "notification.email",
 } as const;
 
@@ -27,6 +28,13 @@ export const leaseReconciliationJobName = "lease.reconcile.v1";
 export const leaseActivationJobSchema = leaseActivationOutboxPayloadSchema.extend({ outboxEventId: idSchema }).strict();
 export type LeaseActivationJob = z.infer<typeof leaseActivationJobSchema>;
 
+export const leaseExpirationOutboxPayloadSchema = leaseActivationOutboxPayloadSchema.pick({
+  organizationId: true,
+  leaseId: true,
+});
+export const leaseExpirationJobName = "lease.expire.v1";
+export const leaseExpirationJobSchema = leaseExpirationOutboxPayloadSchema.extend({ outboxEventId: idSchema }).strict();
+
 export const notificationEmailOutboxPayloadSchema = notificationEmailJobSchema;
 export type NotificationEmailOutboxPayload = z.infer<typeof notificationEmailOutboxPayloadSchema>;
 
@@ -37,6 +45,13 @@ const outboxEventContracts = {
     jobName: leaseActivationJobName,
     payloadSchema: leaseActivationOutboxPayloadSchema,
     jobSchema: leaseActivationJobSchema,
+  },
+  [outboxEventTypes.leaseExpiration]: {
+    schemaVersion: 1,
+    queueName: queueNames.leasingNotifications,
+    jobName: leaseExpirationJobName,
+    payloadSchema: leaseExpirationOutboxPayloadSchema,
+    jobSchema: leaseExpirationJobSchema,
   },
   [outboxEventTypes.notificationEmail]: {
     schemaVersion: 1,

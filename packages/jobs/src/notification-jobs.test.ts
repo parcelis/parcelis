@@ -108,6 +108,16 @@ test("notification.email outbox contract resolves to account notifications queue
   assert.equal(contract.jobName, notificationEmailJobName);
 });
 
+test("lease expiration outbox contract routes to the leasing worker", () => {
+  const contract = getOutboxEventContract(outboxEventTypes.leaseExpiration, 1);
+  assert.equal(contract.queueName, queueNames.leasingNotifications);
+  assert.equal(contract.jobName, "lease.expire.v1");
+  assert.deepEqual(contract.payloadSchema.parse({ organizationId: 7, leaseId: 9 }), {
+    organizationId: 7,
+    leaseId: 9,
+  });
+});
+
 test("notification.email outbox payload parser validates payload shape", () => {
   const payload = {
     organizationId: 7,
