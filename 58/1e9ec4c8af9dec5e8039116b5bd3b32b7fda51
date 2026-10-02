@@ -1,0 +1,44 @@
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  s_5f4b236d903762::t_c65696f9532e2f 115-131
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_5f4b236d903762::t_e52d0706879202 144,146
+  s_5f4b236d903762::t_f56d58781f2a60 59,138-142,145,152
+apps/worker/src/tests/lease-activation.test.ts
+  s_5f4b236d903762::t_ecc24b828d5d87 6-11
+  s_5f4b236d903762::t_4bf23a17009d18 4-5,212-234
+apps/api/src/router/app.router.ts
+  s_5f4b236d903762::t_d18e68686c62a1 4076-4083
+apps/docs/content/platform-user-guide/app-functionality/lease-details.mdx
+  s_5f4b236d903762::t_02324be62cf68e 17-18
+apps/worker/src/main.ts
+  s_5f4b236d903762::t_0cafe79bd746ab 37-38,97
+  s_5f4b236d903762::t_b4d682a20fc780 16,21,78-80
+packages/jobs/src/contracts.ts
+  s_5f4b236d903762::t_ecc24b828d5d87 27
+  s_5f4b236d903762::t_d18e68686c62a1 20
+  s_5f4b236d903762::t_b4d682a20fc780 26
+apps/worker/src/outbox-dispatcher.ts
+  s_5f4b236d903762::t_d18e68686c62a1 11,34-37,50,53,77
+apps/worker/src/lease-activation.ts
+  s_5f4b236d903762::t_b4d682a20fc780 2-3,5-6,173
+  s_5f4b236d903762::t_f08fb4b42d9055 176,179-180,189-193,206
+  s_5f4b236d903762::t_ecc24b828d5d87 181-188
+ARCHITECTURE.md
+  s_5f4b236d903762::t_4bf23a17009d18 84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "581e9ec4c8af9dec5e8039116b5bd3b32b7fda51",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
