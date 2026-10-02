@@ -1,0 +1,36 @@
+apps/api/src/tests/leases/lease-lifecycle.router.test.ts
+  s_5f4b236d903762::t_ca0a18e533f66d 49,53
+packages/jobs/src/lease-dates.ts
+  s_5f4b236d903762::t_263327905b84d4 9
+apps/docs/content/platform-user-guide/app-functionality/lease-details.mdx
+  s_5f4b236d903762::t_ca0a18e533f66d 22-23
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  s_5f4b236d903762::t_6aa96617b52572 127,129,131-132
+apps/worker/src/main.ts
+  s_5f4b236d903762::t_0c0544de8cf5b3 26,95-100,111-116
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_5f4b236d903762::t_ca0a18e533f66d 126-129
+apps/worker/src/lease-activation.ts
+  s_5f4b236d903762::t_0c0544de8cf5b3 15-18
+apps/worker/src/tests/lease-activation.test.ts
+  s_5f4b236d903762::t_0c0544de8cf5b3 9,15-20
+  s_5f4b236d903762::t_bb3e5bd47f08c9 21
+packages/jobs/src/lease-dates.test.ts
+  s_5f4b236d903762::t_ffccd54632f848 17-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a1de16e06afd45f176e9502f28005f80ccc0b267",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
