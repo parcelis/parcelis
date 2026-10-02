@@ -1,0 +1,64 @@
+apps/worker/src/main.ts
+  s_5f4b236d903762::t_fc6abc15387eb3 16-17,25,89-94,97-99
+  s_5f4b236d903762::t_9a846e4857522f 23-24,26-29,100,105-108,111-113
+  s_5f4b236d903762::t_2a22c61b8d5983 95-96,109-110
+apps/worker/src/tests/lease-activation.test.ts
+  s_5f4b236d903762::t_2a22c61b8d5983 104-109,216-217
+  s_5f4b236d903762::t_dc60aa357f9b38 9,24,26-31,113,118,147,155-158,175,215,218-241
+  s_5f4b236d903762::t_52a61e919e42fd 242-243
+apps/docs/content/platform-user-guide/app-functionality/lease-details.mdx
+  s_5f4b236d903762::t_37a196821a2c4a 20-23
+packages/db/prisma/schema.prisma
+  s_5f4b236d903762::t_5c8a1bea9728df 75
+apps/worker/src/lease-activation.ts
+  s_5f4b236d903762::t_9a846e4857522f 1,13-70,101-111,171-181,194-204,247,275
+  s_5f4b236d903762::t_2a22c61b8d5983 239-246,267-274
+apps/worker/src/outbox-dispatcher.ts
+  s_5f4b236d903762::t_065435f68fbdc9 35-37
+apps/api/src/tests/leases/lease-lifecycle.router.test.ts
+  s_5f4b236d903762::t_4518c81c7a1f27 1-43,47-67,71-73,110-127
+  s_5f4b236d903762::t_2a22c61b8d5983 44-46,68-70,103-105
+  s_5f4b236d903762::t_bb72a575b0b004 74-102,106-109
+  s_5f4b236d903762::t_17e7e8a7dc0249 128-139
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_5f4b236d903762::t_bb72a575b0b004 115
+  s_5f4b236d903762::t_4518c81c7a1f27 86,112-114
+  s_5f4b236d903762::t_bc59cffd3191bf 87
+  s_5f4b236d903762::t_466f9773fc4aab 116-117
+packages/jobs/src/contracts.ts
+  s_5f4b236d903762::t_fc6abc15387eb3 13,31-37,49-54
+  s_5f4b236d903762::t_0cdc5c1b4fd2b6 55
+apps/api/src/router/app.router.ts
+  s_5f4b236d903762::t_65a910d237fca1 4120
+  s_5f4b236d903762::t_68550f1d68bae0 3380-3384,3387,3408-3409,3755-3769,4121-4147
+  s_5f4b236d903762::t_5247e06b0ba32e 3770,4148-4179
+ARCHITECTURE.md
+  s_5f4b236d903762::t_37a196821a2c4a 84
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_5f4b236d903762::t_5247e06b0ba32e 124-128,135-138,231-236
+  s_5f4b236d903762::t_2a22c61b8d5983 228
+  s_5f4b236d903762::t_b850bbfc851d92 87-93,130,134,329,331
+  s_5f4b236d903762::t_c58bddf0bef5b3 6-7,74-86,111-123,131-133,227,229-230,237-238,320-328,330,332-349
+packages/db/prisma/migrations/20260930020000_add_lease_activity_subject/migration.sql
+  s_5f4b236d903762::t_5c8a1bea9728df 1
+packages/schemas/src/index.ts
+  s_5f4b236d903762::t_5c8a1bea9728df 922
+packages/jobs/src/notification-jobs.test.ts
+  s_5f4b236d903762::t_203ff6b71ad017 111-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9005b477518adba453281e0d73587654f80b0b7b",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
