@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@parcelis/config": "workspace:*",
-    "@types/node": "24.13.6",
+    "@types/node": "24.19.1",
     "tsx": "^4.21.0",
     "typescript": "6.0.3"
   }

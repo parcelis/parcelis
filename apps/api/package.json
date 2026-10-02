@@ -51,7 +51,7 @@
     "@parcelis/config": "workspace:*",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.6",
-    "@types/node": "24.13.6",
+    "@types/node": "24.19.1",
     "tsx": "^4.23.12",
     "typescript": "6.0.3"
   }
