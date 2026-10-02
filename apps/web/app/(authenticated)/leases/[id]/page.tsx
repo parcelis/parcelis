@@ -123,7 +123,10 @@ export default function LeaseDetailPage() {
   });
   const retryExpiration = useMutation({
     mutationFn: () => apiClient.leases.retryExpiration.mutate({ id: leaseId }),
-    onSuccess: () => toast.success("Expiration retry queued."),
+    onSuccess: async () => {
+      toast.success("Expiration retry queued.");
+      await queryClient.invalidateQueries({ queryKey: ["leases", "lifecycleEvents", leaseId] });
+    },
     onError: (error) => toast.error(error.message),
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;

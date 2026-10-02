@@ -23,6 +23,7 @@ import { Worker } from "bullmq";
 import {
   activateScheduledLease,
   endExpiredLease,
+  isFinalLeaseJobAttempt,
   reconcileLeaseLifecycle,
   recordLeaseLifecycleFailure,
   startLeaseReconciler,
@@ -91,10 +92,12 @@ const leaseActivationWorker = new Worker(
       try {
         return await endExpiredLease(prisma, organizationId, leaseId);
       } catch (error) {
-        await recordLeaseLifecycleFailure(prisma, organizationId, leaseId, "lease.expiration_failed", error).catch(
-          (recordError) =>
-            console.error(`[parcelis] Could not record expiration failure for lease ${leaseId}:`, recordError),
-        );
+        if (isFinalLeaseJobAttempt(job.attemptsMade, job.opts.attempts)) {
+          await recordLeaseLifecycleFailure(prisma, organizationId, leaseId, "lease.expiration_failed", error).catch(
+            (recordError) =>
+              console.error(`[parcelis] Could not record expiration failure for lease ${leaseId}:`, recordError),
+          );
+        }
         throw error;
       }
     }
@@ -105,10 +108,12 @@ const leaseActivationWorker = new Worker(
     try {
       return await activateScheduledLease(prisma, organizationId, leaseId);
     } catch (error) {
-      await recordLeaseLifecycleFailure(prisma, organizationId, leaseId, "lease.activation_failed", error).catch(
-        (recordError) =>
-          console.error(`[parcelis] Could not record activation failure for lease ${leaseId}:`, recordError),
-      );
+      if (isFinalLeaseJobAttempt(job.attemptsMade, job.opts.attempts)) {
+        await recordLeaseLifecycleFailure(prisma, organizationId, leaseId, "lease.activation_failed", error).catch(
+          (recordError) =>
+            console.error(`[parcelis] Could not record activation failure for lease ${leaseId}:`, recordError),
+        );
+      }
       throw error;
     }
   },

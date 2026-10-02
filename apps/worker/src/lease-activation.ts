@@ -12,6 +12,10 @@ function leaseDate(date: Date) {
 
 type FailureAction = "lease.activation_failed" | "lease.expiration_failed";
 
+export function isFinalLeaseJobAttempt(attemptsMade: number, attempts = 1) {
+  return attemptsMade + 1 >= attempts;
+}
+
 function failureMessage(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes("occupies its unit")) return "Another active lease still occupies this unit.";

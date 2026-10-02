@@ -124,9 +124,12 @@ test("lease activation events enqueue a delayed job", async () => {
     },
   } as unknown as Queue;
 
+  const beforeDispatch = Date.now();
   await dispatchOutboxEvent(prisma, new Map([["leasing-notifications", queue]]), event);
+  const afterDispatch = Date.now();
 
-  assert.ok(delay > 0 && delay <= 60_000);
+  assert.ok(delay <= Date.parse(activateAt) - beforeDispatch);
+  assert.ok(delay >= Date.parse(activateAt) - afterDispatch);
 });
 
 test("an event with a mismatched payload organization fails before enqueueing", async () => {

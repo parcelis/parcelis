@@ -6,10 +6,18 @@ import type { Queue } from "bullmq";
 import {
   activateScheduledLease,
   endExpiredLease,
+  isFinalLeaseJobAttempt,
   recordLeaseLifecycleFailure,
   reconcileLeaseLifecycle,
   startLeaseReconciler,
 } from "../lease-activation.js";
+
+test("lease jobs record failures only after their last configured attempt", () => {
+  assert.equal(isFinalLeaseJobAttempt(0, 3), false);
+  assert.equal(isFinalLeaseJobAttempt(1, 3), false);
+  assert.equal(isFinalLeaseJobAttempt(2, 3), true);
+  assert.equal(isFinalLeaseJobAttempt(0), true);
+});
 
 function createDatabase(input: {
   startsOn: Date;

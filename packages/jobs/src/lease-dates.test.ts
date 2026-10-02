@@ -14,3 +14,9 @@ test("local midnight follows daylight saving changes", () => {
   assert.equal(getStartOfCalendarDate("2026-11-01", "America/Chicago").toISOString(), "2026-11-01T05:00:00.000Z");
   assert.equal(getStartOfCalendarDate("2026-11-02", "America/Chicago").toISOString(), "2026-11-02T06:00:00.000Z");
 });
+
+test("calendar dates preserve four-digit years before 1000", () => {
+  const instant = new Date("0500-01-01T00:00:00.000Z");
+  assert.equal(getCalendarDate(instant, "UTC"), "0500-01-01");
+  assert.equal(getStartOfCalendarDate("0500-01-01", "UTC").toISOString(), instant.toISOString());
+});

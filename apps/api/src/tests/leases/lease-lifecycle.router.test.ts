@@ -46,10 +46,11 @@ test("authorized retry records one immediate activation request for a due lease"
   });
   assert.deepEqual(await caller.leases.retryActivation({ id: 9 }), { id: 41, status: "pending" });
   assert.match(idempotencyKey, /^lease:9:activate:retry:\d+$/);
+  const retryMinute = Number(idempotencyKey.split(":").at(-1));
   assert.deepEqual(payload, {
     organizationId: 7,
     leaseId: 9,
-    activateAt: new Date(Math.floor(Date.now() / 60_000) * 60_000).toISOString(),
+    activateAt: new Date(retryMinute * 60_000).toISOString(),
   });
 });
 

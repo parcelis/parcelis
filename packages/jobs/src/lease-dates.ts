@@ -6,7 +6,7 @@ export function getCalendarDate(instant: Date, timeZone: string) {
     day: "2-digit",
   }).formatToParts(instant);
   const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year}-${value.month}-${value.day}`;
+  return `${value.year!.padStart(4, "0")}-${value.month}-${value.day}`;
 }
 
 export function getStartOfCalendarDate(date: string, timeZone: string) {
