@@ -92,7 +92,7 @@ import {
   replayFailedOutboxEvent,
   recordOutboxEvent,
 } from "@parcelis/db";
-import { outboxEventTypes } from "@parcelis/jobs";
+import { getCalendarDate, getStartOfCalendarDate, outboxEventTypes } from "@parcelis/jobs";
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
@@ -430,8 +430,8 @@ export function getMonthlyDueDate(periodStartsOn: Date, rentDueDay: number) {
   return new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth(), Math.min(rentDueDay, lastDayOfMonth));
 }
 
-function isFutureLeaseStart(startsOn: Date) {
-  return startsOn.toISOString().slice(0, 10) > new Date().toISOString().slice(0, 10);
+function isFutureLeaseStart(startsOn: Date, timeZone: string) {
+  return startsOn.toISOString().slice(0, 10) > getCalendarDate(new Date(), timeZone);
 }
 
 function leaseOverlapWhere(
@@ -2088,7 +2088,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         if (
           input.status === LeaseStatus.scheduled ||
-          (input.status !== LeaseStatus.draft && isFutureLeaseStart(input.startsOn))
+          (input.status !== LeaseStatus.draft && isFutureLeaseStart(input.startsOn, ctx.organization.organization.timeZone))
         ) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -4019,7 +4019,13 @@ export const appRouter = router({
                   throw new TRPCError({ code: "CONFLICT", message: "This unit has a lease with overlapping dates." });
                 }
 
-                const status = isFutureLeaseStart(completeLease.startsOn) ? LeaseStatus.scheduled : LeaseStatus.active;
+                const organization = await tx.organization.findUniqueOrThrow({
+                  where: { id: organizationId },
+                  select: { timeZone: true },
+                });
+                const status = isFutureLeaseStart(completeLease.startsOn, organization.timeZone)
+                  ? LeaseStatus.scheduled
+                  : LeaseStatus.active;
                 const updated = await tx.lease.updateMany({
                   where: {
                     id: lease.id,
@@ -4069,7 +4075,10 @@ export const appRouter = router({
                     schemaVersion: 1,
                     payload: { organizationId, leaseId: lease.id },
                     idempotencyKey: `lease:${lease.id}:activate`,
-                    availableAt: completeLease.startsOn,
+                    availableAt: getStartOfCalendarDate(
+                      completeLease.startsOn.toISOString().slice(0, 10),
+                      organization.timeZone,
+                    ),
                   });
                 }
                 return tx.lease.findFirstOrThrow({ where: { id: lease.id, organizationId } });
@@ -4143,7 +4152,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         if (
           input.status === LeaseStatus.scheduled ||
-          (input.status !== LeaseStatus.draft && isFutureLeaseStart(input.startsOn))
+          (input.status !== LeaseStatus.draft && isFutureLeaseStart(input.startsOn, ctx.organization.organization.timeZone))
         ) {
           throw new TRPCError({
             code: "BAD_REQUEST",

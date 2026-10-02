@@ -46,6 +46,7 @@ function createDatabase(
   overrides: Record<string, unknown> = {},
   existingLease?: ExistingLease,
   predecessorOccupiedUnits = 1,
+  timeZone = "UTC",
 ) {
   const lease = { ...draft(start), ...overrides };
   let created = false;
@@ -54,6 +55,7 @@ function createDatabase(
   let occupiedIncrements = 0;
   let occupiedUnits = existingLease ? predecessorOccupiedUnits : 0;
   let outboxWrites = 0;
+  let activationAt: Date | undefined;
   let invoiceWrites = 0;
   const tx = {
     lease: {
@@ -129,10 +131,12 @@ function createDatabase(
       },
     },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    organization: { findUniqueOrThrow: async () => ({ timeZone }) },
     tenant: { findMany: async () => [{ id: 11 }] },
     outboxEvent: {
-      createMany: async () => {
+      createMany: async ({ data }: { data: { availableAt: Date } }) => {
         outboxWrites += 1;
+        activationAt = data.availableAt;
         return { count: 1 };
       },
       findUniqueOrThrow: async () => ({
@@ -154,6 +158,7 @@ function createDatabase(
     counts: () => ({ occupiedIncrements, outboxWrites }),
     invoiceWrites: () => invoiceWrites,
     previousStatus: () => previousStatus,
+    activationAt: () => activationAt,
   };
 }
 
@@ -175,6 +180,13 @@ test("finalizes a future draft as scheduled and records one activation event", a
   await caller.leases.finalizeDraft(input);
   assert.equal(first.status, "scheduled");
   assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 1 });
+});
+
+test("schedules activation at the organization's local midnight", async () => {
+  const start = calendarDay(10);
+  const { caller, activationAt } = createDatabase(start, false, {}, undefined, 1, "Asia/Tokyo");
+  await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
+  assert.equal(activationAt()?.getTime(), start.getTime() - 9 * 60 * 60 * 1000);
 });
 
 test("rejects overlapping dates without changing the draft", async () => {

@@ -17,7 +17,7 @@ import {
   queueNames,
 } from "@parcelis/jobs";
 import { Worker } from "bullmq";
-import { activateScheduledLease, startLeaseActivationReconciler } from "./lease-activation.js";
+import { activateScheduledLease, startLeaseReconciler } from "./lease-activation.js";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
 import { processNotificationEmailJob } from "./processors/notification-email.processor.js";
 
@@ -89,7 +89,7 @@ await leaseActivationWorker.waitUntilReady();
 
 console.info(`[parcelis] Worker connected to Redis for ${queues.length} queues.`);
 const stopOutboxDispatcher = startOutboxDispatcher(prisma, queueByName);
-const stopLeaseActivationReconciler = startLeaseActivationReconciler(prisma);
+const stopLeaseReconciler = startLeaseReconciler(prisma);
 
 let isShuttingDown = false;
 
@@ -108,7 +108,7 @@ async function shutdown(signal: NodeJS.Signals) {
 
   try {
     await stopOutboxDispatcher();
-    await stopLeaseActivationReconciler();
+    await stopLeaseReconciler();
     await notificationEmailWorker.close();
     await leaseActivationWorker.close();
     await Promise.allSettled(queues.map((queue) => queue.close()));

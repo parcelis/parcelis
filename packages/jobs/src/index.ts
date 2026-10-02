@@ -1,6 +1,7 @@
 import type { ConnectionOptions } from "bullmq";
 
 export * from "./contracts.js";
+export * from "./lease-dates.js";
 export * from "./notification-jobs.js";
 export * from "./queue-names.js";
 export * from "./queue-registry.js";

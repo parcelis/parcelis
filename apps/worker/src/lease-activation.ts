@@ -1,7 +1,54 @@
 import { LeaseStatus, Prisma, type PrismaClient } from "@parcelis/db";
+import { getCalendarDate } from "@parcelis/jobs";
 
 const reconciliationIntervalMs = 60_000;
 const batchSize = 100;
+
+function leaseDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+export async function endExpiredLease(prisma: PrismaClient, organizationId: number, leaseId: number, now = new Date()) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const lease = await tx.lease.findFirst({
+            where: { id: leaseId, organizationId },
+            include: { organization: { select: { timeZone: true } } },
+          });
+          if (
+            !lease ||
+            (lease.status !== LeaseStatus.active && lease.status !== LeaseStatus.notice) ||
+            lease.termType !== "fixed" ||
+            lease.continueMonthToMonthAfterEnd ||
+            !lease.endsOn ||
+            leaseDate(lease.endsOn) >= getCalendarDate(now, lease.organization.timeZone)
+          ) {
+            return false;
+          }
+          const ended = await tx.lease.updateMany({
+            where: { id: leaseId, organizationId, status: lease.status },
+            data: { status: LeaseStatus.ended },
+          });
+          if (ended.count !== 1) return false;
+          if (!lease.propertyId) throw new Error(`Lease ${leaseId} has no property.`);
+          const released = await tx.property.updateMany({
+            where: { id: lease.propertyId, organizationId, occupiedUnits: { gt: 0 } },
+            data: { occupiedUnits: { decrement: 1 } },
+          });
+          if (released.count !== 1) throw new Error(`Lease ${leaseId} occupancy is inconsistent.`);
+          return true;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034" && attempt < 2) continue;
+      throw error;
+    }
+  }
+  return false;
+}
 
 export async function activateScheduledLease(
   prisma: PrismaClient,
@@ -13,12 +60,16 @@ export async function activateScheduledLease(
     try {
       return await prisma.$transaction(
         async (tx) => {
-          const lease = await tx.lease.findFirst({ where: { id: leaseId, organizationId } });
+          const lease = await tx.lease.findFirst({
+            where: { id: leaseId, organizationId },
+            include: { organization: { select: { timeZone: true } } },
+          });
           if (!lease || lease.status !== LeaseStatus.scheduled) return false;
           if (!lease.startsOn || !lease.propertyId || !lease.unitId) {
             throw new Error(`Scheduled lease ${leaseId} is incomplete.`);
           }
-          if (lease.startsOn > now) return false;
+          const today = getCalendarDate(now, lease.organization.timeZone);
+          if (leaseDate(lease.startsOn) > today) return false;
 
           const occupiedLease = await tx.lease.findFirst({
             where: {
@@ -30,7 +81,7 @@ export async function activateScheduledLease(
             select: { id: true, status: true, endsOn: true, propertyId: true },
           });
           if (occupiedLease) {
-            if (!occupiedLease.endsOn || occupiedLease.endsOn >= lease.startsOn) {
+            if (!occupiedLease.endsOn || leaseDate(occupiedLease.endsOn) >= today) {
               throw new Error(
                 `Scheduled lease ${leaseId} cannot activate while lease ${occupiedLease.id} occupies its unit.`,
               );
@@ -70,11 +121,37 @@ export async function activateScheduledLease(
   return false;
 }
 
-export async function reconcileScheduledLeases(prisma: PrismaClient, now = new Date()) {
+export async function reconcileLeaseLifecycle(prisma: PrismaClient, now = new Date()) {
+  const horizon = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+  let lastEndedId = 0;
+  while (true) {
+    const leases = await prisma.lease.findMany({
+      where: {
+        id: { gt: lastEndedId },
+        status: { in: [LeaseStatus.active, LeaseStatus.notice] },
+        termType: "fixed",
+        continueMonthToMonthAfterEnd: false,
+        endsOn: { lt: horizon },
+      },
+      select: { id: true, organizationId: true },
+      orderBy: { id: "asc" },
+      take: batchSize,
+    });
+    for (const lease of leases) {
+      lastEndedId = lease.id;
+      try {
+        await endExpiredLease(prisma, lease.organizationId, lease.id, now);
+      } catch (error) {
+        console.error(`[parcelis] Could not end expired lease ${lease.id}:`, error);
+      }
+    }
+    if (leases.length < batchSize) break;
+  }
+
   let lastId = 0;
   while (true) {
     const leases = await prisma.lease.findMany({
-      where: { id: { gt: lastId }, status: LeaseStatus.scheduled, startsOn: { lte: now } },
+      where: { id: { gt: lastId }, status: LeaseStatus.scheduled, startsOn: { lt: horizon } },
       select: { id: true, organizationId: true },
       orderBy: { id: "asc" },
       take: batchSize,
@@ -91,13 +168,13 @@ export async function reconcileScheduledLeases(prisma: PrismaClient, now = new D
   }
 }
 
-export function startLeaseActivationReconciler(prisma: PrismaClient) {
+export function startLeaseReconciler(prisma: PrismaClient) {
   let stopped = false;
   let running: Promise<void> | null = null;
   const run = () => {
     if (stopped || running) return;
-    running = reconcileScheduledLeases(prisma)
-      .catch((error) => console.error("[parcelis] Lease activation reconciliation failed:", error))
+    running = reconcileLeaseLifecycle(prisma)
+      .catch((error) => console.error("[parcelis] Lease lifecycle reconciliation failed:", error))
       .finally(() => {
         running = null;
       });
