@@ -1,0 +1,46 @@
+packages/jobs/src/lease-dates.ts
+  s_5f4b236d903762::t_fcbd9000c6990b 1-29
+apps/worker/src/lease-activation.ts
+  s_5f4b236d903762::t_5660c462459468 2,7-52,63-66,71-72,84,125-150,154
+  s_5f4b236d903762::t_d2bd0a951a2c7f 124,171,176-177
+packages/jobs/src/index.ts
+  s_5f4b236d903762::t_fcbd9000c6990b 4
+apps/api/src/router/app.router.ts
+  s_5f4b236d903762::t_2e19f2751e7975 95,433-434,2091,4022-4028,4078-4081,4155
+apps/worker/src/tests/lease-activation.test.ts
+  s_5f4b236d903762::t_50fb45d4047209 6-12,36-44,106-115,136-168,174-179,183-186
+  s_5f4b236d903762::t_d2bd0a951a2c7f 4,201
+  s_5f4b236d903762::t_91d69092251710 169-173,180-182
+  s_5f4b236d903762::t_2a607e5235d42f 20-31,75-86,187,191-200,202
+  s_5f4b236d903762::t_77d968b2053755 33
+  s_5f4b236d903762::t_18b98cf7048e42 188
+packages/jobs/src/lease-dates.test.ts
+  s_5f4b236d903762::t_fcbd9000c6990b 1-14
+apps/docs/content/platform-user-guide/app-functionality/lease-dashboard.mdx
+  s_5f4b236d903762::t_19b19a26c32127 30
+apps/docs/content/platform-user-guide/navigation-and-preferences/organization-settings.mdx
+  s_5f4b236d903762::t_19b19a26c32127 12
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_5f4b236d903762::t_789231f8eb349a 49,58,134,137,139,161,185-189
+  s_5f4b236d903762::t_6441de222b4dec 190-191
+apps/docs/content/platform-user-guide/app-functionality/lease-details.mdx
+  s_5f4b236d903762::t_19b19a26c32127 15-17
+apps/worker/src/main.ts
+  s_5f4b236d903762::t_d2bd0a951a2c7f 20,92,111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6774643cfddc956469dfa76cf79092448101db1",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
