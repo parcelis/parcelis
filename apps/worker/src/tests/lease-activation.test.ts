@@ -335,6 +335,8 @@ test("database reconciliation activates a lease after its organization timezone 
     startsOn: new Date("2026-10-02T00:00:00.000Z"),
     timeZone: "America/Chicago",
   });
+  await reconcileLeaseLifecycle(prisma, new Date("2026-10-02T02:00:00.000Z"));
+  assert.deepEqual(current(), { status: "scheduled", occupiedUnits: 0 });
   await reconcileLeaseLifecycle(prisma, new Date("2026-10-02T05:00:00.000Z"));
   assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
 });
