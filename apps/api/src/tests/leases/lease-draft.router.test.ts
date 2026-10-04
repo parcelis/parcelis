@@ -437,3 +437,40 @@ test("accepts joint billing without individual allocations", async () => {
     { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: null, depositShareCents: null },
   ]);
 });
+
+test("changing a draft to joint billing clears saved individual shares", async () => {
+  let createdRows: unknown;
+  const current = draft({
+    billingResponsibility: "individual",
+    tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
+  });
+  const tx = {
+    lease: {
+      findFirst: async () => current,
+      updateMany: async () => ({ count: 1 }),
+      findFirstOrThrow: async () => ({ ...current, revision: 1 }),
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    leaseTenant: {
+      deleteMany: async () => ({ count: 1 }),
+      createMany: async ({ data }: { data: unknown }) => {
+        createdRows = data;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await caller.leases.updateDraft({
+    leaseId: 9,
+    expectedRevision: 0,
+    data: { billingResponsibility: "joint" },
+  });
+
+  assert.deepEqual(createdRows, [
+    { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: null, depositShareCents: null },
+  ]);
+});
