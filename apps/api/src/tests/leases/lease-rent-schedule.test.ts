@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calculateMonthlyRentSchedule } from "@parcelis/schemas";
+import { calculateMonthlyRentSchedule, planMonthlyRentCharges } from "@parcelis/schemas";
 
 test("a January through December lease creates twelve monthly rent periods", () => {
   const schedule = calculateMonthlyRentSchedule({
@@ -107,5 +107,131 @@ test("invalid dates and reversed terms are rejected", () => {
         endsOn: "2027-04-30",
       }),
     /different calendar months/,
+  );
+});
+
+test("joint billing creates one charge addressed to every tenant", () => {
+  const [period] = calculateMonthlyRentSchedule({
+    monthlyRentCents: 120_000,
+    rentDueDay: 1,
+    startsOn: "2027-04-16",
+    endsOn: "2027-06-15",
+  });
+  const plans = planMonthlyRentCharges(period!, {
+    monthlyRentCents: 120_000,
+    billingResponsibility: "joint",
+    tenantIds: [12, 11],
+    tenantAllocations: [],
+  });
+  assert.deepEqual(plans, [
+    {
+      sourceKey: "rent:2027-04:joint",
+      periodStartsOn: "2027-04-16",
+      periodEndsOn: "2027-04-30",
+      dueOn: "2027-04-16",
+      amountCents: 60_000,
+      primaryTenantId: 11,
+      recipientTenantIds: [11, 12],
+    },
+  ]);
+});
+
+test("individual partial rent distributes rounding cents and preserves the period total", () => {
+  const [period] = calculateMonthlyRentSchedule({
+    monthlyRentCents: 10_000,
+    rentDueDay: 1,
+    startsOn: "2027-04-16",
+    endsOn: "2027-06-15",
+  });
+  const billing = {
+    monthlyRentCents: 10_000,
+    billingResponsibility: "individual" as const,
+    tenantIds: [13, 11, 12],
+    tenantAllocations: [
+      { tenantId: 13, rentShareCents: 3_334 },
+      { tenantId: 12, rentShareCents: 3_333 },
+      { tenantId: 11, rentShareCents: 3_333 },
+    ],
+  };
+  const plans = planMonthlyRentCharges(period!, billing);
+  assert.deepEqual(
+    plans.map(({ sourceKey, amountCents, primaryTenantId, recipientTenantIds }) => ({
+      sourceKey,
+      amountCents,
+      primaryTenantId,
+      recipientTenantIds,
+    })),
+    [
+      {
+        sourceKey: "rent:2027-04:tenant:11",
+        amountCents: 1_667,
+        primaryTenantId: 11,
+        recipientTenantIds: [11],
+      },
+      {
+        sourceKey: "rent:2027-04:tenant:12",
+        amountCents: 1_666,
+        primaryTenantId: 12,
+        recipientTenantIds: [12],
+      },
+      {
+        sourceKey: "rent:2027-04:tenant:13",
+        amountCents: 1_667,
+        primaryTenantId: 13,
+        recipientTenantIds: [13],
+      },
+    ],
+  );
+  assert.equal(
+    plans.reduce((sum, plan) => sum + plan.amountCents, 0),
+    period!.amountCents,
+  );
+  assert.deepEqual(planMonthlyRentCharges(period!, billing), plans);
+});
+
+test("individual full-month charges use the agreed tenant rent shares", () => {
+  const schedule = calculateMonthlyRentSchedule({
+    monthlyRentCents: 10_000,
+    rentDueDay: 1,
+    startsOn: "2027-04-16",
+    endsOn: "2027-06-15",
+  });
+  const plans = planMonthlyRentCharges(schedule[1]!, {
+    monthlyRentCents: 10_000,
+    billingResponsibility: "individual",
+    tenantIds: [11, 12],
+    tenantAllocations: [
+      { tenantId: 11, rentShareCents: 4_000 },
+      { tenantId: 12, rentShareCents: 6_000 },
+    ],
+  });
+  assert.deepEqual(
+    plans.map(({ amountCents, dueOn }) => ({ amountCents, dueOn })),
+    [
+      { amountCents: 4_000, dueOn: "2027-05-01" },
+      { amountCents: 6_000, dueOn: "2027-05-01" },
+    ],
+  );
+});
+
+test("rent charge planning rejects allocations that do not match the lease", () => {
+  const [period] = calculateMonthlyRentSchedule({
+    monthlyRentCents: 10_000,
+    rentDueDay: 1,
+    startsOn: "2027-04-16",
+    endsOn: "2027-06-15",
+  });
+  assert.throws(
+    () =>
+      planMonthlyRentCharges(period!, {
+        monthlyRentCents: 10_000,
+        billingResponsibility: "individual",
+        tenantIds: [11, 12],
+        tenantAllocations: [
+          { tenantId: 11, rentShareCents: 4_000 },
+          { tenantId: 12, rentShareCents: 5_000 },
+        ],
+      }),
+    /allocations must match/,
   );
 });

@@ -1,5 +1,4 @@
-
-// This module provides types and functions for calculating 
+// This module provides types and functions for calculating
 // monthly rent schedules for leases.
 export type MonthlyRentScheduleInput = {
   monthlyRentCents: number;
@@ -18,7 +17,26 @@ export type MonthlyRentSchedulePeriod = {
   daysInMonth: number;
 };
 
-// Helper function to determine the number of days in a given 
+// Input for calculating monthly rent charges for a lease.
+export type MonthlyRentBillingInput = {
+  monthlyRentCents: number;
+  billingResponsibility: "joint" | "individual";
+  tenantIds: number[];
+  tenantAllocations: Array<{ tenantId: number; rentShareCents: number }>;
+};
+
+// Represents a planned monthly rent charge for a lease.
+export type MonthlyRentChargePlan = {
+  sourceKey: string;
+  periodStartsOn: string;
+  periodEndsOn: string;
+  dueOn: string;
+  amountCents: number;
+  primaryTenantId: number;
+  recipientTenantIds: number[];
+};
+
+// Helper function to determine the number of days in a given
 // month of a specific year.
 function daysInMonth(year: number, month: number) {
   if (month === 2) {
@@ -66,6 +84,8 @@ export function calculateMonthlyRentSchedule({
     throw new Error("Lease start and end dates must be in different calendar months.");
   }
 
+  // Initialize the rent schedule array and set the 
+  // starting year and month.
   const schedule: MonthlyRentSchedulePeriod[] = [];
   let year = start.year;
   let month = start.month;
@@ -107,4 +127,83 @@ export function calculateMonthlyRentSchedule({
   }
 
   return schedule;
+}
+
+// Plans the monthly rent charges for a given rent 
+// schedule period based on the billing input.
+export function planMonthlyRentCharges(
+  period: MonthlyRentSchedulePeriod,
+  { monthlyRentCents, billingResponsibility, tenantIds, tenantAllocations }: MonthlyRentBillingInput,
+): MonthlyRentChargePlan[] {
+  const sortedTenantIds = [...tenantIds].sort((a, b) => a - b);
+  if (
+    sortedTenantIds.length === 0 ||
+    sortedTenantIds.some((id, index) => !Number.isSafeInteger(id) || id <= 0 || id === sortedTenantIds[index - 1])
+  ) {
+    throw new Error("Provide unique tenant IDs for rent billing.");
+  }
+  if (
+    !Number.isSafeInteger(monthlyRentCents) ||
+    monthlyRentCents <= 0 ||
+    !Number.isSafeInteger(period.amountCents) ||
+    period.amountCents !== Math.round((monthlyRentCents * period.occupiedDays) / period.daysInMonth)
+  ) {
+    throw new Error("Rent period amount does not match the monthly rent.");
+  }
+
+  const sourcePeriod = period.periodStartsOn.slice(0, 7);
+  const periodFields = {
+    periodStartsOn: period.periodStartsOn,
+    periodEndsOn: period.periodEndsOn,
+    dueOn: period.dueOn,
+  };
+
+  if (billingResponsibility === "joint") {
+    if (tenantAllocations.length > 0) throw new Error("Joint billing cannot use tenant allocations.");
+    return [
+      {
+        ...periodFields,
+        sourceKey: `rent:${sourcePeriod}:joint`,
+        amountCents: period.amountCents,
+        primaryTenantId: sortedTenantIds[0]!,
+        recipientTenantIds: sortedTenantIds,
+      },
+    ];
+  }
+
+  const sortedAllocations = [...tenantAllocations].sort((a, b) => a.tenantId - b.tenantId);
+  if (
+    billingResponsibility !== "individual" ||
+    sortedAllocations.length !== sortedTenantIds.length ||
+    sortedAllocations.some(
+      ({ tenantId, rentShareCents }, index) =>
+        tenantId !== sortedTenantIds[index] || !Number.isSafeInteger(rentShareCents) || rentShareCents <= 0,
+    ) ||
+    sortedAllocations.reduce((sum, { rentShareCents }) => sum + rentShareCents, 0) !== monthlyRentCents
+  ) {
+    throw new Error("Individual rent allocations must match the tenants and monthly rent.");
+  }
+
+  const prorated = sortedAllocations.map(({ tenantId, rentShareCents }) => {
+    const numerator = rentShareCents * period.occupiedDays;
+    return {
+      tenantId,
+      amountCents: Math.floor(numerator / period.daysInMonth),
+      remainder: numerator % period.daysInMonth,
+    };
+  });
+  let remainingCents = period.amountCents - prorated.reduce((sum, charge) => sum + charge.amountCents, 0);
+  for (const charge of [...prorated].sort((a, b) => b.remainder - a.remainder || a.tenantId - b.tenantId)) {
+    if (remainingCents === 0) break;
+    charge.amountCents += 1;
+    remainingCents -= 1;
+  }
+
+  return prorated.map(({ tenantId, amountCents }) => ({
+    ...periodFields,
+    sourceKey: `rent:${sourcePeriod}:tenant:${tenantId}`,
+    amountCents,
+    primaryTenantId: tenantId,
+    recipientTenantIds: [tenantId],
+  }));
 }
