@@ -1,0 +1,29 @@
+---
+id: lease-rent-schedule
+title: Lease Rent Schedule
+---
+
+The shared calculator in `@parcelis/schemas` plans monthly rent charges for a fixed lease term. The API and lease preview can use the same result. It does not write invoices; invoice persistence belongs to the lease finalization flow.
+
+## Calendar periods and due dates
+
+Pass `monthlyRentCents`, `rentDueDay`, and inclusive `startsOn` and `endsOn` dates to `calculateMonthlyRentSchedule`. The lease dates use `YYYY-MM-DD` calendar strings. The organization's timezone applies when a due date is converted to an instant or compared with today. A lease must start and end in different calendar months.
+
+The result contains one period for each month touched by the lease. A partial month costs `monthly rent × occupied days ÷ days in month`, rounded to cents. Rent due days beyond the end of a month use that month's last day. If the first month's due day has passed, its rent is due on the lease start date. A partial final month is due on the lease end date.
+
+For a $1,200 monthly lease from April 16 through June 15, due on the 1st, the periods are:
+
+| Period      |   Rent | Due date |
+| ----------- | -----: | -------- |
+| April 16–30 |   $600 | April 16 |
+| May 1–31    | $1,200 | May 1    |
+| June 1–15   |   $600 | June 15  |
+
+## Tenant charges
+
+Pass a period and the lease's billing responsibility, tenant IDs, and saved monthly rent allocations to `planMonthlyRentCharges`.
+
+- Joint billing produces one charge with every tenant as a recipient.
+- Individual billing produces one charge per tenant. Partial rent uses each tenant's monthly share; any rounding cents go to the largest fractional remainders, with tenant ID breaking ties. The charges always total the period rent.
+
+Each plan has a rent `sourceKey` for its calendar month and liable tenant or joint group. Invoice persistence must scope the key to the lease and enforce uniqueness, while deposits and other charges use distinct identities.

@@ -86,6 +86,7 @@ const sidebars: SidebarsConfig = {
       items: [
         "getting-started",
         "contributing/database-erd",
+        "contributing/lease-rent-schedule",
         "contributing/end-to-end-testing",
         "contributing/commit-conventions",
       ],
