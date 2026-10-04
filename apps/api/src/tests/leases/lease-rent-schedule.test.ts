@@ -200,6 +200,36 @@ test("individual partial rent distributes rounding cents and preserves the perio
   assert.deepEqual(planMonthlyRentCharges(period!, billing), plans);
 });
 
+test("a tiny prorated tenant share keeps its zero-cent charge plan", () => {
+  const [april] = calculateMonthlyRentSchedule({
+    monthlyRentCents: 100,
+    rentDueDay: 1,
+    startsOn: "2027-04-30",
+    endsOn: "2027-05-31",
+  });
+  const plans = planMonthlyRentCharges(april!, {
+    monthlyRentCents: 100,
+    billingResponsibility: "individual",
+    tenantIds: [1, 2],
+    tenantAllocations: [
+      { tenantId: 1, rentShareCents: 99 },
+      { tenantId: 2, rentShareCents: 1 },
+    ],
+  });
+
+  assert.deepEqual(
+    plans.map(({ sourceKey, amountCents, recipientTenantIds }) => ({ sourceKey, amountCents, recipientTenantIds })),
+    [
+      { sourceKey: "rent:2027-04:tenant:1", amountCents: 3, recipientTenantIds: [1] },
+      { sourceKey: "rent:2027-04:tenant:2", amountCents: 0, recipientTenantIds: [2] },
+    ],
+  );
+  assert.equal(
+    plans.reduce((sum, plan) => sum + plan.amountCents, 0),
+    april!.amountCents,
+  );
+});
+
 test("a rent source key remains tied to its month when a partial start date changes", () => {
   const [earlier] = calculateMonthlyRentSchedule({
     monthlyRentCents: 10_000,
