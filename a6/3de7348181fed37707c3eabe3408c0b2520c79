@@ -1,0 +1,30 @@
+apps/api/src/tests/leases/leases.router.test.ts
+  s_5f4b236d903762::t_e1a940e3316a30 13
+apps/api/src/tests/leases/lease-draft.router.test.ts
+  s_5f4b236d903762::t_22b5f1f3da76ce 440-476
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_5f4b236d903762::t_eb207c99577788 136,217-242,244
+  s_5f4b236d903762::t_29ae87251395e4 216
+  s_5f4b236d903762::t_a7823afb5032b8 243
+  s_5f4b236d903762::t_96c7727d221658 245
+apps/docs/content/platform-user-guide/core-concepts/lease.mdx
+  s_5f4b236d903762::t_245a09e2781a67 11-14
+apps/api/src/router/app.router.ts
+  s_5f4b236d903762::t_e3db050dba0ad5 3806-3807,3906,3909-3915,3919
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a63de7348181fed37707c3eabe3408c0b2520c79",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
