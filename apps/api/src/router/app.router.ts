@@ -3841,11 +3841,16 @@ export const appRouter = router({
             }
             const parsed = leaseDraftDataSchema.safeParse(effective);
             if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: parsed.error.issues[0]?.message });
+
+            // Determine if any new tenants have been added to the lease.
+            const currentTenantIds = new Set(current.tenants.map(({ tenantId }) => tenantId));
+            // Check if any of the tenant IDs in the parsed data are not in the current tenant IDs set.
+            const addedTenant = parsed.data.tenantIds?.some((tenantId) => !currentTenantIds.has(tenantId));
             if (
-              billingResponsibilityChanged &&
               parsed.data.billingResponsibility === "individual" &&
               (parsed.data.tenantIds?.length ?? 0) > 0 &&
-              data.tenantAllocations === undefined
+              data.tenantAllocations === undefined &&
+              (billingResponsibilityChanged || addedTenant)
             ) {
               throw new TRPCError({ code: "BAD_REQUEST", message: "Provide tenant allocations for individual billing." });
             }
