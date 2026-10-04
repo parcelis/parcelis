@@ -3841,6 +3841,14 @@ export const appRouter = router({
             }
             const parsed = leaseDraftDataSchema.safeParse(effective);
             if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: parsed.error.issues[0]?.message });
+            if (
+              billingResponsibilityChanged &&
+              parsed.data.billingResponsibility === "individual" &&
+              (parsed.data.tenantIds?.length ?? 0) > 0 &&
+              data.tenantAllocations === undefined
+            ) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Provide tenant allocations for individual billing." });
+            }
 
             if (parsed.data.propertyId !== null) {
               await tx.property.findFirstOrThrow({ where: { id: parsed.data.propertyId, organizationId } });

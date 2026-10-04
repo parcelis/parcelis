@@ -474,3 +474,64 @@ test("changing a draft to joint billing clears saved individual shares", async (
     { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: null, depositShareCents: null },
   ]);
 });
+
+test("changing a draft to individual billing requires tenant allocations", async () => {
+  let wroteTenants = false;
+  const current = draft({ billingResponsibility: "joint" });
+  const tx = {
+    lease: { findFirst: async () => current },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    leaseTenant: {
+      deleteMany: async () => {
+        wroteTenants = true;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await assert.rejects(
+    caller.leases.updateDraft({ leaseId: 9, expectedRevision: 0, data: { billingResponsibility: "individual" } }),
+    { code: "BAD_REQUEST", message: /Provide tenant allocations/ },
+  );
+  assert.equal(wroteTenants, false);
+});
+
+test("changing a draft to individual billing saves supplied tenant allocations", async () => {
+  let createdRows: unknown;
+  const current = draft({ billingResponsibility: "joint" });
+  const tx = {
+    lease: {
+      findFirst: async () => current,
+      updateMany: async () => ({ count: 1 }),
+      findFirstOrThrow: async () => ({ ...current, revision: 1 }),
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    leaseTenant: {
+      deleteMany: async () => ({ count: 1 }),
+      createMany: async ({ data }: { data: unknown }) => {
+        createdRows = data;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await caller.leases.updateDraft({
+    leaseId: 9,
+    expectedRevision: 0,
+    data: {
+      billingResponsibility: "individual",
+      tenantAllocations: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
+    },
+  });
+  assert.deepEqual(createdRows, [
+    { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 },
+  ]);
+});
