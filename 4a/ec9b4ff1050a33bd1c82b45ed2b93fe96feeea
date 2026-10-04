@@ -1,0 +1,21 @@
+RELEASE_READINESS.md
+  s_b665c2f43b55fa::t_b99a48b1821c92 3,165-202
+  s_b665c2f43b55fa::t_81f9c416703f74 1-2,4-24,26-164,203-205,207-208
+  s_b665c2f43b55fa::t_e5ee81cb1720bb 25,206
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4aec9b4ff1050a33bd1c82b45ed2b93fe96feeea",
+  "prompts": {},
+  "sessions": {
+    "s_b665c2f43b55fa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10067-338c-7af2-b613-60b0ac2d82f5",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
