@@ -1,0 +1,21 @@
+apps/api/src/router/app.router.ts
+  s_5f4b236d903762::t_e7da4e17807a2d 3844-3851
+apps/api/src/tests/leases/lease-draft.router.test.ts
+  s_5f4b236d903762::t_923ceb4ee940c4 477-537
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5027dd55caa616191e6cdac037e2e3193ad7656d",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
