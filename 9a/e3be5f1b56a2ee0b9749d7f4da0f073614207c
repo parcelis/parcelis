@@ -1,0 +1,19 @@
+packages/schemas/src/index.ts
+  s_5f4b236d903762::t_6e52d1a8dbe0a3 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9ae3be5f1b56a2ee0b9749d7f4da0f073614207c",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
