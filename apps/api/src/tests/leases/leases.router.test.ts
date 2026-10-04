@@ -10,7 +10,7 @@ function createCaller(prisma: unknown, role = "administrator") {
   return appRouter.createCaller({
     prisma,
     session: { user: { id: 1, role } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
   } as unknown as Context);
 }
 

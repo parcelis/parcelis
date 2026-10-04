@@ -133,7 +133,7 @@ function createDatabase(
     },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
     organization: { findUniqueOrThrow: async () => ({ timeZone }) },
-    tenant: { findMany: async () => [{ id: 11 }] },
+    tenant: { findMany: async () => lease.tenants.map(({ tenantId }) => ({ id: tenantId })) },
     outboxEvent: {
       createMany: async ({
         data,
@@ -209,6 +209,36 @@ test("rejects an incomplete draft and preserves its data", async () => {
   await assert.rejects(caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 }), {
     code: "BAD_REQUEST",
     message: /Residents and billing/,
+  });
+  assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
+});
+
+test("finalizes individual billing when saved tenant shares total the rent and deposit", async () => {
+  const tenants = [
+    { tenantId: 11, rentShareCents: 4000, depositShareCents: 400 },
+    { tenantId: 12, rentShareCents: 6000, depositShareCents: 600 },
+  ];
+  const { caller } = createDatabase(calendarDay(0), false, {
+    billingResponsibility: "individual",
+    tenants,
+  });
+
+  const lease = await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
+  assert.equal(lease.status, "active");
+});
+
+test("rejects individual billing when saved tenant shares do not total the lease rent", async () => {
+  const { caller, counts } = createDatabase(calendarDay(0), false, {
+    billingResponsibility: "individual",
+    tenants: [
+      { tenantId: 11, rentShareCents: 4000, depositShareCents: 400 },
+      { tenantId: 12, rentShareCents: 5000, depositShareCents: 600 },
+    ],
+  });
+
+  await assert.rejects(caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 }), {
+    code: "BAD_REQUEST",
+    message: /Tenant rent allocations must equal the monthly rent/,
   });
   assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
 });

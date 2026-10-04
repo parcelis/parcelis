@@ -340,7 +340,10 @@ test("does not update a draft outside the organization", async () => {
 
 test("preserves allocations when only resident IDs are patched", async () => {
   let createdRows: unknown;
-  const current = draft({ tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }] });
+  const current = draft({
+    billingResponsibility: "individual",
+    tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
+  });
   const tx = {
     lease: {
       findFirst: async () => current,
@@ -366,6 +369,69 @@ test("preserves allocations when only resident IDs are patched", async () => {
   assert.deepEqual(createdRows, [
     { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 },
   ]);
+});
+
+test("individual billing requires allocations when adding a resident", async () => {
+  let wroteTenants = false;
+  const current = draft({
+    billingResponsibility: "individual",
+    tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
+  });
+  const tx = {
+    lease: { findFirst: async () => current },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    tenant: { findMany: async () => [{ id: 11 }, { id: 12 }] },
+    leaseTenant: {
+      deleteMany: async () => {
+        wroteTenants = true;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await assert.rejects(caller.leases.updateDraft({ leaseId: 9, expectedRevision: 0, data: { tenantIds: [11, 12] } }), {
+    code: "BAD_REQUEST",
+    message: /Provide tenant allocations/,
+  });
+  assert.equal(wroteTenants, false);
+});
+
+test("unknown residents are reported before missing individual allocations", async () => {
+  let wroteTenants = false;
+  const current = draft({
+    billingResponsibility: "individual",
+    tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
+  });
+  const tx = {
+    lease: { findFirst: async () => current },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    tenant: {
+      findMany: async ({ where }: { where: { organizationId: number; id: { in: number[] } } }) => {
+        assert.deepEqual(where, { organizationId: 7, id: { in: [11, 999] } });
+        return [{ id: 11 }];
+      },
+    },
+    leaseTenant: {
+      deleteMany: async () => {
+        wroteTenants = true;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await assert.rejects(caller.leases.updateDraft({ leaseId: 9, expectedRevision: 0, data: { tenantIds: [11, 999] } }), {
+    code: "NOT_FOUND",
+    message: "One or more residents not found.",
+  });
+  assert.equal(wroteTenants, false);
 });
 
 for (const billingResponsibility of [null, "individual"] as const) {
@@ -435,5 +501,103 @@ test("accepts joint billing without individual allocations", async () => {
 
   assert.deepEqual(createdRows, [
     { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: null, depositShareCents: null },
+  ]);
+});
+
+test("changing a draft to joint billing clears saved individual shares", async () => {
+  let createdRows: unknown;
+  const current = draft({
+    billingResponsibility: "individual",
+    tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
+  });
+  const tx = {
+    lease: {
+      findFirst: async () => current,
+      updateMany: async () => ({ count: 1 }),
+      findFirstOrThrow: async () => ({ ...current, revision: 1 }),
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    leaseTenant: {
+      deleteMany: async () => ({ count: 1 }),
+      createMany: async ({ data }: { data: unknown }) => {
+        createdRows = data;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await caller.leases.updateDraft({
+    leaseId: 9,
+    expectedRevision: 0,
+    data: { billingResponsibility: "joint" },
+  });
+
+  assert.deepEqual(createdRows, [
+    { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: null, depositShareCents: null },
+  ]);
+});
+
+test("changing a draft to individual billing requires tenant allocations", async () => {
+  let wroteTenants = false;
+  const current = draft({ billingResponsibility: "joint" });
+  const tx = {
+    lease: { findFirst: async () => current },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    leaseTenant: {
+      deleteMany: async () => {
+        wroteTenants = true;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await assert.rejects(
+    caller.leases.updateDraft({ leaseId: 9, expectedRevision: 0, data: { billingResponsibility: "individual" } }),
+    { code: "BAD_REQUEST", message: /Provide tenant allocations/ },
+  );
+  assert.equal(wroteTenants, false);
+});
+
+test("changing a draft to individual billing saves supplied tenant allocations", async () => {
+  let createdRows: unknown;
+  const current = draft({ billingResponsibility: "joint" });
+  const tx = {
+    lease: {
+      findFirst: async () => current,
+      updateMany: async () => ({ count: 1 }),
+      findFirstOrThrow: async () => ({ ...current, revision: 1 }),
+    },
+    property: { findFirstOrThrow: async () => ({ id: 2 }) },
+    unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+    leaseTenant: {
+      deleteMany: async () => ({ count: 1 }),
+      createMany: async ({ data }: { data: unknown }) => {
+        createdRows = data;
+        return { count: 1 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+
+  await caller.leases.updateDraft({
+    leaseId: 9,
+    expectedRevision: 0,
+    data: {
+      billingResponsibility: "individual",
+      tenantAllocations: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
+    },
+  });
+  assert.deepEqual(createdRows, [
+    { organizationId: 7, leaseId: 9, tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 },
   ]);
 });

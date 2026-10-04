@@ -3803,6 +3803,8 @@ export const appRouter = router({
 
             const data = input.data;
             const propertyChanged = data.propertyId !== undefined && data.propertyId !== current.propertyId;
+            const billingResponsibilityChanged =
+              data.billingResponsibility !== undefined && data.billingResponsibility !== current.billingResponsibility;
             const effective = {
               propertyId: data.propertyId === undefined ? current.propertyId : data.propertyId,
               unitId:
@@ -3859,6 +3861,17 @@ export const appRouter = router({
               }
             }
 
+            const currentTenantIds = new Set(current.tenants.map(({ tenantId }) => tenantId));
+            const addedTenant = parsed.data.tenantIds?.some((tenantId) => !currentTenantIds.has(tenantId));
+            if (
+              parsed.data.billingResponsibility === "individual" &&
+              (parsed.data.tenantIds?.length ?? 0) > 0 &&
+              data.tenantAllocations === undefined &&
+              (billingResponsibilityChanged || addedTenant)
+            ) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Provide tenant allocations for individual billing." });
+            }
+
             if (parsed.data.billingResponsibility !== "joint" && data.tenantAllocations !== undefined) {
               const tenantIds = new Set(parsed.data.tenantIds ?? []);
               const allocationIds = new Set(data.tenantAllocations.map(({ tenantId }) => tenantId));
@@ -3901,18 +3914,20 @@ export const appRouter = router({
             if (updated.count !== 1)
               throw new TRPCError({ code: "CONFLICT", message: "Lease draft has changed. Reload and try again." });
 
-            if (data.tenantIds !== undefined || data.tenantAllocations !== undefined) {
+            if (data.tenantIds !== undefined || data.tenantAllocations !== undefined || billingResponsibilityChanged) {
               await tx.leaseTenant.deleteMany({ where: { organizationId, leaseId: input.leaseId } });
               const tenantIds = data.tenantIds ?? current.tenants.map(({ tenantId }) => tenantId);
+              const savedAllocations = billingResponsibilityChanged
+                ? []
+                : current.tenants.map(({ tenantId, rentShareCents, depositShareCents }) => ({
+                    tenantId,
+                    rentShareCents: rentShareCents ?? 0,
+                    depositShareCents: depositShareCents ?? 0,
+                  }));
               const allocations =
                 parsed.data.billingResponsibility === "joint"
                   ? []
-                  : (data.tenantAllocations ??
-                    current.tenants.map(({ tenantId, rentShareCents, depositShareCents }) => ({
-                      tenantId,
-                      rentShareCents: rentShareCents ?? 0,
-                      depositShareCents: depositShareCents ?? 0,
-                    })));
+                  : (data.tenantAllocations ?? savedAllocations);
               if (tenantIds.length > 0) {
                 await tx.leaseTenant.createMany({
                   data: tenantIds.map((tenantId) => {
