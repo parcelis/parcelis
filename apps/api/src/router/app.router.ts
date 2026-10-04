@@ -3842,19 +3842,6 @@ export const appRouter = router({
             const parsed = leaseDraftDataSchema.safeParse(effective);
             if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: parsed.error.issues[0]?.message });
 
-            // Determine if any new tenants have been added to the lease.
-            const currentTenantIds = new Set(current.tenants.map(({ tenantId }) => tenantId));
-            // Check if any of the tenant IDs in the parsed data are not in the current tenant IDs set.
-            const addedTenant = parsed.data.tenantIds?.some((tenantId) => !currentTenantIds.has(tenantId));
-            if (
-              parsed.data.billingResponsibility === "individual" &&
-              (parsed.data.tenantIds?.length ?? 0) > 0 &&
-              data.tenantAllocations === undefined &&
-              (billingResponsibilityChanged || addedTenant)
-            ) {
-              throw new TRPCError({ code: "BAD_REQUEST", message: "Provide tenant allocations for individual billing." });
-            }
-
             if (parsed.data.propertyId !== null) {
               await tx.property.findFirstOrThrow({ where: { id: parsed.data.propertyId, organizationId } });
             }
@@ -3872,6 +3859,17 @@ export const appRouter = router({
               if (tenants.length !== data.tenantIds.length) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "One or more residents not found." });
               }
+            }
+
+            const currentTenantIds = new Set(current.tenants.map(({ tenantId }) => tenantId));
+            const addedTenant = parsed.data.tenantIds?.some((tenantId) => !currentTenantIds.has(tenantId));
+            if (
+              parsed.data.billingResponsibility === "individual" &&
+              (parsed.data.tenantIds?.length ?? 0) > 0 &&
+              data.tenantAllocations === undefined &&
+              (billingResponsibilityChanged || addedTenant)
+            ) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Provide tenant allocations for individual billing." });
             }
 
             if (parsed.data.billingResponsibility !== "joint" && data.tenantAllocations !== undefined) {
