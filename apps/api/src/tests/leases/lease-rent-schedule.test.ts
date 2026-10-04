@@ -77,6 +77,17 @@ test("rent due days above a month's length are clamped", () => {
   assert.equal(february?.amountCents, 100_000);
 });
 
+test("a first partial period keeps the regular due day when it follows move-in", () => {
+  const [april] = calculateMonthlyRentSchedule({
+    monthlyRentCents: 100_000,
+    rentDueDay: 25,
+    startsOn: "2027-04-16",
+    endsOn: "2027-05-31",
+  });
+  assert.equal(april?.dueOn, "2027-04-25");
+  assert.equal(april?.amountCents, 50_000);
+});
+
 test("invalid dates and reversed terms are rejected", () => {
   assert.throws(
     () =>
@@ -187,6 +198,29 @@ test("individual partial rent distributes rounding cents and preserves the perio
     period!.amountCents,
   );
   assert.deepEqual(planMonthlyRentCharges(period!, billing), plans);
+});
+
+test("a rent source key remains tied to its month when a partial start date changes", () => {
+  const [earlier] = calculateMonthlyRentSchedule({
+    monthlyRentCents: 10_000,
+    rentDueDay: 1,
+    startsOn: "2027-04-16",
+    endsOn: "2027-06-15",
+  });
+  const [later] = calculateMonthlyRentSchedule({
+    monthlyRentCents: 10_000,
+    rentDueDay: 1,
+    startsOn: "2027-04-20",
+    endsOn: "2027-06-15",
+  });
+  const billing = {
+    monthlyRentCents: 10_000,
+    billingResponsibility: "joint" as const,
+    tenantIds: [11],
+    tenantAllocations: [],
+  };
+  assert.equal(planMonthlyRentCharges(earlier!, billing)[0]?.sourceKey, "rent:2027-04:joint");
+  assert.equal(planMonthlyRentCharges(later!, billing)[0]?.sourceKey, "rent:2027-04:joint");
 });
 
 test("individual full-month charges use the agreed tenant rent shares", () => {
