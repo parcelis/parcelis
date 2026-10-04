@@ -1,0 +1,23 @@
+apps/docs/content/contributing/lease-rent-schedule.mdx
+  s_5f4b236d903762::t_cd411820f0f0dc 1-9,11-15,21-29
+  s_5f4b236d903762::t_52e0ec32a48990 10
+  s_5f4b236d903762::t_50b74065eed11b 16-20
+apps/docs/sidebars.ts
+  s_5f4b236d903762::t_cd411820f0f0dc 89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2464f10ec683c7362578ef98071e6b47a28c6157",
+  "prompts": {},
+  "sessions": {
+    "s_5f4b236d903762": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f53c-7112-7c70-b960-c075da250705",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
