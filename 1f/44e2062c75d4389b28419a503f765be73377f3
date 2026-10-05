@@ -1,0 +1,46 @@
+apps/api/src/router/app.router.ts
+  s_30d3e27ec1d9ab::t_5b9b5dadd39665 97,3985-3986,4160-4171
+  s_30d3e27ec1d9ab::t_f4e6d400f3a9bb 4176-4179
+scripts/outbox-test-database.d.mts
+  s_30d3e27ec1d9ab::t_b13db0d7e7ca67 2-6
+apps/api/src/leases/lease-rent-invoices.ts
+  s_30d3e27ec1d9ab::t_f6f0d1bcc6991f 61-74
+  s_30d3e27ec1d9ab::t_deb18d1ad67faa 39-54
+apps/api/src/tests/leases/lease-rent-invoices.test.ts
+  s_30d3e27ec1d9ab::t_b7ba045fac2c7f 9-10,18-19,54-64,79-80
+scripts/outbox-test-database.mjs
+  s_30d3e27ec1d9ab::t_13270044ea3a8c 26-27,29,47-49
+  s_30d3e27ec1d9ab::t_de096bd9e5fa48 50
+apps/api/src/tests/leases/lease-finalization.integration.test.ts
+  s_30d3e27ec1d9ab::t_41bf4c410629f1 20-27,29-37,39,42-47,50-61,64-71,80,82-92,94-97,99-123,126,128-132,135-136
+  s_30d3e27ec1d9ab::t_8f4147fd6016f7 1-19,28,38,40-41,48-49,81,93,98,124-125,127,133-134
+  s_30d3e27ec1d9ab::t_a6e41a36a99ab3 62-63,72-79
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_30d3e27ec1d9ab::t_d1ef41095c0d61 192-196,291
+  s_30d3e27ec1d9ab::t_8e1bd3339979d4 66,201-206,221,420,439-445
+  s_30d3e27ec1d9ab::t_42f629cd58e4f5 469,478,483-486
+  s_30d3e27ec1d9ab::t_dc541762d3b146 431-433
+  s_30d3e27ec1d9ab::t_ec4b9e3b7764f8 3,52,166-174,467-468,479-482,487
+  s_30d3e27ec1d9ab::t_dc5ecf1cd74791 470-477
+  s_30d3e27ec1d9ab::t_54114491a6b237 67,178-190,207-211,222,423-424,427-430,434-435
+  s_30d3e27ec1d9ab::t_81a194e107514b 65,191,197-200,220,281,293-294
+  s_30d3e27ec1d9ab::t_e145e6f6bff053 488-489
+apps/docs/content/platform-user-guide/app-functionality/lease-details.mdx
+  s_30d3e27ec1d9ab::t_c7cc39e7ac145b 20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1f44e2062c75d4389b28419a503f765be73377f3",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
