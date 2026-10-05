@@ -66,6 +66,7 @@ import {
   leasePropertyStepSchema,
   leaseTenantBillingStepSchema,
   leaseTermsStepSchema,
+  planLeaseRentCharges,
   type CreatePropertyInput,
 } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
@@ -1408,6 +1409,36 @@ function LeaseReviewPropertyAndUnit({
     .map((tenantId) => tenantsQuery.data?.find((tenant) => tenant.id === tenantId))
     .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant));
   const allocationsByTenantId = new Map(tenantAllocations.map((allocation) => [allocation.tenantId, allocation]));
+  const rentPreview = (() => {
+    if (monthlyRentCents === null || !startsOn || (termType === "fixed" && !endsOn) || tenantIds.length === 0) {
+      return { error: "Complete the lease terms and residents to preview rent invoices." } as const;
+    }
+    try {
+      const charges = planLeaseRentCharges({
+        monthlyRentCents,
+        rentDueDay,
+        startsOn,
+        endsOn: termType === "fixed" ? endsOn : null,
+        billingResponsibility,
+        tenantIds,
+        tenantAllocations:
+          billingResponsibility === "individual"
+            ? synchronizeTenantAllocations(tenantIds, tenantAllocations).map(({ tenantId, rentShareCents }) => ({
+                tenantId,
+                rentShareCents,
+              }))
+            : [],
+      });
+      return {
+        charges,
+        invoiceCount: charges.length,
+        periodCount: new Set(charges.map(({ periodStartsOn }) => periodStartsOn.slice(0, 7))).size,
+        rentTotalCents: charges.reduce((total, charge) => total + charge.amountCents, 0),
+      } as const;
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Unable to preview rent invoices." } as const;
+    }
+  })();
 
   if (propertiesQuery.isLoading || tenantsQuery.isLoading) return <LoadingState label="Loading lease details" />;
 
@@ -1552,13 +1583,50 @@ function LeaseReviewPropertyAndUnit({
         <ReviewSectionHeader onEdit={() => onEdit("residents")} title="Billing" />
         <div className="flex flex-col gap-4 p-4 md:flex-row">
           <ReviewDetail label="Partial payments" value={allowPartialPayments ? "Allowed" : "Not allowed"} />
-          <div className="flex flex-1 flex-col gap-1 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
+          <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-md bg-parcelis-porcelain/60 p-4 dark:bg-parcelis-charcoal/55">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-parcelis-gray dark:text-white/65">
-              Rent invoices
+              Rental invoices
             </p>
-            <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">No invoices generated</p>
-            <p className="mt-1 text-sm leading-6 text-parcelis-gray dark:text-white/65">
-              Create rent invoices separately when needed.
+            {"error" in rentPreview ? (
+              <p className="mt-1 text-sm text-parcelis-gray dark:text-white/65">{rentPreview.error}</p>
+            ) : (
+              <>
+                <p className="mt-1 font-semibold text-parcelis-charcoal dark:text-white">
+                  {rentPreview.invoiceCount} invoices planned · {formatCurrencyExact(rentPreview.rentTotalCents)} total
+                </p>
+                <p className="text-sm text-parcelis-gray dark:text-white/65">
+                  {rentPreview.periodCount} billing months
+                </p>
+                <div className="mt-2 max-h-80 overflow-y-auto rounded-md border border-parcelis-border bg-white dark:bg-parcelis-charcoal">
+                  <Table>
+                    <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray dark:bg-parcelis-slate dark:text-white/65">
+                      <TableRow>
+                        <TableHead className="h-10 px-3">Invoice</TableHead>
+                        <TableHead className="h-10 px-3 text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rentPreview.charges.map((charge) => (
+                        <TableRow key={charge.sourceKey}>
+                          <TableCell className="px-3 py-2 font-medium text-parcelis-charcoal dark:text-white">
+                            {formatDateLabel(parseDateInput(charge.dueOn)!)}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-right font-medium text-parcelis-charcoal dark:text-white">
+                            {formatCurrencyExact(charge.amountCents)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <p className="mt-2 text-sm text-parcelis-gray dark:text-white/65">
+                  {termType === "fixed" ? "Full lease term" : "First 12 calendar months"}. Partial months are prorated.
+                </p>
+              </>
+            )}
+            <p className="mt-2 text-sm text-parcelis-gray dark:text-white/65">
+              Security deposit {formatCurrencyExact(securityDepositCents ?? 0)} is separate and not included in the rent
+              total.
             </p>
           </div>
         </div>
