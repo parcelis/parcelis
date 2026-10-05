@@ -1,0 +1,23 @@
+apps/api/src/tests/leases/lease-rent-schedule.test.ts
+  s_30d3e27ec1d9ab::t_dafa49f46af96d 3-28
+packages/schemas/src/lease-rent-schedule.ts
+  s_30d3e27ec1d9ab::t_afe0795009b8ba 40-41,213-215
+  s_30d3e27ec1d9ab::t_02390ae773fa4c 39
+  s_30d3e27ec1d9ab::t_f9d16c244e7e5c 216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "91dc9dc4f4870341d83e8a83931e637451aa5919",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
