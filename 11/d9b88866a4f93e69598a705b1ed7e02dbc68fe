@@ -1,0 +1,40 @@
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_30d3e27ec1d9ab::t_0b912b3dab28cd 231,238,242-246
+  s_30d3e27ec1d9ab::t_758469d3ca8092 239-241
+  s_30d3e27ec1d9ab::t_66b2125769a247 50,160,173,381-388,390-400
+  s_30d3e27ec1d9ab::t_9e72bf52f76f33 191,194,198-199
+  s_30d3e27ec1d9ab::t_2e1add7b6e2319 62,158,161-162,165,172,367-380
+apps/api/src/leases/lease-rent-invoices.ts
+  s_30d3e27ec1d9ab::t_39316c8039b24b 1-3,5-21,23-59
+  s_30d3e27ec1d9ab::t_4a852ee2684ef1 4,22
+apps/api/src/router/app.router.ts
+  s_30d3e27ec1d9ab::t_ce196997892306 4063,4092,4098
+  s_30d3e27ec1d9ab::t_b74adc0b785f1c 83,97,3966,4064-4091,4093-4097
+apps/api/src/tests/leases/lease-rent-schedule.test.ts
+  s_30d3e27ec1d9ab::t_8d9a6f77158e84 5-36
+  s_30d3e27ec1d9ab::t_758469d3ca8092 49-52
+apps/api/src/tests/leases/lease-rent-invoices.test.ts
+  s_30d3e27ec1d9ab::t_39316c8039b24b 1-100
+apps/docs/content/platform-user-guide/app-functionality/lease-dashboard.mdx
+  s_30d3e27ec1d9ab::t_10626b9a7bcccc 32
+packages/schemas/src/lease-rent-schedule.ts
+  s_30d3e27ec1d9ab::t_fbc4541b8eab95 40-41,218-230
+  s_30d3e27ec1d9ab::t_b1e6fcf3ef3af4 91,136
+  s_30d3e27ec1d9ab::t_73c863c9b855e9 215-216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "11d9b88866a4f93e69598a705b1ed7e02dbc68fe",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
