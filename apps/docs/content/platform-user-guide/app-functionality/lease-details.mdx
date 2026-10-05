@@ -17,7 +17,8 @@ last day, unless they continue month-to-month. These changes update occupancy wi
 The worker checks PostgreSQL at startup and periodically, so leases still transition after a missed queue job or
 worker downtime.
 
-**Lease activity** lists successful activations and expirations, plus transition failures that need attention. If
+**Lease activity** lists finalization with its rent invoice count and total, successful activations and expirations,
+plus transition failures that need attention. If
 activation or expiration failed, a user with **Leases → Edit** can choose **Retry activation** or **Retry expiration**
 from **Actions** once the start date has arrived or the end date has passed, respectively. Reconciliation also keeps
 retrying eligible leases automatically.

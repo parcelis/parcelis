@@ -35,25 +35,40 @@ export async function createLeaseRentInvoices(tx: Prisma.TransactionClient, inpu
         amountCents: charge.amountCents,
         balanceCents: charge.amountCents,
         status: charge.amountCents === 0 ? "paid" : charge.dueOn < input.today ? "overdue" : "open",
-        recipients: {
-          create: charge.recipientTenantIds.map((tenantId) => ({
-            organizationId: input.organizationId,
-            tenantId,
-          })),
-        },
-        items: {
-          create: {
-            item: "Rent",
-            quantity: 1,
-            rateCents: charge.amountCents,
-            amountCents: charge.amountCents,
-          },
-        },
       },
-      include: { items: true },
+    });
+    await tx.invoiceRecipient.createMany({
+      data: charge.recipientTenantIds.map((tenantId) => ({
+        organizationId: input.organizationId,
+        invoiceId: invoice.id,
+        tenantId,
+      })),
+    });
+    await tx.invoiceItem.create({
+      data: {
+        invoiceId: invoice.id,
+        item: "Rent",
+        quantity: 1,
+        rateCents: charge.amountCents,
+        amountCents: charge.amountCents,
+      },
     });
     invoices.push(invoice);
   }
 
   return invoices;
+}
+
+export async function getLeaseRentInvoiceSummary(
+  tx: Prisma.TransactionClient,
+  organizationId: number,
+  leaseId: number,
+  billingRevision: number,
+) {
+  const result = await tx.invoice.aggregate({
+    where: { organizationId, leaseId, billingRevision, sourceKey: { startsWith: "rent:" } },
+    _count: { _all: true },
+    _sum: { amountCents: true },
+  });
+  return { invoiceCount: result._count._all, rentTotalCents: result._sum.amountCents ?? 0 };
 }

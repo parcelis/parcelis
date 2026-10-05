@@ -94,7 +94,7 @@ import {
   recordOutboxEvent,
 } from "@parcelis/db";
 import { getCalendarDate, getStartOfCalendarDate, outboxEventTypes } from "@parcelis/jobs";
-import { createLeaseRentInvoices } from "../leases/lease-rent-invoices";
+import { createLeaseRentInvoices, getLeaseRentInvoiceSummary } from "../leases/lease-rent-invoices";
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
@@ -3982,7 +3982,8 @@ export const appRouter = router({
                     lease.revision === input.expectedRevision + 1 &&
                     (lease.status === LeaseStatus.active || lease.status === LeaseStatus.scheduled)
                   ) {
-                    return lease;
+                    const invoiceSummary = await getLeaseRentInvoiceSummary(tx, organizationId, lease.id, 1);
+                    return { ...lease, invoiceSummary };
                   }
                   throw new TRPCError({ code: "CONFLICT", message: "This lease is already finalized." });
                 }
@@ -4156,12 +4157,26 @@ export const appRouter = router({
                     idempotencyKey: `lease:${lease.id}:activate`,
                   });
                 }
-                return tx.lease.findFirstOrThrow({ where: { id: lease.id, organizationId } });
+                const invoiceSummary = await getLeaseRentInvoiceSummary(tx, organizationId, lease.id, 1);
+                await recordActivityEvent(tx, {
+                  organizationId,
+                  subjectType: ActivitySubjectType.lease,
+                  subjectId: lease.id,
+                  subjectLabel: `Lease #${lease.id}`,
+                  propertyId: completeLease.propertyId,
+                  action: "lease.finalized",
+                  metadata: { ...invoiceSummary, billingRevision: 1 },
+                });
+                const finalized = await tx.lease.findFirstOrThrow({ where: { id: lease.id, organizationId } });
+                return { ...finalized, invoiceSummary };
               },
               { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
             );
           } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+            if (
+              error instanceof Prisma.PrismaClientKnownRequestError &&
+              (error.code === "P2034" || error.code === "P2002")
+            ) {
               if (attempt < 2) continue;
               throw new TRPCError({ code: "CONFLICT", message: "The lease changed. Please try again." });
             }

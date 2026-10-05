@@ -6,6 +6,8 @@ import { createLeaseRentInvoices } from "../../leases/lease-rent-invoices";
 
 test("writes each planned rent charge with its identity, item, and recipients", async () => {
   const writes: Record<string, unknown>[] = [];
+  const recipientWrites: unknown[] = [];
+  const itemWrites: unknown[] = [];
   const tx = {
     invoice: {
       create: async ({ data }: { data: Record<string, unknown> }) => {
@@ -13,6 +15,8 @@ test("writes each planned rent charge with its identity, item, and recipients", 
         return { id: writes.length, invoiceNumber: writes.length, organizationId: 7, propertyId: 2 };
       },
     },
+    invoiceRecipient: { createMany: async ({ data }: { data: unknown }) => recipientWrites.push(data) },
+    invoiceItem: { create: async ({ data }: { data: unknown }) => itemWrites.push(data) },
   } as unknown as Prisma.TransactionClient;
   const charges = planLeaseRentCharges({
     monthlyRentCents: 120_000,
@@ -47,15 +51,17 @@ test("writes each planned rent charge with its identity, item, and recipients", 
     amountCents: 60_000,
     balanceCents: 60_000,
     status: "overdue",
-    recipients: {
-      create: [
-        { organizationId: 7, tenantId: 11 },
-        { organizationId: 7, tenantId: 12 },
-      ],
-    },
-    items: {
-      create: { item: "Rent", quantity: 1, rateCents: 60_000, amountCents: 60_000 },
-    },
+  });
+  assert.deepEqual(recipientWrites[0], [
+    { organizationId: 7, invoiceId: 1, tenantId: 11 },
+    { organizationId: 7, invoiceId: 1, tenantId: 12 },
+  ]);
+  assert.deepEqual(itemWrites[0], {
+    invoiceId: 1,
+    item: "Rent",
+    quantity: 1,
+    rateCents: 60_000,
+    amountCents: 60_000,
   });
   assert.equal(writes[1]?.sourceKey, "rent:2027-05:joint");
   assert.equal(writes[1]?.status, "open");
@@ -70,6 +76,8 @@ test("a zero-cent individual charge still creates an invoice", async () => {
         return { id: writes.length };
       },
     },
+    invoiceRecipient: { createMany: async () => ({ count: 1 }) },
+    invoiceItem: { create: async () => ({ id: 1 }) },
   } as unknown as Prisma.TransactionClient;
   const charges = planLeaseRentCharges({
     monthlyRentCents: 100,
