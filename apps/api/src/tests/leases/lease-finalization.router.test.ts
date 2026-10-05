@@ -47,6 +47,7 @@ function createDatabase(
   existingLease?: ExistingLease,
   predecessorOccupiedUnits = 1,
   timeZone = "UTC",
+  invoiceFailureAt?: number,
 ) {
   const lease = { ...draft(start), ...overrides };
   let created = false;
@@ -58,6 +59,7 @@ function createDatabase(
   let activationAt: Date | undefined;
   let eventPayload: { organizationId: number; leaseId: number; activateAt: string } | undefined;
   let invoiceWrites = 0;
+  const invoiceRows: Record<string, unknown>[] = [];
   const tx = {
     lease: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) => {
@@ -153,17 +155,22 @@ function createDatabase(
       }),
     },
     invoice: {
-      create: async () => {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
         invoiceWrites += 1;
-        throw new Error("Finalization must not create an invoice.");
+        if (invoiceWrites === invoiceFailureAt) throw new Error("Invoice write failed.");
+        invoiceRows.push(data);
+        return { id: invoiceWrites, invoiceNumber: invoiceWrites, organizationId: 7, propertyId: 2, items: [] };
       },
     },
+    activityEvent: { create: async () => ({ id: 1 }) },
   };
   const prisma = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) };
   return {
     caller: createCaller(prisma),
     counts: () => ({ occupiedIncrements, outboxWrites }),
     invoiceWrites: () => invoiceWrites,
+    invoiceRows: () => invoiceRows,
+    status: () => currentStatus,
     previousStatus: () => previousStatus,
     activationAt: () => activationAt,
   };
@@ -181,12 +188,15 @@ test("finalizes today's draft in place and increments occupancy once", async () 
 });
 
 test("finalizes a future draft as scheduled and records one activation event", async () => {
-  const { caller, counts } = createDatabase(calendarDay(10));
+  const { caller, counts, invoiceWrites } = createDatabase(calendarDay(10));
   const input = { leaseId: 9, expectedRevision: 4 };
   const first = await caller.leases.finalizeDraft(input);
+  const scheduledInvoiceCount = invoiceWrites();
   await caller.leases.finalizeDraft(input);
   assert.equal(first.status, "scheduled");
   assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 1 });
+  assert.ok(scheduledInvoiceCount > 0);
+  assert.equal(invoiceWrites(), scheduledInvoiceCount);
 });
 
 test("schedules activation at the organization's local midnight", async () => {
@@ -218,13 +228,22 @@ test("finalizes individual billing when saved tenant shares total the rent and d
     { tenantId: 11, rentShareCents: 4000, depositShareCents: 400 },
     { tenantId: 12, rentShareCents: 6000, depositShareCents: 600 },
   ];
-  const { caller } = createDatabase(calendarDay(0), false, {
+  const { caller, invoiceRows } = createDatabase(calendarDay(0), false, {
     billingResponsibility: "individual",
     tenants,
   });
 
   const lease = await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
   assert.equal(lease.status, "active");
+  assert.deepEqual(
+    invoiceRows()
+      .slice(0, 2)
+      .map(({ tenantId, recipients }) => ({ tenantId, recipients })),
+    [
+      { tenantId: 11, recipients: { create: [{ organizationId: 7, tenantId: 11 }] } },
+      { tenantId: 12, recipients: { create: [{ organizationId: 7, tenantId: 12 }] } },
+    ],
+  );
 });
 
 test("rejects individual billing when saved tenant shares do not total the lease rent", async () => {
@@ -345,8 +364,38 @@ test("rejects overlap with a scheduled lease", async () => {
   });
 });
 
-test("does not generate invoices when completing a draft", async () => {
-  const { caller, invoiceWrites } = createDatabase(calendarDay(0));
+test("finalization creates the complete rent schedule once", async () => {
+  const start = calendarDay(0);
+  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 12, 0));
+  const { caller, invoiceWrites, invoiceRows } = createDatabase(start, false, { endsOn: end });
+  const input = { leaseId: 9, expectedRevision: 4 };
+
+  await caller.leases.finalizeDraft(input);
+  await caller.leases.finalizeDraft(input);
+
+  assert.equal(invoiceWrites(), 12);
+  assert.equal(invoiceRows()[0]?.sourceKey, `rent:${start.toISOString().slice(0, 7)}:joint`);
+  assert.equal(invoiceRows()[0]?.billingRevision, 1);
+  assert.equal(invoiceRows()[0]?.amountCents, invoiceRows()[0]?.balanceCents);
+  assert.equal(invoiceRows()[0]?.items && typeof invoiceRows()[0]?.items, "object");
+});
+
+test("month-to-month finalization creates twelve initial rent invoices", async () => {
+  const { caller, invoiceRows } = createDatabase(calendarDay(0), false, {
+    termType: "month_to_month",
+    endsOn: null,
+  });
+
   await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
-  assert.equal(invoiceWrites(), 0);
+
+  assert.equal(invoiceRows().length, 12);
+});
+
+test("a failed invoice write leaves the draft unchanged", async () => {
+  const { caller, counts, status } = createDatabase(calendarDay(0), false, {}, undefined, 1, "UTC", 2);
+
+  await assert.rejects(caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 }), /Invoice write failed/);
+
+  assert.equal(status(), "draft");
+  assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 0 });
 });

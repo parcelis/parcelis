@@ -80,6 +80,7 @@ import {
   type PermissionResource,
   formatInvoiceNumber,
   formatMaintenanceTicketNumber,
+  planLeaseRentCharges,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -93,6 +94,7 @@ import {
   recordOutboxEvent,
 } from "@parcelis/db";
 import { getCalendarDate, getStartOfCalendarDate, outboxEventTypes } from "@parcelis/jobs";
+import { createLeaseRentInvoices } from "../leases/lease-rent-invoices";
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
@@ -3961,6 +3963,7 @@ export const appRouter = router({
           requirePermission(ctx.prisma, ctx.user.role, "properties", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "units", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "tenants", "view"),
+          requirePermission(ctx.prisma, ctx.user.role, "invoices", "create"),
         ]);
 
         for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -4057,7 +4060,42 @@ export const appRouter = router({
                   where: { id: organizationId },
                   select: { timeZone: true },
                 });
-                const status = isFutureLeaseStart(completeLease.startsOn, organization.timeZone)
+                const today = getCalendarDate(new Date(), organization.timeZone);
+                let rentCharges;
+                try {
+                  rentCharges = planLeaseRentCharges({
+                    monthlyRentCents: completeLease.monthlyRentCents,
+                    rentDueDay: completeLease.rentDueDay,
+                    startsOn: completeLease.startsOn.toISOString().slice(0, 10),
+                    endsOn: completeLease.endsOn?.toISOString().slice(0, 10) ?? null,
+                    billingResponsibility: completeLease.billingResponsibility,
+                    tenantIds: completeLease.tenantIds,
+                    tenantAllocations:
+                      completeLease.billingResponsibility === "individual"
+                        ? completeLease.tenantAllocations.map(({ tenantId, rentShareCents }) => ({
+                            tenantId,
+                            rentShareCents,
+                          }))
+                        : [],
+                  });
+                } catch (error) {
+                  throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: error instanceof Error ? error.message : "Invalid lease rent schedule.",
+                  });
+                }
+                const rentInvoices = await createLeaseRentInvoices(tx, {
+                  organizationId,
+                  leaseId: lease.id,
+                  propertyId: completeLease.propertyId,
+                  billingRevision: 1,
+                  today,
+                  charges: rentCharges,
+                });
+                for (const invoice of rentInvoices) {
+                  await recordInvoiceActivity(tx, invoice, "invoice.created");
+                }
+                const status = completeLease.startsOn.toISOString().slice(0, 10) > today
                   ? LeaseStatus.scheduled
                   : LeaseStatus.active;
                 const updated = await tx.lease.updateMany({
