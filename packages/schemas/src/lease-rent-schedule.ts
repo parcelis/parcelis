@@ -36,6 +36,9 @@ export type MonthlyRentChargePlan = {
   recipientTenantIds: number[];
 };
 
+// Input for calculating the combined lease rent plan, which includes both the schedule and billing information.
+export type LeaseRentPlanInput = MonthlyRentScheduleInput & MonthlyRentBillingInput;
+
 // Helper function to determine the number of days in a given
 // month of a specific year.
 function daysInMonth(year: number, month: number) {
@@ -206,4 +209,8 @@ export function planMonthlyRentCharges(
     primaryTenantId: tenantId,
     recipientTenantIds: [tenantId],
   }));
+}
+
+export function planLeaseRentCharges(input: LeaseRentPlanInput): MonthlyRentChargePlan[] {
+  return calculateMonthlyRentSchedule(input).flatMap((period) => planMonthlyRentCharges(period, input));
 }
