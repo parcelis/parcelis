@@ -1,0 +1,21 @@
+packages/db/prisma/schema.prisma
+  s_30d3e27ec1d9ab::t_42017b6a818973 650-651,675
+packages/db/prisma/migrations/20261005000000_add_invoice_source_identity/migration.sql
+  s_30d3e27ec1d9ab::t_0995f648169894 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4d139df57e2e9769db788948c6c6c6ee6afea6bb",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
