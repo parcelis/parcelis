@@ -647,6 +647,8 @@ model Invoice {
   leaseId        Int
   propertyId     Int
   tenantId       Int
+  sourceKey      String?
+  billingRevision Int?
   paidByTenantId Int?
   periodStartsOn DateTime
   periodEndsOn   DateTime
@@ -670,6 +672,7 @@ model Invoice {
   organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@unique([leaseId, tenantId, periodStartsOn])
+  @@unique([organizationId, leaseId, sourceKey])
   @@unique([organizationId, id])
   @@unique([id, tenantId])
   @@index([leaseId])
