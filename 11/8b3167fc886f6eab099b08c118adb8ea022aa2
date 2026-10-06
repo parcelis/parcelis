@@ -1,0 +1,19 @@
+apps/api/src/tests/leases/leases.router.test.ts
+  s_30d3e27ec1d9ab::t_4bab855b1c289b 213,221-227,291-294
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "118b3167fc886f6eab099b08c118adb8ea022aa2",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
