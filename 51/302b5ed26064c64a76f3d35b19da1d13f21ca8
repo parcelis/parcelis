@@ -1,0 +1,21 @@
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_30d3e27ec1d9ab::t_09623519ae7ce7 145
+apps/api/src/tests/leases/lease-finalization.integration.test.ts
+  s_30d3e27ec1d9ab::t_09623519ae7ce7 120-121,130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "51302b5ed26064c64a76f3d35b19da1d13f21ca8",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
