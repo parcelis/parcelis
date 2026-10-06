@@ -44,7 +44,7 @@ test(
           city: "Test City",
           region: "IL",
           postalCode: "60000",
-          unitCount: 2,
+          unitCount: 3,
         },
       });
       const tenant = await prisma.tenant.create({
@@ -55,7 +55,10 @@ test(
           email: `lease-billing-${testId}@example.test`,
         },
       });
-      const createDraft = async (unitName: string) => {
+      const futureYear = new Date().getUTCFullYear() + 1;
+      const futureStart = new Date(Date.UTC(futureYear, 0, 1));
+      const futureEnd = new Date(Date.UTC(futureYear, 11, 31));
+      const createDraft = async (unitName: string, startsOn = futureStart, endsOn = futureEnd) => {
         const unit = await prisma!.unit.create({
           data: { propertyId: property.id, name: unitName, marketRateCents: 120_000 },
         });
@@ -64,8 +67,8 @@ test(
             organizationId: organization.id,
             propertyId: property.id,
             unitId: unit.id,
-            startsOn: new Date("2027-01-01T00:00:00.000Z"),
-            endsOn: new Date("2027-12-31T00:00:00.000Z"),
+            startsOn,
+            endsOn,
             monthlyRentCents: 120_000,
             rentDueDay: 1,
             termType: "fixed",
@@ -95,13 +98,21 @@ test(
       assert.deepEqual(second.invoiceSummary, first.invoiceSummary);
       assert.equal(await prisma.invoice.count({ where: { leaseId: lease.id } }), 12);
       assert.equal(await prisma.activityEvent.count({ where: { subjectType: "lease", subjectId: lease.id } }), 1);
+      const today = new Date();
+      const currentStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+      const currentEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 0));
+      const currentLease = await createDraft("C", currentStart, currentEnd);
+      const current = await caller.leases.finalizeDraft({ leaseId: currentLease.id, expectedRevision: 4 });
+      assert.equal(current.status, "active");
+      assert.equal(current.invoiceSummary.invoiceCount, 12);
+      assert.equal(await prisma.invoice.count({ where: { leaseId: currentLease.id } }), 12);
 
       const rollbackLease = await createDraft("B");
       const charges = planLeaseRentCharges({
         monthlyRentCents: 120_000,
         rentDueDay: 1,
-        startsOn: "2027-01-01",
-        endsOn: "2027-12-31",
+        startsOn: futureStart.toISOString().slice(0, 10),
+        endsOn: futureEnd.toISOString().slice(0, 10),
         billingResponsibility: "joint",
         tenantIds: [tenant.id],
         tenantAllocations: [],
@@ -113,7 +124,7 @@ test(
             leaseId: rollbackLease.id,
             propertyId: property.id,
             billingRevision: 1,
-            today: "2026-10-05",
+            today: new Date().toISOString().slice(0, 10),
             charges: [charges[0]!, charges[0]!],
           }),
         ),
@@ -121,6 +132,24 @@ test(
       );
       assert.equal(await prisma.invoice.count({ where: { leaseId: rollbackLease.id } }), 0);
       assert.equal((await prisma.lease.findUniqueOrThrow({ where: { id: rollbackLease.id } })).status, "draft");
+
+      await prisma.rolePermission.createMany({
+        data: [
+          { role: "lease_manager", resource: "leases", canCreate: true, canEdit: true },
+          { role: "lease_manager", resource: "properties", canView: true },
+          { role: "lease_manager", resource: "units", canView: true },
+          { role: "lease_manager", resource: "tenants", canView: true },
+        ],
+      });
+      const restrictedCaller = appRouter.createCaller({
+        prisma,
+        session: { user: { id: 2, role: "lease_manager" } },
+        organization: { organizationId: organization.id, organization },
+      } as unknown as Context);
+      await assert.rejects(restrictedCaller.leases.finalizeDraft({ leaseId: rollbackLease.id, expectedRevision: 4 }), {
+        code: "FORBIDDEN",
+      });
+      assert.equal(await prisma.invoice.count({ where: { leaseId: rollbackLease.id } }), 0);
     } finally {
       try {
         await prisma?.$disconnect();

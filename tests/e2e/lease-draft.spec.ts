@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { PrismaClient, PrismaPg } from "../../packages/db/src/index";
+import { planLeaseRentCharges } from "../../packages/schemas/src/lease-rent-schedule";
 import type { Page, Response } from "@playwright/test";
 import { expect, test } from "./fixtures/authenticated";
 
@@ -654,9 +655,37 @@ test("resumes a draft and creates the same lease from Review", async ({ page }) 
     await page.goto("/leases");
     await page.locator(`a[href$="${draftSearch}"]`).click();
     await expect(page.getByRole("heading", { name: "Review lease" })).toBeVisible();
-    await page.getByRole("button", { name: "Create lease" }).click();
+    const plannedCharges = planLeaseRentCharges({
+      monthlyRentCents: 100_000,
+      rentDueDay: 1,
+      startsOn: startDate,
+      endsOn: null,
+      billingResponsibility: "joint",
+      tenantIds: [createdTenantId],
+      tenantAllocations: [],
+    });
+    await expect(page.getByText("12 invoices planned", { exact: false })).toBeVisible();
+    await page.getByRole("button", { name: "Finalize lease" }).click();
     await expect(page).toHaveURL(new RegExp(`/leases/${leaseId}$`));
     await expect(page.getByText("1st of each month").first()).toBeVisible();
+    const invoices = await prisma.invoice.findMany({ where: { leaseId }, orderBy: { periodStartsOn: "asc" } });
+    expect(
+      invoices.map(({ sourceKey, amountCents, dueOn, periodStartsOn, periodEndsOn }) => ({
+        sourceKey,
+        amountCents,
+        dueOn: dueOn.toISOString().slice(0, 10),
+        periodStartsOn: periodStartsOn.toISOString().slice(0, 10),
+        periodEndsOn: periodEndsOn.toISOString().slice(0, 10),
+      })),
+    ).toEqual(
+      plannedCharges.map(({ sourceKey, amountCents, dueOn, periodStartsOn, periodEndsOn }) => ({
+        sourceKey,
+        amountCents,
+        dueOn,
+        periodStartsOn,
+        periodEndsOn,
+      })),
+    );
   } finally {
     try {
       await prisma.$transaction(async (tx) => {
