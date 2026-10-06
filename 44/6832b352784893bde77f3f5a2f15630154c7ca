@@ -1,0 +1,28 @@
+apps/web/app/(authenticated)/income/page.tsx
+  s_4e22ec8db4191f::t_f71549b88d31ff 376-377,387-388,391,396,404-405,427
+  s_4e22ec8db4191f::t_c3b74160dd9258 7
+  s_4e22ec8db4191f::t_c45e3464c2fc45 378-379,381-383
+  s_4e22ec8db4191f::t_d68dbacf6bf496 380,384-386,389,408,414,417-419,421,423
+  s_4e22ec8db4191f::t_291cbb63e2e1b2 116-117,185-186,193-205,227-228,231-232,277,280-281,307-308,359
+  s_4e22ec8db4191f::t_8b6ab40d86f179 187-192
+  s_4e22ec8db4191f::t_5de5745b8a153e 226,230,363
+apps/docs/content/platform-user-guide/app-functionality/income-dashboard.mdx
+  s_4e22ec8db4191f::t_c3b74160dd9258 41,50-51
+  s_4e22ec8db4191f::t_68ea73313053a1 43-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "446832b352784893bde77f3f5a2f15630154c7ca",
+  "prompts": {},
+  "sessions": {
+    "s_4e22ec8db4191f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10f7c-7893-7883-9886-d1dfcc020c0b",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
