@@ -210,7 +210,7 @@ for (const [name, input, message] of [
 }
 
 for (const route of ["tenants", "leases"] as const) {
-  for (const [billingResponsibility, expectedAmounts, expectedRecipients] of [
+  for (const [billingResponsibility, expectedAmounts, expectedRecipients, expectedSourceKeys] of [
     [
       "joint",
       [10_000, 10_000],
@@ -218,8 +218,14 @@ for (const route of ["tenants", "leases"] as const) {
         [11, 12],
         [11, 12],
       ],
+      ["rent:2026-01:joint", "rent:2026-02:joint"],
     ],
-    ["individual", [4_000, 6_000, 4_000, 6_000], [[11], [12], [11], [12]]],
+    [
+      "individual",
+      [4_000, 6_000, 4_000, 6_000],
+      [[11], [12], [11], [12]],
+      ["rent:2026-01:tenant:11", "rent:2026-01:tenant:12", "rent:2026-02:tenant:11", "rent:2026-02:tenant:12"],
+    ],
   ] as const) {
     test(`${route} ${billingResponsibility} lease generation creates invoices with the correct amounts and recipients`, async () => {
       const invoiceData: Array<{ amountCents: number; sourceKey: string }> = [];
@@ -282,7 +288,10 @@ for (const route of ["tenants", "leases"] as const) {
         expectedAmounts,
       );
       assert.deepEqual(recipientData, expectedRecipients);
-      assert.ok(invoiceData.every(({ sourceKey }) => sourceKey.startsWith("rent:")));
+      assert.deepEqual(
+        invoiceData.map(({ sourceKey }) => sourceKey),
+        expectedSourceKeys,
+      );
       assert.deepEqual(created.invoiceSummary, {
         invoiceCount: expectedAmounts.length,
         rentTotalCents: expectedAmounts.reduce((sum, amount) => sum + amount, 0),
