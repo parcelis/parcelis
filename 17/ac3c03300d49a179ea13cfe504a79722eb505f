@@ -1,0 +1,22 @@
+scripts/outbox-test-database.mjs
+  s_30d3e27ec1d9ab::t_cf33a56b711825 28
+scripts/outbox-test-database.test.mjs
+  s_30d3e27ec1d9ab::t_cf33a56b711825 3,22-27
+  s_30d3e27ec1d9ab::t_7ae7cd59717f1a 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17ac3c03300d49a179ea13cfe504a79722eb505f",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
