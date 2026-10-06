@@ -1,0 +1,19 @@
+apps/docs/content/platform-user-guide/app-functionality/income-dashboard.mdx
+  s_4e22ec8db4191f::t_a78548195b4f6b 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0bc9ca46d617d3a2d02f04fd994e86df2105c4d3",
+  "prompts": {},
+  "sessions": {
+    "s_4e22ec8db4191f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10f7c-7893-7883-9886-d1dfcc020c0b",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
