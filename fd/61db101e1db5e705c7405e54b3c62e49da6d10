@@ -1,0 +1,46 @@
+apps/api/src/router/app.router.ts
+  s_30d3e27ec1d9ab::t_7b10991a2a528a 4463-4480,4483
+  s_30d3e27ec1d9ab::t_2c2fc97ae4b7e2 2135-2137,2186-2201,2238-2257,2265
+  s_30d3e27ec1d9ab::t_472c2b81e6f1f4 83,438-467
+  s_30d3e27ec1d9ab::t_5c42833cfff673 4353,4355,4370-4372,4374,4409-4423
+  s_30d3e27ec1d9ab::t_72cb4987b7f919 468-469
+  s_30d3e27ec1d9ab::t_d4dedcf8891f62 4135-4147
+  s_30d3e27ec1d9ab::t_eef500d1c53723 4424
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_30d3e27ec1d9ab::t_eff69894515aa8 2165-2169,2171,2174,2188,2568-2576,2602
+  s_30d3e27ec1d9ab::t_93cbc0ff109bb2 2577-2600
+apps/api/src/tests/leases/leases.router.test.ts
+  s_30d3e27ec1d9ab::t_b9231357cd72c7 80-87,93,97-103,152-153
+  s_30d3e27ec1d9ab::t_b0314db3584d2e 41-44,88-92,94-96,213-236,238-253,255-276,278,280-302
+  s_30d3e27ec1d9ab::t_4aaf67a2c749f2 104-124
+  s_30d3e27ec1d9ab::t_5df308a52a230d 135-139,141-143
+  s_30d3e27ec1d9ab::t_3686e426af43d1 27,74
+  s_30d3e27ec1d9ab::t_8539b5baebd892 125-134,140,144-151
+  s_30d3e27ec1d9ab::t_0e1ce4b5bfe184 212
+apps/docs/content/platform-user-guide/app-functionality/lease-dashboard.mdx
+  s_30d3e27ec1d9ab::t_eff69894515aa8 29
+  s_30d3e27ec1d9ab::t_9521aa69cb0df4 35-37
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_30d3e27ec1d9ab::t_36ba1ddea2941d 179
+  s_30d3e27ec1d9ab::t_b9231357cd72c7 130
+apps/api/src/tests/leases/lease-terms.router.test.ts
+  s_30d3e27ec1d9ab::t_c8a1585ae24eb4 11,60-61,81,83,85-87,106,117,121,137,139,141-143
+apps/web/components/lease-drawer.tsx
+  s_30d3e27ec1d9ab::t_9521aa69cb0df4 90-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fd61db101e1db5e705c7405e54b3c62e49da6d10",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
