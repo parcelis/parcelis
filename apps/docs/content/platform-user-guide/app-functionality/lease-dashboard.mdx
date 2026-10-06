@@ -30,7 +30,11 @@ so it does not change occupancy or operating metrics. Restoring a lease returns 
 
 A lease starting on or before the current date in the organization's timezone becomes **Active**. A later start date becomes **Scheduled**
 and does not count as current occupancy until activation. Parcelis checks the unit's lease dates before completing
-the draft. Completing it creates the full rent invoice schedule for a fixed term, or the first 12 calendar months for a month-to-month lease. This also happens for Scheduled leases; activation does not create another schedule. Partial first and last months are prorated. Security deposits are not included in these rent invoices, and completing a lease does not collect payments.
+the draft. Completing it creates the full rent invoice schedule for a fixed term spanning at most 120 calendar months,
+or the first 12 calendar months for a month-to-month lease. A fixed term spanning more than 120 months cannot be
+finalized. Scheduled leases receive their invoices at finalization; activation does not create another schedule.
+Partial first and last months are prorated. Security deposits are not included in these rent invoices, and
+completing a lease does not collect payments.
 
 Creating a completed lease from a resident record uses the same rent schedule. Draft leases have no invoices until
 they are completed. Creating a completed lease requires permission to create both leases and invoices.
