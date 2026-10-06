@@ -142,7 +142,7 @@ export default function TenantDetailPage() {
   });
   const tenant = tenantQuery.data;
   function openLeaseDialog() {
-    setLeaseForm((current) => ({ ...current, status: canCreateInvoices ? "active" : "draft" }));
+    setLeaseForm((current) => ({ ...current, status: canCreateInvoices ? current.status : "draft" }));
     setIsLeaseDialogOpen(true);
   }
   const prioritizeUnarchive =

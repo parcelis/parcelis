@@ -117,6 +117,8 @@ test(
         tenantAllocations: [],
       });
       const conflictingCharge = charges[1]!;
+      const conflictingPeriodStart = new Date(conflictingCharge.periodStartsOn);
+      conflictingPeriodStart.setUTCDate(conflictingPeriodStart.getUTCDate() + 1);
       await prisma.invoice.create({
         data: {
           organizationId: organization.id,
@@ -125,7 +127,7 @@ test(
           tenantId: tenant.id,
           sourceKey: conflictingCharge.sourceKey,
           billingRevision: 1,
-          periodStartsOn: new Date(conflictingCharge.periodStartsOn),
+          periodStartsOn: conflictingPeriodStart,
           periodEndsOn: new Date(conflictingCharge.periodEndsOn),
           dueOn: new Date(conflictingCharge.dueOn),
           amountCents: conflictingCharge.amountCents,
