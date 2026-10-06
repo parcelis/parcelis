@@ -1,0 +1,28 @@
+apps/api/src/tests/leases/lease-rent-invoices.test.ts
+  s_30d3e27ec1d9ab::t_ac0e53bf231bee 19,58-59,61-66,81
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_30d3e27ec1d9ab::t_9dc775662879ae 65,197,202-204,291-294
+apps/api/src/tests/leases/lease-terms.router.test.ts
+  s_30d3e27ec1d9ab::t_ac0e53bf231bee 86,142
+apps/api/src/tests/leases/leases.router.test.ts
+  s_30d3e27ec1d9ab::t_9dc775662879ae 232,272-273,276,290-295
+apps/api/src/leases/lease-rent-invoices.ts
+  s_30d3e27ec1d9ab::t_4c3527654f1d5a 21-22,41-42,47-53,58-60
+  s_30d3e27ec1d9ab::t_39aef5448b4e64 61-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4ac9980f1c342d64d5bdbecf58d77a5af1b21081",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
