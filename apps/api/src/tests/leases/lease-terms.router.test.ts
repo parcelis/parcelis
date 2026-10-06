@@ -8,7 +8,7 @@ function createCaller(prisma: unknown) {
   return appRouter.createCaller({
     prisma,
     session: { user: { id: 1, role: "administrator" } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
   } as unknown as Context);
 }
 
@@ -57,8 +57,8 @@ test("lease term dates use user-facing validation messages", () => {
 
 test("generated invoices use the lease rent due day", async () => {
   const invoiceData: Array<{ dueOn: Date }> = [];
-  const startsOn = new Date(2026, 0, 1);
-  const endsOn = new Date(2026, 2, 31);
+  const startsOn = new Date("2026-01-01");
+  const endsOn = new Date("2026-03-31");
   const createdLease = {
     id: 19,
     startsOn,
@@ -78,9 +78,13 @@ test("generated invoices use the lease rent due day", async () => {
     invoice: {
       create: async ({ data }: { data: { dueOn: Date } }) => {
         invoiceData.push(data);
-        return { id: invoiceData.length };
+        return { id: invoiceData.length, invoiceNumber: invoiceData.length, organizationId: 7, propertyId: 2 };
       },
+      aggregate: async () => ({ _count: { _all: invoiceData.length }, _sum: { amountCents: 0 } }),
     },
+    invoiceRecipient: { createMany: async () => ({ count: 1 }) },
+    invoiceItem: { create: async () => ({ id: 1 }) },
+    activityEvent: { create: async () => ({ id: 1 }) },
   };
   const caller = createCaller({
     $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
@@ -96,11 +100,10 @@ test("generated invoices use the lease rent due day", async () => {
     endsOn,
     status: "active",
     rentDueDay: createdLease.rentDueDay,
-    generateInvoices: true,
   });
 
   assert.deepEqual(
-    invoiceData.map(({ dueOn }) => [dueOn.getFullYear(), dueOn.getMonth() + 1, dueOn.getDate()]),
+    invoiceData.map(({ dueOn }) => [dueOn.getUTCFullYear(), dueOn.getUTCMonth() + 1, dueOn.getUTCDate()]),
     [
       [2026, 1, 31],
       [2026, 2, 28],
@@ -111,11 +114,11 @@ test("generated invoices use the lease rent due day", async () => {
 
 test("the first generated invoice is not due before a mid-month lease starts", async () => {
   const invoiceData: Array<{ dueOn: Date }> = [];
-  const startsOn = new Date(2026, 7, 20);
+  const startsOn = new Date("2026-08-20");
   const createdLease = {
     id: 19,
     startsOn,
-    endsOn: new Date(2026, 7, 31),
+    endsOn: new Date("2026-09-30"),
     billingResponsibility: "joint",
     monthlyRentCents: 120_000,
     rentDueDay: 1,
@@ -131,9 +134,13 @@ test("the first generated invoice is not due before a mid-month lease starts", a
     invoice: {
       create: async ({ data }: { data: { dueOn: Date } }) => {
         invoiceData.push(data);
-        return { id: invoiceData.length };
+        return { id: invoiceData.length, invoiceNumber: invoiceData.length, organizationId: 7, propertyId: 2 };
       },
+      aggregate: async () => ({ _count: { _all: invoiceData.length }, _sum: { amountCents: 0 } }),
     },
+    invoiceRecipient: { createMany: async () => ({ count: 1 }) },
+    invoiceItem: { create: async () => ({ id: 1 }) },
+    activityEvent: { create: async () => ({ id: 1 }) },
   };
   const caller = createCaller({
     $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
@@ -149,29 +156,9 @@ test("the first generated invoice is not due before a mid-month lease starts", a
     endsOn: createdLease.endsOn,
     status: "active",
     rentDueDay: createdLease.rentDueDay,
-    generateInvoices: true,
   });
 
   assert.equal(invoiceData[0]?.dueOn.getTime(), startsOn.getTime());
-});
-
-test("draft leases cannot generate invoices", async () => {
-  const caller = createCaller({});
-
-  await assert.rejects(
-    () =>
-      caller.leases.create({
-        propertyId: 2,
-        unitId: 3,
-        tenantIds: [11],
-        monthlyRentCents: 120_000,
-        startsOn: new Date("2026-01-01"),
-        endsOn: new Date("2026-12-31"),
-        status: "draft",
-        generateInvoices: true,
-      }),
-    { code: "BAD_REQUEST", message: "Draft leases cannot generate invoices." },
-  );
 });
 
 test("complete leases require a term type", () => {

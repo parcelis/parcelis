@@ -2162,11 +2162,16 @@ function NewLeasePageContent() {
       await goNext();
       return;
     }
-    if (finalizeLeaseDraft.isPending || !draftIdentity.leaseId) return;
-    if (!(await flushDraftSave())) {
-      setStepError("Save the current changes before creating the lease.");
+    if (finalizeLeaseDraft.isPending) return;
+    if (!draftIdentity.leaseId) {
+      setStepError("The lease draft is not ready. Reload it and try again.");
       return;
     }
+    if (!(await flushDraftSave())) {
+      setStepError("Save the current changes before finalizing the lease.");
+      return;
+    }
+    setStepError(null);
     try {
       const lease = await finalizeLeaseDraft.mutateAsync({
         leaseId: draftIdentity.leaseId,
@@ -2180,7 +2185,7 @@ function NewLeasePageContent() {
       ]);
       router.push(getLeaseLink(lease.id));
     } catch (error) {
-      setStepError(error instanceof Error ? error.message : "Unable to create the lease.");
+      setStepError(error instanceof Error ? error.message : "Unable to finalize the lease.");
     }
   }
 
@@ -2529,13 +2534,6 @@ function NewLeasePageContent() {
                     />
                   ) : currentIndex === 3 ? (
                     <>
-                      {currentStepError ? (
-                        <Alert className="mx-5 mt-5 md:mx-6" variant="destructive">
-                          <TriangleAlert className="h-4 w-4" />
-                          <AlertTitle>Unable to create lease</AlertTitle>
-                          <AlertDescription>{currentStepError}</AlertDescription>
-                        </Alert>
-                      ) : null}
                       <LeaseReviewPropertyAndUnit
                         allowPartialPayments={draft.allowPartialPayments}
                         billingResponsibility={draft.billingResponsibility}
@@ -2567,32 +2565,41 @@ function NewLeasePageContent() {
                     </>
                   )}
                 </CardContent>
-                <div className="flex items-center justify-between border-t border-parcelis-border p-4 md:px-6">
-                  {currentIndex === 0 ? (
-                    <Button asChild className="min-w-40" variant="secondary">
-                      <Link href="/leases" onClick={preventUnsafeExit}>
-                        Cancel
-                      </Link>
+                <div className="border-t border-parcelis-border p-4 md:px-6">
+                  {isLastStep && currentStepError ? (
+                    <Alert className="mb-4" role="alert" variant="destructive">
+                      <TriangleAlert className="h-4 w-4" />
+                      <AlertTitle>Unable to finalize lease</AlertTitle>
+                      <AlertDescription>{currentStepError}</AlertDescription>
+                    </Alert>
+                  ) : null}
+                  <div className="flex items-center justify-between">
+                    {currentIndex === 0 ? (
+                      <Button asChild className="min-w-40" variant="secondary">
+                        <Link href="/leases" onClick={preventUnsafeExit}>
+                          Cancel
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button className="min-w-40" onClick={goBack} type="button" variant="secondary">
+                        Back
+                      </Button>
+                    )}
+                    <Button
+                      className="min-w-40"
+                      disabled={
+                        finalizeLeaseDraft.isPending ||
+                        createLeaseDraft.isPending ||
+                        isSelectingUnit ||
+                        Boolean(existingUnitDraft) ||
+                        (currentIndex === 0 && draft.unitId === null)
+                      }
+                      type="submit"
+                    >
+                      {isLastStep ? "Finalize lease" : "Next"}
+                      {!isLastStep ? <ChevronRight className="h-4 w-4" /> : null}
                     </Button>
-                  ) : (
-                    <Button className="min-w-40" onClick={goBack} type="button" variant="secondary">
-                      Back
-                    </Button>
-                  )}
-                  <Button
-                    className="min-w-40"
-                    disabled={
-                      finalizeLeaseDraft.isPending ||
-                      createLeaseDraft.isPending ||
-                      isSelectingUnit ||
-                      Boolean(existingUnitDraft) ||
-                      (currentIndex === 0 && draft.unitId === null)
-                    }
-                    type="submit"
-                  >
-                    {isLastStep ? "Create lease" : "Next"}
-                    {!isLastStep ? <ChevronRight className="h-4 w-4" /> : null}
-                  </Button>
+                  </div>
                 </div>
               </Card>
             </form>

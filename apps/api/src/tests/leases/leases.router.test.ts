@@ -24,7 +24,7 @@ const individualLeaseInput = {
   monthlyRentCents: 10_000,
   termType: "fixed" as const,
   startsOn: new Date("2026-01-01"),
-  endsOn: new Date("2026-01-01"),
+  endsOn: new Date("2026-02-28"),
   status: "active" as const,
   tenantAllocations: [
     { tenantId: 11, rentShareCents: 4_000, depositShareCents: 1_000 },
@@ -38,12 +38,10 @@ for (const route of ["tenants", "leases"] as const) {
     startsOn.setUTCFullYear(startsOn.getUTCFullYear() + 1);
     const caller = createCaller({});
     const input = { ...individualLeaseInput, startsOn, endsOn: startsOn };
-    await assert.rejects(
-      route === "tenants"
-        ? caller.tenants.createLease(input)
-        : caller.leases.create({ ...input, generateInvoices: false }),
-      { code: "BAD_REQUEST", message: /Future leases must be completed/ },
-    );
+    await assert.rejects(route === "tenants" ? caller.tenants.createLease(input) : caller.leases.create(input), {
+      code: "BAD_REQUEST",
+      message: /Future leases must be completed/,
+    });
   });
 
   test(`${route} lease creation rejects overlap with a scheduled lease`, async () => {
@@ -73,8 +71,82 @@ for (const route of ["tenants", "leases"] as const) {
     await assert.rejects(
       route === "tenants"
         ? caller.tenants.createLease(individualLeaseInput)
-        : caller.leases.create({ ...individualLeaseInput, generateInvoices: false }),
+        : caller.leases.create(individualLeaseInput),
       { code: "CONFLICT", message: /overlapping dates/ },
+    );
+  });
+}
+
+for (const route of ["tenants", "leases"] as const) {
+  test(`${route} draft creation does not write invoices`, async () => {
+    let invoiceWrites = 0;
+    const tx = {
+      property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
+      unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+      tenant: { findFirstOrThrow: async () => ({ id: 11 }), findMany: async () => [{ id: 11 }, { id: 12 }] },
+      lease: { create: async () => ({ id: 4, startsOn: individualLeaseInput.startsOn, monthlyRentCents: 10_000 }) },
+      invoice: {
+        create: async () => {
+          invoiceWrites += 1;
+        },
+      },
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    });
+    const input = { ...individualLeaseInput, status: "draft" as const };
+
+    const created = route === "tenants" ? await caller.tenants.createLease(input) : await caller.leases.create(input);
+
+    assert.equal(created.invoiceSummary, null);
+    assert.equal(invoiceWrites, 0);
+  });
+
+  test(`${route} completed creation requires invoice permission`, async () => {
+    const caller = createCaller(
+      {
+        rolePermission: {
+          findUnique: async ({ where }: { where: { role_resource: { resource: string } } }) => ({
+            canCreate: where.role_resource.resource !== "invoices",
+            canView: true,
+          }),
+        },
+      },
+      "lease_manager",
+    );
+
+    await assert.rejects(
+      route === "tenants"
+        ? caller.tenants.createLease(individualLeaseInput)
+        : caller.leases.create(individualLeaseInput),
+      { code: "FORBIDDEN", message: /create invoices/ },
+    );
+  });
+
+  test(`${route} fails creation when a rent invoice cannot be written`, async () => {
+    const tx = {
+      property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }), update: async () => ({ id: 2 }) },
+      unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+      tenant: { findFirstOrThrow: async () => ({ id: 11 }), findMany: async () => [{ id: 11 }, { id: 12 }] },
+      lease: {
+        findFirst: async () => null,
+        create: async () => ({ id: 4, startsOn: individualLeaseInput.startsOn, monthlyRentCents: 10_000 }),
+      },
+      invoice: {
+        create: async () => {
+          throw new Error("Invoice write failed");
+        },
+      },
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    });
+
+    await assert.rejects(
+      route === "tenants"
+        ? caller.tenants.createLease(individualLeaseInput)
+        : caller.leases.create(individualLeaseInput),
+      /Invoice write failed/,
     );
   });
 }
@@ -137,80 +209,97 @@ for (const [name, input, message] of [
   });
 }
 
-for (const [billingResponsibility, expectedAmounts, expectedRecipients] of [
-  ["joint", [13_000], [[11, 12]]],
-  ["individual", [5_000, 8_000], [[11], [12]]],
-] as const) {
-  test(`${billingResponsibility} lease generation creates invoices with the correct amounts and recipients`, async () => {
-    const invoiceData: unknown[] = [];
-    let leaseData: unknown;
-    const input = {
-      ...individualLeaseInput,
-      billingResponsibility,
-      tenantAllocations: billingResponsibility === "joint" ? [] : individualLeaseInput.tenantAllocations,
-      generateInvoices: true,
-    };
-    const tx = {
-      property: {
-        findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }),
-        update: async () => ({ id: 2, occupiedUnits: 1 }),
-      },
-      unit: { findFirstOrThrow: async () => ({ id: 3 }) },
-      tenant: { findMany: async () => [{ id: 11 }, { id: 12 }] },
-      lease: {
-        findFirst: async () => null,
-        create: async ({ data }: { data: unknown }) => {
-          leaseData = data;
-          return {
-            id: 4,
-            startsOn: input.startsOn,
-            endsOn: input.endsOn,
-            billingResponsibility,
-            monthlyRentCents: input.monthlyRentCents,
-            securityDepositCents: input.securityDepositCents,
-            tenants: [],
-          };
+for (const route of ["tenants", "leases"] as const) {
+  for (const [billingResponsibility, expectedAmounts, expectedRecipients] of [
+    [
+      "joint",
+      [10_000, 10_000],
+      [
+        [11, 12],
+        [11, 12],
+      ],
+    ],
+    ["individual", [4_000, 6_000, 4_000, 6_000], [[11], [12], [11], [12]]],
+  ] as const) {
+    test(`${route} ${billingResponsibility} lease generation creates invoices with the correct amounts and recipients`, async () => {
+      const invoiceData: Array<{ amountCents: number; sourceKey: string }> = [];
+      const recipientData: number[][] = [];
+      let leaseData: unknown;
+      const input = {
+        ...individualLeaseInput,
+        billingResponsibility,
+        tenantAllocations: billingResponsibility === "joint" ? [] : individualLeaseInput.tenantAllocations,
+      };
+      const tx = {
+        property: {
+          findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }),
+          update: async () => ({ id: 2, occupiedUnits: 1 }),
         },
-      },
-      invoice: {
-        create: async ({ data }: { data: unknown }) => {
-          invoiceData.push(data);
-          return { id: invoiceData.length };
+        unit: { findFirstOrThrow: async () => ({ id: 3 }) },
+        tenant: { findFirstOrThrow: async () => ({ id: 11 }), findMany: async () => [{ id: 11 }, { id: 12 }] },
+        lease: {
+          findFirst: async () => null,
+          create: async ({ data }: { data: unknown }) => {
+            leaseData = data;
+            return {
+              id: 4,
+              startsOn: input.startsOn,
+              endsOn: input.endsOn,
+              billingResponsibility,
+              monthlyRentCents: input.monthlyRentCents,
+              securityDepositCents: input.securityDepositCents,
+              tenants: [],
+            };
+          },
         },
-      },
-    };
-    const caller = createCaller({
-      ...tx,
-      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+        invoice: {
+          create: async ({ data }: { data: { amountCents: number; sourceKey: string } }) => {
+            invoiceData.push(data);
+            return { id: invoiceData.length, invoiceNumber: invoiceData.length, organizationId: 7, propertyId: 2 };
+          },
+          aggregate: async () => ({
+            _count: { _all: invoiceData.length },
+            _sum: { amountCents: invoiceData.reduce((sum, invoice) => sum + invoice.amountCents, 0) },
+          }),
+        },
+        invoiceRecipient: {
+          createMany: async ({ data }: { data: Array<{ tenantId: number }> }) => {
+            recipientData.push(data.map(({ tenantId }) => tenantId));
+          },
+        },
+        invoiceItem: { create: async () => ({ id: 1 }) },
+        activityEvent: { create: async () => ({ id: 1 }) },
+      };
+      const caller = createCaller({
+        ...tx,
+        $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      });
+
+      const created = route === "tenants" ? await caller.tenants.createLease(input) : await caller.leases.create(input);
+
+      assert.deepEqual(
+        invoiceData.map(({ amountCents }) => amountCents),
+        expectedAmounts,
+      );
+      assert.deepEqual(recipientData, expectedRecipients);
+      assert.ok(invoiceData.every(({ sourceKey }) => sourceKey.startsWith("rent:")));
+      assert.deepEqual(created.invoiceSummary, {
+        invoiceCount: expectedAmounts.length,
+        rentTotalCents: expectedAmounts.reduce((sum, amount) => sum + amount, 0),
+      });
+
+      const tenants = (leaseData as { tenants: { create: unknown[] } }).tenants.create;
+      assert.deepEqual(
+        tenants,
+        input.tenantIds.map((tenantId, index) => ({
+          organizationId: 7,
+          tenantId,
+          rentShareCents: input.tenantAllocations[index]?.rentShareCents,
+          depositShareCents: input.tenantAllocations[index]?.depositShareCents,
+        })),
+      );
     });
-
-    await caller.leases.create(input);
-
-    assert.deepEqual(
-      invoiceData.map((data) => {
-        const invoice = data as {
-          amountCents: number;
-          recipients: { create: { tenantId: number }[] };
-        };
-        return {
-          amountCents: invoice.amountCents,
-          recipientIds: invoice.recipients.create.map(({ tenantId }) => tenantId),
-        };
-      }),
-      expectedAmounts.map((amountCents, index) => ({ amountCents, recipientIds: expectedRecipients[index] })),
-    );
-
-    const tenants = (leaseData as { tenants: { create: unknown[] } }).tenants.create;
-    assert.deepEqual(
-      tenants,
-      input.tenantIds.map((tenantId, index) => ({
-        organizationId: 7,
-        tenantId,
-        rentShareCents: input.tenantAllocations[index]?.rentShareCents,
-        depositShareCents: input.tenantAllocations[index]?.depositShareCents,
-      })),
-    );
-  });
+  }
 }
 
 for (const action of ["archive", "reactivate"] as const) {

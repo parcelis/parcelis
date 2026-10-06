@@ -127,6 +127,7 @@ export default function TenantDetailPage() {
   const canEditTenant = hasPermission(currentUserQuery.data?.permissions, "tenants", "edit");
   const canCreateLease =
     hasPermission(currentUserQuery.data?.permissions, "leases", "create") &&
+    hasPermission(currentUserQuery.data?.permissions, "invoices", "create") &&
     hasPermission(currentUserQuery.data?.permissions, "properties", "view") &&
     hasPermission(currentUserQuery.data?.permissions, "units", "view") &&
     hasPermission(currentUserQuery.data?.permissions, "tenants", "view");
@@ -175,6 +176,7 @@ export default function TenantDetailPage() {
 
       return apiClient.tenants.createLease.mutate({
         endsOn: leaseForm.endsOn ? new Date(leaseForm.endsOn) : null,
+        termType: leaseForm.endsOn ? "fixed" : "month_to_month",
         monthlyRentCents: Math.round(Number(leaseForm.monthlyRent) * 100),
         propertyId: Number(leaseForm.propertyId),
         startsOn: new Date(leaseForm.startsOn),

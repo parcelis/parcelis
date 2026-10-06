@@ -745,10 +745,6 @@ export const createLeaseInputSchema = leaseSchema
     validateLeaseTenantAllocations(lease, ctx);
   });
 
-export const createLeaseWithInvoicesInputSchema = createLeaseInputSchema.extend({
-  generateInvoices: z.boolean().default(false),
-});
-
 export const invoiceByIdInputSchema = z.object({ id: idSchema });
 export const invoiceListInputSchema = z.object({ tenantId: idSchema.optional() });
 export const invoiceItemInputSchema = z.object({

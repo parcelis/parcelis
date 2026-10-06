@@ -36,7 +36,6 @@ const initialForm = {
   startsOn: "",
   endsOn: "",
   status: "active" as "draft" | "active" | "notice" | "ended",
-  generateInvoices: false,
 };
 
 export function LeaseDrawer({ error, isPending, onOpenChange, onSubmit, open }: LeaseDrawerProps) {
@@ -88,10 +87,9 @@ export function LeaseDrawer({ error, isPending, onOpenChange, onSubmit, open }: 
               tenantIds: form.tenantIds,
               termType: form.endsOn ? "fixed" : "month_to_month",
               monthlyRentCents: Math.round(Number(form.monthlyRent) * 100),
-              startsOn: new Date(`${form.startsOn}T12:00:00`),
-              endsOn: form.endsOn ? new Date(`${form.endsOn}T12:00:00`) : null,
+              startsOn: new Date(`${form.startsOn}T00:00:00.000Z`),
+              endsOn: form.endsOn ? new Date(`${form.endsOn}T00:00:00.000Z`) : null,
               status: form.status,
-              generateInvoices: form.generateInvoices,
             });
           }}
         >
@@ -207,18 +205,6 @@ export function LeaseDrawer({ error, isPending, onOpenChange, onSubmit, open }: 
                 ))}
               </div>
             </div>
-            <label className="mt-6 flex cursor-pointer items-center gap-3 rounded-md border border-parcelis-border p-4 text-sm">
-              <Checkbox
-                checked={form.generateInvoices}
-                onCheckedChange={(checked) =>
-                  setForm((current) => ({ ...current, generateInvoices: checked === true }))
-                }
-              />
-              <span>
-                <span className="font-semibold text-parcelis-charcoal">Generate rent invoices</span>
-                <span className="mt-1 block text-parcelis-gray">Create invoices for each month of the lease term.</span>
-              </span>
-            </label>
             {error ? <p className="mt-4 text-sm font-medium text-red-700">{error.message}</p> : null}
           </div>
           <DrawerFooter className="flex-row items-center justify-between border-t border-parcelis-border">

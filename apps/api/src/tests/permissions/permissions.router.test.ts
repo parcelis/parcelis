@@ -128,7 +128,6 @@ test("API denies lease creation when create permission is missing", async () => 
       startsOn: new Date("2026-01-01"),
       endsOn: null,
       status: "draft",
-      generateInvoices: false,
     }),
   );
 });

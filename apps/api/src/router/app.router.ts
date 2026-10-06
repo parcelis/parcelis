@@ -10,7 +10,6 @@ import {
   leaseDraftDataSchema,
   leaseDraftCreateInputSchema,
   leaseDraftByKeyInputSchema,
-  createLeaseWithInvoicesInputSchema,
   deleteInvoiceInputSchema,
   deleteInvoicePaymentInputSchema,
   invoiceByIdInputSchema,
@@ -81,6 +80,7 @@ import {
   formatInvoiceNumber,
   formatMaintenanceTicketNumber,
   planLeaseRentCharges,
+  type LeaseRentPlanInput,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -159,7 +159,6 @@ const propertySelect = {
 } as const;
 
 const unitStatuses: Array<"vacant" | LeaseStatus> = ["vacant", ...Object.values(LeaseStatus)];
-const openEndedLeaseInvoiceHorizonMonths = 12;
 
 async function verifyImageUpload(objectKey: string) {
   try {
@@ -434,6 +433,38 @@ export function getMonthlyDueDate(periodStartsOn: Date, rentDueDay: number) {
 
 function isFutureLeaseStart(startsOn: Date, timeZone: string) {
   return startsOn.toISOString().slice(0, 10) > getCalendarDate(new Date(), timeZone);
+}
+
+function planCompleteLeaseRentCharges(
+  input: Omit<LeaseRentPlanInput, "startsOn" | "endsOn"> & { startsOn: Date; endsOn: Date | null },
+) {
+  try {
+    return planLeaseRentCharges({
+      ...input,
+      startsOn: input.startsOn.toISOString().slice(0, 10),
+      endsOn: input.endsOn?.toISOString().slice(0, 10) ?? null,
+    });
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: error instanceof Error ? error.message : "Invalid lease rent schedule.",
+    });
+  }
+}
+
+async function writeLeaseRentSchedule(
+  tx: Prisma.TransactionClient,
+  input: {
+    organizationId: number;
+    leaseId: number;
+    propertyId: number;
+    today: string;
+    charges: ReturnType<typeof planLeaseRentCharges>;
+  },
+) {
+  const invoices = await createLeaseRentInvoices(tx, { ...input, billingRevision: 1 });
+  for (const invoice of invoices) await recordInvoiceActivity(tx, invoice, "invoice.created");
+  return getLeaseRentInvoiceSummary(tx, input.organizationId, input.leaseId, 1);
 }
 
 function leaseOverlapWhere(
@@ -2101,6 +2132,9 @@ export const appRouter = router({
           requirePermission(ctx.prisma, ctx.user.role, "properties", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "units", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "tenants", "view"),
+          ...(input.status === LeaseStatus.draft
+            ? []
+            : [requirePermission(ctx.prisma, ctx.user.role, "invoices", "create")]),
         ]);
         try {
           return await ctx.prisma.$transaction(
@@ -2149,6 +2183,22 @@ export const appRouter = router({
                 }
               }
 
+              const rentCharges =
+                input.status === LeaseStatus.draft
+                  ? null
+                  : planCompleteLeaseRentCharges({
+                      monthlyRentCents: input.monthlyRentCents,
+                      rentDueDay: input.rentDueDay,
+                      startsOn: input.startsOn,
+                      endsOn: input.endsOn,
+                      billingResponsibility: input.billingResponsibility,
+                      tenantIds: input.tenantIds,
+                      tenantAllocations: input.tenantAllocations.map(({ tenantId, rentShareCents }) => ({
+                        tenantId,
+                        rentShareCents,
+                      })),
+                    });
+
               const allocationsByTenantId = new Map(
                 input.tenantAllocations.map((allocation) => [allocation.tenantId, allocation]),
               );
@@ -2185,6 +2235,26 @@ export const appRouter = router({
                 },
               });
 
+              let invoiceSummary = null;
+              if (rentCharges) {
+                invoiceSummary = await writeLeaseRentSchedule(tx, {
+                  organizationId: ctx.organization.organizationId,
+                  leaseId: lease.id,
+                  propertyId: input.propertyId,
+                  today: getCalendarDate(new Date(), ctx.organization.organization.timeZone),
+                  charges: rentCharges,
+                });
+                await recordActivityEvent(tx, {
+                  organizationId: ctx.organization.organizationId,
+                  subjectType: ActivitySubjectType.lease,
+                  subjectId: lease.id,
+                  subjectLabel: `Lease #${lease.id}`,
+                  propertyId: input.propertyId,
+                  action: "lease.created",
+                  metadata: { ...invoiceSummary, billingRevision: 1 },
+                });
+              }
+
               if (input.status === LeaseStatus.active || input.status === LeaseStatus.notice) {
                 await tx.property.update({
                   where: { id: input.propertyId },
@@ -2192,7 +2262,7 @@ export const appRouter = router({
                 });
               }
 
-              return lease;
+              return { ...lease, invoiceSummary };
             },
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
           );
@@ -4062,40 +4132,25 @@ export const appRouter = router({
                   select: { timeZone: true },
                 });
                 const today = getCalendarDate(new Date(), organization.timeZone);
-                let rentCharges;
-                try {
-                  rentCharges = planLeaseRentCharges({
-                    monthlyRentCents: completeLease.monthlyRentCents,
-                    rentDueDay: completeLease.rentDueDay,
-                    startsOn: completeLease.startsOn.toISOString().slice(0, 10),
-                    endsOn: completeLease.endsOn?.toISOString().slice(0, 10) ?? null,
-                    billingResponsibility: completeLease.billingResponsibility,
-                    tenantIds: completeLease.tenantIds,
-                    tenantAllocations:
-                      completeLease.billingResponsibility === "individual"
-                        ? completeLease.tenantAllocations.map(({ tenantId, rentShareCents }) => ({
-                            tenantId,
-                            rentShareCents,
-                          }))
-                        : [],
-                  });
-                } catch (error) {
-                  throw new TRPCError({
-                    code: "BAD_REQUEST",
-                    message: error instanceof Error ? error.message : "Invalid lease rent schedule.",
-                  });
-                }
-                const rentInvoices = await createLeaseRentInvoices(tx, {
+                const rentCharges = planCompleteLeaseRentCharges({
+                  monthlyRentCents: completeLease.monthlyRentCents,
+                  rentDueDay: completeLease.rentDueDay,
+                  startsOn: completeLease.startsOn,
+                  endsOn: completeLease.endsOn,
+                  billingResponsibility: completeLease.billingResponsibility,
+                  tenantIds: completeLease.tenantIds,
+                  tenantAllocations: completeLease.tenantAllocations.map(({ tenantId, rentShareCents }) => ({
+                    tenantId,
+                    rentShareCents,
+                  })),
+                });
+                const invoiceSummary = await writeLeaseRentSchedule(tx, {
                   organizationId,
                   leaseId: lease.id,
                   propertyId: completeLease.propertyId,
-                  billingRevision: 1,
                   today,
                   charges: rentCharges,
                 });
-                for (const invoice of rentInvoices) {
-                  await recordInvoiceActivity(tx, invoice, "invoice.created");
-                }
                 const status = completeLease.startsOn.toISOString().slice(0, 10) > today
                   ? LeaseStatus.scheduled
                   : LeaseStatus.active;
@@ -4157,7 +4212,6 @@ export const appRouter = router({
                     idempotencyKey: `lease:${lease.id}:activate`,
                   });
                 }
-                const invoiceSummary = await getLeaseRentInvoiceSummary(tx, organizationId, lease.id, 1);
                 await recordActivityEvent(tx, {
                   organizationId,
                   subjectType: ActivitySubjectType.lease,
@@ -4296,9 +4350,9 @@ export const appRouter = router({
           throw error;
         }
       }),
-    /** Creates a new lease with tenants and optionally generates invoices. */
+    /** Creates a new lease with tenants and a rent schedule when complete. */
     create: permissionProcedure("leases", "create")
-      .input(createLeaseWithInvoicesInputSchema)
+      .input(createLeaseInputSchema)
       .mutation(async ({ ctx, input }) => {
         if (
           input.status === LeaseStatus.scheduled ||
@@ -4309,21 +4363,15 @@ export const appRouter = router({
             message: "Future leases must be completed through the lease draft wizard.",
           });
         }
-        if (input.status === LeaseStatus.draft && input.generateInvoices) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Draft leases cannot generate invoices.",
-          });
-        }
         await Promise.all([
           requirePermission(ctx.prisma, ctx.user.role, "properties", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "units", "view"),
           requirePermission(ctx.prisma, ctx.user.role, "tenants", "view"),
+          ...(input.status === LeaseStatus.draft
+            ? []
+            : [requirePermission(ctx.prisma, ctx.user.role, "invoices", "create")]),
         ]);
-        if (input.generateInvoices) {
-          await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
-        }
-        const { propertyId, unitId, tenantIds, tenantAllocations, generateInvoices, ...leaseData } = input;
+        const { propertyId, unitId, tenantIds, tenantAllocations, ...leaseData } = input;
         const allocationsByTenantId = new Map(tenantAllocations.map((allocation) => [allocation.tenantId, allocation]));
         for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
@@ -4357,6 +4405,22 @@ export const appRouter = router({
                     });
                   }
                 }
+
+                const rentCharges =
+                  leaseData.status === LeaseStatus.draft
+                    ? null
+                    : planCompleteLeaseRentCharges({
+                        monthlyRentCents: leaseData.monthlyRentCents,
+                        rentDueDay: leaseData.rentDueDay,
+                        startsOn: leaseData.startsOn,
+                        endsOn: leaseData.endsOn,
+                        billingResponsibility: leaseData.billingResponsibility,
+                        tenantIds,
+                        tenantAllocations: tenantAllocations.map(({ tenantId, rentShareCents }) => ({
+                          tenantId,
+                          rentShareCents,
+                        })),
+                      });
 
                 const createdLease = await tx.lease.create({
                   data: {
@@ -4396,101 +4460,27 @@ export const appRouter = router({
                   });
                 }
 
-                if (generateInvoices) {
-                  const firstPeriod = new Date(
-                    createdLease.startsOn.getFullYear(),
-                    createdLease.startsOn.getMonth(),
-                    1,
-                  );
-                  const periods = [firstPeriod];
-                  let current = new Date(firstPeriod);
-                  const invoiceThrough =
-                    createdLease.endsOn ??
-                    new Date(
-                      firstPeriod.getFullYear(),
-                      firstPeriod.getMonth() + openEndedLeaseInvoiceHorizonMonths - 1,
-                      1,
-                    );
-
-                  while (current < invoiceThrough) {
-                    current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-                    if (current <= invoiceThrough) {
-                      periods.push(new Date(current));
-                    }
-                  }
-
-                  const invoicePlans =
-                    createdLease.billingResponsibility === "joint"
-                      ? [
-                          {
-                            amountCents: createdLease.monthlyRentCents,
-                            depositCents: createdLease.securityDepositCents,
-                            primaryTenantId: tenantIds[0]!,
-                            recipientIds: tenantIds,
-                          },
-                        ]
-                      : tenantIds.map((tenantId) => ({
-                          amountCents: allocationsByTenantId.get(tenantId)!.rentShareCents,
-                          depositCents: allocationsByTenantId.get(tenantId)!.depositShareCents,
-                          primaryTenantId: tenantId,
-                          recipientIds: [tenantId],
-                        }));
-                  for (const periodStartsOn of periods) {
-                    const periodEndsOn = new Date(periodStartsOn.getFullYear(), periodStartsOn.getMonth() + 1, 0);
-                    const calculatedDueOn = getMonthlyDueDate(periodStartsOn, createdLease.rentDueDay);
-                    const dueOn =
-                      periodStartsOn.getTime() === firstPeriod.getTime() && calculatedDueOn < createdLease.startsOn
-                        ? createdLease.startsOn
-                        : calculatedDueOn;
-
-                    for (const invoicePlan of invoicePlans) {
-                      const depositCents =
-                        periodStartsOn.getTime() === firstPeriod.getTime() ? invoicePlan.depositCents : 0;
-                      const amountCents = invoicePlan.amountCents + depositCents;
-                      await tx.invoice.create({
-                        data: {
-                          organizationId: ctx.organization.organizationId,
-                          leaseId: createdLease.id,
-                          propertyId,
-                          tenantId: invoicePlan.primaryTenantId,
-                          periodStartsOn,
-                          periodEndsOn,
-                          dueOn,
-                          amountCents,
-                          balanceCents: amountCents,
-                          recipients: {
-                            create: invoicePlan.recipientIds.map((tenantId) => ({
-                              organizationId: ctx.organization.organizationId,
-                              tenantId,
-                            })),
-                          },
-                          items: {
-                            create: [
-                              {
-                                item: "Rent",
-                                quantity: 1,
-                                rateCents: invoicePlan.amountCents,
-                                amountCents: invoicePlan.amountCents,
-                              },
-                              ...(depositCents > 0
-                                ? [
-                                    {
-                                      item: "Security deposit",
-                                      quantity: 1,
-                                      rateCents: depositCents,
-                                      amountCents: depositCents,
-                                    },
-                                  ]
-                                : []),
-                            ],
-                          },
-                        },
-                      });
-                    }
-                  }
+                let invoiceSummary = null;
+                if (rentCharges) {
+                  invoiceSummary = await writeLeaseRentSchedule(tx, {
+                    organizationId: ctx.organization.organizationId,
+                    leaseId: createdLease.id,
+                    propertyId,
+                    today: getCalendarDate(new Date(), ctx.organization.organization.timeZone),
+                    charges: rentCharges,
+                  });
+                  await recordActivityEvent(tx, {
+                    organizationId: ctx.organization.organizationId,
+                    subjectType: ActivitySubjectType.lease,
+                    subjectId: createdLease.id,
+                    subjectLabel: `Lease #${createdLease.id}`,
+                    propertyId,
+                    action: "lease.created",
+                    metadata: { ...invoiceSummary, billingRevision: 1 },
+                  });
                 }
 
-                return createdLease;
+                return { ...createdLease, invoiceSummary };
               },
               { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
             );
