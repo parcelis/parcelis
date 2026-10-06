@@ -4,7 +4,6 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { PrismaClient, PrismaPg } from "@parcelis/db";
 import { planLeaseRentCharges } from "@parcelis/schemas";
-import { createLeaseRentInvoices } from "../../leases/lease-rent-invoices";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -107,30 +106,47 @@ test(
       assert.equal(current.invoiceSummary.invoiceCount, 12);
       assert.equal(await prisma.invoice.count({ where: { leaseId: currentLease.id } }), 12);
 
-      const rollbackLease = await createDraft("B");
+      const rollbackLease = await createDraft("B", currentStart, currentEnd);
       const charges = planLeaseRentCharges({
         monthlyRentCents: 120_000,
         rentDueDay: 1,
-        startsOn: futureStart.toISOString().slice(0, 10),
-        endsOn: futureEnd.toISOString().slice(0, 10),
+        startsOn: currentStart.toISOString().slice(0, 10),
+        endsOn: currentEnd.toISOString().slice(0, 10),
         billingResponsibility: "joint",
         tenantIds: [tenant.id],
         tenantAllocations: [],
       });
-      await assert.rejects(
-        prisma.$transaction((tx) =>
-          createLeaseRentInvoices(tx, {
-            organizationId: organization.id,
-            leaseId: rollbackLease.id,
-            propertyId: property.id,
-            billingRevision: 1,
-            today: new Date().toISOString().slice(0, 10),
-            charges: [charges[0]!, charges[0]!],
-          }),
-        ),
-        { code: "P2002" },
+      const conflictingCharge = charges[1]!;
+      await prisma.invoice.create({
+        data: {
+          organizationId: organization.id,
+          leaseId: rollbackLease.id,
+          propertyId: property.id,
+          tenantId: tenant.id,
+          sourceKey: conflictingCharge.sourceKey,
+          billingRevision: 1,
+          periodStartsOn: new Date(conflictingCharge.periodStartsOn),
+          periodEndsOn: new Date(conflictingCharge.periodEndsOn),
+          dueOn: new Date(conflictingCharge.dueOn),
+          amountCents: conflictingCharge.amountCents,
+          balanceCents: conflictingCharge.amountCents,
+        },
+      });
+      await assert.rejects(caller.leases.finalizeDraft({ leaseId: rollbackLease.id, expectedRevision: 4 }), {
+        code: "CONFLICT",
+      });
+      assert.equal(await prisma.invoice.count({ where: { leaseId: rollbackLease.id } }), 1);
+      assert.equal(
+        await prisma.invoice.count({ where: { leaseId: rollbackLease.id, sourceKey: charges[0]!.sourceKey } }),
+        0,
       );
-      assert.equal(await prisma.invoice.count({ where: { leaseId: rollbackLease.id } }), 0);
+      assert.equal(await prisma.invoiceItem.count({ where: { invoice: { leaseId: rollbackLease.id } } }), 0);
+      assert.equal(await prisma.invoiceRecipient.count({ where: { invoice: { leaseId: rollbackLease.id } } }), 0);
+      assert.equal(
+        await prisma.activityEvent.count({ where: { subjectType: "lease", subjectId: rollbackLease.id } }),
+        0,
+      );
+      assert.equal((await prisma.property.findUniqueOrThrow({ where: { id: property.id } })).occupiedUnits, 1);
       assert.equal((await prisma.lease.findUniqueOrThrow({ where: { id: rollbackLease.id } })).status, "draft");
 
       await prisma.rolePermission.createMany({
@@ -149,7 +165,7 @@ test(
       await assert.rejects(restrictedCaller.leases.finalizeDraft({ leaseId: rollbackLease.id, expectedRevision: 4 }), {
         code: "FORBIDDEN",
       });
-      assert.equal(await prisma.invoice.count({ where: { leaseId: rollbackLease.id } }), 0);
+      assert.equal(await prisma.invoice.count({ where: { leaseId: rollbackLease.id } }), 1);
     } finally {
       try {
         await prisma?.$disconnect();
