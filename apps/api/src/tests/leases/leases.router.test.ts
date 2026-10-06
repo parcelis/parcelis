@@ -229,7 +229,7 @@ for (const route of ["tenants", "leases"] as const) {
   ] as const) {
     test(`${route} ${billingResponsibility} lease generation creates invoices with the correct amounts and recipients`, async () => {
       const invoiceData: Array<{ amountCents: number; sourceKey: string }> = [];
-      const recipientData: number[][] = [];
+      const recipientData: Array<{ invoiceId: number; tenantId: number }> = [];
       let leaseData: unknown;
       const input = {
         ...individualLeaseInput,
@@ -269,11 +269,11 @@ for (const route of ["tenants", "leases"] as const) {
           }),
         },
         invoiceRecipient: {
-          createMany: async ({ data }: { data: Array<{ tenantId: number }> }) => {
-            recipientData.push(data.map(({ tenantId }) => tenantId));
+          createMany: async ({ data }: { data: Array<{ invoiceId: number; tenantId: number }> }) => {
+            recipientData.push(...data.map(({ invoiceId, tenantId }) => ({ invoiceId, tenantId })));
           },
         },
-        invoiceItem: { create: async () => ({ id: 1 }) },
+        invoiceItem: { createMany: async () => ({ count: expectedAmounts.length }) },
         activityEvent: { create: async () => ({ id: 1 }) },
       };
       const caller = createCaller({
@@ -287,7 +287,12 @@ for (const route of ["tenants", "leases"] as const) {
         invoiceData.map(({ amountCents }) => amountCents),
         expectedAmounts,
       );
-      assert.deepEqual(recipientData, expectedRecipients);
+      assert.deepEqual(
+        recipientData,
+        expectedRecipients.flatMap((tenantIds, index) =>
+          tenantIds.map((tenantId) => ({ invoiceId: index + 1, tenantId })),
+        ),
+      );
       assert.deepEqual(
         invoiceData.map(({ sourceKey }) => sourceKey),
         expectedSourceKeys,

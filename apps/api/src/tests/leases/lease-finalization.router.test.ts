@@ -62,7 +62,7 @@ function createDatabase(
   let eventPayload: { organizationId: number; leaseId: number; activateAt: string } | undefined;
   let invoiceWrites = 0;
   const invoiceRows: Record<string, unknown>[] = [];
-  const recipientRows: Array<Array<{ organizationId: number; invoiceId: number; tenantId: number }>> = [];
+  const recipientRows: Array<{ organizationId: number; invoiceId: number; tenantId: number }> = [];
   const itemRows: Record<string, unknown>[] = [];
   const activityRows: Record<string, unknown>[] = [];
   const tx = {
@@ -194,14 +194,14 @@ function createDatabase(
       }: {
         data: Array<{ organizationId: number; invoiceId: number; tenantId: number }>;
       }) => {
-        recipientRows.push(data);
+        recipientRows.push(...data);
         return { count: data.length };
       },
     },
     invoiceItem: {
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        itemRows.push(data);
-        return { id: itemRows.length };
+      createMany: async ({ data }: { data: Record<string, unknown>[] }) => {
+        itemRows.push(...data);
+        return { count: data.length };
       },
     },
     activityEvent: {
@@ -288,7 +288,10 @@ test("finalizes individual billing when saved tenant shares total the rent and d
   assert.deepEqual(
     invoiceRows()
       .slice(0, 2)
-      .map(({ tenantId }, index) => ({ tenantId, recipients: recipientRows()[index] })),
+      .map(({ tenantId }, index) => ({
+        tenantId,
+        recipients: recipientRows().filter(({ invoiceId }) => invoiceId === index + 1),
+      })),
     [
       { tenantId: 11, recipients: [{ organizationId: 7, invoiceId: 1, tenantId: 11 }] },
       { tenantId: 12, recipients: [{ organizationId: 7, invoiceId: 2, tenantId: 12 }] },

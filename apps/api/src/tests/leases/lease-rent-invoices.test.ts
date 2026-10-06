@@ -16,7 +16,7 @@ test("writes each planned rent charge with its identity, item, and recipients", 
       },
     },
     invoiceRecipient: { createMany: async ({ data }: { data: unknown }) => recipientWrites.push(data) },
-    invoiceItem: { create: async ({ data }: { data: unknown }) => itemWrites.push(data) },
+    invoiceItem: { createMany: async ({ data }: { data: unknown }) => itemWrites.push(data) },
   } as unknown as Prisma.TransactionClient;
   const charges = planLeaseRentCharges({
     monthlyRentCents: 120_000,
@@ -55,14 +55,15 @@ test("writes each planned rent charge with its identity, item, and recipients", 
   assert.deepEqual(recipientWrites[0], [
     { organizationId: 7, invoiceId: 1, tenantId: 11 },
     { organizationId: 7, invoiceId: 1, tenantId: 12 },
+    { organizationId: 7, invoiceId: 2, tenantId: 11 },
+    { organizationId: 7, invoiceId: 2, tenantId: 12 },
   ]);
-  assert.deepEqual(itemWrites[0], {
-    invoiceId: 1,
-    item: "Rent",
-    quantity: 1,
-    rateCents: 60_000,
-    amountCents: 60_000,
-  });
+  assert.deepEqual(itemWrites[0], [
+    { invoiceId: 1, item: "Rent", quantity: 1, rateCents: 60_000, amountCents: 60_000 },
+    { invoiceId: 2, item: "Rent", quantity: 1, rateCents: 120_000, amountCents: 120_000 },
+  ]);
+  assert.equal(recipientWrites.length, 1);
+  assert.equal(itemWrites.length, 1);
   assert.equal(writes[1]?.sourceKey, "rent:2027-05:joint");
   assert.equal(writes[1]?.status, "open");
 });
@@ -77,7 +78,7 @@ test("a zero-cent individual charge still creates an invoice", async () => {
       },
     },
     invoiceRecipient: { createMany: async () => ({ count: 1 }) },
-    invoiceItem: { create: async () => ({ id: 1 }) },
+    invoiceItem: { createMany: async () => ({ count: 4 }) },
   } as unknown as Prisma.TransactionClient;
   const charges = planLeaseRentCharges({
     monthlyRentCents: 100,

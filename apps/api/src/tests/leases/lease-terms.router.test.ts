@@ -83,7 +83,7 @@ test("generated invoices use the lease rent due day", async () => {
       aggregate: async () => ({ _count: { _all: invoiceData.length }, _sum: { amountCents: 0 } }),
     },
     invoiceRecipient: { createMany: async () => ({ count: 1 }) },
-    invoiceItem: { create: async () => ({ id: 1 }) },
+    invoiceItem: { createMany: async () => ({ count: 2 }) },
     activityEvent: { create: async () => ({ id: 1 }) },
   };
   const caller = createCaller({
@@ -139,7 +139,7 @@ test("the first generated invoice is not due before a mid-month lease starts", a
       aggregate: async () => ({ _count: { _all: invoiceData.length }, _sum: { amountCents: 0 } }),
     },
     invoiceRecipient: { createMany: async () => ({ count: 1 }) },
-    invoiceItem: { create: async () => ({ id: 1 }) },
+    invoiceItem: { createMany: async () => ({ count: 2 }) },
     activityEvent: { create: async () => ({ id: 1 }) },
   };
   const caller = createCaller({

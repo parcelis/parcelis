@@ -18,8 +18,9 @@ function calendarDate(value: string) {
 // Creates lease rent invoices based on the provided charge plan.
 export async function createLeaseRentInvoices(tx: Prisma.TransactionClient, input: CreateLeaseRentInvoicesInput) {
   const invoices = [];
+  const recipients: Prisma.InvoiceRecipientCreateManyInput[] = [];
+  const items: Prisma.InvoiceItemCreateManyInput[] = [];
 
-  // Iterate over each charge in the input and create an invoice for it.
   for (const charge of input.charges) {
     const invoice = await tx.invoice.create({
       data: {
@@ -37,23 +38,26 @@ export async function createLeaseRentInvoices(tx: Prisma.TransactionClient, inpu
         status: charge.amountCents === 0 ? "paid" : charge.dueOn < input.today ? "overdue" : "open",
       },
     });
-    await tx.invoiceRecipient.createMany({
-      data: charge.recipientTenantIds.map((tenantId) => ({
+    recipients.push(
+      ...charge.recipientTenantIds.map((tenantId) => ({
         organizationId: input.organizationId,
         invoiceId: invoice.id,
         tenantId,
       })),
-    });
-    await tx.invoiceItem.create({
-      data: {
-        invoiceId: invoice.id,
-        item: "Rent",
-        quantity: 1,
-        rateCents: charge.amountCents,
-        amountCents: charge.amountCents,
-      },
+    );
+    items.push({
+      invoiceId: invoice.id,
+      item: "Rent",
+      quantity: 1,
+      rateCents: charge.amountCents,
+      amountCents: charge.amountCents,
     });
     invoices.push(invoice);
+  }
+
+  if (invoices.length > 0) {
+    await tx.invoiceRecipient.createMany({ data: recipients });
+    await tx.invoiceItem.createMany({ data: items });
   }
 
   return invoices;
