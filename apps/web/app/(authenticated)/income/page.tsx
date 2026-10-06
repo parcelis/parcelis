@@ -160,7 +160,16 @@ function IncomePageContent() {
       return {
         ...property,
         incomeLeases,
-        amountOverdueCents: summaryLeases.reduce((total, lease) => total + lease.amountOverdueCents, 0),
+        amountOverdueCents: summaryLeases.reduce(
+          (total, lease) =>
+            total +
+            lease.invoices.reduce(
+              (leaseTotal, invoice) =>
+                leaseTotal + (invoice.status === "overdue" ? invoice.balanceCents : 0),
+              0,
+            ),
+          0,
+        ),
         monthlyRentCents: summaryLeases.reduce((total, lease) => total + (lease.monthlyRentCents ?? 0), 0),
       };
     })
