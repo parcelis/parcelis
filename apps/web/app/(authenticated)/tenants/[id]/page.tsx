@@ -125,9 +125,9 @@ export default function TenantDetailPage() {
     queryFn: () => apiClient.auth.me.query(),
   });
   const canEditTenant = hasPermission(currentUserQuery.data?.permissions, "tenants", "edit");
+  const canCreateInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "create");
   const canCreateLease =
     hasPermission(currentUserQuery.data?.permissions, "leases", "create") &&
-    hasPermission(currentUserQuery.data?.permissions, "invoices", "create") &&
     hasPermission(currentUserQuery.data?.permissions, "properties", "view") &&
     hasPermission(currentUserQuery.data?.permissions, "units", "view") &&
     hasPermission(currentUserQuery.data?.permissions, "tenants", "view");
@@ -141,6 +141,10 @@ export default function TenantDetailPage() {
     queryFn: () => apiClient.properties.list.query(),
   });
   const tenant = tenantQuery.data;
+  function openLeaseDialog() {
+    setLeaseForm((current) => ({ ...current, status: canCreateInvoices ? "active" : "draft" }));
+    setIsLeaseDialogOpen(true);
+  }
   const prioritizeUnarchive =
     tenant?.tenantStatus === "archived" && hasPermission(currentUserQuery.data?.permissions, "tenants", "archive");
   const emergencyContact = tenant?.emergencyContacts?.[0];
@@ -497,7 +501,9 @@ export default function TenantDetailPage() {
                 value={leaseForm.status}
                 onChange={(event) => setLeaseForm((current) => ({ ...current, status: event.target.value }))}
               >
-                <option value="active">Active</option>
+                <option disabled={!canCreateInvoices} value="active">
+                  Active
+                </option>
                 <option value="draft">Draft</option>
               </Select>
             </Label>
@@ -545,7 +551,7 @@ export default function TenantDetailPage() {
                     <Button
                       className={`hidden min-w-40 md:inline-flex ${canEditTenant ? "rounded-none border-l-0" : "rounded-r-none"}`}
                       disabled={!tenant}
-                      onClick={() => setIsLeaseDialogOpen(true)}
+                      onClick={openLeaseDialog}
                       variant="secondary"
                     >
                       <Plus className="h-4 w-4" />
@@ -603,7 +609,7 @@ export default function TenantDetailPage() {
                 </DropdownMenuItem>
               ) : null}
               {canCreateLease && tenant?.tenantStatus !== "archived" ? (
-                <DropdownMenuItem className="md:hidden" disabled={!tenant} onSelect={() => setIsLeaseDialogOpen(true)}>
+                <DropdownMenuItem className="md:hidden" disabled={!tenant} onSelect={openLeaseDialog}>
                   <Plus className="h-4 w-4" />
                   Create Lease
                 </DropdownMenuItem>
