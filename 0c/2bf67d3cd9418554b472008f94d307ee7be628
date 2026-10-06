@@ -1,0 +1,24 @@
+apps/web/app/(authenticated)/income/page.tsx
+  s_4e22ec8db4191f::t_ec74d9515120ba 90-95,144,147
+  s_4e22ec8db4191f::t_310b2e53fd7a31 73-79,86,419-426,472,560
+  s_4e22ec8db4191f::t_530ed48c290459 80-85,87,258-259,331,333,527
+  s_4e22ec8db4191f::t_556ce37917139d 88-89,143,145,159,163-164,187,396-397,454-456,565
+apps/docs/content/platform-user-guide/app-functionality/income-dashboard.mdx
+  s_4e22ec8db4191f::t_baeb900939b951 9-11,15,44-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0c2bf67d3cd9418554b472008f94d307ee7be628",
+  "prompts": {},
+  "sessions": {
+    "s_4e22ec8db4191f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10f7c-7893-7883-9886-d1dfcc020c0b",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
