@@ -25,6 +25,7 @@ export function validateOutboxTestDatabaseUrl(databaseUrl, configuredDatabaseUrl
 
 export async function createIsolatedTestSchema(prisma, databaseUrl, prefix) {
   if (!/^[a-z][a-z0-9_]*$/.test(prefix)) throw new Error("Invalid test schema prefix.");
+  if (prefix.length > 30) throw new Error("Test schema prefix cannot exceed 30 characters.");
   const url = new URL(databaseUrl);
   const schema = `${prefix}_${randomUUID().replaceAll("-", "")}`;
   const quote = (value) => `"${value.replaceAll('"', '""')}"`;

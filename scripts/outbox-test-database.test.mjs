@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateOutboxTestDatabaseUrl } from "./outbox-test-database.mjs";
+import { createIsolatedTestSchema, validateOutboxTestDatabaseUrl } from "./outbox-test-database.mjs";
 
 test("test database validation rejects equivalent identities despite URL differences", () => {
   for (const configured of [
@@ -18,4 +18,11 @@ test("test database validation rejects equivalent identities despite URL differe
 test("test database validation requires a test name and permits a separate identity", () => {
   assert.throws(() => validateOutboxTestDatabaseUrl("postgresql://localhost/parcelis"), /'test'/);
   validateOutboxTestDatabaseUrl("postgresql://localhost/outbox_test", "postgresql://localhost/parcelis");
+});
+
+test("isolated schema rejects a prefix that would exceed PostgreSQL's identifier limit", async () => {
+  await assert.rejects(
+    createIsolatedTestSchema({}, "postgresql://localhost/outbox_test", "a".repeat(31)),
+    /cannot exceed 30 characters/,
+  );
 });
