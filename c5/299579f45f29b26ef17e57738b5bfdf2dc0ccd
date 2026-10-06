@@ -1,0 +1,19 @@
+apps/docs/content/platform-user-guide/app-functionality/lease-dashboard.mdx
+  s_30d3e27ec1d9ab::t_05bc1324040193 33-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c5299579f45f29b26ef17e57738b5bfdf2dc0ccd",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
