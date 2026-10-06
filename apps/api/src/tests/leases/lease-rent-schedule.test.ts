@@ -25,13 +25,29 @@ test("a fixed lease longer than 120 calendar months is rejected", () => {
         monthlyRentCents: 120_000,
         rentDueDay: 1,
         startsOn: "2027-01-01",
-        endsOn: "2037-01-31",
+        endsOn: "2037-01-01",
         billingResponsibility: "joint",
         tenantIds: [11],
         tenantAllocations: [],
       }),
     /cannot exceed 120 months/,
   );
+});
+
+test("a fixed lease spanning exactly 120 calendar months plans every charge", () => {
+  const charges = planLeaseRentCharges({
+    monthlyRentCents: 120_000,
+    rentDueDay: 1,
+    startsOn: "2027-01-01",
+    endsOn: "2036-12-31",
+    billingResponsibility: "joint",
+    tenantIds: [11],
+    tenantAllocations: [],
+  });
+
+  assert.equal(charges.length, 120);
+  assert.equal(charges[0]?.sourceKey, "rent:2027-01:joint");
+  assert.equal(charges.at(-1)?.sourceKey, "rent:2036-12:joint");
 });
 
 test("a full lease plan includes every monthly joint rent charge", () => {
