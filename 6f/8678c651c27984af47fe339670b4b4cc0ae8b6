@@ -1,0 +1,19 @@
+apps/web/app/(authenticated)/income/page.tsx
+  s_4e22ec8db4191f::t_36b4abe2ca53a9 163-172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6f8678c651c27984af47fe339670b4b4cc0ae8b6",
+  "prompts": {},
+  "sessions": {
+    "s_4e22ec8db4191f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10f7c-7893-7883-9886-d1dfcc020c0b",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
