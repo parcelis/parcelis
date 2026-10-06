@@ -1,0 +1,24 @@
+tests/e2e/lease-draft.spec.ts
+  s_30d3e27ec1d9ab::t_23603e927ad034 3,658-668,671-688
+apps/api/src/tests/leases/lease-finalization.integration.test.ts
+  s_30d3e27ec1d9ab::t_b700b288fdc8ef 61
+  s_30d3e27ec1d9ab::t_4b6cbe4c4e07f2 58-60,114-115,127
+  s_30d3e27ec1d9ab::t_f6260f07245eeb 47,70-71,101-108,135-148,152
+  s_30d3e27ec1d9ab::t_e69e2c872931d4 149-151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "137d9e2ee9594fc8c3c6f310a28d6af266bbd6a2",
+  "prompts": {},
+  "sessions": {
+    "s_30d3e27ec1d9ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10905-da48-74b0-b59c-8e13632f18a3",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
