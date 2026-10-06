@@ -507,16 +507,12 @@ function IncomePageContent() {
                                         —
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
-                                        {persistedInvoice
-                                          ? formatCurrency(persistedInvoice.amountCents - persistedInvoice.balanceCents)
-                                          : "—"}
+                                        {formatCurrency(invoice.amountCents - invoice.balanceCents)}
                                       </TableCell>
                                       <TableCell
                                         className={`px-5 py-3 text-right text-sm font-semibold ${persistedInvoice && isUpcomingInvoice(persistedInvoice) ? "text-parcelis-gray" : lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
                                       >
-                                        {formatCurrency(
-                                          persistedInvoice ? persistedInvoice.balanceCents : lease.amountOverdueCents,
-                                        )}
+                                        {formatCurrency(invoice.balanceCents)}
                                       </TableCell>
                                     </TableRow>
                                   );
