@@ -35,6 +35,9 @@ test(
       const organization = await prisma.organization.create({
         data: { name: "Lease billing integration", slug: `lease-billing-${testId}`, timeZone: "UTC" },
       });
+      await prisma.invoiceCharge.create({
+        data: { organizationId: organization.id, name: "Rent", description: "Monthly rent", isDefault: true },
+      });
       const property = await prisma.property.create({
         data: {
           organizationId: organization.id,

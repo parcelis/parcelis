@@ -75,6 +75,16 @@ test("generated invoices use the lease rent due day", async () => {
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
     tenant: { findMany: async () => [{ id: 11 }] },
     lease: { findFirst: async () => null, create: async () => createdLease },
+    invoiceCharge: {
+      findFirst: async ({ where }: { where: { organizationId: number } }) => {
+        assert.equal(where.organizationId, 7);
+        return { id: 5, name: "Rent", description: "Monthly rent" };
+      },
+      findFirstOrThrow: async ({ where }: { where: { organizationId: number } }) => {
+        assert.equal(where.organizationId, 7);
+        return { id: 5, name: "Rent", description: "Monthly rent" };
+      },
+    },
     invoice: {
       create: async ({ data }: { data: { dueOn: Date } }) => {
         invoiceData.push(data);
@@ -131,6 +141,16 @@ test("the first generated invoice is not due before a mid-month lease starts", a
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
     tenant: { findMany: async () => [{ id: 11 }] },
     lease: { findFirst: async () => null, create: async () => createdLease },
+    invoiceCharge: {
+      findFirst: async ({ where }: { where: { organizationId: number } }) => {
+        assert.equal(where.organizationId, 7);
+        return { id: 5, name: "Rent", description: "Monthly rent" };
+      },
+      findFirstOrThrow: async ({ where }: { where: { organizationId: number } }) => {
+        assert.equal(where.organizationId, 7);
+        return { id: 5, name: "Rent", description: "Monthly rent" };
+      },
+    },
     invoice: {
       create: async ({ data }: { data: { dueOn: Date } }) => {
         invoiceData.push(data);

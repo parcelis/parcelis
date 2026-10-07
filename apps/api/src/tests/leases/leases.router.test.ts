@@ -132,6 +132,16 @@ for (const route of ["tenants", "leases"] as const) {
         findFirst: async () => null,
         create: async () => ({ id: 4, startsOn: individualLeaseInput.startsOn, monthlyRentCents: 10_000 }),
       },
+      invoiceCharge: {
+        findFirst: async ({ where }: { where: { organizationId: number } }) => {
+          assert.equal(where.organizationId, 7);
+          return { id: 5, name: "Rent", description: "Monthly rent" };
+        },
+        findFirstOrThrow: async ({ where }: { where: { organizationId: number } }) => {
+          assert.equal(where.organizationId, 7);
+          return { id: 5, name: "Rent", description: "Monthly rent" };
+        },
+      },
       invoice: {
         create: async () => {
           throw new Error("Invoice write failed");
@@ -256,6 +266,16 @@ for (const route of ["tenants", "leases"] as const) {
               securityDepositCents: input.securityDepositCents,
               tenants: [],
             };
+          },
+        },
+        invoiceCharge: {
+          findFirst: async ({ where }: { where: { organizationId: number } }) => {
+            assert.equal(where.organizationId, 7);
+            return { id: 5, name: "Rent", description: "Monthly rent" };
+          },
+          findFirstOrThrow: async ({ where }: { where: { organizationId: number } }) => {
+            assert.equal(where.organizationId, 7);
+            return { id: 5, name: "Rent", description: "Monthly rent" };
           },
         },
         invoice: {

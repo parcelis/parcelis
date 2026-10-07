@@ -159,6 +159,13 @@ function createDatabase(
         payload: eventPayload,
       }),
     },
+    invoiceCharge: {
+      findFirst: async ({ where }: { where: { organizationId: number; isDefault: boolean } }) => {
+        assert.equal(where.organizationId, 7);
+        assert.equal(where.isDefault, true);
+        return { id: 5, name: "Rent", description: "Monthly rent" };
+      },
+    },
     invoice: {
       create: async ({ data }: { data: Record<string, unknown> }) => {
         invoiceWrites += 1;
@@ -442,6 +449,7 @@ test("finalization creates the complete rent schedule once", async () => {
   assert.deepEqual(itemRows()[0], {
     invoiceId: 1,
     item: "Rent",
+    description: "Monthly rent",
     quantity: 1,
     rateCents: invoiceRows()[0]?.amountCents,
     amountCents: invoiceRows()[0]?.amountCents,
