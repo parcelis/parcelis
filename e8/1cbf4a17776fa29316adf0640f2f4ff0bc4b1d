@@ -1,0 +1,21 @@
+apps/docs/content/contributing/end-to-end-testing.mdx
+  s_ba23c4d03a3a99::t_a08c009fb9150c 22
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_ba23c4d03a3a99::t_a08c009fb9150c 163,165
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e81cbf4a17776fa29316adf0640f2f4ff0bc4b1d",
+  "prompts": {},
+  "sessions": {
+    "s_ba23c4d03a3a99": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11742-6d94-7471-b81c-c60540f4ef01",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
