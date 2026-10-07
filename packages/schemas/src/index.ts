@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export type FeatureFlags = { applications: boolean };
+
+export function getFeatureFlags(env: Record<string, string | undefined>): FeatureFlags {
+  return { applications: env.FEATURE_FLAG_APPLICATIONS_ENABLED === "true" };
+}
+
+export function isApplicationResource(resource: string) {
+  return resource === "applications" || resource === "application_notes";
+}
+
 export * from "./lease-rent-schedule.ts";
 export * from "./invoice-charge-description.ts";
 

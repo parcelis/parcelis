@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["FEATURE_FLAG_APPLICATIONS_ENABLED"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

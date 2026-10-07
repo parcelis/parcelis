@@ -69,3 +69,19 @@ the API at `/api/v1`.
 - `SESSION_IDLE_TIMEOUT_ENABLED`: defaults to `true`; set to `false` to disable the 15-minute inactivity timeout
 
 For the complete `.env` reference, including TLS and STARTTLS guidance, see [Email configuration](./email-configuration). Organization administrators can configure SMTP in Settings → Organization → Email. Those settings take precedence for email sent to a user whose default organization has a saved configuration. The environment SMTP values remain the fallback.
+
+### Feature flags
+
+Feature flags control which optional features are available. Unset flags default to disabled; only the exact value `true` enables them.
+
+| Variable                            | Default | Description                                                                                                                          |
+| ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `FEATURE_FLAG_APPLICATIONS_ENABLED` | `false` | Enables application navigation, pages, templates, sent requests, status management, application notes, and role permission controls. |
+
+To enable applications, add this to `.env` for local development or `.env.production` for Docker Compose:
+
+```dotenv
+FEATURE_FLAG_APPLICATIONS_ENABLED="true"
+```
+
+Provide the same value to both the web app and API. Restart local processes or recreate containers after changing it. When disabled, application pages and API operations are unavailable, including for administrators. Existing application data and role permissions are preserved.

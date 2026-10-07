@@ -40,6 +40,7 @@ import {
   PasswordInput,
   Select,
 } from "@parcelis/ui";
+import { useFeatureFlags } from "./feature-flags";
 import { useShortcut } from "./shortcut-provider";
 import { isMacPlatform, shortcutKeyParts, shortcutList, shortcuts } from "./shortcuts";
 import { apiClient, queryKeys } from "./api-client";
@@ -126,6 +127,7 @@ export function Sidebar() {
 
 // Renders the content of the sidebar, including navigation items and account menu.
 function SidebarContent({ active }: SidebarProps) {
+  const flags = useFeatureFlags();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
@@ -471,25 +473,27 @@ function SidebarContent({ active }: SidebarProps) {
         ) : null}
 
         <nav className="mt-6 flex-1 space-y-1 text-sm font-medium text-parcelis-gray max-lg:flex-none">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.key === active;
-            return (
-              <Link
-                aria-label={item.label}
-                className={`flex h-10 items-center gap-3 rounded-md px-3 ${
-                  isActive ? "bg-parcelis-charcoal text-white" : "hover:bg-parcelis-porcelain"
-                } ${!isSidebarExpanded ? "justify-center" : ""}`}
-                href={item.href}
-                key={item.key}
-                onClick={closeMobileSidebar}
-                title={!isSidebarExpanded ? item.label : undefined}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {!isSidebarExpanded ? null : <span className="min-w-0 truncate whitespace-nowrap">{item.label}</span>}
-              </Link>
-            );
-          })}
+          {navItems
+            .filter((item) => item.key !== "applications" || flags.applications)
+            .map((item) => {
+              const Icon = item.icon;
+              const isActive = item.key === active;
+              return (
+                <Link
+                  aria-label={item.label}
+                  className={`flex h-10 items-center gap-3 rounded-md px-3 ${
+                    isActive ? "bg-parcelis-charcoal text-white" : "hover:bg-parcelis-porcelain"
+                  } ${!isSidebarExpanded ? "justify-center" : ""}`}
+                  href={item.href}
+                  key={item.key}
+                  onClick={closeMobileSidebar}
+                  title={!isSidebarExpanded ? item.label : undefined}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!isSidebarExpanded ? null : <span className="min-w-0 truncate whitespace-nowrap">{item.label}</span>}
+                </Link>
+              );
+            })}
         </nav>
 
         <Dialog

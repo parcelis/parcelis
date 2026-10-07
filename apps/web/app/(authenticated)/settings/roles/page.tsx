@@ -20,24 +20,32 @@ import {
 } from "@parcelis/ui";
 import {
   permissionActionValues,
-  permissionCatalog,
+  permissionCatalog as allPermissionCatalog,
+  isApplicationResource,
   permissionResourceValues,
-  notePermissionCatalog,
+  notePermissionCatalog as allNotePermissionCatalog,
   type PermissionAction,
   type PermissionFlags,
   type PermissionResource,
 } from "@parcelis/schemas";
+import { useFeatureFlags } from "../../../../components/feature-flags";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
 import { SettingsRail } from "../../../../components/settings-rail";
 import { formatLabel } from "../../../../lib/format";
 import { settingUpdatedMessage } from "../../../../components/toast-messages";
 
-
 type PermissionMatrix = Record<PermissionResource, PermissionFlags>;
 type Role = Awaited<ReturnType<typeof apiClient.roles.list.query>>[number];
 
 export default function RolesSettingsPage() {
+  const flags = useFeatureFlags();
+  const permissionCatalog = allPermissionCatalog.filter(
+    ({ resource }) => flags.applications || !isApplicationResource(resource),
+  );
+  const notePermissionCatalog = allNotePermissionCatalog.filter(
+    ({ resource }) => flags.applications || !isApplicationResource(resource),
+  );
   const queryClient = useQueryClient();
   const currentUserQuery = useQuery({ queryKey: queryKeys.auth.me, queryFn: () => apiClient.auth.me.query() });
   const rolesQuery = useQuery({
@@ -119,7 +127,12 @@ export default function RolesSettingsPage() {
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="roles" canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false} canManageRoles={canManageUsers} canManageUsers={canManageUsers} />
+            <SettingsRail
+              active="roles"
+              canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
+              canManageRoles={canManageUsers}
+              canManageUsers={canManageUsers}
+            />
             <div className="min-w-0 flex-1">
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>

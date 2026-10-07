@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
-import { roleResourcePermissionSchema } from "@parcelis/schemas";
+import { getFeatureFlags, roleResourcePermissionSchema } from "@parcelis/schemas";
 import type { PrismaService } from "../../modules/prisma.service";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../../modules/permissions";
 
@@ -153,5 +153,50 @@ test("enforces scoped note and parent view permissions for every note subject", 
       requireNotePermission(createPrisma({ [`${notes}:view`]: true }), "property_manager", subject, "view"),
       (error: unknown) => error instanceof TRPCError && error.code === "FORBIDDEN",
     );
+  }
+});
+
+test("applications require explicit enablement, including administrator and note access", async () => {
+  const previous = process.env.FEATURE_FLAG_APPLICATIONS_ENABLED;
+  try {
+    for (const value of [undefined, "false", "1", "TRUE"]) {
+      if (value === undefined) delete process.env.FEATURE_FLAG_APPLICATIONS_ENABLED;
+      else process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = value;
+      assert.equal(getFeatureFlags(process.env).applications, false);
+      for (const role of ["administrator", "property_manager"]) {
+        for (const resource of ["applications", "application_notes"] as const) {
+          for (const action of ["view", "create", "edit", "delete"] as const) {
+            await assert.rejects(
+              requirePermission(createPrisma({ [`${resource}:${action}`]: true }), role, resource, action),
+              (error: unknown) => error instanceof TRPCError && error.message === "Applications are disabled.",
+            );
+          }
+        }
+        await assert.rejects(
+          requireNotePermission(
+            createPrisma({ "applications:view": true, "application_notes:view": true }),
+            role,
+            { applicationId: 1 },
+            "view",
+          ),
+          (error: unknown) => error instanceof TRPCError && error.message === "Applications are disabled.",
+        );
+      }
+    }
+    process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = "true";
+    assert.equal(getFeatureFlags(process.env).applications, true);
+    await assert.doesNotReject(requirePermission(createPrisma({}), "administrator", "applications", "view"));
+    await assert.doesNotReject(
+      requireNotePermission(
+        createPrisma({ "applications:view": true, "application_notes:view": true }),
+        "property_manager",
+        { applicationId: 1 },
+        "view",
+      ),
+    );
+    await assert.rejects(requirePermission(createPrisma({}), "property_manager", "applications", "view"));
+  } finally {
+    if (previous === undefined) delete process.env.FEATURE_FLAG_APPLICATIONS_ENABLED;
+    else process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = previous;
   }
 });

@@ -1,5 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import {
+  getFeatureFlags,
+  isApplicationResource,
   permissionActionValues,
   permissionResourceValues,
   supportsPermissionAction,
@@ -66,6 +68,9 @@ export async function requirePermission(
   resource: PermissionResource,
   action: PermissionAction,
 ) {
+  if (isApplicationResource(resource) && !getFeatureFlags(process.env).applications) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Applications are disabled." });
+  }
   if (!supportsPermissionAction(resource, action)) {
     const resourceLabel = resource.replaceAll("_", " ");
     throw new TRPCError({
