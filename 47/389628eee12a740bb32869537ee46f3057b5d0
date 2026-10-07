@@ -1,0 +1,32 @@
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_d1b34a92a3a1fb::t_98c73a0450dd96 88-97,100-102
+  s_d1b34a92a3a1fb::t_ed2947be585564 98-99
+apps/api/src/router/app.router.ts
+  s_d1b34a92a3a1fb::t_73a2090c737aeb 130-135,1209-1231
+apps/api/src/tests/permissions/permissions.unit.test.ts
+  s_d1b34a92a3a1fb::t_73a2090c737aeb 203-234
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_d1b34a92a3a1fb::t_4c7292b5c3730e 3,257-258,263,266-271
+  s_d1b34a92a3a1fb::t_73a2090c737aeb 9-12,19,235-256,259-262,264-265,272-276
+  s_d1b34a92a3a1fb::t_e9b293224ae126 277
+apps/api/src/modules/permissions.ts
+  s_d1b34a92a3a1fb::t_98c73a0450dd96 43-46,54,61,76
+docker-compose.yml
+  s_d1b34a92a3a1fb::t_98c73a0450dd96 109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "47389628eee12a740bb32869537ee46f3057b5d0",
+  "prompts": {},
+  "sessions": {
+    "s_d1b34a92a3a1fb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11752-8766-7ea3-ab82-e1c5ead1e10e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
