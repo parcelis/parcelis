@@ -1,11 +1,13 @@
 import type { Prisma } from "@parcelis/db";
-import type { MonthlyRentChargePlan } from "@parcelis/schemas";
+import { formatInvoiceChargeDescription, type MonthlyRentChargePlan } from "@parcelis/schemas";
 
 // Input type for creating lease rent invoices.
 type CreateLeaseRentInvoicesInput = {
   organizationId: number;
   leaseId: number;
   propertyId: number;
+  item: string;
+  description: string | null;
   billingRevision: number;
   today: string;
   charges: MonthlyRentChargePlan[];
@@ -47,7 +49,8 @@ export async function createLeaseRentInvoices(tx: Prisma.TransactionClient, inpu
     );
     items.push({
       invoiceId: invoice.id,
-      item: "Rent",
+      item: input.item,
+      description: formatInvoiceChargeDescription(input.description, charge.periodStartsOn),
       quantity: 1,
       rateCents: charge.amountCents,
       amountCents: charge.amountCents,

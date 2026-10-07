@@ -129,6 +129,7 @@ function IncomePageContent() {
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
   });
+  const chargesQuery = useQuery({ queryKey: queryKeys.invoices.charges, queryFn: () => apiClient.invoices.charges.query() });
   const properties = propertiesQuery.data ?? [];
   const createInvoice = useMutation({
     mutationFn: (input: Parameters<typeof apiClient.invoices.createManual.mutate>[0]) =>
@@ -613,6 +614,7 @@ function IncomePageContent() {
           </Card>
         </div>
         <InvoiceDrawer
+          charges={chargesQuery.data ?? []}
           error={createInvoice.error}
           isPending={createInvoice.isPending}
           onCreate={(input) => createInvoice.mutate(input)}

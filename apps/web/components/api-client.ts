@@ -93,4 +93,7 @@ export const queryKeys = {
   applicationStatuses: {
     list: ["applicationStatuses", "list"] as const,
   },
+  invoices: {
+    charges: ["invoices", "charges"] as const,
+  },
 };

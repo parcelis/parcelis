@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
   Button,
   Drawer,
@@ -10,15 +10,21 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Input,
   Label,
   Select,
 } from "@parcelis/ui";
 import { formatDate, getLocalDateInput } from "../lib/date";
+import { formatInvoiceChargeDescription } from "@parcelis/schemas";
 
 type InvoiceLine = {
+  chargeId: string;
+  customItem: string;
   description: string;
-  item: string;
   quantity: string;
   rate: string;
 };
@@ -40,6 +46,7 @@ type IncomeProperty = {
 type InvoiceDrawerProps = {
   error?: Error | null;
   isPending: boolean;
+  charges: Array<{ id: number; name: string; description: string | null; isDefault: boolean }>;
   onCreate: (input: {
     propertyId: number;
     leaseId: number;
@@ -62,20 +69,25 @@ function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
-const initialLine: InvoiceLine = { item: "Rent", description: "", quantity: "1", rate: "" };
-
-export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, properties }: InvoiceDrawerProps) {
+export function InvoiceDrawer({
+  charges,
+  error,
+  isPending,
+  onCreate,
+  onOpenChange,
+  open,
+  properties,
+}: InvoiceDrawerProps) {
   const [propertyId, setPropertyId] = React.useState("");
   const [unitId, setUnitId] = React.useState("");
   const [leaseId, setLeaseId] = React.useState("");
   const [dueOn, setDueOn] = React.useState(getLocalDateInput());
   const [paid, setPaid] = React.useState("0");
-  const [lines, setLines] = React.useState<InvoiceLine[]>([{ ...initialLine }]);
+  const [lines, setLines] = React.useState<InvoiceLine[]>([]);
 
   const property = properties.find((item) => item.id === Number(propertyId));
   const unit = property?.units.find((item) => item.id === Number(unitId));
-  const leases =
-    property?.leases.filter((item) => item.unitLabel === unit?.name && item.status !== "draft") ?? [];
+  const leases = property?.leases.filter((item) => item.unitLabel === unit?.name && item.status !== "draft") ?? [];
   const lease = leases.find((item) => item.id === Number(leaseId));
   const subtotalCents = lines.reduce((total, line) => total + Number(line.quantity || 0) * toCents(line.rate), 0);
   const paidCents = toCents(paid);
@@ -87,7 +99,7 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
       setLeaseId("");
       setDueOn(getLocalDateInput());
       setPaid("0");
-      setLines([{ ...initialLine }]);
+      setLines([]);
     }
   }, [open]);
 
@@ -95,9 +107,32 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
     setLines((current) => current.map((line, lineIndex) => (lineIndex === index ? { ...line, ...update } : line)));
   }
 
+  function addLine(charge?: InvoiceDrawerProps["charges"][number]) {
+    setLines((current) => [
+      ...current,
+      {
+        chargeId: charge ? String(charge.id) : "custom",
+        customItem: "",
+        description: formatInvoiceChargeDescription(charge?.description ?? null, dueOn) ?? "",
+        quantity: "1",
+        rate: "",
+      },
+    ]);
+  }
+
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!property || !lease) return;
+    if (
+      !property ||
+      !lease ||
+      lines.length === 0 ||
+      lines.some((line) =>
+        line.chargeId === "custom"
+          ? !line.customItem.trim()
+          : !charges.some((charge) => charge.id === Number(line.chargeId)),
+      )
+    )
+      return;
     onCreate({
       propertyId: property.id,
       leaseId: lease.id,
@@ -105,7 +140,10 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
       dueOn: new Date(`${dueOn}T00:00:00.000Z`),
       paidCents,
       items: lines.map((line) => ({
-        item: line.item.trim(),
+        item:
+          line.chargeId === "custom"
+            ? line.customItem.trim()
+            : charges.find((charge) => charge.id === Number(line.chargeId))!.name,
         description: line.description.trim() || undefined,
         quantity: Number(line.quantity),
         rateCents: toCents(line.rate),
@@ -179,7 +217,8 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
                     <option value="">Select lease</option>
                     {leases.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.startsOn ? formatDate(item.startsOn) : "Not set"} – {item.endsOn ? formatDate(item.endsOn) : "No end date"}
+                        {item.startsOn ? formatDate(item.startsOn) : "Not set"} –{" "}
+                        {item.endsOn ? formatDate(item.endsOn) : "No end date"}
                       </option>
                     ))}
                   </Select>
@@ -197,7 +236,27 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
                 </Label>
                 <Label className="gap-2 md:max-w-xs">
                   Due on *
-                  <Input required type="date" value={dueOn} onChange={(event) => setDueOn(event.target.value)} />
+                  <Input
+                    required
+                    type="date"
+                    value={dueOn}
+                    onChange={(event) => {
+                      const nextDueOn = event.target.value;
+                      setLines((current) =>
+                        current.map((line) => {
+                          const charge = charges.find((item) => item.id === Number(line.chargeId));
+                          if (!charge || !charge.description) return line;
+                          const previousDescription = formatInvoiceChargeDescription(charge.description, dueOn);
+                          if (line.description !== previousDescription) return line;
+                          return {
+                            ...line,
+                            description: formatInvoiceChargeDescription(charge.description, nextDueOn) ?? "",
+                          };
+                        }),
+                      );
+                      setDueOn(nextDueOn);
+                    }}
+                  />
                 </Label>
               </div>
             </section>
@@ -210,15 +269,21 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
                     Add one or more charges to this invoice.
                   </p>
                 </div>
-                <Button
-                  disabled={isPending}
-                  size="sm"
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setLines((current) => [...current, { ...initialLine }])}
-                >
-                  <Plus className="h-4 w-4" /> Add item
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button disabled={isPending || lines.length >= 50} size="sm" type="button" variant="secondary">
+                      <Plus className="h-4 w-4" /> Add item <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-48">
+                    {charges.map((charge) => (
+                      <DropdownMenuItem key={charge.id} onSelect={() => addLine(charge)}>
+                        {charge.name}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuItem onSelect={() => addLine()}>Custom item…</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="mt-4 overflow-x-auto rounded-md border border-parcelis-border">
                 <div className="min-w-[760px]">
@@ -230,54 +295,70 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
                     <span className="text-right">Amount</span>
                     <span />
                   </div>
-                  {lines.map((line, index) => {
-                    const amountCents = Number(line.quantity || 0) * toCents(line.rate);
-                    return (
-                      <div
-                        className="grid grid-cols-[1.15fr_1.7fr_90px_110px_110px_40px] items-center gap-3 border-b border-parcelis-border px-3 py-3 last:border-0"
-                        key={index}
-                      >
-                        <Input
-                          required
-                          value={line.item}
-                          onChange={(event) => updateLine(index, { item: event.target.value })}
-                        />
-                        <Input
-                          value={line.description}
-                          onChange={(event) => updateLine(index, { description: event.target.value })}
-                        />
-                        <Input
-                          min="1"
-                          required
-                          type="number"
-                          value={line.quantity}
-                          onChange={(event) => updateLine(index, { quantity: event.target.value })}
-                        />
-                        <Input
-                          min="0"
-                          required
-                          step="0.01"
-                          type="number"
-                          value={line.rate}
-                          onChange={(event) => updateLine(index, { rate: event.target.value })}
-                        />
-                        <span className="text-right text-sm font-semibold text-parcelis-charcoal dark:text-white">
-                          {formatCurrency(amountCents)}
-                        </span>
-                        <Button
-                          aria-label="Remove invoice item"
-                          className="h-10 w-10 px-0"
-                          disabled={lines.length === 1 || isPending}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))}
+                  {lines.length === 0 ? (
+                    <p className="px-3 py-6 text-center text-sm text-parcelis-gray">
+                      Choose a charge from Add item to begin.
+                    </p>
+                  ) : (
+                    lines.map((line, index) => {
+                      const amountCents = Number(line.quantity || 0) * toCents(line.rate);
+                      return (
+                        <div
+                          className="grid grid-cols-[1.15fr_1.7fr_90px_110px_110px_40px] items-center gap-3 border-b border-parcelis-border px-3 py-3 last:border-0"
+                          key={index}
                         >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    );
-                  })}
+                          {line.chargeId === "custom" ? (
+                            <Input
+                              aria-label={`Custom invoice item ${index + 1}`}
+                              maxLength={200}
+                              onChange={(event) => updateLine(index, { customItem: event.target.value })}
+                              placeholder="Item name"
+                              required
+                              value={line.customItem}
+                            />
+                          ) : (
+                            <span className="text-sm font-semibold text-parcelis-charcoal dark:text-white">
+                              {charges.find((charge) => charge.id === Number(line.chargeId))?.name ??
+                                "Charge unavailable"}
+                            </span>
+                          )}
+                          <Input
+                            value={line.description}
+                            onChange={(event) => updateLine(index, { description: event.target.value })}
+                          />
+                          <Input
+                            min="1"
+                            required
+                            type="number"
+                            value={line.quantity}
+                            onChange={(event) => updateLine(index, { quantity: event.target.value })}
+                          />
+                          <Input
+                            min="0"
+                            required
+                            step="0.01"
+                            type="number"
+                            value={line.rate}
+                            onChange={(event) => updateLine(index, { rate: event.target.value })}
+                          />
+                          <span className="text-right text-sm font-semibold text-parcelis-charcoal dark:text-white">
+                            {formatCurrency(amountCents)}
+                          </span>
+                          <Button
+                            aria-label="Remove invoice item"
+                            className="h-10 w-10 px-0"
+                            disabled={isPending}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
               <div className="ml-auto mt-5 grid w-full max-w-xs gap-2 text-sm sm:w-80">
@@ -310,7 +391,7 @@ export function InvoiceDrawer({ error, isPending, onCreate, onOpenChange, open, 
             </Button>
             <Button
               className="min-w-40"
-              disabled={isPending || !lease || subtotalCents <= 0 || paidCents > subtotalCents}
+              disabled={isPending || !lease || lines.length === 0 || subtotalCents <= 0 || paidCents > subtotalCents}
               type="submit"
             >
               Create invoice <ChevronRight className="h-4 w-4" />

@@ -307,7 +307,7 @@ export default function SettingsPage() {
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="users" canManageRoles={isAdministrator} canManageUsers={canViewUsers} />
+            <SettingsRail active="users" canManageInvoicing={hasPermission(currentUserQuery.data?.permissions, "invoices", "view")} canManageRoles={isAdministrator} canManageUsers={canViewUsers} />
             <div className="min-w-0 flex-1">
               <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
                 <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">

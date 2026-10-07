@@ -94,6 +94,7 @@ export default function ProfileSettingsPage() {
               active="none"
               canManageRoles={currentUserQuery.data?.user.role === "administrator"}
               canManageUsers={currentUserQuery.data?.user.role === "administrator"}
+              canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
             />
             <div className="min-w-0 flex-1">
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">

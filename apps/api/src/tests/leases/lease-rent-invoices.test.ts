@@ -32,6 +32,8 @@ test("writes each planned rent charge with its identity, item, and recipients", 
     organizationId: 7,
     leaseId: 9,
     propertyId: 2,
+    item: "Base Rent",
+    description: "Apartment rent for {month} {year}",
     billingRevision: 1,
     today: "2027-04-20",
     charges,
@@ -59,8 +61,22 @@ test("writes each planned rent charge with its identity, item, and recipients", 
     { organizationId: 7, invoiceId: 2, tenantId: 12 },
   ]);
   assert.deepEqual(itemWrites[0], [
-    { invoiceId: 1, item: "Rent", quantity: 1, rateCents: 60_000, amountCents: 60_000 },
-    { invoiceId: 2, item: "Rent", quantity: 1, rateCents: 120_000, amountCents: 120_000 },
+    {
+      invoiceId: 1,
+      item: "Base Rent",
+      description: "Apartment rent for April 2027",
+      quantity: 1,
+      rateCents: 60_000,
+      amountCents: 60_000,
+    },
+    {
+      invoiceId: 2,
+      item: "Base Rent",
+      description: "Apartment rent for May 2027",
+      quantity: 1,
+      rateCents: 120_000,
+      amountCents: 120_000,
+    },
   ]);
   assert.equal(recipientWrites.length, 1);
   assert.equal(itemWrites.length, 1);
@@ -97,6 +113,8 @@ test("a zero-cent individual charge still creates an invoice", async () => {
     organizationId: 7,
     leaseId: 9,
     propertyId: 2,
+    item: "Rent",
+    description: "Monthly rent",
     billingRevision: 1,
     today: "2027-04-30",
     charges,

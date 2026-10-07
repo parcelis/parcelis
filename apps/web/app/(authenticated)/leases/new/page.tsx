@@ -85,7 +85,7 @@ import { uploadTenantImage } from "../../../../components/tenant-image-upload";
 import { getLeaseLink } from "../../../../lib/entity-links";
 
 type LeaseDraft = {
-  version: 5;
+  version: 6;
   currentStep: string;
   propertyId: number | null;
   unitId: number | null;
@@ -94,6 +94,7 @@ type LeaseDraft = {
   startsOn: string;
   endsOn: string;
   monthlyRentCents: number | null;
+  rentChargeId: number | null;
   securityDepositCents: number | null;
   rentDueDay: number;
   billingResponsibility: "joint" | "individual";
@@ -112,7 +113,7 @@ type LeaseDraftIdentity = {
 };
 
 const initialLeaseDraft: LeaseDraft = {
-  version: 5,
+  version: 6,
   currentStep: leaseCreationSteps[0]?.id ?? "property",
   propertyId: null,
   unitId: null,
@@ -121,6 +122,7 @@ const initialLeaseDraft: LeaseDraft = {
   startsOn: "",
   endsOn: "",
   monthlyRentCents: null,
+  rentChargeId: null,
   securityDepositCents: null,
   rentDueDay: 1,
   billingResponsibility: "joint",
@@ -161,6 +163,7 @@ function getLeaseDraftSaveData(draft: LeaseDraft) {
     startsOn: draft.startsOn,
     endsOn: draft.endsOn,
     monthlyRentCents: draft.monthlyRentCents,
+    rentChargeId: draft.rentChargeId,
     securityDepositCents: draft.securityDepositCents,
     rentDueDay: draft.rentDueDay,
     billingResponsibility: draft.billingResponsibility,
@@ -596,6 +599,9 @@ function ResidentsSelector({
   onAllowPartialPaymentsChange,
   onBillingResponsibilityChange,
   onMonthlyRentCentsChange,
+  charges,
+  rentChargeId,
+  onRentChargeChange,
   onSecurityDepositCentsChange,
   onTenantAllocationsChange,
   onValueChange,
@@ -610,6 +616,9 @@ function ResidentsSelector({
   onAllowPartialPaymentsChange: (allowPartialPayments: boolean) => void;
   onBillingResponsibilityChange: (billingResponsibility: LeaseDraft["billingResponsibility"]) => void;
   onMonthlyRentCentsChange: (monthlyRentCents: number | null) => void;
+  charges: Array<{ id: number; name: string; description: string | null; isDefault: boolean }>;
+  rentChargeId: number | null;
+  onRentChargeChange: (id: number) => void;
   onSecurityDepositCentsChange: (securityDepositCents: number | null) => void;
   onTenantAllocationsChange: (tenantAllocations: LeaseDraft["tenantAllocations"]) => void;
   onValueChange: (tenantIds: number[]) => void;
@@ -1137,6 +1146,9 @@ function ResidentsSelector({
 }
 
 function LeaseTermsSelector({
+  charges,
+  rentChargeId,
+  onRentChargeChange,
   error,
   endsOn,
   onEndsOnChange,
@@ -1149,6 +1161,9 @@ function LeaseTermsSelector({
   termType,
   unitId,
 }: {
+  charges: Array<{ id: number; name: string; description: string | null; isDefault: boolean }>;
+  rentChargeId: number | null;
+  onRentChargeChange: (id: number) => void;
   error: string | null;
   endsOn: string;
   onEndsOnChange: (endsOn: string) => void;
@@ -1344,6 +1359,13 @@ function LeaseTermsSelector({
             </p>
           </div>
         ) : null}
+      </div>
+      <div className="flex max-w-sm flex-col gap-2">
+        <label className="text-sm font-semibold text-parcelis-charcoal dark:text-white" htmlFor="rent-invoice-charge">Rent invoice item</label>
+        <Select id="rent-invoice-charge" value={rentChargeId ?? ""} onChange={(event) => onRentChargeChange(Number(event.target.value))}>
+          {charges.map((charge) => <option key={charge.id} value={charge.id}>{charge.name}</option>)}
+        </Select>
+        <p className="text-sm text-parcelis-gray">{charges.find((charge) => charge.id === rentChargeId)?.description || "No default description"}</p>
       </div>
       <div className="flex max-w-sm flex-col gap-2">
         <label className="text-sm font-semibold text-parcelis-charcoal dark:text-white" htmlFor="lease-rent-due-day">
@@ -1670,6 +1692,7 @@ function NewLeasePageContent() {
   const draftRevisionRef = React.useRef(0);
   const draftSaveQueueRef = React.useRef<Promise<unknown>>(Promise.resolve());
   const currentUserQuery = useQuery({ queryKey: queryKeys.auth.me, queryFn: () => apiClient.auth.me.query() });
+  const chargesQuery = useQuery({ queryKey: queryKeys.invoices.charges, queryFn: () => apiClient.invoices.charges.query() });
   const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
   const [existingUnitDraft, setExistingUnitDraft] = React.useState<{
     lease: Awaited<ReturnType<typeof apiClient.leases.createDraft.mutate>>;
@@ -1901,6 +1924,7 @@ function NewLeasePageContent() {
       startsOn: lease.startsOn ? new Date(lease.startsOn).toISOString().slice(0, 10) : "",
       endsOn: lease.endsOn ? new Date(lease.endsOn).toISOString().slice(0, 10) : "",
       monthlyRentCents: lease.monthlyRentCents,
+      rentChargeId: lease.rentChargeId,
       securityDepositCents: lease.securityDepositCents,
       rentDueDay: lease.rentDueDay,
       billingResponsibility: lease.billingResponsibility ?? "joint",
@@ -2114,6 +2138,7 @@ function NewLeasePageContent() {
                     startsOn: draft.startsOn,
                     endsOn: draft.endsOn,
                     monthlyRentCents: draft.monthlyRentCents,
+                    rentChargeId: draft.rentChargeId ?? chargesQuery.data?.find((charge) => charge.isDefault)?.id ?? null,
                     rentDueDay: draft.rentDueDay,
                     draftStep: nextStep.id,
                   },
@@ -2459,6 +2484,9 @@ function NewLeasePageContent() {
                     <ResidentsSelector
                       allowPartialPayments={draft.allowPartialPayments}
                       billingResponsibility={draft.billingResponsibility}
+                      charges={chargesQuery.data ?? []}
+                      rentChargeId={draft.rentChargeId}
+                      onRentChargeChange={(rentChargeId) => setDraft((current) => ({ ...current, rentChargeId }))}
                       error={currentStepError}
                       monthlyRentCents={draft.monthlyRentCents}
                       onAllowPartialPaymentsChange={(allowPartialPayments) =>
@@ -2504,6 +2532,9 @@ function NewLeasePageContent() {
                     />
                   ) : currentIndex === 2 ? (
                     <LeaseTermsSelector
+                      charges={chargesQuery.data ?? []}
+                      rentChargeId={draft.rentChargeId ?? chargesQuery.data?.find((charge) => charge.isDefault)?.id ?? null}
+                      onRentChargeChange={(rentChargeId) => setDraft((current) => ({ ...current, rentChargeId }))}
                       endsOn={draft.endsOn}
                       error={currentStepError}
                       onEndsOnChange={(endsOn) => {
