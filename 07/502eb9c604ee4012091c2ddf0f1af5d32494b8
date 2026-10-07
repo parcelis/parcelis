@@ -1,0 +1,46 @@
+turbo.json
+  s_d1b34a92a3a1fb::t_2c84981d8bd5a5 3
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_d1b34a92a3a1fb::t_2af3f979ab3ed4 73-87
+  s_d1b34a92a3a1fb::t_d9eb70c2580c6c 72
+apps/web/app/(authenticated)/settings/roles/page.tsx
+  s_d1b34a92a3a1fb::t_2bb67972299ff8 43-48,130-135
+  s_d1b34a92a3a1fb::t_bc2d62bfa6d206 23-24,26,31,42
+apps/web/app/(authenticated)/layout.tsx
+  s_d1b34a92a3a1fb::t_2bb67972299ff8 15-25
+  s_d1b34a92a3a1fb::t_0023ec5771de29 1-2,10-11,14,26
+apps/api/src/tests/permissions/permissions.unit.test.ts
+  s_d1b34a92a3a1fb::t_2c84981d8bd5a5 160,163-164,186,199-200
+  s_d1b34a92a3a1fb::t_2bb67972299ff8 176-181,189-196
+  s_d1b34a92a3a1fb::t_b15d75de378344 4,158-159,161-162,165-175,182-185,187-188,197-198
+  s_d1b34a92a3a1fb::t_38aa76100a009d 201-202
+apps/web/components/sidebar.tsx
+  s_d1b34a92a3a1fb::t_2bb67972299ff8 476-496
+  s_d1b34a92a3a1fb::t_d39b33c941765b 43,130
+packages/schemas/src/index.ts
+  s_d1b34a92a3a1fb::t_2c84981d8bd5a5 6
+  s_d1b34a92a3a1fb::t_72065bc38ced44 5
+  s_d1b34a92a3a1fb::t_d79c465eff0c57 3-4,7-12
+apps/api/src/modules/permissions.ts
+  s_d1b34a92a3a1fb::t_fec4d841470224 3-4,71-73
+apps/web/app/(authenticated)/applications/layout.tsx
+  s_d1b34a92a3a1fb::t_3a7f34825b3fce 1-7
+apps/web/components/feature-flags.tsx
+  s_d1b34a92a3a1fb::t_4cf61f3fc2382a 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "07502eb9c604ee4012091c2ddf0f1af5d32494b8",
+  "prompts": {},
+  "sessions": {
+    "s_d1b34a92a3a1fb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11752-8766-7ea3-ab82-e1c5ead1e10e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
