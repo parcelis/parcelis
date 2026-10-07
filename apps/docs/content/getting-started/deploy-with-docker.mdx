@@ -85,3 +85,18 @@ FEATURE_FLAG_APPLICATIONS_ENABLED="true"
 ```
 
 Provide the same value to both the web app and API. Restart local processes or recreate containers after changing it. When disabled, application pages and API operations are unavailable, including for administrators. Existing application data and role permissions are preserved.
+
+For Docker Compose, `app-service.environment` in `docker-compose.yml` must include the mapping below. The repository's Compose file includes it; add it if using an older or custom file. An entry in `.env.production` alone does not pass the variable into the container.
+
+```yaml
+services:
+  app-service:
+    environment:
+      FEATURE_FLAG_APPLICATIONS_ENABLED: ${FEATURE_FLAG_APPLICATIONS_ENABLED:-false}
+```
+
+For local development, `docker-compose-dev.yml` runs supporting services only. The web app and API run on the host; `pnpm dev` loads the root `.env` and passes its values to those processes. Set the flag in `.env` and restart `pnpm dev`; no flag mapping is needed in the dev Compose file.
+
+Apply the changed environment with `docker compose --env-file .env.production up -d --force-recreate app-service`. For `docker run`, pass `-e FEATURE_FLAG_APPLICATIONS_ENABLED=true`.
+
+When applications are disabled, `auth.me` and `roles.list` keep the permission matrix's resource keys but report all application and application-note actions as `false`. Role permission updates ignore those resources until the feature is enabled, preserving their stored permissions.

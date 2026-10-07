@@ -127,7 +127,12 @@ import {
   hashEmailVerificationToken,
   hashPassword,
 } from "../modules/auth";
-import { getRolePermissions, requireNotePermission, requirePermission } from "../modules/permissions";
+import {
+  getRolePermissions,
+  isPermissionResourceEnabled,
+  requireNotePermission,
+  requirePermission,
+} from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
 import { renderInvoicePdf } from "../modules/invoice-pdf";
 import { sendSmtpTestEmail } from "@parcelis/email";
@@ -1201,27 +1206,29 @@ export const appRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Administrator permissions cannot be changed." });
       }
       return ctx.prisma.$transaction(
-        input.permissions.map(({ resource, view, create, edit, archive, delete: canDelete }) =>
-          ctx.prisma.rolePermission.upsert({
-            where: { role_resource: { role: input.role, resource } },
-            create: {
-              role: input.role,
-              resource,
-              canView: view,
-              canCreate: create,
-              canEdit: edit,
-              canArchive: supportsPermissionAction(resource, "archive") ? (archive ?? false) : false,
-              canDelete,
-            },
-            update: {
-              canView: view,
-              canCreate: create,
-              canEdit: edit,
-              canArchive: supportsPermissionAction(resource, "archive") ? (archive ?? false) : false,
-              canDelete,
-            },
-          }),
-        ),
+        input.permissions
+          .filter(({ resource }) => isPermissionResourceEnabled(resource))
+          .map(({ resource, view, create, edit, archive, delete: canDelete }) =>
+            ctx.prisma.rolePermission.upsert({
+              where: { role_resource: { role: input.role, resource } },
+              create: {
+                role: input.role,
+                resource,
+                canView: view,
+                canCreate: create,
+                canEdit: edit,
+                canArchive: supportsPermissionAction(resource, "archive") ? (archive ?? false) : false,
+                canDelete,
+              },
+              update: {
+                canView: view,
+                canCreate: create,
+                canEdit: edit,
+                canArchive: supportsPermissionAction(resource, "archive") ? (archive ?? false) : false,
+                canDelete,
+              },
+            }),
+          ),
       );
     }),
   }),

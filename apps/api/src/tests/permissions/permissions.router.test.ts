@@ -1,18 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { permissionResourceValues, supportsPermissionAction } from "@parcelis/schemas";
 import { TRPCError } from "@trpc/server";
 import type { PrismaService } from "../../modules/prisma.service";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
-function createDeniedCaller(overrides: Partial<PrismaService> = {}) {
+function createDeniedCaller(
+  overrides: Partial<PrismaService> = {},
+  role: "property_manager" | "administrator" = "property_manager",
+) {
   const user = {
     id: 1,
     name: "Restricted User",
     email: "restricted@example.com",
     phone: null,
     profileImageObjectKey: null,
-    role: "property_manager" as const,
+    role,
     accountStatus: "active" as const,
     defaultOrganizationId: 1,
   };
@@ -227,4 +231,47 @@ test("lease details allow lease-only viewing and scope reads to the active organ
     tenants: lease.tenants.map(({ tenant }) => tenant),
   });
   assert.equal(await caller.leases.byId({ id: 99 }), null);
+});
+
+test("role updates preserve disabled application permissions and update them only when enabled", async () => {
+  const previous = process.env.FEATURE_FLAG_APPLICATIONS_ENABLED;
+  const writes: string[] = [];
+  const caller = createDeniedCaller(
+    {
+      rolePermission: {
+        upsert: (input: { create: { resource: string } }) => {
+          writes.push(input.create.resource);
+          return Promise.resolve(input.create);
+        },
+      },
+      $transaction: (operations: Promise<unknown>[]) => Promise.all(operations),
+    } as unknown as Partial<PrismaService>,
+    "administrator",
+  );
+  try {
+    for (const value of ["false", "true"]) {
+      process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = value;
+      writes.length = 0;
+      await caller.roles.updatePermissions({
+        role: "property_manager",
+        permissions: permissionResourceValues.map((resource) => ({
+          resource,
+          view: true,
+          create: true,
+          edit: true,
+          delete: true,
+          archive: supportsPermissionAction(resource, "archive") ? true : undefined,
+        })),
+      });
+      assert.deepEqual(
+        writes,
+        permissionResourceValues.filter(
+          (resource) => value === "true" || !["applications", "application_notes"].includes(resource),
+        ),
+      );
+    }
+  } finally {
+    if (previous === undefined) delete process.env.FEATURE_FLAG_APPLICATIONS_ENABLED;
+    else process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = previous;
+  }
 });

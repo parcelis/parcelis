@@ -200,3 +200,35 @@ test("applications require explicit enablement, including administrator and note
     else process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = previous;
   }
 });
+
+test("disabled applications report no effective grants and restore stored grants when enabled", async () => {
+  const previous = process.env.FEATURE_FLAG_APPLICATIONS_ENABLED;
+  const prisma = {
+    rolePermission: {
+      findMany: async () =>
+        ["applications", "application_notes", "properties"].map((resource) => ({
+          resource,
+          canView: true,
+          canCreate: true,
+          canEdit: true,
+          canArchive: true,
+          canDelete: true,
+        })),
+    },
+  } as unknown as PrismaService;
+  try {
+    for (const value of ["false", "true"]) {
+      process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = value;
+      for (const role of ["administrator", "property_manager"]) {
+        const permissions = await getRolePermissions(prisma, role);
+        for (const resource of ["applications", "application_notes"] as const) {
+          assert.ok(Object.values(permissions[resource]).every((grant) => grant === (value === "true")));
+        }
+        assert.equal(permissions.properties.view, true);
+      }
+    }
+  } finally {
+    if (previous === undefined) delete process.env.FEATURE_FLAG_APPLICATIONS_ENABLED;
+    else process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = previous;
+  }
+});
