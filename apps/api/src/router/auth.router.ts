@@ -111,6 +111,14 @@ export const authRouter = router({
           data: { name: "My organization", slug: `organization-${createdUser.id}` },
           select: { id: true },
         });
+        await tx.invoiceCharge.create({
+          data: {
+            organizationId: organization.id,
+            name: "Rent",
+            description: "Monthly rent for {month} {year}",
+            isDefault: true,
+          },
+        });
         await tx.organizationMembership.create({
           data: { userId: createdUser.id, organizationId: organization.id, role: "owner" },
         });

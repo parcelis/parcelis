@@ -2373,23 +2373,32 @@ export const appRouter = router({
       }),
   }),
   invoices: router({
-    charges: permissionProcedure("invoices", "view").query(async ({ ctx }) => {
+    charges: organizationProcedure.query(async ({ ctx }) => {
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
+      if (!permissions.invoices.view && !permissions.invoices.create) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: you cannot access invoice charges." });
+      }
       const organizationId = ctx.organization.organizationId;
       const charges = await ctx.prisma.invoiceCharge.findMany({
         where: { organizationId },
         orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       });
-      if (charges.length) return charges;
-      return ctx.prisma.invoiceCharge
-        .create({
-          data: { organizationId, name: "Rent", description: "Monthly rent for {month} {year}", isDefault: true },
-        })
-        .then((charge) => [charge]);
+      if (charges.some((charge) => charge.isDefault)) return charges;
+      await ctx.prisma.invoiceCharge.createMany({
+        data: [{ organizationId, name: "Rent", description: "Monthly rent for {month} {year}", isDefault: true }],
+        skipDuplicates: true,
+      });
+      return ctx.prisma.invoiceCharge.findMany({
+        where: { organizationId },
+        orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+      });
     }),
     createCharge: permissionProcedure("invoices", "create")
       .input(createInvoiceChargeInputSchema)
       .mutation(({ ctx, input }) =>
-        ctx.prisma.invoiceCharge.create({ data: { ...input, organizationId: ctx.organization.organizationId } }),
+        ctx.prisma.invoiceCharge.create({
+          data: { ...input, description: input.description ?? null, organizationId: ctx.organization.organizationId },
+        }),
       ),
     updateCharge: permissionProcedure("invoices", "edit")
       .input(updateInvoiceChargeInputSchema)
@@ -2399,7 +2408,7 @@ export const appRouter = router({
         });
         return ctx.prisma.invoiceCharge.update({
           where: { id: input.id },
-          data: { name: input.name, description: input.description || null },
+          data: { name: input.name, description: input.description },
         });
       }),
     deleteCharge: permissionProcedure("invoices", "delete")
@@ -4495,7 +4504,7 @@ export const appRouter = router({
                   where: { id: propertyId, organizationId: ctx.organization.organizationId },
                 });
                 await tx.unit.findFirstOrThrow({ where: { id: unitId, propertyId } });
-                if (rentChargeId !== undefined) {
+                if (rentChargeId != null) {
                   await tx.invoiceCharge.findFirstOrThrow({
                     where: { id: rentChargeId, organizationId: ctx.organization.organizationId },
                   });

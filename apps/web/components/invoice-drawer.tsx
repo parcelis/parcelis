@@ -82,6 +82,7 @@ export function InvoiceDrawer({
   const [unitId, setUnitId] = React.useState("");
   const [leaseId, setLeaseId] = React.useState("");
   const [dueOn, setDueOn] = React.useState(getLocalDateInput());
+  const lastValidDueOnRef = React.useRef(dueOn);
   const [paid, setPaid] = React.useState("0");
   const [lines, setLines] = React.useState<InvoiceLine[]>([]);
 
@@ -91,13 +92,20 @@ export function InvoiceDrawer({
   const lease = leases.find((item) => item.id === Number(leaseId));
   const subtotalCents = lines.reduce((total, line) => total + Number(line.quantity || 0) * toCents(line.rate), 0);
   const paidCents = toCents(paid);
+  const hasInvalidLine = lines.some((line) =>
+    line.chargeId === "custom"
+      ? !line.customItem.trim()
+      : !charges.some((charge) => charge.id === Number(line.chargeId)),
+  );
 
   React.useEffect(() => {
     if (!open) {
       setPropertyId("");
       setUnitId("");
       setLeaseId("");
-      setDueOn(getLocalDateInput());
+      const today = getLocalDateInput();
+      setDueOn(today);
+      lastValidDueOnRef.current = today;
       setPaid("0");
       setLines([]);
     }
@@ -122,17 +130,7 @@ export function InvoiceDrawer({
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (
-      !property ||
-      !lease ||
-      lines.length === 0 ||
-      lines.some((line) =>
-        line.chargeId === "custom"
-          ? !line.customItem.trim()
-          : !charges.some((charge) => charge.id === Number(line.chargeId)),
-      )
-    )
-      return;
+    if (!property || !lease || lines.length === 0 || hasInvalidLine) return;
     onCreate({
       propertyId: property.id,
       leaseId: lease.id,
@@ -242,18 +240,24 @@ export function InvoiceDrawer({
                     value={dueOn}
                     onChange={(event) => {
                       const nextDueOn = event.target.value;
-                      setLines((current) =>
-                        current.map((line) => {
-                          const charge = charges.find((item) => item.id === Number(line.chargeId));
-                          if (!charge || !charge.description) return line;
-                          const previousDescription = formatInvoiceChargeDescription(charge.description, dueOn);
-                          if (line.description !== previousDescription) return line;
-                          return {
-                            ...line,
-                            description: formatInvoiceChargeDescription(charge.description, nextDueOn) ?? "",
-                          };
-                        }),
-                      );
+                      if (nextDueOn && !Number.isNaN(new Date(nextDueOn).getTime())) {
+                        setLines((current) =>
+                          current.map((line) => {
+                            const charge = charges.find((item) => item.id === Number(line.chargeId));
+                            if (!charge || !charge.description) return line;
+                            const previousDescription = formatInvoiceChargeDescription(
+                              charge.description,
+                              lastValidDueOnRef.current,
+                            );
+                            if (line.description !== previousDescription) return line;
+                            return {
+                              ...line,
+                              description: formatInvoiceChargeDescription(charge.description, nextDueOn) ?? "",
+                            };
+                          }),
+                        );
+                        lastValidDueOnRef.current = nextDueOn;
+                      }
                       setDueOn(nextDueOn);
                     }}
                   />
@@ -391,7 +395,7 @@ export function InvoiceDrawer({
             </Button>
             <Button
               className="min-w-40"
-              disabled={isPending || !lease || lines.length === 0 || subtotalCents <= 0 || paidCents > subtotalCents}
+              disabled={isPending || !lease || lines.length === 0 || hasInvalidLine || subtotalCents <= 0 || paidCents > subtotalCents}
               type="submit"
             >
               Create invoice <ChevronRight className="h-4 w-4" />

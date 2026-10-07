@@ -215,7 +215,7 @@ async function seedUnitsForProperty(property, requiredUnitNames = []) {
   }
 }
 
-async function upsertLease(organizationId, data) {
+async function upsertLease(organizationId, rentChargeId, data) {
   const { tenantIds, unitId, ...leaseData } = data;
 
   const existing = await prisma.lease.findFirst({
@@ -223,8 +223,8 @@ async function upsertLease(organizationId, data) {
   });
 
   const lease = existing
-    ? await prisma.lease.update({ where: { id: existing.id }, data: { ...leaseData, unitId } })
-    : await prisma.lease.create({ data: { ...leaseData, unitId, organizationId } });
+    ? await prisma.lease.update({ where: { id: existing.id }, data: { ...leaseData, unitId, rentChargeId } })
+    : await prisma.lease.create({ data: { ...leaseData, unitId, organizationId, rentChargeId } });
 
   if (tenantIds && tenantIds.length > 0) {
     await prisma.invoice.deleteMany({ where: { leaseId: lease.id } });
@@ -303,19 +303,16 @@ async function main() {
     : await prisma.organization.create({
         data: { name: organizationName, slug: randomBytes(10).toString("hex"), seedKey: organizationSeedKey },
       });
-  const defaultInvoiceCharge = await prisma.invoiceCharge.findFirst({
-    where: { organizationId: organization.id, isDefault: true },
-  });
-  if (!defaultInvoiceCharge) {
-    await prisma.invoiceCharge.create({
+  const defaultInvoiceCharge =
+    (await prisma.invoiceCharge.findFirst({ where: { organizationId: organization.id, isDefault: true } })) ??
+    (await prisma.invoiceCharge.create({
       data: {
         organizationId: organization.id,
         name: "Rent",
         description: "Monthly rent for {month} {year}",
         isDefault: true,
       },
-    });
-  }
+    }));
   const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
 
   if (administrator) {
@@ -545,7 +542,7 @@ async function main() {
   };
 
   const [mayaLease, elenaLease, calvinLease, noraLease] = await Promise.all([
-    upsertLease(organization.id, {
+    upsertLease(organization.id, defaultInvoiceCharge.id, {
       propertyId: hawthorne.id,
       tenantIds: [tenant.id],
       unitId: getUnitId(hawthorne.id, "4B"),
@@ -554,7 +551,7 @@ async function main() {
       endsOn: new Date("2027-01-31"),
       status: "active",
     }),
-    upsertLease(organization.id, {
+    upsertLease(organization.id, defaultInvoiceCharge.id, {
       propertyId: hawthorne.id,
       tenantIds: [fourthTenant.id],
       unitId: getUnitId(hawthorne.id, "8A"),
@@ -563,7 +560,7 @@ async function main() {
       endsOn: new Date("2027-05-31"),
       status: "active",
     }),
-    upsertLease(organization.id, {
+    upsertLease(organization.id, defaultInvoiceCharge.id, {
       propertyId: mariner.id,
       tenantIds: [secondTenant.id],
       unitId: getUnitId(mariner.id, "2A"),
@@ -572,7 +569,7 @@ async function main() {
       endsOn: new Date("2026-09-15"),
       status: "active",
     }),
-    upsertLease(organization.id, {
+    upsertLease(organization.id, defaultInvoiceCharge.id, {
       propertyId: juniper.id,
       tenantIds: [thirdTenant.id],
       unitId: getUnitId(juniper.id, "7C"),
@@ -581,7 +578,7 @@ async function main() {
       endsOn: new Date("2026-08-20"),
       status: "notice",
     }),
-    upsertLease(organization.id, {
+    upsertLease(organization.id, defaultInvoiceCharge.id, {
       propertyId: mariner.id,
       tenantIds: [pastTenant.id],
       unitId: getUnitId(mariner.id, "5C"),
@@ -590,7 +587,7 @@ async function main() {
       endsOn: new Date("2025-02-28"),
       status: "ended",
     }),
-    upsertLease(organization.id, {
+    upsertLease(organization.id, defaultInvoiceCharge.id, {
       propertyId: hawthorne.id,
       tenantIds: [archivedTenant.id],
       unitId: getUnitId(hawthorne.id, "11D"),

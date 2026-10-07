@@ -154,7 +154,7 @@ function getLeaseDraftSaveError(error: Error): LeaseDraftSaveError {
   };
 }
 // Extracts the relevant data from a LeaseDraft for saving to the server.
-function getLeaseDraftSaveData(draft: LeaseDraft) {
+function getLeaseDraftSaveData(draft: LeaseDraft, defaultRentChargeId: number | null) {
   return {
     propertyId: draft.propertyId,
     unitId: draft.unitId,
@@ -163,7 +163,7 @@ function getLeaseDraftSaveData(draft: LeaseDraft) {
     startsOn: draft.startsOn,
     endsOn: draft.endsOn,
     monthlyRentCents: draft.monthlyRentCents,
-    rentChargeId: draft.rentChargeId,
+    rentChargeId: draft.rentChargeId ?? defaultRentChargeId,
     securityDepositCents: draft.securityDepositCents,
     rentDueDay: draft.rentDueDay,
     billingResponsibility: draft.billingResponsibility,
@@ -1693,6 +1693,7 @@ function NewLeasePageContent() {
   const draftSaveQueueRef = React.useRef<Promise<unknown>>(Promise.resolve());
   const currentUserQuery = useQuery({ queryKey: queryKeys.auth.me, queryFn: () => apiClient.auth.me.query() });
   const chargesQuery = useQuery({ queryKey: queryKeys.invoices.charges, queryFn: () => apiClient.invoices.charges.query() });
+  const defaultRentChargeId = chargesQuery.data?.find((charge) => charge.isDefault)?.id ?? null;
   const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
   const [existingUnitDraft, setExistingUnitDraft] = React.useState<{
     lease: Awaited<ReturnType<typeof apiClient.leases.createDraft.mutate>>;
@@ -1943,6 +1944,13 @@ function NewLeasePageContent() {
   }, [loadedDraftKey, leaseDraftQuery.data]);
 
   React.useEffect(() => {
+    if (defaultRentChargeId === null) return;
+    setDraft((current) =>
+      current.rentChargeId === null ? { ...current, rentChargeId: defaultRentChargeId } : current,
+    );
+  }, [defaultRentChargeId, loadedDraftKey]);
+
+  React.useEffect(() => {
     if (leaseDraftQuery.error) {
       setStepError(`Unable to load the lease draft: ${leaseDraftQuery.error.message}`);
     } else if (
@@ -1973,7 +1981,7 @@ function NewLeasePageContent() {
       try {
         await updateDraftAsync({
           leaseId: draftIdentity.leaseId,
-          data: getLeaseDraftSaveData(draft),
+          data: getLeaseDraftSaveData(draft, defaultRentChargeId),
         });
         lastSavedDraftRef.current = fingerprint;
         finishDraftSaveStatus("saved");
@@ -1986,6 +1994,7 @@ function NewLeasePageContent() {
     };
   }, [
     draft,
+    defaultRentChargeId,
     draftIdentity.leaseId,
     draftIdentity.leaseDraftKey,
     draftIdentity.revision,
@@ -2005,7 +2014,7 @@ function NewLeasePageContent() {
     try {
       await updateDraftAsync({
         leaseId: draftIdentity.leaseId,
-        data: getLeaseDraftSaveData(draft),
+        data: getLeaseDraftSaveData(draft, defaultRentChargeId),
       });
       lastSavedDraftRef.current = fingerprint;
       finishDraftSaveStatus("saved");
@@ -2138,7 +2147,7 @@ function NewLeasePageContent() {
                     startsOn: draft.startsOn,
                     endsOn: draft.endsOn,
                     monthlyRentCents: draft.monthlyRentCents,
-                    rentChargeId: draft.rentChargeId ?? chargesQuery.data?.find((charge) => charge.isDefault)?.id ?? null,
+                    rentChargeId: draft.rentChargeId ?? defaultRentChargeId,
                     rentDueDay: draft.rentDueDay,
                     draftStep: nextStep.id,
                   },
@@ -2485,7 +2494,7 @@ function NewLeasePageContent() {
                       allowPartialPayments={draft.allowPartialPayments}
                       billingResponsibility={draft.billingResponsibility}
                       charges={chargesQuery.data ?? []}
-                      rentChargeId={draft.rentChargeId}
+                      rentChargeId={draft.rentChargeId ?? defaultRentChargeId}
                       onRentChargeChange={(rentChargeId) => setDraft((current) => ({ ...current, rentChargeId }))}
                       error={currentStepError}
                       monthlyRentCents={draft.monthlyRentCents}
@@ -2533,7 +2542,7 @@ function NewLeasePageContent() {
                   ) : currentIndex === 2 ? (
                     <LeaseTermsSelector
                       charges={chargesQuery.data ?? []}
-                      rentChargeId={draft.rentChargeId ?? chargesQuery.data?.find((charge) => charge.isDefault)?.id ?? null}
+                      rentChargeId={draft.rentChargeId ?? defaultRentChargeId}
                       onRentChargeChange={(rentChargeId) => setDraft((current) => ({ ...current, rentChargeId }))}
                       endsOn={draft.endsOn}
                       error={currentStepError}

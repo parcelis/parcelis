@@ -74,6 +74,7 @@ function createPrisma() {
   const passwordResetTokens: PasswordResetToken[] = [];
   const sessions: Array<{ userId: number }> = [];
   const organizationMemberships: OrganizationMembership[] = [];
+  const invoiceCharges: Array<{ organizationId: number; name: string; description: string | null; isDefault: boolean }> = [];
   const outboxEvents: OutboxEvent[] = [];
   const notificationDeliveries: NotificationDelivery[] = [];
   const transactions: Promise<unknown>[] = [];
@@ -119,6 +120,12 @@ function createPrisma() {
     },
     organization: {
       create: async () => ({ id: nextOrganizationId++ }),
+    },
+    invoiceCharge: {
+      create: async ({ data }: { data: (typeof invoiceCharges)[number] }) => {
+        invoiceCharges.push(data);
+        return { ...data, id: invoiceCharges.length };
+      },
     },
     organizationMembership: {
       create: async ({ data }: { data: OrganizationMembership }) => {
@@ -279,6 +286,7 @@ function createPrisma() {
   } as unknown as PrismaService;
 
   return {
+    invoiceCharges,
     organizationMemberships,
     outboxEvents,
     passwordResetTokens,

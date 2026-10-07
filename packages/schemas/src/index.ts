@@ -710,7 +710,7 @@ export const createLeaseInputSchema = leaseSchema
   .omit({ id: true })
   .extend({
     tenantIds: leaseTenantIdsSchema,
-    rentChargeId: idSchema.optional(),
+    rentChargeId: idSchema.nullable().optional(),
     termType: leaseTermTypeSchema.optional(),
     billingResponsibility: leaseBillingResponsibilitySchema.default("joint"),
     allowPartialPayments: z.boolean().default(true),
@@ -762,11 +762,13 @@ export const invoiceChargeSchema = z.object({
   description: z.string().trim().max(2000).nullable(),
   isDefault: z.boolean(),
 });
-export const createInvoiceChargeInputSchema = invoiceChargeSchema.omit({ id: true, isDefault: true });
+export const createInvoiceChargeInputSchema = invoiceChargeSchema
+  .omit({ id: true, isDefault: true })
+  .extend({ description: z.string().trim().max(2000).nullable().optional() });
 export const updateInvoiceChargeInputSchema = z.object({
   id: idSchema,
   name: z.string().trim().min(1).max(200),
-  description: z.string().trim().max(2000).optional(),
+  description: z.string().trim().max(2000).nullable().optional(),
 });
 export const deleteInvoiceChargeInputSchema = z.object({ id: idSchema });
 const invoiceItemsSchema = z

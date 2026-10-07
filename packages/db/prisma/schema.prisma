@@ -628,6 +628,7 @@ model Lease {
   @@index([organizationId])
 }
 
+// PostgreSQL enforces one default charge per organization with a partial unique index in the migration.
 model InvoiceCharge {
   id             Int          @id @default(autoincrement())
   organizationId Int

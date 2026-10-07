@@ -28,8 +28,8 @@ export default function InvoicingSettingsPage() {
   const save = useMutation({
     mutationFn: () =>
       editing
-        ? apiClient.invoices.updateCharge.mutate({ id: editing, name, description: description || undefined })
-        : apiClient.invoices.createCharge.mutate({ name, description: description || "" }),
+        ? apiClient.invoices.updateCharge.mutate({ id: editing, name, description: description || null })
+        : apiClient.invoices.createCharge.mutate({ name, description: description || null }),
     onSuccess: async () => {
       setName("");
       setDescription("");
@@ -39,7 +39,14 @@ export default function InvoicingSettingsPage() {
   });
   const remove = useMutation({
     mutationFn: (id: number) => apiClient.invoices.deleteCharge.mutate({ id }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.invoices.charges }),
+    onSuccess: async (_result, id) => {
+      if (editing === id) {
+        setEditing(null);
+        setName("");
+        setDescription("");
+      }
+      await queryClient.invalidateQueries({ queryKey: queryKeys.invoices.charges });
+    },
   });
 
   return (
@@ -82,6 +89,8 @@ export default function InvoicingSettingsPage() {
                 <CardContent className="space-y-6">
                   {currentUserQuery.isLoading ? (
                     <LoadingState label="Loading account…" />
+                  ) : currentUserQuery.error ? (
+                    <p className="text-sm text-red-700">{currentUserQuery.error.message}</p>
                   ) : !canView ? (
                     <p className="text-sm text-parcelis-gray">You don’t have permission to view invoice settings.</p>
                   ) : (
