@@ -483,7 +483,7 @@ test("waits for an in-flight autosave before saving the next step", async ({ pag
   await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
 });
 
-for (const exitLabel of ["Cancel", "Leases"]) {
+for (const exitLabel of ["Cancel", "Back to leases"]) {
   test(`blocks ${exitLabel} during the draft save debounce`, async ({ page }) => {
     await page.goto("/leases/new");
     await page
