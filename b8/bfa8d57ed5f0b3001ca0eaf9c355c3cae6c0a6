@@ -1,0 +1,41 @@
+apps/web/app/(authenticated)/settings/invoicing/page.tsx
+  s_89a2f7cbafeb65::t_e164f3bf1e2ad1 31-32,42-49,92-93
+packages/db/prisma/schema.prisma
+  s_89a2f7cbafeb65::t_5e5e91bcd1b414 631
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_89a2f7cbafeb65::t_00f74a778cca7f 157,166,1696,1984,1997,2017,2150,2497,2545
+  s_89a2f7cbafeb65::t_4b7b70ad0f4125 1947-1952
+  s_89a2f7cbafeb65::t_af33ef6aa287e6 1946
+packages/schemas/src/index.ts
+  s_89a2f7cbafeb65::t_79fd3142201d74 713,765-767,771
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_89a2f7cbafeb65::t_5aaacc27f70a0b 77,124-129,289
+packages/db/prisma/migrations/20261006140000_unique_default_invoice_charge/migration.sql
+  s_89a2f7cbafeb65::t_5e4ac468a80653 1-10
+apps/api/src/router/app.router.ts
+  s_89a2f7cbafeb65::t_597d883708648e 2376-2380,2387-2394,2399-2401,2411
+  s_89a2f7cbafeb65::t_ee9f5ec9d618a9 2386
+  s_89a2f7cbafeb65::t_882f78b4110034 4507
+packages/db/prisma/seed.mjs
+  s_89a2f7cbafeb65::t_dba02cb72029fc 218,226-227,306-308,315,545,554,563,572,581,590
+apps/api/src/router/auth.router.ts
+  s_89a2f7cbafeb65::t_141fc68a65ef7c 114-121
+apps/web/components/invoice-drawer.tsx
+  s_89a2f7cbafeb65::t_f32cf1d153526c 85,95-99,106-108,133,243-260,398
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b8bfa8d57ed5f0b3001ca0eaf9c355c3cae6c0a6",
+  "prompts": {},
+  "sessions": {
+    "s_89a2f7cbafeb65": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11274-c523-73f2-93f8-1401b05dd41b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
