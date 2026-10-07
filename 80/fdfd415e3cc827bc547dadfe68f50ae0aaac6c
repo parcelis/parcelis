@@ -1,0 +1,23 @@
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_89a2f7cbafeb65::t_fb85fd27ba04da 377-384
+packages/db/prisma/seed.mjs
+  s_89a2f7cbafeb65::t_58cdc1b63ce298 245-246
+  s_89a2f7cbafeb65::t_9c66ac65342cc2 616,631,639,648,657
+  s_89a2f7cbafeb65::t_fb85fd27ba04da 241,243-244,279-280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "80fdfd415e3cc827bc547dadfe68f50ae0aaac6c",
+  "prompts": {},
+  "sessions": {
+    "s_89a2f7cbafeb65": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11274-c523-73f2-93f8-1401b05dd41b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
