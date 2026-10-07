@@ -17,7 +17,7 @@ so it does not change occupancy or operating metrics. Restoring a lease returns 
 1. Select **Lease** in the page header.
 2. Choose an available property unit. Parcelis immediately creates a draft lease, which is also visible on the
    Lease dashboard with a **Draft** status.
-3. Add residents, monthly rent, deposit, billing responsibility, and term dates. Changes save automatically while
+3. Add residents, monthly rent, deposit, billing responsibility, term dates, and the configured rent invoice item. Changes save automatically while
    you work.
 4. Leaving the wizard preserves the draft. **Lease** always opens a fresh property/unit selection screen.
    To continue saved work, select **Resume draft** under **Unfinished leases** on the dashboard. Drafts show their
@@ -35,6 +35,9 @@ or the first 12 calendar months for a month-to-month lease. A fixed term spannin
 finalized. Scheduled leases receive their invoices at finalization; activation does not create another schedule.
 Partial first and last months are prorated. Security deposits are not included in these rent invoices, and
 completing a lease does not collect payments.
+The rent item name and default description are copied into each generated invoice. Manage the organization catalog in
+**Settings → Invoicing**. Use `{month}` and `{year}` in a charge's default description to include each invoice's
+billing period, for example, "Monthly rent for January 2027." Later catalog edits do not change saved invoices.
 
 Creating a completed lease from a resident record uses the same rent schedule. Draft leases have no invoices until
 they are completed. Creating a completed lease requires permission to create both leases and invoices.
