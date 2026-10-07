@@ -1,0 +1,24 @@
+apps/docs/content/platform-user-guide/app-functionality/lease-dashboard.mdx
+  s_89a2f7cbafeb65::t_e2f5963387b252 20,38
+  s_89a2f7cbafeb65::t_ae6a377fd0a6be 39-40
+apps/docs/content/platform-user-guide/app-functionality/income-dashboard.mdx
+  s_89a2f7cbafeb65::t_ae6a377fd0a6be 25-26
+  s_89a2f7cbafeb65::t_4bc16adeb0ec78 24,27-28
+  s_89a2f7cbafeb65::t_8f83a6d103295c 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4aff5f7a31719080df5a89228c523ad1d6b5efee",
+  "prompts": {},
+  "sessions": {
+    "s_89a2f7cbafeb65": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11274-c523-73f2-93f8-1401b05dd41b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
