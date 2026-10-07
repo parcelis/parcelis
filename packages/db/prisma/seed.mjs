@@ -303,6 +303,19 @@ async function main() {
     : await prisma.organization.create({
         data: { name: organizationName, slug: randomBytes(10).toString("hex"), seedKey: organizationSeedKey },
       });
+  const defaultInvoiceCharge = await prisma.invoiceCharge.findFirst({
+    where: { organizationId: organization.id, isDefault: true },
+  });
+  if (!defaultInvoiceCharge) {
+    await prisma.invoiceCharge.create({
+      data: {
+        organizationId: organization.id,
+        name: "Rent",
+        description: "Monthly rent for {month} {year}",
+        isDefault: true,
+      },
+    });
+  }
   const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
 
   if (administrator) {

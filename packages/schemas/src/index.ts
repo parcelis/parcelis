@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export * from "./lease-rent-schedule.ts";
+export * from "./invoice-charge-description.ts";
 
 export const sessionStatusSchema = z.object({
   expiresAt: z.number(),
@@ -515,6 +516,7 @@ const leaseDraftDataFieldsSchema = z.object({
   startsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
   endsOn: z.preprocess((value) => (value === "" ? null : value), z.coerce.date().nullable()).optional(),
   monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger).nullable().optional(),
+  rentChargeId: idSchema.nullable().optional(),
   securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger).nullable().optional(),
   rentDueDay: z.number().int().min(1).max(31).optional(),
   continueMonthToMonthAfterEnd: z.boolean().optional(),
@@ -708,6 +710,7 @@ export const createLeaseInputSchema = leaseSchema
   .omit({ id: true })
   .extend({
     tenantIds: leaseTenantIdsSchema,
+    rentChargeId: idSchema.optional(),
     termType: leaseTermTypeSchema.optional(),
     billingResponsibility: leaseBillingResponsibilitySchema.default("joint"),
     allowPartialPayments: z.boolean().default(true),
@@ -753,6 +756,19 @@ export const invoiceItemInputSchema = z.object({
   quantity: z.number().int().positive().max(maxDatabaseInteger),
   rateCents: z.number().int().nonnegative().max(maxDatabaseInteger),
 });
+export const invoiceChargeSchema = z.object({
+  id: idSchema,
+  name: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).nullable(),
+  isDefault: z.boolean(),
+});
+export const createInvoiceChargeInputSchema = invoiceChargeSchema.omit({ id: true, isDefault: true });
+export const updateInvoiceChargeInputSchema = z.object({
+  id: idSchema,
+  name: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).optional(),
+});
+export const deleteInvoiceChargeInputSchema = z.object({ id: idSchema });
 const invoiceItemsSchema = z
   .array(invoiceItemInputSchema)
   .min(1)

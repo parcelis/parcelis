@@ -175,6 +175,7 @@ model Organization {
   applications          Application[]
   leases                Lease[]
   invoices              Invoice[]
+  invoiceCharges        InvoiceCharge[]
   invoiceRecipients     InvoiceRecipient[]
   maintenanceTickets    MaintenanceTicket[]
   activityEvents        ActivityEvent[]
@@ -597,6 +598,7 @@ model Lease {
   propertyId                   Int?
   unitId                       Int?
   monthlyRentCents             Int?
+  rentChargeId                 Int?
   securityDepositCents         Int                         @default(0)
   billingResponsibility        LeaseBillingResponsibility?
   allowPartialPayments         Boolean                     @default(true)
@@ -613,6 +615,7 @@ model Lease {
   unit                         Unit?                       @relation(fields: [propertyId, unitId], references: [propertyId, id], onDelete: Restrict)
   tenants                      LeaseTenant[]
   invoices                     Invoice[]                   @relation("InvoiceLease")
+  rentCharge                   InvoiceCharge?               @relation(fields: [organizationId, rentChargeId], references: [organizationId, id], onDelete: NoAction)
   createdAt                    DateTime                    @default(now())
   updatedAt                    DateTime                    @updatedAt
   organization                 Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
@@ -623,6 +626,21 @@ model Lease {
   @@index([propertyId])
   @@index([unitId])
   @@index([organizationId])
+}
+
+model InvoiceCharge {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  name           String
+  description    String?
+  isDefault      Boolean      @default(false)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  leases         Lease[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, id])
+  @@index([organizationId, name])
 }
 
 model LeaseTenant {
