@@ -160,8 +160,9 @@ function createDatabase(
       }),
     },
     invoiceCharge: {
-      findFirst: async ({ where }: { where: { organizationId: number } }) => {
+      findFirst: async ({ where }: { where: { organizationId: number; isDefault: boolean } }) => {
         assert.equal(where.organizationId, 7);
+        assert.equal(where.isDefault, true);
         return { id: 5, name: "Rent", description: "Monthly rent" };
       },
     },
