@@ -374,6 +374,14 @@ test("registration creates a pending account and one verification token without 
   await caller.auth.register({ email: "new@example.com", password: "password-for-new-user" });
 
   assert.equal(state.users[0]?.accountStatus, "pending");
+  assert.deepEqual(state.invoiceCharges, [
+    {
+      organizationId: 1,
+      name: "Rent",
+      description: "Monthly rent for {month} {year}",
+      isDefault: true,
+    },
+  ]);
   assert.equal(state.tokens.length, 1);
   assert.notEqual(state.tokens[0]?.tokenHash, "new@example.com");
   assert.equal(state.sessions.length, 0);

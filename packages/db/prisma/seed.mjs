@@ -238,8 +238,12 @@ async function upsertLease(organizationId, rentChargeId, data) {
   return lease;
 }
 
-async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balanceCents, payments = [] }) {
+async function seedInvoice({ lease, charge, tenantId, periodStartsOn, amountCents, balanceCents, payments = [] }) {
   const paidOn = balanceCents === 0 ? (payments.at(-1)?.paidOn ?? periodStartsOn) : null;
+  const month = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(periodStartsOn);
+  const description = charge.description
+    ? charge.description.replaceAll("{month}", month).replaceAll("{year}", String(periodStartsOn.getUTCFullYear()))
+    : null;
 
   await prisma.invoice.upsert({
     where: {
@@ -272,8 +276,8 @@ async function seedInvoice({ lease, tenantId, periodStartsOn, amountCents, balan
       },
       items: {
         create: {
-          item: "Rent",
-          description: `Rent for ${periodStartsOn.toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}`,
+          item: charge.name,
+          description,
           rateCents: amountCents,
           amountCents,
         },
@@ -609,6 +613,7 @@ async function main() {
   await Promise.all([
     seedInvoice({
       lease: mayaLease,
+      charge: defaultInvoiceCharge,
       tenantId: tenant.id,
       periodStartsOn: july,
       amountCents: mayaLease.monthlyRentCents,
@@ -623,6 +628,7 @@ async function main() {
     }),
     seedInvoice({
       lease: mayaLease,
+      charge: defaultInvoiceCharge,
       tenantId: tenant.id,
       periodStartsOn: august,
       amountCents: mayaLease.monthlyRentCents,
@@ -630,6 +636,7 @@ async function main() {
     }),
     seedInvoice({
       lease: elenaLease,
+      charge: defaultInvoiceCharge,
       tenantId: fourthTenant.id,
       periodStartsOn: august,
       amountCents: elenaLease.monthlyRentCents,
@@ -638,6 +645,7 @@ async function main() {
     }),
     seedInvoice({
       lease: calvinLease,
+      charge: defaultInvoiceCharge,
       tenantId: secondTenant.id,
       periodStartsOn: august,
       amountCents: calvinLease.monthlyRentCents,
@@ -646,6 +654,7 @@ async function main() {
     }),
     seedInvoice({
       lease: noraLease,
+      charge: defaultInvoiceCharge,
       tenantId: thirdTenant.id,
       periodStartsOn: august,
       amountCents: noraLease.monthlyRentCents,
