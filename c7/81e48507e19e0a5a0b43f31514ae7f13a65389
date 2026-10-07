@@ -1,0 +1,77 @@
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_89a2f7cbafeb65::t_9b5d7a093b4465 2141
+  s_89a2f7cbafeb65::t_773195ad1c9fdf 602-604,619-621,1364-1368
+  s_89a2f7cbafeb65::t_432e2cc853c6ff 1149-1151,1164-1166,2535-2537
+  s_89a2f7cbafeb65::t_50fcf5f2d02d2d 2487-2489
+  s_89a2f7cbafeb65::t_1e2a6f8d4b59b8 88,116,1695,1927
+  s_89a2f7cbafeb65::t_9fb6ce715020f7 97,125,166
+  s_89a2f7cbafeb65::t_358355769880bf 1363
+  s_89a2f7cbafeb65::t_5ad5fbdb4dbcf3 1369
+apps/web/components/api-client.ts
+  s_89a2f7cbafeb65::t_81adeddac8ed89 96-98
+apps/web/app/(authenticated)/settings/invoicing/page.tsx
+  s_89a2f7cbafeb65::t_66ee5096ddcf29 75-76
+  s_89a2f7cbafeb65::t_5050fa60648f5a 1-74,77-197
+apps/api/src/leases/lease-rent-invoices.ts
+  s_89a2f7cbafeb65::t_2917b462f3f003 9-10,52
+  s_89a2f7cbafeb65::t_2b3fbdebc8a1f5 2,53
+apps/api/src/router/app.router.ts
+  s_89a2f7cbafeb65::t_bf5f76d06f7c17 464,469-478
+  s_89a2f7cbafeb65::t_0791e7532d898f 4544,4548
+  s_89a2f7cbafeb65::t_5d02056ec86f7f 4549,4553
+  s_89a2f7cbafeb65::t_66ee5096ddcf29 2378-2381,2383-2387,2391-2393,2397-2403,2408-2416,3927-3948,3954,3956-4006,4012-4022,4024-4032,4048-4098,4545-4547,4550-4552,4561-4569,4608-4614
+  s_89a2f7cbafeb65::t_aff394968c17c3 3894
+  s_89a2f7cbafeb65::t_dc2c3439d9fd5f 4275
+  s_89a2f7cbafeb65::t_666165988646c2 4122-4125
+  s_89a2f7cbafeb65::t_29381162d662a9 2376-2377,2382,2388-2390,2394-2396,2404-2407,2417-2418
+  s_89a2f7cbafeb65::t_c0e58834f2a4a0 4176
+  s_89a2f7cbafeb65::t_7f44d592c38d29 4209,4259,4488,4498-4502
+  s_89a2f7cbafeb65::t_1e90fa457a85e3 3-5
+  s_89a2f7cbafeb65::t_efc94a1bc06464 2137-2138,2187,3779-3788,3791-3792,3794,3796,3798-3837,3839-3850,3951-3953,4008-4010,4034-4035,4037-4040,4044,4100,4102-4120,4263-4266,4298-4301,4472-4473
+  s_89a2f7cbafeb65::t_1adab0f9edd8c9 4033
+  s_89a2f7cbafeb65::t_0bb3cf266f5f74 4554
+apps/web/components/settings-rail.tsx
+  s_89a2f7cbafeb65::t_a9fbd4ca996c0f 4,16,18,20,48-54
+apps/web/app/(authenticated)/settings/roles/page.tsx
+  s_89a2f7cbafeb65::t_89ba4fc7dfbb2b 122
+apps/web/app/(authenticated)/settings/page.tsx
+  s_89a2f7cbafeb65::t_b4d53864a35bac 310
+apps/api/src/tests/leases/lease-rent-invoices.test.ts
+  s_89a2f7cbafeb65::t_ae6a377fd0a6be 36
+  s_89a2f7cbafeb65::t_4ca39d61be8a14 35,116-117
+  s_89a2f7cbafeb65::t_66ee5096ddcf29 64-79
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_89a2f7cbafeb65::t_89ba4fc7dfbb2b 174
+apps/web/app/(authenticated)/settings/profile/page.tsx
+  s_89a2f7cbafeb65::t_89ba4fc7dfbb2b 97
+apps/web/components/invoice-drawer.tsx
+  s_89a2f7cbafeb65::t_af47b938803313 4,13-16,86,102,110,114,128,272-286,298-301,329,335,346,394
+  s_89a2f7cbafeb65::t_04cf8e44779434 22,116,239-259
+  s_89a2f7cbafeb65::t_e1a187293a2f52 26,113,115,117-119,125-127,129-133,143-146,331
+  s_89a2f7cbafeb65::t_b8abeead77391c 25,111-112,120
+  s_89a2f7cbafeb65::t_d1383c4ef5836b 49
+  s_89a2f7cbafeb65::t_83eb968b963c91 72-80,90,134-135,220-221,302-308,310-328,330,332-334,336-345,347-361
+  s_89a2f7cbafeb65::t_7dda350be72fab 121-122
+apps/web/app/(authenticated)/income/page.tsx
+  s_89a2f7cbafeb65::t_467e5fa182319d 132,617
+apps/web/app/(authenticated)/settings/organization/email/page.tsx
+  s_89a2f7cbafeb65::t_89ba4fc7dfbb2b 152
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_89a2f7cbafeb65::t_89ba4fc7dfbb2b 111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c781e48507e19e0a5a0b43f31514ae7f13a65389",
+  "prompts": {},
+  "sessions": {
+    "s_89a2f7cbafeb65": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11274-c523-73f2-93f8-1401b05dd41b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
