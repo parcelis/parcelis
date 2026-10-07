@@ -1,0 +1,28 @@
+playwright.config.ts
+  s_e72259f57d273a::t_28577f3fd27486 4
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_e72259f57d273a::t_2972a96d4127b0 451
+  s_e72259f57d273a::t_a927ac4b14af28 162-167
+apps/api/src/tests/leases/lease-finalization.integration.test.ts
+  s_e72259f57d273a::t_edf18f44e4bdd5 38-40
+apps/api/src/tests/leases/lease-terms.router.test.ts
+  s_e72259f57d273a::t_b151dae9d376ee 78-87,144-153
+apps/api/src/tests/leases/leases.router.test.ts
+  s_e72259f57d273a::t_49e631a3a0b831 135-144,271-280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "85b1a5cf81a7f2633e8134590ecd818140ba28bf",
+  "prompts": {},
+  "sessions": {
+    "s_e72259f57d273a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11710-5289-7a12-a579-eb8d4e9b013d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
