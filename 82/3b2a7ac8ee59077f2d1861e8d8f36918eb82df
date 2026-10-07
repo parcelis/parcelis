@@ -1,0 +1,14 @@
+docker-compose.yml
+  h_a5ff85794783c2 109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "823b2a7ac8ee59077f2d1861e8d8f36918eb82df",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
