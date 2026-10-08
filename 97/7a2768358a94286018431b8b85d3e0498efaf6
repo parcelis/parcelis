@@ -1,0 +1,21 @@
+tests/e2e/fixtures/authenticated.ts
+  s_ed0db6c1d13018::t_59e8f88afb64cb 7,11
+CONTRIBUTING.md
+  s_ed0db6c1d13018::t_59e8f88afb64cb 223-224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "977a2768358a94286018431b8b85d3e0498efaf6",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
