@@ -179,7 +179,19 @@ test(
       );
       execFileSync(
         "docker",
-        ["run", "--detach", "--name", container, "--env-file", envFile, "--publish", `127.0.0.1:${port}:3000`, image],
+        [
+          "run",
+          "--detach",
+          "--name",
+          container,
+          "--add-host",
+          "host.docker.internal:host-gateway",
+          "--env-file",
+          envFile,
+          "--publish",
+          `127.0.0.1:${port}:3000`,
+          image,
+        ],
         { stdio: "pipe" },
       );
       resources.container = container;

@@ -252,7 +252,8 @@ To run the combined deployment smoke batch, build `Dockerfile.app`, then set
 `API_TEST_IMAGE` to its local image tag when running the same test. It also
 checks the nginx/web/API proxy, native password login, REST, Bull Board assets and
 Redis, image upload/deletion, concurrent lease finalization, and invoice payment.
-The test uses Docker Desktop's `host.docker.internal` to reach local dependencies;
+The test maps `host.docker.internal` to Docker's host gateway to reach local dependencies
+on Docker Desktop and Linux Docker hosts;
 set `REDIS_PORT` to the port printed by the running dev stack if it differs from
 `.env`. It stops and removes its temporary container and isolated schema.
 
