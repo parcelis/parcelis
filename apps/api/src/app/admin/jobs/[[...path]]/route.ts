@@ -8,12 +8,4 @@ function handler(request: Request) {
   return createJobDashboardHandler(getPrisma())(request);
 }
 
-export {
-  handler as GET,
-  handler as HEAD,
-  handler as POST,
-  handler as PUT,
-  handler as PATCH,
-  handler as DELETE,
-  handler as OPTIONS,
-};
+export { handler as GET, handler as HEAD, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
