@@ -16,10 +16,10 @@ export function getClientIp(request: Request, trustedHops = getTrustedProxyHops(
 export function createFetchCookieResponse() {
   const cookieResponse = new NextResponse(null);
   const res: SessionResponse = {
-    cookie(name, value, { maxAge, ...options }) {
+    cookie(name, value, { maxAgeMs, ...options }) {
       cookieResponse.cookies.set(name, value, {
         ...options,
-        maxAge: maxAge === undefined ? undefined : Math.floor(maxAge / 1000),
+        maxAge: maxAgeMs === undefined ? undefined : Math.floor(maxAgeMs / 1000),
       });
     },
     clearCookie(name, options) {

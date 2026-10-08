@@ -11,7 +11,7 @@ export type SessionCookieOptions = {
   sameSite: "lax";
   secure: boolean;
   path: string;
-  maxAge?: number;
+  maxAgeMs?: number;
 };
 
 export type SessionResponse = {
@@ -80,7 +80,7 @@ export function setSessionCookie(response: SessionResponse, token: string) {
   response.cookie(sessionCookieName, token, {
     ...getCookieOptions(),
     httpOnly: true,
-    maxAge: sessionDurationMs,
+    maxAgeMs: sessionDurationMs,
   });
 }
 
