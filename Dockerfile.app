@@ -10,7 +10,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile \
   && pnpm --filter @parcelis/jobs build \
   && pnpm --filter @parcelis/worker build \
-  && pnpm --filter @parcelis/api build \
+  && pnpm --filter @parcelis/api... build \
   && pnpm --filter @parcelis/web build
 
 COPY infra/docker/app/nginx.conf /etc/nginx/http.d/default.conf
