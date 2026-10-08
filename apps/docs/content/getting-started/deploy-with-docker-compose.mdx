@@ -51,6 +51,17 @@ Set `EMAIL_SETTINGS_ENCRYPTION_KEY` to a base64-encoded 32-byte secret before sa
 - `app` serves the web UI and API
 - `docs` serves the documentation site
 
+## API runtime
+
+The application container runs the Next.js web app and a separate Next.js API
+process behind nginx. Background jobs run in the worker service; PostgreSQL, Redis,
+and MinIO provide the database, queues, and object storage.
+
+`API_TRUST_PROXY_HOPS` defaults to `0`, which ignores forwarded client IPs. Use `2`
+only when API traffic exclusively passes through the two supplied nginx proxies and
+direct access to the application container is restricted. Adjust the count if your
+deployment adds another proxy.
+
 ## Verify the deployment
 
 After the containers are running, confirm the expected services are healthy:

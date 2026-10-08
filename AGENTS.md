@@ -5,8 +5,8 @@
 - Workspace uses a pnpm/Turbo monorepo with apps in `apps/` and shared packages in `packages/`.
 - Main apps:
   - `apps/web`: Next.js App Router frontend.
-  - `apps/api`: NestJS backend exposing the tRPC router.
-  - `apps/docs`: Docusaurus documentation site.
+  - `apps/api`: Next.js API exposing tRPC, REST, and Bull Board.
+  - `apps/docs`: Documentation site.
 - Shared packages:
   - `packages/ui`: shadcn/ui-style Parcelis primitives and brand components.
   - `packages/schemas`: shared Zod schemas and inferred TypeScript types.
