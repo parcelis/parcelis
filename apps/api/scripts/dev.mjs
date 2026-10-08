@@ -1,10 +1,12 @@
 import { spawn } from "node:child_process";
-import { watch } from "node:fs";
+import { existsSync, watch } from "node:fs";
 import { resolve } from "node:path";
 
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 const apiRoot = resolve(import.meta.dirname, "..");
 const emailSource = resolve(repositoryRoot, "packages/email/src");
+const envPath = resolve(repositoryRoot, ".env");
+if (existsSync(envPath)) process.loadEnvFile(envPath);
 const useOpenPort = process.argv.includes("--open-port");
 
 let apiProcess;
@@ -34,17 +36,12 @@ function run(command, args, options = {}) {
 }
 
 function startApi() {
-  const command = useOpenPort ? process.execPath : "nest";
+  const runtimeCommand = process.execPath;
+  const runtimeArgs = ["./scripts/server.mjs", "--dev"];
+  const command = useOpenPort ? process.execPath : runtimeCommand;
   const args = useOpenPort
-    ? [
-        resolve(repositoryRoot, "scripts/run-with-open-port.mjs"),
-        "API_PORT",
-        "40010",
-        "nest",
-        "start",
-        "--watch",
-      ]
-    : ["start", "--watch"];
+    ? [resolve(repositoryRoot, "scripts/run-with-open-port.mjs"), "API_PORT", "40010", runtimeCommand, ...runtimeArgs]
+    : runtimeArgs;
 
   apiProcess = spawn(command, args, {
     cwd: apiRoot,

@@ -1,15 +1,17 @@
 import { PrismaClient, PrismaPg } from "@parcelis/db";
+import { registerApiCleanup } from "./runtime-cleanup";
 
 const databaseGlobal = globalThis as typeof globalThis & { parcelisPrisma?: PrismaClient };
-let prisma = databaseGlobal.parcelisPrisma;
 
 export function getPrisma() {
-  if (!prisma) {
+  if (!databaseGlobal.parcelisPrisma) {
     const connectionString =
       process.env.DATABASE_URL ??
       `postgresql://parcelis:parcelis@localhost:${process.env.POSTGRES_PORT ?? 54320}/parcelis?schema=public`;
-    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
-    if (process.env.NODE_ENV !== "production") databaseGlobal.parcelisPrisma = prisma;
+    const schema = new URL(connectionString).searchParams.get("schema") ?? "public";
+    const client = new PrismaClient({ adapter: new PrismaPg({ connectionString }, { schema }) });
+    registerApiCleanup(() => client.$disconnect());
+    databaseGlobal.parcelisPrisma = client;
   }
-  return prisma;
+  return databaseGlobal.parcelisPrisma;
 }

@@ -12,6 +12,7 @@ import { jobDashboardOptions } from "./job-dashboard-options";
 import { JobDashboardBullMQAdapter } from "./job-dashboard-queue-adapter";
 import { sanitizeJobResponse } from "./job-dashboard-redaction";
 import { readSession } from "./session";
+import { registerApiCleanup } from "./runtime-cleanup";
 
 const basePath = "/admin/jobs";
 const dashboardGlobal = globalThis as typeof globalThis & {
@@ -31,7 +32,10 @@ export function createJobDashboard(queues: readonly Queue[]) {
 
 function getJobDashboard() {
   if (!dashboard) {
-    dashboardGlobal.parcelisJobDashboardQueues ??= createQueueRegistry(getRedisConnectionOptions());
+    if (!dashboardGlobal.parcelisJobDashboardQueues) {
+      dashboardGlobal.parcelisJobDashboardQueues = createQueueRegistry(getRedisConnectionOptions());
+      registerApiCleanup(closeJobDashboard);
+    }
     dashboard = createJobDashboard(Object.values(dashboardGlobal.parcelisJobDashboardQueues));
   }
   return dashboard;
@@ -41,7 +45,15 @@ export async function closeJobDashboard() {
   const queues = dashboardGlobal.parcelisJobDashboardQueues;
   delete dashboardGlobal.parcelisJobDashboardQueues;
   dashboard = undefined;
-  if (queues) await Promise.all(Object.values(queues).map((queue) => queue.close()));
+  const results = await Promise.allSettled(
+    Object.values(queues ?? {}).map((queue) => Promise.resolve().then(() => queue.close())),
+  );
+  const failures = results.filter((result) => result.status === "rejected");
+  if (failures.length)
+    throw new AggregateError(
+      failures.map((result) => result.reason),
+      "Queue cleanup failed.",
+    );
 }
 
 async function protectJobDashboardResponse(response: Response) {
