@@ -88,6 +88,7 @@ ignores forwarded client IPs, so IP-based rate limits share the unknown-IP bucke
 The supplied production Compose stack has two nginx hops; use `2` only when public
 API traffic exclusively follows that path. Adjust the count for any additional proxy.
 The production environment example sets `2` for this stack.
+Use decimal digits for the proxy count; empty values and other numeric formats are rejected.
 The launcher validates this value before starting Next.js; changes require restarting the API.
 Dashboard requests and polling do not renew session activity. `/settings/jobs`
 continues to use the same-origin `/admin/jobs/` route with the selected API runtime.

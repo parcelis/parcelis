@@ -9,10 +9,27 @@ test("proxy trust defaults to zero and accepts non-negative safe integers", () =
   assert.equal(parseTrustedProxyHops(undefined), 0);
   assert.equal(parseTrustedProxyHops("0"), 0);
   assert.equal(parseTrustedProxyHops("2"), 2);
+  assert.equal(parseTrustedProxyHops(" 2 "), 2);
+  assert.equal(parseTrustedProxyHops("02"), 2);
+  assert.equal(parseTrustedProxyHops(String(Number.MAX_SAFE_INTEGER)), Number.MAX_SAFE_INTEGER);
 });
 
 test("invalid proxy trust values fail with a configuration error", () => {
-  for (const value of ["-1", "1.5", "invalid", "NaN", "Infinity", "9007199254740992"]) {
+  for (const value of [
+    "",
+    "   ",
+    "-0",
+    "+2",
+    "0x2",
+    "1e1",
+    "2.0",
+    "-1",
+    "1.5",
+    "invalid",
+    "NaN",
+    "Infinity",
+    "9007199254740992",
+  ]) {
     assert.throws(() => parseTrustedProxyHops(value), /API_TRUST_PROXY_HOPS must be a non-negative integer/);
   }
 });
