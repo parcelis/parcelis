@@ -16,7 +16,7 @@ export function getClientIp(request: Request) {
   return address && isIP(address) ? address : undefined;
 }
 
-export function createFetchContext(prisma: PrismaClient, request: Request) {
+export function createFetchCookieResponse() {
   const cookieResponse = new NextResponse(null);
   const res: SessionResponse = {
     cookie(name, value, { maxAge, ...options }) {
@@ -31,6 +31,19 @@ export function createFetchContext(prisma: PrismaClient, request: Request) {
   };
 
   return {
+    res,
+    applyCookies(response: Response) {
+      for (const cookie of cookieResponse.headers.getSetCookie()) {
+        response.headers.append("Set-Cookie", cookie);
+      }
+      return response;
+    },
+  };
+}
+
+export function createFetchContext(prisma: PrismaClient, request: Request) {
+  const cookieResponse = createFetchCookieResponse();
+  return {
     createContext: () =>
       createContext(prisma)({
         req: {
@@ -40,13 +53,8 @@ export function createFetchContext(prisma: PrismaClient, request: Request) {
           },
           ip: getClientIp(request),
         },
-        res,
+        res: cookieResponse.res,
       }),
-    applyCookies(response: Response) {
-      for (const cookie of cookieResponse.headers.getSetCookie()) {
-        response.headers.append("Set-Cookie", cookie);
-      }
-      return response;
-    },
+    applyCookies: cookieResponse.applyCookies,
   };
 }

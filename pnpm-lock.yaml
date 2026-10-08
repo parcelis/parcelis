@@ -221,12 +221,18 @@ importers:
       '@bull-board/express':
         specifier: ^9.10.1
         version: 9.10.4(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(supports-color@8.1.1)(typescript@6.0.3)
+      '@bull-board/hono':
+        specifier: ^9.10.4
+        version: 9.10.4(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)
       '@bull-board/nestjs':
         specifier: ^9.10.1
         version: 9.10.4(@bull-board/api@9.10.4(@bull-board/ui@9.10.4(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(@nestjs/bull-shared@12.0.0(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.7))(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
+      '@hono/node-server':
+        specifier: ^2.1.3
+        version: 2.1.3(hono@4.13.13)
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -269,6 +275,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1(supports-color@8.1.1)
+      hono:
+        specifier: ^4.13.13
+        version: 4.13.13
       next:
         specifier: ^16.3.8
         version: 16.3.8(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.63.0)(@types/node@24.19.1)(babel-plugin-macros@3.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
@@ -1521,6 +1530,11 @@ packages:
   '@bull-board/express@9.10.4':
     resolution: {integrity: sha512-4vInwCI8x4V/xyxdfw5+vP9HukfYV+s40y/AhvuXyQ/2DJ0DHVDgGj0OuY9PzxTcXgYBQiH9HNYlPYHYpy6+Fg==}
 
+  '@bull-board/hono@9.10.4':
+    resolution: {integrity: sha512-Dr/xBmJ+glm9FIo/dghUWW9tkFGxz7/lFwP9DAEo83pvqLI3oyWHwa/IlTaGhvLhxkGESmzgXKNCqdodCx41pA==}
+    peerDependencies:
+      hono: ^4
+
   '@bull-board/nestjs@9.10.4':
     resolution: {integrity: sha512-4ZFe8Cf4KcIBLSnpfaf2lFLpAM40pBCXUWOxeRFpJGHVM44cNVjDQ2acE1n0VfF3jBigEYiI4IJNQeeXT4Oi8A==}
     peerDependencies:
@@ -2767,6 +2781,12 @@ packages:
 
   '@hapi/topo@5.1.0':
     resolution: {integrity: sha512-foQZKJig7Ob0BMAYBfcJk8d77QtOe7Wo4ox7ff1lQYoNNAb6jwcY1ncdoy2e9wQZzvNy7ODZCYJkK8kzmcAnAg==}
+
+  '@hono/node-server@2.1.3':
+    resolution: {integrity: sha512-TA//nWMqPhbfdfneACk6t5a9eqbS9lABEPyKn0/xZTah3H3U2XaVg85rJFl0/Fyit0I552YDHgXGVSf3GwqbUw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      hono: ^4
 
   '@hookform/error-message@2.0.1':
     resolution: {integrity: sha512-U410sAr92xgxT1idlu9WWOVjndxLdgPUHEB8Schr27C9eh7/xUnITWpCMF93s+lGiG++D4JnbSnrb5A21AdSNg==}
@@ -7431,6 +7451,10 @@ packages:
 
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
+
+  hono@4.13.13:
+    resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
+    engines: {node: '>=16.9.0'}
 
   hpack.js@2.1.6:
     resolution: {integrity: sha512-zJxVehUdMGIKsRaNt7apO2Gqp0BdqW5yaiGHXXmbpvxgBYVZnAql+BJb4RO5ad2MgpbZKn5G6nMnegrH1FcNYQ==}
@@ -12750,6 +12774,17 @@ snapshots:
       - supports-color
       - typescript
 
+  '@bull-board/hono@9.10.4(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)':
+    dependencies:
+      '@bull-board/api': 9.10.4(@bull-board/ui@9.10.4(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/ui': 9.10.4(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      ejs: 6.0.1
+      hono: 4.13.13
+    transitivePeerDependencies:
+      - bull
+      - bullmq
+      - typescript
+
   '@bull-board/nestjs@9.10.4(@bull-board/api@9.10.4(@bull-board/ui@9.10.4(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(@nestjs/bull-shared@12.0.0(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.7))(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
       '@bull-board/api': 9.10.4(@bull-board/ui@9.10.4(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.3.11(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
@@ -14782,6 +14817,10 @@ snapshots:
   '@hapi/topo@5.1.0':
     dependencies:
       '@hapi/hoek': 9.3.0
+
+  '@hono/node-server@2.1.3(hono@4.13.13)':
+    dependencies:
+      hono: 4.13.13
 
   '@hookform/error-message@2.0.1(react-dom@19.3.0(react@19.3.0))(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -20107,6 +20146,8 @@ snapshots:
   hoist-non-react-statics@3.3.2:
     dependencies:
       react-is: 16.13.1
+
+  hono@4.13.13: {}
 
   hpack.js@2.1.6:
     dependencies:
