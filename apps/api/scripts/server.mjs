@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import next from "next";
 import { config } from "dotenv";
 import { getDatabaseConfig } from "../src/modules/database-config.ts";
+import { getTrustedProxyHops } from "../src/modules/proxy-config.ts";
 
 export async function closeApiResources() {
   const callbacks = globalThis.parcelisApiCleanup;
@@ -39,6 +40,7 @@ export async function startNextApi() {
   const dev = process.argv.includes("--dev");
   process.env.NODE_ENV ??= dev ? "development" : "production";
   getDatabaseConfig();
+  getTrustedProxyHops();
   const apiRoot = resolve(import.meta.dirname, "..");
   process.env.PARCELIS_API_ROOT = apiRoot;
   const app = next({ dev, hostname, port, dir: apiRoot, turbopack: dev });

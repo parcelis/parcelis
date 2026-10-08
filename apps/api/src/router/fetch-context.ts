@@ -2,13 +2,10 @@ import { isIP } from "node:net";
 import type { PrismaClient } from "@parcelis/db";
 import { NextResponse } from "next/server";
 import type { SessionResponse } from "../modules/auth";
+import { getTrustedProxyHops } from "../modules/proxy-config";
 import { createContext } from "./context";
 
-export function getClientIp(request: Request) {
-  const trustedHops = Number(process.env.API_TRUST_PROXY_HOPS ?? 0);
-  if (!Number.isSafeInteger(trustedHops) || trustedHops < 0) {
-    throw new Error("API_TRUST_PROXY_HOPS must be a non-negative integer.");
-  }
+export function getClientIp(request: Request, trustedHops = getTrustedProxyHops()) {
   if (trustedHops === 0) return undefined;
 
   const addresses = request.headers.get("x-forwarded-for")?.split(",");

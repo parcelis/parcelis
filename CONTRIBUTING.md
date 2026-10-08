@@ -85,6 +85,7 @@ Set `API_TRUST_PROXY_HOPS` only behind an enforced proxy boundary. The default `
 ignores forwarded client IPs, so IP-based rate limits share the unknown-IP bucket.
 The supplied production Compose stack has two nginx hops; use `2` only when public
 API traffic exclusively follows that path. Adjust the count for any additional proxy.
+The launcher validates this value before starting Next.js; changes require restarting the API.
 Dashboard requests and polling do not renew session activity. `/settings/jobs`
 continues to use the same-origin `/admin/jobs/` route with the selected API runtime.
 

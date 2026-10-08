@@ -234,19 +234,16 @@ test("CORS permits the configured origin and denies browser access for other ori
   assert.equal(rejected.headers.get("access-control-allow-origin"), null);
 });
 
-test("forwarded client IPs require explicit proxy trust and use the trusted end of the chain", (t) => {
-  const original = process.env.API_TRUST_PROXY_HOPS;
-  t.after(() => {
-    if (original === undefined) delete process.env.API_TRUST_PROXY_HOPS;
-    else process.env.API_TRUST_PROXY_HOPS = original;
-  });
+test("forwarded client IPs require explicit proxy trust and use the trusted end of the chain", () => {
   const request = new Request("http://localhost/trpc/auth.login", {
     headers: { "x-forwarded-for": "198.51.100.99, 203.0.113.8, 127.0.0.1" },
   });
-  process.env.API_TRUST_PROXY_HOPS = "0";
-  assert.equal(getClientIp(request), undefined);
-  process.env.API_TRUST_PROXY_HOPS = "2";
-  assert.equal(getClientIp(request), "203.0.113.8");
-  process.env.API_TRUST_PROXY_HOPS = "-1";
-  assert.throws(() => getClientIp(request), /non-negative integer/);
+  assert.equal(getClientIp(request, 0), undefined);
+  assert.equal(getClientIp(request, 2), "203.0.113.8");
+  assert.equal(getClientIp(request, 4), undefined);
+  assert.equal(getClientIp(new Request("http://localhost"), 2), undefined);
+  assert.equal(
+    getClientIp(new Request("http://localhost", { headers: { "x-forwarded-for": "invalid, 127.0.0.1" } }), 2),
+    undefined,
+  );
 });

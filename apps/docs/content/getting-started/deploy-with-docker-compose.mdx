@@ -61,6 +61,7 @@ and MinIO provide the database, queues, and object storage.
 only when API traffic exclusively passes through the two supplied nginx proxies and
 direct access to the application container is restricted. Adjust the count if your
 deployment adds another proxy.
+Invalid values fail API startup. Restart the API after changing the trusted proxy count.
 
 ## Verify the deployment
 

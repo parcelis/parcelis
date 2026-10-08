@@ -12,6 +12,7 @@ convert the existing millisecond cookie duration to Next.js seconds, and disable
 response caching. CORS permits the configured `WEB_ORIGIN`. Forwarded client IPs
 are ignored unless `API_TRUST_PROXY_HOPS` explicitly specifies the trusted proxy
 count; enable it only when direct access to the API is restricted to those proxies.
+The launcher validates the proxy count before starting Next.js, and request handlers reuse the cached value.
 Bull Board uses its Hono adapter. Every dashboard, API, and static-asset request
 checks the database session and administrator role; unsafe methods also require
 the configured web origin. Shared helpers preserve branding and response redaction,
