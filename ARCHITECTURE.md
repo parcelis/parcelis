@@ -96,7 +96,7 @@ The web app creates a typed tRPC proxy client in `apps/web/components/api-client
 
 PostgreSQL stores hashed session tokens, revocation state, a seven-day absolute expiration, and `lastSeenAt`. The shared API session check rejects revoked, disabled-account, absolutely expired, and idle sessions after 15 minutes without activity. `SESSION_IDLE_TIMEOUT_ENABLED=false` disables only the idle check. Authenticated browser interaction calls `auth.activity`; a conditional update accepts at most one activity timestamp per minute and rechecks validity so concurrent revocation cannot be undone. Background requests never renew activity. The browser uses the server's expiration timestamp for its warning and shares renewals and logout across tabs. The `parcelis_session_v2` cookie requires existing users to sign in again when this policy is deployed. Redis remains dedicated to background jobs.
 
-The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
+The API serves `publicRouter` at `/api/v1/*` through an App Router handler using `createOpenApiFetchHandler` from `trpc-to-openapi`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
 
 ## Background jobs and outbox
 
