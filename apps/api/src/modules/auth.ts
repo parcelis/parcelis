@@ -1,6 +1,23 @@
 import { createHash, randomBytes } from "node:crypto";
 import * as argon2 from "argon2";
-import type { Request, Response } from "express";
+
+export type SessionRequest = {
+  headers: { cookie?: string };
+};
+
+export type SessionCookieOptions = {
+  domain?: string;
+  httpOnly: boolean;
+  sameSite: "lax";
+  secure: boolean;
+  path: string;
+  maxAge?: number;
+};
+
+export type SessionResponse = {
+  cookie: (name: string, value: string, options: SessionCookieOptions) => void;
+  clearCookie: (name: string, options: SessionCookieOptions) => void;
+};
 
 export const sessionCookieName = "parcelis_session_v2";
 
@@ -53,13 +70,13 @@ export function hashSessionToken(token: string) {
 export const hashPasswordResetToken = hashSessionToken;
 export const hashEmailVerificationToken = hashSessionToken;
 
-export function getSessionToken(request: Request) {
+export function getSessionToken(request: SessionRequest) {
   const cookies = request.headers.cookie?.split(";") ?? [];
   const sessionCookie = cookies.find((cookie) => cookie.trim().startsWith(`${sessionCookieName}=`));
   return sessionCookie?.split("=").slice(1).join("=");
 }
 
-export function setSessionCookie(response: Response, token: string) {
+export function setSessionCookie(response: SessionResponse, token: string) {
   response.cookie(sessionCookieName, token, {
     ...getCookieOptions(),
     httpOnly: true,
@@ -67,7 +84,7 @@ export function setSessionCookie(response: Response, token: string) {
   });
 }
 
-export function clearSessionCookie(response: Response) {
+export function clearSessionCookie(response: SessionResponse) {
   response.clearCookie(sessionCookieName, getCookieOptions());
 }
 

@@ -9,6 +9,7 @@ config({ path: resolve(repositoryRoot, ".env") });
 const nextConfig = {
   poweredByHeader: false,
   skipTrailingSlashRedirect: true,
+  serverExternalPackages: ["argon2", "@react-pdf/renderer"],
   typescript: { tsconfigPath: "tsconfig.next.json" },
   turbopack: { root: repositoryRoot },
 };

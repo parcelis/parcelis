@@ -125,7 +125,7 @@ test("returns a bad request when saved SMTP credentials cannot be decrypted for 
       prisma,
       session: {},
       organization: { organizationId: 1, role: "administrator" },
-    } as Context);
+    } as unknown as Context);
 
     await assert.rejects(
       () => caller.organizations.sendTestEmail(),
@@ -151,7 +151,7 @@ test("removes the organization SMTP configuration", async () => {
     prisma,
     session: {},
     organization: { organizationId: 1, role: "administrator" },
-  } as Context);
+  } as unknown as Context);
 
   await caller.organizations.deleteEmailSettings();
 
@@ -176,7 +176,7 @@ test("preserves the current SMTP password when saving without a replacement", as
     prisma,
     session: {},
     organization: { organizationId: 1, role: "administrator" },
-  } as Context);
+  } as unknown as Context);
 
   await caller.organizations.saveEmailSettings({
     host: "smtp.example.com",

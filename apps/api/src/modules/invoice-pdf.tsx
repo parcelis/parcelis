@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { formatInvoiceNumber } from "@parcelis/schemas";
 import {
@@ -17,8 +18,9 @@ import {
   View,
 } from "@react-pdf/renderer";
 
-const parcelisLightBannerPath = resolve(__dirname, "../../../web/public/brand/parcelis-fullmark-light.png");
-const parcelisLightBackgroundPath = resolve(__dirname, "../../../web/public/brand/parcelis-light-background.png");
+const apiRequire = createRequire(resolve(process.cwd(), "package.json"));
+const parcelisLightBannerPath = resolve(process.cwd(), "../web/public/brand/parcelis-fullmark-light.png");
+const parcelisLightBackgroundPath = resolve(process.cwd(), "../web/public/brand/parcelis-light-background.png");
 
 // Mirrors packages/ui/src/styles.css custom properties. react-pdf renders server-side with its
 // own StyleSheet and can't read CSS custom properties, so the token values are duplicated here.
@@ -31,11 +33,11 @@ const colors = {
 
 Font.register({
   family: "Inter",
-  src: require.resolve("@fontsource/inter/files/inter-latin-400-normal.woff"),
+  src: apiRequire.resolve("@fontsource/inter/files/inter-latin-400-normal.woff"),
 });
 Font.register({
   family: "Inter-Bold",
-  src: require.resolve("@fontsource/inter/files/inter-latin-700-normal.woff"),
+  src: apiRequire.resolve("@fontsource/inter/files/inter-latin-700-normal.woff"),
 });
 
 export type InvoicePdfInvoice = {
