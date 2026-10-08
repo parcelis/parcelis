@@ -74,8 +74,10 @@ include the Redis settings from `.env.example` in your `.env`; the full developm
 launcher supplies these automatically. Stop the existing development processes
 before restarting.
 
-Run API commands through pnpm's filter; PDF fonts and brand images resolve from
-the API working directory. The production launcher drains requests, closes Next.js,
+Run API commands through pnpm's filter. The API launcher sets `PARCELIS_API_ROOT`
+to its absolute application directory so PDF fonts and brand images resolve independently
+of the working directory. Direct source imports use the invoice module's location.
+The production launcher drains requests, closes Next.js,
 then closes initialized Redis queues and Prisma clients. It allows 15 seconds for
 shutdown; Docker and Supervisor allow additional time before killing the process.
 

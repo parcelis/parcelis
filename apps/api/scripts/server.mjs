@@ -39,7 +39,9 @@ export async function startNextApi() {
   const dev = process.argv.includes("--dev");
   process.env.NODE_ENV ??= dev ? "development" : "production";
   getDatabaseConfig();
-  const app = next({ dev, hostname, port, dir: resolve(import.meta.dirname, ".."), turbopack: dev });
+  const apiRoot = resolve(import.meta.dirname, "..");
+  process.env.PARCELIS_API_ROOT = apiRoot;
+  const app = next({ dev, hostname, port, dir: apiRoot, turbopack: dev });
   await app.prepare();
   const handler = app.getRequestHandler();
   const server = createServer((request, response) => {
