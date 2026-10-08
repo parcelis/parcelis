@@ -86,7 +86,7 @@ appRouter procedure
         |
         +--> Zod schema from @parcelis/schemas
         |
-        +--> PrismaService
+        +--> PrismaClient
                  |
                  v
              PostgreSQL
