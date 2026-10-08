@@ -37,7 +37,7 @@ function run(command, args, options = {}) {
 
 function startApi() {
   const runtimeCommand = process.execPath;
-  const runtimeArgs = ["./scripts/server.mjs", "--dev"];
+  const runtimeArgs = ["./scripts/start.mjs", "--dev"];
   const command = useOpenPort ? process.execPath : runtimeCommand;
   const args = useOpenPort
     ? [resolve(repositoryRoot, "scripts/run-with-open-port.mjs"), "API_PORT", "40010", runtimeCommand, ...runtimeArgs]

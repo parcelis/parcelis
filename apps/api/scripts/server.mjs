@@ -1,6 +1,5 @@
 import { createServer } from "node:http";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import next from "next";
 import { config } from "dotenv";
 
@@ -77,11 +76,4 @@ export async function startNextApi() {
     server.listen(port, hostname, resolve);
   });
   console.log(`Parcelis Next.js API listening on http://${hostname}:${port}`);
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  await startNextApi().catch((error) => {
-    console.error("API startup failed.", error);
-    process.exit(1);
-  });
 }
