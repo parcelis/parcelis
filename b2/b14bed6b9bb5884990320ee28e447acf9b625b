@@ -1,0 +1,25 @@
+apps/api/scripts/server.mjs
+  s_ed0db6c1d13018::t_cda4ba18f6eab9 22-30,33-35,68
+scripts/api-shutdown.test.mjs
+  s_ed0db6c1d13018::t_cda4ba18f6eab9 2-3,12,38,52-54,57-83
+  s_ed0db6c1d13018::t_f532087563a190 55-56
+  s_ed0db6c1d13018::t_0b1ad018569439 84-85
+CONTRIBUTING.md
+  s_ed0db6c1d13018::t_cda4ba18f6eab9 83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b2b14bed6b9bb5884990320ee28e447acf9b625b",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
