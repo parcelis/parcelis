@@ -1,0 +1,26 @@
+apps/api/tsconfig.json
+  s_bf4f9a50cd2155::t_e172eda938ec96 4-5,8-13,15-16
+apps/api/package.json
+  s_bf4f9a50cd2155::t_e172eda938ec96 14,19
+  s_bf4f9a50cd2155::t_9925d29ef470a9 15
+apps/api/next-env.d.ts
+  s_bf4f9a50cd2155::t_1a126fbea1514a 3-4
+playwright.config.ts
+  s_bf4f9a50cd2155::t_233d77f1222bbc 2-6,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5cc98503a2867d941b2d722854e1c2af568f5990",
+  "prompts": {},
+  "sessions": {
+    "s_bf4f9a50cd2155": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a118ef-df1c-7132-8d26-cce76d4fe791",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
