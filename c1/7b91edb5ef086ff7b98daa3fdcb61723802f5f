@@ -1,0 +1,54 @@
+apps/docs/content/contributing/architecture.mdx
+  s_bf4f9a50cd2155::t_a5b83bea953da9 1-66
+ARCHITECTURE.md
+  s_bf4f9a50cd2155::t_e79de3fce8741a 9-14
+  s_bf4f9a50cd2155::t_21482271eb344e 137
+  s_bf4f9a50cd2155::t_03098f303eba0e 26
+  s_bf4f9a50cd2155::t_5d57e57113d356 21-25,32,36,81,94,235
+  s_bf4f9a50cd2155::t_c9ebf2fb54c099 53-58
+  s_bf4f9a50cd2155::t_fe27595aee583c 131-135
+  s_bf4f9a50cd2155::t_eaa715f9e20494 15-20
+  s_bf4f9a50cd2155::t_a5b83bea953da9 5-8,130
+AGENTS.md
+  s_bf4f9a50cd2155::t_1aa38afdaba503 8
+  s_bf4f9a50cd2155::t_12ae6684783645 9
+CONTRIBUTING.md
+  s_bf4f9a50cd2155::t_1aa38afdaba503 71-75
+  s_bf4f9a50cd2155::t_d5f62c306823a9 88
+  s_bf4f9a50cd2155::t_74d0e96182a415 224-227,230,232-238,240-243,258
+  s_bf4f9a50cd2155::t_b8ce802a2427b6 228-229,231,245
+  s_bf4f9a50cd2155::t_e79de3fce8741a 83
+  s_bf4f9a50cd2155::t_5d57e57113d356 68,76-82,84-87
+  s_bf4f9a50cd2155::t_a5b83bea953da9 239,244,247-257
+  s_bf4f9a50cd2155::t_1332bb3c5ad49d 210-213,215-217,222-223
+  s_bf4f9a50cd2155::t_1f811cb879f6cf 214,218-221
+  s_bf4f9a50cd2155::t_a7dd4495674237 246,259
+README.md
+  s_bf4f9a50cd2155::t_21482271eb344e 129
+  s_bf4f9a50cd2155::t_31a2a4b51af8c5 41,126-128,130-135,160,167,169,174
+DEPENDENCIES.md
+  s_bf4f9a50cd2155::t_c9ebf2fb54c099 13-15,17-42
+  s_bf4f9a50cd2155::t_a5b83bea953da9 7-9
+  s_bf4f9a50cd2155::t_03098f303eba0e 10
+  s_bf4f9a50cd2155::t_31a2a4b51af8c5 16
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_bf4f9a50cd2155::t_a5b83bea953da9 56-58
+  s_bf4f9a50cd2155::t_1aa38afdaba503 54
+  s_bf4f9a50cd2155::t_5d57e57113d356 55,59-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c17b91edb5ef086ff7b98daa3fdcb61723802f5f",
+  "prompts": {},
+  "sessions": {
+    "s_bf4f9a50cd2155": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a118ef-df1c-7132-8d26-cce76d4fe791",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
