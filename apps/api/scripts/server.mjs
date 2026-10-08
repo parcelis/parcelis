@@ -4,20 +4,9 @@ import next from "next";
 import { config } from "dotenv";
 import { getDatabaseConfig } from "../src/modules/database-config.ts";
 import { getTrustedProxyHops } from "../src/modules/proxy-config.ts";
+import { runApiCleanup } from "../src/modules/runtime-cleanup.ts";
 
-export async function closeApiResources() {
-  const callbacks = globalThis.parcelisApiCleanup;
-  delete globalThis.parcelisApiCleanup;
-  const results = await Promise.allSettled(Array.from(callbacks ?? [], (cleanup) => Promise.resolve().then(cleanup)));
-  const failures = results.filter((result) => result.status === "rejected");
-  if (failures.length)
-    throw new AggregateError(
-      failures.map((result) => result.reason),
-      "API cleanup failed.",
-    );
-}
-
-export function createApiShutdown(server, app, cleanup = closeApiResources) {
+export function createApiShutdown(server, app, cleanup = runApiCleanup) {
   let shutdown;
   const upgradedSockets = new Set();
   server.on("upgrade", (_request, socket) => {

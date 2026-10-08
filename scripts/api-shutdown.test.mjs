@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createServer, request } from "node:http";
 import test from "node:test";
-import { closeApiResources, createApiShutdown } from "../apps/api/scripts/server.mjs";
+import { createApiShutdown } from "../apps/api/scripts/server.mjs";
+import { registerApiCleanup, runApiCleanup } from "../apps/api/src/modules/runtime-cleanup.ts";
 
 test("shutdown drains requests before closing Next and resources, once for repeated signals", async () => {
   const events = [];
@@ -84,17 +85,24 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
 });
 
 test("cleanup attempts every resource and reports failures without rerunning callbacks", async () => {
-  let closed = false;
-  globalThis.parcelisApiCleanup = new Set([
-    () => {
-      throw new Error("Redis unavailable");
-    },
-    async () => {
-      closed = true;
-    },
-  ]);
-  await assert.rejects(closeApiResources(), AggregateError);
-  assert.equal(closed, true);
-  assert.equal(globalThis.parcelisApiCleanup, undefined);
-  await closeApiResources();
+  let attempts = 0;
+  let closed = 0;
+  const failure = new Error("Redis unavailable");
+  registerApiCleanup(async () => {
+    attempts++;
+    throw failure;
+  });
+  registerApiCleanup(async () => {
+    closed++;
+  });
+  await assert.rejects(runApiCleanup(), (error) => {
+    assert.ok(error instanceof AggregateError);
+    assert.deepEqual(error.errors, [failure]);
+    return true;
+  });
+  assert.equal(attempts, 1);
+  assert.equal(closed, 1);
+  await runApiCleanup();
+  assert.equal(attempts, 1);
+  assert.equal(closed, 1);
 });
