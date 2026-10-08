@@ -1,0 +1,25 @@
+apps/api/src/modules/job-dashboard.ts
+  s_ed0db6c1d13018::t_794cb551f1df43 2,26
+  s_ed0db6c1d13018::t_093cd83f2d02e8 59,69-71,73,109,112
+ARCHITECTURE.md
+  s_ed0db6c1d13018::t_794cb551f1df43 18
+apps/api/src/tests/jobs/job-dashboard.fetch.test.ts
+  s_ed0db6c1d13018::t_794cb551f1df43 146-179,181-190
+  s_ed0db6c1d13018::t_093cd83f2d02e8 180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c39b26a15ea02df45522feef81710ccb1706836a",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
