@@ -1,0 +1,28 @@
+apps/api/src/modules/invoice-pdf.tsx
+  s_ed0db6c1d13018::t_f5c516b6f40931 18,31,35,405-406
+apps/api/src/tests/invoices/invoice-pdf-assets.test.ts
+  s_ed0db6c1d13018::t_30f91647bfa5ea 1-9,11,20-21,23-27,29-37
+  s_ed0db6c1d13018::t_f5c516b6f40931 10,12-19,22,28
+CONTRIBUTING.md
+  s_ed0db6c1d13018::t_b2dcc78b5158f7 77-80
+apps/api/src/modules/invoice-pdf-assets.ts
+  s_ed0db6c1d13018::t_f5c516b6f40931 1-13
+apps/api/scripts/server.mjs
+  s_ed0db6c1d13018::t_b2dcc78b5158f7 42-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fc6db1f807611cf812194d53b8c0eb915ce2f844",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
