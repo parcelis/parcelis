@@ -143,6 +143,51 @@ test("Next.js dashboard responses redact private data, diagnostics, and job opti
   });
 });
 
+test("Bull Board job responses redact private fields and preserve null progress and results", async () => {
+  let progress: unknown = { email: "private@example.test" };
+  let returnvalue: unknown = { token: "secret" };
+  const queue = {
+    name: "test-queue",
+    metaValues: { version: "bullmq:6" },
+    getJob: async () => ({
+      getState: async () => "failed",
+      toJSON: () => ({
+        id: "1",
+        name: "test-job",
+        data: { organizationId: 3, email: "private@example.test", token: "secret" },
+        opts: { attempts: 3, secret: "private" },
+        failedReason: "private connection details",
+        stacktrace: ["private path"],
+        progress,
+        returnvalue,
+      }),
+    }),
+    getJobLogs: async () => ({ logs: ["private log"] }),
+  } as unknown as Queue;
+  const app = createJobDashboard([queue]);
+  const handler = createJobDashboardHandler(database().prisma, () => app);
+  const response = await handler(request("/api/queues/test-queue/1"));
+  assert.equal(response.status, 200);
+  const { job } = await response.json();
+  assert.deepEqual(job.data, { organizationId: 3 });
+  assert.deepEqual(job.opts, { attempts: 3 });
+  assert.equal(job.failedReason, "Job error details redacted");
+  assert.deepEqual(job.stacktrace, ["Stack trace redacted"]);
+  assert.equal(job.progress, "[redacted]");
+  assert.equal(job.returnValue, "[redacted]");
+  const logs = await handler(request("/api/queues/test-queue/1/logs"));
+  assert.equal(logs.status, 200);
+  assert.deepEqual(await logs.json(), ["Log details redacted"]);
+
+  progress = null;
+  returnvalue = null;
+  const empty = await handler(request("/api/queues/test-queue/1"));
+  assert.equal(empty.status, 200);
+  const { job: emptyJob } = await empty.json();
+  assert.equal(emptyJob.progress, null);
+  assert.equal(emptyJob.returnValue, null);
+});
+
 test("dashboard failures return an uncached response without raw diagnostics", async (t) => {
   const log = t.mock.method(console, "error", () => {});
   const response = await createJobDashboardHandler(database().prisma, () => {

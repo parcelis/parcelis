@@ -1,4 +1,5 @@
 import { createBullBoard } from "@bull-board/api";
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { HonoAdapter } from "@bull-board/hono";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createQueueRegistry, getRedisConnectionOptions, type QueueRegistry } from "@parcelis/jobs";
@@ -9,7 +10,6 @@ import { createFetchCookieResponse } from "../router/fetch-context";
 import { getJobDashboardAccessStatus } from "./job-dashboard-access";
 import { addJobDashboardLogo } from "./job-dashboard-branding";
 import { jobDashboardOptions } from "./job-dashboard-options";
-import { JobDashboardBullMQAdapter } from "./job-dashboard-queue-adapter";
 import { sanitizeJobResponse } from "./job-dashboard-redaction";
 import { readSession } from "./session";
 import { registerApiCleanup } from "./runtime-cleanup";
@@ -23,7 +23,7 @@ let dashboard: Hono | undefined;
 export function createJobDashboard(queues: readonly Queue[]) {
   const adapter = new HonoAdapter(serveStatic).setBasePath(basePath);
   createBullBoard({
-    queues: queues.map((queue) => new JobDashboardBullMQAdapter(queue)),
+    queues: queues.map((queue) => new BullMQAdapter(queue)),
     serverAdapter: adapter,
     options: jobDashboardOptions,
   });
@@ -56,7 +56,7 @@ export async function closeJobDashboard() {
     );
 }
 
-async function protectJobDashboardResponse(response: Response) {
+async function protectJobDashboardResponse(response: Response, request: Request) {
   if (response.status >= 500) {
     await response.body?.cancel();
     return Response.json(
@@ -66,8 +66,11 @@ async function protectJobDashboardResponse(response: Response) {
   }
   const contentType = response.headers.get("content-type") ?? "";
   if (response.body && (contentType.includes("application/json") || contentType.includes("text/html"))) {
+    const responseKey = /^\/admin\/jobs\/api\/queues\/[^/]+\/[^/]+\/logs\/?$/.test(new URL(request.url).pathname)
+      ? "logs"
+      : undefined;
     const body = contentType.includes("application/json")
-      ? JSON.stringify(sanitizeJobResponse(await response.json()))
+      ? JSON.stringify(sanitizeJobResponse(await response.json(), responseKey))
       : addJobDashboardLogo(await response.text());
     const headers = new Headers(response.headers);
     headers.delete("content-length");
@@ -103,10 +106,10 @@ export function createJobDashboardHandler(prisma: PrismaClient, getDashboard = g
       } else {
         response = await getDashboard().fetch(request);
       }
-      return cookies.applyCookies(await protectJobDashboardResponse(response));
+      return cookies.applyCookies(await protectJobDashboardResponse(response, request));
     } catch {
       console.error("Job dashboard request failed.");
-      return cookies.applyCookies(await protectJobDashboardResponse(new Response(null, { status: 500 })));
+      return cookies.applyCookies(await protectJobDashboardResponse(new Response(null, { status: 500 }), request));
     }
   };
 }

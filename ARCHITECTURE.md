@@ -15,7 +15,7 @@ count; enable it only when direct access to the API is restricted to those proxi
 The launcher validates the proxy count before starting Next.js, and request handlers reuse the cached value.
 Bull Board uses its Hono adapter. Every dashboard, API, and static-asset request
 checks the database session and administrator role; unsafe methods also require
-the configured web origin. Shared helpers preserve branding and response redaction,
+the configured web origin. Shared helpers preserve branding and redact dashboard JSON responses in one place,
 and adapter failures return a generic error without private diagnostics. Queue
 connections initialize after authorization and are reused across development
 reloads. Production file tracing includes Bull Board's templates and static assets.
