@@ -80,6 +80,7 @@ of the working directory. Direct source imports use the invoice module's locatio
 The production launcher drains requests, closes Next.js,
 then closes initialized Redis queues and Prisma clients. It allows 15 seconds for
 shutdown; Docker and Supervisor allow additional time before killing the process.
+Shutdown closes upgraded sockets, including development HMR connections, while ordinary HTTP requests drain.
 
 Set `API_TRUST_PROXY_HOPS` only behind an enforced proxy boundary. The default `0`
 ignores forwarded client IPs, so IP-based rate limits share the unknown-IP bucket.

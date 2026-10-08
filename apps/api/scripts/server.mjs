@@ -19,9 +19,20 @@ export async function closeApiResources() {
 
 export function createApiShutdown(server, app, cleanup = closeApiResources) {
   let shutdown;
+  const upgradedSockets = new Set();
+  server.on("upgrade", (_request, socket) => {
+    if (shutdown) {
+      socket.destroy();
+      return;
+    }
+    upgradedSockets.add(socket);
+    socket.once("close", () => upgradedSockets.delete(socket));
+  });
   return () => {
     shutdown ??= (async () => {
-      await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+      const drained = new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+      for (const socket of upgradedSockets) socket.destroy();
+      await drained;
       try {
         await app.close();
       } finally {
@@ -53,8 +64,8 @@ export async function startNextApi() {
       response.end();
     });
   });
-  if (dev) server.on("upgrade", app.getUpgradeHandler());
   const close = createApiShutdown(server, app);
+  if (dev) server.on("upgrade", app.getUpgradeHandler());
   let stopping = false;
   const shutdown = () => {
     if (stopping) return;
