@@ -220,7 +220,8 @@ PLAYWRIGHT_TEST_BASE_URL=http://localhost PLAYWRIGHT_SLOW_MO=500 pnpm test:e2e t
 ```
 
 Authenticated tests require `SEED_ADMIN_PASSWORD` and optionally `SEED_ADMIN_EMAIL`
-to match the local administrator account. The API smoke tests check health,
+to match the local administrator account. Missing or empty passwords fail authenticated tests.
+The API smoke tests check health,
 unauthenticated rejection, authenticated tRPC/REST reads, and the embedded Bull Board
 through the running proxy. Idle-timeout browser tests skip when
 `SESSION_IDLE_TIMEOUT_ENABLED=false`. Run lease write tests against disposable
