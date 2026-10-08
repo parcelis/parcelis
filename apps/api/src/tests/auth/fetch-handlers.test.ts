@@ -234,6 +234,42 @@ test("CORS permits the configured origin and denies browser access for other ori
   assert.equal(rejected.headers.get("access-control-allow-origin"), null);
 });
 
+test("invalid web origins omit CORS permissions without breaking API responses", (t) => {
+  const original = process.env.WEB_ORIGIN;
+  t.after(() => {
+    if (original === undefined) delete process.env.WEB_ORIGIN;
+    else process.env.WEB_ORIGIN = original;
+  });
+  for (const value of ["", "parcelis.example.com", "localhost:3000", "null", "file:///tmp", "ftp://example.com"]) {
+    process.env.WEB_ORIGIN = value;
+    for (const origin of [value, "null", "https://parcelis.example"]) {
+      const request = new Request("http://localhost/trpc/auth.login", { headers: { origin } });
+      for (const response of [applyApiHeaders(request, new Response("ready")), handlePreflight(request)]) {
+        assert.ok(response.status < 400);
+        assert.equal(response.headers.get("access-control-allow-origin"), null);
+        assert.equal(response.headers.get("access-control-allow-credentials"), null);
+        assert.equal(response.headers.get("cache-control"), "private, no-store");
+        assert.match(response.headers.get("vary") ?? "", /Origin/);
+      }
+    }
+  }
+});
+
+test("CORS accepts valid HTTP and HTTPS origins and normalizes their URLs", (t) => {
+  const original = process.env.WEB_ORIGIN;
+  t.after(() => {
+    if (original === undefined) delete process.env.WEB_ORIGIN;
+    else process.env.WEB_ORIGIN = original;
+  });
+  for (const value of ["http://localhost:30000", "https://parcelis.example/path"]) {
+    process.env.WEB_ORIGIN = value;
+    const origin = new URL(value).origin;
+    const response = applyApiHeaders(new Request("http://localhost/trpc", { headers: { origin } }), new Response());
+    assert.equal(response.headers.get("access-control-allow-origin"), origin);
+    assert.equal(response.headers.get("access-control-allow-credentials"), "true");
+  }
+});
+
 test("forwarded client IPs require explicit proxy trust and use the trusted end of the chain", () => {
   const request = new Request("http://localhost/trpc/auth.login", {
     headers: { "x-forwarded-for": "198.51.100.99, 203.0.113.8, 127.0.0.1" },

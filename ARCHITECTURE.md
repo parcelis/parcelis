@@ -9,7 +9,7 @@ in `apps/web` and the background worker in `apps/worker` run as separate process
 
 The Fetch handlers keep cookie writes on both successful and failed responses,
 convert the existing millisecond cookie duration to Next.js seconds, and disable
-response caching. CORS permits the configured `WEB_ORIGIN`. Forwarded client IPs
+response caching. CORS permits the configured HTTP/HTTPS `WEB_ORIGIN`; invalid values omit CORS permissions without failing responses. Forwarded client IPs
 are ignored unless `API_TRUST_PROXY_HOPS` explicitly specifies the trusted proxy
 count; enable it only when direct access to the API is restricted to those proxies.
 The launcher validates the proxy count before starting Next.js, and request handlers reuse the cached value.
