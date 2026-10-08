@@ -142,7 +142,7 @@ The host processes and local services are also available directly:
 
 #### Local database
 
-Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `DATABASE_URL` is unset, the API uses `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
+Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `DATABASE_URL` is unset, the API uses `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public` only when `NODE_ENV` is `development` or `test`. Other environments require an explicit PostgreSQL URL; empty or invalid values fail startup.
 
 pgAdmin is available at `http://localhost:8000` with `admin@parcelis.dev` / `parcelis`. The Parcelis database is preconfigured; use `parcelis` as its password when connecting for the first time.
 

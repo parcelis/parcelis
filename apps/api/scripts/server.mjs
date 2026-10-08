@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { resolve } from "node:path";
 import next from "next";
 import { config } from "dotenv";
+import { getDatabaseConfig } from "../src/modules/database-config.ts";
 
 export async function closeApiResources() {
   const callbacks = globalThis.parcelisApiCleanup;
@@ -37,6 +38,7 @@ export async function startNextApi() {
   const hostname = process.env.API_HOSTNAME ?? "0.0.0.0";
   const dev = process.argv.includes("--dev");
   process.env.NODE_ENV ??= dev ? "development" : "production";
+  getDatabaseConfig();
   const app = next({ dev, hostname, port, dir: resolve(import.meta.dirname, ".."), turbopack: dev });
   await app.prepare();
   const handler = app.getRequestHandler();
