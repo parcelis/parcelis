@@ -57,10 +57,11 @@ The application container runs the Next.js web app and a separate Next.js API
 process behind nginx. Background jobs run in the worker service; PostgreSQL, Redis,
 and MinIO provide the database, queues, and object storage.
 
-`API_TRUST_PROXY_HOPS` defaults to `0`, which ignores forwarded client IPs. Use `2`
-only when API traffic exclusively passes through the two supplied nginx proxies and
-direct access to the application container is restricted. Adjust the count if your
-deployment adds another proxy.
+The supplied `.env.production.example` sets `API_TRUST_PROXY_HOPS` to `2` for the
+two nginx proxies in this stack. Keep this value only when API traffic exclusively
+passes through those proxies and direct access to the application container is
+restricted. Adjust the count if your deployment changes the proxy path. The application
+default is `0`, which ignores forwarded client IPs.
 Invalid values fail API startup. Restart the API after changing the trusted proxy count.
 
 ## Verify the deployment
