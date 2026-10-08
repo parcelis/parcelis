@@ -1,0 +1,28 @@
+infra/docker/app/nginx.conf
+  s_ed0db6c1d13018::t_2d76912618416a 6,17,24
+scripts/docker-api-port.test.mjs
+  s_ed0db6c1d13018::t_2d76912618416a 1-12,14-23
+  s_ed0db6c1d13018::t_ba68070f6187f2 13
+Dockerfile.app
+  s_ed0db6c1d13018::t_2d76912618416a 16,19-20
+ARCHITECTURE.md
+  s_ed0db6c1d13018::t_2d76912618416a 236
+infra/docker/app/supervisord.conf
+  s_ed0db6c1d13018::t_2d76912618416a 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59235e067027b68a0d29a9bb4f627e32afc3e999",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
