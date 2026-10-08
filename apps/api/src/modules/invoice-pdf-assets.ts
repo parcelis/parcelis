@@ -1,8 +1,8 @@
 import { createRequire } from "node:module";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const apiRoot = process.env.PARCELIS_API_ROOT ?? fileURLToPath(new URL("../../", import.meta.url));
+const apiRoot = process.env.PARCELIS_API_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const apiRequire = createRequire(resolve(apiRoot, "package.json"));
 
 export const invoicePdfAssets = {
