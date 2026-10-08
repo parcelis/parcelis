@@ -21,12 +21,6 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "groupName": "NestJS",
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchPackageNames": ["@nestjs/{/,}**"]
-    },
-    {
       "groupName": "Turborepo",
       "matchManagers": ["npm"],
       "matchPackageNames": ["turbo"],
@@ -41,12 +35,7 @@
     {
       "groupName": "React",
       "matchManagers": ["npm"],
-      "matchPackageNames": [
-        "react",
-        "react-dom",
-        "@types/react",
-        "@types/react-dom"
-      ],
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
