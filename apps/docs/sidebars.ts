@@ -85,6 +85,7 @@ const sidebars: SidebarsConfig = {
       label: "For contributors",
       items: [
         "getting-started",
+        "contributing/architecture",
         "contributing/database-erd",
         "contributing/lease-rent-schedule",
         "contributing/end-to-end-testing",
