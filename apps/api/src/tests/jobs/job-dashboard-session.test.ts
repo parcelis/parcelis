@@ -71,6 +71,7 @@ test("job dashboard permits active sessions without renewing activity", async ()
     () => app,
   )(new Request("http://localhost/admin/jobs/", { headers: { cookie: "parcelis_session_v2=test-token" } }));
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get("set-cookie"), null);
   assert.equal(queries.length, 1);
   assert.equal(response.headers.get("cache-control"), "private, no-store");
 });
