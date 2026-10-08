@@ -152,7 +152,7 @@ test("dashboard failures return an uncached response without raw diagnostics", a
   assert.deepEqual(await response.json(), { error: { key: "ERRORS.INTERNAL_SERVER_ERROR" } });
   assert.equal(response.headers.get("cache-control"), "private, no-store");
   assert.equal(log.mock.callCount(), 1);
-  assert.deepEqual(log.mock.calls[0].arguments, ["Job dashboard request failed."]);
+  assert.deepEqual(log.mock.calls[0]?.arguments, ["Job dashboard request failed."]);
 });
 
 test("Bull Board adapter failures do not expose exception messages or stack traces", async () => {
