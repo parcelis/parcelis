@@ -1,0 +1,19 @@
+apps/api/src/app/admin/jobs/[[...path]]/route.ts
+  s_ed0db6c1d13018::t_c71693950d2002 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "65075cdd1be91a1a1cee4e7ac131d37c337329e1",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
