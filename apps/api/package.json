@@ -11,12 +11,16 @@
   "scripts": {
     "dev": "node ./scripts/dev.mjs --open-port",
     "dev:fixed": "node ./scripts/dev.mjs",
+    "dev:next": "node ../../scripts/run-with-open-port.mjs API_PORT 40011 next dev --hostname 0.0.0.0 --port {PORT}",
     "build": "nest build",
+    "build:next": "next build",
     "start": "node dist/main.js",
+    "start:next": "next start --hostname 0.0.0.0 --port ${API_PORT:-40011}",
     "test": "tsx --test \"src/tests/**/*.test.ts\"",
     "generate:openapi": "tsx ./scripts/generate-openapi.mjs",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:next": "tsc -p tsconfig.next.json --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1121.0",
@@ -40,7 +44,9 @@
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "next": "^16.3.8",
     "react": "^19.2.8",
+    "react-dom": "^19.3.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "trpc-to-openapi": "^3.3.0",

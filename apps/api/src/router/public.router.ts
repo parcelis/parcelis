@@ -19,7 +19,7 @@ import {
 } from "@parcelis/schemas";
 import { z } from "zod";
 import { appRouter } from "./app.router";
-import { getPublicObjectStorageConfig } from "../modules/object-storage.config";
+import { getApiHealth } from "../modules/health";
 import { publicProcedure, router } from "./trpc";
 
 const objectSchema = z.object({}).passthrough();
@@ -40,13 +40,7 @@ export const publicRouter = router({
   health: publicProcedure
     .meta({ openapi: { method: "GET", path: "/health", tags: ["System"] } })
     .output(dataObjectSchema)
-    .query(() => ({
-      data: {
-        status: "ok",
-        service: "parcelis-api",
-        objectStorage: getPublicObjectStorageConfig(),
-      },
-    })),
+    .query(getApiHealth),
   properties: router({
     list: publicProcedure
       .meta({
