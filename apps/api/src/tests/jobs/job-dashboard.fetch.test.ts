@@ -144,13 +144,15 @@ test("Next.js dashboard responses redact private data, diagnostics, and job opti
 });
 
 test("dashboard failures return an uncached response without raw diagnostics", async (t) => {
-  t.mock.method(console, "error", () => {});
+  const log = t.mock.method(console, "error", () => {});
   const response = await createJobDashboardHandler(database().prisma, () => {
     throw new Error("private connection details");
   })(request("/api/queues"));
   assert.equal(response.status, 500);
   assert.deepEqual(await response.json(), { error: { key: "ERRORS.INTERNAL_SERVER_ERROR" } });
   assert.equal(response.headers.get("cache-control"), "private, no-store");
+  assert.equal(log.mock.callCount(), 1);
+  assert.deepEqual(log.mock.calls[0].arguments, ["Job dashboard request failed."]);
 });
 
 test("Bull Board adapter failures do not expose exception messages or stack traces", async () => {

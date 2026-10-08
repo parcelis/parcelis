@@ -104,8 +104,8 @@ export function createJobDashboardHandler(prisma: PrismaClient, getDashboard = g
         response = await getDashboard().fetch(request);
       }
       return cookies.applyCookies(await protectJobDashboardResponse(response));
-    } catch (error) {
-      console.error("Job dashboard request failed.", { error });
+    } catch {
+      console.error("Job dashboard request failed.");
       return cookies.applyCookies(await protectJobDashboardResponse(new Response(null, { status: 500 })));
     }
   };
