@@ -152,7 +152,7 @@ test(
     const image = process.env.API_TEST_IMAGE;
     let logs = "";
     if (image) {
-      const container = (resources.container = `parcelis-deployment-${randomUUID().slice(0, 8)}`);
+      const container = `parcelis-deployment-${randomUUID().slice(0, 8)}`;
       const envDirectory = (resources.envDirectory = await mkdtemp(resolve(tmpdir(), "parcelis-deployment-")));
       const envFile = resolve(envDirectory, "container.env");
       url.hostname = "host.docker.internal";
@@ -182,6 +182,7 @@ test(
         ["run", "--detach", "--name", container, "--env-file", envFile, "--publish", `127.0.0.1:${port}:3000`, image],
         { stdio: "pipe" },
       );
+      resources.container = container;
     } else {
       const child = (resources.child = spawn(process.execPath, ["scripts/start.mjs"], {
         cwd: resolve(__dirname, "../../.."),
