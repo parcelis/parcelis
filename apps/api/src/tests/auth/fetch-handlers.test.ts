@@ -222,6 +222,7 @@ test("CORS permits the configured origin and denies browser access for other ori
         "access-control-request-headers": "content-type,x-parcelis-organization-slug",
       },
     }),
+    ["GET", "POST"],
   );
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("access-control-allow-origin"), "https://parcelis.example");
@@ -244,7 +245,10 @@ test("invalid web origins omit CORS permissions without breaking API responses",
     process.env.WEB_ORIGIN = value;
     for (const origin of [value, "null", "https://parcelis.example"]) {
       const request = new Request("http://localhost/trpc/auth.login", { headers: { origin } });
-      for (const response of [applyApiHeaders(request, new Response("ready")), handlePreflight(request)]) {
+      for (const response of [
+        applyApiHeaders(request, new Response("ready")),
+        handlePreflight(request, ["GET", "POST"]),
+      ]) {
         assert.ok(response.status < 400);
         assert.equal(response.headers.get("access-control-allow-origin"), null);
         assert.equal(response.headers.get("access-control-allow-credentials"), null);

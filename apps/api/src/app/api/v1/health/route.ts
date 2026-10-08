@@ -8,4 +8,6 @@ export function GET(request: Request) {
   return applyApiHeaders(request, Response.json(getApiHealth()));
 }
 
-export { handlePreflight as OPTIONS };
+export function OPTIONS(request: Request) {
+  return handlePreflight(request, ["GET", "HEAD"]);
+}

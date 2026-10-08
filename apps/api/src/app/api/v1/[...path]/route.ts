@@ -18,12 +18,8 @@ async function handler(request: Request) {
   return applyApiHeaders(request, context.applyCookies(response));
 }
 
-export {
-  handler as GET,
-  handler as HEAD,
-  handler as POST,
-  handler as PUT,
-  handler as PATCH,
-  handler as DELETE,
-  handlePreflight as OPTIONS,
-};
+export { handler as GET, handler as HEAD, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
+
+export function OPTIONS(request: Request) {
+  return handlePreflight(request, ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"]);
+}

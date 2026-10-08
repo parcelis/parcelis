@@ -16,9 +16,9 @@ export function applyApiHeaders(request: Request, response: Response) {
   return response;
 }
 
-export function handlePreflight(request: Request) {
+export function handlePreflight(request: Request, allowedMethods: readonly string[]) {
   const response = applyApiHeaders(request, new Response(null, { status: 204 }));
-  response.headers.set("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, PATCH, DELETE");
+  response.headers.set("Access-Control-Allow-Methods", allowedMethods.join(", "));
   const requestedHeaders = request.headers.get("access-control-request-headers");
   if (requestedHeaders) response.headers.set("Access-Control-Allow-Headers", requestedHeaders);
   response.headers.append("Vary", "Access-Control-Request-Headers");

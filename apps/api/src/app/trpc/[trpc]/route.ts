@@ -18,4 +18,8 @@ async function handler(request: Request) {
   return applyApiHeaders(request, context.applyCookies(response));
 }
 
-export { handler as GET, handler as POST, handlePreflight as OPTIONS };
+export { handler as GET, handler as POST };
+
+export function OPTIONS(request: Request) {
+  return handlePreflight(request, ["GET", "POST"]);
+}
