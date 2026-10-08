@@ -31,7 +31,11 @@ test("invoice fonts and brand images resolve independently of the working direct
         encoding: "utf8",
         timeout: 30_000,
       });
-      assert.equal(result.status, 0, `${cwd}, launcher root=${useLauncherRoot}: ${result.stderr}`);
+      assert.equal(
+        result.status,
+        0,
+        `${cwd}, launcher root=${useLauncherRoot}: error=${result.error?.message ?? "none"}, signal=${result.signal}, stderr=${result.stderr}`,
+      );
     }
   }
 });
