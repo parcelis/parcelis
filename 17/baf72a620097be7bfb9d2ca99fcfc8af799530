@@ -1,0 +1,32 @@
+AGENTS.md
+  s_ed0db6c1d13018::t_27399ffb051eee 41
+apps/api/scripts/server.mjs
+  s_ed0db6c1d13018::t_27399ffb051eee 5,41
+apps/docs/content/getting-started.mdx
+  s_ed0db6c1d13018::t_27399ffb051eee 68
+apps/api/src/modules/database-config.ts
+  s_ed0db6c1d13018::t_d0337a8320d64e 1
+  s_ed0db6c1d13018::t_27399ffb051eee 2-20
+apps/api/src/modules/prisma.ts
+  s_ed0db6c1d13018::t_27399ffb051eee 2,9
+apps/api/src/tests/runtime/database-config.test.ts
+  s_ed0db6c1d13018::t_27399ffb051eee 1-37
+CONTRIBUTING.md
+  s_ed0db6c1d13018::t_27399ffb051eee 145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17baf72a620097be7bfb9d2ca99fcfc8af799530",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
