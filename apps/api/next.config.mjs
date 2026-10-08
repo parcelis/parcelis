@@ -19,7 +19,6 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/admin/jobs/**": [`${relative(apiRoot, bullBoardUiRoot)}/dist/**/*`],
   },
-  typescript: { tsconfigPath: "tsconfig.next.json" },
   turbopack: { root: repositoryRoot },
 };
 
