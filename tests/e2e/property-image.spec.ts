@@ -45,6 +45,12 @@ test("uploads, displays, and deletes a property image", async ({ page, property 
     await expect(image).toHaveCount(0);
     expect((await page.request.get(imageUrl!)).status()).toBe(404);
   } finally {
-    if (objectKey) await deletePropertyImageObject(objectKey);
+    if (objectKey) {
+      try {
+        await deletePropertyImageObject(objectKey);
+      } catch {
+        console.warn("Property image cleanup failed.");
+      }
+    }
   }
 });
