@@ -1,0 +1,23 @@
+demo/render/README.md
+  s_bf4f9a50cd2155::t_1aa38afdaba503 25-26
+  s_bf4f9a50cd2155::t_5d57e57113d356 27
+demo/render/start.mjs
+  s_bf4f9a50cd2155::t_fb100d1dd15c48 51
+  s_bf4f9a50cd2155::t_9925d29ef470a9 40,43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0919879af2b4c3511ef9c47158f253cbc1205f50",
+  "prompts": {},
+  "sessions": {
+    "s_bf4f9a50cd2155": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a118ef-df1c-7132-8d26-cce76d4fe791",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
