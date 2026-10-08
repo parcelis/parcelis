@@ -5,6 +5,21 @@ import { resolve } from "node:path";
 import type { PrismaClient } from "@parcelis/db";
 import { deletePropertyImageObject } from "../../modules/object-storage.config";
 
+// Utility functions for deployment smoke tests.
+export async function readSmokeMutationResult<T>(response: Response, procedure: string) {
+  const body = await response.text();
+  const diagnostic = `${procedure}: HTTP ${response.status}: ${body.slice(0, 500)}`;
+  assert.equal(response.status, 200, diagnostic);
+  let payload: { result?: { data: T }; error?: unknown };
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    assert.fail(`${diagnostic} (invalid JSON)`);
+  }
+  assert.ok(payload?.result, diagnostic);
+  return payload.result.data;
+}
+
 export async function runDeploymentSmoke({
   base,
   cookie,
@@ -31,10 +46,7 @@ export async function runDeploymentSmoke({
       body: JSON.stringify(input),
       signal: AbortSignal.timeout(15_000),
     });
-    const payload = (await response.json()) as { result?: { data: T }; error?: unknown };
-    assert.equal(response.status, 200, `${procedure}: ${JSON.stringify(payload.error)}`);
-    assert.ok(payload.result, procedure);
-    return payload.result.data;
+    return readSmokeMutationResult<T>(response, procedure);
   }
 
   for (const path of ["/trpc/auth.me", "/api/v1/tags", "/admin/jobs/"]) {
