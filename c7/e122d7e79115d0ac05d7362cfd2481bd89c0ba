@@ -1,0 +1,30 @@
+docker-compose.yml
+  s_bf4f9a50cd2155::t_9925d29ef470a9 103,107,134-135
+.env.production.example
+  s_bf4f9a50cd2155::t_9925d29ef470a9 32-33
+apps/api/Dockerfile
+  s_bf4f9a50cd2155::t_9925d29ef470a9 9,11-12
+  s_bf4f9a50cd2155::t_528468cfaddf4b 7
+Dockerfile.app
+  s_bf4f9a50cd2155::t_528468cfaddf4b 13
+.env.example
+  s_bf4f9a50cd2155::t_cbfb916bd3d890 34
+infra/docker/app/supervisord.conf
+  s_bf4f9a50cd2155::t_9925d29ef470a9 7-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7e122d7e79115d0ac05d7362cfd2481bd89c0ba",
+  "prompts": {},
+  "sessions": {
+    "s_bf4f9a50cd2155": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a118ef-df1c-7132-8d26-cce76d4fe791",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
