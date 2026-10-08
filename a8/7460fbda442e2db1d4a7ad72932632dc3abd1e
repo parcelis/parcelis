@@ -1,0 +1,40 @@
+apps/api/src/modules/job-dashboard.ts
+  s_bf4f9a50cd2155::t_a9e30c2b719f45 51
+  s_bf4f9a50cd2155::t_93c5be8cdaf430 48-50,52-56
+  s_bf4f9a50cd2155::t_afb57eda3b7ca1 15,35-38
+apps/api/src/modules/prisma.ts
+  s_bf4f9a50cd2155::t_1d1cc8142e8a11 11-12
+  s_bf4f9a50cd2155::t_afb57eda3b7ca1 2,13
+  s_bf4f9a50cd2155::t_d68e8d83336028 7,14,16
+apps/api/scripts/start.mjs
+  s_bf4f9a50cd2155::t_e172eda938ec96 1-6
+apps/api/src/modules/runtime-cleanup.ts
+  s_bf4f9a50cd2155::t_afb57eda3b7ca1 1-8
+apps/api/scripts/server.mjs
+  s_bf4f9a50cd2155::t_afb57eda3b7ca1 1-9,11,17-39,41-61,71-82,87
+  s_bf4f9a50cd2155::t_fb100d1dd15c48 12-16,62-70
+  s_bf4f9a50cd2155::t_b794abe93fce4b 40
+  s_bf4f9a50cd2155::t_528468cfaddf4b 83-86
+  s_bf4f9a50cd2155::t_fe27595aee583c 10
+apps/api/scripts/dev.mjs
+  s_bf4f9a50cd2155::t_9ed3bbd78458b8 2,8-9
+  s_bf4f9a50cd2155::t_fb100d1dd15c48 43
+  s_bf4f9a50cd2155::t_9925d29ef470a9 41,44
+  s_bf4f9a50cd2155::t_e172eda938ec96 39-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a87460fbda442e2db1d4a7ad72932632dc3abd1e",
+  "prompts": {},
+  "sessions": {
+    "s_bf4f9a50cd2155": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a118ef-df1c-7132-8d26-cce76d4fe791",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
