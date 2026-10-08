@@ -1,0 +1,24 @@
+apps/api/src/modules/proxy-config.ts
+  s_ed0db6c1d13018::t_904dcf89219c3d 4-6
+apps/api/src/tests/runtime/proxy-config.test.ts
+  s_ed0db6c1d13018::t_904dcf89219c3d 12-14
+  s_ed0db6c1d13018::t_5428942e2c6abf 18-32
+CONTRIBUTING.md
+  s_ed0db6c1d13018::t_f05cece2e9f423 91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a638dc2a96f08b0ae074bf5522bd67e5601fe1a2",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
