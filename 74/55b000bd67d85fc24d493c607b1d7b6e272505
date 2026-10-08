@@ -1,0 +1,33 @@
+apps/api/src/router/http.ts
+  s_ed0db6c1d13018::t_192bc33741f55a 19,21
+apps/api/src/app/api/v1/[...path]/route.ts
+  s_ed0db6c1d13018::t_3cd215e7ad9d05 21
+  s_ed0db6c1d13018::t_192bc33741f55a 22-25
+apps/api/src/app/api/v1/health/route.ts
+  s_ed0db6c1d13018::t_192bc33741f55a 11-13
+ARCHITECTURE.md
+  s_ed0db6c1d13018::t_192bc33741f55a 12
+apps/api/src/tests/auth/fetch-handlers.test.ts
+  s_ed0db6c1d13018::t_3cd215e7ad9d05 248-251
+  s_ed0db6c1d13018::t_192bc33741f55a 225
+apps/api/src/app/trpc/[trpc]/route.ts
+  s_ed0db6c1d13018::t_192bc33741f55a 21-25
+apps/api/src/tests/runtime/preflight.test.ts
+  s_ed0db6c1d13018::t_192bc33741f55a 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7455b000bd67d85fc24d493c607b1d7b6e272505",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
