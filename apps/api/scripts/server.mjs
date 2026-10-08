@@ -6,16 +6,17 @@ import { getDatabaseConfig } from "../src/modules/database-config.ts";
 import { getTrustedProxyHops } from "../src/modules/proxy-config.ts";
 import { runApiCleanup } from "../src/modules/runtime-cleanup.ts";
 
-export function createApiShutdown(server, app, cleanup = runApiCleanup) {
+export function createApiShutdown(server, app, cleanup = runApiCleanup, upgradeHandler) {
   let shutdown;
   const upgradedSockets = new Set();
-  server.on("upgrade", (_request, socket) => {
-    if (shutdown) {
+  server.on("upgrade", (request, socket, head) => {
+    if (shutdown || !upgradeHandler) {
       socket.destroy();
       return;
     }
     upgradedSockets.add(socket);
     socket.once("close", () => upgradedSockets.delete(socket));
+    upgradeHandler(request, socket, head);
   });
   return () => {
     shutdown ??= (async () => {
@@ -53,8 +54,7 @@ export async function startNextApi() {
       response.end();
     });
   });
-  const close = createApiShutdown(server, app);
-  if (dev) server.on("upgrade", app.getUpgradeHandler());
+  const close = createApiShutdown(server, app, runApiCleanup, dev ? app.getUpgradeHandler() : undefined);
   let stopping = false;
   const shutdown = () => {
     if (stopping) return;

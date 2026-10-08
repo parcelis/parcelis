@@ -53,19 +53,21 @@ test("resource cleanup still runs if Next shutdown fails", async () => {
 test("shutdown closes an active upgraded socket before Next and resource cleanup", { timeout: 5000 }, async (t) => {
   const server = createServer();
   const events = [];
-  const shutdown = createApiShutdown(server, { close: async () => events.push("next") }, async () =>
-    events.push("resources"),
-  );
   let upgradedSocket;
   let clientSocket;
+  const shutdown = createApiShutdown(
+    server,
+    { close: async () => events.push("next") },
+    async () => events.push("resources"),
+    (_request, socket) => {
+      upgradedSocket = socket;
+      socket.write("HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n");
+    },
+  );
   t.after(() => {
     clientSocket?.destroy();
     upgradedSocket?.destroy();
     server.close();
-  });
-  server.on("upgrade", (_request, socket) => {
-    upgradedSocket = socket;
-    socket.write("HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n");
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -82,6 +84,25 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
   await first;
   assert.equal(upgradedSocket.destroyed, true);
   assert.deepEqual(events, ["next", "resources"]);
+});
+
+test("production rejects upgraded sockets immediately", { timeout: 5000 }, async (t) => {
+  const server = createServer();
+  const shutdown = createApiShutdown(server, { close: async () => {} }, async () => {});
+  t.after(() => server.close());
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const client = request({
+    hostname: "127.0.0.1",
+    port: server.address().port,
+    headers: { Connection: "Upgrade", Upgrade: "websocket" },
+  });
+  t.after(() => client.destroy());
+  const rejected = once(client, "error");
+  client.end();
+  const [error] = await rejected;
+  assert.equal(error.code, "ECONNRESET");
+  await shutdown();
 });
 
 test("cleanup attempts every resource and reports failures without rerunning callbacks", async () => {
