@@ -3,7 +3,6 @@ import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
 import { createEmailTransporter } from "@parcelis/email";
 import { TRPCError } from "@trpc/server";
-import type { PrismaService } from "../../modules/prisma.service";
 import {
   decryptEmailSettingsPassword,
   encryptEmailSettingsPassword,
@@ -120,7 +119,7 @@ test("returns a bad request when saved SMTP credentials cannot be decrypted for 
           passwordCipher: "invalid-ciphertext",
         }),
       },
-    } as unknown as PrismaService;
+    } as unknown as PrismaClient;
     const caller = appRouter.createCaller({
       prisma,
       session: {},
@@ -146,7 +145,7 @@ test("removes the organization SMTP configuration", async () => {
         return { count: 1 };
       },
     },
-  } as unknown as PrismaService;
+  } as unknown as PrismaClient;
   const caller = appRouter.createCaller({
     prisma,
     session: {},
@@ -171,7 +170,7 @@ test("preserves the current SMTP password when saving without a replacement", as
         };
       },
     },
-  } as unknown as PrismaService;
+  } as unknown as PrismaClient;
   const caller = appRouter.createCaller({
     prisma,
     session: {},

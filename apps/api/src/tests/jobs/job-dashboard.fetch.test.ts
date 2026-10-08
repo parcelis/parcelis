@@ -198,3 +198,33 @@ test("dashboard reuses cached queue connections and closes all of them on cleanu
   assert.equal(closed, Object.keys(queueNames).length);
   assert.equal(dashboardGlobal.parcelisJobDashboardQueues, undefined);
 });
+
+test("dashboard cleanup waits for all queues even when one fails", async () => {
+  const dashboardGlobal = globalThis as typeof globalThis & {
+    parcelisJobDashboardQueues?: QueueRegistry;
+  };
+  let finished = false;
+  let finish: () => void = () => {};
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  dashboardGlobal.parcelisJobDashboardQueues = {
+    failed: {
+      close: async () => {
+        throw new Error("Redis unavailable");
+      },
+    },
+    pending: {
+      close: async () => {
+        await pending;
+        finished = true;
+      },
+    },
+  } as unknown as QueueRegistry;
+  const closed = assert.rejects(closeJobDashboard(), AggregateError);
+  assert.equal(finished, false);
+  finish();
+  await closed;
+  assert.equal(finished, true);
+  assert.equal(dashboardGlobal.parcelisJobDashboardQueues, undefined);
+});

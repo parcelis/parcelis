@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
 import { hashEmailVerificationToken, hashPassword, hashPasswordResetToken } from "../../modules/auth";
 import { resetRateLimits } from "../../modules/login-rate-limit";
-import type { PrismaService } from "../../modules/prisma.service";
+import type { PrismaClient } from "@parcelis/db";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -74,7 +74,12 @@ function createPrisma() {
   const passwordResetTokens: PasswordResetToken[] = [];
   const sessions: Array<{ userId: number }> = [];
   const organizationMemberships: OrganizationMembership[] = [];
-  const invoiceCharges: Array<{ organizationId: number; name: string; description: string | null; isDefault: boolean }> = [];
+  const invoiceCharges: Array<{
+    organizationId: number;
+    name: string;
+    description: string | null;
+    isDefault: boolean;
+  }> = [];
   const outboxEvents: OutboxEvent[] = [];
   const notificationDeliveries: NotificationDelivery[] = [];
   const transactions: Promise<unknown>[] = [];
@@ -84,7 +89,7 @@ function createPrisma() {
   let nextOutboxEventId = 1;
   let nextNotificationDeliveryId = 1;
 
-  const prisma: PrismaService = {
+  const prisma: PrismaClient = {
     user: {
       create: async ({ data }: { data: Omit<User, "id"> }) => {
         const user = { ...data, id: nextUserId++ };
@@ -278,12 +283,12 @@ function createPrisma() {
         return delivery;
       },
     },
-    $transaction: <T>(callback: (tx: PrismaService) => Promise<T>) => {
+    $transaction: <T>(callback: (tx: PrismaClient) => Promise<T>) => {
       const transaction = callback(prisma);
       transactions.push(transaction);
       return transaction;
     },
-  } as unknown as PrismaService;
+  } as unknown as PrismaClient;
 
   return {
     invoiceCharges,
@@ -302,11 +307,11 @@ function createPrisma() {
   };
 }
 
-function createCaller(prisma: PrismaService) {
+function createCaller(prisma: PrismaClient) {
   return appRouter.createCaller({ prisma, req: { ip: "127.0.0.1" }, res: { cookie: () => {} } } as unknown as Context);
 }
 
-function createAdministratorCaller(prisma: PrismaService) {
+function createAdministratorCaller(prisma: PrismaClient) {
   const user = {
     id: 99,
     name: "Administrator",

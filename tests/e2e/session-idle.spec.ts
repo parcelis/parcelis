@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
-import { config } from "dotenv";
-import { PrismaClient, PrismaPg } from "@parcelis/db";
+import { PrismaClient, PrismaPg } from "../../packages/db/src/index";
 import { test, expect } from "./fixtures/authenticated";
-
-config({ path: ".env" });
 
 const databaseUrl = process.env.DATABASE_URL;
 test.skip(!databaseUrl, "DATABASE_URL is required for session browser tests.");
+test.skip(
+  process.env.SESSION_IDLE_TIMEOUT_ENABLED === "false",
+  "Session idle timeout is disabled in this environment.",
+);
 test.use({ launchOptions: { ignoreDefaultArgs: ["--disable-background-timer-throttling"] } });
 
 async function sessionFor(page: import("@playwright/test").Page, prisma: PrismaClient) {
@@ -131,7 +132,7 @@ test("job dashboard activity renews the session while its background reads do no
       where: { id },
       data: { lastSeenAt: new Date(Date.now() - 13.5 * 60_000) },
     });
-    await page.goto("/admin/jobs/");
+    await page.goto("/settings/jobs");
     await expect(page).toHaveURL(/\/settings\/jobs$/);
     const dashboard = page.frameLocator('iframe[title="Job dashboard"]');
     await expect(dashboard.locator("body")).toBeVisible();
