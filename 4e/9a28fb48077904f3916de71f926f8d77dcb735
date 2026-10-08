@@ -1,0 +1,19 @@
+apps/api/src/tests/invoices/invoice-pdf.http.integration.test.ts
+  s_ed0db6c1d13018::t_9afcdba09f7e47 155,185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e9a28fb48077904f3916de71f926f8d77dcb735",
+  "prompts": {},
+  "sessions": {
+    "s_ed0db6c1d13018": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ce8-1516-7380-b628-7c86a8a09e6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
