@@ -1,0 +1,25 @@
+apps/api/src/tests/runtime/deployment-smoke.ts
+  s_bf4f9a50cd2155::t_a5b83bea953da9 1-145
+apps/docs/sidebars.ts
+  s_bf4f9a50cd2155::t_a5b83bea953da9 88
+apps/api/src/tests/jobs/job-dashboard-branding.test.ts
+  s_bf4f9a50cd2155::t_e172eda938ec96 1-17
+scripts/port-utils.d.mts
+  s_bf4f9a50cd2155::t_f72d977e381057 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1f051f26508b56c9bdb20d782e3f3d036af26b60",
+  "prompts": {},
+  "sessions": {
+    "s_bf4f9a50cd2155": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a118ef-df1c-7132-8d26-cce76d4fe791",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
