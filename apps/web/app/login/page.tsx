@@ -198,7 +198,7 @@ export default function LoginPage() {
           reenterPassword: String(formData.get("reenterPassword") ?? ""),
           token: resetToken,
         });
-        await signOut({ redirect: false });
+        await signOut({ redirect: false }).catch(() => null);
         selectLoginMode("sign-in");
         setResetToken(null);
         setNotice("Your password has been reset. Sign in with your new password.");
