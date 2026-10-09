@@ -11,8 +11,11 @@ function SessionGuard({ children }: { children: React.ReactNode }) {
     required: true,
     onUnauthenticated() {
       queryClient.clear();
-      const next = new URLSearchParams({ next: `${window.location.pathname}${window.location.search}` });
-      router.replace(`/login?${next.toString()}`);
+      const params = new URLSearchParams({
+        next: `${window.location.pathname}${window.location.search}`,
+        reason: "session-ended",
+      });
+      router.replace(`/login?${params.toString()}`);
     },
   });
   return status === "authenticated" ? children : null;

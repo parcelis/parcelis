@@ -76,6 +76,9 @@ export default function LoginPage() {
     if (searchParams.has("error")) {
       setError(authenticationUnavailableMessage);
     }
+    if (searchParams.get("reason") === "session-ended") {
+      setNotice("Your session is no longer valid. Please sign in again.");
+    }
     const nextPath = searchParams.get("next");
     if (nextPath?.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("\\")) {
       setDestination(nextPath);
