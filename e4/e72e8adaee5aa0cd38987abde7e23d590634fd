@@ -1,0 +1,41 @@
+apps/docs/content/contributing/architecture.mdx
+  s_f9ccbbf504bdcb::t_084f17fb58b548 32
+apps/api/src/modules/nextauth.ts
+  s_f9ccbbf504bdcb::t_41bdfdcef574bc 66-68,73-76,82,84-90
+  s_f9ccbbf504bdcb::t_a26a1b2283b5a2 69-72
+packages/db/prisma/schema.prisma
+  s_f9ccbbf504bdcb::t_69707af8329d56 229
+apps/api/src/tests/auth/nextauth.test.ts
+  s_f9ccbbf504bdcb::t_084f17fb58b548 144-145
+  s_f9ccbbf504bdcb::t_41bdfdcef574bc 29,146-155
+  s_f9ccbbf504bdcb::t_f8a09795c78242 156-157
+packages/db/prisma/migrations/20261009120000_add_password_changed_at/migration.sql
+  s_f9ccbbf504bdcb::t_c5f49e4d8931e3 1
+apps/api/src/modules/session.ts
+  s_f9ccbbf504bdcb::t_41bdfdcef574bc 24,28-32
+apps/api/src/router/auth.router.ts
+  s_f9ccbbf504bdcb::t_41bdfdcef574bc 308,330-333
+apps/api/src/tests/auth/password-session.router.test.ts
+  s_f9ccbbf504bdcb::t_ddb7248e631950 58-67
+  s_f9ccbbf504bdcb::t_78c6a541a68979 1-28,30-37,39-57,68-85
+  s_f9ccbbf504bdcb::t_6a0bfa5b92701e 29
+  s_f9ccbbf504bdcb::t_5bdf1b5986a06c 38
+ARCHITECTURE.md
+  s_f9ccbbf504bdcb::t_084f17fb58b548 97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e4e72e8adaee5aa0cd38987abde7e23d590634fd",
+  "prompts": {},
+  "sessions": {
+    "s_f9ccbbf504bdcb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11eb4-45c3-74f3-a7bf-b6bfbd17b8aa",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
