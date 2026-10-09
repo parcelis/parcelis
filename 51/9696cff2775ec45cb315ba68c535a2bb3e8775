@@ -1,0 +1,27 @@
+DEPENDENCIES.md
+  s_a4f053089e72dd::t_7645fa8f3d6c9a 56
+  s_a4f053089e72dd::t_c1b0f030c4cef6 55
+  s_a4f053089e72dd::t_507ad8579ec383 57
+docker-compose.yml
+  s_a4f053089e72dd::t_7645fa8f3d6c9a 5
+  s_a4f053089e72dd::t_c1b0f030c4cef6 38
+docker-compose-dev.yml
+  s_a4f053089e72dd::t_e9611474695e6e 20
+  s_a4f053089e72dd::t_83dc36c7357773 68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "519696cff2775ec45cb315ba68c535a2bb3e8775",
+  "prompts": {},
+  "sessions": {
+    "s_a4f053089e72dd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f15-9165-74a3-8836-935d8f57f1ff",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
