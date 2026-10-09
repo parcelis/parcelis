@@ -217,7 +217,9 @@ export default function LoginPage() {
         setNotice("Check your email for a link to verify your account.");
         return;
       }
-      const providers = await fetch("/api/auth/providers", { cache: "no-store" });
+      const providers = await fetch("/api/auth/providers", { cache: "no-store" }).catch(() => {
+        throw new Error(authenticationUnavailableMessage);
+      });
       if (!providers.ok) throw new Error(authenticationUnavailableMessage);
       const result = await signIn("credentials", { ...input, redirect: false, callbackUrl: destination });
       if (!result || result.error || !result.ok) {
