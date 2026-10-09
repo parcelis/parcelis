@@ -34,3 +34,19 @@ test("expired and malformed JWTs are rejected before database access", async () 
     );
   }
 });
+
+test("HTTPS test fixtures use NextAuth's secure session-cookie name", async (t) => {
+  const previousNextAuthUrl = process.env.NEXTAUTH_URL;
+  t.after(() => {
+    process.env.NEXTAUTH_URL = previousNextAuthUrl;
+  });
+  process.env.NEXTAUTH_URL = "https://localhost:30000";
+
+  const cookie = await createTestSessionCookie();
+  const prisma = {
+    user: { findUnique: async () => ({ id: 7, accountStatus: "active" }) },
+  } as unknown as PrismaClient;
+
+  assert.match(cookie, /^__Secure-next-auth\.session-token=/);
+  assert.equal((await readSession(prisma, { headers: { cookie } }))?.userId, 7);
+});
