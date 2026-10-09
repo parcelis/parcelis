@@ -8,6 +8,7 @@ import {
   PrismaClient,
   rescheduleOutboxEvent,
 } from "@parcelis/db";
+import { createHash } from "node:crypto";
 import { getOutboxEventContract, getOutboxEventJobId, outboxEventTypes, parseOutboxEventPayload } from "@parcelis/jobs";
 import type { Queue } from "bullmq";
 
@@ -38,6 +39,34 @@ function getOutboxJob(event: OutboxEvent) {
         ? Math.max(0, Date.parse(payload.activateAt) - Date.now())
         : 0,
   };
+}
+
+function normalizeJobValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeJobValue);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, normalizeJobValue(item)]),
+    );
+  }
+
+  return value;
+}
+
+function getOutboxJobFingerprint(jobName: string, data: unknown) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return null;
+  }
+
+  const comparableData = Object.fromEntries(Object.entries(data).filter(([key]) => key !== "acceptedMessageId"));
+
+  return createHash("sha256")
+    .update(JSON.stringify([jobName, normalizeJobValue(comparableData)]))
+    .digest("hex");
 }
 
 export async function dispatchOutboxEvent(prisma: PrismaClient, queues: Map<string, Queue>, event: OutboxEvent) {
@@ -133,7 +162,13 @@ export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, 
         const jobId = getOutboxEventJobId(event.id);
         const existingJob = await queue.getJob(jobId);
         if (existingJob) {
-          if (!(existingJob.timestamp < event.createdAt.getTime())) continue;
+          if (
+            getOutboxJobFingerprint(existingJob.name, existingJob.data) ===
+            getOutboxJobFingerprint(contract.jobName, jobData)
+          ) {
+            continue;
+          }
+
           const state = await existingJob.getState();
           if (state !== "completed" && state !== "failed") continue;
           // A database reset can reuse an ID retained by an older Redis job.
