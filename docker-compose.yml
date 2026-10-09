@@ -2,7 +2,7 @@ name: parcelis
 
 services:
   postgres-service:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     container_name: parcelis-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -35,7 +35,7 @@ services:
       - parcelis
 
   minio-service:
-    image: minio/minio:latest
+    image: parcelis/minio:final
     container_name: parcelis-minio
     command: server /data --console-address ":9001"
     environment:

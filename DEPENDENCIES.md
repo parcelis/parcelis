@@ -52,6 +52,9 @@ When adding or removing a primary technology or service, update this file in the
 | [Bull Board](https://github.com/felixmosh/bull-board)                          | Administrator-only queue monitoring and job operations in the API.                        |
 | [Zod](https://zod.dev/)                                                        | Shared validation for application data.                                                   |
 
+Development and deployment Compose use the `parcelis/minio:final` mirror.
+Development and deployment PostgreSQL use `postgres:16-alpine` to match existing data volumes. A major-version upgrade requires an explicit database migration.
+
 ## Interface
 
 | Technology                                                               | Purpose                                              |
