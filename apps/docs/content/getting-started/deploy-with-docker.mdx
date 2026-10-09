@@ -19,6 +19,8 @@ docker run -d --name parcelis-app \
   -p 3000:3000 \
   -e DATABASE_URL=postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public \
   -e WEB_ORIGIN=https://parcelis.example.com \
+  -e NEXTAUTH_URL=https://parcelis.example.com \
+  -e NEXTAUTH_SECRET="$(openssl rand -base64 32)" \
   -e EMAIL_FROM='Parcelis <no-reply@example.com>' \
   -e SMTP_HOST=smtp.example.com \
   -e SMTP_PORT=465 \
