@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, UsersRound } from "lucide-react";
 import * as React from "react";
@@ -76,12 +76,6 @@ export default function LoginPage() {
     if (searchParams.has("error")) {
       setError(authenticationUnavailableMessage);
     }
-    if (searchParams.get("reason") === "timeout") {
-      setNotice("Your session expired after 15 minutes without activity. Sign in to continue.");
-      searchParams.delete("reason");
-      const query = searchParams.toString();
-      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
-    }
     const nextPath = searchParams.get("next");
     if (nextPath?.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("\\")) {
       setDestination(nextPath);
@@ -91,7 +85,7 @@ export default function LoginPage() {
     if (mode === "reset") {
       const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
       setLoginMode("reset-password");
-      setResetToken(token);
+      setResetToken((current) => token ?? current);
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
     }
     if (mode === "verify") {
@@ -204,6 +198,7 @@ export default function LoginPage() {
           reenterPassword: String(formData.get("reenterPassword") ?? ""),
           token: resetToken,
         });
+        await signOut({ redirect: false });
         selectLoginMode("sign-in");
         setResetToken(null);
         setNotice("Your password has been reset. Sign in with your new password.");

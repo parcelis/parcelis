@@ -1,9 +1,7 @@
+import { getToken } from "next-auth/jwt";
 import { NextResponse, type NextRequest } from "next/server";
 
 const organizationCookieName = "parcelis-organization-slug";
-const isAuthenticationDisabled =
-  process.env.AUTH_DISABLED === "true" && ["development", "test"].includes(process.env.NODE_ENV ?? "");
-
 function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
@@ -14,7 +12,7 @@ async function hasOrganizationAccess(request: NextRequest, slug: string) {
   const cookie = request.headers.get("cookie");
   if (!cookie) return false;
   try {
-    const apiUrl = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+    const apiUrl = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:40010";
     const response = await fetch(`${apiUrl}/trpc/organizations.active?input=${encodeURIComponent('{"json":null}')}`, {
       headers: { cookie, "x-parcelis-organization-slug": slug },
       cache: "no-store",
@@ -26,19 +24,9 @@ async function hasOrganizationAccess(request: NextRequest, slug: string) {
 }
 
 async function hasValidSession(request: NextRequest) {
-  const cookie = request.headers.get("cookie");
-  if (!cookie) return false;
-
-  try {
-    const apiUrl = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-    const response = await fetch(`${apiUrl}/trpc/auth.me?input=${encodeURIComponent('{"json":null}')}`, {
-      headers: { cookie },
-      cache: "no-store",
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret?.trim()) return false;
+  return Boolean(await getToken({ req: request, secret }));
 }
 
 export async function proxy(request: NextRequest) {
@@ -46,7 +34,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith("/admin/jobs/") && pathname !== "/admin/jobs/") {
     return NextResponse.next();
   }
-  if (!isAuthenticationDisabled && !(await hasValidSession(request))) return redirectToLogin(request);
+  if (!(await hasValidSession(request))) return redirectToLogin(request);
 
   if (request.headers.get("x-parcelis-internal-rewrite") === "1") return NextResponse.next();
 
@@ -60,7 +48,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith("/o/")) {
     const [, , slug, ...path] = pathname.split("/");
     if (!slug) return NextResponse.redirect(new URL("/", request.url));
-    if (!isAuthenticationDisabled && !(await hasOrganizationAccess(request, slug))) {
+    if (!(await hasOrganizationAccess(request, slug))) {
       const response = NextResponse.redirect(new URL("/", request.url));
       response.cookies.delete(organizationCookieName);
       return response;
@@ -79,7 +67,7 @@ export async function proxy(request: NextRequest) {
 
   const organizationSlug = request.cookies.get(organizationCookieName)?.value;
   if (organizationSlug) {
-    if (!isAuthenticationDisabled && !(await hasOrganizationAccess(request, organizationSlug))) {
+    if (!(await hasOrganizationAccess(request, organizationSlug))) {
       const response = NextResponse.next();
       response.cookies.delete(organizationCookieName);
       return response;

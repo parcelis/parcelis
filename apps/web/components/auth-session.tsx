@@ -1,0 +1,26 @@
+"use client";
+
+import { SessionProvider, useSession } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+
+function SessionGuard({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const { status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      queryClient.clear();
+      router.replace("/login");
+    },
+  });
+  return status === "authenticated" ? children : null;
+}
+
+export function AuthSession({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <SessionGuard>{children}</SessionGuard>
+    </SessionProvider>
+  );
+}
