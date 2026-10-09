@@ -10,13 +10,18 @@ export function createApiShutdown(server, app, cleanup = runApiCleanup, upgradeH
   let shutdown;
   const upgradedSockets = new Set();
   server.on("upgrade", (request, socket, head) => {
+    socket.on("error", () => socket.destroy());
     if (shutdown || !upgradeHandler) {
       socket.destroy();
       return;
     }
     upgradedSockets.add(socket);
     socket.once("close", () => upgradedSockets.delete(socket));
-    upgradeHandler(request, socket, head);
+    try {
+      Promise.resolve(upgradeHandler(request, socket, head)).catch(() => socket.destroy());
+    } catch {
+      socket.destroy();
+    }
   });
   return () => {
     shutdown ??= (async () => {

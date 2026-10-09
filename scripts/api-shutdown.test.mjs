@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { once } from "node:events";
+import { EventEmitter, once } from "node:events";
 import { createServer, request } from "node:http";
 import test from "node:test";
 import { createApiShutdown } from "../apps/api/scripts/server.mjs";
@@ -104,6 +104,37 @@ test("production rejects upgraded sockets immediately", { timeout: 5000 }, async
   assert.equal(error.code, "ECONNRESET");
   await shutdown();
 });
+
+for (const failure of ["socket error", "synchronous throw", "promise rejection"]) {
+  test(`upgrade ${failure} closes the socket and permits cleanup`, async () => {
+    const events = [];
+    const server = Object.assign(new EventEmitter(), { close: (callback) => callback() });
+    const socket = Object.assign(new EventEmitter(), {
+      destroyed: false,
+      destroy() {
+        if (!this.destroyed) {
+          this.destroyed = true;
+          this.emit("close");
+        }
+      },
+    });
+    const shutdown = createApiShutdown(
+      server,
+      { close: async () => events.push("next") },
+      async () => events.push("resources"),
+      () => {
+        if (failure === "socket error") socket.emit("error", new Error("Handshake reset"));
+        if (failure === "synchronous throw") throw new Error("Handshake failed");
+        if (failure === "promise rejection") return Promise.reject(new Error("Handshake failed"));
+      },
+    );
+    assert.doesNotThrow(() => server.emit("upgrade", {}, socket, Buffer.alloc(0)));
+    await Promise.resolve();
+    assert.equal(socket.destroyed, true);
+    await shutdown();
+    assert.deepEqual(events, ["next", "resources"]);
+  });
+}
 
 test("cleanup attempts every resource and reports failures without rerunning callbacks", async () => {
   let attempts = 0;
