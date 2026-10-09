@@ -1,0 +1,109 @@
+README.md
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 176-179
+apps/api/src/app/api/auth/[...nextauth]/route.ts
+  s_f9ccbbf504bdcb::t_23d9bf17e9b99c 39-41
+  s_f9ccbbf504bdcb::t_87527940065893 6-10
+  s_f9ccbbf504bdcb::t_90e10dd1cc1f76 42
+  s_f9ccbbf504bdcb::t_1beef851a5df44 1,4-5,11-20,43-51
+  s_f9ccbbf504bdcb::t_f7d3498484b591 2-3,21-38
+apps/web/proxy.ts
+  s_f9ccbbf504bdcb::t_37d2b112252d17 19,35
+  s_f9ccbbf504bdcb::t_729187c9273fa1 14-15,29-30
+apps/worker/src/outbox-dispatcher.ts
+  s_f9ccbbf504bdcb::t_c9c7032a9fe92b 134-140
+apps/web/next.config.mjs
+  s_f9ccbbf504bdcb::t_729187c9273fa1 17-19
+  s_f9ccbbf504bdcb::t_cc8b78bfcf5e2e 16
+apps/web/app/login/page.tsx
+  s_f9ccbbf504bdcb::t_f7d3498484b591 10,76-78,225-226
+  s_f9ccbbf504bdcb::t_729187c9273fa1 4,227-230
+DEPENDENCIES.md
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 11-12
+apps/docs/content/platform-user-guide/getting-started/sign-in.mdx
+  s_f9ccbbf504bdcb::t_5dfafa6c8209fe 16-18
+CONTRIBUTING.md
+  s_f9ccbbf504bdcb::t_5dfafa6c8209fe 124-125
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 114,122-123,296
+apps/api/src/tests/auth/nextauth-errors.test.ts
+  s_f9ccbbf504bdcb::t_5dfafa6c8209fe 1-36,43-57
+  s_f9ccbbf504bdcb::t_87527940065893 37-42
+apps/api/package.json
+  s_f9ccbbf504bdcb::t_729187c9273fa1 40
+apps/api/src/modules/nextauth.ts
+  s_f9ccbbf504bdcb::t_1beef851a5df44 1-6,9-22,27,29-53,60-63,65,67-70,72-75,81-95
+  s_f9ccbbf504bdcb::t_e379c7690b8fc0 8,71
+  s_f9ccbbf504bdcb::t_8da471db6b07ae 54-59
+  s_f9ccbbf504bdcb::t_2cf3fbb7ce575e 64,66,76-80
+  s_f9ccbbf504bdcb::t_f7d3498484b591 7,23-26,28
+tests/e2e/session-idle.spec.ts
+  s_f9ccbbf504bdcb::t_8da471db6b07ae 19-21
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 2,15-18,22-23
+docker-compose.yml
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 107-108
+.env.example
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 49-50
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 54-55
+apps/api/src/tests/auth/nextauth.test.ts
+  s_f9ccbbf504bdcb::t_843591ef62a0c8 1-9,12-13,15-28,31-41,49-50,55,61-65,68-80,103,115-130,138,145-161,166-173,177-184,187-210,214-215,229-238,243-245,259
+  s_f9ccbbf504bdcb::t_6bbcb8798f321f 10-11,29-30,56-60,174-176,246-258
+  s_f9ccbbf504bdcb::t_e379c7690b8fc0 14,164,185-186
+  s_f9ccbbf504bdcb::t_8da471db6b07ae 42-48,51,66-67,81-102,104-114,131-137,139-144,162-163,165,211-213,216-228,239-242
+  s_f9ccbbf504bdcb::t_23d9bf17e9b99c 52-54
+apps/docs/content/contributing/architecture.mdx
+  s_f9ccbbf504bdcb::t_8da471db6b07ae 26
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 32
+  s_f9ccbbf504bdcb::t_fd4f6d53ca5116 33
+apps/api/src/modules/nextauth-token.ts
+  s_f9ccbbf504bdcb::t_1beef851a5df44 1-6,9-10,12,24-29,31-39,41-45,47-51
+  s_f9ccbbf504bdcb::t_e379c7690b8fc0 30,40
+  s_f9ccbbf504bdcb::t_f7d3498484b591 7-8,11,13-23,46
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  s_f9ccbbf504bdcb::t_c9c7032a9fe92b 438-463,467-469,471-479
+  s_f9ccbbf504bdcb::t_dc5902b3fa3e7a 464-466,470
+apps/api/src/modules/session.ts
+  s_f9ccbbf504bdcb::t_729187c9273fa1 5,26-31,50
+.env.production.example
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 42-43
+apps/api/src/router/auth.router.ts
+  s_f9ccbbf504bdcb::t_729187c9273fa1 46,66,242-244,344,410
+  s_f9ccbbf504bdcb::t_8da471db6b07ae 264-270,272-283
+ARCHITECTURE.md
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 97
+  s_f9ccbbf504bdcb::t_c9c7032a9fe92b 103
+packages/schemas/src/index.ts
+  s_f9ccbbf504bdcb::t_87527940065893 38-39
+  s_f9ccbbf504bdcb::t_f7d3498484b591 40
+tests/e2e/login-errors.spec.ts
+  s_f9ccbbf504bdcb::t_b71e12a85f1152 14-16,23-25
+  s_f9ccbbf504bdcb::t_5dfafa6c8209fe 1-8,11-13,17-22,26
+  s_f9ccbbf504bdcb::t_b912d690f68425 9-10
+apps/api/src/modules/credentials-login.ts
+  s_f9ccbbf504bdcb::t_1beef851a5df44 1-31
+apps/api/src/modules/auth.ts
+  s_f9ccbbf504bdcb::t_e379c7690b8fc0 92
+  s_f9ccbbf504bdcb::t_729187c9273fa1 3,33,88-91,93-94
+apps/web/package.json
+  s_f9ccbbf504bdcb::t_729187c9273fa1 37
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_f9ccbbf504bdcb::t_edc7e21f9f04cd 79-82
+  s_f9ccbbf504bdcb::t_2cf3fbb7ce575e 34
+pnpm-lock.yaml
+  s_f9ccbbf504bdcb::t_d630c676e5c937 262-264,420-422,3258-3260,7534-7536,7878-7881,8337-8350,8507-8509,8514-8517,8552-8555,8594-8596,9273-9277,9298-9300,10698-10701,10974-10976,13748,13765,13793,13803,13813,13823,13833,13844,13857,13867,13879,14680-14681,19585-19586,19854-19857,20578-20592,20773-20774,20777-20778,20819-20820,20879-20885,21623-21630,21641-21642,23254-23255,23579-23580
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2752d790941092b1f9496583f63767c053ce47cb",
+  "prompts": {},
+  "sessions": {
+    "s_f9ccbbf504bdcb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11eb4-45c3-74f3-a7bf-b6bfbd17b8aa",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
