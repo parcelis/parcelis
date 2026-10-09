@@ -17,10 +17,11 @@ DATABASE_URL=<Render PostgreSQL internal connection string>
 WEB_ORIGIN=https://<your-service>.onrender.com
 SEED_ADMIN_PASSWORD=<a unique password of at least 12 characters>
 SEED_ADMIN_EMAIL=<demo administrator email>
-AUTH_COOKIE_SECURE=true
+NEXTAUTH_URL=https://<your-service>.onrender.com
+NEXTAUTH_SECRET=<a private random secret shared by web and API>
 ```
 
-Leave `NEXT_PUBLIC_API_URL`, `API_INTERNAL_URL`, and `AUTH_COOKIE_DOMAIN` unset in Render. The scripts set the two API URLs to the local API and keep authentication cookies scoped to the Render service.
+Leave `NEXT_PUBLIC_API_URL` and `API_INTERNAL_URL` unset in Render. The scripts set the two API URLs to the local API. NextAuth uses host-only Secure cookies for the configured HTTPS public URL.
 
 The API starts its separate Next.js runtime on the internal API port. The build
 command produces the Next.js API; the web app remains a separate process.

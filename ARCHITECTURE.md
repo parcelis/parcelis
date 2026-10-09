@@ -14,7 +14,7 @@ are ignored unless `API_TRUST_PROXY_HOPS` explicitly specifies the trusted proxy
 count; enable it only when direct access to the API is restricted to those proxies.
 The launcher validates the proxy count before starting Next.js, and request handlers reuse the cached value.
 Bull Board uses its Hono adapter. Every dashboard, API, and static-asset request
-checks the database session and administrator role; unsafe methods also require
+checks the NextAuth JWT, current account, and administrator role; unsafe methods also require
 the configured web origin. Shared helpers preserve branding and redact dashboard JSON responses in one place,
 and adapter failures return a generic error without private diagnostics. Queue
 connections initialize after authorization and are reused across development
@@ -94,7 +94,7 @@ appRouter procedure
 
 The web app creates a typed tRPC proxy client in `apps/web/components/api-client.ts`. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies a shared `PrismaClient`, authenticated user and session, and the active organization to every procedure.
 
-PostgreSQL stores hashed session tokens, revocation state, a seven-day absolute expiration, and `lastSeenAt`. The shared API session check rejects revoked, disabled-account, absolutely expired, and idle sessions after 15 minutes without activity. `SESSION_IDLE_TIMEOUT_ENABLED=false` disables only the idle check. Authenticated browser interaction calls `auth.activity`; a conditional update accepts at most one activity timestamp per minute and rechecks validity so concurrent revocation cannot be undone. Background requests never renew activity. The browser uses the server's expiration timestamp for its warning and shares renewals and logout across tabs. New email/password logins use NextAuth v4 at `/api/auth/*`, hosted by `apps/api` and forwarded on the web origin. Its Credentials provider shares validation, Argon2 verification, rate limits, and account-status checks with the transitional `auth.login` procedure. An encrypted, HTTP-only `parcelis_nextauth_v1` JWT carries the opaque database session token; API requests still validate its hash against PostgreSQL. JWT refresh and session polling do not renew database activity or extend the seven-day cap. The public NextAuth session response never exposes the opaque token. Existing `parcelis_session_v2` cookies remain accepted until expiry; when both cookies are present, NextAuth takes precedence and an invalid NextAuth cookie cannot fall back to the older login. Logout clears both cookies and revokes the active database session. Registration, verification, password recovery, and organization authorization remain API responsibilities. Configure `NEXTAUTH_URL` with the public web origin and keep `NEXTAUTH_SECRET` stable across API instances. Redis remains dedicated to background jobs.
+Email/password sign-in uses NextAuth v4 at `/api/auth/*`, hosted by `apps/api` and forwarded on the web origin. Its Credentials provider validates input, verifies Argon2 hashes, and enforces rate limits and account-status checks. NextAuth creates and encrypts the HTTP-only standard JWT cookie (`next-auth.session-token` for HTTP or `__Secure-next-auth.session-token` for HTTPS) with seven-day `session.maxAge` and `jwt.maxAge` settings. The web app uses NextAuth's `SessionProvider` for session refresh and cross-tab sign-out. The web proxy validates JWTs through NextAuth's `getToken()`. API requests use the same API and load the current user to reject deleted, pending, or disabled accounts and use current permissions. There is no database session table, activity tracking, idle timeout, fixed absolute lifetime, or per-session revocation. Signing out clears the browser cookie; a copied JWT remains usable until expiration. Password changes and resets do not revoke existing JWTs in other browsers. Existing opaque-token cookies require signing in again. Registration, verification, password recovery, and organization authorization remain API responsibilities. Configure `NEXTAUTH_URL` with the public web origin and keep `NEXTAUTH_SECRET` stable across web and API instances; rotating it invalidates all JWTs. Redis remains dedicated to background jobs.
 
 The API serves `publicRouter` at `/api/v1/*` through an App Router handler using `createOpenApiFetchHandler` from `trpc-to-openapi`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
 
@@ -108,7 +108,7 @@ Future leases write `lease.activate` outbox events that dispatch delayed BullMQ 
 
 The account email flow and recovery paths are illustrated in [Email Configuration](apps/docs/content/getting-started/email-configuration.mdx#background-delivery-and-recovery).
 
-The API mounts Bull Board at `/admin/jobs` for application administrators. Administrators can operate queue jobs from the dashboard; unsafe requests require the configured web origin. The dashboard hides Redis connection details and redacts job payloads and error diagnostics before returning them. Local and production proxies expose it at `/admin/jobs/` on the Parcelis host. The web app routes dashboard visits through `/settings/jobs`, where Bull Board runs in a same-origin frame. User interaction in the frame reaches the shared browser session monitor; Bull Board's background requests do not renew the session. The API enforces the same PostgreSQL idle check on every dashboard request.
+The API mounts Bull Board at `/admin/jobs` for application administrators. Administrators can operate queue jobs from the dashboard; unsafe requests require the configured web origin. The dashboard hides Redis connection details and redacts job payloads and error diagnostics before returning them. Local and production proxies expose it at `/admin/jobs/` on the Parcelis host. The web app routes dashboard visits through `/settings/jobs`, where Bull Board runs in a same-origin frame. The API validates the NextAuth JWT and current administrator account on every dashboard request.
 
 Idempotency keys preserve the first recorded event and its initial schedule. Repeating a key does not reschedule the event; `availableAt` can subsequently change through retry backoff or administrator replay.
 
@@ -139,7 +139,7 @@ The API build produces a Next.js application with the routes listed above.
 
 Object storage is configured in `apps/api/src/modules/object-storage.config.ts`. The API generates signed download and upload URLs for private property and tenant images; the browser uploads directly to object storage after receiving a signed URL.
 
-The API context resolves the active organization from the `x-parcelis-organization-slug` request header, the user's default organization, or the session's active organization. `organizationProcedure` requires that context and operational queries and writes filter or persist its organization ID. Organization administrators can update organization details and avatars; application administrators can access every organization.
+The API context resolves the active organization from the `x-parcelis-organization-slug` request header, the user's default organization. `organizationProcedure` requires that context and operational queries and writes filter or persist its organization ID. Organization administrators can update organization details and avatars; application administrators can access every organization.
 
 ## Data model
 
@@ -174,7 +174,7 @@ Tenant
   `- Note
 ```
 
-- An organization owns operational records. Membership gives a user access to an organization and records the organization-level role; users also retain a default organization and sessions retain an active organization.
+- An organization owns operational records. Membership gives a user access to an organization and records the organization-level role; users retain a default organization, updated when they switch organizations.
 - A property holds its address, operational status, contacts, units, leases, tags, and maintenance tickets.
 - A lease belongs to a property and unit, supports one or more tenants, and holds rent, dates, and lease status.
 - Notes belong to exactly one property, unit, or tenant.

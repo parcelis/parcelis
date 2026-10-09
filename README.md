@@ -176,4 +176,4 @@ Parcelis exists to push rental and property‑management software into a better 
 
 ### Email/password authentication
 
-New sign-ins use NextAuth.js, with existing accounts and Argon2 password hashes. Set `NEXTAUTH_URL` to the public Parcelis origin and `NEXTAUTH_SECRET` to a private value generated with `openssl rand -base64 32`. Existing sessions remain supported during the transition. See [local development](CONTRIBUTING.md#local-development) for setup.
+Sign-ins use NextAuth.js JWT sessions with a seven-day lifetime, existing accounts, and Argon2 password hashes. There is no inactivity timeout. Set `NEXTAUTH_URL` to the public Parcelis origin and `NEXTAUTH_SECRET` to a private value generated with `openssl rand -base64 32`. Legacy session cookies require signing in again; existing accounts and passwords remain unchanged. See [local development](CONTRIBUTING.md#local-development) for setup.
