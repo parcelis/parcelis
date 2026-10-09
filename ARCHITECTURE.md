@@ -139,7 +139,7 @@ The API build produces a Next.js application with the routes listed above.
 
 Object storage is configured in `apps/api/src/modules/object-storage.config.ts`. The API generates signed download and upload URLs for private property and tenant images; the browser uploads directly to object storage after receiving a signed URL.
 
-The API context resolves the active organization from the `x-parcelis-organization-slug` request header, the user's default organization. `organizationProcedure` requires that context and operational queries and writes filter or persist its organization ID. Organization administrators can update organization details and avatars; application administrators can access every organization.
+The API context resolves the active organization from the `x-parcelis-organization-slug` request header. The web proxy derives that header from `/o/{slug}` routes and stores the selected slug in a browser-session cookie so unscoped routes return to the selected organization. Requests without a selected organization fall back to the user's default organization. Switching organizations does not change that persistent default, which remains the initial fallback and determines the organization used for account verification and password-reset emails. `organizationProcedure` requires a valid organization context and operational queries and writes filter or persist its organization ID. Organization administrators can update organization details and avatars; application administrators can access every organization.
 
 ## Data model
 
@@ -174,7 +174,7 @@ Tenant
   `- Note
 ```
 
-- An organization owns operational records. Membership gives a user access to an organization and records the organization-level role; users retain a default organization, updated when they switch organizations.
+- An organization owns operational records. Membership gives a user access to an organization and records the organization-level role. Users retain a default organization for fallback routing and account emails; organization switching changes the browser-session route context without changing that default.
 - A property holds its address, operational status, contacts, units, leases, tags, and maintenance tickets.
 - A lease belongs to a property and unit, supports one or more tenants, and holds rent, dates, and lease status.
 - Notes belong to exactly one property, unit, or tenant.
