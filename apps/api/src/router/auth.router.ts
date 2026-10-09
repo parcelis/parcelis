@@ -305,7 +305,7 @@ export const authRouter = router({
 
       const updatedUser = await tx.user.updateMany({
         where: { id: passwordResetToken.userId, accountStatus: "active" },
-        data: { passwordHash },
+        data: { passwordHash, passwordChangedAt: usedAt },
       });
       if (!updatedUser.count) {
         throw invalidPasswordResetToken;
@@ -327,7 +327,10 @@ export const authRouter = router({
     }
 
     const passwordHash = await hashPassword(input.newPassword);
-    await ctx.prisma.user.update({ where: { id: ctx.user.id }, data: { passwordHash } });
+    await ctx.prisma.user.update({
+      where: { id: ctx.user.id },
+      data: { passwordHash, passwordChangedAt: new Date() },
+    });
     clearLoginRateLimit(rateLimitKey);
     return { success: true };
   }),

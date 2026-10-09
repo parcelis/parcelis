@@ -26,6 +26,7 @@ async function fixture() {
     accountStatus: "active",
     role: "property_manager",
     defaultOrganizationId: 3,
+    passwordChangedAt: null as Date | null,
   };
   const prisma = {
     user: {
@@ -138,6 +139,20 @@ test("disabled users lose access to NextAuth sessions and API requests", async (
   state.user.accountStatus = "disabled";
   assert.equal(await readSession(state.prisma, state.sessionRequest()), null);
   assert.deepEqual((await state.request("session")).body, {});
+});
+
+test("password changes invalidate existing JWTs and new sign-ins use the updated password timestamp", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const state = await fixture();
+  await state.signIn();
+  const previousSession = state.sessionRequest();
+  state.user.passwordChangedAt = new Date();
+
+  assert.equal(await readSession(state.prisma, previousSession), null);
+  assert.deepEqual((await state.request("session")).body, {});
+
+  await state.signIn();
+  assert.equal((await readSession(state.prisma, state.sessionRequest()))?.userId, state.user.id);
 });
 
 test("legacy cookies and tampered JWTs cannot authenticate", async () => {

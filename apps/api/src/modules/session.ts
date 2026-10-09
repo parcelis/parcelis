@@ -21,10 +21,15 @@ export async function readSession(prisma: PrismaClient, request: { headers: { co
       profileImageObjectKey: true,
       role: true,
       accountStatus: true,
+      passwordChangedAt: true,
       defaultOrganizationId: true,
     },
   });
-  if (!user || user.accountStatus !== "active") {
+  if (
+    !user ||
+    user.accountStatus !== "active" ||
+    (token.passwordChangedAt ?? null) !== (user.passwordChangedAt?.getTime() ?? null)
+  ) {
     return null;
   }
   return { userId: user.id, user };

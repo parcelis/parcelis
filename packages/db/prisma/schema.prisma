@@ -226,6 +226,7 @@ model User {
   role                    UserRole                 @default(property_manager)
   accountStatus           UserAccountStatus        @default(active)
   passwordHash            String
+  passwordChangedAt      DateTime?
   defaultOrganizationId   Int?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt

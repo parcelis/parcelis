@@ -63,14 +63,31 @@ export function createNextAuthOptions(prisma: PrismaClient, { secret } = getNext
       }),
     ],
     callbacks: {
+      async jwt({ token, user }) {
+        if (user) {
+          const id = Number(token.sub);
+          const account =
+            Number.isSafeInteger(id) && id > 0
+              ? await prisma.user.findUnique({ where: { id }, select: { passwordChangedAt: true } })
+              : null;
+          token.passwordChangedAt = account?.passwordChangedAt?.getTime() ?? null;
+        }
+        return token;
+      },
       async session({ session, token }) {
         const id = Number(token.sub);
         if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid session.");
         const user = await prisma.user.findUnique({
           where: { id },
-          select: { name: true, email: true, accountStatus: true },
+          select: { name: true, email: true, accountStatus: true, passwordChangedAt: true },
         });
-        if (!user || user.accountStatus !== "active") throw new Error("Please sign in again.");
+        if (
+          !user ||
+          user.accountStatus !== "active" ||
+          (token.passwordChangedAt ?? null) !== (user.passwordChangedAt?.getTime() ?? null)
+        ) {
+          throw new Error("Please sign in again.");
+        }
         session.user = { name: user.name, email: user.email };
         return session;
       },
