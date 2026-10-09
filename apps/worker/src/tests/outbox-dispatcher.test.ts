@@ -435,3 +435,45 @@ test("graceful shutdown drains the already claimed batch", { timeout: 10_000 }, 
   assert.deepEqual(jobIds, ["outbox-event-21", "outbox-event-22"]);
   assert.ok(events.every((event) => event.status === "dispatched" && event.claimToken === null));
 });
+
+for (const state of ["completed", "failed", "active", "waiting", "delayed"] as const) {
+  test(`recovery handles a stale ${state} job after an outbox ID is reused`, async () => {
+    const event = createEvent({
+      eventType: "notification.email",
+      status: "dispatched",
+      payload: {
+        organizationId: 7,
+        recipientId: 9,
+        recipientType: "user",
+        email: "person@example.com",
+        subject: "Verify your email",
+        body: "Verification requested",
+      },
+    });
+    const prisma = {
+      notificationDelivery: {
+        findMany: async () => [{ id: 1, status: "queued", outboxEvent: event }],
+      },
+    } as unknown as PrismaClient;
+    let removed = false;
+    let added = false;
+    const queue = {
+      getJob: async () => ({
+        timestamp: event.createdAt.getTime() - 86_400_000,
+        getState: async () => state,
+        remove: async () => {
+          removed = true;
+        },
+      }),
+      add: async (_name: string, data: unknown) => {
+        assert.ok(removed);
+        assert.deepEqual(data, { ...(event.payload as object), outboxEventId: event.id });
+        added = true;
+      },
+    } as unknown as Queue;
+    await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
+    const terminal = state === "completed" || state === "failed";
+    assert.equal(removed, terminal);
+    assert.equal(added, terminal);
+  });
+}

@@ -173,3 +173,7 @@ Parcelis exists to push rental and property‑management software into a better 
 <a href="https://github.com/parcelis/parcelis/graphs/contributors">
 <img src="https://contrib.rocks/image?repo=parcelis/parcelis" alt="Project contributors" />
 </a>
+
+### Email/password authentication
+
+New sign-ins use NextAuth.js, with existing accounts and Argon2 password hashes. Set `NEXTAUTH_URL` to the public Parcelis origin and `NEXTAUTH_SECRET` to a private value generated with `openssl rand -base64 32`. Existing sessions remain supported during the transition. See [local development](CONTRIBUTING.md#local-development) for setup.

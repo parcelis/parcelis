@@ -18,16 +18,13 @@ import {
   clearSessionCookie,
   createEmailVerificationToken,
   createPasswordResetToken,
-  createSessionToken,
   getEmailVerificationTokenExpiration,
   getEmailVerificationUrl,
   getLoginTokenUrl,
   getPasswordResetTokenExpiration,
-  getSessionExpiration,
   hashEmailVerificationToken,
   hashPassword,
   hashPasswordResetToken,
-  hashSessionToken,
   setSessionCookie,
   verifyPassword,
   isAuthenticationDisabled,
@@ -46,14 +43,9 @@ import {
   getPasswordResetRateLimitKey,
 } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
-import type { Context } from "./context";
+import { loginWithCredentials } from "../modules/credentials-login";
 import { createUserProfileImageDownloadUrl } from "../modules/object-storage.config";
 import { getRolePermissions } from "../modules/permissions";
-
-const invalidCredentials = new TRPCError({
-  code: "UNAUTHORIZED",
-  message: "Invalid email or password.",
-});
 
 const invalidPasswordResetToken = new TRPCError({
   code: "BAD_REQUEST",
@@ -65,25 +57,13 @@ const invalidEmailVerificationToken = new TRPCError({
   message: "This email verification link is invalid or has expired.",
 });
 
-async function createSession(ctx: Pick<Context, "prisma" | "res">, userId: number) {
-  const token = createSessionToken();
-  await ctx.prisma.session.create({
-    data: {
-      userId,
-      tokenHash: hashSessionToken(token),
-      expiresAt: getSessionExpiration(),
-    },
-  });
-  setSessionCookie(ctx.res, token);
-}
-
 export const authRouter = router({
   session: protectedProcedure.output(sessionStatusSchema).query(({ ctx }) => getSessionStatus(ctx.session)),
 
   activity: protectedProcedure.output(sessionStatusSchema).mutation(async ({ ctx }) => {
     const status = await renewSession(ctx.prisma, ctx.session.id);
     if (!status) {
-      clearSessionCookie(ctx.res);
+      clearSessionCookie(ctx.res, ctx.req);
       throw new TRPCError({ code: "UNAUTHORIZED", message: sessionExpiredMessage });
     }
     return status;
@@ -259,25 +239,9 @@ export const authRouter = router({
     }),
 
   login: publicProcedure.input(authLoginInputSchema).mutation(async ({ ctx, input }) => {
-    const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
-    consumeLoginRateLimit(rateLimitKey);
-    const user = await ctx.prisma.user.findUnique({ where: { email: input.email } });
-    const isPasswordValid = user
-      ? await verifyPassword(user.passwordHash, input.password)
-      : (await hashPassword(input.password), false);
-    if (!user || !isPasswordValid) {
-      throw invalidCredentials;
-    }
-    if (user.accountStatus === "pending") {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Please verify your email before signing in." });
-    }
-    if (user.accountStatus === "disabled") {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "This account has been disabled." });
-    }
-
-    await createSession(ctx, user.id);
-    clearLoginRateLimit(rateLimitKey);
-    return { user: { id: user.id, email: user.email } };
+    const { user, token } = await loginWithCredentials(ctx.prisma, input, ctx.req.ip);
+    setSessionCookie(ctx.res, token);
+    return { user };
   }),
 
   requestPasswordReset: publicProcedure.input(requestPasswordResetInputSchema).mutation(async ({ ctx, input }) => {
@@ -297,26 +261,26 @@ export const authRouter = router({
           let shouldSendDirectly = false;
 
           await ctx.prisma.$transaction(async (tx) => {
-          await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
-          const createdToken = await tx.passwordResetToken.create({
-            data: {
-              userId: user.id,
-              tokenHash: hashPasswordResetToken(token),
-              expiresAt: getPasswordResetTokenExpiration(),
-            },
-          });
-
-          if (user.defaultOrganizationId) {
-            await queueNotificationEmailOutboxEvent(tx, {
-              organizationId: user.defaultOrganizationId,
-              recipientId: user.id,
-              recipientType: "user",
-              email: user.email,
-              subject: "Reset your Parcelis password",
-              body: `Reset your Parcelis password: ${getLoginTokenUrl("reset", token)}`,
-              template: { kind: "password-reset", url: getLoginTokenUrl("reset", token) },
-              idempotencyKey: `auth.request-password-reset:${user.id}:token:${createdToken.id}`,
+            await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
+            const createdToken = await tx.passwordResetToken.create({
+              data: {
+                userId: user.id,
+                tokenHash: hashPasswordResetToken(token),
+                expiresAt: getPasswordResetTokenExpiration(),
+              },
             });
+
+            if (user.defaultOrganizationId) {
+              await queueNotificationEmailOutboxEvent(tx, {
+                organizationId: user.defaultOrganizationId,
+                recipientId: user.id,
+                recipientType: "user",
+                email: user.email,
+                subject: "Reset your Parcelis password",
+                body: `Reset your Parcelis password: ${getLoginTokenUrl("reset", token)}`,
+                template: { kind: "password-reset", url: getLoginTokenUrl("reset", token) },
+                idempotencyKey: `auth.request-password-reset:${user.id}:token:${createdToken.id}`,
+              });
             } else {
               shouldSendDirectly = true;
             }
@@ -377,7 +341,7 @@ export const authRouter = router({
       });
     });
 
-    clearSessionCookie(ctx.res);
+    clearSessionCookie(ctx.res, ctx.req);
     return { success: true };
   }),
 
@@ -443,7 +407,7 @@ export const authRouter = router({
     if (!isAuthenticationDisabled() && ctx.session) {
       await ctx.prisma.session.update({ where: { id: ctx.session.id }, data: { revokedAt: new Date() } });
     }
-    clearSessionCookie(ctx.res);
+    clearSessionCookie(ctx.res, ctx.req);
     return { success: true };
   }),
 

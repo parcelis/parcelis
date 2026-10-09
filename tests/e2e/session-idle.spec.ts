@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readNextAuthToken } from "../../apps/api/src/modules/nextauth-token";
 import { PrismaClient, PrismaPg } from "../../packages/db/src/index";
 import { test, expect } from "./fixtures/authenticated";
 
@@ -11,9 +12,15 @@ test.skip(
 test.use({ launchOptions: { ignoreDefaultArgs: ["--disable-background-timer-throttling"] } });
 
 async function sessionFor(page: import("@playwright/test").Page, prisma: PrismaClient) {
-  const cookie = (await page.context().cookies()).find((item) => item.name === "parcelis_session_v2");
-  expect(cookie).toBeDefined();
-  const tokenHash = createHash("sha256").update(cookie!.value).digest("hex");
+  const cookies = await page.context().cookies();
+  const nextAuth = await readNextAuthToken({
+    headers: { cookie: cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ") },
+  });
+  const token = nextAuth.present
+    ? nextAuth.token
+    : cookies.find((cookie) => cookie.name === "parcelis_session_v2")?.value;
+  expect(token).toBeTruthy();
+  const tokenHash = createHash("sha256").update(token!).digest("hex");
   const session = await prisma.session.findUnique({ where: { tokenHash } });
   expect(session).not.toBeNull();
   return session!.id;

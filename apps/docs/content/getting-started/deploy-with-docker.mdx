@@ -51,6 +51,8 @@ The app container expects the following values at minimum:
 
 - `DATABASE_URL`: PostgreSQL connection string
 - `WEB_ORIGIN`: the public origin used by the web app
+- `NEXTAUTH_URL`: the public Parcelis origin, including HTTPS
+- `NEXTAUTH_SECRET`: a private value generated with `openssl rand -base64 32`, shared across API instances
 - `AUTH_COOKIE_DOMAIN`: the cookie domain for authentication sessions
 - `AUTH_COOKIE_SECURE`: set to `true` when the app is served over HTTPS
 - `EMAIL_FROM`: sender address for transactional email

@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const sessionCookieName = "parcelis_session_v2";
 const organizationCookieName = "parcelis-organization-slug";
 const isAuthenticationDisabled =
   process.env.AUTH_DISABLED === "true" && ["development", "test"].includes(process.env.NODE_ENV ?? "");
@@ -12,12 +11,12 @@ function redirectToLogin(request: NextRequest) {
 }
 
 async function hasOrganizationAccess(request: NextRequest, slug: string) {
-  const token = request.cookies.get(sessionCookieName)?.value;
-  if (!token) return false;
+  const cookie = request.headers.get("cookie");
+  if (!cookie) return false;
   try {
     const apiUrl = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
     const response = await fetch(`${apiUrl}/trpc/organizations.active?input=${encodeURIComponent('{"json":null}')}`, {
-      headers: { cookie: `${sessionCookieName}=${token}`, "x-parcelis-organization-slug": slug },
+      headers: { cookie, "x-parcelis-organization-slug": slug },
       cache: "no-store",
     });
     return response.ok;
@@ -27,13 +26,13 @@ async function hasOrganizationAccess(request: NextRequest, slug: string) {
 }
 
 async function hasValidSession(request: NextRequest) {
-  const token = request.cookies.get(sessionCookieName)?.value;
-  if (!token) return false;
+  const cookie = request.headers.get("cookie");
+  if (!cookie) return false;
 
   try {
     const apiUrl = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
     const response = await fetch(`${apiUrl}/trpc/auth.me?input=${encodeURIComponent('{"json":null}')}`, {
-      headers: { cookie: `${sessionCookieName}=${token}` },
+      headers: { cookie },
       cache: "no-store",
     });
     return response.ok;

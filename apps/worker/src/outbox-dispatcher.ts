@@ -131,8 +131,13 @@ export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, 
         }
 
         const jobId = getOutboxEventJobId(event.id);
-        if (await queue.getJob(jobId)) {
-          continue;
+        const existingJob = await queue.getJob(jobId);
+        if (existingJob) {
+          if (!(existingJob.timestamp < event.createdAt.getTime())) continue;
+          const state = await existingJob.getState();
+          if (state !== "completed" && state !== "failed") continue;
+          // A database reset can reuse an ID retained by an older Redis job.
+          await existingJob.remove();
         }
 
         await queue.add(

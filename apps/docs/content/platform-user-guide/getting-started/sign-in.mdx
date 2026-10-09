@@ -13,6 +13,9 @@ New users can select **Create account** on the same page. Parcelis sends a verif
 address; opening it activates the account before sign-in. Passwords must be at least 12 characters long.
 If the link expires, try signing in and select **Resend verification email**.
 
+If sign-in is temporarily unavailable, the login page shows an error and keeps the form open. Contact your
+administrator so they can check the authentication service configuration.
+
 For local development, `pnpm db:seed` creates the administrator using `SEED_ADMIN_EMAIL`, which
 defaults to `admin@parcelis.dev`, and `SEED_ADMIN_PASSWORD`. Set the password to a unique value of
 at least 12 characters before running the seed command. Later seed runs do not replace the

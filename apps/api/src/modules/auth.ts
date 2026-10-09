@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import * as argon2 from "argon2";
+import { getNextAuthCookies, nextAuthCookieName } from "./nextauth-token";
 
 export type SessionRequest = {
   headers: { cookie?: string };
@@ -29,7 +30,7 @@ export function isAuthenticationDisabled() {
   return process.env.AUTH_DISABLED === "true" && ["development", "test"].includes(process.env.NODE_ENV ?? "");
 }
 
-function getCookieOptions() {
+export function getCookieOptions() {
   const isLocalEnvironment = ["development", "test"].includes(process.env.NODE_ENV ?? "");
 
   return {
@@ -84,8 +85,13 @@ export function setSessionCookie(response: SessionResponse, token: string) {
   });
 }
 
-export function clearSessionCookie(response: SessionResponse) {
-  response.clearCookie(sessionCookieName, getCookieOptions());
+export function clearSessionCookie(response: SessionResponse, request?: SessionRequest) {
+  const names = new Set([
+    sessionCookieName,
+    nextAuthCookieName,
+    ...(request ? getNextAuthCookies(request).map((cookie) => cookie.slice(0, cookie.indexOf("="))) : []),
+  ]);
+  for (const name of names) response.clearCookie(name, getCookieOptions());
 }
 
 export function getSessionExpiration() {

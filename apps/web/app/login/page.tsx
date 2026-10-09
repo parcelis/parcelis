@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, UsersRound } from "lucide-react";
 import * as React from "react";
 import { flushSync } from "react-dom";
 import { Button, Input } from "@parcelis/ui";
+import { authenticationUnavailableMessage } from "@parcelis/schemas";
 import { apiClient } from "../../components/api-client";
 import { ThemeSelector } from "../../components/theme-selector";
 
@@ -71,6 +73,9 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.has("error")) {
+      setError(authenticationUnavailableMessage);
+    }
     if (searchParams.get("reason") === "timeout") {
       setNotice("Your session expired after 15 minutes without activity. Sign in to continue.");
       searchParams.delete("reason");
@@ -217,7 +222,12 @@ export default function LoginPage() {
         setNotice("Check your email for a link to verify your account.");
         return;
       }
-      await apiClient.auth.login.mutate(input);
+      const providers = await fetch("/api/auth/providers", { cache: "no-store" });
+      if (!providers.ok) throw new Error(authenticationUnavailableMessage);
+      const result = await signIn("credentials", { ...input, redirect: false, callbackUrl: destination });
+      if (!result || result.error || !result.ok) {
+        throw new Error(result?.error ?? "Unable to sign in. Please try again.");
+      }
       clearVerificationDestination();
       flushSync(() => setIsLoadingApp(true));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));

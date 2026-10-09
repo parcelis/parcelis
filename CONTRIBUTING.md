@@ -111,12 +111,17 @@ Install dependencies and run the apps on your machine with hot reload:
 pnpm install
 cp .env.example .env
 # Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
+# Generate NEXTAUTH_SECRET with: openssl rand -base64 32
 docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
 ```
+
+Set `NEXTAUTH_URL` in `.env` to the public browser origin (normally `http://localhost` through nginx). When using the web app's port directly, include that port. The web app forwards `/api/auth/*` to the API. Keep `NEXTAUTH_SECRET` private and stable; changing it invalidates NextAuth cookies. Existing legacy sessions remain valid during the migration.
+
+A missing or blank `NEXTAUTH_SECRET` disables NextAuth sign-in. The login page displays a service-unavailable message; the API logs the missing setting. Restore the original secret and restart `pnpm dev` to resume existing sessions, or generate a new secret to require users to sign in again.
 
 #### What `pnpm dev` starts
 
@@ -288,6 +293,7 @@ Parcelis uses two Compose workflows:
 ```bash
 cp .env.example .env
 # Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
+# Generate NEXTAUTH_SECRET with: openssl rand -base64 32
 docker compose -f docker-compose-dev.yml up -d
 ```
 

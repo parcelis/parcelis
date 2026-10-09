@@ -35,6 +35,9 @@ export function formatMaintenanceTicketNumber(ticketNumber: number) {
   return `MNT-${String(ticketNumber).padStart(7, "0")}`;
 }
 
+export const authenticationUnavailableMessage =
+  "Sign-in is temporarily unavailable. Please contact your administrator.";
+
 export const authCredentialsInputSchema = z.object({
   email: z
     .string()

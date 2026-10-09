@@ -2,6 +2,7 @@ import type { Prisma, PrismaClient } from "@parcelis/db";
 import type { SessionStatus } from "@parcelis/schemas";
 import type { SessionRequest, SessionResponse } from "./auth";
 import { clearSessionCookie, getSessionToken, hashSessionToken } from "./auth";
+import { readNextAuthToken } from "./nextauth-token";
 
 const idleTimeoutMs = 15 * 60 * 1000;
 const activityIntervalMs = 60 * 1000;
@@ -22,8 +23,12 @@ export function validSessionWhere(now: Date): Prisma.SessionWhereInput {
 }
 
 export async function readSession(prisma: PrismaClient, request: SessionRequest, response: SessionResponse) {
-  const token = getSessionToken(request);
-  if (!token) return null;
+  const nextAuth = await readNextAuthToken(request);
+  const token = nextAuth.present ? nextAuth.token : getSessionToken(request);
+  if (!token) {
+    if (nextAuth.present) clearSessionCookie(response, request);
+    return null;
+  }
   const session = await prisma.session.findFirst({
     where: { tokenHash: hashSessionToken(token), ...validSessionWhere(new Date()) },
     include: {
@@ -42,7 +47,7 @@ export async function readSession(prisma: PrismaClient, request: SessionRequest,
     },
   });
   if (!session) {
-    clearSessionCookie(response);
+    clearSessionCookie(response, request);
     console.info({ event: "session_rejected" });
   }
   return session;
