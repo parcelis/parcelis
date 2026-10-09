@@ -65,8 +65,33 @@ Keep changes focused, run the relevant checks, and update user-facing documentat
 Apps:
 
 - `apps/web`: Next.js App Router frontend.
-- `apps/api`: NestJS backend exposing a tRPC router.
+- `apps/api`: separate Next.js API serving tRPC, REST, and Bull Board.
 - `apps/docs`: Docusaurus documentation site for platform and contributor guides.
+
+The API commands run Next.js on port 40010. `build` creates the production Next.js
+build; `typecheck` checks the API routes, modules, and tests. For direct API previews,
+include the Redis settings from `.env.example` in your `.env`; the full development
+launcher supplies these automatically. Stop the existing development processes
+before restarting.
+
+Run API commands through pnpm's filter. The API launcher sets `PARCELIS_API_ROOT`
+to its absolute application directory so PDF fonts and brand images resolve independently
+of the working directory. Direct source imports use the invoice module's location.
+The production launcher drains requests, closes Next.js,
+then closes initialized Redis queues and Prisma clients. It allows 15 seconds for
+shutdown; Docker and Supervisor allow additional time before killing the process.
+Shutdown closes upgraded sockets, including development HMR connections, while ordinary HTTP requests drain.
+Production rejects HTTP upgrades immediately; development forwards them to Next.js for HMR.
+
+Set `API_TRUST_PROXY_HOPS` only behind an enforced proxy boundary. The default `0`
+ignores forwarded client IPs, so IP-based rate limits share the unknown-IP bucket.
+The supplied production Compose stack has two nginx hops; use `2` only when public
+API traffic exclusively follows that path. Adjust the count for any additional proxy.
+The production environment example sets `2` for this stack.
+Use decimal digits for the proxy count; empty values and other numeric formats are rejected.
+The launcher validates this value before starting Next.js; changes require restarting the API.
+Dashboard requests and polling do not renew session activity. `/settings/jobs`
+continues to use the same-origin `/admin/jobs/` route with the selected API runtime.
 
 Packages:
 
@@ -124,7 +149,7 @@ The host processes and local services are also available directly:
 
 #### Local database
 
-Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `DATABASE_URL` is unset, the API uses `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
+Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `DATABASE_URL` is unset, the API uses `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public` only when `NODE_ENV` is `development` or `test`. Other environments require an explicit PostgreSQL URL; empty or invalid values fail startup.
 
 pgAdmin is available at `http://localhost:8000` with `admin@parcelis.dev` / `parcelis`. The Parcelis database is preconfigured; use `parcelis` as its password when connecting for the first time.
 
@@ -188,6 +213,58 @@ pnpm exec playwright install chromium
 
 Run the suite with `pnpm test:e2e`. It starts the web app automatically unless `PLAYWRIGHT_TEST_BASE_URL` points to an existing environment. Use `pnpm test:e2e:ui` to run tests in Playwright UI mode.
 The proxy-origin session test is skipped by default. Point `PLAYWRIGHT_TEST_BASE_URL` to the running proxy when running the full suite.
+
+Playwright loads the root `.env` for local administrator credentials and database
+settings. To watch tests against a running `pnpm dev` stack, use headed mode:
+
+```bash
+PLAYWRIGHT_TEST_BASE_URL=http://localhost PLAYWRIGHT_SLOW_MO=500 pnpm test:e2e tests/e2e/api-smoke.spec.ts --headed --workers=1
+```
+
+Authenticated tests require `SEED_ADMIN_PASSWORD` and optionally `SEED_ADMIN_EMAIL`
+to match the local administrator account. Missing or empty passwords fail authenticated tests.
+The API smoke tests check health,
+unauthenticated rejection, authenticated tRPC/REST reads, and the embedded Bull Board
+through the running proxy. Idle-timeout browser tests skip when
+`SESSION_IDLE_TIMEOUT_ENABLED=false`. Run lease write tests against disposable
+test data; several existing draft tests modify the selected unit's drafts.
+
+The local property write smoke tests create their own uniquely named properties,
+update property details and create/edit notes through the browser, and upload,
+display, and delete an image. They verify changes after reloading and remove their
+test images, notes, and properties afterward:
+
+```bash
+PLAYWRIGHT_TEST_BASE_URL=http://localhost PLAYWRIGHT_SLOW_MO=800 pnpm test:e2e tests/e2e/property-notes.spec.ts tests/e2e/property-image.spec.ts --headed --workers=1
+```
+
+To check the production invoice PDF route, build the API first, then run the opt-in
+integration test from `apps/api` against local PostgreSQL:
+
+```bash
+pnpm --filter @parcelis/api build
+cd apps/api
+API_HTTP_INTEGRATION_TEST=1 node --env-file=../../.env --import tsx --test src/tests/invoices/invoice-pdf.http.integration.test.ts
+```
+
+The test creates an isolated schema, starts a temporary production Next.js API,
+checks embedded fonts and branding, and removes the schema and server afterward.
+Set `API_TEST_ARTIFACT_DIR` to retain a sample PDF for visual inspection.
+
+To run the combined deployment smoke batch, build `Dockerfile.app`, then set
+`API_TEST_IMAGE` to its local image tag when running the same test. It also
+checks the nginx/web/API proxy, native password login, REST, Bull Board assets and
+Redis, image upload/deletion, concurrent lease finalization, and invoice payment.
+The test maps `host.docker.internal` to Docker's host gateway to reach local dependencies
+on Docker Desktop and Linux Docker hosts;
+set `REDIS_PORT` to the port printed by the running dev stack if it differs from
+`.env`. It stops and removes its temporary container and isolated schema.
+
+```bash
+docker build -f Dockerfile.app -t parcelis-next-deployment-test .
+# From apps/api; omit REDIS_PORT when .env already matches the running service.
+REDIS_PORT=63791 API_HTTP_INTEGRATION_TEST=1 API_TEST_IMAGE=parcelis-next-deployment-test node --env-file=../../.env --import tsx --test src/tests/invoices/invoice-pdf.http.integration.test.ts
+```
 
 Place tests in `tests/e2e`. Cover a changed user workflow with stable role, label, or text locators and assertions that verify the user-visible outcome. Do not commit `playwright-report` or `test-results`.
 

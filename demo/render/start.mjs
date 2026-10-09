@@ -37,10 +37,10 @@ await prepareDatabase();
 const processes = [
   {
     name: "api",
-    child: spawn(process.execPath, ["dist/main.js"], {
+    child: spawn(process.execPath, ["scripts/start.mjs"], {
       cwd: resolve(rootDirectory, "apps/api"),
       detached: process.platform !== "win32",
-      env: { ...sharedEnvironment, API_PORT: apiPort },
+      env: { ...sharedEnvironment, API_PORT: apiPort, API_HOSTNAME: "127.0.0.1" },
       stdio: "inherit",
     }),
   },
@@ -48,14 +48,7 @@ const processes = [
     name: "web",
     child: spawn(
       process.execPath,
-      [
-        "node_modules/next/dist/bin/next",
-        "start",
-        "--hostname",
-        "0.0.0.0",
-        "--port",
-        webPort,
-      ],
+      ["node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0", "--port", webPort],
       {
         cwd: resolve(rootDirectory, "apps/web"),
         detached: process.platform !== "win32",

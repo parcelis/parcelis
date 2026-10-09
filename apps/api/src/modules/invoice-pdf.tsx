@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import { formatInvoiceNumber } from "@parcelis/schemas";
 import {
   Defs,
@@ -16,9 +15,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-
-const parcelisLightBannerPath = resolve(__dirname, "../../../web/public/brand/parcelis-fullmark-light.png");
-const parcelisLightBackgroundPath = resolve(__dirname, "../../../web/public/brand/parcelis-light-background.png");
+import { invoicePdfAssets } from "./invoice-pdf-assets";
 
 // Mirrors packages/ui/src/styles.css custom properties. react-pdf renders server-side with its
 // own StyleSheet and can't read CSS custom properties, so the token values are duplicated here.
@@ -31,11 +28,11 @@ const colors = {
 
 Font.register({
   family: "Inter",
-  src: require.resolve("@fontsource/inter/files/inter-latin-400-normal.woff"),
+  src: invoicePdfAssets.font,
 });
 Font.register({
   family: "Inter-Bold",
-  src: require.resolve("@fontsource/inter/files/inter-latin-700-normal.woff"),
+  src: invoicePdfAssets.boldFont,
 });
 
 export type InvoicePdfInvoice = {
@@ -405,8 +402,8 @@ export async function renderInvoicePdf(
   organization: InvoicePdfOrganizationDetails | null = null,
 ) {
   const [brandBanner, headerBackground] = await Promise.all([
-    loadBrandImage(parcelisLightBannerPath),
-    loadBrandImage(parcelisLightBackgroundPath),
+    loadBrandImage(invoicePdfAssets.banner),
+    loadBrandImage(invoicePdfAssets.background),
   ]);
   const organizationLogo = organizationLogoAsset
     ? `data:${organizationLogoAsset.contentType};base64,${organizationLogoAsset.buffer.toString("base64")}`

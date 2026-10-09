@@ -1,18 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { jobDashboardRedactionMiddleware } from "../../modules/job-dashboard-redaction.middleware";
+import { sanitizeJobResponse } from "../../modules/job-dashboard-redaction";
 
 test("job dashboard responses retain operational IDs and redact personal job data", () => {
-  let body: unknown;
-  const response = {
-    json(value: unknown) {
-      body = value;
-      return response;
-    },
-  };
-
-  jobDashboardRedactionMiddleware({} as never, response as never, () => {});
-  response.json({
+  const body = sanitizeJobResponse({
     job: {
       data: { organizationId: 7, leaseId: 12, residentEmail: "resident@example.test" },
       failedReason: "resident@example.test failed to process",

@@ -2,16 +2,39 @@
 
 This document gives contributors a practical map of the Parcelis codebase, its runtime boundaries, and the main data flows.
 
+The API in `apps/api` is a separate Next.js application. Its App Router handlers
+run in Node.js and serve `/trpc/*`, `/api/v1/*`, and `/admin/jobs/*`. The API uses
+shared session and organization context and a reusable Prisma client. The web app
+in `apps/web` and the background worker in `apps/worker` run as separate processes.
+
+The Fetch handlers keep cookie writes on both successful and failed responses,
+convert the existing millisecond cookie duration to Next.js seconds, and disable
+response caching. CORS permits the configured HTTP/HTTPS `WEB_ORIGIN`; invalid values omit CORS permissions without failing responses. Preflight responses advertise each route's supported methods. Forwarded client IPs
+are ignored unless `API_TRUST_PROXY_HOPS` explicitly specifies the trusted proxy
+count; enable it only when direct access to the API is restricted to those proxies.
+The launcher validates the proxy count before starting Next.js, and request handlers reuse the cached value.
+Bull Board uses its Hono adapter. Every dashboard, API, and static-asset request
+checks the database session and administrator role; unsafe methods also require
+the configured web origin. Shared helpers preserve branding and redact dashboard JSON responses in one place,
+and adapter failures return a generic error without private diagnostics. Queue
+connections initialize after authorization and are reused across development
+reloads. Production file tracing includes Bull Board's templates and static assets.
+The production launcher drains HTTP requests before closing Next.js, then runs
+registered queue and Prisma cleanup callbacks. A 15-second shutdown deadline is
+shorter than Supervisor and Compose termination deadlines. It uses Next.js
+request handlers through a Node HTTP server because the standard CLI exposes no
+application-resource cleanup hook. The API does not use standalone output.
+
 ## Overview
 
 Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, docs, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
 ```text
-app image: Next.js web + NestJS API + worker + @parcelis/jobs
+app image: Next.js web + Next.js API + worker + @parcelis/jobs
 
 Browser --> proxy container --+--> application container (app image)
                               |       +--> Next.js web (apps/web)
-                              |       +--> NestJS API (apps/api) --Prisma--> PostgreSQL
+                              |       +--> Next.js API (apps/api) --Prisma--> PostgreSQL
                               +--> documentation container (docs image)
 
 worker container (app image) --> worker (apps/worker) --> Redis
@@ -28,12 +51,12 @@ The web, API, docs, and worker application processes continue to run on their ow
 
 ### Applications
 
-| Package            | Location      | Responsibility                                                   | Default port |
-| ------------------ | ------------- | ---------------------------------------------------------------- | ------------ |
-| `@parcelis/web`    | `apps/web`    | Next.js App Router operational UI                                | 30000        |
-| `@parcelis/api`    | `apps/api`    | NestJS API, tRPC, OpenAPI middleware, object-storage integration | 40010        |
-| `@parcelis/docs`   | `apps/docs`   | Docusaurus user, contributor, and generated API documentation    | 40000        |
-| `@parcelis/worker` | `apps/worker` | PostgreSQL outbox dispatch and BullMQ job enqueueing             | —            |
+| Package            | Location      | Responsibility                                                | Default port |
+| ------------------ | ------------- | ------------------------------------------------------------- | ------------ |
+| `@parcelis/web`    | `apps/web`    | Next.js App Router operational UI                             | 30000        |
+| `@parcelis/api`    | `apps/api`    | Next.js API, tRPC, REST handlers, object-storage integration  | 40010        |
+| `@parcelis/docs`   | `apps/docs`   | Docusaurus user, contributor, and generated API documentation | 40000        |
+| `@parcelis/worker` | `apps/worker` | PostgreSQL outbox dispatch and BullMQ job enqueueing          | —            |
 
 ### Shared packages
 
@@ -56,24 +79,24 @@ Next.js route or client component
 POST /trpc/*
         |
         v
-NestJS TrpcMiddleware
+Next.js Fetch route handler
         |
         v
 appRouter procedure
         |
         +--> Zod schema from @parcelis/schemas
         |
-        +--> PrismaService
+        +--> PrismaClient
                  |
                  v
              PostgreSQL
 ```
 
-The web app creates a typed tRPC proxy client in `apps/web/components/api-client.ts`. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies Nest's `PrismaService`, authenticated user and session, and the active organization to every procedure.
+The web app creates a typed tRPC proxy client in `apps/web/components/api-client.ts`. API procedures are defined in `apps/api/src/router/app.router.ts`; their inputs use schemas from `@parcelis/schemas`. The API context supplies a shared `PrismaClient`, authenticated user and session, and the active organization to every procedure.
 
 PostgreSQL stores hashed session tokens, revocation state, a seven-day absolute expiration, and `lastSeenAt`. The shared API session check rejects revoked, disabled-account, absolutely expired, and idle sessions after 15 minutes without activity. `SESSION_IDLE_TIMEOUT_ENABLED=false` disables only the idle check. Authenticated browser interaction calls `auth.activity`; a conditional update accepts at most one activity timestamp per minute and rechecks validity so concurrent revocation cannot be undone. Background requests never renew activity. The browser uses the server's expiration timestamp for its warning and shares renewals and logout across tabs. The `parcelis_session_v2` cookie requires existing users to sign in again when this policy is deployed. Redis remains dedicated to background jobs.
 
-The API also mounts `publicRouter` at `/api/v1/*` through `OpenApiMiddleware`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
+The API serves `publicRouter` at `/api/v1/*` through an App Router handler using `createOpenApiFetchHandler` from `trpc-to-openapi`. The OpenAPI document is generated from that router and consumed by the Docusaurus API-reference generator.
 
 ## Background jobs and outbox
 
@@ -105,11 +128,14 @@ The expanded sidebar shows the active organization and, for users with access to
 
 ## API
 
-The NestJS application starts in `apps/api/src/main.ts`. `AppModule` mounts:
+The API starts through `apps/api/scripts/start.mjs` and delegates all
+requests to Next.js App Router handlers:
 
-- `TrpcMiddleware` at `/trpc` and `/trpc/*` for application procedures.
-- `OpenApiMiddleware` at `/api/v1` and `/api/v1/*` for documented public procedures.
-- Bull Board at `/admin/jobs` for administrator-only queue monitoring and job operations.
+- `/trpc/[trpc]` exposes the application procedures through the Fetch adapter.
+- `/api/v1/[...path]` exposes documented REST procedures, with a separate health handler.
+- `/admin/jobs/[[...path]]` serves the authenticated Bull Board dashboard and its assets.
+
+The API build produces a Next.js application with the routes listed above.
 
 Object storage is configured in `apps/api/src/modules/object-storage.config.ts`. The API generates signed download and upload URLs for private property and tenant images; the browser uploads directly to object storage after receiving a signed URL.
 
@@ -207,7 +233,7 @@ pnpm --filter @parcelis/worker test
 
 ## Container deployment
 
-`Dockerfile.app` builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the single `app` image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the application container. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `app`, `docs`, and `proxy` to Docker Hub when a GitHub release is published.
+`Dockerfile.app` builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the single `app` image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to the separate Next.js API inside the application container. The `API_INTERNAL_PORT` build argument defaults to `4000` and renders the matching API port into both nginx and Supervisor configuration. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `app`, `docs`, and `proxy` to Docker Hub when a GitHub release is published.
 
 ## Design rules
 

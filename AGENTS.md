@@ -5,8 +5,8 @@
 - Workspace uses a pnpm/Turbo monorepo with apps in `apps/` and shared packages in `packages/`.
 - Main apps:
   - `apps/web`: Next.js App Router frontend.
-  - `apps/api`: NestJS backend exposing the tRPC router.
-  - `apps/docs`: Docusaurus documentation site.
+  - `apps/api`: Next.js API exposing tRPC, REST, and Bull Board.
+  - `apps/docs`: Documentation site.
 - Shared packages:
   - `packages/ui`: shadcn/ui-style Parcelis primitives and brand components.
   - `packages/schemas`: shared Zod schemas and inferred TypeScript types.
@@ -38,7 +38,7 @@
 - Run `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:seed` after installing or pulling schema changes.
 - `pnpm dev` chooses open ports when defaults are busy and prints the selected URLs.
 - Default local URLs are web `http://localhost:30000`, API `http://localhost:40010`, docs `http://localhost:40000`, and MinIO console `http://localhost:9010`.
-- If `DATABASE_URL` is unset, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public`.
+- If `DATABASE_URL` is unset, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public` only when `NODE_ENV` is `development` or `test`. Other environments require an explicit PostgreSQL URL; empty or invalid values fail startup.
 - Stop an existing watcher with `Ctrl+C` before starting a second dev run.
 
 ## Code Style
