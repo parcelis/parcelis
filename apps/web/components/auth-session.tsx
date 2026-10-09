@@ -3,6 +3,7 @@
 import { SessionProvider, useSession } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { LoadingState } from "./loading-state";
 
 function SessionGuard({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
@@ -18,7 +19,14 @@ function SessionGuard({ children }: { children: React.ReactNode }) {
       router.replace(`/login?${params.toString()}`);
     },
   });
-  return status === "authenticated" ? children : null;
+  if (status === "authenticated") return children;
+
+  return (
+    <LoadingState
+      className="min-h-screen"
+      label={status === "loading" ? "Checking your session…" : "Redirecting to sign in…"}
+    />
+  );
 }
 
 export function AuthSession({ children }: { children: React.ReactNode }) {
