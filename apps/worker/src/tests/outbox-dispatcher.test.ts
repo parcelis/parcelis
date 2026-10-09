@@ -283,7 +283,11 @@ test("does not redispatch a notification when its BullMQ job still exists", asyn
   } as unknown as PrismaClient;
   let readded = false;
   const queue = {
-    getJob: async () => ({ id: "outbox-event-21" }),
+    getJob: async () => ({
+      id: "outbox-event-21",
+      name: "notification.email.v1",
+      data: { ...(event.payload as object), outboxEventId: event.id },
+    }),
     add: async () => {
       readded = true;
     },
@@ -323,7 +327,11 @@ test("notification recovery processes a second page after a full batch", async (
   const queue = {
     getJob: async (jobId: string) => {
       checkedJobIds.push(jobId);
-      return { id: jobId };
+      return {
+        id: jobId,
+        name: "notification.email.v1",
+        data: { ...payload, outboxEventId: Number(jobId.replace("outbox-event-", "")) },
+      };
     },
     add: async () => assert.fail("Existing jobs must not be restored"),
   } as unknown as Queue;
@@ -435,3 +443,51 @@ test("graceful shutdown drains the already claimed batch", { timeout: 10_000 }, 
   assert.deepEqual(jobIds, ["outbox-event-21", "outbox-event-22"]);
   assert.ok(events.every((event) => event.status === "dispatched" && event.claimToken === null));
 });
+
+for (const state of ["completed", "failed", "active", "waiting", "delayed"] as const) {
+  test(`recovery handles a stale ${state} job after an outbox ID is reused`, async () => {
+    const event = createEvent({
+      eventType: "notification.email",
+      status: "dispatched",
+      payload: {
+        organizationId: 7,
+        recipientId: 9,
+        recipientType: "user",
+        email: "person@example.com",
+        subject: "Verify your email",
+        body: "Verification requested",
+      },
+    });
+    const prisma = {
+      notificationDelivery: {
+        findMany: async () => [{ id: 1, status: "queued", outboxEvent: event }],
+      },
+    } as unknown as PrismaClient;
+    let removed = false;
+    let added = false;
+    const queue = {
+      getJob: async () => ({
+        name: "notification.email.v1",
+        data: {
+          ...(event.payload as object),
+          email: "stale@example.com",
+          outboxEventId: event.id,
+        },
+        timestamp: event.createdAt.getTime(),
+        getState: async () => state,
+        remove: async () => {
+          removed = true;
+        },
+      }),
+      add: async (_name: string, data: unknown) => {
+        assert.ok(removed);
+        assert.deepEqual(data, { ...(event.payload as object), outboxEventId: event.id });
+        added = true;
+      },
+    } as unknown as Queue;
+    await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
+    const active = state === "active";
+    assert.equal(removed, !active);
+    assert.equal(added, !active);
+  });
+}

@@ -13,15 +13,6 @@ export function isApplicationResource(resource: string) {
 export * from "./lease-rent-schedule.ts";
 export * from "./invoice-charge-description.ts";
 
-export const sessionStatusSchema = z.object({
-  expiresAt: z.number(),
-  serverTime: z.number(),
-  idleTimeoutEnabled: z.boolean(),
-  activityIntervalMs: z.number(),
-  warningMs: z.number(),
-});
-export type SessionStatus = z.infer<typeof sessionStatusSchema>;
-
 const idSchema = z.coerce.number().int().positive();
 const maxDatabaseInteger = 2_147_483_647;
 export const imageUploadMaxSizeBytes = 2 * 1024 * 1024;
@@ -34,6 +25,9 @@ export function formatInvoiceNumber(invoiceNumber: number) {
 export function formatMaintenanceTicketNumber(ticketNumber: number) {
   return `MNT-${String(ticketNumber).padStart(7, "0")}`;
 }
+
+export const authenticationUnavailableMessage =
+  "Sign-in is temporarily unavailable. Please contact your administrator.";
 
 export const authCredentialsInputSchema = z.object({
   email: z

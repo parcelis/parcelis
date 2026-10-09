@@ -173,3 +173,7 @@ Parcelis exists to push rental and property‑management software into a better 
 <a href="https://github.com/parcelis/parcelis/graphs/contributors">
 <img src="https://contrib.rocks/image?repo=parcelis/parcelis" alt="Project contributors" />
 </a>
+
+### Email/password authentication
+
+Sign-ins use NextAuth.js JWT sessions with a seven-day lifetime, existing accounts, and Argon2 password hashes. There is no inactivity timeout. Set `NEXTAUTH_URL` to the public Parcelis origin and `NEXTAUTH_SECRET` to a private value generated with `openssl rand -base64 32`. Legacy session cookies require signing in again; existing accounts and passwords remain unchanged. See [local development](CONTRIBUTING.md#local-development) for setup.

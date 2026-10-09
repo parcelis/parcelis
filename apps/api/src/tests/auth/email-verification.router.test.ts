@@ -1,3 +1,4 @@
+import { loginWithCredentials } from "../../modules/nextauth";
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import { TRPCError } from "@trpc/server";
@@ -72,7 +73,6 @@ function createPrisma() {
   const users: User[] = [];
   const tokens: VerificationToken[] = [];
   const passwordResetTokens: PasswordResetToken[] = [];
-  const sessions: Array<{ userId: number }> = [];
   const organizationMemberships: OrganizationMembership[] = [];
   const invoiceCharges: Array<{
     organizationId: number;
@@ -236,13 +236,6 @@ function createPrisma() {
         return { count: 1 };
       },
     },
-    session: {
-      create: async ({ data }: { data: { userId: number } }) => {
-        sessions.push({ userId: data.userId });
-        return {};
-      },
-      updateMany: async () => ({ count: 1 }),
-    },
     outboxEvent: {
       createMany: async ({ data }: { data: Omit<OutboxEvent, "id"> }) => {
         const duplicate = outboxEvents.some(
@@ -296,7 +289,6 @@ function createPrisma() {
     outboxEvents,
     passwordResetTokens,
     prisma,
-    sessions,
     tokens,
     users,
     waitForTransaction: async () => {
@@ -326,7 +318,7 @@ function createAdministratorCaller(prisma: PrismaClient) {
     prisma,
     req: { ip: "127.0.0.1" },
     res: {},
-    session: { id: 1, userId: user.id, user },
+    session: { userId: user.id, user },
     organization: { organizationId: 1, role: "administrator", organization: { id: 1 } },
   } as unknown as Context);
 }
@@ -389,7 +381,6 @@ test("registration creates a pending account and one verification token without 
   ]);
   assert.equal(state.tokens.length, 1);
   assert.notEqual(state.tokens[0]?.tokenHash, "new@example.com");
-  assert.equal(state.sessions.length, 0);
   assert.equal(emailDelivery.messages.length, 0);
   assert.equal(state.outboxEvents.length, 1);
   assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
@@ -450,10 +441,9 @@ test("pending accounts cannot sign in", async () => {
   });
 
   await assert.rejects(
-    createCaller(state.prisma).auth.login({ email: "pending-login@example.com", password }),
+    loginWithCredentials(state.prisma, { email: "pending-login@example.com", password }),
     (error: unknown) => error instanceof TRPCError && error.message === "Please verify your email before signing in.",
   );
-  assert.equal(state.sessions.length, 0);
 });
 
 test("active accounts can sign in", async () => {
@@ -471,9 +461,7 @@ test("active accounts can sign in", async () => {
     },
   });
 
-  await createCaller(state.prisma).auth.login({ email: "active-login@example.com", password });
-
-  assert.equal(state.sessions.length, 1);
+  await loginWithCredentials(state.prisma, { email: "active-login@example.com", password });
 });
 
 test("invalid and expired verification tokens are rejected", async () => {

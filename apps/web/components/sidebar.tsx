@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { signOut as nextAuthSignOut } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
@@ -45,7 +46,6 @@ import { useShortcut } from "./shortcut-provider";
 import { isMacPlatform, shortcutKeyParts, shortcutList, shortcuts } from "./shortcuts";
 import { apiClient, queryKeys } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
-import { broadcastSessionLogout } from "./session-events";
 
 const navItems = [
   { label: "Portfolio", href: "/", key: "portfolio", icon: Home },
@@ -286,8 +286,9 @@ function SidebarContent({ active }: SidebarProps) {
     setSignOutError(null);
     setIsSigningOut(true);
     try {
-      await apiClient.auth.logout.mutate();
-      broadcastSessionLogout();
+      const result = await nextAuthSignOut({ redirect: false, callbackUrl: "/login" });
+      if (!result?.url) throw new Error("Unable to sign out.");
+      queryClient.clear();
       router.replace("/login");
       router.refresh();
     } catch {

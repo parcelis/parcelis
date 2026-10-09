@@ -13,10 +13,10 @@ test("smoke mutation failures identify the procedure and HTTP status for non-JSO
 
 test("smoke mutation diagnostics limit the response body excerpt", async () => {
   await assert.rejects(
-    readSmokeMutationResult(new Response(`${"x".repeat(500)}hidden-tail`, { status: 502 }), "auth.login"),
+    readSmokeMutationResult(new Response(`${"x".repeat(500)}hidden-tail`, { status: 502 }), "auth.register"),
     (error: Error) => {
       assert.ok(error instanceof assert.AssertionError);
-      assert.ok(error.message.includes("auth.login: HTTP 502"));
+      assert.ok(error.message.includes("auth.register: HTTP 502"));
       assert.ok(!error.message.includes("hidden-tail"));
       return true;
     },
@@ -25,11 +25,11 @@ test("smoke mutation diagnostics limit the response body excerpt", async () => {
 
 test("smoke mutation failures report malformed JSON and missing results on HTTP 200", async () => {
   await assert.rejects(
-    readSmokeMutationResult(new Response("<html>Unexpected page</html>"), "auth.login"),
-    /auth\.login: HTTP 200: .*invalid JSON/,
+    readSmokeMutationResult(new Response("<html>Unexpected page</html>"), "auth.register"),
+    /auth\.register: HTTP 200: .*invalid JSON/,
   );
   for (const body of ["null", JSON.stringify({ error: { message: "Procedure failed" } })]) {
-    await assert.rejects(readSmokeMutationResult(new Response(body), "auth.login"), /auth\.login: HTTP 200/);
+    await assert.rejects(readSmokeMutationResult(new Response(body), "auth.register"), /auth\.register: HTTP 200/);
   }
 });
 

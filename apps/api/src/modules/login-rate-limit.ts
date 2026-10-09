@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 
 const maxAttempts = 5;
+const maxLoginAttemptsPerIp = 25;
 const windowMs = 15 * 60 * 1000;
 const sweepIntervalMs = 60 * 1000;
 const attempts = new Map<string, { count: number; resetAt: number }>();
@@ -29,17 +30,26 @@ function sweepExpiredAttempts(now: number) {
   }
 }
 
-export function consumeLoginRateLimit(key: string) {
+function consumeRateLimit(key: string, limit: number) {
   const now = Date.now();
   sweepExpiredAttempts(now);
   const attempt = getAttempt(key, now);
-  if ((attempt?.count ?? 0) >= maxAttempts) {
+  if ((attempt?.count ?? 0) >= limit) {
     throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please try again later." });
   }
   attempts.set(key, {
     count: (attempt?.count ?? 0) + 1,
     resetAt: attempt?.resetAt ?? now + windowMs,
   });
+}
+
+export function consumeLoginRateLimit(key: string) {
+  consumeRateLimit(key, maxAttempts);
+}
+
+export function consumeLoginIpRateLimit(ip: string | undefined) {
+  if (!ip) return;
+  consumeRateLimit(getRateLimitKey(ip, "login-ip"), maxLoginAttemptsPerIp);
 }
 
 export function consumePasswordResetRateLimit(key: string) {

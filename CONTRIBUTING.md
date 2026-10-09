@@ -90,7 +90,7 @@ API traffic exclusively follows that path. Adjust the count for any additional p
 The production environment example sets `2` for this stack.
 Use decimal digits for the proxy count; empty values and other numeric formats are rejected.
 The launcher validates this value before starting Next.js; changes require restarting the API.
-Dashboard requests and polling do not renew session activity. `/settings/jobs`
+`/settings/jobs`
 continues to use the same-origin `/admin/jobs/` route with the selected API runtime.
 
 Packages:
@@ -111,12 +111,17 @@ Install dependencies and run the apps on your machine with hot reload:
 pnpm install
 cp .env.example .env
 # Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
+# Generate NEXTAUTH_SECRET with: openssl rand -base64 32
 docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
 ```
+
+Set `NEXTAUTH_URL` in `.env` to the public browser origin (normally `http://localhost` through nginx). When using the web app's port directly, include that port. The web app forwards `/api/auth/*` to the API. NextAuth uses host-only cookies and enables Secure when `NEXTAUTH_URL` is HTTPS; the old `AUTH_COOKIE_DOMAIN`, `AUTH_COOKIE_SECURE`, and `AUTH_DISABLED` overrides are removed. Use the same private, stable `NEXTAUTH_SECRET` in the web and API processes; changing it invalidates NextAuth cookies. NextAuth JWT sessions have a seven-day rolling expiry: checking the session renews it for another seven days. There is no separate server-enforced idle timeout or database session record. Cookies from the previous session implementation require signing in again using existing credentials.
+
+A missing or blank `NEXTAUTH_SECRET` disables NextAuth sign-in. The login page displays a service-unavailable message; the API logs the missing setting. Restore the original secret and restart `pnpm dev` to resume existing sessions, or generate a new secret to require users to sign in again.
 
 #### What `pnpm dev` starts
 
@@ -225,8 +230,7 @@ Authenticated tests require `SEED_ADMIN_PASSWORD` and optionally `SEED_ADMIN_EMA
 to match the local administrator account. Missing or empty passwords fail authenticated tests.
 The API smoke tests check health,
 unauthenticated rejection, authenticated tRPC/REST reads, and the embedded Bull Board
-through the running proxy. Idle-timeout browser tests skip when
-`SESSION_IDLE_TIMEOUT_ENABLED=false`. Run lease write tests against disposable
+through the running proxy. Run lease write tests against disposable
 test data; several existing draft tests modify the selected unit's drafts.
 
 The local property write smoke tests create their own uniquely named properties,
@@ -288,6 +292,7 @@ Parcelis uses two Compose workflows:
 ```bash
 cp .env.example .env
 # Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
+# Generate NEXTAUTH_SECRET with: openssl rand -base64 32
 docker compose -f docker-compose-dev.yml up -d
 ```
 

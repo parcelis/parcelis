@@ -29,10 +29,7 @@ docker compose --env-file .env.production up -d --remove-orphans
 
 The stack will run the migration job first, then start the app and docs services once the database and object storage are ready.
 
-`SESSION_IDLE_TIMEOUT_ENABLED` defaults to `true` and ends sessions after 15 minutes without user activity. Set it to
-`false` in `.env.production` only if you need to disable the idle timeout; the seven-day session lifetime and normal
-revocation still apply. This release changes the session cookie name, so users signed in before upgrading must sign
-in again whether the idle timeout is enabled or disabled.
+Sign-ins use NextAuth JWT sessions with a seven-day lifetime and no inactivity timeout. NextAuth renews sessions through its session endpoints. Cookies from the previous session implementation require signing in again with existing credentials.
 
 :::caution
 If you are planning to run Parcelis in a production environment, update the values in the secrets, authentication, and transactional email sections of `.env.production` before you go live. Use strong, unique values for the database, MinIO, SMTP, and authentication settings so only you can access the platform services.
@@ -77,3 +74,7 @@ Then open the public URLs for your deployed web app and docs site. If you need t
 ```bash
 docker compose --env-file .env.production down
 ```
+
+## NextAuth configuration
+
+Set `NEXTAUTH_URL` in `.env.production` to the public Parcelis origin, including HTTPS. Generate `NEXTAUTH_SECRET` with `openssl rand -base64 32` and use the same value across web and API instances. The Compose stack forwards both settings to the application container. Changing the secret invalidates NextAuth cookies. Cookie names, host scoping, and Secure behavior use NextAuth defaults based on the HTTP/HTTPS public URL; no `AUTH_COOKIE_*` settings are needed. Existing accounts and passwords continue to work; registration, email verification, and password recovery are unchanged.

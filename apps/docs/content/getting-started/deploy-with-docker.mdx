@@ -19,8 +19,8 @@ docker run -d --name parcelis-app \
   -p 3000:3000 \
   -e DATABASE_URL=postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public \
   -e WEB_ORIGIN=https://parcelis.example.com \
-  -e AUTH_COOKIE_DOMAIN=parcelis.example.com \
-  -e AUTH_COOKIE_SECURE=true \
+  -e NEXTAUTH_URL=https://parcelis.example.com \
+  -e NEXTAUTH_SECRET="$(openssl rand -base64 32)" \
   -e EMAIL_FROM='Parcelis <no-reply@example.com>' \
   -e SMTP_HOST=smtp.example.com \
   -e SMTP_PORT=465 \
@@ -51,8 +51,8 @@ The app container expects the following values at minimum:
 
 - `DATABASE_URL`: PostgreSQL connection string
 - `WEB_ORIGIN`: the public origin used by the web app
-- `AUTH_COOKIE_DOMAIN`: the cookie domain for authentication sessions
-- `AUTH_COOKIE_SECURE`: set to `true` when the app is served over HTTPS
+- `NEXTAUTH_URL`: the public Parcelis origin, including HTTPS
+- `NEXTAUTH_SECRET`: a private value generated with `openssl rand -base64 32`, shared across API instances
 - `EMAIL_FROM`: sender address for transactional email
 - `SMTP_HOST`, `SMTP_PORT`, and `SMTP_SECURE`: SMTP server connection settings; `SMTP_SECURE` must be `true` or `false`
 - `SMTP_USER` and `SMTP_PASSWORD`: SMTP authentication credentials
@@ -65,8 +65,6 @@ The nginx proxy exposes the web app at `/`, documentation at `/docs/`, and
 the API at `/api/v1`.
 
 ## Optional environment variables
-
-- `SESSION_IDLE_TIMEOUT_ENABLED`: defaults to `true`; set to `false` to disable the 15-minute inactivity timeout
 
 For the complete `.env` reference, including TLS and STARTTLS guidance, see [Email configuration](./email-configuration). Organization administrators can configure SMTP in Settings → Organization → Email. Those settings take precedence for email sent to a user whose default organization has a saved configuration. The environment SMTP values remain the fallback.
 

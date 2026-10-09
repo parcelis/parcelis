@@ -687,10 +687,6 @@ export const appRouter = router({
         if (!organization) throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found." });
       }
       const organizationId = membership?.organizationId ?? input.organizationId;
-      await ctx.prisma.session.update({
-        where: { id: ctx.session.id },
-        data: { activeOrganizationId: organizationId },
-      });
       return { organizationId };
     }),
     update: organizationProcedure.input(updateOrganizationInputSchema).mutation(async ({ ctx, input }) => {

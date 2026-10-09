@@ -6,7 +6,7 @@ import { OPTIONS as restOptions } from "../../app/api/v1/[...path]/route";
 
 test("preflight methods match the route handlers", () => {
   for (const [handler, path, methods] of [
-    [trpcOptions, "/trpc/auth.login", ["GET", "POST"]],
+    [trpcOptions, "/trpc/auth.register", ["GET", "POST"]],
     [healthOptions, "/api/v1/health", ["GET", "HEAD"]],
     [restOptions, "/api/v1/tags", ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"]],
   ] as const) {

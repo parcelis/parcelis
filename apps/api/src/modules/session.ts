@@ -1,79 +1,36 @@
-import type { Prisma, PrismaClient } from "@parcelis/db";
-import type { SessionStatus } from "@parcelis/schemas";
-import type { SessionRequest, SessionResponse } from "./auth";
-import { clearSessionCookie, getSessionToken, hashSessionToken } from "./auth";
+import type { PrismaClient } from "@parcelis/db";
+import { getToken } from "next-auth/jwt";
+import { NextRequest } from "next/server";
 
-const idleTimeoutMs = 15 * 60 * 1000;
-const activityIntervalMs = 60 * 1000;
-
-export const sessionExpiredMessage = "Your session has expired. Please sign in again.";
-
-export function isSessionIdleTimeoutEnabled() {
-  return process.env.SESSION_IDLE_TIMEOUT_ENABLED !== "false";
-}
-
-export function validSessionWhere(now: Date): Prisma.SessionWhereInput {
-  return {
-    expiresAt: { gt: now },
-    revokedAt: null,
-    user: { accountStatus: "active" },
-    ...(isSessionIdleTimeoutEnabled() ? { lastSeenAt: { gt: new Date(now.getTime() - idleTimeoutMs) } } : {}),
-  };
-}
-
-export async function readSession(prisma: PrismaClient, request: SessionRequest, response: SessionResponse) {
-  const token = getSessionToken(request);
-  if (!token) return null;
-  const session = await prisma.session.findFirst({
-    where: { tokenHash: hashSessionToken(token), ...validSessionWhere(new Date()) },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          profileImageObjectKey: true,
-          role: true,
-          accountStatus: true,
-          defaultOrganizationId: true,
-        },
-      },
+export async function readSession(prisma: PrismaClient, request: { headers: { cookie?: string } }) {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret?.trim()) return null;
+  const token = await getToken({
+    req: new NextRequest("http://localhost", { headers: { cookie: request.headers.cookie ?? "" } }),
+    secret,
+  });
+  const id = Number(token?.sub);
+  if (!token || !Number.isSafeInteger(id) || id <= 0) return null;
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      profileImageObjectKey: true,
+      role: true,
+      accountStatus: true,
+      passwordChangedAt: true,
+      defaultOrganizationId: true,
     },
   });
-  if (!session) {
-    clearSessionCookie(response);
-    console.info({ event: "session_rejected" });
+  if (
+    !user ||
+    user.accountStatus !== "active" ||
+    (token.passwordChangedAt ?? null) !== (user.passwordChangedAt?.getTime() ?? null)
+  ) {
+    return null;
   }
-  return session;
-}
-
-export function getSessionStatus(session: { expiresAt: Date; lastSeenAt: Date }, now = new Date()): SessionStatus {
-  const enabled = isSessionIdleTimeoutEnabled();
-  return {
-    expiresAt: enabled
-      ? Math.min(session.expiresAt.getTime(), session.lastSeenAt.getTime() + idleTimeoutMs)
-      : session.expiresAt.getTime(),
-    serverTime: now.getTime(),
-    idleTimeoutEnabled: enabled,
-    activityIntervalMs,
-    warningMs: 60 * 1000,
-  };
-}
-
-export async function renewSession(prisma: PrismaClient, id: number, now = new Date()) {
-  // The conditional write rechecks validity after concurrent revocation or renewal.
-  const result = await prisma.session.updateMany({
-    where: {
-      id,
-      ...validSessionWhere(now),
-      AND: { lastSeenAt: { lte: new Date(now.getTime() - activityIntervalMs) } },
-    },
-    data: { lastSeenAt: now },
-  });
-  if (result.count) console.info({ event: "session_activity_updated" });
-  const session = await prisma.session.findFirst({
-    where: { id, ...validSessionWhere(new Date()) },
-  });
-  return session ? getSessionStatus(session) : null;
+  return { userId: user.id, user };
 }
