@@ -4,7 +4,12 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { TRPCError } from "@trpc/server";
 import { authLoginInputSchema } from "@parcelis/schemas";
 import { hashPassword, verifyPassword } from "./auth";
-import { clearLoginRateLimit, consumeLoginRateLimit, getLoginRateLimitKey } from "./login-rate-limit";
+import {
+  clearLoginRateLimit,
+  consumeLoginIpRateLimit,
+  consumeLoginRateLimit,
+  getLoginRateLimitKey,
+} from "./login-rate-limit";
 import { getNextAuthConfiguration } from "./nextauth-config";
 import { getClientIp } from "../router/fetch-context";
 
@@ -12,6 +17,7 @@ const sessionMaxAge = 7 * 24 * 60 * 60;
 
 export async function loginWithCredentials(prisma: PrismaClient, credentials: unknown, ip?: string) {
   const input = authLoginInputSchema.parse(credentials);
+  consumeLoginIpRateLimit(ip);
   const rateLimitKey = getLoginRateLimitKey(ip, input.email);
   consumeLoginRateLimit(rateLimitKey);
   const user = await prisma.user.findUnique({ where: { email: input.email } });
