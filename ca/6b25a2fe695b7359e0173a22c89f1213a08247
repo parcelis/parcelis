@@ -1,0 +1,25 @@
+apps/api/src/tests/runtime/deployment-smoke.test.ts
+  s_f9ccbbf504bdcb::t_c4eaa559ae063e 16,19,28-29,32
+apps/api/src/tests/runtime/preflight.test.ts
+  s_f9ccbbf504bdcb::t_c4eaa559ae063e 9
+apps/api/src/tests/runtime/deployment-smoke.ts
+  s_f9ccbbf504bdcb::t_c4eaa559ae063e 58-60,65,67,82
+  s_f9ccbbf504bdcb::t_796188431d3e0d 61-64,68-74,77-81
+  s_f9ccbbf504bdcb::t_0d3bf116b78ea1 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca6b25a2fe695b7359e0173a22c89f1213a08247",
+  "prompts": {},
+  "sessions": {
+    "s_f9ccbbf504bdcb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11eb4-45c3-74f3-a7bf-b6bfbd17b8aa",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
