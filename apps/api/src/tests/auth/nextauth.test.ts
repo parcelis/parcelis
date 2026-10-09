@@ -3,15 +3,13 @@ import test from "node:test";
 import type { NextApiRequest, NextApiResponse } from "next";
 import NextAuth from "next-auth";
 import { decode, encode } from "next-auth/jwt";
-import type { Prisma, PrismaClient } from "@parcelis/db";
-import { clearSessionCookie, hashPassword, hashSessionToken } from "../../modules/auth";
-import { loginWithCredentials } from "../../modules/credentials-login";
+import type { PrismaClient } from "@parcelis/db";
+import { hashPassword } from "../../modules/auth";
 import { resetRateLimits } from "../../modules/login-rate-limit";
 import { createContext } from "../../router/context";
-import { authRouter } from "../../router/auth.router";
 import { createNextAuthOptions } from "../../modules/nextauth";
-import { nextAuthCookieName, readNextAuthToken } from "../../modules/nextauth-token";
-import { getSessionStatus, readSession } from "../../modules/session";
+import { nextAuthCookieName } from "./session-cookie";
+import { readSession } from "../../modules/session";
 
 process.env.NEXTAUTH_SECRET = "nextauth-test-secret-not-for-production";
 process.env.NEXTAUTH_URL = "http://localhost:30000";
@@ -29,47 +27,13 @@ async function fixture() {
     role: "property_manager",
     defaultOrganizationId: 3,
   };
-  const sessions: Array<{
-    id: number;
-    userId: number;
-    tokenHash: string;
-    expiresAt: Date;
-    lastSeenAt: Date;
-    revokedAt: Date | null;
-    user: typeof user;
-  }> = [];
-  function matches(session: (typeof sessions)[number], where: Prisma.SessionWhereInput) {
-    return (
-      session.tokenHash === where.tokenHash &&
-      (!where.expiresAt || session.expiresAt > (where.expiresAt as { gt: Date }).gt) &&
-      (where.revokedAt !== null || session.revokedAt === null) &&
-      (!where.lastSeenAt || session.lastSeenAt > (where.lastSeenAt as { gt: Date }).gt) &&
-      (!where.user || user.accountStatus === "active")
-    );
-  }
   const prisma = {
-    user: { findUnique: async ({ where }: { where: { email: string } }) => (where.email === user.email ? user : null) },
+    user: {
+      findUnique: async ({ where }: { where: { email?: string; id?: number } }) =>
+        where.email === user.email || where.id === user.id ? user : null,
+    },
     organizationMembership: {
       findFirst: async () => ({ organizationId: 3, role: "owner", organization: { id: 3, slug: "portfolio" } }),
-    },
-    session: {
-      update: async ({ where, data }: { where: { id: number }; data: { revokedAt: Date } }) => {
-        const record = sessions.find((session) => session.id === where.id)!;
-        record.revokedAt = data.revokedAt;
-        return record;
-      },
-      create: async ({ data }: { data: { userId: number; tokenHash: string; expiresAt: Date } }) => {
-        const session = { ...data, id: sessions.length + 1, lastSeenAt: new Date(), revokedAt: null, user };
-        sessions.push(session);
-        return session;
-      },
-      findFirst: async ({ where }: { where: Prisma.SessionWhereInput }) =>
-        sessions.find((session) => matches(session, where)) ?? null,
-      updateMany: async ({ where, data }: { where: Prisma.SessionWhereInput; data: { revokedAt: Date } }) => {
-        const matched = sessions.filter((session) => matches(session, where));
-        for (const session of matched) session.revokedAt = data.revokedAt;
-        return { count: matched.length };
-      },
     },
   } as unknown as PrismaClient;
   const cookies: Record<string, string> = {};
@@ -135,97 +99,65 @@ async function fixture() {
         .join("; "),
     },
   });
-  const cleared: string[] = [];
-  const sessionResponse = {
-    cookie() {},
-    clearCookie(name: string) {
-      cleared.push(name);
-    },
-  };
-  return { prisma, user, sessions, cookies, request, signIn, sessionRequest, sessionResponse, cleared };
+  return { prisma, user, cookies, request, signIn, sessionRequest };
 }
 
-test("NextAuth requires CSRF and authenticates existing Argon2 passwords with a database session", async () => {
+test("NextAuth requires CSRF and authenticates existing Argon2 passwords using JWTs", async () => {
   const state = await fixture();
   await state.request("callback/credentials", "POST", { email: state.user.email, password, json: "true" });
-  assert.equal(state.sessions.length, 0);
+  assert.equal(state.cookies[nextAuthCookieName], undefined);
   const result = await state.signIn();
   assert.equal(result.status, 200);
   assert.deepEqual(result.body, { url: "http://localhost:30000/" });
-  assert.ok(state.cookies[nextAuthCookieName]);
-  assert.equal(state.cookies.parcelis_session_v2, undefined);
   const jwt = await decode({ token: state.cookies[nextAuthCookieName], secret: process.env.NEXTAUTH_SECRET! });
-  assert.equal(hashSessionToken(jwt!.sessionToken!), state.sessions[0]!.tokenHash);
-  assert.equal((await readSession(state.prisma, state.sessionRequest(), state.sessionResponse))?.userId, state.user.id);
-  const initialActivity = state.sessions[0]!.lastSeenAt.getTime();
+  assert.equal(jwt?.sub, String(state.user.id));
+  assert.equal(jwt?.sessionToken, undefined);
+  assert.equal((await readSession(state.prisma, state.sessionRequest()))?.userId, state.user.id);
   const session = await state.request("session");
-  assert.deepEqual(session.body, {
-    user: { name: state.user.name, email: state.user.email },
-    expires: new Date(getSessionStatus(state.sessions[0]!).expiresAt).toISOString(),
-  });
-  assert.equal(state.sessions[0]!.lastSeenAt.getTime(), initialActivity);
-  assert.ok(!JSON.stringify(session.body).includes(jwt!.sessionToken!));
+  assert.deepEqual((session.body as { user: unknown }).user, { name: state.user.name, email: state.user.email });
+  assert.ok(!JSON.stringify(session.body).includes("passwordHash"));
 });
 
-test("NextAuth signout revokes the database session", async () => {
+test("NextAuth signout requires CSRF and clears the browser cookie", async () => {
   const state = await fixture();
   await state.signIn();
   const captured = state.sessionRequest();
   await state.request("signout", "POST", { json: "true" });
-  assert.equal(state.sessions[0]!.revokedAt, null);
   assert.ok(state.cookies[nextAuthCookieName]);
   const csrf = await state.request("csrf");
   await state.request("signout", "POST", { csrfToken: (csrf.body as { csrfToken: string }).csrfToken, json: "true" });
-  assert.ok(state.sessions[0]!.revokedAt);
   assert.equal(state.cookies[nextAuthCookieName], undefined);
-  assert.equal(await readSession(state.prisma, captured, state.sessionResponse), null);
+  assert.equal(await readSession(state.prisma, state.sessionRequest()), null);
+  assert.ok(await readSession(state.prisma, captured));
 });
 
-for (const invalid of ["idle", "expired", "revoked", "disabled"] as const) {
-  test(`NextAuth and API requests reject ${invalid} sessions without renewing them`, async (t) => {
-    t.mock.method(console, "error", () => {});
-    const state = await fixture();
-    await state.signIn();
-    const record = state.sessions[0]!;
-    if (invalid === "idle") record.lastSeenAt = new Date(Date.now() - 16 * 60_000);
-    if (invalid === "expired") record.expiresAt = new Date(0);
-    if (invalid === "revoked") record.revokedAt = new Date();
-    if (invalid === "disabled") state.user.accountStatus = "disabled";
-    assert.equal(await readSession(state.prisma, state.sessionRequest(), state.sessionResponse), null);
-    assert.deepEqual((await state.request("session")).body, {});
-    assert.ok(state.cleared.includes(nextAuthCookieName));
-  });
-}
-
-test("invalid NextAuth cookies cannot fall back to a valid legacy session", async () => {
+test("disabled users lose access to NextAuth sessions and API requests", async (t) => {
+  t.mock.method(console, "error", () => {});
   const state = await fixture();
-  const legacy = await loginWithCredentials(state.prisma, { email: state.user.email, password });
-  state.cookies.parcelis_session_v2 = legacy.token;
-  assert.ok(await readSession(state.prisma, state.sessionRequest(), state.sessionResponse));
-  state.cookies[nextAuthCookieName] = "tampered";
-  assert.equal(await readSession(state.prisma, state.sessionRequest(), state.sessionResponse), null);
+  await state.signIn();
+  state.user.accountStatus = "disabled";
+  assert.equal(await readSession(state.prisma, state.sessionRequest()), null);
+  assert.deepEqual((await state.request("session")).body, {});
 });
 
-test("chunked NextAuth cookies are decoded in numeric order and all cleared on logout", async () => {
-  const token = await encode({ token: { sessionToken: "opaque-token" }, secret: process.env.NEXTAUTH_SECRET! });
-  const request = {
-    headers: { cookie: `${nextAuthCookieName}.1=${token.slice(100)}; ${nextAuthCookieName}.0=${token.slice(0, 100)}` },
-  };
-  assert.deepEqual(await readNextAuthToken(request), { present: true, token: "opaque-token" });
-  const cleared: string[] = [];
-  clearSessionCookie(
-    {
-      cookie() {},
-      clearCookie(name) {
-        cleared.push(name);
-      },
-    },
-    request,
-  );
-  assert.deepEqual(
-    new Set(cleared),
-    new Set(["parcelis_session_v2", nextAuthCookieName, `${nextAuthCookieName}.0`, `${nextAuthCookieName}.1`]),
-  );
+test("legacy cookies and tampered JWTs cannot authenticate", async () => {
+  const state = await fixture();
+  state.cookies.parcelis_session_v2 = "legacy-token";
+  assert.equal(await readSession(state.prisma, state.sessionRequest()), null);
+  state.cookies[nextAuthCookieName] = "tampered";
+  assert.equal(await readSession(state.prisma, state.sessionRequest()), null);
+});
+
+test("NextAuth decodes chunked cookies and clears them on sign-out", async () => {
+  const state = await fixture();
+  const token = await encode({ token: { sub: "7" }, secret: process.env.NEXTAUTH_SECRET! });
+  state.cookies[nextAuthCookieName + ".1"] = token.slice(100);
+  state.cookies[nextAuthCookieName + ".0"] = token.slice(0, 100);
+  assert.equal((await readSession(state.prisma, state.sessionRequest()))?.userId, 7);
+  const csrf = await state.request("csrf");
+  await state.request("signout", "POST", { csrfToken: (csrf.body as { csrfToken: string }).csrfToken, json: "true" });
+  assert.equal(state.cookies[nextAuthCookieName + ".0"], undefined);
+  assert.equal(state.cookies[nextAuthCookieName + ".1"], undefined);
 });
 
 test("NextAuth preserves account-status errors and login throttling", async () => {
@@ -242,18 +174,48 @@ test("NextAuth preserves account-status errors and login throttling", async () =
     );
   }
   assert.match(JSON.stringify((await state.signIn()).body), /Too.*many.*attempts/);
-  assert.equal(state.sessions.length, 0);
+  assert.equal(state.cookies[nextAuthCookieName], undefined);
 });
 
-test("NextAuth sessions retain organization context and transitional API logout revokes them", async () => {
+test("NextAuth sessions retain organization context", async () => {
   const state = await fixture();
   await state.signIn();
-  const context = await createContext(state.prisma)({ req: state.sessionRequest(), res: state.sessionResponse });
+  const context = await createContext(state.prisma)({ req: state.sessionRequest() });
   assert.equal(context.session?.userId, state.user.id);
   assert.equal(context.organization?.organizationId, 3);
-  await authRouter.createCaller(context).logout();
-  assert.ok(state.sessions[0]!.revokedAt);
-  assert.ok(state.cleared.includes(nextAuthCookieName));
-  assert.ok(state.cleared.includes("parcelis_session_v2"));
-  assert.equal(await readSession(state.prisma, state.sessionRequest(), state.sessionResponse), null);
+  assert.equal(context.session?.user.id, state.user.id);
 });
+
+test("NextAuth renews the seven-day JWT lifetime through its session endpoint", async (t) => {
+  const now = Date.now();
+  t.mock.timers.enable({ apis: ["Date"], now });
+  const state = await fixture();
+  await state.signIn();
+  const initial = await decode({ token: state.cookies[nextAuthCookieName], secret: process.env.NEXTAUTH_SECRET! });
+  assert.equal(Number(initial?.exp) - Number(initial?.iat), 604_800);
+  t.mock.timers.setTime(now + 86_400_000);
+  await state.request("session");
+  const renewed = await decode({ token: state.cookies[nextAuthCookieName], secret: process.env.NEXTAUTH_SECRET! });
+  assert.equal(Number(renewed?.exp) - Number(initial?.exp), 86_400);
+});
+
+for (const protocol of ["http", "https"]) {
+  test("NextAuth chooses its default cookie for " + protocol, async (t) => {
+    const previous = process.env.NEXTAUTH_URL;
+    t.after(() => {
+      process.env.NEXTAUTH_URL = previous;
+    });
+    process.env.NEXTAUTH_URL = protocol + "://localhost:30000";
+    const state = await fixture();
+    const response = await state.signIn();
+    const name = protocol === "https" ? "__Secure-next-auth.session-token" : "next-auth.session-token";
+    assert.ok(state.cookies[name]);
+    const header = response.headers.get("set-cookie")!;
+    const cookie = (Array.isArray(header) ? header : [header]).find((value) => value.startsWith(name + "="))!;
+    assert.match(cookie, /HttpOnly/);
+    assert.match(cookie, /SameSite=Lax/i);
+    assert.equal(/; Secure/i.test(cookie), protocol === "https");
+    assert.equal(/; Domain=/i.test(cookie), false);
+    assert.equal((await readSession(state.prisma, state.sessionRequest()))?.userId, 7);
+  });
+}

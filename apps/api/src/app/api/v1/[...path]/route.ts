@@ -13,9 +13,9 @@ async function handler(request: Request) {
     endpoint: "/api/v1",
     req: request,
     router: publicRouter,
-    createContext: context.createContext,
+    createContext: context,
   });
-  return applyApiHeaders(request, context.applyCookies(response));
+  return applyApiHeaders(request, response);
 }
 
 export { handler as GET, handler as HEAD, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };

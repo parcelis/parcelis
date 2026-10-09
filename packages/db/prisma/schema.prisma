@@ -182,7 +182,6 @@ model Organization {
   outboxEvents          OutboxEvent[]
   notificationDeliveries NotificationDelivery[]
   defaultUsers          User[]                   @relation("UserDefaultOrganization")
-  activeSessions        Session[]                @relation("SessionActiveOrganization")
   emailSettings         OrganizationEmailSettings?
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
@@ -230,7 +229,6 @@ model User {
   defaultOrganizationId   Int?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
-  sessions                Session[]
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   organizationMemberships OrganizationMembership[]
@@ -250,23 +248,6 @@ model RolePermission {
   updatedAt  DateTime           @updatedAt
 
   @@id([role, resource])
-}
-
-model Session {
-  id                   Int           @id @default(autoincrement())
-  userId               Int
-  tokenHash            String        @unique
-  expiresAt            DateTime
-  revokedAt            DateTime?
-  createdAt            DateTime      @default(now())
-  lastSeenAt           DateTime      @default(now())
-  activeOrganizationId Int?
-  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activeOrganization   Organization? @relation("SessionActiveOrganization", fields: [activeOrganizationId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([activeOrganizationId])
-  @@index([expiresAt])
 }
 
 model PasswordResetToken {

@@ -3,13 +3,13 @@ import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { createOpenApiFetchHandler } from "trpc-to-openapi";
-import { hashPassword, sessionCookieName } from "../../modules/auth";
+import { createTestSessionCookie } from "./session-cookie";
 import { appRouter } from "../../router/app.router";
 import { createFetchContext, getClientIp } from "../../router/fetch-context";
 import { applyApiHeaders, handlePreflight } from "../../router/http";
 import { publicRouter } from "../../router/public.router";
 
-function fixture({ expireOnRenewal = false, member = true } = {}) {
+function fixture({ member = true } = {}) {
   const organization = { id: 3, slug: "portfolio" };
   const user = {
     id: 7,
@@ -18,22 +18,10 @@ function fixture({ expireOnRenewal = false, member = true } = {}) {
     accountStatus: "active",
     defaultOrganizationId: organization.id,
   };
-  const session = {
-    id: 11,
-    userId: user.id,
-    user,
-    activeOrganizationId: organization.id,
-    expiresAt: new Date(Date.now() + 86_400_000),
-    lastSeenAt: new Date(),
-  };
   let membershipQuery: unknown;
-  let sessionReads = 0;
   let membershipReads = 0;
   const prisma = {
-    session: {
-      findFirst: async () => (expireOnRenewal && ++sessionReads > 1 ? null : session),
-      updateMany: async () => ({ count: 0 }),
-    },
+    user: { findUnique: async () => user },
     organizationMembership: {
       findFirst: async (query: unknown) => {
         membershipReads++;
@@ -51,83 +39,44 @@ function fixture({ expireOnRenewal = false, member = true } = {}) {
 }
 
 async function trpc(request: Request, prisma: PrismaClient) {
-  const context = createFetchContext(prisma, request);
-  return context.applyCookies(
-    await fetchRequestHandler({
-      endpoint: "/trpc",
-      req: request,
-      router: appRouter,
-      createContext: context.createContext,
-    }),
-  );
+  return fetchRequestHandler({
+    endpoint: "/trpc",
+    req: request,
+    router: appRouter,
+    createContext: createFetchContext(prisma, request),
+  });
 }
 
 async function rest(request: Request, prisma: PrismaClient) {
-  const context = createFetchContext(prisma, request);
-  return context.applyCookies(
-    await createOpenApiFetchHandler({
-      endpoint: "/api/v1",
-      req: request,
-      router: publicRouter,
-      createContext: context.createContext,
-    }),
-  );
+  return createOpenApiFetchHandler({
+    endpoint: "/api/v1",
+    req: request,
+    router: publicRouter,
+    createContext: createFetchContext(prisma, request),
+  });
 }
 
-test("login sets a seven-day session cookie and logout clears it", async () => {
-  const password = "Parcelis-password-123!";
-  let createdTokenHash: string | undefined;
-  const prisma = {
-    user: {
-      findUnique: async () => ({
-        id: 7,
-        email: "owner@example.com",
-        accountStatus: "active",
-        passwordHash: await hashPassword(password),
+test("legacy login and logout procedures are removed", async () => {
+  for (const procedure of ["auth.login", "auth.logout"]) {
+    const response = await trpc(
+      new Request(`http://localhost/trpc/${procedure}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
       }),
-    },
-    session: {
-      create: async ({ data }: { data: { tokenHash: string } }) => {
-        createdTokenHash = data.tokenHash;
-      },
-    },
-  } as unknown as PrismaClient;
-  const login = await trpc(
-    new Request("http://localhost/trpc/auth.login", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: "owner@example.com", password }),
-    }),
-    prisma,
-  );
-  assert.equal(login.status, 200);
-  const cookie = login.headers.get("set-cookie") ?? "";
-  assert.match(cookie, new RegExp(`^${sessionCookieName}=[A-Za-z0-9_-]+;`));
-  assert.match(cookie, /Max-Age=604800/i);
-  assert.match(cookie, /HttpOnly/i);
-  assert.match(cookie, /SameSite=lax/i);
-  assert.match(cookie, /Path=\//i);
-  assert.match(createdTokenHash ?? "", /^[a-f0-9]{64}$/);
-  assert.ok(!cookie.includes(createdTokenHash!));
-
-  const logout = await trpc(
-    new Request("http://localhost/trpc/auth.logout", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{}",
-    }),
-    prisma,
-  );
-  assert.equal(logout.status, 200);
-  assert.match(logout.headers.get("set-cookie") ?? "", /Max-Age=0/i);
+      {} as PrismaClient,
+    );
+    assert.equal(response.status, 404);
+    assert.equal(response.headers.get("set-cookie"), null);
+  }
 });
 
 test("an authenticated batch resolves organization access once", async () => {
   const data = fixture();
   const response = await trpc(
-    new Request("http://localhost/trpc/auth.session,tags.list?batch=1", {
+    new Request("http://localhost/trpc/tags.list,tags.list?batch=1", {
       headers: {
-        cookie: `${sessionCookieName}=token`,
+        cookie: await createTestSessionCookie(),
         "x-parcelis-organization-slug": "portfolio",
       },
     }),
@@ -136,7 +85,7 @@ test("an authenticated batch resolves organization access once", async () => {
   assert.equal(response.status, 200);
   const result = await response.json();
   assert.equal(result.length, 2);
-  assert.equal(result[0].result.data.idleTimeoutEnabled, true);
+  assert.equal(result[0].result.data[0].label, "Priority");
   assert.equal(result[1].result.data[0].label, "Priority");
   assert.equal(data.membershipReads(), 1);
   assert.deepEqual(data.membershipQuery(), {
@@ -147,26 +96,26 @@ test("an authenticated batch resolves organization access once", async () => {
   assert.equal(response.headers.get("set-cookie"), null);
 });
 
-test("REST rejects a stale session and preserves cookie deletion on the error response", async () => {
+test("REST rejects a JWT whose user no longer exists", async () => {
   const prisma = {
-    session: { findFirst: async () => null },
+    user: { findUnique: async () => null },
   } as unknown as PrismaClient;
   const response = await rest(
     new Request("http://localhost/api/v1/tags", {
-      headers: { cookie: `${sessionCookieName}=stale` },
+      headers: { cookie: await createTestSessionCookie() },
     }),
     prisma,
   );
   assert.equal(response.status, 401);
   assert.equal((await response.json()).code, "UNAUTHORIZED");
-  assert.match(response.headers.get("set-cookie") ?? "", /Max-Age=0/i);
+  assert.equal(response.headers.get("set-cookie"), null);
 });
 
 test("REST preserves the data envelope and validation errors", async () => {
   const data = fixture();
   const tags = await rest(
     new Request("http://localhost/api/v1/tags", {
-      headers: { cookie: `${sessionCookieName}=token` },
+      headers: { cookie: await createTestSessionCookie() },
     }),
     data.prisma,
   );
@@ -177,27 +126,12 @@ test("REST preserves the data envelope and validation errors", async () => {
   assert.equal((await invalid.json()).code, "BAD_REQUEST");
 });
 
-test("activity expiration retains its error flag and deletes the cookie", async () => {
-  const data = fixture({ expireOnRenewal: true });
-  const response = await trpc(
-    new Request("http://localhost/trpc/auth.activity", {
-      method: "POST",
-      headers: { "content-type": "application/json", cookie: `${sessionCookieName}=token` },
-      body: "{}",
-    }),
-    data.prisma,
-  );
-  assert.equal(response.status, 401);
-  assert.equal((await response.json()).error.data.sessionExpired, true);
-  assert.match(response.headers.get("set-cookie") ?? "", /Max-Age=0/i);
-});
-
 test("organization access is still required for the REST wrappers", async () => {
   const data = fixture({ member: false });
   const response = await rest(
     new Request("http://localhost/api/v1/tags", {
       headers: {
-        cookie: `${sessionCookieName}=token`,
+        cookie: await createTestSessionCookie(),
         "x-parcelis-organization-slug": "unavailable",
       },
     }),
@@ -215,7 +149,7 @@ test("CORS permits the configured origin and denies browser access for other ori
   });
   process.env.WEB_ORIGIN = "https://parcelis.example";
   const response = handlePreflight(
-    new Request("http://localhost/trpc/auth.login", {
+    new Request("http://localhost/trpc/auth.register", {
       method: "OPTIONS",
       headers: {
         origin: "https://parcelis.example",
@@ -229,7 +163,7 @@ test("CORS permits the configured origin and denies browser access for other ori
   assert.equal(response.headers.get("access-control-allow-credentials"), "true");
   assert.match(response.headers.get("cache-control") ?? "", /no-store/);
   const rejected = applyApiHeaders(
-    new Request("http://localhost/trpc/auth.login", { headers: { origin: "https://other.example" } }),
+    new Request("http://localhost/trpc/auth.register", { headers: { origin: "https://other.example" } }),
     new Response(),
   );
   assert.equal(rejected.headers.get("access-control-allow-origin"), null);
@@ -244,7 +178,7 @@ test("invalid web origins omit CORS permissions without breaking API responses",
   for (const value of ["", "parcelis.example.com", "localhost:3000", "null", "file:///tmp", "ftp://example.com"]) {
     process.env.WEB_ORIGIN = value;
     for (const origin of [value, "null", "https://parcelis.example"]) {
-      const request = new Request("http://localhost/trpc/auth.login", { headers: { origin } });
+      const request = new Request("http://localhost/trpc/auth.register", { headers: { origin } });
       for (const response of [
         applyApiHeaders(request, new Response("ready")),
         handlePreflight(request, ["GET", "POST"]),
@@ -275,7 +209,7 @@ test("CORS accepts valid HTTP and HTTPS origins and normalizes their URLs", (t) 
 });
 
 test("forwarded client IPs require explicit proxy trust and use the trusted end of the chain", () => {
-  const request = new Request("http://localhost/trpc/auth.login", {
+  const request = new Request("http://localhost/trpc/auth.register", {
     headers: { "x-forwarded-for": "198.51.100.99, 203.0.113.8, 127.0.0.1" },
   });
   assert.equal(getClientIp(request, 0), undefined);

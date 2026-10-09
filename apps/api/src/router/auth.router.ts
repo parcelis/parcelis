@@ -1,7 +1,4 @@
-import { sessionStatusSchema } from "@parcelis/schemas";
-import { getSessionStatus, renewSession, sessionExpiredMessage } from "../modules/session";
 import {
-  authLoginInputSchema,
   authRegisterInputSchema,
   changeEmailInputSchema,
   changePasswordInputSchema,
@@ -15,7 +12,6 @@ import { Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@parcelis/email";
 import {
-  clearSessionCookie,
   createEmailVerificationToken,
   createPasswordResetToken,
   getEmailVerificationTokenExpiration,
@@ -25,9 +21,7 @@ import {
   hashEmailVerificationToken,
   hashPassword,
   hashPasswordResetToken,
-  setSessionCookie,
   verifyPassword,
-  isAuthenticationDisabled,
 } from "../modules/auth";
 import { queueNotificationEmailOutboxEvent } from "../modules/notification-outbox";
 import {
@@ -43,7 +37,6 @@ import {
   getPasswordResetRateLimitKey,
 } from "../modules/login-rate-limit";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
-import { loginWithCredentials } from "../modules/credentials-login";
 import { createUserProfileImageDownloadUrl } from "../modules/object-storage.config";
 import { getRolePermissions } from "../modules/permissions";
 
@@ -58,17 +51,6 @@ const invalidEmailVerificationToken = new TRPCError({
 });
 
 export const authRouter = router({
-  session: protectedProcedure.output(sessionStatusSchema).query(({ ctx }) => getSessionStatus(ctx.session)),
-
-  activity: protectedProcedure.output(sessionStatusSchema).mutation(async ({ ctx }) => {
-    const status = await renewSession(ctx.prisma, ctx.session.id);
-    if (!status) {
-      clearSessionCookie(ctx.res, ctx.req);
-      throw new TRPCError({ code: "UNAUTHORIZED", message: sessionExpiredMessage });
-    }
-    return status;
-  }),
-
   register: publicProcedure.input(authRegisterInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getLoginRateLimitKey(ctx.req.ip, input.email);
     consumeLoginRateLimit(rateLimitKey);
@@ -238,12 +220,6 @@ export const authRouter = router({
       return { success: true };
     }),
 
-  login: publicProcedure.input(authLoginInputSchema).mutation(async ({ ctx, input }) => {
-    const { user, token } = await loginWithCredentials(ctx.prisma, input, ctx.req.ip);
-    setSessionCookie(ctx.res, token);
-    return { user };
-  }),
-
   requestPasswordReset: publicProcedure.input(requestPasswordResetInputSchema).mutation(async ({ ctx, input }) => {
     const rateLimitKey = getPasswordResetRateLimitKey(ctx.req.ip, input.email);
     consumePasswordResetRateLimit(rateLimitKey);
@@ -334,14 +310,8 @@ export const authRouter = router({
       if (!updatedUser.count) {
         throw invalidPasswordResetToken;
       }
-
-      await tx.session.updateMany({
-        where: { userId: passwordResetToken.userId, revokedAt: null },
-        data: { revokedAt: usedAt },
-      });
     });
 
-    clearSessionCookie(ctx.res, ctx.req);
     return { success: true };
   }),
 
@@ -357,13 +327,7 @@ export const authRouter = router({
     }
 
     const passwordHash = await hashPassword(input.newPassword);
-    await ctx.prisma.$transaction([
-      ctx.prisma.user.update({ where: { id: ctx.user.id }, data: { passwordHash } }),
-      ctx.prisma.session.updateMany({
-        where: { userId: ctx.user.id, id: { not: ctx.session.id }, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
-    ]);
+    await ctx.prisma.user.update({ where: { id: ctx.user.id }, data: { passwordHash } });
     clearLoginRateLimit(rateLimitKey);
     return { success: true };
   }),
@@ -401,14 +365,6 @@ export const authRouter = router({
       data: { name: input.name, phone: input.phone || null },
       select: { id: true, name: true, email: true, phone: true, role: true, accountStatus: true },
     });
-  }),
-
-  logout: publicProcedure.mutation(async ({ ctx }) => {
-    if (!isAuthenticationDisabled() && ctx.session) {
-      await ctx.prisma.session.update({ where: { id: ctx.session.id }, data: { revokedAt: new Date() } });
-    }
-    clearSessionCookie(ctx.res, ctx.req);
-    return { success: true };
   }),
 
   me: protectedProcedure.query(async ({ ctx }) => {

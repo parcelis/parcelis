@@ -1,5 +1,4 @@
 import type { PrismaClient } from "@parcelis/db";
-import type { SessionResponse } from "../modules/auth";
 import { readSession } from "../modules/session";
 
 export type ApiRequest = {
@@ -7,11 +6,11 @@ export type ApiRequest = {
   ip?: string;
 };
 
-type ContextOptions = { req: ApiRequest; res: SessionResponse };
+type ContextOptions = { req: ApiRequest };
 
 export function createContext(prisma: PrismaClient) {
   return async (opts: ContextOptions) => {
-    const session = await readSession(prisma, opts.req, opts.res);
+    const session = await readSession(prisma, opts.req);
 
     const requestedOrganizationSlug = opts.req.headers["x-parcelis-organization-slug"];
     const organizationSlug = Array.isArray(requestedOrganizationSlug)
@@ -23,7 +22,7 @@ export function createContext(prisma: PrismaClient) {
             .findFirst({
               where: organizationSlug
                 ? { slug: organizationSlug }
-                : { id: session.activeOrganizationId ?? session.user.defaultOrganizationId ?? undefined },
+                : { id: session.user.defaultOrganizationId ?? undefined },
               orderBy: { createdAt: "asc" },
             })
             .then((activeOrganization) =>
@@ -40,18 +39,16 @@ export function createContext(prisma: PrismaClient) {
               userId: session.userId,
               ...(organizationSlug
                 ? { organization: { slug: organizationSlug } }
-                : session.activeOrganizationId
-                  ? { organizationId: session.activeOrganizationId }
-                  : session.user.defaultOrganizationId
-                    ? { organizationId: session.user.defaultOrganizationId }
-                    : {}),
+                : session.user.defaultOrganizationId
+                  ? { organizationId: session.user.defaultOrganizationId }
+                  : {}),
             },
             include: { organization: true },
             orderBy: { createdAt: "asc" },
           })
       : null;
 
-    return { prisma, req: opts.req, res: opts.res, session, organization };
+    return { prisma, req: opts.req, session, organization };
   };
 }
 

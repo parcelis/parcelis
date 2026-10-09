@@ -1,46 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import * as argon2 from "argon2";
-import { getNextAuthCookies, nextAuthCookieName } from "./nextauth-token";
-
-export type SessionRequest = {
-  headers: { cookie?: string };
-};
-
-export type SessionCookieOptions = {
-  domain?: string;
-  httpOnly: boolean;
-  sameSite: "lax";
-  secure: boolean;
-  path: string;
-  maxAgeMs?: number;
-};
-
-export type SessionResponse = {
-  cookie: (name: string, value: string, options: SessionCookieOptions) => void;
-  clearCookie: (name: string, options: SessionCookieOptions) => void;
-};
-
-export const sessionCookieName = "parcelis_session_v2";
-
-const sessionDurationMs = 1000 * 60 * 60 * 24 * 7;
 const passwordResetTokenDurationMs = 1000 * 60 * 30;
 const emailVerificationTokenDurationMs = 1000 * 60 * 60 * 24;
-
-export function isAuthenticationDisabled() {
-  return process.env.AUTH_DISABLED === "true" && ["development", "test"].includes(process.env.NODE_ENV ?? "");
-}
-
-export function getCookieOptions() {
-  const isLocalEnvironment = ["development", "test"].includes(process.env.NODE_ENV ?? "");
-
-  return {
-    domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
-    httpOnly: true,
-    sameSite: "lax" as const,
-    secure: process.env.AUTH_COOKIE_SECURE ? process.env.AUTH_COOKIE_SECURE === "true" : !isLocalEnvironment,
-    path: "/",
-  };
-}
 
 export const passwordHashOptions = {
   type: argon2.argon2id as 2,
@@ -57,46 +18,19 @@ export function verifyPassword(passwordHash: string, password: string) {
   return argon2.verify(passwordHash, password);
 }
 
-export function createSessionToken() {
+function createRecoveryToken() {
   return randomBytes(32).toString("base64url");
 }
 
-export const createPasswordResetToken = createSessionToken;
-export const createEmailVerificationToken = createSessionToken;
+export const createPasswordResetToken = createRecoveryToken;
+export const createEmailVerificationToken = createRecoveryToken;
 
-export function hashSessionToken(token: string) {
+function hashRecoveryToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export const hashPasswordResetToken = hashSessionToken;
-export const hashEmailVerificationToken = hashSessionToken;
-
-export function getSessionToken(request: SessionRequest) {
-  const cookies = request.headers.cookie?.split(";") ?? [];
-  const sessionCookie = cookies.find((cookie) => cookie.trim().startsWith(`${sessionCookieName}=`));
-  return sessionCookie?.split("=").slice(1).join("=");
-}
-
-export function setSessionCookie(response: SessionResponse, token: string) {
-  response.cookie(sessionCookieName, token, {
-    ...getCookieOptions(),
-    httpOnly: true,
-    maxAgeMs: sessionDurationMs,
-  });
-}
-
-export function clearSessionCookie(response: SessionResponse, request?: SessionRequest) {
-  const names = new Set([
-    sessionCookieName,
-    nextAuthCookieName,
-    ...(request ? getNextAuthCookies(request).map((cookie) => cookie.slice(0, cookie.indexOf("="))) : []),
-  ]);
-  for (const name of names) response.clearCookie(name, getCookieOptions());
-}
-
-export function getSessionExpiration() {
-  return new Date(Date.now() + sessionDurationMs);
-}
+export const hashPasswordResetToken = hashRecoveryToken;
+export const hashEmailVerificationToken = hashRecoveryToken;
 
 export function getPasswordResetTokenExpiration() {
   return new Date(Date.now() + passwordResetTokenDurationMs);

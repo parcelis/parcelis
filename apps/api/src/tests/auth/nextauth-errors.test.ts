@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 import type { PrismaClient } from "@parcelis/db";
 import { authenticationUnavailableMessage } from "@parcelis/schemas";
 import { GET, POST } from "../../app/api/auth/[...nextauth]/route";
-import { nextAuthCookieName } from "../../modules/nextauth-token";
+import { nextAuthCookieName } from "./session-cookie";
 import { readSession } from "../../modules/session";
 
 for (const secret of [undefined, "", "   "]) {
@@ -30,20 +30,10 @@ for (const secret of [undefined, "", "   "]) {
       assert.equal(response.headers.get("set-cookie"), null);
     }
 
-    const cleared: string[] = [];
-    const session = await readSession(
-      {} as PrismaClient,
-      { headers: { cookie: `${nextAuthCookieName}=old-cookie; parcelis_session_v2=legacy-cookie` } },
-      {
-        cookie() {},
-        clearCookie(name) {
-          cleared.push(name);
-        },
-      },
-    );
+    const session = await readSession({} as PrismaClient, {
+      headers: { cookie: `${nextAuthCookieName}=old-cookie; parcelis_session_v2=legacy-cookie` },
+    });
     assert.equal(session, null);
-    assert.ok(cleared.includes(nextAuthCookieName));
-    assert.ok(cleared.includes("parcelis_session_v2"));
   });
 }
 

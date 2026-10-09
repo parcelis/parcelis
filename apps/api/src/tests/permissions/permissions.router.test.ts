@@ -38,17 +38,7 @@ function createDeniedCaller(
     prisma,
     req: {},
     res: {},
-    session: {
-      id: 1,
-      userId: user.id,
-      tokenHash: "test",
-      expiresAt: new Date(Date.now() + 60_000),
-      revokedAt: null,
-      createdAt: new Date(),
-      lastSeenAt: new Date(),
-      activeOrganizationId: 1,
-      user,
-    },
+    session: { userId: user.id, user },
     organization: {
       id: 1,
       userId: user.id,

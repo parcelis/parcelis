@@ -2,33 +2,42 @@ import type { PrismaClient } from "@parcelis/db";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { TRPCError } from "@trpc/server";
-import { getCookieOptions, hashSessionToken } from "./auth";
-import { loginWithCredentials } from "./credentials-login";
-import { getNextAuthConfiguration, nextAuthCookieName, nextAuthSessionMaxAge } from "./nextauth-token";
-import { getSessionStatus, validSessionWhere } from "./session";
+import { authLoginInputSchema } from "@parcelis/schemas";
+import { hashPassword, verifyPassword } from "./auth";
+import { clearLoginRateLimit, consumeLoginRateLimit, getLoginRateLimitKey } from "./login-rate-limit";
+import { getNextAuthConfiguration } from "./nextauth-config";
 import { getClientIp } from "../router/fetch-context";
 
-declare module "next-auth" {
-  interface User {
-    sessionToken: string;
+const sessionMaxAge = 7 * 24 * 60 * 60;
+
+export async function loginWithCredentials(prisma: PrismaClient, credentials: unknown, ip?: string) {
+  const input = authLoginInputSchema.parse(credentials);
+  const rateLimitKey = getLoginRateLimitKey(ip, input.email);
+  consumeLoginRateLimit(rateLimitKey);
+  const user = await prisma.user.findUnique({ where: { email: input.email } });
+  const isPasswordValid = user
+    ? await verifyPassword(user.passwordHash, input.password)
+    : (await hashPassword(input.password), false);
+  if (!user || !isPasswordValid) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password." });
   }
+  if (user.accountStatus === "pending") {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Please verify your email before signing in." });
+  }
+  if (user.accountStatus === "disabled") {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "This account has been disabled." });
+  }
+
+  clearLoginRateLimit(rateLimitKey);
+  return { id: String(user.id), name: user.name, email: user.email };
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    sessionToken?: string;
-  }
-}
-
-export function createNextAuthOptions(
-  prisma: PrismaClient,
-  { secret, origin } = getNextAuthConfiguration(),
-): NextAuthOptions {
+export function createNextAuthOptions(prisma: PrismaClient, { secret } = getNextAuthConfiguration()): NextAuthOptions {
   return {
     secret,
-    session: { strategy: "jwt", maxAge: nextAuthSessionMaxAge },
+    session: { strategy: "jwt", maxAge: sessionMaxAge },
+    jwt: { maxAge: sessionMaxAge },
     pages: { signIn: "/login", error: "/login" },
-    cookies: { sessionToken: { name: nextAuthCookieName, options: getCookieOptions() } },
     providers: [
       CredentialsProvider({
         name: "Email and password",
@@ -39,8 +48,7 @@ export function createNextAuthOptions(
             const forwardedFor = request.headers?.["x-forwarded-for"];
             if (typeof forwardedFor === "string") headers.set("x-forwarded-for", forwardedFor);
             const ip = getClientIp(new Request("http://localhost", { headers }));
-            const { user, token } = await loginWithCredentials(prisma, credentials, ip);
-            return { id: String(user.id), email: user.email, sessionToken: token };
+            return await loginWithCredentials(prisma, credentials, ip);
           } catch (error) {
             if (error instanceof TRPCError) throw new Error(error.message);
             throw new Error("Unable to sign in. Please try again.");
@@ -49,46 +57,16 @@ export function createNextAuthOptions(
       }),
     ],
     callbacks: {
-      async jwt({ token, user }) {
-        if (user) token.sessionToken = user.sessionToken;
-        const session =
-          typeof token.sessionToken === "string"
-            ? await prisma.session.findFirst({
-                where: { tokenHash: hashSessionToken(token.sessionToken), ...validSessionWhere(new Date()) },
-              })
-            : null;
-        if (!session) throw new Error("Your session has expired. Please sign in again.");
-        return token;
-      },
       async session({ session, token }) {
-        if (typeof token.sessionToken !== "string") throw new Error("Invalid session.");
-        const record = await prisma.session.findFirst({
-          where: { tokenHash: hashSessionToken(token.sessionToken), ...validSessionWhere(new Date()) },
-          include: { user: { select: { name: true, email: true } } },
+        const id = Number(token.sub);
+        if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid session.");
+        const user = await prisma.user.findUnique({
+          where: { id },
+          select: { name: true, email: true, accountStatus: true },
         });
-        if (!record) throw new Error("Your session has expired. Please sign in again.");
-        session.user = { name: record.user.name, email: record.user.email };
-        session.expires = new Date(getSessionStatus(record).expiresAt).toISOString();
+        if (!user || user.accountStatus !== "active") throw new Error("Please sign in again.");
+        session.user = { name: user.name, email: user.email };
         return session;
-      },
-      async redirect({ url }) {
-        if (url.startsWith("/") && !url.startsWith("//") && !url.includes("\\")) return `${origin}${url}`;
-        try {
-          if (new URL(url).origin === origin) return url;
-        } catch {
-          return origin;
-        }
-        return origin;
-      },
-    },
-    events: {
-      async signOut({ token }) {
-        if (typeof token?.sessionToken === "string") {
-          await prisma.session.updateMany({
-            where: { tokenHash: hashSessionToken(token.sessionToken), revokedAt: null },
-            data: { revokedAt: new Date() },
-          });
-        }
       },
     },
   };
