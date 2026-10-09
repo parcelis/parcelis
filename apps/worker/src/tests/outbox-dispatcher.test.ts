@@ -283,7 +283,11 @@ test("does not redispatch a notification when its BullMQ job still exists", asyn
   } as unknown as PrismaClient;
   let readded = false;
   const queue = {
-    getJob: async () => ({ id: "outbox-event-21" }),
+    getJob: async () => ({
+      id: "outbox-event-21",
+      name: "notification.email.v1",
+      data: { ...(event.payload as object), outboxEventId: event.id },
+    }),
     add: async () => {
       readded = true;
     },
@@ -323,7 +327,11 @@ test("notification recovery processes a second page after a full batch", async (
   const queue = {
     getJob: async (jobId: string) => {
       checkedJobIds.push(jobId);
-      return { id: jobId };
+      return {
+        id: jobId,
+        name: "notification.email.v1",
+        data: { ...payload, outboxEventId: Number(jobId.replace("outbox-event-", "")) },
+      };
     },
     add: async () => assert.fail("Existing jobs must not be restored"),
   } as unknown as Queue;
@@ -459,7 +467,13 @@ for (const state of ["completed", "failed", "active", "waiting", "delayed"] as c
     let added = false;
     const queue = {
       getJob: async () => ({
-        timestamp: event.createdAt.getTime() - 86_400_000,
+        name: "notification.email.v1",
+        data: {
+          ...(event.payload as object),
+          email: "stale@example.com",
+          outboxEventId: event.id,
+        },
+        timestamp: event.createdAt.getTime(),
         getState: async () => state,
         remove: async () => {
           removed = true;
@@ -472,8 +486,8 @@ for (const state of ["completed", "failed", "active", "waiting", "delayed"] as c
       },
     } as unknown as Queue;
     await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
-    const terminal = state === "completed" || state === "failed";
-    assert.equal(removed, terminal);
-    assert.equal(added, terminal);
+    const active = state === "active";
+    assert.equal(removed, !active);
+    assert.equal(added, !active);
   });
 }

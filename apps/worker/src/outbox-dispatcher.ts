@@ -170,7 +170,7 @@ export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, 
           }
 
           const state = await existingJob.getState();
-          if (state !== "completed" && state !== "failed") continue;
+          if (state === "active") continue;
           // A database reset can reuse an ID retained by an older Redis job.
           await existingJob.remove();
         }
