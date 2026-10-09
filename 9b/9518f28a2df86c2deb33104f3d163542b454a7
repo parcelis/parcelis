@@ -1,0 +1,19 @@
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_f9ccbbf504bdcb::t_35550a5f897cd7 22-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9b9518f28a2df86c2deb33104f3d163542b454a7",
+  "prompts": {},
+  "sessions": {
+    "s_f9ccbbf504bdcb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11eb4-45c3-74f3-a7bf-b6bfbd17b8aa",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
