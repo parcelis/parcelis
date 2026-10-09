@@ -1,0 +1,40 @@
+apps/web/components/auth-session.tsx
+  s_f9ccbbf504bdcb::t_7ae28851ae17b3 1-20,26
+  s_f9ccbbf504bdcb::t_d86cc8b198bc74 21-25
+apps/web/app/(authenticated)/layout.tsx
+  s_f9ccbbf504bdcb::t_7ae28851ae17b3 8,17,24
+  s_f9ccbbf504bdcb::t_d86cc8b198bc74 18-23
+apps/web/app/(authenticated)/settings/jobs/page.tsx
+  s_f9ccbbf504bdcb::t_d86cc8b198bc74 31
+apps/web/app/login/page.tsx
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 4,201
+  s_f9ccbbf504bdcb::t_9b2c25bd934a25 88
+apps/web/components/sidebar.tsx
+  s_f9ccbbf504bdcb::t_0c5b42c695f9ba 4,289-290
+  s_f9ccbbf504bdcb::t_7ae28851ae17b3 291
+tests/e2e/jwt-session.spec.ts
+  s_f9ccbbf504bdcb::t_d95a95ed1bd258 12-19,30,48,62-63
+  s_f9ccbbf504bdcb::t_71d4dbfedc55c1 65-81
+  s_f9ccbbf504bdcb::t_cac21a1fc1e212 6,9-11,20-29,31-47,49-61,64
+  s_f9ccbbf504bdcb::t_a1107f3c0b12c9 1-2,7-8
+  s_f9ccbbf504bdcb::t_05836e3466c08c 3-5
+apps/web/proxy.ts
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 29,37,51,70
+  s_f9ccbbf504bdcb::t_d95a95ed1bd258 1,15,27-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "223be0f490eb1450e9bd9ed45024714ef96e49eb",
+  "prompts": {},
+  "sessions": {
+    "s_f9ccbbf504bdcb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11eb4-45c3-74f3-a7bf-b6bfbd17b8aa",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
