@@ -1,0 +1,89 @@
+apps/api/src/app/api/v1/[...path]/route.ts
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 16,18
+apps/api/src/modules/nextauth.ts
+  s_f9ccbbf504bdcb::t_aa1e35665a3dc3 32,51,61-65,67-68
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 6,8
+  s_f9ccbbf504bdcb::t_0c5b42c695f9ba 5,7,13-25,27-31
+  s_f9ccbbf504bdcb::t_6136f9b3aff14b 11,35,38-39
+apps/api/src/modules/session.ts
+  s_f9ccbbf504bdcb::t_aa1e35665a3dc3 1,12,14-16,27-30
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 2-3,5-10,13
+  s_f9ccbbf504bdcb::t_d86cc8b198bc74 17-24
+apps/api/src/router/context.ts
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 9,13,51
+  s_f9ccbbf504bdcb::t_aa1e35665a3dc3 25,42-44
+apps/api/src/router/app.router.ts
+  s_f9ccbbf504bdcb::t_aa1e35665a3dc3 690-692
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_f9ccbbf504bdcb::t_e7343121761012 41
+apps/api/src/modules/job-dashboard.ts
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 103,106
+  s_f9ccbbf504bdcb::t_9b5ed899e8025b 87
+apps/api/src/router/fetch-context.ts
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 15-20,22-24
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_f9ccbbf504bdcb::t_c4eaa559ae063e 1,444,464
+  s_f9ccbbf504bdcb::t_e7343121761012 321
+apps/api/src/tests/auth/session.test.ts
+  s_f9ccbbf504bdcb::t_d86cc8b198bc74 3,5,7-11,13-14,18-22,27-31,33-35
+  s_f9ccbbf504bdcb::t_c5510520ddbb08 6,12,23,32
+apps/api/src/app/api/auth/[...nextauth]/route.ts
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 5
+apps/api/src/tests/auth/fetch-handlers.test.ts
+  s_f9ccbbf504bdcb::t_f12492ca0be7be 77,88
+  s_f9ccbbf504bdcb::t_7ae28851ae17b3 12,24,79,101,105,111,118,134
+  s_f9ccbbf504bdcb::t_796188431d3e0d 61-65,67-68
+  s_f9ccbbf504bdcb::t_c4eaa559ae063e 6,59-60,69-71,152,166,181,212
+  s_f9ccbbf504bdcb::t_7bd6459d8d7b99 42-47,51-56,99
+apps/api/src/tests/invoices/invoice-pdf.http.integration.test.ts
+  s_f9ccbbf504bdcb::t_c4eaa559ae063e 1,145,159-160,244,253
+  s_f9ccbbf504bdcb::t_796188431d3e0d 201-202
+  s_f9ccbbf504bdcb::t_7ae28851ae17b3 5,146
+  s_f9ccbbf504bdcb::t_4713f7c29e8f11 2
+apps/api/src/tests/auth/nextauth.test.ts
+  s_f9ccbbf504bdcb::t_f95cf4d8a85eaa 201-221
+  s_f9ccbbf504bdcb::t_d86cc8b198bc74 6-7,11-12,31-34,102,105,108,113-115,117-118,121,130-131,134-141,143,145,152-153,177,186,192-193,200
+  s_f9ccbbf504bdcb::t_c4eaa559ae063e 146,148,180
+  s_f9ccbbf504bdcb::t_308864cec679e4 151,154-160,183,188-191,194-199
+apps/api/src/tests/jobs/job-dashboard-session.test.ts
+  s_f9ccbbf504bdcb::t_d86cc8b198bc74 5,8-10,15-18,20-28
+apps/api/src/tests/jobs/job-dashboard.fetch.test.ts
+  s_f9ccbbf504bdcb::t_7ae28851ae17b3 15-16,18,27,68
+  s_f9ccbbf504bdcb::t_c4eaa559ae063e 7,25,38,40,45,52,76,82,99,104,111,128,166,175,181,192,212,238-239
+apps/api/src/tests/auth/session-cookie.ts
+  s_f9ccbbf504bdcb::t_7ae28851ae17b3 4,7
+  s_f9ccbbf504bdcb::t_90f1ad11703db1 1,3,6,8-9
+  s_f9ccbbf504bdcb::t_16f396991093f3 2,5
+apps/api/src/router/trpc.ts
+  s_f9ccbbf504bdcb::t_aa1e35665a3dc3 6
+apps/api/src/app/trpc/[trpc]/route.ts
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 16,18
+packages/db/prisma/migrations/20261009000000_remove_database_sessions/migration.sql
+  s_f9ccbbf504bdcb::t_ce01a67b826e6b 1
+apps/api/src/modules/nextauth-config.ts
+  s_f9ccbbf504bdcb::t_bc3e1b53f8674f 14
+apps/api/src/modules/auth.ts
+  s_f9ccbbf504bdcb::t_aa1e35665a3dc3 21,25-26,28,32-33
+apps/api/src/router/auth.router.ts
+  s_f9ccbbf504bdcb::t_aa1e35665a3dc3 330
+apps/api/src/tests/auth/nextauth-errors.test.ts
+  s_f9ccbbf504bdcb::t_89f698519e1fb9 7,33-35
+apps/api/src/tests/auth/organization-switch.test.ts
+  s_f9ccbbf504bdcb::t_22956720c703ef 3,5-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a9a6c894c4885197636d4eabf27369746b05cf59",
+  "prompts": {},
+  "sessions": {
+    "s_f9ccbbf504bdcb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11eb4-45c3-74f3-a7bf-b6bfbd17b8aa",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
