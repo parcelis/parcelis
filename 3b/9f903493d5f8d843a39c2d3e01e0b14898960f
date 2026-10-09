@@ -1,0 +1,38 @@
+CONTRIBUTING.md
+  s_f9ccbbf504bdcb::t_cf5e01202fe9cd 122
+  s_f9ccbbf504bdcb::t_d40e7b45986d30 93,233
+ARCHITECTURE.md
+  s_f9ccbbf504bdcb::t_cf5e01202fe9cd 97
+  s_f9ccbbf504bdcb::t_f9490a04a2aec3 17,111,142,177
+demo/render/README.md
+  s_f9ccbbf504bdcb::t_cf5e01202fe9cd 20-21,24
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_f9ccbbf504bdcb::t_cf5e01202fe9cd 80
+  s_f9ccbbf504bdcb::t_961e62ff4c325a 32
+DEPENDENCIES.md
+  s_f9ccbbf504bdcb::t_46272320bacef4 11
+README.md
+  s_f9ccbbf504bdcb::t_b14caa0a7929eb 179
+apps/docs/content/contributing/architecture.mdx
+  s_f9ccbbf504bdcb::t_593ced5905f914 32,36
+apps/docs/content/platform-user-guide/getting-started/sign-in.mdx
+  s_f9ccbbf504bdcb::t_8d1dadd1dedf2b 24,26,32
+apps/docs/content/platform-user-guide/navigation-and-preferences/sidebar.mdx
+  s_f9ccbbf504bdcb::t_ff6ba31c644ea9 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3b9f903493d5f8d843a39c2d3e01e0b14898960f",
+  "prompts": {},
+  "sessions": {
+    "s_f9ccbbf504bdcb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11eb4-45c3-74f3-a7bf-b6bfbd17b8aa",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
