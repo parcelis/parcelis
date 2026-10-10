@@ -35,3 +35,141 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
+
+  docker-build:
+    needs: quality
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: parcelis
+          POSTGRES_PASSWORD: parcelis
+          POSTGRES_DB: parcelis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U parcelis -d parcelis"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build modular app image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.app
+          target: app
+          tags: parcelis/app:test
+          load: true
+      - name: Build all-in-one image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.app
+          target: all-in-one
+          tags: parcelis/parcelis:test
+          load: true
+      - name: Smoke test all-in-one image
+        env:
+          DATABASE_URL: postgresql://parcelis:parcelis@localhost:5432/parcelis?schema=public
+          REDIS_PASSWORD: parcelis-test-redis-pw
+        run: |
+          # Redis backs the API job queues and the worker; the API refuses to
+          # boot without REDIS_HOST/REDIS_PASSWORD. The password must be
+          # passed into the Redis container so its --requirepass matches.
+          docker run -d --name ci-redis --network host \
+            -e REDIS_PASSWORD="$REDIS_PASSWORD" \
+            redis:8-alpine \
+            sh -c 'exec redis-server --requirepass "$REDIS_PASSWORD"'
+
+          # The migration job must run from the image as an explicit deploy step.
+          docker run --rm --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -w /repo \
+            parcelis/parcelis:test \
+            pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
+
+          # Start the single application image; nginx fronts web, API, and docs.
+          docker run -d --name parcelis-all-test --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e WEB_ORIGIN=http://localhost:3000 \
+            -e AUTH_DISABLED=false \
+            -e EMAIL_FROM='Parcelis <no-reply@example.com>' \
+            -e SMTP_HOST=localhost \
+            -e SMTP_PORT=1025 \
+            -e SMTP_SECURE=false \
+            -e REDIS_HOST=localhost \
+            -e REDIS_PORT=6379 \
+            -e REDIS_PASSWORD="$REDIS_PASSWORD" \
+            parcelis/parcelis:test
+
+          # Start the background worker from the same image.
+          docker run -d --name parcelis-worker-test --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e EMAIL_FROM='Parcelis <no-reply@example.com>' \
+            -e SMTP_HOST=localhost \
+            -e SMTP_PORT=1025 \
+            -e SMTP_SECURE=false \
+            -e REDIS_HOST=localhost \
+            -e REDIS_PORT=6379 \
+            -e REDIS_PASSWORD="$REDIS_PASSWORD" \
+            parcelis/parcelis:test \
+            pnpm --filter @parcelis/worker start
+
+          cleanup() {
+            docker logs parcelis-all-test || true
+            docker logs parcelis-worker-test || true
+            docker rm -f parcelis-all-test parcelis-worker-test ci-redis || true
+          }
+          trap cleanup EXIT
+
+          # Wait for the container health check (nginx -> API + web).
+          for _ in $(seq 1 36); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' parcelis-all-test)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "Container reported unhealthy"
+              exit 1
+            fi
+            sleep 5
+          done
+          [ "$(docker inspect --format '{{.State.Health.Status}}' parcelis-all-test)" = "healthy" ]
+
+          # The worker must connect to Redis from the packaged dist output.
+          for _ in $(seq 1 24); do
+            if docker logs parcelis-worker-test 2>&1 | grep -q "Worker connected to Redis"; then
+              break
+            fi
+            sleep 5
+          done
+          docker logs parcelis-worker-test 2>&1 | grep -q "Worker connected to Redis"
+
+          # Web app (follows / -> /login redirect), REST API, tRPC, docs
+          # index, and a nested docs route.
+          curl -fsSL http://localhost:3000/ -o /dev/null
+          curl -fsS http://localhost:3000/api/v1/health
+          echo
+          # In app.router.ts, `publicProcedure` is aliased to
+          # `organizationProcedure`, so every /trpc procedure (including
+          # health) requires a session. An unauthenticated call must answer
+          # 401 with the API's tRPC envelope (not the web 404 page): that
+          # proves nginx routes /trpc/* to the API.
+          trpc_status="$(curl -s -o /tmp/trpc.json -w '%{http_code}' 'http://localhost:3000/trpc/health?batch=1&input=%7B%220%22%3Anull%7D')"
+          [ "$trpc_status" = "401" ]
+          grep -q '"code":"UNAUTHORIZED"' /tmp/trpc.json
+          grep -q '"path":"health"' /tmp/trpc.json
+          curl -fsS http://localhost:3000/docs/ -o /dev/null
+          curl -fsS http://localhost:3000/docs/getting-started/deploy-with-docker-compose-single-image/ -o /dev/null
+
+          # The job dashboard must route to the API (401 from its auth
+          # middleware for anonymous requests), not fall through to Next.js.
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/admin/jobs/)" = "401" ]
+
+          trap - EXIT
+          docker rm -f parcelis-all-test parcelis-worker-test ci-redis

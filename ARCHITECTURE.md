@@ -207,7 +207,7 @@ pnpm --filter @parcelis/worker test
 
 ## Container deployment
 
-`Dockerfile.app` builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the single `app` image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the application container. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `app`, `docs`, and `proxy` to Docker Hub when a GitHub release is published.
+`Dockerfile.app` is the shared application Dockerfile. Its `app` target builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the modular `app` image, and its `all-in-one` target additionally bundles the documentation site into the single `parcelis` application image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to NestJS inside the application container. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `apps`, `docs`, `parcelis`, and `proxy` to Docker Hub when a GitHub release is published.
 
 ## Design rules
 
