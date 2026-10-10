@@ -1,0 +1,19 @@
+.github/workflows/discord-release-notifications.yml
+  s_ccf72cdff67155::t_6ebf148e501bb7 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f758d8f23c85369257a0ff0f30bab7d85780b933",
+  "prompts": {},
+  "sessions": {
+    "s_ccf72cdff67155": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a123b8-f07a-7263-8fd1-028a9075b055",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
