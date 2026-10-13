@@ -326,7 +326,7 @@ importers:
         version: 3.1.1(@types/react@19.3.0)(react@19.3.0)
       docusaurus-plugin-copy-page-button:
         specifier: ^0.8.4
-        version: 0.8.4(@docusaurus/core@3.10.2(af7d72f61b1c7c646b8342de8cc9806f))(react@19.3.0)
+        version: 0.8.5(@docusaurus/core@3.10.2(af7d72f61b1c7c646b8342de8cc9806f))(react@19.3.0)
       docusaurus-plugin-openapi-docs:
         specifier: ^5.2.0
         version: 5.2.0(@docusaurus/plugin-content-docs@3.10.2(af7d72f61b1c7c646b8342de8cc9806f))(@docusaurus/utils-validation@3.10.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@swc/html@1.16.13)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.29)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sharp@0.35.5(@types/node@24.19.2))(supports-color@8.1.1)(svgo@3.3.5))(@docusaurus/utils@3.10.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@swc/html@1.16.13)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.29)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sharp@0.35.5(@types/node@24.19.2))(supports-color@8.1.1)(svgo@3.3.5))(@types/json-schema@7.0.15)(react@19.3.0)
@@ -6432,8 +6432,8 @@ packages:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
 
-  docusaurus-plugin-copy-page-button@0.8.4:
-    resolution: {integrity: sha512-OBWmUEFIqR3BJ5giae6D518b69ZfZQ5HKrazrY2IPA6tDNX2F3m1ejeyE0oqcVcE7GVkE+K0+vJ5T+kIos8u1w==}
+  docusaurus-plugin-copy-page-button@0.8.5:
+    resolution: {integrity: sha512-2/rvjwGprqh4gWYpcJt5PFh9j4sKskMZOt9GEwVau7KLZdIgHW15w3UghWKhhFvIvk+NMblzWTKSf3ZN/QEelg==}
     engines: {node: '>=18.0'}
     peerDependencies:
       '@docusaurus/core': ^3.0.0
@@ -18641,7 +18641,7 @@ snapshots:
     dependencies:
       esutils: 2.0.3
 
-  docusaurus-plugin-copy-page-button@0.8.4(@docusaurus/core@3.10.2(af7d72f61b1c7c646b8342de8cc9806f))(react@19.3.0):
+  docusaurus-plugin-copy-page-button@0.8.5(@docusaurus/core@3.10.2(af7d72f61b1c7c646b8342de8cc9806f))(react@19.3.0):
     dependencies:
       '@docusaurus/core': 3.10.2(af7d72f61b1c7c646b8342de8cc9806f)
       react: 19.3.0
