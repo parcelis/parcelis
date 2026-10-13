@@ -12,7 +12,7 @@ jobs:
     if: ${{ !github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     steps:
-      - uses: scoobs-mystery-bytes/assign-issue-action@d4e85d5e61e01644ad8500dc01677788a2be9845
+      - uses: scoobs-mystery-bytes/assign-issue-action@4e7113127821cfc7a7d636cc23f82399bb8ccb78
         with:
           max_assignments: "10"
           required_label: "ready for development"
