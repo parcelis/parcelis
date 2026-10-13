@@ -1,0 +1,20 @@
+CONTRIBUTING.md
+  s_1c02263dd39177::t_076900d7769c10 63-65
+  s_1c02263dd39177::t_2cc8506b4b228e 66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "70c732033661f7d29b0f1b03f55efa9d73616f40",
+  "prompts": {},
+  "sessions": {
+    "s_1c02263dd39177": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1374f-797d-7ab2-b3de-a23348080192",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
