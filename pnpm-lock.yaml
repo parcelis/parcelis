@@ -280,10 +280,10 @@ importers:
         version: 7.8.2
       trpc-to-openapi:
         specifier: ^3.3.0
-        version: 3.3.0(@trpc/server@11.19.0(typescript@6.0.3))(zod-openapi@5.4.6(zod@4.6.5))(zod@4.6.5)
+        version: 3.3.0(@trpc/server@11.19.0(typescript@6.0.3))(zod-openapi@5.4.6(zod@4.6.7))(zod@4.6.7)
       zod:
         specifier: ^4.4.3
-        version: 4.6.5
+        version: 4.6.7
     devDependencies:
       '@nestjs/cli':
         specifier: ^11.0.24
@@ -453,7 +453,7 @@ importers:
         version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod:
         specifier: ^4.4.3
-        version: 4.6.5
+        version: 4.6.7
     devDependencies:
       '@parcelis/config':
         specifier: workspace:*
@@ -604,7 +604,7 @@ importers:
         version: 6.3.12(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       zod:
         specifier: ^4.6.5
-        version: 4.6.5
+        version: 4.6.7
     devDependencies:
       '@parcelis/config':
         specifier: workspace:*
@@ -623,7 +623,7 @@ importers:
     dependencies:
       zod:
         specifier: ^4.4.3
-        version: 4.6.5
+        version: 4.6.7
     devDependencies:
       '@parcelis/config':
         specifier: workspace:*
@@ -11394,8 +11394,8 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@4.6.5:
-    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -19049,8 +19049,8 @@ snapshots:
       '@babel/parser': 7.29.9
       eslint: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
       hermes-parser: 0.25.1
-      zod: 4.6.5
-      zod-validation-error: 4.0.2(zod@4.6.5)
+      zod: 4.6.7
+      zod-validation-error: 4.0.2(zod@4.6.7)
     transitivePeerDependencies:
       - supports-color
 
@@ -23848,14 +23848,14 @@ snapshots:
 
   trough@2.2.0: {}
 
-  trpc-to-openapi@3.3.0(@trpc/server@11.19.0(typescript@6.0.3))(zod-openapi@5.4.6(zod@4.6.5))(zod@4.6.5):
+  trpc-to-openapi@3.3.0(@trpc/server@11.19.0(typescript@6.0.3))(zod-openapi@5.4.6(zod@4.6.7))(zod@4.6.7):
     dependencies:
       '@trpc/server': 11.19.0(typescript@6.0.3)
       co-body: 6.2.0
       h3: 1.15.11
       openapi3-ts: 4.4.0
-      zod: 4.6.5
-      zod-openapi: 5.4.6(zod@4.6.5)
+      zod: 4.6.7
+      zod-openapi: 5.4.6(zod@4.6.7)
     optionalDependencies:
       '@rollup/rollup-linux-x64-gnu': 4.6.1
 
@@ -24571,14 +24571,14 @@ snapshots:
 
   zimmerframe@1.1.5: {}
 
-  zod-openapi@5.4.6(zod@4.6.5):
+  zod-openapi@5.4.6(zod@4.6.7):
     dependencies:
-      zod: 4.6.5
+      zod: 4.6.7
 
-  zod-validation-error@4.0.2(zod@4.6.5):
+  zod-validation-error@4.0.2(zod@4.6.7):
     dependencies:
-      zod: 4.6.5
+      zod: 4.6.7
 
-  zod@4.6.5: {}
+  zod@4.6.7: {}
 
   zwitch@2.0.4: {}
