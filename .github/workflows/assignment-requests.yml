@@ -25,7 +25,7 @@ jobs:
           permission-issues: write
 
       - name: Send assignment request
-        uses: scoobs-mystery-bytes/assign-issue-action@4e7113127821cfc7a7d636cc23f82399bb8ccb78
+        uses: scoobs-mystery-bytes/assign-issue-action@8e106875e067c6a20da487f29797d16ee2ff7f3c
         with:
           github_token: ${{ steps.app-token.outputs.token || github.token }}
           max_assignments: "10"
