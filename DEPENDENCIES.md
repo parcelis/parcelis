@@ -53,6 +53,12 @@ When adding or removing a primary technology or service, update this file in the
 | [Zod](https://zod.dev/)                                                        | Shared validation for application data.                                                   |
 
 Development and deployment Compose use the `parcelis/minio:final` mirror.
+The single-image stack additionally uses the `parcelis/minio-init:final` mirror
+for bucket initialization. Both are externally published MinIO mirrors, not
+artifacts of this repo's release workflow: the server mirror was verified at
+RELEASE.2025-09-07T16-13-09Z and the init mirror's `mc` client at
+RELEASE.2025-01-17T23-25-50Z. In the single-image stack they replace the removed
+Docker Hub `minio/*` images.
 Development and deployment PostgreSQL use `postgres:16-alpine` to match existing data volumes. A major-version upgrade requires an explicit database migration.
 
 ## Interface
@@ -88,6 +94,8 @@ Direct JavaScript dependencies are declared in:
 - Shared packages: `packages/*/package.json`
 
 `pnpm-lock.yaml` records the resolved dependency tree. Docker image tags are declared in `docker-compose.yml` and `apps/docs/Dockerfile`.
+
+Docker images are built from the shared Dockerfile.app (`app` target: modular web app + API + worker; `single-image` target: single application image with web app + API + worker + docs site + nginx edge routing), apps/docs/Dockerfile (modular docs site), and infra/docker/proxy/Dockerfile (modular proxy). Docker image tags are declared in docker-compose.yml and docker-compose-single-image.yml.
 
 ### Transitive dependency overrides
 
