@@ -11,9 +11,23 @@ jobs:
   notify:
     if: ${{ !github.event.issue.pull_request }}
     runs-on: ubuntu-latest
+
     steps:
-      - uses: scoobs-mystery-bytes/assign-issue-action@4e7113127821cfc7a7d636cc23f82399bb8ccb78
+      - name: Create optional GitHub App token
+        if: vars.ASSIGNMENT_APP_ID != ''
+        id: app-token
+        uses: actions/create-github-app-token@v3
         with:
+          app-id: ${{ vars.ASSIGNMENT_APP_ID }}
+          private-key: ${{ secrets.ASSIGNMENT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-issues: write
+
+      - name: Send assignment request
+        uses: scoobs-mystery-bytes/assign-issue-action@4e7113127821cfc7a7d636cc23f82399bb8ccb78
+        with:
+          github_token: ${{ steps.app-token.outputs.token || github.token }}
           max_assignments: "10"
           required_label: "ready for development"
           enable_auto_suggestion: "true"
