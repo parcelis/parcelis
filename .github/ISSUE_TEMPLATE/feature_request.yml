@@ -15,7 +15,7 @@ body:
     attributes:
       value: |
         > [!TIP]
-        > Want to implement this feature? Comment `/assign-me` to request maintainer approval.
+        > Want to implement this feature? Comment `/assign-me` to send a request for approval.
   - type: markdown
     attributes:
       value: Please provide a clear and concise title for your feature request
