@@ -6,6 +6,16 @@ description: Create a bug report to help us improve
 body:
   - type: markdown
     attributes:
+      value: |
+        > [!IMPORTANT]
+        > Wait for a maintainer to approve this issue before opening a PR. We'll signal approval with a comment or label. Feature PRs without an approved issue will be closed.
+  - type: markdown
+    attributes:
+      value: |
+        > [!TIP]
+        > Want to implement this feature? Comment `/assign-me` to send a request for approval.
+  - type: markdown
+    attributes:
       value: Thank you for reporting an issue.
         Please fill in as much of the form below as you're able to. This will help us reproduce the issue and be able to resolve efficiently.
   - type: textarea
