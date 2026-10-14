@@ -1,0 +1,14 @@
+.github/ISSUE_TEMPLATE/feature_request.yml
+  h_a5ff85794783c2 15-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4aad5a5a147768a7a966949a7b7b6e9cbe5ed7c6",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
