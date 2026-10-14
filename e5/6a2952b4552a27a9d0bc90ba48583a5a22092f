@@ -1,0 +1,14 @@
+.github/ISSUE_TEMPLATE/bug_report.yml
+  h_a5ff85794783c2 7-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e56a2952b4552a27a9d0bc90ba48583a5a22092f",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
