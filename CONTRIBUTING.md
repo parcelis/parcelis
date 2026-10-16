@@ -60,6 +60,10 @@ Pull requests validate every commit message in CI. If the repository uses squash
 
 Keep changes focused, run the relevant checks, and update user-facing documentation with workflow changes.
 
+CI runs script tests, lint, type checks, and the application build on every pull request and push
+to `main`. Docker builds and container smoke tests are not part of PR CI. The release workflow
+builds and publishes Docker images when a GitHub release is published.
+
 ### Repository structure
 
 Apps:

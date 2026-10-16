@@ -1,0 +1,38 @@
+name: Assignment requests
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  notify:
+    if: ${{ !github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create optional GitHub App token
+        if: vars.ASSIGNMENT_APP_ID != ''
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.ASSIGNMENT_APP_ID }}
+          private-key: ${{ secrets.ASSIGNMENT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-issues: write
+
+      - name: Send assignment request
+        uses: scoobs-mystery-bytes/assign-issue-action@8e106875e067c6a20da487f29797d16ee2ff7f3c
+        with:
+          github_token: ${{ steps.app-token.outputs.token || github.token }}
+          max_assignments: "10"
+          required_label: "ready for development"
+          enable_auto_suggestion: "true"
+          discord_buttons_enabled: "true"
+          discord_bot_token: ${{ secrets.DISCORD_BOT_TOKEN }}
+          discord_channel_id: ${{ vars.DISCORD_CHANNEL_ID }}
+          discord_button_secret: ${{ secrets.DISCORD_BUTTON_SECRET }}
+          discord_handler_url: https://issue-assignment-approvals.parcelis.workers.dev
