@@ -1,0 +1,19 @@
+.github/workflows/pr-title-lint.yml
+  s_04a467e36c224a::t_0d95a4ae410a01 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a523a0cf1735d208cb61b966f477bc24807a3906",
+  "prompts": {},
+  "sessions": {
+    "s_04a467e36c224a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a142b5-72e0-7ca2-bd30-4ed7eaed6ad0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
