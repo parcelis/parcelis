@@ -635,7 +635,7 @@ importers:
         version: 1.4.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@stepperize/react':
         specifier: ^8.0.0
-        version: 8.0.0(react@19.3.0)(typescript@6.0.3)
+        version: 8.0.1(react@19.3.0)(typescript@6.0.3)
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -3949,8 +3949,8 @@ packages:
       typescript:
         optional: true
 
-  '@stepperize/react@8.0.0':
-    resolution: {integrity: sha512-KYgEC2wRhMXMNg3Gku15ZCZpI10y0aKhXGcFblC249byjd9pcCANKF1qAE75xCmLtum6ySfgu/l1OIrz1Fgm7g==}
+  '@stepperize/react@8.0.1':
+    resolution: {integrity: sha512-/Sz9QXzRblvqUlmQfKsMzzjH1TCGruip0DHlLRzYSoHL1XAUFhtVYnytGH2Gf7esNjyfPEQJoFcm+mO69bVx3Q==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
 
@@ -15340,7 +15340,7 @@ snapshots:
     optionalDependencies:
       typescript: 6.0.3
 
-  '@stepperize/react@8.0.0(react@19.3.0)(typescript@6.0.3)':
+  '@stepperize/react@8.0.1(react@19.3.0)(typescript@6.0.3)':
     dependencies:
       '@stepperize/core': 4.0.0(typescript@6.0.3)
       react: 19.3.0
