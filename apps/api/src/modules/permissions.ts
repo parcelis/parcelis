@@ -10,7 +10,7 @@ import {
   type PermissionResource,
   type UserRole,
 } from "@parcelis/schemas";
-import type { PrismaService } from "./prisma.service";
+import type { PrismaClient } from "@parcelis/db";
 
 const actionFields = {
   view: "canView",
@@ -44,7 +44,7 @@ export function isPermissionResourceEnabled(resource: PermissionResource) {
   return !isApplicationResource(resource) || getFeatureFlags(process.env).applications;
 }
 
-export async function getRolePermissions(prisma: PrismaService, role: string) {
+export async function getRolePermissions(prisma: PrismaClient, role: string) {
   const userRole = getUserRole(role);
   const rows = userRole === "administrator" ? [] : await prisma.rolePermission.findMany({ where: { role: userRole } });
 
@@ -68,7 +68,7 @@ export async function getRolePermissions(prisma: PrismaService, role: string) {
 }
 
 export async function requirePermission(
-  prisma: PrismaService,
+  prisma: PrismaClient,
   role: string,
   resource: PermissionResource,
   action: PermissionAction,
@@ -110,7 +110,7 @@ type NoteSubject = {
 };
 
 export async function requireNotePermission(
-  prisma: PrismaService,
+  prisma: PrismaClient,
   role: string,
   subject: NoteSubject,
   action: Exclude<PermissionAction, "archive">,

@@ -31,6 +31,8 @@ jobs:
           node-version: 24.21.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @parcelis/email --filter @parcelis/jobs build
+      - run: pnpm --filter @parcelis/api test
       - run: pnpm test:scripts
       - run: pnpm lint
       - run: pnpm typecheck

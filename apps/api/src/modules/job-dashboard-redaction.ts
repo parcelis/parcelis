@@ -1,5 +1,3 @@
-import type { RequestHandler } from "express";
-
 const visibleJobDataKeys = new Set(["organizationId", "leaseId", "outboxEventId", "eventType", "schemaVersion"]);
 
 const visibleJobOptionKeys = new Set(["attempts", "backoff", "delay", "priority", "removeOnComplete", "removeOnFail"]);
@@ -20,7 +18,7 @@ function sanitizeOptions(value: unknown): unknown {
   return Object.fromEntries(Object.entries(value).filter(([key]) => visibleJobOptionKeys.has(key)));
 }
 
-function sanitizeResponse(value: unknown, key?: string): unknown {
+export function sanitizeJobResponse(value: unknown, key?: string): unknown {
   if (key === "data") return sanitizeJobData(value);
   if (key === "opts") return sanitizeOptions(value);
   if (key === "failedReason") return value ? "Job error details redacted" : value;
@@ -29,21 +27,14 @@ function sanitizeResponse(value: unknown, key?: string): unknown {
   if (key === "returnValue" || key === "progress") return value == null ? value : "[redacted]";
 
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeResponse(item));
+    return value.map((item) => sanitizeJobResponse(item));
   }
 
   if (value && typeof value === "object") {
     return Object.fromEntries(
-      Object.entries(value).map(([entryKey, entryValue]) => [entryKey, sanitizeResponse(entryValue, entryKey)]),
+      Object.entries(value).map(([entryKey, entryValue]) => [entryKey, sanitizeJobResponse(entryValue, entryKey)]),
     );
   }
 
   return value;
 }
-
-export const jobDashboardRedactionMiddleware: RequestHandler = (_request, response, next) => {
-  const sendJson = response.json.bind(response);
-
-  response.json = ((body: unknown) => sendJson(sanitizeResponse(body))) as typeof response.json;
-  next();
-};

@@ -22,5 +22,8 @@ AUTH_COOKIE_SECURE=true
 
 Leave `NEXT_PUBLIC_API_URL`, `API_INTERNAL_URL`, and `AUTH_COOKIE_DOMAIN` unset in Render. The scripts set the two API URLs to the local API and keep authentication cookies scoped to the Render service.
 
+The API starts its separate Next.js runtime on the internal API port. The build
+command produces the Next.js API; the web app remains a separate process.
+
 The pre-deploy command applies migrations and seeds demo data. Sign in using the configured
 `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.

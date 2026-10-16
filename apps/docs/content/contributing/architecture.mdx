@@ -1,0 +1,66 @@
+---
+id: architecture
+title: Architecture
+---
+
+Parcelis uses a pnpm and Turborepo workspace with separate applications for the web
+interface, API, background worker, and documentation.
+
+## Applications
+
+| Application   | Responsibility                                                              |
+| ------------- | --------------------------------------------------------------------------- |
+| `apps/web`    | Next.js App Router frontend with React and shared UI components.            |
+| `apps/api`    | Next.js App Router API running in Node.js, with tRPC, REST, and Bull Board. |
+| `apps/worker` | Redis-backed background jobs and durable notification delivery.             |
+| `apps/docs`   | Docusaurus documentation and API reference.                                 |
+
+The web app and API run as separate processes. Browsers use the web origin's
+`/trpc` paths; the development and deployment proxies forward those requests to
+the API. Background workers run independently of API request handlers.
+
+## API routes
+
+| Path             | Purpose                                                      |
+| ---------------- | ------------------------------------------------------------ |
+| `/trpc/*`        | Typed application procedures through the tRPC Fetch adapter. |
+| `/api/v1/*`      | REST endpoints documented in the API reference.              |
+| `/api/v1/health` | API health and public object-storage configuration.          |
+| `/admin/jobs/*`  | Administrator-only Bull Board dashboard and its assets.      |
+
+The API resolves the authenticated session and active organization for each
+request. Operational reads and writes are scoped to that organization. Responses
+use `private, no-store`; dashboard polling does not renew session activity.
+
+The Node.js runtime supports Prisma database connections, Argon2 password hashing,
+S3-compatible image uploads, Redis queues, and invoice PDF generation. API startup
+and shutdown are managed by `apps/api/scripts/server.mjs`, which drains requests
+and closes initialized queue and database connections.
+
+## Shared packages
+
+- `@parcelis/schemas` defines shared Zod validation and TypeScript contracts.
+- `@parcelis/db` owns Prisma models, migrations, and database access.
+- `@parcelis/ui` supplies reusable interface components and design tokens.
+- `@parcelis/jobs` defines queue names, payloads, and connection configuration.
+- `@parcelis/email` renders and delivers transactional email.
+- `@parcelis/config` supplies shared development configuration.
+
+The API exports its router type for the frontend. Input validation belongs in
+`@parcelis/schemas`, and consistent multi-step writes use Prisma transactions.
+
+## Development and verification
+
+Start the local stack with `pnpm dev`. The launcher prints the selected URLs and
+ports. Run focused API checks with:
+
+```bash
+pnpm --filter @parcelis/api build
+pnpm --filter @parcelis/api typecheck
+pnpm --filter @parcelis/api lint
+pnpm --filter @parcelis/api test
+```
+
+See [End-to-End Testing](./end-to-end-testing) for browser workflow checks and
+[Deploy With Docker Compose](../getting-started/deploy-with-docker-compose) for
+the deployment topology.

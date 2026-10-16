@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { permissionResourceValues, supportsPermissionAction } from "@parcelis/schemas";
 import { TRPCError } from "@trpc/server";
-import type { PrismaService } from "../../modules/prisma.service";
+import type { PrismaClient } from "@parcelis/db";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
 function createDeniedCaller(
-  overrides: Partial<PrismaService> = {},
+  overrides: Partial<PrismaClient> = {},
   role: "property_manager" | "administrator" = "property_manager",
 ) {
   const user = {
@@ -33,7 +33,7 @@ function createDeniedCaller(
       }),
     },
     ...overrides,
-  } as unknown as PrismaService;
+  } as unknown as PrismaClient;
   const context = {
     prisma,
     req: {},
@@ -223,7 +223,7 @@ test("lease details allow lease-only viewing and scope reads to the active organ
         return where.id === lease.id ? lease : null;
       },
     },
-  } as unknown as Partial<PrismaService>);
+  } as unknown as Partial<PrismaClient>);
 
   await expectForbidden(() => caller.properties.list());
   assert.deepEqual(await caller.leases.byId({ id: lease.id }), {
@@ -245,7 +245,7 @@ test("role updates preserve disabled application permissions and update them onl
         },
       },
       $transaction: (operations: Promise<unknown>[]) => Promise.all(operations),
-    } as unknown as Partial<PrismaService>,
+    } as unknown as Partial<PrismaClient>,
     "administrator",
   );
   try {

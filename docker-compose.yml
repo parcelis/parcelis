@@ -100,9 +100,11 @@ services:
   app-service:
     image: parcelis/app:${PARCELIS_VERSION:-v0.4.1}
     container_name: parcelis-app
+    stop_grace_period: 25s
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-service:5432/${POSTGRES_DB}?schema=public
       WEB_ORIGIN: ${WEB_ORIGIN}
+      API_TRUST_PROXY_HOPS: ${API_TRUST_PROXY_HOPS:-0}
       AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       AUTH_DISABLED: ${AUTH_DISABLED:-false}
@@ -129,6 +131,8 @@ services:
         condition: service_completed_successfully
       minio-init-service:
         condition: service_completed_successfully
+      redis-service:
+        condition: service_healthy
     networks:
       - parcelis
 

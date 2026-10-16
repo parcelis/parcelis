@@ -1,17 +1,17 @@
 {
   "extends": "@parcelis/config/tsconfig/base",
   "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "Node",
-    "ignoreDeprecations": "6.0",
-    "jsx": "react-jsx",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "jsx": "preserve",
+    "noEmit": true,
     "declaration": false,
     "declarationMap": false,
-    "outDir": "dist",
-    "rootDir": "src",
-    "noEmit": false
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["src"]
+  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

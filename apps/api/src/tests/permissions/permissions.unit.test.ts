@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
 import { getFeatureFlags, roleResourcePermissionSchema } from "@parcelis/schemas";
-import type { PrismaService } from "../../modules/prisma.service";
+import type { PrismaClient } from "@parcelis/db";
 import { getRolePermissions, requireNotePermission, requirePermission } from "../../modules/permissions";
 
 function createPrisma(permissions: Record<string, boolean>) {
@@ -16,7 +16,7 @@ function createPrisma(permissions: Record<string, boolean>) {
         canDelete: permissions[`${where.role_resource.resource}:delete`] ?? false,
       }),
     },
-  } as unknown as PrismaService;
+  } as unknown as PrismaClient;
 }
 
 test("allows configured invoice actions", async () => {
@@ -32,7 +32,7 @@ test("omits archive from invoice permissions", async () => {
     rolePermission: {
       findMany: async () => [{ resource: "invoices", canView: true, canCreate: true, canEdit: true, canDelete: true }],
     },
-  } as unknown as PrismaService;
+  } as unknown as PrismaClient;
 
   const permissions = await getRolePermissions(prisma, "property_manager");
 
@@ -215,7 +215,7 @@ test("disabled applications report no effective grants and restore stored grants
           canDelete: true,
         })),
     },
-  } as unknown as PrismaService;
+  } as unknown as PrismaClient;
   try {
     for (const value of ["false", "true"]) {
       process.env.FEATURE_FLAG_APPLICATIONS_ENABLED = value;

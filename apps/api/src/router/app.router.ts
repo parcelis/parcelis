@@ -134,7 +134,6 @@ import {
   requirePermission,
 } from "../modules/permissions";
 import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
-import { renderInvoicePdf } from "../modules/invoice-pdf";
 import { sendSmtpTestEmail } from "@parcelis/email";
 import {
   encryptEmailSettingsPassword,

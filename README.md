@@ -38,6 +38,7 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 <br />
 
 ## Try the demo
+
 <a href="https://demo.parcelis.dev" target="_blank"><img height="100" src="image.png" /></a>
 <p>Click the button above to open the demo</p>
 
@@ -103,7 +104,6 @@ Parcelis supports a consistent operating workflow whether you manage a few homes
 - Non-maintenance requests, including move-in, access, and general tenant requests
 - Keep properties, tenants, leases, invoices, and maintenance records separate by organization. Authorized users can switch between the organizations they can access.
 
-
 Parcelis is an open-source operating system for rental teams—bringing portfolio, tenant, maintenance, lease, and income workflows into one place.
 
 ## Technology
@@ -117,23 +117,22 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 <p align="left">
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white&style=flat-square" alt="Next.js"></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB&style=flat-square" alt="React"></a>
-  <a href="https://nestjs.com/"><img src="https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white&style=flat-square" alt="NestJS"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white&style=flat-square" alt="TypeScript"></a>
   <a href="https://www.prisma.io/"><img src="https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white&style=flat-square" alt="Prisma"></a>
   <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white&style=flat-square" alt="PostgreSQL"></a>
   <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white&style=flat-square" alt="Tailwind CSS"></a>
 </p>
 
-| Area | Technology |
-| --- | --- |
-| Web app | [Next.js](https://nextjs.org/) and [React](https://react.dev/) |
-| API | [NestJS](https://nestjs.com/), [Express](https://expressjs.com/), and [tRPC](https://trpc.io/) |
-| Data and validation | [PostgreSQL](https://www.postgresql.org/), [Prisma](https://www.prisma.io/), and [Zod](https://zod.dev/) |
-| Object storage | [MinIO](https://min.io/) with the S3-compatible AWS SDK |
-| Interface | [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), and [Lucide](https://lucide.dev/) |
-| Documentation | [Docusaurus](https://docusaurus.io/) and [MDX](https://mdxjs.com/) |
-| Tooling | [TypeScript](https://www.typescriptlang.org/), [pnpm](https://pnpm.io/), [Turborepo](https://turbo.build/), [Playwright](https://playwright.dev/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) |
-| Local services and deployment | [Docker Compose](https://docs.docker.com/compose/) |
+| Area                          | Technology                                                                                                                                                                                                             |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web app                       | [Next.js](https://nextjs.org/) and [React](https://react.dev/)                                                                                                                                                         |
+| API                           | Separate [Next.js](https://nextjs.org/) and [tRPC](https://trpc.io/)                                                                                                                                                   |
+| Data and validation           | [PostgreSQL](https://www.postgresql.org/), [Prisma](https://www.prisma.io/), and [Zod](https://zod.dev/)                                                                                                               |
+| Object storage                | [MinIO](https://min.io/) with the S3-compatible AWS SDK                                                                                                                                                                |
+| Interface                     | [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), and [Lucide](https://lucide.dev/)                                                                                                     |
+| Documentation                 | [Docusaurus](https://docusaurus.io/) and [MDX](https://mdxjs.com/)                                                                                                                                                     |
+| Tooling                       | [TypeScript](https://www.typescriptlang.org/), [pnpm](https://pnpm.io/), [Turborepo](https://turbo.build/), [Playwright](https://playwright.dev/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) |
+| Local services and deployment | [Docker Compose](https://docs.docker.com/compose/)                                                                                                                                                                     |
 
 ## Contributing
 
@@ -158,16 +157,19 @@ Parcelis is a pnpm/Turbo monorepo. At a high level, it contains:
 For detailed local setup and contributor workflows, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licensing
+
 Parcelis is licensed under the GNU Affero General Public License version 3. See
 [LICENSING.md](LICENSING.md) for details.
 <br />
 <br />
 <br />
 <br />
+
 ## Thank you to our contributors!
+
 Parcelis exists to push rental and property‑management software into a better future. Your involvement strengthens the platform and the community behind it. Thanks for helping shape what comes next.
 <br />
 <br />
 <a href="https://github.com/parcelis/parcelis/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=parcelis/parcelis" alt="Project contributors" />
+<img src="https://contrib.rocks/image?repo=parcelis/parcelis" alt="Project contributors" />
 </a>

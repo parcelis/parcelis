@@ -14,6 +14,7 @@ module.exports = {
         "build",
         "ci",
         "chore",
+        "merge",
         "revert",
       ],
     ],

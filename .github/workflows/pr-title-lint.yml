@@ -27,5 +27,6 @@ jobs:
             build
             ci
             chore
+            merge
             revert
           requireScope: false

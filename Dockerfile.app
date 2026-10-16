@@ -102,9 +102,12 @@ RUN apk add --no-cache nginx openssl supervisor && corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches patches
 COPY scripts scripts
-# API: manifest and compiled output
+# API: manifest, Next.js build output, and startup configuration
 COPY --from=api-build /repo/apps/api/package.json apps/api/package.json
-COPY --from=api-build /repo/apps/api/dist apps/api/dist
+COPY --from=api-build /repo/apps/api/.next apps/api/.next
+COPY --from=api-build /repo/apps/api/scripts apps/api/scripts
+COPY --from=api-build /repo/apps/api/src apps/api/src
+COPY --from=api-build /repo/apps/api/next.config.mjs apps/api/next.config.mjs
 # Workspace packages the api imports at runtime
 COPY --from=api-build /repo/packages packages
 # Web: manifest, build output, and public assets
@@ -117,8 +120,8 @@ COPY --from=web-build /repo/apps/web/public apps/web/public
 COPY --from=worker-build /repo/apps/worker/package.json apps/worker/package.json
 COPY --from=worker-build /repo/apps/worker/dist apps/worker/dist
 
-# Production-only install: the api and worker run from dist/ and the web from
-# .next/, so the development toolchain stays out of the image. The Prisma CLI
+# Production-only install: the API and web run from .next/ and the worker
+# runs from dist/, so the development toolchain stays out of the image. The Prisma CLI
 # is a production dependency of @parcelis/db, so migration tooling
 # (`prisma migrate deploy`) and the postinstall client generation remain
 # available.
@@ -128,8 +131,11 @@ RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api... --filter @pa
 # Modular application image
 # ---------------------------------------------------------------------------
 FROM runtime-base AS app
+ARG API_INTERNAL_PORT=4000
 COPY infra/docker/app/nginx.conf /etc/nginx/http.d/default.conf
 COPY infra/docker/app/supervisord.conf /etc/supervisord.conf
+RUN sed -i "s/__API_INTERNAL_PORT__/${API_INTERNAL_PORT}/g" \
+  /etc/nginx/http.d/default.conf /etc/supervisord.conf
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD sh -c 'wget -q -O /dev/null http://127.0.0.1:3000/api/v1/health && wget -q -O /dev/null http://127.0.0.1:3000/'
@@ -139,12 +145,15 @@ CMD ["supervisord", "-c", "/etc/supervisord.conf"]
 # Single application image (web app + API + docs + public nginx)
 # ---------------------------------------------------------------------------
 FROM runtime-base AS single-image
+ARG API_INTERNAL_PORT=4000
 # Docs build output (static files served directly by nginx)
 COPY --from=docs-build /repo/apps/docs/build /usr/share/parcelis-docs
 COPY infra/docker/single-image/nginx.conf /etc/nginx/http.d/default.conf
 # Reuse the modular supervisor configuration: api + web + nginx on the same
 # loopback ports the nginx config expects.
 COPY infra/docker/app/supervisord.conf /etc/supervisord.conf
+RUN sed -i "s/__API_INTERNAL_PORT__/${API_INTERNAL_PORT}/g" \
+  /etc/nginx/http.d/default.conf /etc/supervisord.conf
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD sh -c 'wget -q -O /dev/null http://127.0.0.1:3000/api/v1/health && wget -q -O /dev/null http://127.0.0.1:3000/'

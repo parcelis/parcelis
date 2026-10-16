@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Prisma } from "@parcelis/db";
 import { hashSessionToken } from "../../modules/auth";
-import type { PrismaService } from "../../modules/prisma.service";
+import type { PrismaClient } from "@parcelis/db";
 import { getSessionStatus, readSession, renewSession } from "../../modules/session";
 
 const now = new Date("2026-09-30T12:00:00Z");
@@ -33,7 +33,7 @@ function fixture(lastSeenAt = new Date(now.getTime() - minute)) {
   }
   const prisma = {
     session: {
-      findFirst: async ({ where }: { where: Prisma.SessionWhereInput }) => matches(where) ? { ...session } : null,
+      findFirst: async ({ where }: { where: Prisma.SessionWhereInput }) => (matches(where) ? { ...session } : null),
       updateMany: async ({ where, data }: { where: Prisma.SessionWhereInput; data: { lastSeenAt: Date } }) => {
         if (!matches(where)) return { count: 0 };
         writes++;
@@ -44,11 +44,15 @@ function fixture(lastSeenAt = new Date(now.getTime() - minute)) {
   };
   let cleared = false;
   const request = { headers: { cookie: "parcelis_session_v2=test-token" } };
-  const response = { clearCookie: () => { cleared = true; } };
+  const response = {
+    clearCookie: () => {
+      cleared = true;
+    },
+  };
   return {
     session,
-    prisma: prisma as unknown as PrismaService,
-    read: () => readSession(prisma as unknown as PrismaService, request as never, response as never),
+    prisma: prisma as unknown as PrismaClient,
+    read: () => readSession(prisma as unknown as PrismaClient, request as never, response as never),
     writes: () => writes,
     cleared: () => cleared,
   };
@@ -126,5 +130,8 @@ test("disabling idle expiration preserves absolute expiration, revocation, and a
 
 test("legacy cookies cannot authenticate after rollout", async () => {
   const state = fixture();
-  assert.equal(await readSession(state.prisma, { headers: { cookie: "parcelis_session=test-token" } } as never, {} as never), null);
+  assert.equal(
+    await readSession(state.prisma, { headers: { cookie: "parcelis_session=test-token" } } as never, {} as never),
+    null,
+  );
 });
