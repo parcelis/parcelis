@@ -35,6 +35,7 @@ Use lowercase types. The allowed types are:
 - `build`: build system or dependency changes.
 - `ci`: continuous-integration changes.
 - `chore`: maintenance that does not fit another type.
+- `merge`: integrates another branch.
 - `revert`: reverses an earlier change.
 
 Scopes are optional. When useful, use a concise area of the monorepo, such as `web`, `api`, `db`, `ui`, `docs`, or `infra`.
