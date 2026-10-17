@@ -32,5 +32,6 @@ export async function readSession(prisma: PrismaClient, request: { headers: { co
   ) {
     return null;
   }
-  return { userId: user.id, user };
+  const { passwordChangedAt: _passwordChangedAt, ...sessionUser } = user;
+  return { userId: user.id, user: sessionUser };
 }

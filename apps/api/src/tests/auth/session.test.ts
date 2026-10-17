@@ -15,6 +15,25 @@ test("valid JWTs resolve current users without a database session", async () => 
   });
 });
 
+test("password-change timestamps invalidate JWTs without appearing in the session user", async () => {
+  const passwordChangedAt = new Date("2026-01-01T00:00:00Z");
+  const user = { id: 7, accountStatus: "active", passwordChangedAt };
+  const prisma = { user: { findUnique: async () => user } } as unknown as PrismaClient;
+  await createTestSessionCookie();
+  const token = await encode({
+    token: { sub: "7", passwordChangedAt: passwordChangedAt.getTime() },
+    secret: process.env.NEXTAUTH_SECRET!,
+  });
+  const request = { headers: { cookie: `${nextAuthCookieName}=${token}` } };
+
+  assert.deepEqual(await readSession(prisma, request), {
+    userId: 7,
+    user: { id: 7, accountStatus: "active" },
+  });
+  user.passwordChangedAt = new Date(passwordChangedAt.getTime() + 1000);
+  assert.equal(await readSession(prisma, request), null);
+});
+
 for (const status of ["disabled", "pending", null]) {
   test("JWT access rejects account status " + status, async () => {
     const prisma = {

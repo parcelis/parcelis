@@ -12,7 +12,9 @@ To run Parcelis with Docker, the minimum requirements are simply those required 
 
 ## Setting up Parcelis
 
-Once Docker is installed, the rest of the process is straightforward. Start the web app container with the required environment variables:
+Generate `NEXTAUTH_SECRET` once with `openssl rand -base64 32` and save it in your deployment's secret store. Export that saved value before running the command below. Reuse it on every restart, redeploy, and replica; changing it invalidates existing sessions.
+
+Start the web app container with the required environment variables:
 
 ```bash
 docker run -d --name parcelis-app \
@@ -20,7 +22,7 @@ docker run -d --name parcelis-app \
   -e DATABASE_URL=postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public \
   -e WEB_ORIGIN=https://parcelis.example.com \
   -e NEXTAUTH_URL=https://parcelis.example.com \
-  -e NEXTAUTH_SECRET="$(openssl rand -base64 32)" \
+  -e NEXTAUTH_SECRET="${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET to your saved deployment secret}" \
   -e EMAIL_FROM='Parcelis <no-reply@example.com>' \
   -e SMTP_HOST=smtp.example.com \
   -e SMTP_PORT=465 \
@@ -54,7 +56,7 @@ The app container expects the following values at minimum:
 - `DATABASE_URL`: PostgreSQL connection string
 - `WEB_ORIGIN`: the public origin used by the web app
 - `NEXTAUTH_URL`: the public Parcelis origin, including HTTPS
-- `NEXTAUTH_SECRET`: a private value generated with `openssl rand -base64 32`, shared across API instances
+- `NEXTAUTH_SECRET`: a private value generated once with `openssl rand -base64 32`, persisted across redeploys and shared across API instances
 - `EMAIL_FROM`: sender address for transactional email
 - `SMTP_HOST`, `SMTP_PORT`, and `SMTP_SECURE`: SMTP server connection settings; `SMTP_SECURE` must be `true` or `false`
 - `SMTP_USER` and `SMTP_PASSWORD`: SMTP authentication credentials
