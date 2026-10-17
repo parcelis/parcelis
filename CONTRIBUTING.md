@@ -35,6 +35,7 @@ Use lowercase types. The allowed types are:
 - `build`: build system or dependency changes.
 - `ci`: continuous-integration changes.
 - `chore`: maintenance that does not fit another type.
+- `merge`: integrates another branch.
 - `revert`: reverses an earlier change.
 
 Scopes are optional. When useful, use a concise area of the monorepo, such as `web`, `api`, `db`, `ui`, `docs`, or `infra`.
@@ -59,6 +60,10 @@ Pull requests validate every commit message in CI. If the repository uses squash
 ## Development
 
 Keep changes focused, run the relevant checks, and update user-facing documentation with workflow changes.
+
+CI runs script tests, lint, type checks, and the application build on every pull request and push
+to `main`. Docker builds and container smoke tests are not part of PR CI. The release workflow
+builds and publishes Docker images when a GitHub release is published.
 
 ### Repository structure
 

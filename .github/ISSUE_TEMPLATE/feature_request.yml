@@ -13,6 +13,11 @@ body:
         > Wait for a maintainer to approve this issue before opening a PR. We'll signal approval with a comment or label. Feature PRs without an approved issue will be closed.
   - type: markdown
     attributes:
+      value: |
+        > [!TIP]
+        > Want to implement this feature? Comment `/assign-me` to send a request for approval.
+  - type: markdown
+    attributes:
       value: Please provide a clear and concise title for your feature request
     validations:
       required: true

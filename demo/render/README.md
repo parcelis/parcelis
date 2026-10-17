@@ -26,5 +26,8 @@ Leave `NEXT_PUBLIC_API_URL` and `API_INTERNAL_URL` unset in Render. The scripts 
 The API starts its separate Next.js runtime on the internal API port. The build
 command produces the Next.js API; the web app remains a separate process.
 
+The API starts its separate Next.js runtime on the internal API port. The build
+command produces the Next.js API; the web app remains a separate process.
+
 The pre-deploy command applies migrations and seeds demo data. Sign in using the configured
 `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.

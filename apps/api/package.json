@@ -34,7 +34,7 @@
     "@trpc/server": "^11.18.0",
     "argon2": "^0.45.1",
     "bullmq": "^6.3.9",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.0",
     "hono": "^4.13.13",
     "next": "^16.3.8",
     "next-auth": "4.24.15",
@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@parcelis/config": "workspace:*",
-    "@types/node": "24.19.1",
+    "@types/node": "24.19.2",
     "tsx": "^4.23.12",
     "typescript": "6.0.3"
   }

@@ -65,7 +65,7 @@ services:
         condition: service_healthy
 
   minio-service:
-    image: minio/minio:latest
+    image: parcelis/minio:final
     container_name: parcelis-dev-minio
     command: server /data --console-address ":9001"
     environment:
