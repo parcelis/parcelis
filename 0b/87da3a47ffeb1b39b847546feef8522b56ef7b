@@ -1,0 +1,34 @@
+apps/api/src/tests/auth/nextauth.test.ts
+  s_c6fa9d2b4f6c65::t_180a168d54b0ad 14,20,74,196-203
+  s_c6fa9d2b4f6c65::t_e2b4c1796d5743 204-206
+tests/e2e/jwt-session.spec.ts
+  s_c6fa9d2b4f6c65::t_f472fd3d5c2fe8 29-31
+  s_c6fa9d2b4f6c65::t_b58470ffdd6b76 27-28,32,34
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_c6fa9d2b4f6c65::t_9513c2ad6a577d 52-67
+apps/docs/content/getting-started/deploy-with-docker-compose-single-image.mdx
+  s_c6fa9d2b4f6c65::t_70e13814d244fb 25-26,33-47,140-152
+  s_c6fa9d2b4f6c65::t_9513c2ad6a577d 119,121,125-127,129-131,134-136
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_c6fa9d2b4f6c65::t_9513c2ad6a577d 32,81-95
+README.md
+  s_c6fa9d2b4f6c65::t_9513c2ad6a577d 179
+apps/api/src/tests/auth/organization-switch.test.ts
+  s_c6fa9d2b4f6c65::t_180a168d54b0ad 11-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0b87da3a47ffeb1b39b847546feef8522b56ef7b",
+  "prompts": {},
+  "sessions": {
+    "s_c6fa9d2b4f6c65": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14a15-fc72-7da3-b24a-487d515896ec",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
