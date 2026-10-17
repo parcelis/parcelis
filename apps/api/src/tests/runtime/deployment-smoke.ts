@@ -1,3 +1,4 @@
+import { nextAuthCookieName } from "../auth/session-cookie";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -54,14 +55,31 @@ export async function runDeploymentSmoke({
     assert.equal(denied.status, 401, path);
     assert.match(denied.headers.get("cache-control") ?? "", /no-store/);
   }
-  const login = await request(`${base}/trpc/auth.login`, {
+  const csrf = await request(`${base}/api/auth/csrf`);
+  assert.equal(csrf.status, 200);
+  const { csrfToken } = await csrf.json();
+  const csrfCookies = csrf.headers
+    .getSetCookie()
+    .map((value) => value.split(";")[0])
+    .join("; ");
+  const login = await request(`${base}/api/auth/callback/credentials`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email: "pdf@example.test", password: "Deployment-test-password-123!" }),
+    headers: { "content-type": "application/x-www-form-urlencoded", cookie: csrfCookies },
+    body: new URLSearchParams({
+      csrfToken,
+      email: "pdf@example.test",
+      password: "Deployment-test-password-123!",
+      json: "true",
+      callbackUrl: base,
+    }),
   });
   assert.equal(login.status, 200, "Native password verification must work in the image.");
-  assert.match(login.headers.get("set-cookie") ?? "", /parcelis_session_v2=/);
-  const loginCookie = login.headers.get("set-cookie")!.split(";")[0]!;
+  const loginCookie = login.headers
+    .getSetCookie()
+    .filter((value) => value.startsWith(nextAuthCookieName))
+    .map((value) => value.split(";")[0])
+    .join("; ");
+  assert.ok(loginCookie);
   assert.equal((await request(`${base}/trpc/auth.me`, { headers: { cookie: loginCookie } })).status, 200);
   assert.equal((await request(`${base}/login`)).status, 200, "The proxy must serve the built web app.");
   for (const path of ["/api/v1/tags", "/admin/jobs/api/queues"]) {

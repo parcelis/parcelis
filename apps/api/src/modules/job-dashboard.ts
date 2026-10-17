@@ -6,7 +6,6 @@ import { createQueueRegistry, getRedisConnectionOptions, type QueueRegistry } fr
 import type { PrismaClient } from "@parcelis/db";
 import type { Queue } from "bullmq";
 import { Hono } from "hono";
-import { createFetchCookieResponse } from "../router/fetch-context";
 import { getJobDashboardAccessStatus } from "./job-dashboard-access";
 import { addJobDashboardLogo } from "./job-dashboard-branding";
 import { jobDashboardOptions } from "./job-dashboard-options";
@@ -84,13 +83,8 @@ async function protectJobDashboardResponse(response: Response, request: Request)
 
 export function createJobDashboardHandler(prisma: PrismaClient, getDashboard = getJobDashboard) {
   return async (request: Request) => {
-    const cookies = createFetchCookieResponse();
     try {
-      const session = await readSession(
-        prisma,
-        { headers: { cookie: request.headers.get("cookie") ?? undefined } },
-        cookies.res,
-      );
+      const session = await readSession(prisma, { headers: { cookie: request.headers.get("cookie") ?? undefined } });
       const status = getJobDashboardAccessStatus(
         session?.user.role ?? null,
         request.method,
@@ -106,10 +100,10 @@ export function createJobDashboardHandler(prisma: PrismaClient, getDashboard = g
       } else {
         response = await getDashboard().fetch(request);
       }
-      return cookies.applyCookies(await protectJobDashboardResponse(response, request));
+      return protectJobDashboardResponse(response, request);
     } catch {
       console.error("Job dashboard request failed.");
-      return cookies.applyCookies(await protectJobDashboardResponse(new Response(null, { status: 500 }), request));
+      return protectJobDashboardResponse(new Response(null, { status: 500 }), request);
     }
   };
 }

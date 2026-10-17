@@ -13,32 +13,26 @@ New users can select **Create account** on the same page. Parcelis sends a verif
 address; opening it activates the account before sign-in. Passwords must be at least 12 characters long.
 If the link expires, try signing in and select **Resend verification email**.
 
+If sign-in is temporarily unavailable, the login page shows an error and keeps the form open. Contact your
+administrator so they can check the authentication service configuration.
+
 For local development, `pnpm db:seed` creates the administrator using `SEED_ADMIN_EMAIL`, which
 defaults to `admin@parcelis.dev`, and `SEED_ADMIN_PASSWORD`. Set the password to a unique value of
 at least 12 characters before running the seed command. Later seed runs do not replace the
 administrator password.
 
-Sign out is available from the **My Account** menu at the bottom of the sidebar. Signing out revokes the current
-browser session.
+Sign out is available from the **My Account** menu at the bottom of the sidebar. Signing out clears this browser's session cookie and signs out other open tabs in the same browser.
 
-Parcelis signs you out after 15 minutes without activity. A warning appears one minute before the session expires;
-select **Stay signed in** to continue. Typing, clicking, and scrolling count as activity, including work in an unsaved
-form. Leaving a tab open does not keep the session active. If you return after the timeout, sign in again. Sessions
-also end after seven days even if you remain active.
+Sessions use a seven-day lifetime that NextAuth can renew when checking the session. There is no inactivity timeout. If your session expires, sign in again.
 
 ## Reset a forgotten password
 
 Select **Forgot your password?** beneath the sign-in button, then enter your email address. If an active account uses
 that address, Parcelis sends a one-time reset link that expires after 30 minutes. Open the link, choose and confirm a
-new password of at least 12 characters, then sign in with the new password. Resetting a password signs the account
-out of every browser session.
+new password of at least 12 characters, then sign in with the new password. Resetting a password does not sign out other browsers; their sessions remain valid until expiration.
 
 ## Change your password
 
 Open **My Account** and select **Change password**. Enter your current password, then enter and re-enter a new
 password of at least 12 characters. The new password entries must match before the update can be submitted. You can
 also change your password from the **Account info** card on **My Profile**.
-
-## Development Only
-
-Set `AUTH_DISABLED=true` in your local environment to bypass sign-in while developing. This setting is ignored when `NODE_ENV=production`.

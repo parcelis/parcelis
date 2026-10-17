@@ -8,6 +8,8 @@ The separate API uses Next.js App Router and React DOM. Its Node.js handlers
 serve tRPC and REST through Fetch adapters. Bull Board uses `@bull-board/hono`
 and `hono`; `@hono/node-server` serves its static assets.
 
+NextAuth.js `4.24.15` provides email/password sign-in, CSRF protection, encrypted session cookies, and client sign-in helpers. The API verifies Argon2 passwords and checks the current user account; NextAuth manages JWT session lifetime.
+
 ## Application platform
 
 | Technology                                                                              | Purpose                                                                                                                                                                                        |

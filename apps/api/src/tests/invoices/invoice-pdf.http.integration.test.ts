@@ -1,6 +1,8 @@
+import { encode } from "next-auth/jwt";
+import { nextAuthCookieName } from "../auth/session-cookie";
 import assert from "node:assert/strict";
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -84,15 +86,6 @@ test(
         defaultOrganizationId: organization.id,
       },
     });
-    const token = randomBytes(32).toString("base64url");
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        tokenHash: createHash("sha256").update(token).digest("hex"),
-        expiresAt: new Date(Date.now() + 600_000),
-        activeOrganizationId: organization.id,
-      },
-    });
     const property = await prisma.property.create({
       data: {
         organizationId: organization.id,
@@ -149,6 +142,8 @@ test(
     const url = new URL(databaseUrl!);
     url.searchParams.set("schema", isolated.schema);
     const port = await findOpenPort(40011);
+    const authSecret = randomBytes(32).toString("hex");
+    const cookie = `${nextAuthCookieName}=${await encode({ token: { sub: String(user.id) }, secret: authSecret })}`;
     const image = process.env.API_TEST_IMAGE;
     let logs = "";
     if (image) {
@@ -161,6 +156,8 @@ test(
       const env: Record<string, string | undefined> = {
         ...process.env,
         NODE_ENV: "production",
+        NEXTAUTH_SECRET: authSecret,
+        NEXTAUTH_URL: `http://127.0.0.1:${port}`,
         DATABASE_URL: url.href,
         API_INTERNAL_URL: "http://127.0.0.1:4000",
         WEB_ORIGIN: `http://127.0.0.1:${port}`,
@@ -201,6 +198,8 @@ test(
         env: {
           ...process.env,
           NODE_ENV: "production",
+          NEXTAUTH_SECRET: authSecret,
+          NEXTAUTH_URL: `http://127.0.0.1:${port}`,
           API_PORT: String(port),
           API_HOSTNAME: "127.0.0.1",
           DATABASE_URL: url.href,
@@ -242,7 +241,7 @@ test(
       });
       await runDeploymentSmoke({
         base,
-        cookie: `parcelis_session_v2=${token}`,
+        cookie,
         prisma,
         propertyId: property.id,
         tenantId: tenant.id,
@@ -251,7 +250,7 @@ test(
     }
     const input = encodeURIComponent(JSON.stringify({ id: invoice.id }));
     const response = await fetch(`${base}/trpc/invoices.pdf?input=${input}`, {
-      headers: { cookie: `parcelis_session_v2=${token}` },
+      headers: { cookie },
       signal: AbortSignal.timeout(30_000),
     });
     assert.equal(response.status, 200, logs);

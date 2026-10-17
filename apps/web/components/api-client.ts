@@ -3,7 +3,6 @@
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@parcelis/api/router";
 import type { NoteSubjectInput } from "@parcelis/schemas";
-import { sessionExpiredEventName } from "./session-events";
 
 export const apiClient = createTRPCProxyClient<AppRouter>({
   links: [
@@ -15,31 +14,6 @@ export const apiClient = createTRPCProxyClient<AppRouter>({
         const headers = new Headers(options?.headers);
         if (organizationSlug) headers.set("x-parcelis-organization-slug", organizationSlug);
         const response = await fetch(url, { ...options, credentials: "include", headers });
-        if (typeof window !== "undefined" && (!response.ok || response.status === 207)) {
-          try {
-            const result: unknown = await response.clone().json();
-            const results = Array.isArray(result) ? result : [result];
-            if (
-              results.some(
-                (entry) =>
-                  typeof entry === "object" &&
-                  entry !== null &&
-                  "error" in entry &&
-                  typeof entry.error === "object" &&
-                  entry.error !== null &&
-                  "data" in entry.error &&
-                  typeof entry.error.data === "object" &&
-                  entry.error.data !== null &&
-                  "sessionExpired" in entry.error.data &&
-                  entry.error.data.sessionExpired === true,
-              )
-            ) {
-              window.dispatchEvent(new Event(sessionExpiredEventName));
-            }
-          } catch {
-            // A non-JSON error response is handled by the request caller.
-          }
-        }
         return response;
       },
     }),

@@ -12,15 +12,17 @@ To run Parcelis with Docker, the minimum requirements are simply those required 
 
 ## Setting up Parcelis
 
-Once Docker is installed, the rest of the process is straightforward. Start the web app container with the required environment variables:
+Generate `NEXTAUTH_SECRET` once with `openssl rand -base64 32` and save it in your deployment's secret store. Export that saved value before running the command below. Reuse it on every restart, redeploy, and replica; changing it invalidates existing sessions.
+
+Start the web app container with the required environment variables:
 
 ```bash
 docker run -d --name parcelis-app \
   -p 3000:3000 \
   -e DATABASE_URL=postgresql://parcelis:parcelis@postgres:5432/parcelis?schema=public \
   -e WEB_ORIGIN=https://parcelis.example.com \
-  -e AUTH_COOKIE_DOMAIN=parcelis.example.com \
-  -e AUTH_COOKIE_SECURE=true \
+  -e NEXTAUTH_URL=https://parcelis.example.com \
+  -e NEXTAUTH_SECRET="${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET to your saved deployment secret}" \
   -e EMAIL_FROM='Parcelis <no-reply@example.com>' \
   -e SMTP_HOST=smtp.example.com \
   -e SMTP_PORT=465 \
@@ -47,14 +49,30 @@ For a single-image deployment that bundles the web app, API, worker, documentati
 If you are planning to run Parcelis in a production environment, update the values for the database, object storage, and authentication settings before you expose the service publicly. Use strong, unique credentials and keep them out of shell history and version control.
 :::
 
+## Upgrading an existing deployment
+
+The NextAuth upgrade removes the database `Session` table. Previous application instances still query it, so use a maintenance window. Back up PostgreSQL, drain traffic from every application replica, and wait for in-flight requests to finish. Stop `parcelis-app` and every other old application and worker instance before applying migrations. Keep PostgreSQL, Redis, and object storage running.
+
+Pull the new image, then run migrations from that image with your production database connection:
+
+```bash
+docker run --rm \
+  -e DATABASE_URL="$DATABASE_URL" \
+  -w /repo \
+  parcelis/app:v0.4.1 \
+  pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
+```
+
+Use the same Docker network as your database when needed. If migration fails, keep traffic disabled until the failure is resolved. Recreate the application and worker containers from the new image with the saved environment settings, verify their health, then restore traffic. Users must sign in again. The previous release cannot run against the migrated database; reverting requires restoring the pre-upgrade database backup. For Compose, follow the [Compose upgrade sequence](./deploy-with-docker-compose#upgrading-an-existing-deployment).
+
 ## Required environment variables
 
 The app container expects the following values at minimum:
 
 - `DATABASE_URL`: PostgreSQL connection string
 - `WEB_ORIGIN`: the public origin used by the web app
-- `AUTH_COOKIE_DOMAIN`: the cookie domain for authentication sessions
-- `AUTH_COOKIE_SECURE`: set to `true` when the app is served over HTTPS
+- `NEXTAUTH_URL`: the public Parcelis origin, including HTTPS
+- `NEXTAUTH_SECRET`: a private value generated once with `openssl rand -base64 32`, persisted across redeploys and shared across API instances
 - `EMAIL_FROM`: sender address for transactional email
 - `SMTP_HOST`, `SMTP_PORT`, and `SMTP_SECURE`: SMTP server connection settings; `SMTP_SECURE` must be `true` or `false`
 - `SMTP_USER` and `SMTP_PASSWORD`: SMTP authentication credentials
@@ -67,8 +85,6 @@ The nginx proxy exposes the web app at `/`, documentation at `/docs/`, and
 the API at `/api/v1`.
 
 ## Optional environment variables
-
-- `SESSION_IDLE_TIMEOUT_ENABLED`: defaults to `true`; set to `false` to disable the 15-minute inactivity timeout
 
 For the complete `.env` reference, including TLS and STARTTLS guidance, see [Email configuration](./email-configuration). Organization administrators can configure SMTP in Settings → Organization → Email. Those settings take precedence for email sent to a user whose default organization has a saved configuration. The environment SMTP values remain the fallback.
 

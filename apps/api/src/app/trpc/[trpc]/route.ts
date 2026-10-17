@@ -13,9 +13,9 @@ async function handler(request: Request) {
     endpoint: "/trpc",
     req: request,
     router: appRouter,
-    createContext: context.createContext,
+    createContext: context,
   });
-  return applyApiHeaders(request, context.applyCookies(response));
+  return applyApiHeaders(request, response);
 }
 
 export { handler as GET, handler as POST };
