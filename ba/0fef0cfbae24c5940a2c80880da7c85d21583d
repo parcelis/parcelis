@@ -1,0 +1,25 @@
+apps/web/app/login/page.tsx
+  s_c6fa9d2b4f6c65::t_09c54ad0b68dea 80
+apps/api/src/tests/auth/session.test.ts
+  s_c6fa9d2b4f6c65::t_ec22ad8b85095f 18-36
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_c6fa9d2b4f6c65::t_09c54ad0b68dea 15-17,25,59
+apps/api/src/modules/session.ts
+  s_c6fa9d2b4f6c65::t_09c54ad0b68dea 35-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ba0fef0cfbae24c5940a2c80880da7c85d21583d",
+  "prompts": {},
+  "sessions": {
+    "s_c6fa9d2b4f6c65": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14a15-fc72-7da3-b24a-487d515896ec",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
