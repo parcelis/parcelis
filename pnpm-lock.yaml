@@ -252,7 +252,7 @@ importers:
         version: 6.3.16(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       dotenv:
         specifier: ^18.0.0
-        version: 18.0.7
+        version: 18.0.8
       hono:
         specifier: ^4.13.13
         version: 4.13.13
@@ -410,7 +410,7 @@ importers:
         version: 11.19.0(typescript@6.0.3)
       dotenv:
         specifier: ^18.0.0
-        version: 18.0.7
+        version: 18.0.8
       lucide-react:
         specifier: ^1.32.0
         version: 1.56.0(@types/react@19.3.0)(react@19.3.0)
@@ -6144,8 +6144,8 @@ packages:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
-  dotenv@18.0.7:
-    resolution: {integrity: sha512-QEvMEF8ca3GNZJJnAbOgxpj5ULhBvnMcURp+XKrtvqFNPgjBvYoswQ0Jl2cO7JzCjxZjJhr9ZuIEhlrRxMft/Q==}
+  dotenv@18.0.8:
+    resolution: {integrity: sha512-2KDeoFoK/zRtcnbunCDlLG5VWVMcyqeQc6iK65o231nfNAcuGrKoqUQfJFUtBI+QlShk5HKIHxwebBtUl3rEfA==}
     engines: {node: '>=12'}
     hasBin: true
 
@@ -17835,7 +17835,7 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-  dotenv@18.0.7: {}
+  dotenv@18.0.8: {}
 
   dunder-proto@1.0.1:
     dependencies:
