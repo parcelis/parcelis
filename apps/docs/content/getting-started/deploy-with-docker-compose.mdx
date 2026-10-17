@@ -29,7 +29,7 @@ docker compose --env-file .env.production up -d --remove-orphans
 
 The stack will run the migration job first, then start the app and docs services once the database and object storage are ready.
 
-Sign-ins use NextAuth JWT sessions with a seven-day lifetime and no inactivity timeout. NextAuth renews sessions through its session endpoints. Cookies from the previous session implementation require signing in again with existing credentials.
+Sign-ins use NextAuth JWT sessions with a seven-day rolling expiry and no inactivity timeout. NextAuth renews sessions through its session endpoints. Cookies from the previous session implementation require signing in again with existing credentials.
 
 :::caution
 If you are planning to run Parcelis in a production environment, update the values in the secrets, authentication, and transactional email sections of `.env.production` before you go live. Use strong, unique values for the database, MinIO, SMTP, and authentication settings so only you can access the platform services.
@@ -78,3 +78,18 @@ docker compose --env-file .env.production down
 ## NextAuth configuration
 
 Set `NEXTAUTH_URL` in `.env.production` to the public Parcelis origin, including HTTPS. Generate `NEXTAUTH_SECRET` with `openssl rand -base64 32` and use the same value across web and API instances. The Compose stack forwards both settings to the application container. Changing the secret invalidates NextAuth cookies. Cookie names, host scoping, and Secure behavior use NextAuth defaults based on the HTTP/HTTPS public URL; no `AUTH_COOKIE_*` settings are needed. Existing accounts and passwords continue to work; registration, email verification, and password recovery are unchanged.
+
+## Upgrading an existing deployment
+
+The NextAuth upgrade removes the database `Session` table. Previous application instances still query that table, so this upgrade requires a maintenance window; do not apply migrations while old instances are serving requests.
+
+Back up PostgreSQL, remove all application replicas from your load balancer, and wait for in-flight requests to finish. Stop every old application and worker instance, including instances on other hosts, before running the migration. Keep PostgreSQL, Redis, and object storage running.
+
+```bash
+docker compose --env-file .env.production pull
+docker compose --env-file .env.production stop app-service worker-service
+docker compose --env-file .env.production run --rm --no-deps migrate-service
+docker compose --env-file .env.production up -d --remove-orphans
+```
+
+If migration fails, keep application traffic disabled until the failure is resolved. After the new application passes health checks, restore traffic. Users must sign in again. The previous release cannot run against the migrated database; reverting requires restoring the pre-upgrade database backup.

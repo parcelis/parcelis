@@ -49,6 +49,22 @@ For a single-image deployment that bundles the web app, API, worker, documentati
 If you are planning to run Parcelis in a production environment, update the values for the database, object storage, and authentication settings before you expose the service publicly. Use strong, unique credentials and keep them out of shell history and version control.
 :::
 
+## Upgrading an existing deployment
+
+The NextAuth upgrade removes the database `Session` table. Previous application instances still query it, so use a maintenance window. Back up PostgreSQL, drain traffic from every application replica, and wait for in-flight requests to finish. Stop `parcelis-app` and every other old application and worker instance before applying migrations. Keep PostgreSQL, Redis, and object storage running.
+
+Pull the new image, then run migrations from that image with your production database connection:
+
+```bash
+docker run --rm \
+  -e DATABASE_URL="$DATABASE_URL" \
+  -w /repo \
+  parcelis/app:v0.4.1 \
+  pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
+```
+
+Use the same Docker network as your database when needed. If migration fails, keep traffic disabled until the failure is resolved. Recreate the application and worker containers from the new image with the saved environment settings, verify their health, then restore traffic. Users must sign in again. The previous release cannot run against the migrated database; reverting requires restoring the pre-upgrade database backup. For Compose, follow the [Compose upgrade sequence](./deploy-with-docker-compose#upgrading-an-existing-deployment).
+
 ## Required environment variables
 
 The app container expects the following values at minimum:

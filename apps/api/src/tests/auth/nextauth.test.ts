@@ -11,12 +11,13 @@ import { createNextAuthOptions } from "../../modules/nextauth";
 import { nextAuthCookieName } from "./session-cookie";
 import { readSession } from "../../modules/session";
 
+process.env.API_TRUST_PROXY_HOPS = "1";
 process.env.NEXTAUTH_SECRET = "nextauth-test-secret-not-for-production";
 process.env.NEXTAUTH_URL = "http://localhost:30000";
 const password = "Parcelis-password-123!";
 const passwordHash = hashPassword(password);
 
-async function fixture() {
+async function fixture(requestHeaders: Record<string, string> = {}) {
   resetRateLimits();
   const user = {
     id: 7,
@@ -70,7 +71,7 @@ async function fixture() {
       {
         method,
         query: { nextauth: action.split("/") },
-        headers: { host: "localhost:30000" },
+        headers: { host: "localhost:30000", ...requestHeaders },
         cookies: { ...cookies },
         body,
       } as unknown as NextApiRequest,
@@ -189,6 +190,17 @@ test("NextAuth preserves account-status errors and login throttling", async () =
     );
   }
   assert.match(JSON.stringify((await state.signIn()).body), /Too.*many.*attempts/);
+  assert.equal(state.cookies[nextAuthCookieName], undefined);
+});
+
+test("NextAuth throttles a trusted client IP across distinct email addresses", async () => {
+  const state = await fixture({ "x-forwarded-for": "198.51.100.42" });
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const result = await state.signIn({ email: `attempt-${attempt}@example.com`, password });
+    assert.match(JSON.stringify(result.body), /Invalid.*email.*password/);
+  }
+  const result = await state.signIn({ email: "another@example.com", password });
+  assert.match(JSON.stringify(result.body), /Too.*many.*attempts/);
   assert.equal(state.cookies[nextAuthCookieName], undefined);
 });
 

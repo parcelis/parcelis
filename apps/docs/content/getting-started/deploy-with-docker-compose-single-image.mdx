@@ -22,29 +22,29 @@ Use the modular [`docker-compose.yml`](https://raw.githubusercontent.com/parceli
 
 The image is published from each GitHub release with the version tag and `latest`. Replace `v0.4.1` with the version you want to run.
 
-| Image | Tag examples |
-| --- | --- |
+| Image               | Tag examples       |
+| ------------------- | ------------------ |
 | `parcelis/parcelis` | `v0.4.1`, `latest` |
 
 ## Required environment variables
 
 The single application image expects the same environment variables as the modular `parcelis/app` service:
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `WEB_ORIGIN` | Public origin used for CORS and the web app |
-| `NEXTAUTH_URL` | Public application URL; defaults to `WEB_ORIGIN` |
-| `NEXTAUTH_SECRET` | Required secret for encrypted authentication cookies |
-| `EMAIL_FROM` | Sender address for password reset emails |
-| `EMAIL_SETTINGS_ENCRYPTION_KEY` | Base64-encoded 32-byte secret encrypting saved organization SMTP credentials. Keep it stable across restarts; changing it prevents decrypting existing passwords |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | SMTP server connection settings |
-| `SMTP_USER`, `SMTP_PASSWORD` | SMTP authentication credentials |
-| `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT` | S3-compatible endpoint URLs |
-| `S3_BUCKET` | Object storage bucket for uploaded images |
-| `S3_REGION` | Region for the object storage bucket |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Object storage credentials |
-| `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Redis connection used by the API and worker job queues |
+| Variable                                     | Purpose                                                                                                                                                          |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                               | PostgreSQL connection string                                                                                                                                     |
+| `WEB_ORIGIN`                                 | Public origin used for CORS and the web app                                                                                                                      |
+| `NEXTAUTH_URL`                               | Required public application URL; only the supplied Compose files default it to `WEB_ORIGIN`                                                                      |
+| `NEXTAUTH_SECRET`                            | Required secret for encrypted authentication cookies                                                                                                             |
+| `EMAIL_FROM`                                 | Sender address for password reset emails                                                                                                                         |
+| `EMAIL_SETTINGS_ENCRYPTION_KEY`              | Base64-encoded 32-byte secret encrypting saved organization SMTP credentials. Keep it stable across restarts; changing it prevents decrypting existing passwords |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`      | SMTP server connection settings                                                                                                                                  |
+| `SMTP_USER`, `SMTP_PASSWORD`                 | SMTP authentication credentials                                                                                                                                  |
+| `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT`          | S3-compatible endpoint URLs                                                                                                                                      |
+| `S3_BUCKET`                                  | Object storage bucket for uploaded images                                                                                                                        |
+| `S3_REGION`                                  | Region for the object storage bucket                                                                                                                             |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`   | Object storage credentials                                                                                                                                       |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Redis connection used by the API and worker job queues                                                                                                           |
 
 ## Required working directory
 
@@ -116,41 +116,37 @@ The single application image Compose stack will:
 
 ## Upgrading and running migrations
 
-Migrations are an explicit deployment step. Run the migration container from the new image before starting the application container when you change versions:
+The NextAuth upgrade removes the database `Session` table. Previous application instances still query it, so use a maintenance window. Back up PostgreSQL, remove every application replica from your load balancer, and wait for in-flight requests to finish. Stop all old application and worker instances, including those on other hosts, before applying migrations. Keep PostgreSQL, Redis, and object storage running.
+
+For Compose deployments:
 
 ```bash
 docker compose --env-file .env.production \
-  -f docker-compose-single-image.yml \
-  run --rm migrate-service
+  -f docker-compose-single-image.yml pull
+docker compose --env-file .env.production \
+  -f docker-compose-single-image.yml stop app-service worker-service
+docker compose --env-file .env.production \
+  -f docker-compose-single-image.yml run --rm --no-deps migrate-service
+docker compose --env-file .env.production \
+  -f docker-compose-single-image.yml up -d --remove-orphans
 ```
 
-The migrate service uses the same `parcelis/parcelis` image and exits after applying pending migrations, so the upgrade path is identical to the modular stack.
+For standalone Docker deployments, pull the new image, drain traffic, and stop `parcelis-single-image` and every separate worker or application replica. Run the migration command from [Running with Docker](#running-with-docker), then recreate the application and worker containers from the new image with the saved environment settings.
 
-To upgrade the stack:
-
-```bash
-docker compose --env-file .env.production \
-  -f docker-compose-single-image.yml \
-  pull
-docker compose --env-file .env.production \
-  -f docker-compose-single-image.yml \
-  up -d --remove-orphans
-```
-
-The pull and up commands rerun the migration job automatically because `app-service` depends on `migrate-service` having completed successfully.
+If migration fails, keep application traffic disabled until the failure is resolved. Restore traffic only after the new application passes health checks. Users must sign in again. The previous release cannot run against the migrated database; reverting requires restoring the pre-upgrade database backup.
 
 ## Trade-offs compared with the modular Compose stack
 
-| Concern | Single application image stack | Modular stack |
-| --- | --- | --- |
-| Number of running containers | One application container plus a worker container plus the migrate and minio-init one-shots | Separate `app` and `worker` containers plus `docs` and `proxy` plus the same one-shots |
-| Image publishes | `parcelis/parcelis` only | `parcelis/app`, `parcelis/docs`, and `parcelis/proxy` |
-| Documentation site | Served from the bundled `parcelis/parcelis` image at `/docs/` | Served from the separate `parcelis/docs` container at `/docs/` |
-| Edge routing | nginx inside the `parcelis/parcelis` image | Standalone `parcelis/proxy` image |
-| Independent scaling of docs and proxy | Not supported (bundled into the application image) | Supported |
-| Independent scaling of web vs API | Not supported (both run together in either topology) | Not supported (both run together in the `parcelis/app` image) |
-| PostgreSQL, Redis, and object storage | Separate services, identical to the modular stack | Separate services, identical to the single-image stack |
-| Migration job | Uses the `parcelis/parcelis` image with `prisma migrate deploy` | Uses the `parcelis/app` image with `prisma migrate deploy` |
-| Background worker | `worker-service` from the same `parcelis/parcelis` image | `worker-service` from the same `parcelis/app` image |
+| Concern                               | Single application image stack                                                              | Modular stack                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Number of running containers          | One application container plus a worker container plus the migrate and minio-init one-shots | Separate `app` and `worker` containers plus `docs` and `proxy` plus the same one-shots |
+| Image publishes                       | `parcelis/parcelis` only                                                                    | `parcelis/app`, `parcelis/docs`, and `parcelis/proxy`                                  |
+| Documentation site                    | Served from the bundled `parcelis/parcelis` image at `/docs/`                               | Served from the separate `parcelis/docs` container at `/docs/`                         |
+| Edge routing                          | nginx inside the `parcelis/parcelis` image                                                  | Standalone `parcelis/proxy` image                                                      |
+| Independent scaling of docs and proxy | Not supported (bundled into the application image)                                          | Supported                                                                              |
+| Independent scaling of web vs API     | Not supported (both run together in either topology)                                        | Not supported (both run together in the `parcelis/app` image)                          |
+| PostgreSQL, Redis, and object storage | Separate services, identical to the modular stack                                           | Separate services, identical to the single-image stack                                 |
+| Migration job                         | Uses the `parcelis/parcelis` image with `prisma migrate deploy`                             | Uses the `parcelis/app` image with `prisma migrate deploy`                             |
+| Background worker                     | `worker-service` from the same `parcelis/parcelis` image                                    | `worker-service` from the same `parcelis/app` image                                    |
 
 Pick the single application image when simpler deployment topology is more valuable than deploying docs and the proxy independently. Pick the modular stack when you already run the proxy, app, and documentation as separate services, or when you need to scale or deploy docs and the proxy independently.

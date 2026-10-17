@@ -23,12 +23,15 @@ async function mockAuthentication(context: import("@playwright/test").BrowserCon
       json: signedIn ? { user, expires: new Date(Date.now() + 604_800_000).toISOString() } : null,
     }),
   );
-  await context.route("**/api/auth/csrf", (route) => route.fulfill({ json: { csrfToken: "test-csrf" } }));
   await context.route("**/api/auth/signout", async (route) => {
-    expect(new URLSearchParams(route.request().postData() ?? "").get("csrfToken")).toBe("test-csrf");
+    const response = await route.fetch();
+    expect(response.ok()).toBe(true);
+    const sessionCookie = response
+      .headersArray()
+      .find(({ name, value }) => name.toLowerCase() === "set-cookie" && value.startsWith(`${nextAuthCookieName}=`));
+    expect(sessionCookie?.value).toMatch(/Max-Age=0/i);
     signedIn = false;
-    await context.clearCookies({ name: nextAuthCookieName });
-    await route.fulfill({ json: { url: "/login" } });
+    await route.fulfill({ response });
   });
   await context.route("**/trpc/**", async (route) => {
     const url = new URL(route.request().url());

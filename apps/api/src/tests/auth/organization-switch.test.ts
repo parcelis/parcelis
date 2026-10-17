@@ -8,7 +8,16 @@ for (const member of [true, false]) {
     const user = { id: 7, role: "property_manager", defaultOrganizationId: 3 };
     const caller = appRouter.createCaller({
       prisma: {
-        organizationMembership: { findUnique: async () => (member ? { organizationId: 4 } : null) },
+        organizationMembership: {
+          findUnique: async ({
+            where,
+          }: {
+            where: { userId_organizationId: { userId: number; organizationId: number } };
+          }) => {
+            assert.deepEqual(where, { userId_organizationId: { userId: user.id, organizationId: 4 } });
+            return member ? { organizationId: 4 } : null;
+          },
+        },
         user: {
           update: async (query: unknown) => {
             userUpdated = true;
