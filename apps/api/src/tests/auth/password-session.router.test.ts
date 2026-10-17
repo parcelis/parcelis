@@ -40,7 +40,16 @@ test("reset password records the time used to invalidate existing JWTs", async (
   let tokenUsedAt: Date | undefined;
   const transaction = {
     passwordResetToken: {
-      updateMany: async ({ data }: { data: { usedAt: Date } }) => {
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: number; usedAt: null; expiresAt: { gt: Date } };
+        data: { usedAt: Date };
+      }) => {
+        assert.equal(where.id, 12);
+        assert.equal(where.usedAt, null);
+        assert.ok(where.expiresAt.gt instanceof Date);
         tokenUsedAt = data.usedAt;
         return { count: 1 };
       },
