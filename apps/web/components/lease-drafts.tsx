@@ -46,7 +46,7 @@ export function LeaseDrafts() {
   return (
     <Card className="mb-6">
       <CardHeader>
-        <h2 className="font-semibold">Unfinished leases</h2>
+        <h2 className="font-semibold">Draft leases</h2>
       </CardHeader>
       <CardContent className="max-h-96 overflow-auto p-0">
         {draftsQuery.error ? (
@@ -56,7 +56,7 @@ export function LeaseDrafts() {
         ) : draftsQuery.isPending ? (
           <p className="p-5 text-sm">Loading drafts…</p>
         ) : !draftsQuery.data.length ? (
-          <p className="p-5 text-sm text-parcelis-gray">No unfinished leases.</p>
+          <p className="p-5 text-sm text-parcelis-gray">No draft leases.</p>
         ) : (
           <Table>
             <TableHeader className="bg-parcelis-porcelain text-parcelis-gray">
@@ -76,7 +76,7 @@ export function LeaseDrafts() {
                   <TableCell>
                     <div className="flex gap-2">
                       <Button asChild size="sm">
-                        <Link href={getLeaseDraftLink(draft.leaseDraftKey)}>Resume draft</Link>
+                        <Link href={getLeaseDraftLink(draft.leaseDraftKey)}>Resume lease</Link>
                       </Button>
                       {hasPermission(userQuery.data?.permissions, "leases", "delete") ? (
                         <Button
