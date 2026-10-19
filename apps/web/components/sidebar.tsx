@@ -690,7 +690,7 @@ function SidebarContent({ active }: SidebarProps) {
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <a
-                href="https://discord.gg/4XYkWmVpWH"
+                href="https://discord.gg/fQACQU8qdz"
                 onClick={closeMobileSidebar}
                 rel="noopener noreferrer"
                 target="_blank"
