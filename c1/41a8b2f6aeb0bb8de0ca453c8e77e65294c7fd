@@ -1,0 +1,19 @@
+apps/web/components/shortcuts.ts
+  s_311682dd4a807b::t_435216ec8faa99 1,5,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c141a8b2f6aeb0bb8de0ca453c8e77e65294c7fd",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
