@@ -163,6 +163,7 @@ model Organization {
   postalCode            String?
   phone                 String?
   memberships           OrganizationMembership[]
+  apiTokens              ApiToken[]
   properties            Property[]
   tenants               Tenant[]
   landlords             Landlord[]
@@ -233,9 +234,33 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   organizationMemberships OrganizationMembership[]
+  createdApiTokens        ApiToken[] @relation("ApiTokenCreator")
+  revokedApiTokens        ApiToken[] @relation("ApiTokenRevoker")
   defaultOrganization     Organization?            @relation("UserDefaultOrganization", fields: [defaultOrganizationId], references: [id], onDelete: SetNull)
 
   @@index([defaultOrganizationId])
+}
+
+model ApiToken {
+  id               String       @id @default(cuid())
+  organizationId   Int
+  name             String
+  tokenHash        String       @unique
+  tokenPrefix      String
+  createdById      Int?
+  createdByLabel   String
+  createdAt        DateTime     @default(now())
+  expiresAt        DateTime?
+  lastUsedAt       DateTime?
+  revokedAt        DateTime?
+  revokedById      Int?
+  revokedByLabel   String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation("ApiTokenCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  revokedBy    User?        @relation("ApiTokenRevoker", fields: [revokedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt, id])
 }
 
 model RolePermission {
