@@ -84,6 +84,9 @@ import {
   formatMaintenanceTicketNumber,
   planLeaseRentCharges,
   type LeaseRentPlanInput,
+  type ApiTokenMetadata,
+  listApiTokensInputSchema,
+  listApiTokensOutputSchema,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -142,6 +145,37 @@ import {
 } from "../modules/email-settings";
 import { consumeEmailSendRateLimit, getEmailSendRateLimitKey } from "../modules/login-rate-limit";
 import { queueNotificationEmailOutboxEvent } from "../modules/notification-outbox";
+
+// Select definitions for commonly used Prisma queries.
+const apiTokenMetadataSelect = {
+  id: true,
+  name: true,
+  tokenPrefix: true,
+  createdByLabel: true,
+  createdAt: true,
+  expiresAt: true,
+  lastUsedAt: true,
+  revokedAt: true,
+  revokedByLabel: true,
+} satisfies Prisma.ApiTokenSelect;
+
+type ApiTokenMetadataRecord = Prisma.ApiTokenGetPayload<{
+  select: typeof apiTokenMetadataSelect;
+}>;
+
+function toApiTokenMetadata(token: ApiTokenMetadataRecord): ApiTokenMetadata {
+  return {
+    id: token.id,
+    name: token.name,
+    tokenPrefix: token.tokenPrefix,
+    createdByLabel: token.createdByLabel,
+    createdAt: token.createdAt.toISOString(),
+    expiresAt: token.expiresAt?.toISOString() ?? null,
+    lastUsedAt: token.lastUsedAt?.toISOString() ?? null,
+    revokedAt: token.revokedAt?.toISOString() ?? null,
+    revokedByLabel: token.revokedByLabel,
+  };
+}
 
 const propertySelect = {
   id: true,
@@ -626,6 +660,12 @@ function permissionProcedure(resource: PermissionResource, action: PermissionAct
   });
 }
 
+const apiTokenManagementProcedure = organizationProcedure.use(({ ctx, next }) => {
+  requireOrganizationAdministrator(ctx.organization.role);
+
+  return next({ ctx });
+});
+
 async function assertNonAdministratorUser(prisma: PrismaClient | Prisma.TransactionClient, userId: number) {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
   if (user.role === "administrator") {
@@ -635,6 +675,59 @@ async function assertNonAdministratorUser(prisma: PrismaClient | Prisma.Transact
 
 export const appRouter = router({
   auth: authRouter,
+  apiTokens: router({
+    list: apiTokenManagementProcedure
+      .input(listApiTokensInputSchema)
+      .output(listApiTokensOutputSchema)
+      .query(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+
+        if (input.cursor) {
+          const cursorToken = await ctx.prisma.apiToken.findFirst({
+            where: {
+              id: input.cursor,
+              organizationId,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+          if (!cursorToken) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "API token not found.",
+            });
+          }
+        }
+
+        const tokens = await ctx.prisma.apiToken.findMany({
+          where: {
+            organizationId,
+          },
+          select: apiTokenMetadataSelect,
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: input.limit + 1,
+          ...(input.cursor
+            ? {
+                cursor: { id: input.cursor },
+                skip: 1,
+              }
+            : {}),
+        });
+
+        const hasMore = tokens.length > input.limit;
+
+        if (hasMore) {
+          tokens.pop();
+        }
+
+        return {
+          items: tokens.map(toApiTokenMetadata),
+          nextCursor: hasMore ? (tokens.at(-1)?.id ?? null) : null,
+        };
+      }),
+  }),
   organizations: router({
     list: publicProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "administrator") {
