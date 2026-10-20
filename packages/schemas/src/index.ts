@@ -74,6 +74,79 @@ export const changePasswordInputSchema = z
     path: ["reenterPassword"],
   });
 
+// API token expiration options
+export const apiTokenExpirationValues = [
+  "7_days",
+  "1_month",
+  "3_months",
+  "6_months",
+  "12_months",
+  "never",
+] as const;
+
+// API token expiration schema
+export const apiTokenExpirationSchema = z.enum(apiTokenExpirationValues);
+
+// API token expiration type
+export type ApiTokenExpiration = z.infer<typeof apiTokenExpirationSchema>;
+
+// Create API token input schema
+export const createApiTokenInputSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  expiration: apiTokenExpirationSchema.default("7_days"),
+});
+
+// Create API token input type
+export type CreateApiTokenInput = z.infer<typeof createApiTokenInputSchema>;
+
+// List API tokens input schema
+export const listApiTokensInputSchema = z.object({
+  cursor: z.string().cuid().optional(),
+  limit: z.number().int().min(1).max(100).default(25),
+});
+
+// List API tokens input type
+export type ListApiTokensInput = z.infer<typeof listApiTokensInputSchema>;
+
+// Revoke API token input schema
+export const revokeApiTokenInputSchema = z.object({
+  id: z.string().cuid(),
+});
+
+// Revoke API token input type
+export type RevokeApiTokenInput = z.infer<typeof revokeApiTokenInputSchema>;
+
+// API token metadata schema
+export const apiTokenMetadataSchema = z.object({
+  id: z.string().cuid(),
+  name: z.string(),
+  tokenPrefix: z.string(),
+  createdByLabel: z.string(),
+  createdAt: z.iso.datetime(),
+  expiresAt: z.iso.datetime().nullable(),
+  lastUsedAt: z.iso.datetime().nullable(),
+  revokedAt: z.iso.datetime().nullable(),
+  revokedByLabel: z.string().nullable(),
+});
+
+// API token metadata type
+export type ApiTokenMetadata = z.infer<typeof apiTokenMetadataSchema>;
+
+// List API tokens output schema
+export const listApiTokensOutputSchema = z.object({
+  items: z.array(apiTokenMetadataSchema),
+  nextCursor: z.string().cuid().nullable(),
+});
+
+// List API tokens output type
+export type ListApiTokensOutput = z.infer<typeof listApiTokensOutputSchema>;
+
+// Create API token output type
+export const createApiTokenOutputSchema = z.object({
+  metadata: apiTokenMetadataSchema,
+  token: z.string().regex(/^pcls_api_[A-Za-z0-9_-]{43}$/),
+});
+
 export const userRoleValues = [
   "administrator",
   "property_manager",
