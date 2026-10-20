@@ -1,0 +1,16 @@
+apps/api/src/router/app.router.ts
+  h_a5ff85794783c2 87-89,149-179,663-668,678-730
+apps/api/src/tests/api-tokens/api-tokens.router.test.ts
+  h_a5ff85794783c2 1-265
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "312e948c0fbcc271b475d42e895c231afa732098",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
