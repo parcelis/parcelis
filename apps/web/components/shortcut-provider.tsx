@@ -13,8 +13,6 @@ export function ShortcutProvider({ children }: { children: React.ReactNode }) {
       defaultOptions={{
         hotkey: {
           preventDefault: true,
-        },
-        hotkeySequence: {
           timeout: 1200,
         },
       }}
