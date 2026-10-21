@@ -553,7 +553,7 @@ function leaseOverlapWhere(
   };
 }
 
-async function synchronizeOverdueInvoices(prisma: PrismaClient | Prisma.TransactionClient, organizationId?: number) {
+async function synchronizeOverdueInvoices(prisma: PrismaClient | Prisma.TransactionClient, organizationId: number) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   await Promise.all([
@@ -2620,7 +2620,7 @@ export const appRouter = router({
       }),
     list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma);
+      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
       const invoices = await ctx.prisma.invoice.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
@@ -2640,7 +2640,7 @@ export const appRouter = router({
     }),
     byId: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma);
+      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         include: {
@@ -2669,7 +2669,7 @@ export const appRouter = router({
     }),
     pdf: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma);
+      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         include: {

@@ -53,9 +53,9 @@ export function createContext(prisma: PrismaClient) {
         : null;
 
     const requestedOrganizationSlug = opts.req.headers["x-parcelis-organization-slug"];
-    const organizationSlug = Array.isArray(requestedOrganizationSlug)
-      ? requestedOrganizationSlug[0]
-      : requestedOrganizationSlug;
+    const organizationSlug =
+      (Array.isArray(requestedOrganizationSlug) ? requestedOrganizationSlug[0] : requestedOrganizationSlug) ||
+      undefined;
     if (apiToken && organizationSlug !== undefined && organizationSlug !== apiToken.organization.slug) {
       throw new TRPCError({
         code: "FORBIDDEN",
