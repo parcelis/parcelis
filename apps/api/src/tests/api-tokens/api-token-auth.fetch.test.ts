@@ -160,12 +160,14 @@ test("valid tokens override cookies and reject conflicting organization headers"
   assert.equal(data.sessionReads(), 0);
 });
 
-test("lookup failures return sanitized 500 responses without cookie fallback", async () => {
+test("lookup failures log safe diagnostics and return sanitized 500 responses without cookie fallback", async (t) => {
   const data = fixture();
   data.failLookup();
+  const diagnostics: unknown[][] = [];
+  t.mock.method(console, "error", (...args: unknown[]) => diagnostics.push(args));
   const response = await handleRestRequest(
     data.prisma,
-    request("/tags", {
+    request(`/tags?private=${token}`, {
       authorization: `Bearer ${token}`,
       cookie: await createTestSessionCookie(),
     }),
@@ -173,6 +175,8 @@ test("lookup failures return sanitized 500 responses without cookie fallback", a
   assert.equal(response.status, 500);
   assert.equal((await response.text()).includes(token), false);
   assert.equal(data.sessionReads(), 0);
+  assert.deepEqual(diagnostics, [["REST request failed.", { status: 500, path: "/api/v1/tags" }]]);
+  assert.equal(JSON.stringify(diagnostics).includes(token), false);
 });
 
 test("last-used write failures are nonfatal and diagnostics omit credentials", async (t) => {
@@ -256,4 +260,20 @@ test("a slow telemetry write does not delay the business response", async () => 
   data.prisma.apiToken.updateMany = (() => new Promise(() => {})) as typeof data.prisma.apiToken.updateMany;
   const response = await handleRestRequest(data.prisma, request());
   assert.equal(response.status, 200);
+});
+
+test("empty organization selections behave like absent headers for bearer and cookie authentication", async () => {
+  const data = fixture();
+  const cookie = await createTestSessionCookie();
+  const authenticationHeaders: HeadersInit[] = [{ authorization: `Bearer ${token}` }, { cookie }];
+  for (const credentials of authenticationHeaders) {
+    for (const slug of [undefined, "", "portfolio"]) {
+      const headers = new Headers(credentials);
+      if (slug !== undefined) headers.set("x-parcelis-organization-slug", slug);
+      const response = await handleRestRequest(data.prisma, request("/tags", headers));
+      assert.equal(response.status, 200);
+      assert.equal((await response.json()).data[0].label, "Organization 3");
+    }
+  }
+  assert.deepEqual(data.scopes, [3, 3, 3, 3, 3, 3]);
 });

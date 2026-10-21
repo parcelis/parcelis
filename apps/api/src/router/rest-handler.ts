@@ -17,6 +17,10 @@ export async function handleRestRequest(prisma: PrismaClient, request: Request) 
   // Apply API headers to the response.
   if (response.status === 401) response.headers.set("WWW-Authenticate", "Bearer");
   if (response.status >= 500) {
+    console.error("REST request failed.", {
+      status: response.status,
+      path: new URL(request.url).pathname,
+    });
     return applyApiHeaders(
       request,
       Response.json({ code: "INTERNAL_SERVER_ERROR", message: "An internal server error occurred." }, { status: 500 }),
