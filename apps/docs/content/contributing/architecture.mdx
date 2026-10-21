@@ -35,6 +35,22 @@ The API resolves the authenticated session and active organization for each
 request. Operational reads and writes are scoped to that organization. Responses
 use `private, no-store`; dashboard requests validate the JWT and current account.
 
+API-token management uses the session-only `apiTokens.list`, `apiTokens.create`,
+and `apiTokens.revoke` procedures in `app.router.ts`. Organization owners and
+administrators, plus platform administrators without organization membership,
+can manage tokens for the selected organization. All token queries remain scoped
+to that organization.
+
+Creation returns the secret once and stores its SHA-256 hash and a display prefix
+containing `pcls_api_` plus ten random characters. Expiration defaults to seven
+days. Creation is limited to ten attempts per user and organization per
+fifteen-minute window, per API process, using counters separate from sign-in.
+Lists include active, expired, and revoked records with cursor pagination.
+Revocation retains the record and preserves its original revoker and timestamp
+on repeated or concurrent calls. Bearer authentication and the token settings UI
+are subsequent implementation phases; token management currently requires a
+browser session.
+
 The Node.js runtime supports Prisma database connections, Argon2 password hashing,
 S3-compatible image uploads, Redis queues, and invoice PDF generation. API startup
 and shutdown are managed by `apps/api/scripts/server.mjs`, which drains requests
