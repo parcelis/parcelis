@@ -40,4 +40,10 @@ feat(api)!: rename the properties endpoint
 
 Pull requests validate every commit message in CI. When squash merging, use a Conventional Commit for the pull-request title because it becomes the final commit message.
 
+Pull requests also run the Gitleaks secret scan. Fork and Dependabot PRs use the CLI
+without organization secrets. Revoke or rotate real credentials immediately; removing
+them in a later commit does not undo exposure. See
+[secret scanning](https://github.com/parcelis/parcelis/blob/main/CONTRIBUTING.md#secret-scanning)
+for local scanning, false-positive review, and maintainer setup.
+
 For the complete contributor policy, see the repository's [CONTRIBUTING.md](https://github.com/parcelis/parcelis/blob/main/CONTRIBUTING.md).
