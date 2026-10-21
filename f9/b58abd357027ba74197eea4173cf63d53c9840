@@ -1,0 +1,22 @@
+docs/plans/api-token-authentication.md
+  s_311682dd4a807b::t_4b3a9ae33f3fa5 35-37,39-45,92-106,125-129
+  s_311682dd4a807b::t_c88210cdc82bc7 3-5,10-12,38,61-63,132-135,137-138,205-208,228-231
+  s_311682dd4a807b::t_382a77cbb0acaa 1-2,6-9,13-34,46-60,64-91,107-120,122-124,130-131,136,139-204,209-227,232-273
+  s_311682dd4a807b::t_9bacf0ab4844e4 121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f9b58abd357027ba74197eea4173cf63d53c9840",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
