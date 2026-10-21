@@ -284,8 +284,9 @@ API-token persistence tests use the same isolated-schema helper with
 API_TOKEN_TEST_DATABASE_URL='postgresql://parcelis:parcelis@localhost:54320/parcelis_test?schema=public' pnpm --filter @parcelis/api exec tsx --test src/tests/api-tokens/api-tokens.integration.ts
 ```
 
-The suite checks unique token hashes, creator/revoker deletion, and organization
-deletion. It creates tables from the current Prisma schema rather than replaying
+The suite checks unique token hashes, creator/revoker deletion, organization
+deletion, management permissions, pagination, credential secrecy, and concurrent
+revocation. It creates tables from the current Prisma schema rather than replaying
 migrations, and skips when the test URL is unset. To create the test database with
 the development container, run
 `docker compose -f docker-compose-dev.yml exec postgres-service createdb -U parcelis parcelis_test`
