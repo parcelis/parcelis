@@ -38,8 +38,10 @@ use `private, no-store`; dashboard requests validate the JWT and current account
 API-token management uses the session-only `apiTokens.list`, `apiTokens.create`,
 and `apiTokens.revoke` procedures in `app.router.ts`. Organization owners and
 administrators, plus platform administrators without organization membership,
-can manage tokens for the selected organization. All token queries remain scoped
-to that organization.
+can manage tokens for the active organization context. The context resolves the
+selected organization when supplied, otherwise the user's default organization;
+if no default is set, it uses the first accessible organization. All token queries
+remain scoped to that resolved organization.
 
 Creation returns the secret once and stores its SHA-256 hash and a display prefix
 containing `pcls_api_` plus ten random characters. Expiration defaults to seven

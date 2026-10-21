@@ -142,11 +142,13 @@ Object storage is configured in `apps/api/src/modules/object-storage.config.ts`.
 The API context resolves the active organization from the `x-parcelis-organization-slug` request header. The web proxy derives that header from `/o/{slug}` routes and stores the selected slug in a browser-session cookie so unscoped routes return to the selected organization. Requests without a selected organization fall back to the user's default organization. Switching organizations does not change that persistent default, which remains the initial fallback and determines the organization used for account verification and password-reset emails. `organizationProcedure` requires a valid organization context and operational queries and writes filter or persist its organization ID. Organization administrators can update organization details and avatars; application administrators can access every organization.
 
 API-token management lives in `app.router.ts` under `apiTokens.list`,
-`apiTokens.create`, and `apiTokens.revoke`. A valid browser session and selected
-organization are required. Organization owners and administrators can manage
-tokens; platform administrators can do so without membership. Every token query
-still filters by the selected organization, including cursor validation and
-revocation.
+`apiTokens.create`, and `apiTokens.revoke`. A valid browser session and an active
+organization context are required. The context resolves the selected organization
+when supplied, otherwise the user's default organization. If no default is set,
+it uses the first accessible organization. Organization owners and administrators
+can manage tokens; platform administrators can do so without membership. Every
+token query filters by the resolved organization, including cursor validation
+and revocation.
 
 `ApiToken` stores the credential's SHA-256 hash, a display prefix, expiration,
 and creator/revoker attribution. Only creation returns the raw credential;
