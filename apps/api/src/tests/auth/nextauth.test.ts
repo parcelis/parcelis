@@ -246,3 +246,11 @@ for (const protocol of ["http", "https"]) {
     assert.equal((await readSession(state.prisma, state.sessionRequest()))?.userId, 7);
   });
 }
+
+test("organization bearer tokens do not authenticate NextAuth session endpoints", async () => {
+  const state = await fixture({ authorization: `Bearer pcls_api_${"A".repeat(43)}` });
+  assert.deepEqual((await state.request("session")).body, {});
+  await state.signIn();
+  const session = await readSession(state.prisma, state.sessionRequest());
+  assert.equal(session?.userId, state.user.id);
+});
