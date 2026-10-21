@@ -65,6 +65,52 @@ CI runs script tests, lint, type checks, and the application build on every pull
 to `main`. Docker builds and container smoke tests are not part of PR CI. The release workflow
 builds and publishes Docker images when a GitHub release is published.
 
+### Secret scanning
+
+The `Gitleaks / Gitleaks` check runs on pull requests, pushes to `main`, daily at
+04:23 UTC, and manual dispatch. PRs from this repository use the pinned Gitleaks
+action to scan their commits. Pushes, scheduled runs, manual runs, and fork or
+Dependabot PRs scan the fetched history. Checkout fetches all history and does not
+persist credentials. Findings and scanner errors fail the check. Logs redact
+detected secrets; PR comments, report artifacts, and action summaries are disabled.
+
+Fork and Dependabot PRs use the checksum-verified Gitleaks CLI without the organization
+license or other Actions secrets. The workflow uses `pull_request`, never
+`pull_request_target`, and does not install dependencies or execute repository code.
+GitHub may require maintainer approval before running workflows for first-time contributors.
+
+To reproduce a history scan, install [Gitleaks 8.30.1](https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1),
+fetch the relevant history, and run from the repository root:
+
+```bash
+gitleaks git --redact --log-opts=--all
+```
+
+If a finding is a real credential, revoke or rotate it immediately and remove it
+from the code. Deleting it in a later commit does not undo exposure. Coordinate any
+history cleanup with maintainers. Never paste credentials into an issue or PR.
+For a confirmed false positive, add only its exact fingerprint to `.gitleaksignore`
+with a comment explaining why it is safe. Do not exclude whole directories or rules.
+Changes to scanner configuration and exclusions require careful review.
+
+The initial Gitleaks 8.30.1 full-history review found 91 false positives, recorded as
+exact commit/file/rule/line fingerprints in `.gitleaksignore`: 18 display-only API token
+prefix fixtures, 14 lease draft UUID fixtures, 57 compressed JSON API documentation
+fields, and two matches spanning architecture prose about password hashing and S3.
+No real credentials were identified in those findings. New occurrences still require review.
+
+Before rollout, maintainers must:
+
+1. Obtain the organization action license from [Gitleaks](https://gitleaks.io/) and
+   configure `GITLEAKS_LICENSE` as a repository Actions secret, or an organization
+   Actions secret with access granted to this repository. Missing licenses fail
+   licensed runs; the CLI fallback is limited to fork and Dependabot PRs.
+2. Run the workflow manually and verify a clean licensed scan. Verify a clean fork
+   PR and a disposable fork PR containing a synthetic detectable token; the latter
+   must fail. Never use a real credential for this test or merge the test branch.
+3. After validating the runs, require `Gitleaks` in the branch ruleset. Scheduled
+   runs start after the workflow reaches the default branch.
+
 ### Repository structure
 
 Apps:

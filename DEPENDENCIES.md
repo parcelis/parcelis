@@ -85,6 +85,22 @@ Development and deployment PostgreSQL use `postgres:16-alpine` to match existing
 | [Docker Compose](https://docs.docker.com/compose/)                 | Local infrastructure and production-style deployment.   |
 | [pgAdmin](https://www.pgadmin.org/)                                | Local PostgreSQL administration.                        |
 
+## Secret scanning
+
+[Gitleaks Action v3.0.0](https://github.com/gitleaks/gitleaks-action/releases/tag/v3.0.0)
+and [actions/checkout v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1)
+are pinned to commit SHAs in `.github/workflows/gitleaks.yml`. The action and the
+checksum-verified fork/Dependabot CLI fallback both use Gitleaks 8.30.1. Update the
+CLI version and archive SHA-256 together when upgrading, and review the action code
+before changing its pin.
+
+Organization-owned repositories require a Gitleaks action license supplied through
+the `GITLEAKS_LICENSE` repository or organization Actions secret, with repository
+access enabled. Obtain it from [Gitleaks](https://gitleaks.io/) before rollout.
+Fork and Dependabot PRs use the open-source CLI without receiving that secret.
+See [Secret scanning](CONTRIBUTING.md#secret-scanning) for remediation, reviewed
+history exclusions, and rollout verification.
+
 ## Version tracking
 
 Direct JavaScript dependencies are declared in:
