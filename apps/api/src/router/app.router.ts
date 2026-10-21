@@ -87,6 +87,10 @@ import {
   type ApiTokenMetadata,
   listApiTokensInputSchema,
   listApiTokensOutputSchema,
+  createApiTokenInputSchema,
+  createApiTokenOutputSchema,
+  revokeApiTokenInputSchema,
+  apiTokenMetadataSchema,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -143,8 +147,13 @@ import {
   getOrganizationEmailConfig,
   isEmailSettingsEncryptionConfigured,
 } from "../modules/email-settings";
-import { consumeEmailSendRateLimit, getEmailSendRateLimitKey } from "../modules/login-rate-limit";
+import {
+  consumeApiTokenCreationRateLimit,
+  consumeEmailSendRateLimit,
+  getEmailSendRateLimitKey,
+} from "../modules/login-rate-limit";
 import { queueNotificationEmailOutboxEvent } from "../modules/notification-outbox";
+import { createApiToken, getApiTokenDisplayPrefix, getApiTokenExpiration, hashApiToken } from "../modules/api-tokens";
 
 // Select definitions for commonly used Prisma queries.
 const apiTokenMetadataSelect = {
@@ -726,6 +735,72 @@ export const appRouter = router({
           items: tokens.map(toApiTokenMetadata),
           nextCursor: hasMore ? (tokens.at(-1)?.id ?? null) : null,
         };
+      }),
+    create: apiTokenManagementProcedure
+      .input(createApiTokenInputSchema)
+      .output(createApiTokenOutputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+
+        consumeApiTokenCreationRateLimit(ctx.user.id, organizationId);
+
+        const token = createApiToken();
+
+        const record = await ctx.prisma.apiToken.create({
+          data: {
+            organizationId,
+            name: input.name,
+            tokenHash: hashApiToken(token),
+            tokenPrefix: getApiTokenDisplayPrefix(token),
+            createdById: ctx.user.id,
+            createdByLabel: ctx.user.name,
+            expiresAt: getApiTokenExpiration(input.expiration),
+          },
+          select: apiTokenMetadataSelect,
+        });
+
+        return {
+          metadata: toApiTokenMetadata(record),
+          token,
+        };
+      }),
+    revoke: apiTokenManagementProcedure
+      .input(revokeApiTokenInputSchema)
+      .output(apiTokenMetadataSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+
+        const record = await ctx.prisma.$transaction(async (tx) => {
+          await tx.apiToken.updateMany({
+            where: {
+              id: input.id,
+              organizationId,
+              revokedAt: null,
+            },
+            data: {
+              revokedAt: new Date(),
+              revokedById: ctx.user.id,
+              revokedByLabel: ctx.user.name,
+            },
+          });
+
+          return tx.apiToken.findFirst({
+            where: {
+              id: input.id,
+              organizationId,
+            },
+            select: apiTokenMetadataSelect,
+          });
+        });
+
+        if (!record) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "API token not found.",
+          });
+        }
+
+        return toApiTokenMetadata(record);
       }),
   }),
   organizations: router({
