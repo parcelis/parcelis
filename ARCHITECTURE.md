@@ -157,8 +157,38 @@ is seven days, and the display prefix contains ten random characters after
 `pcls_api_`. Creation has a per-process limit of ten attempts per user and
 organization per fifteen minutes, independent of sign-in counters. A conditional
 update and read in a Prisma transaction preserve the original revocation details
-under repeated and concurrent calls. Bearer authentication and settings UI are
-separate follow-up phases.
+under repeated and concurrent calls. The settings UI is a separate follow-up phase.
+
+REST requests under `/api/v1/*` also accept `Authorization: Bearer pcls_api_<secret>`.
+The REST handler forwards credentials to context, which resolves a discriminated
+user or token principal. A supplied Authorization header takes precedence over
+cookies; malformed, unknown, expired, and revoked tokens return a generic 401
+with `WWW-Authenticate: Bearer`. Database failures return a sanitized 500 without
+cookie fallback. The Bearer scheme is case-insensitive; the token is case-sensitive.
+
+Tokens bind requests to their stored organization, independent of the creator's
+role or membership. An organization-selection header must match that organization
+or the request returns 403. `organizationApiProcedure` and the explicit procedure
+allowlist cover existing property, unit, tag, amenity, unit-option, and tenant-image
+REST operations. Browser role checks remain in effect, while tokens receive the
+approved organization's capabilities with feature flags, supported-action checks,
+nested ownership, image-key ownership, and domain validation still enforced.
+Foreign record IDs return 404. A classification test requires every protected REST
+operation to appear in the allowlist.
+
+Token management, account and platform administration, `/trpc/*`, `/api/auth/*`,
+and `/admin/jobs/*` remain session-only. Independently valid cookies retain their
+normal behavior on those transports. Public REST health and OPTIONS remain public,
+and CORS origins are unchanged. Activity writers use request-local token attribution
+(`api-token:<id>` / `API token: <name>`) rather than the creator; actor IDs are strings.
+Credentials are not included in activity attribution or diagnostics, and request
+handlers do not log Authorization headers.
+
+Token validity is checked in PostgreSQL on every protected request without caching.
+Revocation blocks authentications started after its transaction commits; requests
+already authorized may finish. Conditional last-used writes update at most once
+per five minutes, run independently of business requests, and emit only a fixed,
+sanitized diagnostic on failure.
 
 ## Data model
 
