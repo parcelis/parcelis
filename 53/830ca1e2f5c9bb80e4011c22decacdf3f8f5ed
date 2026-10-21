@@ -1,0 +1,33 @@
+apps/api/src/tests/auth/fetch-handlers.test.ts
+  s_311682dd4a807b::t_c8e6aaaa3b3d23 9,50
+apps/api/src/tests/api-tokens/api-token-auth.test.ts
+  s_311682dd4a807b::t_17ec3915d631e4 1-26,40-59,70-75,83-87,95-96,102-113,120,125-132,145-154,165-169
+  s_311682dd4a807b::t_5ffe7d88961c61 27-39,60-69,76-82,88-94,97-101,114-117,121-124,133-144,155-164
+  s_311682dd4a807b::t_ff69893dfe697b 118-119
+apps/api/src/tests/api-tokens/api-token-auth.fetch.test.ts
+  s_311682dd4a807b::t_5ffe7d88961c61 5-259
+  s_311682dd4a807b::t_061313854a6b12 1-4
+apps/api/src/tests/auth/nextauth.test.ts
+  s_311682dd4a807b::t_5ffe7d88961c61 249-256
+apps/api/src/tests/api-tokens/api-token-auth.integration.ts
+  s_311682dd4a807b::t_5ffe7d88961c61 19-62,71,111-301,303
+  s_311682dd4a807b::t_c8e6aaaa3b3d23 107-108
+  s_311682dd4a807b::t_bf035fd1a1d44c 63-70,72-105
+  s_311682dd4a807b::t_7a0de1a0b9521f 1-18,106,109-110,302,304
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53830ca1e2f5c9bb80e4011c22decacdf3f8f5ed",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
