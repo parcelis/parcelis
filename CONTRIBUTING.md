@@ -277,17 +277,20 @@ OUTBOX_TEST_DATABASE_URL=postgresql://parcelis:parcelis@localhost:54320/parcelis
 OUTBOX_TEST_DATABASE_URL=postgresql://parcelis:parcelis@localhost:54320/parcelis_test?schema=public pnpm --filter @parcelis/worker test:integration
 ```
 
-API-token persistence tests use the same isolated-schema helper with
+API-token persistence and REST authentication tests use the same isolated-schema helper with
 `API_TOKEN_TEST_DATABASE_URL`. They run separately from the ordinary API suite:
 
 ```bash
-API_TOKEN_TEST_DATABASE_URL='postgresql://parcelis:parcelis@localhost:54320/parcelis_test?schema=public' pnpm --filter @parcelis/api exec tsx --test src/tests/api-tokens/api-tokens.integration.ts
+API_TOKEN_TEST_DATABASE_URL='postgresql://parcelis:parcelis@localhost:54320/parcelis_test?schema=public' pnpm --filter @parcelis/api exec tsx --test "src/tests/api-tokens/*.integration.ts"
 ```
 
 The suite checks unique token hashes, creator/revoker deletion, organization
 deletion, management permissions, pagination, credential secrecy, and concurrent
-revocation. It creates tables from the current Prisma schema rather than replaying
-migrations, and skips when the test URL is unset. To create the test database with
+revocation. REST tests exercise every approved operation family against two
+organizations, including foreign records, nested inputs, image ownership, and
+last-used throttling. Object-storage calls are mocked; database operations use
+PostgreSQL. The suites create tables from the current Prisma schema rather than replaying
+migrations, and skip when the test URL is unset. To create the test database with
 the development container, run
 `docker compose -f docker-compose-dev.yml exec postgres-service createdb -U parcelis parcelis_test`
 once after PostgreSQL is running; an existing test database can be reused.
