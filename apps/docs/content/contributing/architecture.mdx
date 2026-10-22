@@ -94,6 +94,11 @@ Request handlers do not log Authorization headers. Activity writers attribute to
 requests to `api-token:<id>` / `API token: <name>` using request-local context;
 actor IDs remain strings.
 
+The generated OpenAPI contract explicitly declares bearer security for reviewed
+organization REST operations and leaves health public. A contract test checks this
+against the token allowlist. The [API authentication guide](../api-authentication.mdx)
+documents token creation, Bruno/curl setup, rotation, and troubleshooting.
+
 The Node.js runtime supports Prisma database connections, Argon2 password hashing,
 S3-compatible image uploads, Redis queues, and invoice PDF generation. API startup
 and shutdown are managed by `apps/api/scripts/server.mjs`, which drains requests
