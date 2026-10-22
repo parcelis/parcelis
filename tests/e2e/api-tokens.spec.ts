@@ -234,6 +234,19 @@ test("paginates metadata and derives active, expired, and revoked statuses", asy
   await expect(page.getByText("Integration 1", { exact: true })).toBeVisible();
 });
 
+test("updates expiration status while the page stays open", async ({ page }) => {
+  const now = new Date("2026-10-22T12:00:00Z");
+  await page.clock.install({ time: now });
+  const row = metadata(1, "Expiring integration");
+  row.expiresAt = new Date(now.getTime() + 60_000).toISOString();
+  const state = await mockedTokens(page, [row]);
+  await page.goto(`/o/${state.organization.slug}${routePath}`);
+  const token = page.getByRole("row").filter({ hasText: "Expiring integration" });
+  await expect(token).toContainText("Active");
+  await page.clock.fastForward(60_001);
+  await expect(token).toContainText("Expired");
+});
+
 for (const role of ["owner", "administrator", "member"]) {
   test(`token settings enforce ${role} access for navigation and direct visits`, async ({ page }) => {
     const state = await mockedTokens(page);
