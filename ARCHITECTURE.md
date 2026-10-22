@@ -163,8 +163,9 @@ under repeated and concurrent calls.
 
 Organization settings expose API tokens at `/o/{slug}/settings/organization/api-tokens`
 (the unscoped route follows the selected/default organization). Owners, organization
-administrators, and platform administrators can access the page and its navigation
-entry. The metadata table shows names, display prefixes, creators, dates, and
+administrators, and platform administrators can manage tokens and see the navigation
+entry. Other members can open the page but see an access message instead of token
+management controls. The metadata table shows names, display prefixes, creators, dates, and
 Active/Expired/Revoked status with cursor pagination. Create token opens a drawer
 with Name and Expiration, defaulting to the shared seven-day preset. Successful
 creation opens a one-time Copy/Done dialog; dismissal, navigation, or organization
