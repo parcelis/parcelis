@@ -111,7 +111,13 @@ No real credentials were identified in those findings. New occurrences still req
 
 A subsequent PR review confirmed 18 additional compressed API metadata matches in
 commit `8812a14`; their exact fingerprints are also recorded in `.gitleaksignore`.
-Regenerating these files can produce new fingerprints even when the match is metadata.
+Rewriting commits changes these fingerprints even when the file contents are identical.
+To avoid repeated metadata findings, `.gitleaks.toml` extends the default rules and
+adds an allowlist only to `generic-api-key`: both the generated `.api.mdx` path and
+the `api: eJ...` zlib/base64 match format must match. Other fields, paths, and secret
+rules remain scanned. Keep credentials out of the source API specification. A second
+rule-scoped allowlist matches only the three reviewed display-only `tokenPrefix`
+fixture values in the API token test files, so those also survive commit rewrites.
 
 Before rollout, maintainers must:
 
