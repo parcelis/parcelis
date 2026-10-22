@@ -1,0 +1,23 @@
+CONTRIBUTING.md
+  s_5d8f07a96ee271::t_877bbe56ca9ed7 114-117
+  s_5d8f07a96ee271::t_b13d7283625805 118-120
+.gitleaks.toml
+  s_5d8f07a96ee271::t_b13d7283625805 13-19
+  s_5d8f07a96ee271::t_877bbe56ca9ed7 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e3a2e9bd0e3f0e72896f223d64df1c7fabc55100",
+  "prompts": {},
+  "sessions": {
+    "s_5d8f07a96ee271": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15f67-445b-7963-bccb-dcbc203a83fd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
