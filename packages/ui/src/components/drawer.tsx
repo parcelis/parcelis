@@ -137,6 +137,8 @@ export function DrawerContent({
     });
     function containFocus(event: KeyboardEvent) {
       if (event.key !== "Tab" || event.defaultPrevented || openDrawerIds.at(-1) !== drawerId) return;
+      const focusedModal = document.activeElement?.closest('[aria-modal="true"]');
+      if (focusedModal && focusedModal !== contentRef.current) return;
       const elements = focusableElements();
       const first = elements[0];
       const last = elements.at(-1);
