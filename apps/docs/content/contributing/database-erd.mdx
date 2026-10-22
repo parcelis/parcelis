@@ -8,6 +8,9 @@ These diagrams describe the PostgreSQL data model in [`schema.prisma`](https://g
 
 [Download the editable Visio drawing](/diagrams/parcelis-database-erd.vsdx). It includes a complete overview followed by eight detail pages. The overview is also available as a [single-page Visio drawing](/diagrams/parcelis-database-erd-overview.vsdx) or a [PNG image](/diagrams/parcelis-database-erd-overview.png).
 
+The downloadable drawings predate `ApiToken`; its relationships are documented in
+the Organizations and access diagram below.
+
 `PK` marks a primary key, `FK` a foreign key, and `UK` a unique key. A field can have more than one marker. A crow's foot means many; a circle means optional. Shared entities appear in more than one diagram so each area can be read on its own.
 
 ## Organizations and access
@@ -52,6 +55,17 @@ erDiagram
     Int activeOrganizationId FK
     String tokenHash UK
   }
+  ApiToken {
+    String id PK
+    Int organizationId FK
+    String name
+    String tokenHash UK
+    String tokenPrefix
+    Int createdById FK
+    Int revokedById FK
+    DateTime expiresAt
+    DateTime revokedAt
+  }
   PasswordResetToken {
     Int id PK
     Int userId FK
@@ -71,9 +85,18 @@ erDiagram
   Organization o|--o{ Session : active_in
   User ||--o{ PasswordResetToken : receives
   User ||--o{ EmailVerificationToken : receives
+  Organization ||--o{ ApiToken : owns
+  User o|--o{ ApiToken : creates
+  User o|--o{ ApiToken : revokes
 ```
 
 `OrganizationMembership` has a unique `(userId, organizationId)` pair. `RolePermission` has a composite `(role, resource)` primary key and no foreign key to `User`; `role` is a shared enum.
+
+`ApiToken` stores a unique credential hash and a display prefix, never the raw
+credential. Deleting an organization deletes its tokens. Deleting a creator or
+revoker clears that user reference while preserving the token and attribution
+labels. A null `expiresAt` means no expiration; a non-null `revokedAt` records
+revocation.
 
 ## Portfolio and applications
 
