@@ -235,6 +235,12 @@ pgAdmin is available at `http://localhost:8000` with `admin@parcelis.dev` / `par
 
 Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first `pnpm db:seed`. Set `SEED_ADMIN_EMAIL` to use an address other than the default `admin@parcelis.dev`. The seed creates the local administrator account without replacing an existing password.
 
+The demo organization also includes **Demo active token** and **Demo revoked token**
+for the API-token settings table, with creator, usage, expiration, and revocation
+metadata. Their random secrets are discarded; create a new token in settings for
+API testing. Rerunning the seed restores these two examples without duplicating
+them or changing user-created tokens.
+
 After pulling schema changes, run:
 
 ```bash
@@ -310,6 +316,14 @@ pnpm exec playwright install chromium
 ```
 
 Run the suite with `pnpm test:e2e`. It starts the web app automatically unless `PLAYWRIGHT_TEST_BASE_URL` points to an existing environment. Use `pnpm test:e2e:ui` to run tests in Playwright UI mode.
+
+Run API-token settings coverage with
+`pnpm test:e2e tests/e2e/api-tokens.spec.ts --workers=1` against a local API and
+seeded administrator. The suite creates two test credentials and revokes them in
+cleanup; it checks that revocation rejects the next REST call while another token
+remains valid. Permission, pagination, failure, clipboard, navigation, and delayed
+response cases use controlled API responses after real session authentication.
+
 The proxy-origin session test is skipped by default. Point `PLAYWRIGHT_TEST_BASE_URL` to the running proxy when running the full suite.
 
 Playwright loads the root `.env` for local administrator credentials and database
