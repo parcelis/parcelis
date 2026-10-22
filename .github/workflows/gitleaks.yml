@@ -17,6 +17,9 @@ jobs:
     name: Gitleaks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,9 +37,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           GITLEAKS_VERSION: "8.30.1"
-          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_COMMENTS: "true"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
-          GITLEAKS_ENABLE_SUMMARY: "false"
+          GITLEAKS_ENABLE_SUMMARY: "true"
 
       - name: Install scanner for fork and Dependabot PRs
         if: >-
@@ -60,4 +63,4 @@ jobs:
           (github.event_name == 'pull_request' &&
           (github.event.pull_request.head.repo.full_name != github.repository ||
           github.actor == 'dependabot[bot]'))
-        run: gitleaks git --redact --log-opts=--all
+        run: gitleaks git --redact --verbose --log-opts=--all
