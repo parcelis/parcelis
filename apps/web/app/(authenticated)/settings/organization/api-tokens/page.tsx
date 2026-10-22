@@ -128,6 +128,19 @@ export default function OrganizationApiTokensPage() {
     enabled: organizationQuery.isSuccess && canManageTokens && organizationClient !== null,
   });
 
+  const [expirationVersion, setExpirationVersion] = useState(0);
+  useEffect(() => {
+    const now = Date.now();
+    const upcoming = (tokensQuery.data?.items ?? [])
+      .filter((token) => !token.revokedAt && token.expiresAt)
+      .map((token) => new Date(token.expiresAt!).getTime())
+      .filter((expiration) => expiration > now);
+    if (!upcoming.length) return;
+    const delay = Math.min(Math.min(...upcoming) - now, 2_147_483_647);
+    const timer = window.setTimeout(() => setExpirationVersion((version) => version + 1), delay);
+    return () => window.clearTimeout(timer);
+  }, [tokensQuery.data, expirationVersion]);
+
   // Reset token creation state when the organization or pathname changes
   const organization = organizationQuery.data;
   useEffect(() => {
