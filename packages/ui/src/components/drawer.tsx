@@ -7,6 +7,7 @@ import { cn } from "../lib/utils";
 
 type DrawerContextValue = {
   open: boolean;
+  drawerId: symbol;
   onOpenChange: (open: boolean) => void;
 };
 
@@ -39,6 +40,7 @@ export function Drawer({
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
+  const drawerId = React.useRef(Symbol("drawer")).current;
   const onOpenChangeRef = React.useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
 
@@ -47,7 +49,6 @@ export function Drawer({
       return;
     }
 
-    const drawerId = Symbol("drawer");
     if (openDrawerIds.length === 0) {
       initialBodyOverflow = document.body.style.overflow;
     }
@@ -70,9 +71,9 @@ export function Drawer({
         initialBodyOverflow = undefined;
       }
     };
-  }, [open]);
+  }, [open, drawerId]);
 
-  return <DrawerContext.Provider value={{ open, onOpenChange }}>{children}</DrawerContext.Provider>;
+  return <DrawerContext.Provider value={{ open, onOpenChange, drawerId }}>{children}</DrawerContext.Provider>;
 }
 
 export function DrawerTrigger({
@@ -106,8 +107,10 @@ export function DrawerContent({
   children,
   className,
   size = "md",
+  ...props
 }: React.HTMLAttributes<HTMLDivElement> & { size?: DrawerSize }) {
-  const { onOpenChange, open } = useDrawer();
+  const { onOpenChange, open, drawerId } = useDrawer();
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
   const [isPresent, setIsPresent] = React.useState(false);
 
   React.useEffect(() => {
@@ -119,6 +122,45 @@ export function DrawerContent({
     const timeout = window.setTimeout(() => setIsPresent(false), 300);
     return () => window.clearTimeout(timeout);
   }, [open]);
+
+  React.useEffect(() => {
+    if (!open || !isPresent) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const selector =
+      "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
+    const focusableElements = () =>
+      Array.from(contentRef.current?.querySelectorAll<HTMLElement>(selector) ?? []).filter(
+        (element) => element.getClientRects().length > 0,
+      );
+    const frame = window.requestAnimationFrame(() => {
+      if (openDrawerIds.at(-1) === drawerId) (focusableElements()[0] ?? contentRef.current)?.focus();
+    });
+    function containFocus(event: KeyboardEvent) {
+      if (event.key !== "Tab" || event.defaultPrevented || openDrawerIds.at(-1) !== drawerId) return;
+      const elements = focusableElements();
+      const first = elements[0];
+      const last = elements.at(-1);
+      if (!first || !last) {
+        event.preventDefault();
+        contentRef.current?.focus();
+      } else if (!contentRef.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", containFocus, true);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", containFocus, true);
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [open, isPresent, drawerId]);
 
   if (!isPresent) {
     return null;
@@ -136,6 +178,9 @@ export function DrawerContent({
         type="button"
       />
       <div
+        {...props}
+        ref={contentRef}
+        tabIndex={-1}
         aria-modal="true"
         aria-hidden={!open}
         className={cn(
@@ -153,7 +198,12 @@ export function DrawerContent({
 }
 
 export function DrawerHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-b border-parcelis-border bg-white px-4 py-4 dark:bg-parcelis-slate md:px-6", className)} {...props} />;
+  return (
+    <div
+      className={cn("border-b border-parcelis-border bg-white px-4 py-4 dark:bg-parcelis-slate md:px-6", className)}
+      {...props}
+    />
+  );
 }
 
 export function DrawerTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
@@ -185,5 +235,10 @@ export function DrawerClose({ className, ...props }: React.ButtonHTMLAttributes<
 }
 
 export function DrawerFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-t border-parcelis-border bg-white px-4 py-4 dark:bg-parcelis-slate md:px-6", className)} {...props} />;
+  return (
+    <div
+      className={cn("border-t border-parcelis-border bg-white px-4 py-4 dark:bg-parcelis-slate md:px-6", className)}
+      {...props}
+    />
+  );
 }
