@@ -1,0 +1,24 @@
+apps/docs/content/contributing/architecture.mdx
+  s_311682dd4a807b::t_1ee094173fa32b 52-66
+CONTRIBUTING.md
+  s_311682dd4a807b::t_1ee094173fa32b 295-302
+  s_311682dd4a807b::t_e221a3102b9c52 214-219
+ARCHITECTURE.md
+  s_311682dd4a807b::t_1ee094173fa32b 160-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b434a6a1b82643e24fefc2e59cd86a1cbeb426bc",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
