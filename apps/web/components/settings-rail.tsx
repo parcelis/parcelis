@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { Building2, ReceiptText, ShieldCheck } from "lucide-react";
 import { NavigationRail, NavigationRailGroup } from "./navigation-rail";
+import { useQuery } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
+import { apiClient, queryKeys } from "./api-client";
 
 const items = [
   { href: "/settings/roles", key: "roles", label: "Roles" },
@@ -15,11 +18,19 @@ export function SettingsRail({
   canManageRoles = false,
   canManageInvoicing = false,
 }: {
-  active: "none" | "organization" | "email" | "invoicing" | (typeof items)[number]["key"];
+  active: "none" | "organization" | "email" | "api-tokens" | "invoicing" | (typeof items)[number]["key"];
   canManageRoles?: boolean;
   canManageInvoicing?: boolean;
   canManageUsers?: boolean;
 }) {
+  const pathname = usePathname();
+
+  const organizationQuery = useQuery({
+    queryKey: [...queryKeys.organizations.active, pathname],
+    queryFn: () => apiClient.organizations.active.query(),
+  });
+
+  const canManageTokens = ["owner", "administrator"].includes(organizationQuery.data?.role ?? "");
   return (
     <NavigationRail title="Settings">
       <nav aria-label="Settings navigation" className="space-y-1">
@@ -44,10 +55,26 @@ export function SettingsRail({
           >
             Email
           </Link>
+          {canManageTokens ? (
+            <Link
+              className={`mt-1 block rounded-md px-2 py-1.5 text-xs font-medium ${
+                active === "api-tokens"
+                  ? "bg-parcelis-green/20 text-parcelis-charcoal"
+                  : "text-parcelis-gray hover:bg-parcelis-porcelain"
+              }`}
+              href="/settings/organization/api-tokens"
+              aria-current={active === "api-tokens" ? "page" : undefined}
+            >
+              API tokens
+            </Link>
+          ) : null}
         </NavigationRailGroup>
         {canManageInvoicing ? (
           <NavigationRailGroup icon={ReceiptText} label="Invoicing">
-            <Link className={`block rounded-md px-2 py-1.5 text-xs font-medium ${active === "invoicing" ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`} href="/settings/invoicing">
+            <Link
+              className={`block rounded-md px-2 py-1.5 text-xs font-medium ${active === "invoicing" ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`}
+              href="/settings/invoicing"
+            >
               Charges
             </Link>
           </NavigationRailGroup>

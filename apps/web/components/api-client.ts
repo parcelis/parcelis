@@ -4,21 +4,28 @@ import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@parcelis/api/router";
 import type { NoteSubjectInput } from "@parcelis/schemas";
 
-export const apiClient = createTRPCProxyClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: "/trpc",
-      async fetch(url, options) {
-        const organizationSlug =
-          typeof window === "undefined" ? null : window.location.pathname.match(/^\/o\/([^/]+)/)?.[1];
-        const headers = new Headers(options?.headers);
-        if (organizationSlug) headers.set("x-parcelis-organization-slug", organizationSlug);
-        const response = await fetch(url, { ...options, credentials: "include", headers });
-        return response;
-      },
-    }),
-  ],
-});
+export function createApiClient(organizationSlug?: string) {
+  return createTRPCProxyClient<AppRouter>({
+    links: [
+      httpBatchLink({
+        url: "/trpc",
+        async fetch(url, options) {
+          const requestOrganizationSlug =
+            organizationSlug ??
+            (typeof window === "undefined" ? null : window.location.pathname.match(/^\/o\/([^/]+)/)?.[1]);
+          const headers = new Headers(options?.headers);
+          if (requestOrganizationSlug) {
+            headers.set("x-parcelis-organization-slug", requestOrganizationSlug);
+          }
+          const response = await fetch(url, { ...options, credentials: "include", headers });
+          return response;
+        },
+      }),
+    ],
+  });
+}
+
+export const apiClient = createApiClient();
 
 export const queryKeys = {
   auth: {
@@ -29,6 +36,10 @@ export const queryKeys = {
     list: ["organizations", "list"] as const,
     emailSettings: ["organizations", "email-settings"] as const,
     emailSettingsEncryptionStatus: ["organizations", "email-settings-encryption-status"] as const,
+  },
+  apiTokens: {
+    all: (organizationId: number) => ["apiTokens", organizationId] as const,
+    list: (organizationId: number, cursor?: string) => ["apiTokens", organizationId, "list", cursor ?? null] as const,
   },
   users: {
     list: ["users", "list"] as const,
