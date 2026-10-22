@@ -1,0 +1,21 @@
+CONTRIBUTING.md
+  s_5d8f07a96ee271::t_b58c9b787ac234 76-79
+.github/workflows/gitleaks.yml
+  s_5d8f07a96ee271::t_b58c9b787ac234 15-20,43-68,92-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ebf7d01c684c1f1198fd724f62986c40cbec704",
+  "prompts": {},
+  "sessions": {
+    "s_5d8f07a96ee271": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15f67-445b-7963-bccb-dcbc203a83fd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
