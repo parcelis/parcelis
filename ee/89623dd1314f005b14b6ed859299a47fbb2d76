@@ -1,0 +1,25 @@
+CONTRIBUTING.md
+  s_311682dd4a807b::t_291b16541dc5a9 216-219
+packages/db/package.json
+  s_311682dd4a807b::t_291b16541dc5a9 15
+packages/db/prisma/seed-api-tokens.mjs
+  s_311682dd4a807b::t_291b16541dc5a9 44
+packages/db/prisma/seed-api-tokens.test.mjs
+  s_311682dd4a807b::t_291b16541dc5a9 32-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ee89623dd1314f005b14b6ed859299a47fbb2d76",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
