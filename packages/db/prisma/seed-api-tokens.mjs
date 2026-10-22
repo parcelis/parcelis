@@ -7,7 +7,7 @@ export async function seedApiTokens(prisma, organization, administrator, now = n
       key: "active",
       name: "Demo active token",
       createdAt: new Date(now.getTime() - 2 * dayMs),
-      expiresAt: new Date(now.getTime() + 5 * dayMs),
+      expiresAt: null,
       lastUsedAt: new Date(now.getTime() - 60 * 60 * 1000),
       revokedAt: null,
       revokedById: null,
