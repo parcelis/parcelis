@@ -1,0 +1,133 @@
+apps/docs/content/api-reference/amenities-list.StatusCodes.json
+  s_311682dd4a807b::t_5a8ea66988da12 1
+apps/docs/content/api-reference/amenities-list.api.mdx
+  s_311682dd4a807b::t_4cc6d1b54445fb 8
+apps/docs/content/api-reference/amenities-update.StatusCodes.json
+  s_311682dd4a807b::t_67b7b398e3b2bf 1
+apps/docs/content/api-reference/amenities-update.api.mdx
+  s_311682dd4a807b::t_90ff6726fa02d2 8
+apps/docs/content/api-reference/health.StatusCodes.json
+  s_311682dd4a807b::t_92920723ce9633 1
+apps/docs/content/api-reference/health.api.mdx
+  s_311682dd4a807b::t_a41252713d38a2 8
+apps/docs/content/api-reference/parcelis-api.info.mdx
+  s_311682dd4a807b::t_cec4351476bff4 4,32,52,69-74
+apps/docs/content/api-reference/properties-archive.StatusCodes.json
+  s_311682dd4a807b::t_50c6414cd35c41 1
+apps/docs/content/api-reference/properties-archive.api.mdx
+  s_311682dd4a807b::t_46ebf53d08e47c 8
+apps/docs/content/api-reference/properties-by-id.StatusCodes.json
+  s_311682dd4a807b::t_a3386e10d4de5a 1
+apps/docs/content/api-reference/properties-by-id.api.mdx
+  s_311682dd4a807b::t_5e817ba29d2e5d 8
+apps/docs/content/api-reference/properties-complete-image-upload.StatusCodes.json
+  s_311682dd4a807b::t_016a973af5b741 1
+apps/docs/content/api-reference/properties-complete-image-upload.api.mdx
+  s_311682dd4a807b::t_4b2a82b77d0958 8
+apps/docs/content/api-reference/properties-create-image-upload-url.RequestSchema.json
+  s_311682dd4a807b::t_ff523d3a3dfbd6 1
+apps/docs/content/api-reference/properties-create-image-upload-url.StatusCodes.json
+  s_311682dd4a807b::t_cf88346a08d62d 1
+apps/docs/content/api-reference/properties-create-image-upload-url.api.mdx
+  s_311682dd4a807b::t_d3da814ba43d51 8
+apps/docs/content/api-reference/properties-create.RequestSchema.json
+  s_311682dd4a807b::t_913f3f09906e36 1
+apps/docs/content/api-reference/properties-create.StatusCodes.json
+  s_311682dd4a807b::t_bc58feeb3f7ef6 1
+apps/docs/content/api-reference/properties-create.api.mdx
+  s_311682dd4a807b::t_8e42f46142fd67 8
+apps/docs/content/api-reference/properties-delete-image.StatusCodes.json
+  s_311682dd4a807b::t_8e0bb7a0ccadd8 1
+apps/docs/content/api-reference/properties-delete-image.api.mdx
+  s_311682dd4a807b::t_5bbc137f9538ed 8
+apps/docs/content/api-reference/properties-delete.StatusCodes.json
+  s_311682dd4a807b::t_bbd20f76ddf44e 1
+apps/docs/content/api-reference/properties-delete.api.mdx
+  s_311682dd4a807b::t_2172ebb8315386 8
+apps/docs/content/api-reference/properties-inactivate.StatusCodes.json
+  s_311682dd4a807b::t_a83b9a6c27a027 1
+apps/docs/content/api-reference/properties-inactivate.api.mdx
+  s_311682dd4a807b::t_75fcbba9bf5ccd 8
+apps/docs/content/api-reference/properties-list.StatusCodes.json
+  s_311682dd4a807b::t_fbaa16e4952e4c 1
+apps/docs/content/api-reference/properties-list.api.mdx
+  s_311682dd4a807b::t_052218fa7f4170 8
+apps/docs/content/api-reference/properties-reactivate.StatusCodes.json
+  s_311682dd4a807b::t_65e12e08b029d8 1
+apps/docs/content/api-reference/properties-reactivate.api.mdx
+  s_311682dd4a807b::t_cea6471da8917a 8
+apps/docs/content/api-reference/properties-update-notes.StatusCodes.json
+  s_311682dd4a807b::t_4268707e9fd66a 1
+apps/docs/content/api-reference/properties-update-notes.api.mdx
+  s_311682dd4a807b::t_f809f7f6038381 8
+apps/docs/content/api-reference/properties-update.RequestSchema.json
+  s_311682dd4a807b::t_94ded9f6975f8a 1
+apps/docs/content/api-reference/properties-update.StatusCodes.json
+  s_311682dd4a807b::t_7eaa9907c07c00 1
+apps/docs/content/api-reference/properties-update.api.mdx
+  s_311682dd4a807b::t_2d667e729e1c58 8
+apps/docs/content/api-reference/tags-create.StatusCodes.json
+  s_311682dd4a807b::t_a6f4181aa44f07 1
+apps/docs/content/api-reference/tags-create.api.mdx
+  s_311682dd4a807b::t_94f697444ffa86 8
+apps/docs/content/api-reference/tags-list.StatusCodes.json
+  s_311682dd4a807b::t_7e04fd66d85446 1
+apps/docs/content/api-reference/tags-list.api.mdx
+  s_311682dd4a807b::t_3f76ec7d6633e7 8
+apps/docs/content/api-reference/tenants-complete-image-upload.RequestSchema.json
+  s_311682dd4a807b::t_f26f9d28cc2468 1
+apps/docs/content/api-reference/tenants-complete-image-upload.StatusCodes.json
+  s_311682dd4a807b::t_6252c4525cd73b 1
+apps/docs/content/api-reference/tenants-complete-image-upload.api.mdx
+  s_311682dd4a807b::t_a3d641eae0f121 8
+apps/docs/content/api-reference/tenants-create-image-upload-url.RequestSchema.json
+  s_311682dd4a807b::t_338a5871c08e0d 1
+apps/docs/content/api-reference/tenants-create-image-upload-url.StatusCodes.json
+  s_311682dd4a807b::t_5b21602a66f007 1
+apps/docs/content/api-reference/tenants-create-image-upload-url.api.mdx
+  s_311682dd4a807b::t_5d75ed570c7bab 8
+apps/docs/content/api-reference/tenants-delete-image.StatusCodes.json
+  s_311682dd4a807b::t_d71814768e78a9 1
+apps/docs/content/api-reference/tenants-delete-image.api.mdx
+  s_311682dd4a807b::t_b0489b9076aa5a 8
+apps/docs/content/api-reference/unit-options-list.StatusCodes.json
+  s_311682dd4a807b::t_b935fc26e4ea37 1
+apps/docs/content/api-reference/unit-options-list.api.mdx
+  s_311682dd4a807b::t_57c112098b2fc8 8
+apps/docs/content/api-reference/units-by-id.StatusCodes.json
+  s_311682dd4a807b::t_6e98132c1fcfd5 1
+apps/docs/content/api-reference/units-by-id.api.mdx
+  s_311682dd4a807b::t_2fdaf9bb2f6d68 8
+apps/docs/content/api-reference/units-create.StatusCodes.json
+  s_311682dd4a807b::t_cb12620daaba5c 1
+apps/docs/content/api-reference/units-create.api.mdx
+  s_311682dd4a807b::t_f5d692006b248e 8
+apps/docs/content/api-reference/units-delete.StatusCodes.json
+  s_311682dd4a807b::t_2e64eab1465284 1
+apps/docs/content/api-reference/units-delete.api.mdx
+  s_311682dd4a807b::t_61f76d2c14cb67 8
+apps/docs/content/api-reference/units-list.StatusCodes.json
+  s_311682dd4a807b::t_87693d3dfe06e2 1
+apps/docs/content/api-reference/units-list.api.mdx
+  s_311682dd4a807b::t_73b53740139e03 8
+apps/docs/content/api-reference/units-update.StatusCodes.json
+  s_311682dd4a807b::t_fc93e608e9d631 1
+apps/docs/content/api-reference/units-update.api.mdx
+  s_311682dd4a807b::t_724f1e731e8873 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8812a14efc32c37650e30a5ebf90b4443a192282",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
