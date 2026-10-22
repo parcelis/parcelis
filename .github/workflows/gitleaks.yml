@@ -10,11 +10,14 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
-  scan:
-    name: Gitleaks
+  pr-scan:
+    name: Scan PR and comment
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -28,16 +31,38 @@ jobs:
           persist-credentials: false
 
       - name: Scan with licensed action
-        if: >-
-          github.event_name != 'pull_request' ||
-          (github.event.pull_request.head.repo.full_name == github.repository &&
-          github.actor != 'dependabot[bot]')
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           GITLEAKS_VERSION: "8.30.1"
           GITLEAKS_ENABLE_COMMENTS: "true"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+          GITLEAKS_ENABLE_SUMMARY: "true"
+
+  scan:
+    name: Scan with read-only token
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name != github.repository ||
+      github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan with licensed action
+        if: github.event_name != 'pull_request'
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_ENABLE_COMMENTS: "false"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
           GITLEAKS_ENABLE_SUMMARY: "true"
 
@@ -64,3 +89,19 @@ jobs:
           (github.event.pull_request.head.repo.full_name != github.repository ||
           github.actor == 'dependabot[bot]'))
         run: gitleaks git --redact --verbose --log-opts=--all
+
+  result:
+    name: Gitleaks
+    if: always()
+    needs: [pr-scan, scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    permissions: {}
+    steps:
+      - name: Require a successful scan
+        env:
+          PR_RESULT: ${{ needs.pr-scan.result }}
+          SCAN_RESULT: ${{ needs.scan.result }}
+        run: |
+          test "$PR_RESULT $SCAN_RESULT" = "success skipped" ||
+            test "$PR_RESULT $SCAN_RESULT" = "skipped success"

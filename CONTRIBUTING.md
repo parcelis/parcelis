@@ -73,8 +73,10 @@ action to scan their commits. Pushes, scheduled runs, manual runs, and fork or
 Dependabot PRs scan the fetched history. Checkout fetches all history and does not
 persist credentials. Findings and scanner errors fail the check. Logs redact
 detected secrets. The action posts review comments for findings on same-repository
-PRs and writes a job summary; report artifacts are disabled. The scan job requests
-`pull-requests: write` for review comments. Fork and Dependabot tokens remain read-only.
+PRs and writes a job summary; report artifacts are disabled. Only the same-repository
+PR commenting job requests `pull-requests: write`. Push, scheduled, manual, fork,
+and Dependabot scans use a read-only token. The final `Gitleaks` check requires the
+selected scan to succeed, keeping the required check name consistent across triggers.
 
 To investigate a failure, open the PR's Gitleaks check, select **Details**, and expand
 the failed scan step. Findings include the rule, file, line, commit, and fingerprint.
