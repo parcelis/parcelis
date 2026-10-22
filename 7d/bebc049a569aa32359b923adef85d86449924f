@@ -1,0 +1,23 @@
+packages/ui/src/components/dialog.tsx
+  s_311682dd4a807b::t_1c9bdfa9830b36 15-25,27,29,33-42,46,48
+  s_311682dd4a807b::t_419eaa69fb5d23 47
+  s_311682dd4a807b::t_22ba0b121674d4 43-45
+packages/ui/src/components/drawer.tsx
+  s_311682dd4a807b::t_6dd8e2543b4287 10,43,74,76,110,112-113,126-164,181-183,201-206,238-243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7dbebc049a569aa32359b923adef85d86449924f",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
