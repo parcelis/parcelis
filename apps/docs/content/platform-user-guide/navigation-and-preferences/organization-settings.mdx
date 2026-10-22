@@ -33,3 +33,24 @@ as read-only text.
 If you can access more than one organization, use the **Organization** selector near the top of the expanded sidebar
 to switch workspaces. Properties, tenants, leases, invoices, maintenance, and related operational records are shown
 for the selected organization.
+
+### API tokens
+
+Open **Settings → Organization → API tokens** to manage integration credentials for
+the active organization. Organization owners and administrators can manage tokens;
+platform administrators can do so without membership. Other members see an access
+message instead of token management controls.
+
+Select **Create token**, enter a name, and choose an expiration. The default is
+**7 days**; month presets and **Never** are also available. Copy the complete token
+from the one-time dialog before closing it. Its secret cannot be retrieved later.
+
+The paginated table shows metadata and Active, Expired, or Revoked status. **Revoke**
+asks for confirmation and stops subsequent authentication, while a request already
+in progress may finish. Revoked rows remain visible. To rotate, create a replacement,
+update the integration, then revoke the old token.
+
+Tokens belong to the organization, independently of their creator, and grant full
+access to supported organization REST operations without granular scopes. Read
+[API Authentication](../../api-authentication.mdx) for access details, Bruno and curl
+setup, and troubleshooting.
