@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { ApiTokenExpiration } from "@parcelis/schemas";
+import { apiTokenCredentialSchema, type ApiTokenExpiration } from "@parcelis/schemas";
+import { TRPCError } from "@trpc/server";
+import type { PrismaClient } from "@parcelis/db";
 
 const apiTokenPrefix = "pcls_api_";
 
@@ -50,4 +52,66 @@ export function getApiTokenExpiration(expiration: ApiTokenExpiration, now: Date 
     case "12_months":
       return addUtcMonths(now, 12);
   }
+}
+
+// Parses the Authorization header for an API token in the format "Bearer pcls_api_<token>". Returns the token if valid, otherwise throws an error.
+export function parseApiTokenAuthorization(authorization: string | string[] | undefined): string | null {
+  if (authorization === undefined) {
+    return null;
+  }
+
+  if (typeof authorization !== "string") {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid API token.",
+    });
+  }
+
+  const match = /^Bearer (.+)$/i.exec(authorization);
+  const credential = apiTokenCredentialSchema.safeParse(match?.[1]);
+
+  if (!match || match[0] !== authorization || !credential.success) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid API token.",
+    });
+  }
+
+  return credential.data;
+}
+
+// Resolves an API token by its plaintext value. Checks if the token exists, is not revoked, and has not expired. Returns the token record if valid, otherwise throws an error.
+export async function resolveApiToken(prisma: PrismaClient, token: string, now: Date = new Date()) {
+  const apiToken = await prisma.apiToken.findUnique({
+    where: {
+      tokenHash: hashApiToken(token),
+    },
+    select: {
+      id: true,
+      name: true,
+      organizationId: true,
+      organization: true,
+      expiresAt: true,
+      revokedAt: true,
+    },
+  });
+
+  if (!apiToken || apiToken.revokedAt !== null || (apiToken.expiresAt !== null && apiToken.expiresAt <= now)) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid API token.",
+    });
+  }
+
+  return apiToken;
+}
+export async function updateApiTokenLastUsed(prisma: PrismaClient, tokenId: string, now: Date = new Date()) {
+  await prisma.apiToken.updateMany({
+    where: {
+      id: tokenId,
+      revokedAt: null,
+      OR: [{ lastUsedAt: null }, { lastUsedAt: { lte: new Date(now.getTime() - 5 * 60 * 1000) } }],
+    },
+    data: { lastUsedAt: now },
+  });
 }

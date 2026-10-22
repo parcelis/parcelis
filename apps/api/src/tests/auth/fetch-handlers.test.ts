@@ -2,12 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { createOpenApiFetchHandler } from "trpc-to-openapi";
 import { createTestSessionCookie } from "./session-cookie";
 import { appRouter } from "../../router/app.router";
 import { createFetchContext, getClientIp } from "../../router/fetch-context";
 import { applyApiHeaders, handlePreflight } from "../../router/http";
-import { publicRouter } from "../../router/public.router";
+import { handleRestRequest } from "../../router/rest-handler";
 
 function fixture({ member = true } = {}) {
   const organization = { id: 3, slug: "portfolio" };
@@ -48,12 +47,7 @@ async function trpc(request: Request, prisma: PrismaClient) {
 }
 
 async function rest(request: Request, prisma: PrismaClient) {
-  return createOpenApiFetchHandler({
-    endpoint: "/api/v1",
-    req: request,
-    router: publicRouter,
-    createContext: createFetchContext(prisma, request),
-  });
+  return handleRestRequest(prisma, request);
 }
 
 test("legacy login and logout procedures are removed", async () => {

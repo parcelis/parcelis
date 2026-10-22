@@ -1,3 +1,4 @@
+import type { Context } from "../router/context";
 import { TRPCError } from "@trpc/server";
 import {
   getFeatureFlags,
@@ -67,12 +68,7 @@ export async function getRolePermissions(prisma: PrismaClient, role: string) {
   ) as Record<PermissionResource, PermissionFlags>;
 }
 
-export async function requirePermission(
-  prisma: PrismaClient,
-  role: string,
-  resource: PermissionResource,
-  action: PermissionAction,
-) {
+export function requireSupportedPermission(resource: PermissionResource, action: PermissionAction) {
   if (!isPermissionResourceEnabled(resource)) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Applications are disabled." });
   }
@@ -83,6 +79,15 @@ export async function requirePermission(
       message: `Permission denied: you cannot ${action} ${resourceLabel}.`,
     });
   }
+}
+
+export async function requirePermission(
+  prisma: PrismaClient,
+  role: string,
+  resource: PermissionResource,
+  action: PermissionAction,
+) {
+  requireSupportedPermission(resource, action);
 
   const userRole = getUserRole(role);
   if (userRole === "administrator") return;
@@ -135,4 +140,34 @@ export async function requireNotePermission(
 
   await requirePermission(prisma, role, access.notes, action);
   await requirePermission(prisma, role, access.parent, "view");
+}
+
+export async function requirePrincipalPermission(
+  ctx: Pick<Context, "prisma" | "principal" | "session">,
+  resource: PermissionResource,
+  action: PermissionAction,
+) {
+  if (ctx.principal?.kind === "api-token") {
+    requireSupportedPermission(resource, action);
+    return;
+  }
+  if (!ctx.session) throw new TRPCError({ code: "UNAUTHORIZED" });
+  await requirePermission(ctx.prisma, ctx.session.user.role, resource, action);
+}
+
+export async function getPrincipalPermissions(ctx: Pick<Context, "prisma" | "principal" | "session">) {
+  if (ctx.principal?.kind !== "api-token") {
+    if (!ctx.session) throw new TRPCError({ code: "UNAUTHORIZED" });
+    return getRolePermissions(ctx.prisma, ctx.session.user.role);
+  }
+  return Object.fromEntries(
+    permissionResourceValues.map((resource) => [
+      resource,
+      Object.fromEntries(
+        permissionActionValues.flatMap((action) =>
+          supportsPermissionAction(resource, action) ? [[action, isPermissionResourceEnabled(resource)]] : [],
+        ),
+      ) as PermissionFlags,
+    ]),
+  ) as Record<PermissionResource, PermissionFlags>;
 }
