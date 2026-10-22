@@ -1,0 +1,19 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Generated Docusaurus API metadata encoded as zlib/base64"
+condition = "AND"
+regexTarget = "match"
+paths = ['''^apps/docs/content/api-reference/[^/]+\.api\.mdx$''']
+regexes = ['''^api: eJ[A-Za-z0-9+/]{100,}={0,2}$''']
+
+[[rules.allowlists]]
+description = "Known display-only API token prefixes in test fixtures"
+condition = "AND"
+regexTarget = "match"
+paths = ['''^apps/api/src/tests/api-tokens/api-tokens(\.router)?\.(test|integration)\.ts$''']
+regexes = ['''^tokenPrefix: "pcls_api_(0123456789|foreign123|uvwxyz0123)"$''']
