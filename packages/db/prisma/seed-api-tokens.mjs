@@ -41,7 +41,7 @@ export async function seedApiTokens(prisma, organization, administrator, now = n
         createdByLabel: administrator.name,
       };
 
-      return prisma.apiToken.upsert({ where: { id }, create: { id, ...data }, update: data });
+      return prisma.apiToken.upsert({ where: { id }, create: { id, ...data }, update: {} });
     }),
   );
 }

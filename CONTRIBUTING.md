@@ -233,9 +233,10 @@ Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before 
 
 The demo organization also includes **Demo active token** and **Demo revoked token**
 for the API-token settings table, with creator, usage, expiration, and revocation
-metadata. Their random secrets are discarded; create a new token in settings for
-API testing. Rerunning the seed restores these two examples without duplicating
-them or changing user-created tokens.
+metadata. The active example does not expire. Their random secrets are discarded;
+create a new token in settings for API testing. The examples are created only when
+missing. Rerunning the seed preserves existing token values and does not duplicate
+examples or change user-created tokens.
 
 After pulling schema changes, run:
 

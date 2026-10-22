@@ -12,7 +12,7 @@
     "db:studio": "node ../../scripts/prisma-with-env.mjs studio",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint .",
-    "test": "tsx --test \"src/tests/**/*.test.ts\"",
+    "test": "tsx --test \"src/tests/**/*.test.ts\" && node --test prisma/seed-api-tokens.test.mjs",
     "test:integration": "tsx --test src/tests/outbox.integration.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
