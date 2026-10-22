@@ -72,7 +72,17 @@ The `Gitleaks / Gitleaks` check runs on pull requests, pushes to `main`, daily a
 action to scan their commits. Pushes, scheduled runs, manual runs, and fork or
 Dependabot PRs scan the fetched history. Checkout fetches all history and does not
 persist credentials. Findings and scanner errors fail the check. Logs redact
-detected secrets; PR comments, report artifacts, and action summaries are disabled.
+detected secrets. The action posts review comments for findings on same-repository
+PRs and writes a job summary; report artifacts are disabled. Only the same-repository
+PR commenting job requests `pull-requests: write`. Push, scheduled, manual, fork,
+and Dependabot scans use a read-only token. The final `Gitleaks` check requires the
+selected scan to succeed, keeping the required check name consistent across triggers.
+
+To investigate a failure, open the PR's Gitleaks check, select **Details**, and expand
+the failed scan step. Findings include the rule, file, line, commit, and fingerprint.
+License, download, and other scanner errors also appear in the step logs and may
+prevent a findings comment or summary. Fork and Dependabot findings appear in the
+verbose, redacted logs instead of PR comments.
 
 Fork and Dependabot PRs use the checksum-verified Gitleaks CLI without the organization
 license or other Actions secrets. The workflow uses `pull_request`, never
@@ -98,6 +108,10 @@ exact commit/file/rule/line fingerprints in `.gitleaksignore`: 18 display-only A
 prefix fixtures, 14 lease draft UUID fixtures, 57 compressed JSON API documentation
 fields, and two matches spanning architecture prose about password hashing and S3.
 No real credentials were identified in those findings. New occurrences still require review.
+
+A subsequent PR review confirmed 18 additional compressed API metadata matches in
+commit `8812a14`; their exact fingerprints are also recorded in `.gitleaksignore`.
+Regenerating these files can produce new fingerprints even when the match is metadata.
 
 Before rollout, maintainers must:
 

@@ -98,3 +98,23 @@ f3431a6969c9dcd7989cf29758b392b64b24b28a:apps/docs/content/api-reference/propert
 f3431a6969c9dcd7989cf29758b392b64b24b28a:apps/docs/content/api-reference/properties-update-notes.api.mdx:generic-api-key:8
 f3431a6969c9dcd7989cf29758b392b64b24b28a:apps/docs/content/api-reference/properties-update.api.mdx:generic-api-key:8
 f3431a6969c9dcd7989cf29758b392b64b24b28a:apps/docs/content/api-reference/unit-options-list.api.mdx:generic-api-key:8
+
+# Regenerated compressed JSON API metadata in commit 8812a14; reviewed after PR scan.
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/amenities-update.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/health.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/properties-archive.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/properties-by-id.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/properties-create-image-upload-url.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/properties-delete.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/properties-inactivate.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/properties-list.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/properties-reactivate.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/properties-update-notes.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/tags-create.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/tags-list.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/tenants-create-image-upload-url.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/tenants-delete-image.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/unit-options-list.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/units-by-id.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/units-create.api.mdx:generic-api-key:8
+8812a14efc32c37650e30a5ebf90b4443a192282:apps/docs/content/api-reference/units-list.api.mdx:generic-api-key:8
