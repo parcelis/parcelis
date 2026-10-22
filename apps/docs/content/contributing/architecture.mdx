@@ -52,8 +52,10 @@ Revocation retains the record and preserves its original revoker and timestamp
 on repeated or concurrent calls. Token management requires a browser session.
 
 The API tokens settings page is `/o/{slug}/settings/organization/api-tokens`;
-the unscoped route follows the selected/default organization. Navigation and direct
-page access require an owner, organization administrator, or platform administrator.
+the unscoped route follows the selected/default organization. Token management and
+its navigation entry require an owner, organization administrator, or platform
+administrator. Other members can open the page but see an access message instead
+of token management controls.
 The table paginates token metadata and derives Active/Expired/Revoked status.
 Create token opens a Name/Expiration drawer with the shared seven-day default.
 Creation shows the credential once in a Copy/Done dialog; closing it, navigating,
