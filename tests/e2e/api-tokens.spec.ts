@@ -395,3 +395,36 @@ test("traps drawer keyboard focus and restores it after Escape", async ({ page }
   await expect(drawer(page)).toBeHidden();
   await expect(trigger).toBeFocused();
 });
+
+test("defers drawer Tab handling to nested and portalled modals", async ({ page }) => {
+  const state = await mockedTokens(page);
+  await page.goto(`/o/${state.organization.slug}${routePath}`);
+  await page.getByRole("button", { name: "Create token", exact: true }).click();
+  await expect(drawer(page).getByRole("button", { name: "Close drawer", exact: true })).toBeFocused();
+
+  for (const portalled of [false, true]) {
+    const intercepted = await drawer(page).evaluate((content, portalled) => {
+      const modal = document.createElement("div");
+      modal.setAttribute("role", "alertdialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.innerHTML = "<button>Keep Editing</button><button>Discard</button>";
+      (portalled ? document.body : content).prepend(modal);
+      const buttons = modal.querySelectorAll("button");
+      const results = [true, false].map((shiftKey) => {
+        const button = buttons[shiftKey ? 0 : 1]!;
+        button.focus();
+        const event = new KeyboardEvent("keydown", {
+          key: "Tab",
+          shiftKey,
+          bubbles: true,
+          cancelable: true,
+        });
+        button.dispatchEvent(event);
+        return event.defaultPrevented;
+      });
+      modal.remove();
+      return results;
+    }, portalled);
+    expect(intercepted).toEqual([false, false]);
+  }
+});
