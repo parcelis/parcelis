@@ -299,9 +299,10 @@ the development container, run
 once after PostgreSQL is running; an existing test database can be reused.
 
 The release integration suite also replays the additive token migration against
-populated disposable tables. Set `API_TOKEN_ROLLBACK_API_ROOT` to a trusted pre-token
-`apps/api` checkout to exercise its REST Fetch route against the same schema; without
-that checkout, the rollback subtest is skipped. See the
+populated disposable tables. Set `API_TOKEN_ROLLBACK_API_ROOT` to the absolute path
+of a trusted pre-token `apps/api` checkout with its dependencies installed to exercise
+its REST Fetch route against the same schema. The rollback subtest is skipped only
+when this variable is unset; an invalid path or missing dependencies makes it fail. See the
 [API-token rollout runbook](apps/docs/content/getting-started/api-token-rollout.mdx)
 for migration order, rollback limits, and the verification matrix.
 
