@@ -1,0 +1,113 @@
+---
+id: api-authentication
+title: API Authentication
+---
+
+Use an organization API token to call Parcelis REST endpoints from Bruno, scripts,
+or integrations. Requests use `Authorization: Bearer pcls_api_<secret>` and are bound
+to the token's organization. Browser cookies and an organization-selection header
+are unnecessary.
+
+## Create a token
+
+1. Sign in to Parcelis and select the organization the integration should access.
+2. Open **Settings → Organization → API tokens**.
+3. Select **Create token**, enter a descriptive name, and choose an expiration.
+4. Create the token and copy its complete value from the one-time dialog into your
+   integration's secret storage. Closing the dialog, navigating away, or switching
+   organizations clears it; the secret cannot be retrieved later.
+
+Organization owners and administrators can create, list, and revoke tokens for
+their organization. Platform administrators can manage them without organization
+membership. Other members see an access message and cannot manage tokens.
+
+The expiration choices are **7 days** (default), **1 month**, **3 months**, **6 months**,
+**12 months**, and **Never**. Seven days means 168 hours from creation. Month presets
+use UTC calendar months, clamping to the destination month's last day when needed.
+Expiration is checked on each request; no background job is needed to invalidate a token.
+
+## Access and ownership
+
+Tokens grant full access to the organization's documented protected REST operations,
+without granular scopes. These currently cover properties, units, tags, amenities,
+unit options, and tenant image operations. Available actions and organization feature
+settings still apply. See the [API reference](./api-reference/parcelis-api.info.mdx)
+for the available endpoints and request formats.
+
+A token belongs to its organization. Its creator is attribution, not the account
+used for authorization. Removing the creator or changing their role does not revoke
+the token; deleting the organization deletes its tokens. Account and platform
+administration, token management, tRPC, browser sign-in, and the job dashboard require
+a browser session and cannot be authenticated with an API token.
+
+The metadata table shows a display prefix, creator, creation and expiration dates,
+last use, and **Active**, **Expired**, or **Revoked** status. The prefix is not a usable
+credential. Last-use updates are throttled to approximately once every five minutes.
+
+## Call the API with Bruno
+
+1. Run `pnpm dev` for local development and use the **API** URL it prints. The default
+   REST base URL is `http://localhost:40010/api/v1`; use your deployment's API origin
+   and `/api/v1` in other environments. Use HTTPS outside local development.
+2. Create a Bruno collection and an environment with `baseUrl` set to that REST base URL.
+3. Add `apiToken` as a **secret environment variable**, then privately enter the complete
+   copied token. Keep its value outside collection files and source control. Bruno's
+   [secret variable guide](https://docs.usebruno.com/secrets-management/secret-variables)
+   describes storing values separately from environment files and exports.
+4. Create a **GET** request to `{{baseUrl}}/properties`.
+5. In the request's **Auth** tab, select **Bearer Token** and enter `{{apiToken}}`.
+   Enter only the credential variable; Bruno adds the `Bearer` scheme.
+6. Select the environment and send the request. A successful request returns HTTP
+   **200** and a JSON object containing a `data` array, which may be empty.
+
+Send this request without cookies or `x-parcelis-organization-slug`. The token
+selects its own organization. If you supply that header, its nonempty value must
+match the token's organization slug or the request returns **403**.
+
+## Call the API with curl
+
+Set `PARCELIS_API_TOKEN` through your local secret manager or a private shell prompt;
+do not paste a real token into a checked-in script. The example uses variables and
+contains no credential:
+
+```bash
+PARCELIS_API_BASE_URL='http://localhost:40010/api/v1'
+curl --fail-with-body \
+  --header "Authorization: Bearer ${PARCELIS_API_TOKEN}" \
+  "${PARCELIS_API_BASE_URL}/properties"
+```
+
+The header on the wire has the form `Authorization: Bearer pcls_api_<secret>`.
+`<secret>` is a placeholder, not a working token. The credential is case-sensitive.
+The public health endpoint needs no authentication:
+
+```bash
+curl --fail-with-body 'http://localhost:40010/api/v1/health'
+```
+
+## Rotate or revoke a token
+
+To rotate, create a replacement, update the integration's stored credential, confirm
+a request succeeds, then revoke the old token. There is no automatic rotation or
+refresh-token flow.
+
+To revoke, select **Revoke** beside the token and confirm the token and organization.
+The record remains in the table. Revocation prevents subsequent authentication;
+a request already authenticated and in progress may still finish. Revocation is
+permanent, so create a replacement if the integration still needs access.
+
+## Troubleshooting
+
+| Response             | Meaning                                                                                                                 | What to check                                                                                                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **401 Unauthorized** | Missing authentication, a malformed header, or an unknown, expired, or revoked credential.                              | Use the full copied token rather than its display prefix. Check the selected Bruno environment, Bearer auth setting, and token status. Create a replacement if the secret is lost. |
+| **403 Forbidden**    | Authentication succeeded, but organization selection, permissions, or an operation's feature/action checks deny access. | Remove an unnecessary organization header or match the token's slug. Check that the operation supports API tokens and that the organization's settings permit the action.          |
+| **404 Not Found**    | The record is absent or belongs to another organization, or the route does not exist.                                   | Check the API base URL, endpoint, record ID, and organization that owns the token.                                                                                                 |
+
+Invalid, expired, and revoked tokens intentionally share a generic **401** response
+with `WWW-Authenticate: Bearer`. If an Authorization header is supplied, it takes
+precedence over browser cookies; invalid bearer credentials do not fall back to a
+signed-in session. Tokens cannot be used to create a browser session.
+
+Never share raw credentials in logs, screenshots, support requests, or collections.
+If one is exposed, revoke it and create a replacement.

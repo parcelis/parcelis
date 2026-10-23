@@ -200,6 +200,12 @@ and CORS origins are unchanged. Activity writers use request-local token attribu
 Credentials are not included in activity attribution or diagnostics, and request
 handlers do not log Authorization headers.
 
+The generated OpenAPI contract explicitly declares bearer security for the reviewed
+organization REST operations and leaves health public. Its security classification
+is checked against the token allowlist. The published
+[API authentication guide](apps/docs/content/api-authentication.mdx) covers token
+creation, Bruno/curl setup, rotation, and authentication failures.
+
 Token validity is checked in PostgreSQL on every protected request without caching.
 Revocation blocks authentications started after its transaction commits; requests
 already authorized may finish. Conditional last-used writes update at most once
