@@ -254,6 +254,12 @@ Tenant
 
 Schema changes require a new migration in `packages/db/prisma/migrations`. Do not edit an existing migration after it has been applied. Run `pnpm db:generate` after schema changes and `pnpm db:migrate` to apply migrations locally.
 
+API-token deployment applies the additive token migration before exposing token
+creation and REST authentication together. Application rollback retains the table
+and existing browser-session secret; pre-token application routes reject bearer-only
+requests. Stored, unrevoked tokens become usable again when token-aware code returns.
+See the [rollout runbook](apps/docs/content/getting-started/api-token-rollout.mdx).
+
 ## Documentation pipeline
 
 User-facing documentation is authored in `apps/docs/content`. API documentation is generated rather than hand-maintained:

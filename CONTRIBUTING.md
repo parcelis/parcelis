@@ -298,6 +298,13 @@ the development container, run
 `docker compose -f docker-compose-dev.yml exec postgres-service createdb -U parcelis parcelis_test`
 once after PostgreSQL is running; an existing test database can be reused.
 
+The release integration suite also replays the additive token migration against
+populated disposable tables. Set `API_TOKEN_ROLLBACK_API_ROOT` to a trusted pre-token
+`apps/api` checkout to exercise its REST Fetch route against the same schema; without
+that checkout, the rollback subtest is skipped. See the
+[API-token rollout runbook](apps/docs/content/getting-started/api-token-rollout.mdx)
+for migration order, rollback limits, and the verification matrix.
+
 The worker integration suite also includes a Redis recovery test. Set `OUTBOX_TEST_REDIS_URL` to a local Redis instance to run it; otherwise that test is skipped. It creates and removes only a uniquely named test queue. Check the mapped Redis port with `docker compose -f docker-compose-dev.yml ps`; `pnpm dev` can choose a different port from the `REDIS_PORT` requested in `.env`:
 
 ```bash
