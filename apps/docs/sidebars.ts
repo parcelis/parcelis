@@ -80,6 +80,7 @@ const sidebars: SidebarsConfig = {
         "getting-started/deploy-with-docker-compose-single-image",
         "getting-started/email-configuration",
         "getting-started/status-monitor",
+        "getting-started/api-token-rollout",
       ],
     },
     {
