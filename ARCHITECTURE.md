@@ -257,7 +257,7 @@ Schema changes require a new migration in `packages/db/prisma/migrations`. Do no
 API-token deployment applies the additive token migration before exposing token
 creation and REST authentication together. Application rollback retains the table
 and existing browser-session secret; pre-token application routes reject bearer-only
-requests. Stored, unrevoked tokens become usable again when token-aware code returns.
+requests. Stored, unexpired, unrevoked tokens become usable again when token-aware code returns.
 See the [rollout runbook](apps/docs/content/getting-started/api-token-rollout.mdx).
 
 ## Documentation pipeline
