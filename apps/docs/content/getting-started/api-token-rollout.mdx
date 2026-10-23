@@ -1,0 +1,146 @@
+---
+id: api-token-rollout
+title: API token rollout and rollback
+---
+
+Ship persistence, management, REST authentication, settings, and documentation as
+one release. Token creation must not become available before bearer authentication
+works. Platform administrators retain their existing ability to select organizations
+without membership; ordinary users need owner/administrator membership to manage tokens.
+
+## Deployment order
+
+1. Back up PostgreSQL and record the current application, worker, proxy, and docs image
+   versions. Use immutable release tags. Retain `NEXTAUTH_SECRET` and the existing
+   database, object-storage, Redis, and proxy settings.
+2. Pull the complete candidate release. Apply
+   `20261020023756_add_api_tokens` before starting token-aware application code.
+   The migration adds `ApiToken`, its indexes, and foreign keys; it does not replace
+   user, organization, or session data. Existing instances of the previous application
+   can continue using the additive schema.
+
+   ```bash
+   docker compose --env-file .env.production pull
+   docker compose --env-file .env.production run --rm migrate-service
+   ```
+
+3. Confirm the migration job succeeded, then deploy the coordinated application,
+   worker, proxy, and docs images:
+
+   ```bash
+   docker compose --env-file .env.production up -d --remove-orphans
+   ```
+
+   Do not run seed scripts, reset the database, or drop volumes during rollout.
+
+4. Confirm existing browser sign-in and normal role permissions still work. Check
+   public `GET /api/v1/health` and preflight behavior, then complete the smoke test below.
+   Leave token creation unavailable if any application instance still lacks bearer support.
+
+## Release smoke test
+
+Use a dedicated verification organization and a real owner/administrator account.
+Platform administrators can select it without membership. Keep credentials in a
+private Bruno environment; never attach them to verification evidence.
+
+1. In **Settings → Organization → API tokens**, create two distinctly named tokens.
+   Confirm expiration defaults to seven days. Copy each once, dismiss the dialog,
+   reload, and confirm the full credential cannot be recovered from the list.
+2. Use the API URL printed by the local launcher, or the deployed API URL, with
+   `GET /properties`. Send only `Authorization: Bearer <token>`; omit cookies and the
+   organization header. Both tokens must work independently.
+3. Revoke the first token. Its next request must return `401` with
+   `WWW-Authenticate: Bearer`; the second token must still work. Repeat revocation
+   and confirm the original revoker and timestamp remain unchanged.
+4. Try the second token against a different organization's resource ID (`404`) and
+   with a conflicting organization header (`403`). Token-only calls to tRPC,
+   account/token management, and the jobs dashboard must fail.
+5. Revoke the remaining verification token. Confirm browser access still works.
+
+See [API authentication](../api-authentication) for Bruno configuration, expiration,
+rotation, and error handling. Revocation blocks new authentication after its database
+transaction commits; already-authorized requests may finish.
+
+## Application rollback
+
+If authentication or isolation checks fail, stop distributing tokens and roll back
+the coordinated application components to the recorded pre-token release. Drain
+token-aware application instances so they cannot continue accepting credentials.
+Keep the additive migration in place. Do not drop `ApiToken`, delete credentials,
+roll back unrelated migrations, or change `NEXTAUTH_SECRET`.
+
+Use the deployment environment's previous immutable image versions and recreate the
+application/worker/proxy/docs services. Verify the previous browser sign-in and
+cookie-authenticated REST workflow. Bearer-only calls must be rejected by the
+pre-token application; the database retains token metadata for investigation.
+
+An application rollback does not revoke stored tokens. When token-aware code is
+redeployed, unexpired and unrevoked credentials work again. Revoke credentials through
+a trusted token-aware management instance before re-enabling access if permanent
+invalidation is required. Do not create credentials from the rolled-back application.
+
+## Repeatable verification
+
+Use a separate PostgreSQL database with `test` in its name; never point these suites
+at an application's database. The integration helper creates and drops only unique
+schemas in that database. Storage requests are mocked in the isolation suite.
+
+```bash
+pnpm --filter @parcelis/api test
+API_TOKEN_TEST_DATABASE_URL='postgresql://parcelis:parcelis@localhost:54320/parcelis_test?schema=public' pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts'
+PLAYWRIGHT_TEST_BASE_URL=http://localhost API_INTERNAL_URL=http://localhost pnpm test:e2e tests/e2e/api-tokens.spec.ts --workers=1
+pnpm --filter @parcelis/schemas typecheck
+pnpm --filter @parcelis/api typecheck
+pnpm --filter @parcelis/web typecheck
+pnpm --filter @parcelis/schemas lint
+pnpm --filter @parcelis/api lint
+pnpm --filter @parcelis/web lint
+pnpm --filter @parcelis/docs build
+```
+
+The release integration test removes only the empty token table from its disposable
+schema, populates pre-existing user/organization/property data, replays the checked-in
+additive SQL, and verifies cookie access, independent tokens, concurrent revocation,
+expiration, and metadata secrecy. This specifically rehearses the token migration;
+the other integration suites use `prisma db push` rather than replaying migrations.
+
+For the optional source rollback rehearsal, provide an absolute
+`API_TOKEN_ROLLBACK_API_ROOT` pointing to a trusted pre-token `apps/api` checkout with
+its dependencies installed, alongside `API_TOKEN_TEST_DATABASE_URL`. The test loads
+that checkout's actual REST Fetch route against the same isolated schema. It verifies
+cookie access survives, bearer-only requests fail, and restoring token-aware routes
+restores access without changing the schema. Without the checkout, that subtest is
+explicitly skipped. This is a source-route rehearsal, not a production image deployment.
+
+## Local verification record
+
+On October 22, 2026, the stack based on PR #489 was verified with PostgreSQL 16 and
+Chromium. The platform-administrator membership exception was retained intentionally.
+
+The API suite passed 328 tests and skipped its two opt-in invoice/finalization
+integration tests. The token PostgreSQL suites passed all 19 tests, including the
+source rollback subtest. The browser suite passed all 14 tests; the revised real
+`/properties` scenario also passed separately. Schemas/API/web typechecks and lint
+passed, with one existing unused-parameter lint warning in the API auth tests.
+OpenAPI/reference regeneration produced no diffs, and the docs build passed.
+
+The full migration chain was also applied successfully to a newly created disposable
+PostgreSQL database; `ApiToken` existed with zero credentials afterward. That database
+was removed. This uses a separate database because historical migrations explicitly
+reference the `public` schema and cannot safely be replayed in a shared test schema.
+
+| Area                                                                                              | Evidence                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Credential parsing, exact expiry boundaries, cookie precedence, DB failures, telemetry            | API unit/router/Fetch tests                                                                                                                                                                                                       |
+| Two-organization reads, writes, nested IDs, image references, creator deletion                    | PostgreSQL authentication integration suite                                                                                                                                                                                       |
+| Management roles, independent credentials, repeated/concurrent revocation                         | Persistence integration suite                                                                                                                                                                                                     |
+| One-time display, copying, local/session storage, organization-switch cleanup, error/focus states | 14 browser tests, including the real local token lifecycle                                                                                                                                                                        |
+| Additive migration and prior browser access                                                       | Release integration suite with populated disposable tables                                                                                                                                                                        |
+| Source rollback and restoration                                                                   | [Pre-token `src/app/api/v1/[...path]/route.ts`](https://github.com/parcelis/parcelis/blob/a1fcb4a1b64a1ad527c12eea332a7063df22f28f/apps/api/src/app/api/v1/%5B...path%5D/route.ts), same disposable schema, no migration reversal |
+| API contract and guides                                                                           | OpenAPI allowlist/security contract test and successful docs build                                                                                                                                                                |
+
+No deployment or production image rollback was performed. Re-run the deployed smoke
+test with the actual release artifacts before production approval. The transport tests
+cover token attribution and sanitized failures; browser tests inspect persistent storage.
+Supported token operations in the migration rehearsal do not generate activity/outbox
+events, so its empty-history secrecy check does not substitute for the actor tests.
