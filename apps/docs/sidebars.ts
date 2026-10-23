@@ -79,6 +79,7 @@ const sidebars: SidebarsConfig = {
         "getting-started/deploy-with-docker-compose",
         "getting-started/deploy-with-docker-compose-single-image",
         "getting-started/email-configuration",
+        "getting-started/api-token-rollout",
       ],
     },
     {
