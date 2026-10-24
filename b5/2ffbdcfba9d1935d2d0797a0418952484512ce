@@ -1,0 +1,26 @@
+apps/worker/src/outbox-dispatcher.ts
+  s_ca94f9675c66c7::t_8725d49b74773a 195-199,228
+apps/worker/src/main.ts
+  s_ca94f9675c66c7::t_61310eed23e6d3 10,22-24,63-71,108,114
+  s_ca94f9675c66c7::t_faa822782a246b 25,109-113
+  s_ca94f9675c66c7::t_755a4a43bee550 155
+  s_ca94f9675c66c7::t_475dacce3421a3 175
+  s_ca94f9675c66c7::t_e832bea849dafb 156,158-164,166-167
+  s_ca94f9675c66c7::t_8725d49b74773a 21,26-29,62,106,157,165,168-174,176,188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b52ffbdcfba9d1935d2d0797a0418952484512ce",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
