@@ -1,0 +1,20 @@
+apps/api/src/modules/application-checks.ts
+  s_ca94f9675c66c7::t_df9602a38d3a3d 1-29,32-81
+  s_ca94f9675c66c7::t_305a26437ca39f 30-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a88307ce95c4b125d46601ba6fc9ecd5a0b0ac98",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
