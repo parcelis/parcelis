@@ -1,0 +1,46 @@
+README.md
+  s_ca94f9675c66c7::t_19aafe82ccb0d6 145-146
+  s_ca94f9675c66c7::t_83217557a0cb98 144
+  s_ca94f9675c66c7::t_697eab79411a78 137-139,142-143
+  s_ca94f9675c66c7::t_0ff67e711f0a18 140-141
+  s_ca94f9675c66c7::t_5d941082d0b0c9 147
+apps/docs/content/getting-started/status-monitor.mdx
+  s_ca94f9675c66c7::t_83b0d7749267ae 1-8,10-12,30-32,51-58,72-74,79-80,105-106,109,117-122
+  s_ca94f9675c66c7::t_0ff67e711f0a18 19-21,63
+  s_ca94f9675c66c7::t_c345e81c53d2bf 59-62,64-71
+  s_ca94f9675c66c7::t_6739bdd0997988 46,81-83,99-103,113-116
+  s_ca94f9675c66c7::t_9a079c4d2753ef 107-108
+  s_ca94f9675c66c7::t_1cf1ac944fbd37 25-26
+  s_ca94f9675c66c7::t_83217557a0cb98 13-18
+  s_ca94f9675c66c7::t_9340fad4936d6b 23-24
+  s_ca94f9675c66c7::t_eb266a9920fc63 22
+  s_ca94f9675c66c7::t_7f1a4d77229a67 9,33-45,47-50,75-76,84-98,104,110-112
+  s_ca94f9675c66c7::t_390af1be615b3b 28-29
+  s_ca94f9675c66c7::t_e832bea849dafb 77-78
+  s_ca94f9675c66c7::t_739d0153838251 27
+apps/docs/content/contributing/architecture.mdx
+  s_ca94f9675c66c7::t_e88d7d77d11c00 24-29,31
+  s_ca94f9675c66c7::t_db424038d40b6c 30
+CONTRIBUTING.md
+  s_ca94f9675c66c7::t_b216abb039df8c 199-202
+ARCHITECTURE.md
+  s_ca94f9675c66c7::t_0ff67e711f0a18 44-46
+  s_ca94f9675c66c7::t_7f1a4d77229a67 32-38
+  s_ca94f9675c66c7::t_db424038d40b6c 30-31,39-43,47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c48d1f43f517a0e957cd29051ee3ab07f069fa9d",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
