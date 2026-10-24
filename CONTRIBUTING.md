@@ -196,6 +196,10 @@ A missing or blank `NEXTAUTH_SECRET` disables NextAuth sign-in. The login page d
 
 #### What `pnpm dev` starts
 
+Run `pnpm status:dev` separately to edit the status monitor with automatic server
+restarts. Its page refreshes every 15 seconds; a browser refresh shows saved changes
+as soon as the restart completes. Restarting resets its in-memory history.
+
 `pnpm dev` starts the web, API, docs, React Email preview, shared jobs compiler, and worker apps with hot reload. It also starts nginx, PostgreSQL, Redis, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
 
 Use nginx as the normal local entry point:

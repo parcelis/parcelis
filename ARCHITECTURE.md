@@ -27,6 +27,24 @@ application-resource cleanup hook. The API does not use standalone output.
 
 ## Overview
 
+The optional status POC (`pnpm status`) runs a separate Node HTTP process on
+`127.0.0.1:40020`. It probes web/API/docs URLs and directly checks PostgreSQL,
+Redis, object storage, worker heartbeats, canary jobs, and outbox progress. Seven
+component rows roll up expandable child checks. Storage runs a signed transfer
+and cleanup under a dedicated healthcheck prefix. Optional monitoring credentials
+exercise web sign-in and API session validation. Worker checks include bounded
+SMTP verification without sending mail and a heartbeat from actual scheduled
+reconciliation completions. SMTP/outbox/backlog/scheduler checks all roll up under
+BullMQ / workers. It serves a public-safe page and JSON snapshot, keeps bounded in-memory history,
+and optionally posts status transitions to a configured webhook. Deploy it
+separately from the application for host-level outage visibility. The API's
+`/api/v1/ready` checks core dependencies; `/api/v1/health` remains liveness-only.
+Workers publish expiring Redis heartbeats and handle side-effect-free health
+jobs on the notification and leasing queues. No additional service or dependency
+is required. The web app proxies `/status` and its assets/feed to this process
+using `STATUS_INTERNAL_URL` (or local `STATUS_PORT`); the direct monitor URL remains
+available independently of the web app. See the status monitor guide for configuration and POC limits.
+
 Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, docs, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
 ```text
