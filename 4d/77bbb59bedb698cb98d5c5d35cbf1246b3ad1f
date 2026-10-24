@@ -1,0 +1,19 @@
+apps/docs/sidebars.ts
+  s_ca94f9675c66c7::t_db424038d40b6c 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4d77bbb59bedb698cb98d5c5d35cbf1246b3ad1f",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
