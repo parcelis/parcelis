@@ -31,6 +31,27 @@ function createEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
   };
 }
 
+test("outbox heartbeat is published only after a successful poll", async (t) => {
+  t.mock.method(console, "error", () => {});
+  for (const fails of [false, true]) {
+    let heartbeats = 0;
+    const prisma = {
+      outboxEvent: {
+        findMany: async () => {
+          if (fails) throw new Error("Database unavailable");
+          return [];
+        },
+      },
+      notificationDelivery: { findMany: async () => [] },
+    } as unknown as PrismaClient;
+    const stop = startOutboxDispatcher(prisma, new Map(), async () => {
+      heartbeats++;
+    });
+    await stop();
+    assert.equal(heartbeats, fails ? 0 : 1);
+  }
+});
+
 function createPrisma(event: OutboxEvent, failDispatchedUpdate = false) {
   let current = event;
   let shouldFailDispatchedUpdate = failDispatchedUpdate;

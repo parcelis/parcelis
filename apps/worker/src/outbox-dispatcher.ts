@@ -192,7 +192,11 @@ export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, 
 }
 
 // Starts the outbox dispatcher, which continuously polls for available outbox events, claims them, and dispatches them to the appropriate queues. Returns a function to stop the dispatcher.
-export function startOutboxDispatcher(prisma: PrismaClient, queues: Map<string, Queue>) {
+export function startOutboxDispatcher(
+  prisma: PrismaClient,
+  queues: Map<string, Queue>,
+  onSuccessfulPoll?: () => Promise<void>,
+) {
   let stopped = false;
   let dispatchInProgress = false;
   let nextNotificationRecoveryAt = 0;
@@ -221,6 +225,7 @@ export function startOutboxDispatcher(prisma: PrismaClient, queues: Map<string, 
         nextNotificationRecoveryAt = Date.now() + notificationRecoveryIntervalMs;
         await reconcileDispatchedNotificationJobs(prisma, queues);
       }
+      await onSuccessfulPoll?.();
     } catch (error) {
       if (!stopped) {
         console.error(`[parcelis] Outbox dispatch failed: ${getErrorMessage(error)}`);

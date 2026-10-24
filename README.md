@@ -134,6 +134,17 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 | Tooling                       | [TypeScript](https://www.typescriptlang.org/), [pnpm](https://pnpm.io/), [Turborepo](https://turbo.build/), [Playwright](https://playwright.dev/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) |
 | Local services and deployment | [Docker Compose](https://docs.docker.com/compose/)                                                                                                                                                                     |
 
+## Service status POC
+
+For a local service-health dashboard, build `@parcelis/jobs`, then run `pnpm status`
+and open `http://localhost/status` with the dev web proxy running, or
+`http://127.0.0.1:40020` directly. See the
+[status monitor POC guide](apps/docs/content/getting-started/status-monitor.mdx)
+for configuration, checks, and limitations.
+Use `pnpm status:dev` while editing the monitor to restart it automatically on source changes.
+For the implementation order, source map, and code walkthrough, see the
+[status monitor design document](docs/design/status-monitor-design.md).
+
 ## Contributing
 
 Every contribution is appreciated, from bug reports to pull requests. Before implementing a new feature or changing the API, please open an issue so the approach can be discussed first. See [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, contributor expectations, and the Conventional Commit format enforced for pull requests.
