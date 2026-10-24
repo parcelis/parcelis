@@ -11,8 +11,17 @@ const nextConfig = {
   async rewrites() {
     const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:40010";
     const docsUrl = process.env.DOCS_INTERNAL_URL || `http://localhost:${process.env.DOCS_PORT || "40000"}`;
+    const statusUrl = process.env.STATUS_INTERNAL_URL || `http://localhost:${process.env.STATUS_PORT || "40020"}`;
 
     return [
+      {
+        source: "/status",
+        destination: `${statusUrl}/status`,
+      },
+      {
+        source: "/status/:path*",
+        destination: `${statusUrl}/status/:path*`,
+      },
       {
         source: "/api/auth/:path*",
         destination: `${apiUrl}/api/auth/:path*`,
