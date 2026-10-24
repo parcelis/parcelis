@@ -1,0 +1,33 @@
+apps/api/src/status/shutdown.ts
+  s_ca94f9675c66c7::t_0a265edb77acfa 1-4,6,15-17
+  s_ca94f9675c66c7::t_73f56cf8f61cb5 7-14
+  s_ca94f9675c66c7::t_b1664eb4500325 5
+apps/api/src/status/server.ts
+  s_ca94f9675c66c7::t_7e126cffdfb10c 2-3,15,22,79,88-94
+  s_ca94f9675c66c7::t_df9602a38d3a3d 4-5,34-35
+  s_ca94f9675c66c7::t_0ff67e711f0a18 85
+  s_ca94f9675c66c7::t_c345e81c53d2bf 86-87
+  s_ca94f9675c66c7::t_0a265edb77acfa 9,123,127-131,138-139
+  s_ca94f9675c66c7::t_dadc7a2eee7d11 1,6-7,10-11,23-31,39-42,56-59,64-65,69-76,81-84,95-101,108-114,120-122,124-126,132
+  s_ca94f9675c66c7::t_305a26437ca39f 43-55
+  s_ca94f9675c66c7::t_b1664eb4500325 133-137
+  s_ca94f9675c66c7::t_6a82e72cc5120c 8,16-21,102-107
+  s_ca94f9675c66c7::t_e88d7d77d11c00 32-33,36-38,60-63,66-68,77-78,80,115-119
+  s_ca94f9675c66c7::t_e832bea849dafb 12-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f08f79b662d3adaada9ac27f5a2cb87800ea71c",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
