@@ -1,0 +1,21 @@
+packages/email/src/transport.ts
+  s_ca94f9675c66c7::t_df9602a38d3a3d 15-21
+  s_ca94f9675c66c7::t_305a26437ca39f 41,43-48,50
+  s_ca94f9675c66c7::t_61310eed23e6d3 6,39-40,42,49,51-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1da2cfad450b3cbe15b6bc1ae767da969123ed29",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
