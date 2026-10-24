@@ -9,6 +9,8 @@
     }
   },
   "scripts": {
+    "status": "node --env-file-if-exists=../../.env --import tsx src/status/server.ts",
+    "status:dev": "node --watch --watch-preserve-output --env-file-if-exists=../../.env --import tsx src/status/server.ts",
     "dev": "node ./scripts/dev.mjs --open-port",
     "dev:fixed": "node ./scripts/dev.mjs",
     "build": "next build",
