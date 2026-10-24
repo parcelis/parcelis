@@ -1,0 +1,23 @@
+apps/api/src/status/state.ts
+  s_ca94f9675c66c7::t_dadc7a2eee7d11 1-8,11-15,19-22,24-25,35-39,41-43
+  s_ca94f9675c66c7::t_df9602a38d3a3d 23,26-34
+  s_ca94f9675c66c7::t_db424038d40b6c 40
+  s_ca94f9675c66c7::t_b1fb4d85d2331d 16-18
+  s_ca94f9675c66c7::t_0a265edb77acfa 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5ca65ded42f0b1f5609961858cfebc56cd7428b6",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
