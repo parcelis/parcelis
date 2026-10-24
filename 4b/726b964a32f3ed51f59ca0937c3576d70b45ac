@@ -1,0 +1,19 @@
+apps/web/next.config.mjs
+  s_ca94f9675c66c7::t_0ff67e711f0a18 14,17-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4b726b964a32f3ed51f59ca0937c3576d70b45ac",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
