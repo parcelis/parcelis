@@ -1,0 +1,38 @@
+apps/api/src/tests/health/deferred.ts
+  s_ca94f9675c66c7::t_9fdf51c2a14407 1-9
+apps/api/src/tests/health/grouped-checks.test.ts
+  s_ca94f9675c66c7::t_b241d0fa7ba2bd 1-119
+apps/api/src/tests/health/shutdown.test.ts
+  s_ca94f9675c66c7::t_9fdf51c2a14407 1,10-12
+  s_ca94f9675c66c7::t_50c00d75b7e3e3 2-9,13-44
+apps/api/src/tests/health/status.test.ts
+  s_ca94f9675c66c7::t_83b0d7749267ae 1-9,15-30,49-65,73-98
+  s_ca94f9675c66c7::t_2dbde46f5216fa 66-72
+  s_ca94f9675c66c7::t_50c00d75b7e3e3 31-48
+  s_ca94f9675c66c7::t_e88d7d77d11c00 10-14
+apps/api/src/tests/health/scheduler.test.ts
+  s_ca94f9675c66c7::t_532ada0f003935 20
+  s_ca94f9675c66c7::t_50c00d75b7e3e3 1-19,21-43
+apps/api/src/tests/health/probe-lifetime.test.ts
+  s_ca94f9675c66c7::t_9fdf51c2a14407 1,16-17,44,65-66,112,141-142
+  s_ca94f9675c66c7::t_50c00d75b7e3e3 2-6,11-15,18-43,45-64,67-111,113-136,186
+  s_ca94f9675c66c7::t_6bba9d65df2e47 7-10,137-140,143-185
+apps/api/src/tests/health/theme.test.ts
+  s_ca94f9675c66c7::t_50dc8c9dd22e68 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a3fa39f0bce87e97a888838b172109ab43bfa820",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
