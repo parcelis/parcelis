@@ -5,6 +5,7 @@ export * from "./lease-dates.js";
 export * from "./notification-jobs.js";
 export * from "./queue-names.js";
 export * from "./queue-registry.js";
+export * from "./health.js";
 
 // Retrieves Redis connection options based on environment variables.
 export function getRedisConnectionOptions(environment: NodeJS.ProcessEnv = process.env): ConnectionOptions {
