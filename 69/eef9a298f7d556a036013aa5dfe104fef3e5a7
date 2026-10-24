@@ -1,0 +1,41 @@
+apps/api/src/status/page.ts
+  s_ca94f9675c66c7::t_dadc7a2eee7d11 2,4,10,219
+  s_ca94f9675c66c7::t_19b762f64d71c3 134-136,202
+  s_ca94f9675c66c7::t_594de1a88418de 121,133,189
+  s_ca94f9675c66c7::t_df9602a38d3a3d 81-88,93,169,172
+  s_ca94f9675c66c7::t_e88d7d77d11c00 5-9,67-68,73,76,79-80,95-96
+  s_ca94f9675c66c7::t_6a82e72cc5120c 3,33-61,97-101,103-114,118,125-130,137-139,141-145,150-151,153,156-160,162,165-168,170-171,173,176-179,181
+  s_ca94f9675c66c7::t_7e126cffdfb10c 148,152,174,204,209,215
+  s_ca94f9675c66c7::t_7f1a4d77229a67 21
+  s_ca94f9675c66c7::t_9a079c4d2753ef 70-72,90
+  s_ca94f9675c66c7::t_eb266a9920fc63 186-188,193-194,196,214,217
+  s_ca94f9675c66c7::t_0ac92892f2c514 199
+  s_ca94f9675c66c7::t_2121a235392609 149,163-164
+  s_ca94f9675c66c7::t_f63441fbb00075 1,11-20,22-32,62-66,69,74-75,77-78,89,91-92,94,115,122,140,146-147,154-155,161,175,180,182-185,197,205-208,210,218
+  s_ca94f9675c66c7::t_8c79b3d2e8dd84 123-124,131-132,190-192,195,200-201,212-213
+  s_ca94f9675c66c7::t_c345e81c53d2bf 216
+  s_ca94f9675c66c7::t_9340fad4936d6b 102,203
+  s_ca94f9675c66c7::t_8a48e22969db11 120
+  s_ca94f9675c66c7::t_c56e689d2a16e3 119
+  s_ca94f9675c66c7::t_08ac65e1a590ea 116-117
+  s_ca94f9675c66c7::t_be14264f634b7a 198
+  s_ca94f9675c66c7::t_0f6240034f1046 211
+apps/api/src/status/theme.ts
+  s_ca94f9675c66c7::t_6a82e72cc5120c 1-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "69eef9a298f7d556a036013aa5dfe104fef3e5a7",
+  "prompts": {},
+  "sessions": {
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
