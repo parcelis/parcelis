@@ -79,7 +79,7 @@ export function renderStatusPage(status: CheckStatus, components: Component[], t
         )
         .join("");
       const details = component.checks?.length
-        ? `<details class="check-details"><summary>Check details</summary><div class="check-list">${component.checks
+        ? `<details class="check-details" data-component-id="${escapeHtml(component.id)}"><summary>Check details</summary><div class="check-list">${component.checks
             .map(
               (check) =>
                 `<div class="check-item"><div class="row"><span>${escapeHtml(check.name)}</span><span class="badge ${check.status}">${statusLabels[check.status]}</span></div>${check.note ? `<p>${escapeHtml(check.note)}</p>` : ""}</div>`,
@@ -94,7 +94,7 @@ export function renderStatusPage(status: CheckStatus, components: Component[], t
       </article>`;
     })
     .join("");
-  return `<!doctype html><html lang="en" data-theme="${theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="15"><title>Parcelis status</title><style>
+  return `<!doctype html><html lang="en" data-theme="${theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script src="/status/refresh.js" defer></script><title>Parcelis status</title><style>
     :root {
       color-scheme: light;
       --page: #f3f1ec; --text: #14202b; --muted: #53617a; --soft: #65738a;

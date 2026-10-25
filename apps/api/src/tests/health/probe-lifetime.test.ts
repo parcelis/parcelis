@@ -8,7 +8,7 @@ import { Queue } from "bullmq";
 import { createServer } from "node:net";
 import type { Socket } from "node:net";
 import { once } from "node:events";
-import { checkStorage, probeQueueJob } from "../../modules/service-checks";
+import { checkStorage, createCanaryQueue, probeQueueJob } from "../../modules/service-checks";
 
 for (const signingCall of [1, 2]) {
   test(`stalled storage signing call ${signingCall} releases both clients and cannot start a late upload`, async (t) => {
@@ -39,11 +39,15 @@ for (const signingCall of [1, 2]) {
   });
 }
 
-test("a stalled storage upload still attempts bounded cleanup and releases its clients", async (t) => {
+test("a stalled storage upload and delete finish within their budgets and release both clients", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const started = deferred<void>();
+  const deleting = deferred<void>();
   const destroy = t.mock.method(S3Client.prototype, "destroy", () => {});
-  const send = t.mock.method(S3Client.prototype, "send", async () => ({}));
+  const send = t.mock.method(S3Client.prototype, "send", async () => {
+    deleting.resolve();
+    return new Promise(() => {});
+  });
   t.mock.method(globalThis, "fetch", async () => {
     started.resolve();
     return new Promise<Response>(() => {});
@@ -54,7 +58,13 @@ test("a stalled storage upload still attempts bounded cleanup and releases its c
   );
   await started.promise;
   t.mock.timers.tick(3_001);
+  await deleting.promise;
+  assert.equal(destroy.mock.callCount(), 0);
+  const cleanupSignal = send.mock.calls[0]!.arguments[1]!.abortSignal;
+  assert.equal(cleanupSignal?.aborted, false);
+  t.mock.timers.tick(1_501);
   await outcome;
+  assert.equal(cleanupSignal?.aborted, true);
   assert.equal(send.mock.callCount(), 1);
   assert.equal(destroy.mock.callCount(), 2);
 });
@@ -101,7 +111,7 @@ for (const stalled of ["add", "state", "result", "remove", "close"]) {
     const result = await outcome;
     assert.ok(calls.includes("remove"));
     assert.ok(calls.includes("close"));
-    if (stalled === "remove") assert.deepEqual(result.value, { ok: true });
+    if (["remove", "close"].includes(stalled)) assert.deepEqual(result.value, { ok: true });
     else assert.match(result.error?.message ?? "", /deadline/);
     if (stalled === "add") assert.ok(!calls.includes("state"));
     if (stalled === "state") assert.ok(!calls.includes("result"));
@@ -136,51 +146,148 @@ test("a parent probe cancellation stops canary polling and force-closes its priv
   assert.ok(closed);
 });
 
-test("a real canary connection is torn down when Redis accepts a socket but never responds", async (t) => {
-  const sockets = new Set<Socket>();
-  const accepted = deferred<void>();
-  const disconnected = deferred<void>();
-  const server = createServer((socket) => {
-    sockets.add(socket);
-    accepted.resolve();
-    socket.on("close", () => {
-      sockets.delete(socket);
-      disconnected.resolve();
-    });
-    socket.resume();
-  });
-  server.listen(0, "127.0.0.1");
-  await once(server, "listening");
-  t.after(() => {
-    for (const socket of sockets) socket.destroy();
-    server.close();
-  });
-  const address = server.address();
-  assert.ok(address && typeof address !== "string");
-  const outcome = assert.rejects(
-    probeQueueJob("health-test", "test", 100, undefined, (name) => {
-      const queue = new Queue(name, {
-        connection: {
-          host: "127.0.0.1",
-          port: address.port,
-          connectTimeout: 50,
-          commandTimeout: 50,
-          enableOfflineQueue: false,
-          maxRetriesPerRequest: 0,
-          retryStrategy: () => null,
-        },
-      });
-      queue.on("error", () => {});
-      return queue;
+test("a late add result cannot resume polling or replace the original probe failure", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const started = deferred<void>();
+  const added = deferred<{ getState: () => Promise<string> }>();
+  let states = 0;
+  let removed = 0;
+  let closed = 0;
+  const queue = {
+    add: () => {
+      started.resolve();
+      return added.promise;
+    },
+    remove: async () => ++removed,
+    getBackend: () => ({
+      close: async () => {
+        closed++;
+        throw new Error("Cleanup failed");
+      },
     }),
+  } as unknown as Queue;
+  const outcome = assert.rejects(
+    probeQueueJob("queue", "job", 100, undefined, () => queue),
+    /Probe deadline exceeded/,
   );
-  await accepted.promise;
+  await started.promise;
+  t.mock.timers.tick(101);
   await outcome;
-  const timer = setTimeout(() => disconnected.reject(new Error("Canary socket was not closed")), 1_000);
-  try {
-    await disconnected.promise;
-  } finally {
-    clearTimeout(timer);
-  }
-  assert.equal(sockets.size, 0);
+  added.resolve({
+    getState: async () => {
+      states++;
+      return "completed";
+    },
+  });
+  await nextTurn();
+  assert.equal(states, 0);
+  assert.equal(removed, 1);
+  assert.equal(closed, 1);
 });
+
+test(
+  "a real canary connection is torn down when Redis accepts a socket but never responds",
+  { timeout: 3_000 },
+  async (t) => {
+    const sockets = new Set<Socket>();
+    const accepted = deferred<void>();
+    const disconnected = deferred<void>();
+    const server = createServer((socket) => {
+      sockets.add(socket);
+      accepted.resolve();
+      socket.on("close", () => {
+        sockets.delete(socket);
+        disconnected.resolve();
+      });
+      socket.resume();
+    });
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    t.after(() => {
+      for (const socket of sockets) socket.destroy();
+      server.close();
+    });
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    const outcome = assert.rejects(
+      probeQueueJob("health-test", "test", 100, undefined, (name, waitMs) =>
+        createCanaryQueue(name, waitMs, { host: "127.0.0.1", port: address.port }),
+      ),
+    );
+    await accepted.promise;
+    await outcome;
+    const timer = setTimeout(() => disconnected.reject(new Error("Canary socket was not closed")), 1_000);
+    try {
+      await disconnected.promise;
+    } finally {
+      clearTimeout(timer);
+    }
+    assert.equal(sockets.size, 0);
+  },
+);
+
+test(
+  "stalled Redis Lua calls are disconnected without reconnecting after canary cleanup",
+  { timeout: 3_000 },
+  async (t) => {
+    const sockets = new Set<Socket>();
+    const disconnected = deferred<void>();
+    const commands: string[] = [];
+    const server = createServer((socket) => {
+      sockets.add(socket);
+      let buffered = Buffer.alloc(0);
+      socket.on("data", (chunk) => {
+        buffered = Buffer.concat([buffered, chunk]);
+        while (buffered.length) {
+          const header = buffered.indexOf("\r\n");
+          if (header < 0) return;
+          const count = Number(buffered.subarray(1, header));
+          const args: Buffer[] = [];
+          let offset = header + 2;
+          for (let index = 0; index < count; index++) {
+            const end = buffered.indexOf("\r\n", offset);
+            if (end < 0) return;
+            const length = Number(buffered.subarray(offset + 1, end));
+            if (buffered.length < end + 2 + length + 2) return;
+            args.push(buffered.subarray(end + 2, end + 2 + length));
+            offset = end + 2 + length + 2;
+          }
+          buffered = buffered.subarray(offset);
+          const command = args[0]!.toString().toLowerCase();
+          commands.push(command);
+          if (command === "evalsha" || command === "eval") continue;
+          if (command === "info") {
+            const info = "redis_version:7.2.0\r\nmaxmemory_policy:noeviction\r\n";
+            socket.write(`$${Buffer.byteLength(info)}\r\n${info}\r\n`);
+          } else socket.write("+OK\r\n");
+        }
+      });
+      socket.on("close", () => {
+        sockets.delete(socket);
+        disconnected.resolve();
+      });
+    });
+    t.after(() => {
+      for (const socket of sockets) socket.destroy();
+      server.close();
+    });
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    await assert.rejects(
+      probeQueueJob("health-test", "test", 100, undefined, (name, waitMs) =>
+        createCanaryQueue(name, waitMs, { host: "127.0.0.1", port: address.port }),
+      ),
+    );
+    await disconnected.promise;
+    assert.ok(
+      commands.filter((command) => command === "evalsha" || command === "eval").length >= 2,
+      JSON.stringify(commands),
+    );
+    const commandCount = commands.length;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    assert.equal(commands.length, commandCount);
+    assert.equal(sockets.size, 0);
+  },
+);

@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { once } from "node:events";
 import test from "node:test";
 import { checkHttp, runCheck, type ServiceCheck } from "../../modules/service-checks";
-import { overallStatus, updateComponent, visibleComponent } from "../../status/state";
+import { applyCheckResults, overallStatus, updateComponent, visibleComponent } from "../../status/state";
 import { renderStatusPage } from "../../status/page";
 
 const check = (status: ServiceCheck["status"]): ServiceCheck => ({
@@ -61,6 +61,30 @@ test("probe failures do not expose exception details", async () => {
   });
   assert.equal(result.status, "down");
   assert.ok(!JSON.stringify(result).includes("private-password"));
+});
+
+test("measured degradation takes precedence over unknown components", () => {
+  assert.equal(overallStatus([{ status: "unknown" }, { status: "degraded" }]), "degraded");
+  assert.equal(overallStatus([{ status: "unknown" }, { status: "down" }, { status: "degraded" }]), "down");
+  assert.equal(overallStatus([{ status: "operational" }, { status: "unknown" }]), "unknown");
+});
+
+test("all component results are applied before transition delivery begins", () => {
+  const components = new Map([
+    ["api", updateComponent(undefined, check("operational"))],
+    ["web", updateComponent(undefined, { ...check("operational"), id: "web", name: "Web" })],
+  ]);
+  const alerts = applyCheckResults(components, [check("degraded"), { ...check("unknown"), id: "web", name: "Web" }]);
+  assert.equal(components.get("api")?.status, "degraded");
+  assert.equal(components.get("web")?.status, "unknown");
+  assert.deepEqual(
+    alerts.map((alert) => [alert.component, alert.previous, alert.status]),
+    [
+      ["API", "operational", "degraded"],
+      ["Web", "operational", "unknown"],
+    ],
+  );
+  assert.equal(applyCheckResults(components, [check("degraded")]).length, 0);
 });
 
 test("a stalled probe returns down at the response deadline", async (t) => {

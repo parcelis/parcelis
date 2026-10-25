@@ -217,10 +217,10 @@ export async function checkDependencies(deep = false) {
   ]);
 }
 
-function createCanaryQueue(queueName: string, waitMs: number) {
+export function createCanaryQueue(queueName: string, waitMs: number, connection = getRedisConnectionOptions()) {
   const queue = new Queue(queueName, {
     connection: {
-      ...getRedisConnectionOptions(),
+      ...connection,
       connectTimeout: Math.min(waitMs, 1_000),
       commandTimeout: Math.min(waitMs, 1_000),
       enableOfflineQueue: false,
@@ -273,7 +273,7 @@ export async function probeQueueJob(
     try {
       await withProbeDeadline(200, () => queue.remove(jobId)).catch(() => {});
     } finally {
-      await withProbeDeadline(200, () => queue.getBackend().close(true));
+      await withProbeDeadline(200, () => queue.getBackend().close(true)).catch(() => {});
     }
   }
 }
@@ -325,7 +325,7 @@ export async function checkBackgroundServices() {
   const checks = await Promise.all([
     Promise.resolve(processing),
     (async () => {
-      const result = await runCheck("email", "Email transport", async (signal) => {
+      const result = await runCheck("email", "Global SMTP fallback", async (signal) => {
         return healthJobResultSchema.parse(
           await probeQueueJob(queueNames.accountNotifications, emailHealthJobName, 3_000, signal),
         ).status;
@@ -334,8 +334,8 @@ export async function checkBackgroundServices() {
         ...result,
         note:
           result.status === "unknown"
-            ? "Email transport is not configured on the worker."
-            : "SMTP connection and authentication; message delivery is not measured.",
+            ? "Global fallback SMTP is not configured on the worker."
+            : "Global fallback SMTP connection and authentication; organization transports and message delivery are not measured.",
       };
     })(),
     runCheck("scheduled", "Scheduled jobs", async (signal) => {

@@ -6,7 +6,7 @@ import { setImmediate as nextTurn } from "node:timers/promises";
 import test from "node:test";
 import { drainStatusServer } from "../../status/shutdown";
 
-test("shutdown waits for active HTTP responses as well as polling and cleanup", async (t) => {
+test("shutdown waits for active HTTP responses as well as polling and cleanup", { timeout: 5_000 }, async (t) => {
   const poll = deferred<void>();
   const cleanup = deferred<void>();
   const started = deferred<() => void>();
@@ -24,7 +24,7 @@ test("shutdown waits for active HTTP responses as well as polling and cleanup", 
   const address = server.address();
   assert.ok(address && typeof address !== "string");
   const request = get(`http://127.0.0.1:${address.port}`, { agent: false }, (response) => response.resume());
-  request.on("error", () => {});
+  request.on("error", (error) => started.reject(error));
   const finishResponse = await started.promise;
   let completed = false;
   const draining = drainStatusServer(server, poll.promise, async () => {

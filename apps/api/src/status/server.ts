@@ -7,7 +7,8 @@ import { runApiCleanup } from "../modules/runtime-cleanup";
 import { renderStatusPage } from "./page";
 import { getStatusTheme } from "./theme";
 import { drainStatusServer } from "./shutdown";
-import { overallStatus, updateComponent, visibleComponent, type Component } from "./state";
+import { applyCheckResults, overallStatus, visibleComponent, type Component } from "./state";
+import { statusRefreshScript } from "./refresh";
 
 process.env.REDIS_HOST ??= "localhost";
 process.env.REDIS_PORT ??= "63790";
@@ -36,39 +37,26 @@ async function poll() {
       checkBackgroundServices(),
     ])
   ).flat();
-  for (const check of checks) {
-    const previous = components.get(check.id);
-    const next = updateComponent(previous, check);
-    components.set(check.id, next);
-    const previousChecks = new Map(
-      [previous, ...(previous?.checks ?? [])].filter((item) => item !== undefined).map((item) => [item.id, item]),
-    );
-    for (const current of [next, ...(next.checks ?? [])]) {
-      const before = previousChecks.get(current.id);
-      if (!before || before.status === current.status) continue;
-      const alert = {
-        component: next.name,
-        ...(current === next ? {} : { check: current.name }),
-        status: current.status,
-        previous: before.status,
-        at: current.checkedAt,
-      };
-      console.info(JSON.stringify(alert));
-      if (process.env.STATUS_ALERT_WEBHOOK_URL) {
-        try {
-          const response = await fetch(process.env.STATUS_ALERT_WEBHOOK_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(alert),
-            signal: AbortSignal.timeout(3_000),
-          });
-          if (!response.ok) console.error("[status] Alert webhook rejected the notification.");
-        } catch {
-          console.error("[status] Alert webhook failed.");
-        }
+  const alerts = applyCheckResults(components, checks);
+  for (const alert of alerts) console.info(JSON.stringify(alert));
+  const webhookUrl = process.env.STATUS_ALERT_WEBHOOK_URL;
+  if (!webhookUrl) return;
+  await Promise.all(
+    alerts.map(async (alert) => {
+      try {
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(alert),
+          signal: AbortSignal.timeout(3_000),
+        });
+        await response.body?.cancel();
+        if (!response.ok) console.error("[status] Alert webhook rejected the notification.");
+      } catch (error) {
+        console.error("[status] Alert webhook failed.", error);
       }
-    }
-  }
+    }),
+  );
 }
 
 const server = createServer((request, response) => {
@@ -76,7 +64,7 @@ const server = createServer((request, response) => {
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader(
     "Content-Security-Policy",
-    "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'",
+    "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'",
   );
   if (request.method !== "GET" && request.method !== "HEAD") {
     response.writeHead(405, { Allow: "GET, HEAD" }).end();
@@ -90,6 +78,11 @@ const server = createServer((request, response) => {
     response.setHeader("Content-Type", "image/svg+xml");
     response.setHeader("Cache-Control", "public, max-age=86400");
     response.end(asset);
+    return;
+  }
+  if (path === "/refresh.js") {
+    response.setHeader("Content-Type", "text/javascript; charset=utf-8");
+    response.end(statusRefreshScript);
     return;
   }
   const items = [...components.values()].map((component) => visibleComponent(component));
@@ -113,7 +106,7 @@ let timer: ReturnType<typeof setTimeout>;
 let inFlight: Promise<void>;
 function schedule() {
   inFlight = poll()
-    .catch(() => console.error("[status] Check cycle failed."))
+    .catch((error) => console.error("[status] Check cycle failed.", error))
     .finally(() => {
       if (!stopping) timer = setTimeout(schedule, 30_000);
     });
@@ -131,8 +124,8 @@ async function shutdown() {
   }
 }
 const handleShutdown = () =>
-  void shutdown().catch(() => {
-    console.error("[status] Shutdown failed.");
+  void shutdown().catch((error) => {
+    console.error("[status] Shutdown failed.", error);
     process.exit(1);
   });
 process.once("SIGINT", handleShutdown);

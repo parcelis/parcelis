@@ -142,8 +142,6 @@ and open `http://localhost/status` with the dev web proxy running, or
 [status monitor POC guide](apps/docs/content/getting-started/status-monitor.mdx)
 for configuration, checks, and limitations.
 Use `pnpm status:dev` while editing the monitor to restart it automatically on source changes.
-For the implementation order, source map, and code walkthrough, see the
-[status monitor design document](docs/design/status-monitor-design.md).
 
 ## Contributing
 

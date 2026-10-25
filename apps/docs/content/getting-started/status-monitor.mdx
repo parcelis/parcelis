@@ -12,7 +12,7 @@ pnpm status
 
 For local editing, use `pnpm status:dev` instead. It watches the monitor and its
 imported code, restarting automatically after saves. Refresh the browser to see
-changes immediately, or wait for its existing 15-second automatic refresh.
+layout or script changes. Service results update in place every 15 seconds.
 Each process restart resets the in-memory check history. Changes to compiled
 workspace packages still require rebuilding those packages.
 
@@ -27,31 +27,38 @@ The monitor serves these existing brand assets itself, independently of the web 
 Use the sun, moon, and monitor icons in the top-right corner for **Light**, **Dark**, or **System**, matching the sign-in page. The
 selection is saved in a browser cookie and survives automatic refreshes. System
 follows the device appearance; dark mode uses the matching Parcelis logo and background.
+Service results refresh without navigating away or closing expanded check details.
+If the monitor is temporarily unreachable, the page retains its last results and retries.
 The monitor reads the root `.env` and checks every 30 seconds after the previous cycle
 finishes. Restart the worker after updating it to enable heartbeats and test jobs.
 
 Seven component rows contain expandable check details:
 
-| Component        | Checks                                                                                                                  |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Web application  | Page response, CSRF endpoint, sign-in, and session validation                                                           |
-| API              | Health response, rejection of anonymous protected requests, and authenticated account lookup                            |
-| Documentation    | Successful HTTP response containing `Parcelis`                                                                          |
-| PostgreSQL       | `SELECT 1`                                                                                                              |
-| Redis            | Authenticated `PING`                                                                                                    |
-| Object storage   | Bucket access plus signed upload/download and cleanup of a unique test object                                           |
-| BullMQ / workers | Heartbeats, harmless jobs on both active queues, email transport, scheduled reconciliation, outbox polling, and backlog |
+| Component        | Checks                                                                                                                       |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Web application  | Page response, CSRF endpoint, sign-in, and session validation                                                                |
+| API              | Health response, rejection of anonymous protected requests, and authenticated account lookup                                 |
+| Documentation    | Successful HTTP response containing `Parcelis`                                                                               |
+| PostgreSQL       | `SELECT 1`                                                                                                                   |
+| Redis            | Authenticated `PING`                                                                                                         |
+| Object storage   | Bucket access plus signed upload/download and cleanup of a unique test object                                                |
+| BullMQ / workers | Heartbeats, harmless jobs on both active queues, global SMTP fallback, scheduled reconciliation, outbox polling, and backlog |
 
 A failed core check (page/API response, bucket access, or job processing) makes the
 component unavailable after three failed observations since its last operational result. A failed secondary check
 makes it degraded. An unmeasured check makes it unknown unless another check has
-already established degradation or an outage. Open **Check details** to see which
+already established degradation or an outage. The overall headline follows
+unavailable → degraded → unknown → operational, so missing evidence never hides a
+measured failure. Open **Check details** to see which
 check needs attention. Both component and underlying check transitions are logged
-and included in optional webhook alerts.
+and included in optional webhook alerts. All component results are stored before
+webhooks are sent concurrently with a three-second timeout.
 
 The API's public `GET /api/v1/ready` separately checks PostgreSQL, Redis, and storage.
 It returns 200 with `status: "ok"` or 503 with `status: "unavailable"`, without
-component details. The existing `/api/v1/health` remains a liveness check.
+component details. Concurrent requests share one probe run, and its result is cached
+inside each API process for two seconds after completion; HTTP responses use
+`Cache-Control: no-store`. The existing `/api/v1/health` remains a liveness check.
 Worker readiness does not affect API readiness.
 
 Optional monitor environment variables:
@@ -78,7 +85,8 @@ The standalone monitor defaults missing `REDIS_HOST` and `REDIS_PORT` to
 `localhost` and `63790`; Redis credentials are still required.
 
 Checks have a five-second response deadline. Worker heartbeats expire after 60 seconds;
-canary jobs must complete within 1.5 seconds per queue. Three failed observations since the last operational result confirm an outage;
+processing canaries must complete within 1.5 seconds per queue; the global SMTP
+fallback canary allows three seconds. Three failed observations since the last operational result confirm an outage;
 the first two show degraded. Unknown and degraded samples preserve the failure
 count. Success recovers immediately.
 Results older than 90 seconds become unknown, including their child checks.
@@ -91,10 +99,13 @@ page responses, CSRF availability, and anonymous-request enforcement are still c
 No account is created automatically. Use a monitoring account to avoid repeatedly
 attempting sign-in with a person's credentials.
 
-The worker verifies its environment-configured SMTP connection and authentication
+The **Global SMTP fallback** check verifies the worker’s environment-configured SMTP connection and authentication
 using a separate transport with a two-second deadline. It sends no test messages.
-Missing SMTP configuration shows unknown; failure degrades the worker component.
+Missing global SMTP configuration shows unknown; failure degrades the worker component.
 This does not test per-organization SMTP settings or delivery into a recipient's inbox.
+Outbox heartbeats publish after successful polls at most once every 15 seconds.
+A write gets a one-second wait, logs a distinct heartbeat error, and cannot hold
+up dispatch or shutdown indefinitely; overlapping pending writes are suppressed.
 Scheduled-job health requires the registered lease reconciliation scheduler and a
 successful scheduler-generated execution within the last three minutes, with its
 next iteration advanced. Manually enqueued reconciliation jobs do not refresh this

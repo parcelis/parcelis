@@ -37,7 +37,39 @@ export function visibleComponent(component: Component, now = Date.now()) {
 
 export function overallStatus(components: { status: CheckStatus }[]): CheckStatus {
   if (components.some((component) => component.status === "down")) return "down";
-  if (!components.length || components.some((component) => component.status === "unknown")) return "unknown";
   if (components.some((component) => component.status === "degraded")) return "degraded";
+  if (!components.length || components.some((component) => component.status === "unknown")) return "unknown";
   return "operational";
+}
+
+export type StatusTransition = {
+  component: string;
+  check?: string;
+  status: CheckStatus;
+  previous: CheckStatus;
+  at: string;
+};
+
+export function applyCheckResults(components: Map<string, Component>, checks: ServiceCheck[]): StatusTransition[] {
+  const alerts: StatusTransition[] = [];
+  for (const check of checks) {
+    const previous = components.get(check.id);
+    const next = updateComponent(previous, check);
+    components.set(check.id, next);
+    const previousChecks = new Map(
+      [previous, ...(previous?.checks ?? [])].filter((item) => item !== undefined).map((item) => [item.id, item]),
+    );
+    for (const current of [next, ...(next.checks ?? [])]) {
+      const before = previousChecks.get(current.id);
+      if (!before || before.status === current.status) continue;
+      alerts.push({
+        component: next.name,
+        ...(current === next ? {} : { check: current.name }),
+        status: current.status,
+        previous: before.status,
+        at: current.checkedAt,
+      });
+    }
+  }
+  return alerts;
 }

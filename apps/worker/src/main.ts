@@ -7,7 +7,7 @@ import {
   PrismaClient,
   PrismaPg,
 } from "@parcelis/db";
-import { getOrganizationEmailConfig, sendEmail, verifyEmailTransport } from "@parcelis/email";
+import { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
 import {
   createQueueRegistry,
   getRedisConnectionOptions,
@@ -39,6 +39,7 @@ import {
 } from "./lease-activation.js";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
 import { processNotificationEmailJob } from "./processors/notification-email.processor.js";
+import { processEmailHealthJob } from "./processors/email-health.processor.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -61,13 +62,7 @@ const notificationEmailWorker = new Worker(
   async (job) => {
     if (job.name === healthJobName) return { ok: true };
     if (job.name === emailHealthJobName) {
-      if (!process.env.SMTP_HOST) return { status: "unknown" };
-      try {
-        await verifyEmailTransport(2_000);
-        return { status: "operational" };
-      } catch {
-        return { status: "down" };
-      }
+      return processEmailHealthJob();
     }
     if (job.name !== notificationEmailJobName) {
       throw new Error(`Unsupported account notification job: ${job.name}.`);
