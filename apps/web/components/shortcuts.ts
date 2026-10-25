@@ -1,8 +1,8 @@
-import type { Hotkey } from "@tanstack/react-hotkeys";
+import type { HotkeyChord } from "@tanstack/react-hotkeys";
 
 export type ShortcutDefinition = {
   description: string;
-  keys: Hotkey;
+  keys: HotkeyChord;
 };
 
 export const shortcuts = {
@@ -27,6 +27,6 @@ export function isMacPlatform() {
   return /Mac|iPhone|iPad/.test(navigator.userAgent);
 }
 
-export function shortcutKeyParts(keys: Hotkey, isMac: boolean): string[] {
+export function shortcutKeyParts(keys: HotkeyChord, isMac: boolean): string[] {
   return keys.split("+").map((key) => KEY_LABELS[key]?.[isMac ? "mac" : "other"] ?? key);
 }
