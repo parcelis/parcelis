@@ -1,7 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { HotkeysProvider, useHotkey, type RegisterableHotkey, type UseHotkeyOptions } from "@tanstack/react-hotkeys";
+import {
+  HotkeysProvider,
+  useHotkey,
+  type RegisterableHotkey,
+  type UseHotkeyOptions,
+} from "@tanstack/react-hotkeys";
 import { useTheme } from "next-themes";
 import { shortcuts } from "./shortcuts";
 
@@ -13,8 +18,6 @@ export function ShortcutProvider({ children }: { children: React.ReactNode }) {
       defaultOptions={{
         hotkey: {
           preventDefault: true,
-        },
-        hotkeySequence: {
           timeout: 1200,
         },
       }}
@@ -35,6 +38,10 @@ function ThemeShortcuts() {
   return null;
 }
 
-export function useShortcut(shortcut: RegisterableHotkey, handler: () => void, options?: UseHotkeyOptions) {
+export function useShortcut(
+  shortcut: RegisterableHotkey,
+  handler: () => void,
+  options?: UseHotkeyOptions,
+) {
   useHotkey(shortcut, handler, options);
 }
