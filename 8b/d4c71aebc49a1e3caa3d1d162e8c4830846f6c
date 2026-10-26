@@ -1,0 +1,28 @@
+apps/docs/content/platform-user-guide/navigation-and-preferences/organization-settings.mdx
+  s_311682dd4a807b::t_aad94eec1286f6 36-56
+apps/docs/content/api-authentication.mdx
+  s_311682dd4a807b::t_e0ed668f8793e2 101-105
+  s_311682dd4a807b::t_aad94eec1286f6 1-100,106-113
+ARCHITECTURE.md
+  s_311682dd4a807b::t_5604fabc1c0382 205-210
+apps/docs/content/contributing/architecture.mdx
+  s_311682dd4a807b::t_703abee7ab99a0 97-101
+apps/docs/sidebars.ts
+  s_311682dd4a807b::t_aad94eec1286f6 100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8bd4c71aebc49a1e3caa3d1d162e8c4830846f6c",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
