@@ -1,0 +1,18 @@
+apps/api/src/modules/api-tokens.ts
+  h_a5ff85794783c2 1-53
+packages/db/prisma/migrations/20261020023756_add_api_tokens/migration.sql
+  h_a5ff85794783c2 1-33
+packages/db/prisma/schema.prisma
+  h_a5ff85794783c2 166,237-238,244-265
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cbc34aaa184c3f753c9d01a8df938f715eee9a2e",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
