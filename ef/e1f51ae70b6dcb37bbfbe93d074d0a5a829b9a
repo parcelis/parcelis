@@ -1,0 +1,29 @@
+docs/design/status-monitor-design.md
+  s_ca94f9675c66c7::t_1056d2ba2253e7 1-836
+docs/plans/api-token-authentication.md
+  s_5d8f07a96ee271::t_09a23a89af3864 1-277
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "efe1f51ae70b6dcb37bbfbe93d074d0a5a829b9a",
+  "prompts": {},
+  "sessions": {
+    "s_5d8f07a96ee271": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15f67-445b-7963-bccb-dcbc203a83fd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_ca94f9675c66c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1668a-c42d-7ad3-867a-9c71557e19ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
