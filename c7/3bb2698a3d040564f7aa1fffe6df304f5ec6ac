@@ -1,0 +1,58 @@
+apps/api/src/modules/activity-actor.ts
+  s_311682dd4a807b::t_1260290835b2aa 1-13
+apps/api/src/router/trpc.ts
+  s_311682dd4a807b::t_c4a49926011eab 1-2,13,84
+  s_311682dd4a807b::t_5ffe7d88961c61 41-83,85-101
+  s_311682dd4a807b::t_1260290835b2aa 3
+  s_311682dd4a807b::t_f6e2cd43c227a1 14-40
+apps/api/src/router/app.router.ts
+  s_311682dd4a807b::t_17ec3915d631e4 254
+  s_311682dd4a807b::t_1260290835b2aa 129,258-259
+  s_311682dd4a807b::t_5ffe7d88961c61 146-151
+  s_311682dd4a807b::t_50ce9d20995998 140-141,556,561,565,681-687,1458-1460,1462,1581,1584,1586,1619-1622,1654,1658,1660,1663,1666,1671,1675,1689,1693,1709,1713,1717-1718,1722,1729,1734,1773,1777-1778,1781,1784,1791,1800-1802,1804,1807,1810,1912,1916,1927,1931,1942,1946,1957,1960,1965,1973,2010,2013,2015,2148,2152,2154,2157,2160,2165,2168,2181,2185,3102,3104,3109,3111,3739,3742,3747,3758,3760,3766,3768,4854,4859,4876,4880,4891,4895,4898,4901,4903,4920,4924,4926,4948,4955
+apps/api/src/router/context.ts
+  s_311682dd4a807b::t_4f4fbfb64683c5 34,36-45,47-53
+  s_311682dd4a807b::t_5ffe7d88961c61 3,23,35,59-64
+  s_311682dd4a807b::t_eb541d3051c5de 1,4,11-22,24-30,46,97
+apps/api/src/app/api/v1/[...path]/route.ts
+  s_311682dd4a807b::t_6d418c0af24b8b 2-3,9
+apps/api/src/modules/permissions.ts
+  s_311682dd4a807b::t_50ce9d20995998 1,71,82-90,144-157,159-167,169-173
+  s_311682dd4a807b::t_5ffe7d88961c61 158,168
+apps/api/src/router/rest-handler.ts
+  s_311682dd4a807b::t_6d418c0af24b8b 1-8,10-20,22-25
+  s_311682dd4a807b::t_5ffe7d88961c61 9,21
+  s_311682dd4a807b::t_67a58de50dfee8 26
+apps/api/src/router/fetch-context.ts
+  s_311682dd4a807b::t_5ffe7d88961c61 21
+  s_311682dd4a807b::t_4d8734bc23067b 4,14,17
+packages/schemas/src/index.ts
+  s_311682dd4a807b::t_bf035fd1a1d44c 78,137-138,142
+apps/api/src/modules/api-tokens.ts
+  s_311682dd4a807b::t_bf035fd1a1d44c 2,70
+  s_311682dd4a807b::t_5ffe7d88961c61 58,84-99,108,113
+  s_311682dd4a807b::t_c4a49926011eab 81,107,109-112,114-117
+  s_311682dd4a807b::t_2d19efe007b87b 71-80
+  s_311682dd4a807b::t_3f5834a538f4ec 3-4
+  s_311682dd4a807b::t_7394309cc741ed 56-57
+  s_311682dd4a807b::t_4e2d776ea6df07 59-61,67-69
+  s_311682dd4a807b::t_cfe6b2a63ce383 82-83
+  s_311682dd4a807b::t_ef369a10c76ec6 100-102,104-106
+  s_311682dd4a807b::t_e411cf91d33262 62-66,103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c73bb2698a3d040564f7aa1fffe6df304f5ec6ac",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

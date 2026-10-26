@@ -1,0 +1,31 @@
+apps/api/src/tests/auth/nextauth.test.ts
+  s_311682dd4a807b::t_e79d012f83d94d 7,20,35-47,265-274
+apps/api/src/router/context.ts
+  s_311682dd4a807b::t_e79d012f83d94d 56-58
+apps/api/src/router/rest-handler.ts
+  s_311682dd4a807b::t_e79d012f83d94d 20-23
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_311682dd4a807b::t_e79d012f83d94d 278-306
+apps/api/src/router/app.router.ts
+  s_311682dd4a807b::t_e79d012f83d94d 556,2623,2643,2672
+apps/api/src/tests/api-tokens/api-token-auth.fetch.test.ts
+  s_311682dd4a807b::t_e79d012f83d94d 163,166-167,170,178-179,264-267,270,274-278
+  s_311682dd4a807b::t_0a5723c0943790 268-269,271-273
+  s_311682dd4a807b::t_e3222a48f363ea 279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b5a5a33e0b1b691f89ac263f787a0c64e35ae0c6",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
