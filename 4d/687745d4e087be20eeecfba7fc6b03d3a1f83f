@@ -1,0 +1,22 @@
+tests/e2e/api-tokens.spec.ts
+  s_311682dd4a807b::t_5427861a7fd6a0 410
+  s_311682dd4a807b::t_75e92d6f80fbca 398-409,411-430
+packages/ui/src/components/drawer.tsx
+  s_311682dd4a807b::t_75e92d6f80fbca 140-141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4d687745d4e087be20eeecfba7fc6b03d3a1f83f",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

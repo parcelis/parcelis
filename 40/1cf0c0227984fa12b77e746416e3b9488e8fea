@@ -1,0 +1,21 @@
+packages/db/prisma/seed-api-tokens.test.mjs
+  s_311682dd4a807b::t_db6131a010d5c7 1-31
+packages/db/prisma/seed-api-tokens.mjs
+  s_311682dd4a807b::t_db6131a010d5c7 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "401cf0c0227984fa12b77e746416e3b9488e8fea",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
