@@ -97,7 +97,7 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "API Reference",
-      items: apiSidebar,
+      items: ["api-authentication", ...apiSidebar],
     },
   ],
 };

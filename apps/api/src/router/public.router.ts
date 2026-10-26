@@ -38,13 +38,13 @@ const propertyByIdResponseSchema = z.object({
 
 export const publicRouter = router({
   health: publicProcedure
-    .meta({ openapi: { method: "GET", path: "/health", tags: ["System"] } })
+    .meta({ openapi: { protect: false, method: "GET", path: "/health", tags: ["System"] } })
     .output(dataObjectSchema)
     .query(getApiHealth),
   properties: router({
     list: publicProcedure
       .meta({
-        openapi: { method: "GET", path: "/properties", tags: ["Properties"] },
+        openapi: { protect: true, method: "GET", path: "/properties", tags: ["Properties"] },
       })
       .output(dataListSchema)
       .query(async ({ ctx }) => ({
@@ -52,11 +52,7 @@ export const publicRouter = router({
       })),
     byId: publicProcedure
       .meta({
-        openapi: {
-          method: "GET",
-          path: "/properties/{id}",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "GET", path: "/properties/{id}", tags: ["Properties"] },
       })
       .input(propertyByIdInputSchema)
       .output(propertyByIdResponseSchema)
@@ -65,7 +61,7 @@ export const publicRouter = router({
       })),
     create: publicProcedure
       .meta({
-        openapi: { method: "POST", path: "/properties", tags: ["Properties"] },
+        openapi: { protect: true, method: "POST", path: "/properties", tags: ["Properties"] },
       })
       .input(createPropertyInputSchema)
       .output(dataObjectSchema)
@@ -74,11 +70,7 @@ export const publicRouter = router({
       })),
     update: publicProcedure
       .meta({
-        openapi: {
-          method: "PUT",
-          path: "/properties/{id}",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "PUT", path: "/properties/{id}", tags: ["Properties"] },
       })
       .input(updatePropertyInputSchema)
       .output(dataObjectSchema)
@@ -87,11 +79,7 @@ export const publicRouter = router({
       })),
     createImageUploadUrl: publicProcedure
       .meta({
-        openapi: {
-          method: "POST",
-          path: "/properties/{id}/image-upload-url",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "POST", path: "/properties/{id}/image-upload-url", tags: ["Properties"] },
       })
       .input(propertyImageUploadInputSchema)
       .output(dataObjectSchema)
@@ -100,11 +88,7 @@ export const publicRouter = router({
       })),
     completeImageUpload: publicProcedure
       .meta({
-        openapi: {
-          method: "POST",
-          path: "/properties/{id}/image",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "POST", path: "/properties/{id}/image", tags: ["Properties"] },
       })
       .input(propertyImageUploadCompleteInputSchema)
       .output(dataObjectSchema)
@@ -113,11 +97,7 @@ export const publicRouter = router({
       })),
     deleteImage: publicProcedure
       .meta({
-        openapi: {
-          method: "DELETE",
-          path: "/properties/{id}/image",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "DELETE", path: "/properties/{id}/image", tags: ["Properties"] },
       })
       .input(propertyByIdInputSchema)
       .output(dataObjectSchema)
@@ -126,11 +106,7 @@ export const publicRouter = router({
       })),
     archive: publicProcedure
       .meta({
-        openapi: {
-          method: "PATCH",
-          path: "/properties/{id}/archive",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "PATCH", path: "/properties/{id}/archive", tags: ["Properties"] },
       })
       .input(propertyByIdInputSchema)
       .output(dataObjectSchema)
@@ -139,11 +115,7 @@ export const publicRouter = router({
       })),
     inactivate: publicProcedure
       .meta({
-        openapi: {
-          method: "POST",
-          path: "/properties/{id}/inactive",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "POST", path: "/properties/{id}/inactive", tags: ["Properties"] },
       })
       .input(propertyStatusInputSchema)
       .output(dataObjectSchema)
@@ -152,11 +124,7 @@ export const publicRouter = router({
       })),
     reactivate: publicProcedure
       .meta({
-        openapi: {
-          method: "POST",
-          path: "/properties/{id}/reactivate",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "POST", path: "/properties/{id}/reactivate", tags: ["Properties"] },
       })
       .input(propertyStatusInputSchema)
       .output(dataObjectSchema)
@@ -165,11 +133,7 @@ export const publicRouter = router({
       })),
     delete: publicProcedure
       .meta({
-        openapi: {
-          method: "DELETE",
-          path: "/properties/{id}",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "DELETE", path: "/properties/{id}", tags: ["Properties"] },
       })
       .input(propertyByIdInputSchema)
       .output(dataObjectSchema)
@@ -178,11 +142,7 @@ export const publicRouter = router({
       })),
     updateNotes: publicProcedure
       .meta({
-        openapi: {
-          method: "PATCH",
-          path: "/properties/{id}/notes",
-          tags: ["Properties"],
-        },
+        openapi: { protect: true, method: "PATCH", path: "/properties/{id}/notes", tags: ["Properties"] },
       })
       .input(propertyNotesInputSchema)
       .output(dataObjectSchema)
@@ -193,11 +153,7 @@ export const publicRouter = router({
   tenants: router({
     createImageUploadUrl: publicProcedure
       .meta({
-        openapi: {
-          method: "POST",
-          path: "/tenants/{id}/image-upload-url",
-          tags: ["Tenants"],
-        },
+        openapi: { protect: true, method: "POST", path: "/tenants/{id}/image-upload-url", tags: ["Tenants"] },
       })
       .input(tenantImageUploadInputSchema)
       .output(dataObjectSchema)
@@ -206,11 +162,7 @@ export const publicRouter = router({
       })),
     completeImageUpload: publicProcedure
       .meta({
-        openapi: {
-          method: "POST",
-          path: "/tenants/{id}/image",
-          tags: ["Tenants"],
-        },
+        openapi: { protect: true, method: "POST", path: "/tenants/{id}/image", tags: ["Tenants"] },
       })
       .input(tenantImageUploadCompleteInputSchema)
       .output(dataObjectSchema)
@@ -219,11 +171,7 @@ export const publicRouter = router({
       })),
     deleteImage: publicProcedure
       .meta({
-        openapi: {
-          method: "DELETE",
-          path: "/tenants/{id}/image",
-          tags: ["Tenants"],
-        },
+        openapi: { protect: true, method: "DELETE", path: "/tenants/{id}/image", tags: ["Tenants"] },
       })
       .input(tenantByIdInputSchema)
       .output(dataObjectSchema)
@@ -233,13 +181,13 @@ export const publicRouter = router({
   }),
   tags: router({
     list: publicProcedure
-      .meta({ openapi: { method: "GET", path: "/tags", tags: ["Tags"] } })
+      .meta({ openapi: { protect: true, method: "GET", path: "/tags", tags: ["Tags"] } })
       .output(dataListSchema)
       .query(async ({ ctx }) => ({
         data: await appRouter.createCaller(ctx).tags.list(),
       })),
     create: publicProcedure
-      .meta({ openapi: { method: "POST", path: "/tags", tags: ["Tags"] } })
+      .meta({ openapi: { protect: true, method: "POST", path: "/tags", tags: ["Tags"] } })
       .input(createTagInputSchema)
       .output(dataObjectSchema)
       .mutation(async ({ ctx, input }) => ({
@@ -249,11 +197,7 @@ export const publicRouter = router({
   unitOptions: router({
     list: publicProcedure
       .meta({
-        openapi: {
-          method: "GET",
-          path: "/unit-options",
-          tags: ["Unit options"],
-        },
+        openapi: { protect: true, method: "GET", path: "/unit-options", tags: ["Unit options"] },
       })
       .output(dataObjectSchema)
       .query(async ({ ctx }) => ({
@@ -263,7 +207,7 @@ export const publicRouter = router({
   amenities: router({
     list: publicProcedure
       .meta({
-        openapi: { method: "GET", path: "/amenities", tags: ["Amenities"] },
+        openapi: { protect: true, method: "GET", path: "/amenities", tags: ["Amenities"] },
       })
       .output(dataListSchema)
       .query(async ({ ctx }) => ({
@@ -271,11 +215,7 @@ export const publicRouter = router({
       })),
     update: publicProcedure
       .meta({
-        openapi: {
-          method: "PUT",
-          path: "/amenities/{id}",
-          tags: ["Amenities"],
-        },
+        openapi: { protect: true, method: "PUT", path: "/amenities/{id}", tags: ["Amenities"] },
       })
       .input(updateAmenityInputSchema)
       .output(dataObjectSchema)
@@ -285,7 +225,7 @@ export const publicRouter = router({
   }),
   units: router({
     list: publicProcedure
-      .meta({ openapi: { method: "GET", path: "/units", tags: ["Units"] } })
+      .meta({ openapi: { protect: true, method: "GET", path: "/units", tags: ["Units"] } })
       .input(listUnitsInputSchema)
       .output(dataListSchema)
       .query(async ({ ctx, input }) => ({
@@ -293,7 +233,7 @@ export const publicRouter = router({
       })),
     byId: publicProcedure
       .meta({
-        openapi: { method: "GET", path: "/units/{id}", tags: ["Units"] },
+        openapi: { protect: true, method: "GET", path: "/units/{id}", tags: ["Units"] },
       })
       .input(unitByIdInputSchema)
       .output(z.object({ data: objectSchema.nullable() }))
@@ -301,7 +241,7 @@ export const publicRouter = router({
         data: await appRouter.createCaller(ctx).units.byId(input),
       })),
     create: publicProcedure
-      .meta({ openapi: { method: "POST", path: "/units", tags: ["Units"] } })
+      .meta({ openapi: { protect: true, method: "POST", path: "/units", tags: ["Units"] } })
       .input(createUnitInputSchema)
       .output(dataObjectSchema)
       .mutation(async ({ ctx, input }) => ({
@@ -309,7 +249,7 @@ export const publicRouter = router({
       })),
     update: publicProcedure
       .meta({
-        openapi: { method: "PATCH", path: "/units/{id}", tags: ["Units"] },
+        openapi: { protect: true, method: "PATCH", path: "/units/{id}", tags: ["Units"] },
       })
       .input(updateUnitInputSchema)
       .output(dataObjectSchema)
@@ -318,7 +258,7 @@ export const publicRouter = router({
       })),
     delete: publicProcedure
       .meta({
-        openapi: { method: "DELETE", path: "/units/{id}", tags: ["Units"] },
+        openapi: { protect: true, method: "DELETE", path: "/units/{id}", tags: ["Units"] },
       })
       .input(unitByIdInputSchema)
       .output(dataObjectSchema)

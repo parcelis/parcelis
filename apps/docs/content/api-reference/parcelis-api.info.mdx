@@ -1,7 +1,7 @@
 ---
 id: parcelis-api
 title: "Parcelis API"
-description: ""
+description: "Use an organization API token with Authorization: Bearer pcls_api_<secret>. Create tokens in Settings → Organization → API tokens. Tokens grant full access to the documented organization REST operations without granular scopes. No browser cookies or organization-selection header are needed. Health is public."
 sidebar_label: Introduction
 sidebar_position: 0
 hide_title: true
@@ -29,7 +29,7 @@ import Export from "@theme/ApiExplorer/Export";
 
 
 
-
+Use an organization API token with Authorization: Bearer pcls_api_&lt;secret&gt;. Create tokens in Settings → Organization → API tokens. Tokens grant full access to the documented organization REST operations without granular scopes. No browser cookies or organization-selection header are needed. Health is public.
 
 <div
   style={{"marginBottom":"2rem"}}
@@ -49,7 +49,7 @@ import Export from "@theme/ApiExplorer/Export";
     >
       
       
-      
+      Enter the complete pcls_api_ credential created in organization settings. Invalid, expired, or revoked credentials return 401. Tokens cannot authenticate browser sessions or tRPC.
       
       <div>
         <table>
@@ -65,6 +65,12 @@ import Export from "@theme/ApiExplorer/Export";
                 HTTP Authorization Scheme:
               </th><td>
                 bearer
+              </td>
+            </tr><tr>
+              <th>
+                Bearer format:
+              </th><td>
+                Opaque API token
               </td>
             </tr>
           </tbody>
