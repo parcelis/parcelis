@@ -84,6 +84,13 @@ import {
   formatMaintenanceTicketNumber,
   planLeaseRentCharges,
   type LeaseRentPlanInput,
+  type ApiTokenMetadata,
+  listApiTokensInputSchema,
+  listApiTokensOutputSchema,
+  createApiTokenInputSchema,
+  createApiTokenOutputSchema,
+  revokeApiTokenInputSchema,
+  apiTokenMetadataSchema,
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
@@ -140,8 +147,44 @@ import {
   getOrganizationEmailConfig,
   isEmailSettingsEncryptionConfigured,
 } from "../modules/email-settings";
-import { consumeEmailSendRateLimit, getEmailSendRateLimitKey } from "../modules/login-rate-limit";
+import {
+  consumeApiTokenCreationRateLimit,
+  consumeEmailSendRateLimit,
+  getEmailSendRateLimitKey,
+} from "../modules/login-rate-limit";
 import { queueNotificationEmailOutboxEvent } from "../modules/notification-outbox";
+import { createApiToken, getApiTokenDisplayPrefix, getApiTokenExpiration, hashApiToken } from "../modules/api-tokens";
+
+// Select definitions for commonly used Prisma queries.
+const apiTokenMetadataSelect = {
+  id: true,
+  name: true,
+  tokenPrefix: true,
+  createdByLabel: true,
+  createdAt: true,
+  expiresAt: true,
+  lastUsedAt: true,
+  revokedAt: true,
+  revokedByLabel: true,
+} satisfies Prisma.ApiTokenSelect;
+
+type ApiTokenMetadataRecord = Prisma.ApiTokenGetPayload<{
+  select: typeof apiTokenMetadataSelect;
+}>;
+
+function toApiTokenMetadata(token: ApiTokenMetadataRecord): ApiTokenMetadata {
+  return {
+    id: token.id,
+    name: token.name,
+    tokenPrefix: token.tokenPrefix,
+    createdByLabel: token.createdByLabel,
+    createdAt: token.createdAt.toISOString(),
+    expiresAt: token.expiresAt?.toISOString() ?? null,
+    lastUsedAt: token.lastUsedAt?.toISOString() ?? null,
+    revokedAt: token.revokedAt?.toISOString() ?? null,
+    revokedByLabel: token.revokedByLabel,
+  };
+}
 
 const propertySelect = {
   id: true,
@@ -626,6 +669,12 @@ function permissionProcedure(resource: PermissionResource, action: PermissionAct
   });
 }
 
+const apiTokenManagementProcedure = organizationProcedure.use(({ ctx, next }) => {
+  requireOrganizationAdministrator(ctx.organization.role);
+
+  return next({ ctx });
+});
+
 async function assertNonAdministratorUser(prisma: PrismaClient | Prisma.TransactionClient, userId: number) {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
   if (user.role === "administrator") {
@@ -635,6 +684,125 @@ async function assertNonAdministratorUser(prisma: PrismaClient | Prisma.Transact
 
 export const appRouter = router({
   auth: authRouter,
+  apiTokens: router({
+    list: apiTokenManagementProcedure
+      .input(listApiTokensInputSchema)
+      .output(listApiTokensOutputSchema)
+      .query(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+
+        if (input.cursor) {
+          const cursorToken = await ctx.prisma.apiToken.findFirst({
+            where: {
+              id: input.cursor,
+              organizationId,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+          if (!cursorToken) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "API token not found.",
+            });
+          }
+        }
+
+        const tokens = await ctx.prisma.apiToken.findMany({
+          where: {
+            organizationId,
+          },
+          select: apiTokenMetadataSelect,
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: input.limit + 1,
+          ...(input.cursor
+            ? {
+                cursor: { id: input.cursor },
+                skip: 1,
+              }
+            : {}),
+        });
+
+        const hasMore = tokens.length > input.limit;
+
+        if (hasMore) {
+          tokens.pop();
+        }
+
+        return {
+          items: tokens.map(toApiTokenMetadata),
+          nextCursor: hasMore ? (tokens.at(-1)?.id ?? null) : null,
+        };
+      }),
+    create: apiTokenManagementProcedure
+      .input(createApiTokenInputSchema)
+      .output(createApiTokenOutputSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+
+        consumeApiTokenCreationRateLimit(ctx.user.id, organizationId);
+
+        const token = createApiToken();
+
+        const record = await ctx.prisma.apiToken.create({
+          data: {
+            organizationId,
+            name: input.name,
+            tokenHash: hashApiToken(token),
+            tokenPrefix: getApiTokenDisplayPrefix(token),
+            createdById: ctx.user.id,
+            createdByLabel: ctx.user.name,
+            expiresAt: getApiTokenExpiration(input.expiration),
+          },
+          select: apiTokenMetadataSelect,
+        });
+
+        return {
+          metadata: toApiTokenMetadata(record),
+          token,
+        };
+      }),
+    revoke: apiTokenManagementProcedure
+      .input(revokeApiTokenInputSchema)
+      .output(apiTokenMetadataSchema)
+      .mutation(async ({ ctx, input }) => {
+        const organizationId = ctx.organization.organizationId;
+
+        const record = await ctx.prisma.$transaction(async (tx) => {
+          await tx.apiToken.updateMany({
+            where: {
+              id: input.id,
+              organizationId,
+              revokedAt: null,
+            },
+            data: {
+              revokedAt: new Date(),
+              revokedById: ctx.user.id,
+              revokedByLabel: ctx.user.name,
+            },
+          });
+
+          return tx.apiToken.findFirst({
+            where: {
+              id: input.id,
+              organizationId,
+            },
+            select: apiTokenMetadataSelect,
+          });
+        });
+
+        if (!record) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "API token not found.",
+          });
+        }
+
+        return toApiTokenMetadata(record);
+      }),
+  }),
   organizations: router({
     list: publicProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "administrator") {

@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 
 const maxAttempts = 5;
 const maxLoginAttemptsPerIp = 25;
+const maxApiTokenCreations = 10;
 const windowMs = 15 * 60 * 1000;
 const sweepIntervalMs = 60 * 1000;
 const attempts = new Map<string, { count: number; resetAt: number }>();
@@ -62,6 +63,12 @@ export function consumeEmailVerificationRateLimit(key: string) {
 
 export function consumeEmailSendRateLimit(key: string) {
   consumeLoginRateLimit(key);
+}
+
+export function consumeApiTokenCreationRateLimit(userId: number, organizationId: number) {
+  const key = getRateLimitKey(undefined, `api-token-create:${organizationId}:${userId}`);
+
+  consumeRateLimit(key, maxApiTokenCreations);
 }
 
 export function clearLoginRateLimit(key: string) {
