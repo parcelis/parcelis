@@ -1,0 +1,48 @@
+packages/schemas/src/index.ts
+  h_a5ff85794783c2 77,79-136,139-141,143-144
+apps/api/src/modules/api-tokens.ts
+  h_a5ff85794783c2 1,5-55
+packages/db/prisma/migrations/20261020023756_add_api_tokens/migration.sql
+  h_a5ff85794783c2 1-33
+packages/db/prisma/schema.prisma
+  h_a5ff85794783c2 166,237-238,244-265
+apps/docs/content/contributing/database-erd.mdx
+  s_311682dd4a807b::t_5c0081c09916aa 88-90,95-99
+  s_311682dd4a807b::t_cc5bb119a33ea1 11-13
+  s_311682dd4a807b::t_f05a5fc5d8f2af 100
+  s_311682dd4a807b::t_4c18665716b289 58-68
+CONTRIBUTING.md
+  s_311682dd4a807b::t_cc5bb119a33ea1 281-283,285-286,294-297
+apps/api/src/tests/api-tokens/api-tokens.integration.ts
+  s_311682dd4a807b::t_cc5bb119a33ea1 107-182
+  s_311682dd4a807b::t_b4fc1ad51457ef 104-106
+  s_311682dd4a807b::t_99a94874a0f41b 183-185
+  s_311682dd4a807b::t_3351ae9813912f 1-7,12-51,99-103,186-220,452
+apps/api/src/tests/api-tokens/api-tokens.test.ts
+  s_311682dd4a807b::t_dd2023c2ca6e0a 18,26,34,40,48,54,62,77,83,86,88-89,94,97,102,105,109,111,114-136
+  s_311682dd4a807b::t_9f7287d3295add 9
+  s_311682dd4a807b::t_b9bcbce2564144 1-8,10-17,19-25,27-33,35-39,41-47,49-53,55-61,63-76,78-82,84-85,87,90-93,95-96,98-101,103-104,106-108,110,112-113
+apps/web/components/shortcuts.ts
+  s_311682dd4a807b::t_435216ec8faa99 1,5,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "366f9ff6d929f35f85ed3136b2e86e42e122b3bd",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  },
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
