@@ -1,0 +1,37 @@
+apps/docs/content/getting-started/status-monitor.mdx
+  s_c9a239d9a15aa5::t_b86178d114960f 104
+apps/worker/src/processors/email-health.processor.ts
+  s_c9a239d9a15aa5::t_3a12d98a20c507 9
+  s_c9a239d9a15aa5::t_e43eaf9396889e 1,8
+apps/api/src/status/refresh.ts
+  s_c9a239d9a15aa5::t_dbcf2185aeb3f3 18,27-28
+packages/email/src/tests/transport.test.ts
+  s_c9a239d9a15aa5::t_82842519dc4329 76
+apps/worker/src/tests/email-health.processor.test.ts
+  s_c9a239d9a15aa5::t_e43eaf9396889e 3,6,19-60
+  s_c9a239d9a15aa5::t_dea6e660fe2b58 61
+apps/api/src/tests/health/refresh.test.ts
+  s_c9a239d9a15aa5::t_dbcf2185aeb3f3 24-27,31-42,45,57,72-74,97-104
+  s_c9a239d9a15aa5::t_3f21a3398f7e0c 58
+  s_c9a239d9a15aa5::t_ab3143606cc3b7 105-106
+apps/api/src/tests/health/readiness.test.ts
+  s_c9a239d9a15aa5::t_dbcf2185aeb3f3 32-33,36,42-43,48
+apps/api/src/modules/readiness.ts
+  s_c9a239d9a15aa5::t_dbcf2185aeb3f3 14-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "57de57b299dba510b947b762630a859c70abaf68",
+  "prompts": {},
+  "sessions": {
+    "s_c9a239d9a15aa5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1766a-018a-7591-9068-e7e9e6c8bb13",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
