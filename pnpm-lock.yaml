@@ -216,10 +216,10 @@ importers:
         version: 3.1154.0
       '@bull-board/api':
         specifier: ^9.10.1
-        version: 9.10.4(@bull-board/ui@9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+        version: 9.10.4(@bull-board/ui@9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       '@bull-board/hono':
         specifier: ^9.10.4
-        version: 9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)
+        version: 9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -249,7 +249,7 @@ importers:
         version: 0.45.1
       bullmq:
         specifier: ^6.3.9
-        version: 6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       dotenv:
         specifier: ^18.0.0
         version: 18.0.8
@@ -477,7 +477,7 @@ importers:
         version: link:../../packages/jobs
       bullmq:
         specifier: ^6.3.8
-        version: 6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0(supports-color@8.1.1)
@@ -585,7 +585,7 @@ importers:
     dependencies:
       bullmq:
         specifier: ^6.3.8
-        version: 6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       zod:
         specifier: ^4.6.5
         version: 4.6.7
@@ -5182,8 +5182,8 @@ packages:
   buffer@6.0.3:
     resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
 
-  bullmq@6.3.19:
-    resolution: {integrity: sha512-nmTRaSHp5DGLHsTCjZlm4+QlULsXRPOqjj+C4cmjcXp8DdOOT9ATtFuuugwqUX362rClQ0J6R6g33jdJiM2gZg==}
+  bullmq@6.4.2:
+    resolution: {integrity: sha512-fCPPJUgJFwbaN7nZiU/JzQVydss+mA3FUYaepvJQnkSUr4jmzobZcqMSJZPZygN/esQZLppE/cTyTYTNniO3bQ==}
     engines: {node: '>=14.17.0'}
     peerDependencies:
       bullmq-otel: '>=2.0.0'
@@ -8120,8 +8120,8 @@ packages:
     resolution: {integrity: sha512-4kmO/MdyUIkLIvTPr8VHLil4AtoKIoniWPIEk5+CDy0xnWC84azhSFmuJ7PxZdsYtiP5kEeQsORAVIeMgxT+Hw==}
     hasBin: true
 
-  msgpackr@2.1.0:
-    resolution: {integrity: sha512-p/pBCVO63CsvvpkomUnNNag6+n38rULuDA6HHe70o2gtC8ODI52foF/4ko2qQcp6OiErJXTmrZeXmsGGHsIQNQ==}
+  msgpackr@2.1.2:
+    resolution: {integrity: sha512-JHAdwubWNEadHQsFAib6uXOzKFxY8QOWHu9LCCksOINMC+TjgaKS2Tdrw7dW5SY0LLz8YK2/YqLSi2vigQt05w==}
 
   multicast-dns@7.2.5:
     resolution: {integrity: sha512-2eznPJP8z2BFLX50tf0LuODrpINqP1RVIm/CObbTcBRITQgmC/TjcREF1NeTBzIcR5XO/ukWo+YHOjBbFwIupg==}
@@ -11989,20 +11989,20 @@ snapshots:
 
   '@braintree/sanitize-url@7.1.2': {}
 
-  '@bull-board/api@9.10.4(@bull-board/ui@9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
+  '@bull-board/api@9.10.4(@bull-board/ui@9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
     dependencies:
-      '@bull-board/ui': 9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/ui': 9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       redis-info: 3.1.0
       valibot: 1.5.0(typescript@6.0.3)
     optionalDependencies:
-      bullmq: 6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+      bullmq: 6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
     transitivePeerDependencies:
       - typescript
 
-  '@bull-board/hono@9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)':
+  '@bull-board/hono@9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)':
     dependencies:
-      '@bull-board/api': 9.10.4(@bull-board/ui@9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
-      '@bull-board/ui': 9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/api': 9.10.4(@bull-board/ui@9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/ui': 9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       ejs: 6.0.1
       hono: 4.13.13
     transitivePeerDependencies:
@@ -12010,9 +12010,9 @@ snapshots:
       - bullmq
       - typescript
 
-  '@bull-board/ui@9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
+  '@bull-board/ui@9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
     dependencies:
-      '@bull-board/api': 9.10.4(@bull-board/ui@9.10.4(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/api': 9.10.4(@bull-board/ui@9.10.4(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
     transitivePeerDependencies:
       - bull
       - bullmq
@@ -16776,10 +16776,10 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
-  bullmq@6.3.19(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1):
+  bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1):
     dependencies:
       cron-parser: 5.10.2
-      msgpackr: 2.1.0
+      msgpackr: 2.1.2
       node-abort-controller: 3.1.1
       semver: 7.8.5
       tslib: 2.8.1
@@ -20223,7 +20223,7 @@ snapshots:
       '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.4
     optional: true
 
-  msgpackr@2.1.0:
+  msgpackr@2.1.2:
     optionalDependencies:
       msgpackr-extract: 3.0.4
 
