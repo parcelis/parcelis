@@ -1,0 +1,133 @@
+---
+title: Status monitor (POC)
+---
+
+Run the monitor as a separate process from the application:
+
+```bash
+pnpm --filter @parcelis/jobs build
+pnpm --filter @parcelis/email build
+pnpm status
+```
+
+For local editing, use `pnpm status:dev` instead. It watches the monitor and its
+imported code, restarting automatically after saves. Refresh the browser to see
+layout or script changes. Service results update in place every 15 seconds.
+Each process restart resets the in-memory check history. Changes to compiled
+workspace packages still require rebuilding those packages.
+
+Open `http://localhost/status` through the local web proxy, or
+`http://127.0.0.1:40020` directly. `/status/api/status` returns the same sanitized
+results as JSON through either origin. The monitor must be running separately.
+The page uses the sign-in background with the Parcelis full logo and heading on
+the left and one shared status card on the right. The heading sits beneath the
+logo, aligned to its right edge; the description and monitoring badge are centered below. Narrow screens stack the columns. Compact service rows show colored badges, session uptime, and up to
+90 recent check ticks. Gray slots indicate checks that have not been recorded.
+The monitor serves these existing brand assets itself, independently of the web app.
+Use the sun, moon, and monitor icons in the top-right corner for **Light**, **Dark**, or **System**, matching the sign-in page. The
+selection is saved in a browser cookie and survives automatic refreshes. System
+follows the device appearance; dark mode uses the matching Parcelis logo and background.
+Service results refresh without navigating away or closing expanded check details.
+If the monitor is temporarily unreachable, the page retains its last results and retries.
+The monitor reads the root `.env` and checks every 30 seconds after the previous cycle
+finishes. Restart the worker after updating it to enable heartbeats and test jobs.
+
+Seven component rows contain expandable check details:
+
+| Component        | Checks                                                                                                                       |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Web application  | Page response, CSRF endpoint, sign-in, and session validation                                                                |
+| API              | Health response, rejection of anonymous protected requests, and authenticated account lookup                                 |
+| Documentation    | Successful HTTP response containing `Parcelis`                                                                               |
+| PostgreSQL       | `SELECT 1`                                                                                                                   |
+| Redis            | Authenticated `PING`                                                                                                         |
+| Object storage   | Bucket access plus signed upload/download and cleanup of a unique test object                                                |
+| BullMQ / workers | Heartbeats, harmless jobs on both active queues, global SMTP fallback, scheduled reconciliation, outbox polling, and backlog |
+
+A failed core check (page/API response, bucket access, or job processing) makes the
+component unavailable after three failed observations since its last operational result. A failed secondary check
+makes it degraded. An unmeasured check makes it unknown unless another check has
+already established degradation or an outage. The overall headline follows
+unavailable → degraded → unknown → operational, so missing evidence never hides a
+measured failure. Open **Check details** to see which
+check needs attention. Both component and underlying check transitions are logged
+and included in optional webhook alerts. All component results are stored before
+webhooks are sent concurrently with a three-second timeout.
+
+The API's public `GET /api/v1/ready` separately checks PostgreSQL, Redis, and storage.
+It returns 200 with `status: "ok"` or 503 with `status: "unavailable"`, without
+component details. Concurrent requests share one probe run, and its result is cached
+inside each API process for two seconds after completion; HTTP responses use
+`Cache-Control: no-store`. The existing `/api/v1/health` remains a liveness check.
+Worker readiness does not affect API readiness.
+
+Optional monitor environment variables:
+
+| Variable                   | Default                                                                    |
+| -------------------------- | -------------------------------------------------------------------------- |
+| `STATUS_HOST`              | `127.0.0.1`                                                                |
+| `STATUS_PORT`              | `40020`                                                                    |
+| `STATUS_INTERNAL_URL`      | Web proxy upstream; `http://localhost:40020` (uses `STATUS_PORT` when set) |
+| `STATUS_WEB_URL`           | `http://localhost:30000/login`                                             |
+| `STATUS_API_URL`           | `http://localhost:40010/api/v1/health`                                     |
+| `STATUS_DOCS_URL`          | `http://localhost:40000/`                                                  |
+| `STATUS_WEB_EXPECTED`      | `Parcelis`                                                                 |
+| `STATUS_DOCS_EXPECTED`     | `Parcelis`                                                                 |
+| `STATUS_AUTH_EMAIL`        | Unset; dedicated active monitoring account                                 |
+| `STATUS_AUTH_PASSWORD`     | Unset; monitoring account password                                         |
+| `STATUS_ALERT_WEBHOOK_URL` | Disabled; optional JSON POST on component status changes                   |
+
+Use actual selected dev ports or externally reachable deployment URLs. The monitor
+also needs the application's database, Redis, and S3 environment settings and bucket
+inspection permission, plus upload, download, and delete access under `healthchecks/`. Keep those credentials on the monitor server. The browser
+receives only component/check names, status, timing, static explanations, and recent samples.
+The standalone monitor defaults missing `REDIS_HOST` and `REDIS_PORT` to
+`localhost` and `63790`; Redis credentials are still required.
+
+Checks have a five-second response deadline. Worker heartbeats expire after 60 seconds;
+processing canaries must complete within 1.5 seconds per queue; the global SMTP
+fallback canary allows three seconds. Three failed observations since the last operational result confirm an outage;
+the first two show degraded. Unknown and degraded samples preserve the failure
+count. Success recovers immediately.
+Results older than 90 seconds become unknown, including their child checks.
+
+Set `STATUS_AUTH_EMAIL` and `STATUS_AUTH_PASSWORD` in the monitor environment to
+an existing dedicated active account. The monitor signs in through the web app,
+validates its session, and uses that session for `/trpc/auth.me` on the API. Without
+these credentials, the sign-in and authenticated-request checks show unknown;
+page responses, CSRF availability, and anonymous-request enforcement are still checked.
+No account is created automatically. Use a monitoring account to avoid repeatedly
+attempting sign-in with a person's credentials.
+
+The **Global SMTP fallback** check verifies the worker’s environment-configured SMTP connection and authentication
+using a separate transport with a two-second deadline. It sends no test messages.
+Missing, incomplete, or invalid global SMTP configuration shows unknown; connection or authentication failure degrades the worker component.
+This does not test per-organization SMTP settings or delivery into a recipient's inbox.
+Outbox heartbeats publish after successful polls at most once every 15 seconds.
+A write gets a one-second wait, logs a distinct heartbeat error, and cannot hold
+up dispatch or shutdown indefinitely; overlapping pending writes are suppressed.
+Scheduled-job health requires the registered lease reconciliation scheduler and a
+successful scheduler-generated execution within the last three minutes, with its
+next iteration advanced. Manually enqueued reconciliation jobs do not refresh this
+signal. Both the scheduled time and completion time must be recent. Rebuild
+`@parcelis/jobs` and restart workers when updating the heartbeat format; old scalar
+heartbeats remain unhealthy until a new scheduled run completes. A newly started worker may need
+one scheduler interval (about a minute) before this check becomes operational.
+
+This POC stores up to 2,880 samples per component in memory; history resets on restart.
+The displayed percentage counts fully operational samples among samples with a known
+status during that session (unknown samples are excluded), not
+a contractual uptime measure. Canary jobs test Redis-to-worker processing without
+sending email or changing leases. Storage creates a small unique object, reads its
+contents through signed URLs at the public storage endpoint, and attempts cleanup
+even if upload or download fails. A cleanup failure degrades storage. Only this
+probe's generated object is deleted. Signing and transfer share a three-second
+deadline; deletion gets 1.5 seconds. Both clients are released even if signing
+stalls. Each canary uses a private Redis connection, bounded enqueue/state/result
+reads, and bounded removal/forced-close cleanup. A query that exceeds the response deadline
+may continue until the database driver times out.
+
+For deployment, run the monitor on a separate host and put HTTPS in front of it.
+Co-locating it with Parcelis leaves shared host outages undetectable from that page.
+Durable history, incident editing, alert retries, and monitoring the monitor itself
+remain production follow-up work.

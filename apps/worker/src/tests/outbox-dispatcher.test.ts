@@ -31,6 +31,101 @@ function createEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
   };
 }
 
+test("outbox heartbeat is published only after a successful poll", async (t) => {
+  t.mock.method(console, "error", () => {});
+  for (const fails of [false, true]) {
+    let heartbeats = 0;
+    const prisma = {
+      outboxEvent: {
+        findMany: async () => {
+          if (fails) throw new Error("Database unavailable");
+          return [];
+        },
+      },
+      notificationDelivery: { findMany: async () => [] },
+    } as unknown as PrismaClient;
+    const stop = startOutboxDispatcher(prisma, new Map(), async () => {
+      heartbeats++;
+    });
+    await stop();
+    assert.equal(heartbeats, fails ? 0 : 1);
+  }
+});
+
+test("outbox heartbeat is throttled to fifteen seconds while dispatch keeps polling", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 0 });
+  let polls = 0;
+  let heartbeats = 0;
+  const prisma = {
+    outboxEvent: {
+      findMany: async () => {
+        polls++;
+        return [];
+      },
+    },
+    notificationDelivery: { findMany: async () => [] },
+  } as unknown as PrismaClient;
+  const stop = startOutboxDispatcher(prisma, new Map(), async () => {
+    heartbeats++;
+  });
+  t.after(stop);
+  await new Promise(setImmediate);
+  assert.equal(heartbeats, 1);
+  for (let second = 1; second <= 15; second++) {
+    t.mock.timers.tick(1_000);
+    await new Promise(setImmediate);
+    assert.equal(heartbeats, second < 15 ? 1 : 2);
+  }
+  assert.equal(polls, 16);
+});
+
+test("a stalled outbox heartbeat has a bounded wait and a distinct error", { timeout: 3_000 }, async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 0 });
+  const errors = t.mock.method(console, "error", () => {});
+  let polls = 0;
+  let heartbeats = 0;
+  const prisma = {
+    outboxEvent: {
+      findMany: async () => {
+        polls++;
+        return [];
+      },
+    },
+    notificationDelivery: { findMany: async () => [] },
+  } as unknown as PrismaClient;
+  const stop = startOutboxDispatcher(prisma, new Map(), () => {
+    heartbeats++;
+    return new Promise(() => {});
+  });
+  await new Promise(setImmediate);
+  t.mock.timers.tick(1_000);
+  await new Promise(setImmediate);
+  assert.match(String(errors.mock.calls[0]?.arguments[0]), /Outbox heartbeat failed: Heartbeat write timed out/);
+  t.mock.timers.tick(1_000);
+  await new Promise(setImmediate);
+  assert.equal(polls, 2);
+  for (let second = 3; second <= 16; second++) {
+    t.mock.timers.tick(1_000);
+    await new Promise(setImmediate);
+  }
+  assert.equal(heartbeats, 1);
+  assert.equal(polls, 16);
+  await stop();
+});
+
+test("a rejected outbox heartbeat is not logged as a dispatch failure", async (t) => {
+  const errors = t.mock.method(console, "error", () => {});
+  const prisma = {
+    outboxEvent: { findMany: async () => [] },
+    notificationDelivery: { findMany: async () => [] },
+  } as unknown as PrismaClient;
+  const stop = startOutboxDispatcher(prisma, new Map(), async () => {
+    throw new Error("Redis unavailable");
+  });
+  await stop();
+  assert.match(String(errors.mock.calls[0]?.arguments[0]), /Outbox heartbeat failed: Redis unavailable/);
+});
+
 function createPrisma(event: OutboxEvent, failDispatchedUpdate = false) {
   let current = event;
   let shouldFailDispatchedUpdate = failDispatchedUpdate;

@@ -218,6 +218,7 @@ console.log("[parcelis] Starting local development");
 console.log(`[parcelis] Web:  ${proxyOrigin}`);
 console.log(`[parcelis] API:  ${proxyOrigin}/api/v1`);
 console.log(`[parcelis] Docs: ${proxyOrigin}/docs/`);
+console.log(`[parcelis] Status: ${proxyOrigin}/status (run pnpm status:dev separately)`);
 console.log(`[parcelis] Email preview: http://localhost:${emailPreviewPort}`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);
 console.log(`[parcelis] Worker: Redis queues ready`);

@@ -9,7 +9,13 @@ import {
   rescheduleOutboxEvent,
 } from "@parcelis/db";
 import { createHash } from "node:crypto";
-import { getOutboxEventContract, getOutboxEventJobId, outboxEventTypes, parseOutboxEventPayload } from "@parcelis/jobs";
+import {
+  getOutboxEventContract,
+  getOutboxEventJobId,
+  outboxEventTypes,
+  parseOutboxEventPayload,
+  workerHeartbeatIntervalMs,
+} from "@parcelis/jobs";
 import type { Queue } from "bullmq";
 
 // Interval in milliseconds between polling for available outbox events.
@@ -192,10 +198,16 @@ export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, 
 }
 
 // Starts the outbox dispatcher, which continuously polls for available outbox events, claims them, and dispatches them to the appropriate queues. Returns a function to stop the dispatcher.
-export function startOutboxDispatcher(prisma: PrismaClient, queues: Map<string, Queue>) {
+export function startOutboxDispatcher(
+  prisma: PrismaClient,
+  queues: Map<string, Queue>,
+  onSuccessfulPoll?: () => Promise<void>,
+) {
   let stopped = false;
   let dispatchInProgress = false;
   let nextNotificationRecoveryAt = 0;
+  let nextHeartbeatAt = 0;
+  let heartbeatInProgress = false;
 
   // Dispatches available outbox events by claiming them, validating their payloads, and adding them to the appropriate queues. Handles failures and rescheduling as needed.
   const dispatchAvailableEvents = async () => {
@@ -220,6 +232,27 @@ export function startOutboxDispatcher(prisma: PrismaClient, queues: Map<string, 
       if (Date.now() >= nextNotificationRecoveryAt) {
         nextNotificationRecoveryAt = Date.now() + notificationRecoveryIntervalMs;
         await reconcileDispatchedNotificationJobs(prisma, queues);
+      }
+      if (onSuccessfulPoll && !heartbeatInProgress && Date.now() >= nextHeartbeatAt) {
+        nextHeartbeatAt = Date.now() + workerHeartbeatIntervalMs;
+        heartbeatInProgress = true;
+        let heartbeatTimer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            Promise.resolve()
+              .then(onSuccessfulPoll)
+              .finally(() => {
+                heartbeatInProgress = false;
+              }),
+            new Promise<never>((_resolve, reject) => {
+              heartbeatTimer = setTimeout(() => reject(new Error("Heartbeat write timed out.")), 1_000);
+            }),
+          ]);
+        } catch (error) {
+          console.error(`[parcelis] Outbox heartbeat failed: ${getErrorMessage(error)}`);
+        } finally {
+          clearTimeout(heartbeatTimer);
+        }
       }
     } catch (error) {
       if (!stopped) {

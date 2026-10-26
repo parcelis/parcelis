@@ -29,6 +29,8 @@ application-resource cleanup hook. The API does not use standalone output.
 
 Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, docs, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
+The independent status monitor is described in the [status monitor guide](apps/docs/content/getting-started/status-monitor.mdx).
+
 ```text
 app image: Next.js web + Next.js API + worker + @parcelis/jobs
 

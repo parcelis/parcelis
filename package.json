@@ -9,6 +9,8 @@
     "node": ">=24.19.0 <25"
   },
   "scripts": {
+    "status": "pnpm --filter @parcelis/api status",
+    "status:dev": "pnpm --filter @parcelis/api status:dev",
     "build": "turbo build",
     "start": "pnpm --filter @parcelis/web start",
     "dev": "node scripts/dev-local.mjs",

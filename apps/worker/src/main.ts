@@ -18,6 +18,15 @@ import {
   leaseReconciliationJobName,
   notificationEmailJobName,
   queueNames,
+  healthJobName,
+  emailHealthJobName,
+  scheduledHeartbeatKey,
+  scheduledHeartbeatTtlSeconds,
+  getScheduledRunHeartbeat,
+  outboxHeartbeatKey,
+  workerHeartbeatKey,
+  workerHeartbeatTtlSeconds,
+  workerHeartbeatIntervalMs,
 } from "@parcelis/jobs";
 import { Worker } from "bullmq";
 import {
@@ -30,6 +39,7 @@ import {
 } from "./lease-activation.js";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
 import { processNotificationEmailJob } from "./processors/notification-email.processor.js";
+import { processEmailHealthJob } from "./processors/email-health.processor.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -50,6 +60,10 @@ const queueByName = new Map(queues.map((queue) => [queue.name, queue]));
 const notificationEmailWorker = new Worker(
   queueNames.accountNotifications,
   async (job) => {
+    if (job.name === healthJobName) return { ok: true };
+    if (job.name === emailHealthJobName) {
+      return processEmailHealthJob();
+    }
     if (job.name !== notificationEmailJobName) {
       throw new Error(`Unsupported account notification job: ${job.name}.`);
     }
@@ -84,8 +98,15 @@ const notificationEmailWorker = new Worker(
 const leaseActivationWorker = new Worker(
   queueNames.leasingNotifications,
   async (job) => {
+    if (job.name === healthJobName) return { ok: true };
     if (job.name === leaseReconciliationJobName) {
-      return reconcileLeaseLifecycle(prisma);
+      const result = await reconcileLeaseLifecycle(prisma);
+      const heartbeat = getScheduledRunHeartbeat(job, leaseReconciliationJobName);
+      if (heartbeat) {
+        const client = await queueRegistry.leasingNotifications.getBackend().client;
+        await client.set(scheduledHeartbeatKey, JSON.stringify(heartbeat), { EX: scheduledHeartbeatTtlSeconds });
+      }
+      return result;
     }
     if (job.name === leaseExpirationJobName) {
       const { organizationId, leaseId } = leaseExpirationJobSchema.parse(job.data);
@@ -126,7 +147,28 @@ await notificationEmailWorker.waitUntilReady();
 await leaseActivationWorker.waitUntilReady();
 
 console.info(`[parcelis] Worker connected to Redis for ${queues.length} queues.`);
-const stopOutboxDispatcher = startOutboxDispatcher(prisma, queueByName);
+const redis = await queueRegistry.accountNotifications.getBackend().client;
+let heartbeatInProgress = false;
+const publishHeartbeat = async () => {
+  if (heartbeatInProgress) return;
+  heartbeatInProgress = true;
+  try {
+    for (const worker of [notificationEmailWorker, leaseActivationWorker]) {
+      if (worker.isRunning() && !worker.isPaused()) {
+        await redis.set(workerHeartbeatKey(worker.name), Date.now(), { EX: workerHeartbeatTtlSeconds });
+      }
+    }
+  } finally {
+    heartbeatInProgress = false;
+  }
+};
+const heartbeatTimer = setInterval(() => {
+  void publishHeartbeat().catch(() => console.error("[parcelis] Worker heartbeat failed."));
+}, workerHeartbeatIntervalMs);
+await publishHeartbeat();
+const stopOutboxDispatcher = startOutboxDispatcher(prisma, queueByName, async () => {
+  await redis.set(outboxHeartbeatKey, Date.now(), { EX: workerHeartbeatTtlSeconds });
+});
 const stopLeaseReconciler = startLeaseReconciler(prisma, queueRegistry.leasingNotifications);
 
 let isShuttingDown = false;
@@ -138,6 +180,7 @@ async function shutdown(signal: NodeJS.Signals) {
   }
 
   isShuttingDown = true;
+  clearInterval(heartbeatTimer);
   console.info(`[parcelis] Worker received ${signal}; stopping outbox dispatch and closing connections.`);
   const deadline = setTimeout(() => {
     console.error("[parcelis] Worker shutdown timed out; outstanding claims will expire.");
