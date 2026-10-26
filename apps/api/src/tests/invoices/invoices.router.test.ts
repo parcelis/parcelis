@@ -275,3 +275,32 @@ test("manual invoices cannot be created for draft leases", async () => {
     { code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." },
   );
 });
+
+test("invoice reads scope overdue synchronization to the active organization", async () => {
+  for (const operation of ["list", "byId", "pdf"] as const) {
+    const updates: Array<{ where: { organizationId: number } }> = [];
+    const caller = createCaller({
+      invoice: {
+        updateMany: async (query: { where: { organizationId: number } }) => {
+          updates.push(query);
+          return { count: 0 };
+        },
+        findMany: async () => [],
+        findFirst: async () => null,
+      },
+    });
+    if (operation === "list") await caller.invoices.list({});
+    else if (operation === "byId") await caller.invoices.byId({ id: 4 });
+    else
+      await assert.rejects(
+        caller.invoices.pdf({ id: 4 }),
+        (error) => error instanceof TRPCError && error.code === "NOT_FOUND",
+      );
+    assert.equal(updates.length, 2, operation);
+    assert.deepEqual(
+      updates.map(({ where }) => where.organizationId),
+      [7, 7],
+      operation,
+    );
+  }
+});

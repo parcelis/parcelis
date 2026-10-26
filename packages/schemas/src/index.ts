@@ -75,14 +75,7 @@ export const changePasswordInputSchema = z
   });
 
 // API token expiration options
-export const apiTokenExpirationValues = [
-  "7_days",
-  "1_month",
-  "3_months",
-  "6_months",
-  "12_months",
-  "never",
-] as const;
+export const apiTokenExpirationValues = ["7_days", "1_month", "3_months", "6_months", "12_months", "never"] as const;
 
 // API token expiration schema
 export const apiTokenExpirationSchema = z.enum(apiTokenExpirationValues);
@@ -141,10 +134,12 @@ export const listApiTokensOutputSchema = z.object({
 // List API tokens output type
 export type ListApiTokensOutput = z.infer<typeof listApiTokensOutputSchema>;
 
+export const apiTokenCredentialSchema = z.string().regex(/^pcls_api_[A-Za-z0-9_-]{43}$/);
+
 // Create API token output type
 export const createApiTokenOutputSchema = z.object({
   metadata: apiTokenMetadataSchema,
-  token: z.string().regex(/^pcls_api_[A-Za-z0-9_-]{43}$/),
+  token: apiTokenCredentialSchema,
 });
 
 export const userRoleValues = [

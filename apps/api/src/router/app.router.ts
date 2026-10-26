@@ -126,6 +126,7 @@ import {
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
+import { getActivityActor } from "../modules/activity-actor";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
 import {
   createEmailVerificationToken,
@@ -136,11 +137,18 @@ import {
 } from "../modules/auth";
 import {
   getRolePermissions,
+  getPrincipalPermissions,
+  requirePrincipalPermission,
   isPermissionResourceEnabled,
   requireNotePermission,
   requirePermission,
 } from "../modules/permissions";
-import { organizationProcedure, organizationProcedure as publicProcedure, router } from "./trpc";
+import {
+  organizationApiProcedure,
+  organizationProcedure,
+  organizationProcedure as publicProcedure,
+  router,
+} from "./trpc";
 import { sendSmtpTestEmail } from "@parcelis/email";
 import {
   encryptEmailSettingsPassword,
@@ -243,11 +251,12 @@ async function recordActivityEvent(
   data: Omit<Prisma.ActivityEventUncheckedCreateInput, "actorId" | "actorLabel">,
   actor?: { id: string | number; name: string },
 ) {
+  const resolvedActor = getActivityActor() ?? actor;
   await tx.activityEvent.create({
     data: {
       ...data,
-      actorId: actor ? String(actor.id) : null,
-      actorLabel: actor?.name ?? null,
+      actorId: resolvedActor ? String(resolvedActor.id) : null,
+      actorLabel: resolvedActor?.name ?? null,
     },
   });
 }
@@ -544,16 +553,16 @@ function leaseOverlapWhere(
   };
 }
 
-async function synchronizeOverdueInvoices(prisma: PrismaClient | Prisma.TransactionClient) {
+async function synchronizeOverdueInvoices(prisma: PrismaClient | Prisma.TransactionClient, organizationId: number) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   await Promise.all([
     prisma.invoice.updateMany({
-      where: { status: "open", balanceCents: { gt: 0 }, dueOn: { lt: today } },
+      where: { organizationId, status: "open", balanceCents: { gt: 0 }, dueOn: { lt: today } },
       data: { status: "overdue" },
     }),
     prisma.invoice.updateMany({
-      where: { status: "overdue", OR: [{ balanceCents: 0 }, { dueOn: { gte: today } }] },
+      where: { organizationId, status: "overdue", OR: [{ balanceCents: 0 }, { dueOn: { gte: today } }] },
       data: { status: "open" },
     }),
   ]);
@@ -665,6 +674,13 @@ async function transferSoleOrganizationOwnership(
 function permissionProcedure(resource: PermissionResource, action: PermissionAction) {
   return organizationProcedure.use(async ({ ctx, next }) => {
     await requirePermission(ctx.prisma, ctx.user.role, resource, action);
+    return next({ ctx });
+  });
+}
+
+function apiPermissionProcedure(resource: PermissionResource, action: PermissionAction) {
+  return organizationApiProcedure.use(async ({ ctx, next }) => {
+    await requirePrincipalPermission(ctx, resource, action);
     return next({ ctx });
   });
 }
@@ -1439,11 +1455,11 @@ export const appRouter = router({
 
   properties: router({
     /** Lists properties with units, lease metrics, and maintenance metrics. */
-    list: permissionProcedure("properties", "view").query(async ({ ctx }) => {
-      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
-      await synchronizeOverdueInvoices(ctx.prisma);
+    list: apiPermissionProcedure("properties", "view").query(async ({ ctx }) => {
+      const permissions = await getPrincipalPermissions(ctx);
+      await synchronizeOverdueInvoices(ctx.prisma, ctx.organizationScope.organizationId);
       const query = {
-        where: { organizationId: ctx.organization.organizationId },
+        where: { organizationId: ctx.organizationScope.organizationId },
         include: {
           tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
           leases: {
@@ -1562,12 +1578,12 @@ export const appRouter = router({
       );
     }),
     /** Returns one property with its units, leases, and maintenance tickets. */
-    byId: permissionProcedure("properties", "view")
+    byId: apiPermissionProcedure("properties", "view")
       .input(propertyByIdInputSchema)
       .query(async ({ ctx, input }) => {
-        const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
+        const permissions = await getPrincipalPermissions(ctx);
         const query = {
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
           include: {
             tags: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
             leases: {
@@ -1600,7 +1616,10 @@ export const appRouter = router({
               .findFirst({ ...query, include: { ...query.include, leases: false } })
               .then((property) => (property ? { ...property, leases: [] } : null));
 
-        if (!property) return null;
+        if (!property) {
+          if (ctx.transport === "rest") throw new TRPCError({ code: "NOT_FOUND", message: "Property not found." });
+          return null;
+        }
 
         const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
 
@@ -1632,28 +1651,28 @@ export const appRouter = router({
         };
       }),
     /** Creates a short-lived URL for uploading a property image to MinIO. */
-    createImageUploadUrl: permissionProcedure("properties", "edit")
+    createImageUploadUrl: apiPermissionProcedure("properties", "edit")
       .input(propertyImageUploadInputSchema)
       .mutation(async ({ ctx, input }) => {
         await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
         });
-        return createPropertyImageUploadUrl(input.contentType, ctx.organization.organizationId, input.id);
+        return createPropertyImageUploadUrl(input.contentType, ctx.organizationScope.organizationId, input.id);
       }),
     /** Records a successfully uploaded image and removes the previous object. */
-    completeImageUpload: permissionProcedure("properties", "edit")
+    completeImageUpload: apiPermissionProcedure("properties", "edit")
       .input(propertyImageUploadCompleteInputSchema)
       .mutation(async ({ ctx, input }) => {
-        const expectedObjectKeyPrefix = `organizations/${ctx.organization.organizationId}/properties/${input.id}/images/`;
+        const expectedObjectKeyPrefix = `organizations/${ctx.organizationScope.organizationId}/properties/${input.id}/images/`;
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected property." });
         }
-        await verifyImageUpload(input.objectKey);
         const currentProperty = await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
           select: { imageObjectKey: true },
         });
 
+        await verifyImageUpload(input.objectKey);
         const property = await ctx.prisma.property.update({
           where: { id: input.id },
           data: { imageObjectKey: input.objectKey },
@@ -1667,11 +1686,11 @@ export const appRouter = router({
         return withPropertyNotes(property);
       }),
     /** Removes the current image reference and its MinIO object. */
-    deleteImage: permissionProcedure("properties", "edit")
+    deleteImage: apiPermissionProcedure("properties", "edit")
       .input(propertyByIdInputSchema)
       .mutation(async ({ ctx, input }) => {
         const currentProperty = await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
           select: { imageObjectKey: true },
         });
         const property = await ctx.prisma.property.update({
@@ -1687,32 +1706,32 @@ export const appRouter = router({
         return withPropertyNotes(property);
       }),
     /** Creates a property and its initial units. */
-    create: permissionProcedure("properties", "create")
+    create: apiPermissionProcedure("properties", "create")
       .input(createPropertyInputSchema)
       .mutation(async ({ ctx, input }) => {
         if (input.units.length > 0) {
-          await requirePermission(ctx.prisma, ctx.user.role, "units", "create");
+          await requirePrincipalPermission(ctx, "units", "create");
         }
         if (input.notes) {
           await Promise.all([
-            requirePermission(ctx.prisma, ctx.user.role, "property_notes", "create"),
-            requirePermission(ctx.prisma, ctx.user.role, "properties", "view"),
+            requirePrincipalPermission(ctx, "property_notes", "create"),
+            requirePrincipalPermission(ctx, "properties", "view"),
           ]);
         }
         const tags = await ctx.prisma.tag.count({
-          where: { id: { in: input.tagIds }, organizationId: ctx.organization.organizationId },
+          where: { id: { in: input.tagIds }, organizationId: ctx.organizationScope.organizationId },
         });
         if (tags !== input.tagIds.length)
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Selected tags must belong to the active organization.",
           });
-        await validateUnitOptionIds(ctx.prisma, ctx.organization.organizationId, input.units);
+        await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, input.units);
         return ctx.prisma.$transaction(async (tx) => {
           const initialProperty = await tx.property.create({
             select: propertySelect,
             data: {
-              organizationId: ctx.organization.organizationId,
+              organizationId: ctx.organizationScope.organizationId,
               name: input.name,
               line1: input.address.line1,
               line2: input.address.line2 ?? null,
@@ -1751,24 +1770,25 @@ export const appRouter = router({
         });
       }),
     /** Updates a property and synchronizes its units. */
-    update: permissionProcedure("properties", "edit")
+    update: apiPermissionProcedure("properties", "edit")
       .input(updatePropertyInputSchema)
       .mutation(async ({ ctx, input }) => {
         if (input.notes !== undefined) {
-          await requireNotePermission(ctx.prisma, ctx.user.role, { propertyId: input.id }, "edit");
+          await requirePrincipalPermission(ctx, "properties", "view");
+          await requirePrincipalPermission(ctx, "property_notes", "edit");
         }
         await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
         });
         const tags = await ctx.prisma.tag.count({
-          where: { id: { in: input.tagIds }, organizationId: ctx.organization.organizationId },
+          where: { id: { in: input.tagIds }, organizationId: ctx.organizationScope.organizationId },
         });
         if (tags !== input.tagIds.length)
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Selected tags must belong to the active organization.",
           });
-        await validateUnitOptionIds(ctx.prisma, ctx.organization.organizationId, input.units);
+        await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, input.units);
         const existingUnitIdsForPermissions = new Set(
           (
             await ctx.prisma.unit.findMany({
@@ -1777,14 +1797,17 @@ export const appRouter = router({
             })
           ).map(({ id }) => id),
         );
+        if (input.units.some(({ id }) => id && !existingUnitIdsForPermissions.has(id))) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Selected units must belong to this property." });
+        }
         if (input.units.some(({ id }) => id && existingUnitIdsForPermissions.has(id))) {
-          await requirePermission(ctx.prisma, ctx.user.role, "units", "edit");
+          await requirePrincipalPermission(ctx, "units", "edit");
         }
         if (input.units.some(({ id }) => !id || !existingUnitIdsForPermissions.has(id))) {
-          await requirePermission(ctx.prisma, ctx.user.role, "units", "create");
+          await requirePrincipalPermission(ctx, "units", "create");
         }
         if (Array.from(existingUnitIdsForPermissions).some((id) => !input.units.some((unit) => unit.id === id))) {
-          await requirePermission(ctx.prisma, ctx.user.role, "units", "delete");
+          await requirePrincipalPermission(ctx, "units", "delete");
         }
         const property = await ctx.prisma
           .$transaction(
@@ -1886,11 +1909,11 @@ export const appRouter = router({
         return withPropertyNotes(property);
       }),
     /** Marks a property as archived. */
-    archive: permissionProcedure("properties", "archive")
+    archive: apiPermissionProcedure("properties", "archive")
       .input(propertyByIdInputSchema)
       .mutation(async ({ ctx, input }) => {
         await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
         });
         return ctx.prisma.property
           .update({
@@ -1901,11 +1924,11 @@ export const appRouter = router({
           .then(withPropertyNotes);
       }),
     /** Marks a property as inactive. */
-    inactivate: permissionProcedure("properties", "archive")
+    inactivate: apiPermissionProcedure("properties", "archive")
       .input(propertyStatusInputSchema)
       .mutation(async ({ ctx, input }) => {
         await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
         });
         return ctx.prisma.property
           .update({
@@ -1916,11 +1939,11 @@ export const appRouter = router({
           .then(withPropertyNotes);
       }),
     /** Restores an archived property to active status. */
-    reactivate: permissionProcedure("properties", "archive")
+    reactivate: apiPermissionProcedure("properties", "archive")
       .input(propertyStatusInputSchema)
       .mutation(async ({ ctx, input }) => {
         await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
         });
         return ctx.prisma.property
           .update({
@@ -1931,15 +1954,15 @@ export const appRouter = router({
           .then(withPropertyNotes);
       }),
     /** Permanently deletes a property without financial history and its related operational records. */
-    delete: permissionProcedure("properties", "delete")
+    delete: apiPermissionProcedure("properties", "delete")
       .input(propertyByIdInputSchema)
       .mutation(async ({ ctx, input }) => {
-        await requirePermission(ctx.prisma, ctx.user.role, "units", "delete");
+        await requirePrincipalPermission(ctx, "units", "delete");
         try {
           const property = await ctx.prisma.$transaction(
             async (tx) => {
               const property = await tx.property.findFirstOrThrow({
-                where: { id: input.id, organizationId: ctx.organization.organizationId },
+                where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
                 select: propertySelect,
               });
 
@@ -1947,7 +1970,7 @@ export const appRouter = router({
                 [
                   tx.lease.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
                   tx.invoice.findFirst({
-                    where: { organizationId: ctx.organization.organizationId, propertyId: input.id },
+                    where: { organizationId: ctx.organizationScope.organizationId, propertyId: input.id },
                     select: { id: true },
                   }),
                   tx.application.findFirst({ where: { propertyId: input.id }, select: { id: true } }),
@@ -1984,12 +2007,12 @@ export const appRouter = router({
         }
       }),
     /** Updates the notes stored on a property. */
-    updateNotes: permissionProcedure("property_notes", "edit")
+    updateNotes: apiPermissionProcedure("property_notes", "edit")
       .input(propertyNotesInputSchema)
       .mutation(async ({ ctx, input }) => {
-        await requirePermission(ctx.prisma, ctx.user.role, "properties", "view");
+        await requirePrincipalPermission(ctx, "properties", "view");
         await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
         });
         const property = await ctx.prisma.$transaction(async (tx) => {
           const currentProperty = await tx.property.findUniqueOrThrow({
@@ -2122,27 +2145,27 @@ export const appRouter = router({
         };
       }),
     /** Creates a short-lived URL for uploading a tenant image to MinIO. */
-    createImageUploadUrl: permissionProcedure("tenants", "edit")
+    createImageUploadUrl: apiPermissionProcedure("tenants", "edit")
       .input(tenantImageUploadInputSchema)
       .mutation(async ({ ctx, input }) => {
         await ctx.prisma.tenant.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
         });
-        return createTenantImageUploadUrl(input.contentType, ctx.organization.organizationId, input.id);
+        return createTenantImageUploadUrl(input.contentType, ctx.organizationScope.organizationId, input.id);
       }),
     /** Records a successfully uploaded tenant image and removes the previous object. */
-    completeImageUpload: permissionProcedure("tenants", "edit")
+    completeImageUpload: apiPermissionProcedure("tenants", "edit")
       .input(tenantImageUploadCompleteInputSchema)
       .mutation(async ({ ctx, input }) => {
-        const expectedObjectKeyPrefix = `organizations/${ctx.organization.organizationId}/tenants/${input.id}/images/`;
+        const expectedObjectKeyPrefix = `organizations/${ctx.organizationScope.organizationId}/tenants/${input.id}/images/`;
         if (!input.objectKey.startsWith(expectedObjectKeyPrefix)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "The image must belong to the selected tenant." });
         }
-        await verifyImageUpload(input.objectKey);
         const currentTenant = await ctx.prisma.tenant.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
           select: { imageObjectKey: true },
         });
+        await verifyImageUpload(input.objectKey);
         const tenant = await ctx.prisma.tenant.update({
           where: { id: input.id },
           data: { imageObjectKey: input.objectKey },
@@ -2155,11 +2178,11 @@ export const appRouter = router({
         return tenant;
       }),
     /** Removes the current tenant image reference and its MinIO object. */
-    deleteImage: permissionProcedure("tenants", "edit")
+    deleteImage: apiPermissionProcedure("tenants", "edit")
       .input(tenantByIdInputSchema)
       .mutation(async ({ ctx, input }) => {
         const currentTenant = await ctx.prisma.tenant.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
+          where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
           select: { imageObjectKey: true },
         });
         const tenant = await ctx.prisma.tenant.update({
@@ -2597,7 +2620,7 @@ export const appRouter = router({
       }),
     list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma);
+      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
       const invoices = await ctx.prisma.invoice.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
@@ -2617,7 +2640,7 @@ export const appRouter = router({
     }),
     byId: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma);
+      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         include: {
@@ -2646,7 +2669,7 @@ export const appRouter = router({
     }),
     pdf: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma);
+      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         include: {
@@ -3076,16 +3099,16 @@ export const appRouter = router({
     }),
   }),
   tags: router({
-    list: publicProcedure.query(({ ctx }) =>
+    list: organizationApiProcedure.query(({ ctx }) =>
       ctx.prisma.tag.findMany({
-        where: { organizationId: ctx.organization.organizationId },
+        where: { organizationId: ctx.organizationScope.organizationId },
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
       }),
     ),
-    create: publicProcedure.input(createTagInputSchema).mutation(({ ctx, input }) =>
+    create: organizationApiProcedure.input(createTagInputSchema).mutation(({ ctx, input }) =>
       ctx.prisma.tag.create({
-        data: { organizationId: ctx.organization.organizationId, label: input.label },
+        data: { organizationId: ctx.organizationScope.organizationId, label: input.label },
         select: { id: true, label: true, sortOrder: true },
       }),
     ),
@@ -3713,15 +3736,15 @@ export const appRouter = router({
   }),
   unitOptions: router({
     /** Lists the available utility and amenity options for units. */
-    list: publicProcedure.query(async ({ ctx }) => {
+    list: organizationApiProcedure.query(async ({ ctx }) => {
       const [utilities, amenityTypes] = await Promise.all([
         ctx.prisma.utilityType.findMany({
-          where: { organizationId: ctx.organization.organizationId },
+          where: { organizationId: ctx.organizationScope.organizationId },
           orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
           select: { id: true, label: true, sortOrder: true },
         }),
         ctx.prisma.amenityType.findMany({
-          where: { organizationId: ctx.organization.organizationId },
+          where: { organizationId: ctx.organizationScope.organizationId },
           orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
           select: { id: true, label: true, sortOrder: true },
         }),
@@ -3732,17 +3755,17 @@ export const appRouter = router({
   }),
   amenities: router({
     /** Lists the available amenity options. */
-    list: publicProcedure.query(({ ctx }) =>
+    list: organizationApiProcedure.query(({ ctx }) =>
       ctx.prisma.amenityType.findMany({
-        where: { organizationId: ctx.organization.organizationId },
+        where: { organizationId: ctx.organizationScope.organizationId },
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
         select: { id: true, label: true, sortOrder: true },
       }),
     ),
     /** Updates an amenity option. */
-    update: publicProcedure.input(updateAmenityInputSchema).mutation(async ({ ctx, input }) => {
+    update: organizationApiProcedure.input(updateAmenityInputSchema).mutation(async ({ ctx, input }) => {
       await ctx.prisma.amenityType.findFirstOrThrow({
-        where: { id: input.id, organizationId: ctx.organization.organizationId },
+        where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
       });
       return ctx.prisma.amenityType.update({
         where: { id: input.id },
@@ -4828,12 +4851,12 @@ export const appRouter = router({
   }),
   units: router({
     /** Lists units, optionally filtered to a property. */
-    list: permissionProcedure("units", "view")
+    list: apiPermissionProcedure("units", "view")
       .input(listUnitsInputSchema)
       .query(async ({ ctx, input }) => {
         const units = await ctx.prisma.unit.findMany({
           where: {
-            property: { organizationId: ctx.organization.organizationId },
+            property: { organizationId: ctx.organizationScope.organizationId },
             ...(input.propertyId ? { propertyId: input.propertyId } : {}),
           },
           orderBy: [{ propertyId: "asc" }, { createdAt: "asc" }],
@@ -4850,11 +4873,11 @@ export const appRouter = router({
         return units.map(serializeUnit);
       }),
     /** Returns a unit by its ID. */
-    byId: permissionProcedure("units", "view")
+    byId: apiPermissionProcedure("units", "view")
       .input(unitByIdInputSchema)
       .query(async ({ ctx, input }) => {
         const unit = await ctx.prisma.unit.findFirst({
-          where: { id: input.id, property: { organizationId: ctx.organization.organizationId } },
+          where: { id: input.id, property: { organizationId: ctx.organizationScope.organizationId } },
           include: {
             amenities: {
               select: { option: { select: { id: true, label: true } } },
@@ -4865,18 +4888,19 @@ export const appRouter = router({
           },
         });
 
+        if (!unit && ctx.transport === "rest") throw new TRPCError({ code: "NOT_FOUND", message: "Unit not found." });
         return unit ? serializeUnit(unit) : null;
       }),
     /** Creates a unit for a property. */
-    create: permissionProcedure("units", "create")
+    create: apiPermissionProcedure("units", "create")
       .input(createUnitInputSchema)
       .mutation(async ({ ctx, input }) => {
-        await requirePermission(ctx.prisma, ctx.user.role, "properties", "view");
+        await requirePrincipalPermission(ctx, "properties", "view");
         const { propertyId, ...unitDetails } = input;
         await ctx.prisma.property.findFirstOrThrow({
-          where: { id: propertyId, organizationId: ctx.organization.organizationId },
+          where: { id: propertyId, organizationId: ctx.organizationScope.organizationId },
         });
-        await validateUnitOptionIds(ctx.prisma, ctx.organization.organizationId, [unitDetails]);
+        await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, [unitDetails]);
 
         return ctx.prisma.unit
           .create({
@@ -4893,13 +4917,13 @@ export const appRouter = router({
           .then(serializeUnit);
       }),
     /** Updates a unit by its ID. */
-    update: permissionProcedure("units", "edit")
+    update: apiPermissionProcedure("units", "edit")
       .input(updateUnitInputSchema)
       .mutation(async ({ ctx, input }) => {
         await ctx.prisma.unit.findFirstOrThrow({
-          where: { id: input.id, property: { organizationId: ctx.organization.organizationId } },
+          where: { id: input.id, property: { organizationId: ctx.organizationScope.organizationId } },
         });
-        await validateUnitOptionIds(ctx.prisma, ctx.organization.organizationId, [input]);
+        await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, [input]);
         const unit = await ctx.prisma.$transaction(async (tx) => {
           await tx.unitUtility.deleteMany({ where: { unitId: input.id } });
           await tx.unitAmenity.deleteMany({ where: { unitId: input.id } });
@@ -4921,14 +4945,14 @@ export const appRouter = router({
         return serializeUnit(unit);
       }),
     /** Deletes a unit without lease, maintenance, or note history. */
-    delete: permissionProcedure("units", "delete")
+    delete: apiPermissionProcedure("units", "delete")
       .input(unitByIdInputSchema)
       .mutation(async ({ ctx, input }) => {
         try {
           const unit = await ctx.prisma.$transaction(
             async (tx) => {
               const unit = await tx.unit.findFirstOrThrow({
-                where: { id: input.id, property: { organizationId: ctx.organization.organizationId } },
+                where: { id: input.id, property: { organizationId: ctx.organizationScope.organizationId } },
                 include: {
                   amenities: {
                     select: { option: { select: { id: true, label: true } } },

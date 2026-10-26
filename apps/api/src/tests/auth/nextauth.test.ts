@@ -4,6 +4,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import NextAuth from "next-auth";
 import { decode, encode } from "next-auth/jwt";
 import type { PrismaClient } from "@parcelis/db";
+import { hashApiToken, resolveApiToken } from "../../modules/api-tokens";
 import { hashPassword } from "../../modules/auth";
 import { resetRateLimits } from "../../modules/login-rate-limit";
 import { createContext } from "../../router/context";
@@ -16,6 +17,7 @@ process.env.NEXTAUTH_SECRET = "nextauth-test-secret-not-for-production";
 process.env.NEXTAUTH_URL = "http://localhost:30000";
 const password = "Parcelis-password-123!";
 const passwordHash = hashPassword(password);
+const organizationApiToken = `pcls_api_${"A".repeat(43)}`;
 
 async function fixture(requestHeaders: Record<string, string> = {}) {
   resetRateLimits();
@@ -30,6 +32,19 @@ async function fixture(requestHeaders: Record<string, string> = {}) {
     passwordChangedAt: null as Date | null,
   };
   const prisma = {
+    apiToken: {
+      findUnique: async ({ where }: { where: { tokenHash: string } }) =>
+        where.tokenHash === hashApiToken(organizationApiToken)
+          ? {
+              id: "token-id",
+              name: "Integration",
+              organizationId: 3,
+              organization: { id: 3, slug: "portfolio" },
+              expiresAt: null,
+              revokedAt: null,
+            }
+          : null,
+    },
     user: {
       findUnique: async ({ where }: { where: { email?: string; id?: number } }) =>
         where.email === user.email || where.id === user.id ? user : null,
@@ -246,3 +261,15 @@ for (const protocol of ["http", "https"]) {
     assert.equal((await readSession(state.prisma, state.sessionRequest()))?.userId, 7);
   });
 }
+
+test("valid organization bearer tokens do not authenticate NextAuth session endpoints", async () => {
+  const state = await fixture({ authorization: `Bearer ${organizationApiToken}` });
+  const token = await resolveApiToken(state.prisma, organizationApiToken);
+  assert.equal(token.organizationId, 3);
+
+  const response = await state.request("session");
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, {});
+  assert.equal(state.cookies[nextAuthCookieName], undefined);
+  assert.equal(await readSession(state.prisma, state.sessionRequest()), null);
+});
