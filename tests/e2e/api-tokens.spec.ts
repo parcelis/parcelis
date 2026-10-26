@@ -162,6 +162,7 @@ test("creates, copies once, and revokes a real token while a second token stays 
       );
       await drawer(page).getByRole("button", { name: "Create token", exact: true }).click();
       const payload = await (await response).json();
+      expect(payload[0].error?.message).toBeUndefined();
       ids.push(payload[0].result.data.metadata.id);
       const dialog = page.getByRole("dialog", { name: "Copy your API token" });
       await expect(dialog).toBeVisible();
@@ -181,9 +182,10 @@ test("creates, copies once, and revokes a real token while a second token stays 
     }
     await page.reload();
     await expect(page.getByRole("dialog", { name: "Copy your API token" })).toBeHidden();
+    expect((await request.storageState()).cookies).toEqual([]);
     for (const token of tokens)
       expect(
-        (await request.get(`${apiOrigin}/api/v1/tags`, { headers: { authorization: `Bearer ${token}` } })).status(),
+        (await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${token}` } })).status(),
       ).toBe(200);
     await page.getByRole("button", { name: `Revoke ${names[0]}`, exact: true }).click();
     const confirmation = page.getByRole("alertdialog", { name: "Revoke API token?" });
@@ -191,10 +193,10 @@ test("creates, copies once, and revokes a real token while a second token stays 
     await confirmation.getByRole("button", { name: "Revoke token", exact: true }).click();
     await expect(page.getByRole("row").filter({ hasText: names[0]! })).toContainText("Revoked");
     expect(
-      (await request.get(`${apiOrigin}/api/v1/tags`, { headers: { authorization: `Bearer ${tokens[0]}` } })).status(),
+      (await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${tokens[0]}` } })).status(),
     ).toBe(401);
     expect(
-      (await request.get(`${apiOrigin}/api/v1/tags`, { headers: { authorization: `Bearer ${tokens[1]}` } })).status(),
+      (await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${tokens[1]}` } })).status(),
     ).toBe(200);
   } finally {
     for (const id of ids) {
