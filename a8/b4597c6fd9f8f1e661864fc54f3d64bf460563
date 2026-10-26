@@ -1,0 +1,24 @@
+apps/docs/content/contributing/database-erd.mdx
+  s_311682dd4a807b::t_5c0081c09916aa 88-90,95-99
+  s_311682dd4a807b::t_cc5bb119a33ea1 11-13
+  s_311682dd4a807b::t_f05a5fc5d8f2af 100
+  s_311682dd4a807b::t_4c18665716b289 58-68
+CONTRIBUTING.md
+  s_311682dd4a807b::t_cc5bb119a33ea1 280-293
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a8b4597c6fd9f8f1e661864fc54f3d64bf460563",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

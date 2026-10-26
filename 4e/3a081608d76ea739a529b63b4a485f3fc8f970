@@ -1,0 +1,14 @@
+packages/schemas/src/index.ts
+  h_a5ff85794783c2 77-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e3a081608d76ea739a529b63b4a485f3fc8f970",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
