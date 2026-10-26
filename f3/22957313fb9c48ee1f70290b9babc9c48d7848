@@ -1,0 +1,22 @@
+apps/docs/content/getting-started/api-token-rollout.mdx
+  s_5d8f07a96ee271::t_af725d70709e22 139
+  s_5d8f07a96ee271::t_649d14a300045c 132-138,140
+CONTRIBUTING.md
+  s_5d8f07a96ee271::t_af725d70709e22 306-309
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f322957313fb9c48ee1f70290b9babc9c48d7848",
+  "prompts": {},
+  "sessions": {
+    "s_5d8f07a96ee271": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15f67-445b-7963-bccb-dcbc203a83fd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
