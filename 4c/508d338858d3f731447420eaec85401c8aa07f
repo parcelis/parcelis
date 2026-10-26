@@ -1,0 +1,19 @@
+tests/e2e/api-tokens.spec.ts
+  s_311682dd4a807b::t_7ef39f6dbd0dc7 1-397
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4c508d338858d3f731447420eaec85401c8aa07f",
+  "prompts": {},
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

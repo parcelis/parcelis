@@ -1,0 +1,123 @@
+packages/schemas/src/index.ts
+  h_a5ff85794783c2 77,79-136,139-141,143-144
+  s_311682dd4a807b::t_bf035fd1a1d44c 78,137-138,142
+apps/api/src/modules/api-tokens.ts
+  h_a5ff85794783c2 1,5-55
+  s_311682dd4a807b::t_bf035fd1a1d44c 2,70
+  s_311682dd4a807b::t_5ffe7d88961c61 58,84-99,108,113
+  s_311682dd4a807b::t_c4a49926011eab 81,107,109-112,114-117
+  s_311682dd4a807b::t_2d19efe007b87b 71-80
+  s_311682dd4a807b::t_3f5834a538f4ec 3-4
+  s_311682dd4a807b::t_7394309cc741ed 56-57
+  s_311682dd4a807b::t_4e2d776ea6df07 59-61,67-69
+  s_311682dd4a807b::t_cfe6b2a63ce383 82-83
+  s_311682dd4a807b::t_ef369a10c76ec6 100-102,104-106
+  s_311682dd4a807b::t_e411cf91d33262 62-66,103
+packages/db/prisma/migrations/20261020023756_add_api_tokens/migration.sql
+  h_a5ff85794783c2 1-33
+packages/db/prisma/schema.prisma
+  h_a5ff85794783c2 166,237-238,244-265
+apps/docs/content/contributing/database-erd.mdx
+  s_311682dd4a807b::t_5c0081c09916aa 88-90,95-99
+  s_311682dd4a807b::t_cc5bb119a33ea1 11-13
+  s_311682dd4a807b::t_f05a5fc5d8f2af 100
+  s_311682dd4a807b::t_4c18665716b289 58-68
+CONTRIBUTING.md
+  s_311682dd4a807b::t_cc5bb119a33ea1 281-283,285-286,294-297
+  s_311682dd4a807b::t_5ffe7d88961c61 284
+  s_311682dd4a807b::t_c8e6aaaa3b3d23 280,289-293
+apps/api/src/tests/api-tokens/api-tokens.integration.ts
+  s_311682dd4a807b::t_cc5bb119a33ea1 107-182
+  s_311682dd4a807b::t_b4fc1ad51457ef 104-106
+  s_311682dd4a807b::t_99a94874a0f41b 183-185
+  s_311682dd4a807b::t_3351ae9813912f 1-7,12-51,99-103,186-220,452
+apps/api/src/tests/api-tokens/api-tokens.test.ts
+  s_311682dd4a807b::t_dd2023c2ca6e0a 18,26,34,40,48,54,62,77,83,86,88-89,94,97,102,105,109,111,114-136
+  s_311682dd4a807b::t_9f7287d3295add 9
+  s_311682dd4a807b::t_b9bcbce2564144 1-8,10-17,19-25,27-33,35-39,41-47,49-53,55-61,63-76,78-82,84-85,87,90-93,95-96,98-101,103-104,106-108,110,112-113
+apps/web/components/shortcuts.ts
+  s_311682dd4a807b::t_435216ec8faa99 1,5,30
+apps/api/src/modules/activity-actor.ts
+  s_311682dd4a807b::t_1260290835b2aa 1-13
+apps/api/src/router/trpc.ts
+  s_311682dd4a807b::t_c4a49926011eab 1-2,13,84
+  s_311682dd4a807b::t_5ffe7d88961c61 41-83,85-101
+  s_311682dd4a807b::t_1260290835b2aa 3
+  s_311682dd4a807b::t_f6e2cd43c227a1 14-40
+apps/api/src/router/app.router.ts
+  s_311682dd4a807b::t_17ec3915d631e4 254
+  s_311682dd4a807b::t_1260290835b2aa 129,258-259
+  s_311682dd4a807b::t_5ffe7d88961c61 146-151
+  s_311682dd4a807b::t_50ce9d20995998 140-141,561,565,681-687,1458-1460,1462,1581,1584,1586,1619-1622,1654,1658,1660,1663,1666,1671,1675,1689,1693,1709,1713,1717-1718,1722,1729,1734,1773,1777-1778,1781,1784,1791,1800-1802,1804,1807,1810,1912,1916,1927,1931,1942,1946,1957,1960,1965,1973,2010,2013,2015,2148,2152,2154,2157,2160,2165,2168,2181,2185,3102,3104,3109,3111,3739,3742,3747,3758,3760,3766,3768,4854,4859,4876,4880,4891,4895,4898,4901,4903,4920,4924,4926,4948,4955
+  s_311682dd4a807b::t_e79d012f83d94d 556,2623,2643,2672
+apps/api/src/router/context.ts
+  s_311682dd4a807b::t_4f4fbfb64683c5 34,36-45,47-53
+  s_311682dd4a807b::t_5ffe7d88961c61 3,23,35,59-64
+  s_311682dd4a807b::t_eb541d3051c5de 1,4,11-22,24-30,46,97
+  s_311682dd4a807b::t_e79d012f83d94d 56-58
+apps/api/src/app/api/v1/[...path]/route.ts
+  s_311682dd4a807b::t_6d418c0af24b8b 2-3,9
+apps/api/src/modules/permissions.ts
+  s_311682dd4a807b::t_50ce9d20995998 1,71,82-90,144-157,159-167,169-173
+  s_311682dd4a807b::t_5ffe7d88961c61 158,168
+apps/api/src/router/rest-handler.ts
+  s_311682dd4a807b::t_6d418c0af24b8b 1-8,10-19,24,26-29
+  s_311682dd4a807b::t_5ffe7d88961c61 9,25
+  s_311682dd4a807b::t_67a58de50dfee8 30
+  s_311682dd4a807b::t_e79d012f83d94d 20-23
+apps/api/src/router/fetch-context.ts
+  s_311682dd4a807b::t_5ffe7d88961c61 21
+  s_311682dd4a807b::t_4d8734bc23067b 4,14,17
+apps/api/src/tests/auth/fetch-handlers.test.ts
+  s_311682dd4a807b::t_c8e6aaaa3b3d23 9,50
+apps/api/src/tests/api-tokens/api-token-auth.test.ts
+  s_311682dd4a807b::t_17ec3915d631e4 1-26,40-59,70-75,83-87,95-96,102-113,120,125-132,145-154,165-169
+  s_311682dd4a807b::t_5ffe7d88961c61 27-39,60-69,76-82,88-94,97-101,114-117,121-124,133-144,155-164
+  s_311682dd4a807b::t_ff69893dfe697b 118-119
+apps/api/src/tests/api-tokens/api-token-auth.fetch.test.ts
+  s_311682dd4a807b::t_5ffe7d88961c61 5-162,164-165,168-169,171-177,180-263
+  s_311682dd4a807b::t_061313854a6b12 1-4
+  s_311682dd4a807b::t_e79d012f83d94d 163,166-167,170,178-179,264-267,270,274-278
+  s_311682dd4a807b::t_0a5723c0943790 268-269,271-273
+  s_311682dd4a807b::t_e3222a48f363ea 279
+apps/api/src/tests/auth/nextauth.test.ts
+  s_311682dd4a807b::t_5ffe7d88961c61 264,275
+  s_311682dd4a807b::t_e79d012f83d94d 7,20,35-47,265-274
+apps/api/src/tests/api-tokens/api-token-auth.integration.ts
+  s_311682dd4a807b::t_5ffe7d88961c61 19-62,71,111-301,303
+  s_311682dd4a807b::t_c8e6aaaa3b3d23 107-108
+  s_311682dd4a807b::t_bf035fd1a1d44c 63-70,72-105
+  s_311682dd4a807b::t_7a0de1a0b9521f 1-18,106,109-110,302,304
+apps/docs/content/contributing/architecture.mdx
+  s_311682dd4a807b::t_5ffe7d88961c61 53-80
+ARCHITECTURE.md
+  s_311682dd4a807b::t_5ffe7d88961c61 162-193
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_311682dd4a807b::t_e79d012f83d94d 278-306
+packages/db/prisma/seed.mjs
+  s_311682dd4a807b::t_e221a3102b9c52 5,353
+  s_311682dd4a807b::t_83f2371f0f6286 354
+packages/db/prisma/seed-api-tokens.mjs
+  s_311682dd4a807b::t_e221a3102b9c52 1-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "99a1fcee3add05d68b88886281a513a650d89158",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  },
+  "sessions": {
+    "s_311682dd4a807b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14f59-738a-7e70-839d-e9ac3b25600e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
