@@ -50,8 +50,23 @@ days. Creation is limited to ten attempts per user and organization per
 fifteen-minute window, per API process, using counters separate from sign-in.
 Lists include active, expired, and revoked records with cursor pagination.
 Revocation retains the record and preserves its original revoker and timestamp
-on repeated or concurrent calls. Token management requires a browser session;
-the token settings UI is a subsequent implementation phase.
+on repeated or concurrent calls. Token management requires a browser session.
+
+The API tokens settings page is `/o/{slug}/settings/organization/api-tokens`;
+the unscoped route follows the selected/default organization. Token management and
+its navigation entry require an owner, organization administrator, or platform
+administrator. Other members can open the page but see an access message instead
+of token management controls.
+The table paginates token metadata and derives Active/Expired/Revoked status.
+Create token opens a Name/Expiration drawer with the shared seven-day default.
+Creation shows the credential once in a Copy/Done dialog; closing it, navigating,
+or switching organizations clears the temporary secret. It is never placed in
+query/mutation caches, persisted browser storage, URLs, or diagnostics. Requests
+capture their organization slug; organization-specific cache keys and request
+versions prevent late responses from appearing in another organization. Revoke
+confirms the token name, organization, and integration impact, retaining revoked
+rows. Rotate by creating a replacement, updating the integration, then revoking
+the old token.
 
 REST `/api/v1/*` requests accept bearer credentials and resolve a user or token
 principal. Authorization takes precedence over cookies, including invalid headers.

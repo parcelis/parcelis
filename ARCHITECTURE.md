@@ -159,7 +159,23 @@ is seven days, and the display prefix contains ten random characters after
 `pcls_api_`. Creation has a per-process limit of ten attempts per user and
 organization per fifteen minutes, independent of sign-in counters. A conditional
 update and read in a Prisma transaction preserve the original revocation details
-under repeated and concurrent calls. The settings UI is a separate follow-up phase.
+under repeated and concurrent calls.
+
+Organization settings expose API tokens at `/o/{slug}/settings/organization/api-tokens`
+(the unscoped route follows the selected/default organization). Owners, organization
+administrators, and platform administrators can manage tokens and see the navigation
+entry. Other members can open the page but see an access message instead of token
+management controls. The metadata table shows names, display prefixes, creators, dates, and
+Active/Expired/Revoked status with cursor pagination. Create token opens a drawer
+with Name and Expiration, defaulting to the shared seven-day preset. Successful
+creation opens a one-time Copy/Done dialog; dismissal, navigation, or organization
+changes clear the secret. Secrets are held in temporary component state, outside
+query/mutation caches, persisted storage, URLs, and diagnostics. Clients capture the
+organization slug before sending requests, cache keys include the organization ID,
+and request versions suppress responses from an earlier organization or page.
+Revoke confirms the name, organization, and integration impact, then retains the
+revoked row. Rotation means creating a replacement, updating the integration, and
+revoking the old token.
 
 REST requests under `/api/v1/*` also accept `Authorization: Bearer pcls_api_<secret>`.
 The REST handler forwards credentials to context, which resolves a discriminated

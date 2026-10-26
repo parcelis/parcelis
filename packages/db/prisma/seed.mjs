@@ -2,6 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import * as argon2 from "argon2";
 import { randomBytes } from "node:crypto";
+import { seedApiTokens } from "./seed-api-tokens.mjs";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
@@ -348,6 +349,8 @@ async function main() {
     create: { userId: seededAdministrator.id, organizationId: organization.id, role: "owner" },
   });
   await prisma.user.update({ where: { id: seededAdministrator.id }, data: { defaultOrganizationId: organization.id } });
+
+  await seedApiTokens(prisma, organization, seededAdministrator);
 
   for (const [index, label] of utilityTypes.entries()) {
     await prisma.utilityType.upsert({
