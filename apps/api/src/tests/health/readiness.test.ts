@@ -29,16 +29,21 @@ test("readiness shares in-flight probes and caches results from completion", asy
 
 test("readiness caches unavailable results and recovers after the short TTL", async (t) => {
   t.mock.timers.enable({ apis: ["Date"] });
+  const log = t.mock.method(console, "error", () => {});
+  const error = new Error("Backend unavailable");
   let calls = 0;
   const ready = createReadinessCheck(async () => {
-    if (++calls === 1) throw new Error("Backend unavailable");
+    if (++calls === 1) throw error;
     return [{ status: "operational" }];
   });
   assert.equal(await ready(), false);
   assert.equal(await ready(), false);
   assert.equal(calls, 1);
+  assert.equal(log.mock.callCount(), 1);
+  assert.deepEqual(log.mock.calls[0]!.arguments, ["[readiness] Dependency check failed.", error]);
   t.mock.timers.tick(readinessTtlMs);
   assert.equal(await ready(), true);
   assert.equal(calls, 2);
   assert.equal(await createReadinessCheck(async () => [{ status: "down" }])(), false);
+  assert.equal(log.mock.callCount(), 1);
 });

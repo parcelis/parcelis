@@ -73,10 +73,7 @@ for (const secure of [false, true])
         sockets.add(socket);
         socket.on("error", () => {});
         socket.once("close", () => sockets.delete(socket));
-        if (!secure) {
-          const greeting = setTimeout(() => socket.write("220 smtp.test ready\r\n"), 60);
-          socket.once("close", () => clearTimeout(greeting));
-        }
+        if (!secure) socket.write("220 smtp.test ready\r\n");
       });
       t.after(() => {
         for (const socket of sockets) socket.destroy();

@@ -11,7 +11,10 @@ export function createReadinessCheck(probe: () => Promise<Pick<ServiceCheck, "st
     pending = Promise.resolve()
       .then(probe)
       .then((checks) => checks.every((check) => check.status === "operational"))
-      .catch(() => false)
+      .catch((error) => {
+        console.error("[readiness] Dependency check failed.", error);
+        return false;
+      })
       .then((ready) => {
         cached = { ready, expiresAt: Date.now() + readinessTtlMs };
         return ready;

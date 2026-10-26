@@ -21,13 +21,28 @@ function createDetails(componentId: string, open = false) {
   };
 }
 
-function setup(fetchPage: () => Promise<{ ok: boolean; text: () => Promise<string> }>) {
+function setup(
+  fetchPage: () => Promise<{ ok: boolean; text: () => Promise<string> }>,
+  focus: "details" | "feed" | "outside" = "details",
+) {
   const currentDetails = [createDetails("workers", true), createDetails("storage")];
   const replacementDetails = [createDetails("storage"), createDetails("workers")];
   let replaced = false;
-  const replacement = { querySelectorAll: () => replacementDetails };
+  let feedFocused = false;
+  const currentFeed = { closest: () => null };
+  const replacementFeed = {
+    focus: (options: { preventScroll: boolean }) => {
+      assert.equal(options.preventScroll, true);
+      feedFocused = true;
+    },
+  };
+  const replacement = {
+    querySelectorAll: () => replacementDetails,
+    querySelector: () => replacementFeed,
+  };
   const current = {
     querySelectorAll: () => currentDetails.filter((details) => details.open),
+    querySelector: () => currentFeed,
     replaceWith: (value: unknown) => {
       assert.equal(value, replacement);
       replaced = true;
@@ -39,7 +54,8 @@ function setup(fetchPage: () => Promise<{ ok: boolean; text: () => Promise<strin
     window: { location: { href: "http://localhost/status?theme=dark" } },
     document: {
       querySelector: () => current,
-      activeElement: { closest: () => currentDetails[0] },
+      activeElement:
+        focus === "feed" ? currentFeed : { closest: () => (focus === "details" ? currentDetails[0] : null) },
     },
     DOMParser: class {
       parseFromString() {
@@ -53,6 +69,9 @@ function setup(fetchPage: () => Promise<{ ok: boolean; text: () => Promise<strin
     currentDetails,
     replacementDetails,
     timers,
+    get feedFocused() {
+      return feedFocused;
+    },
     get replaced() {
       return replaced;
     },
@@ -73,6 +92,16 @@ test("service refresh preserves detail state by component identity and restores 
   assert.equal(page.replacementDetails[1]!.focused, true);
   assert.equal(page.timers.length, 1);
   assert.equal(page.timers[0]!.delay, 15000);
+});
+
+test("service refresh restores feed link focus without taking focus from outside the column", async () => {
+  for (const focus of ["feed", "outside"] as const) {
+    const page = setup(async () => ({ ok: true, text: async () => "updated services" }), focus);
+    await page.timers.shift()!.callback();
+    assert.equal(page.replaced, true);
+    assert.equal(page.feedFocused, focus === "feed");
+    assert.ok(page.replacementDetails.every((details) => !details.focused));
+  }
 });
 
 test("failed refresh leaves existing results and schedules a retry", async () => {

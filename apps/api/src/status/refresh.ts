@@ -15,6 +15,7 @@ export const statusRefreshScript = String.raw`
         [...current.querySelectorAll("details[open]")].map((details) => details.dataset.componentId),
       );
       const focused = document.activeElement?.closest("details")?.dataset.componentId;
+      const feedFocused = document.activeElement === current.querySelector(".feed-link");
       for (const details of replacement.querySelectorAll("details")) {
         details.open = open.has(details.dataset.componentId);
       }
@@ -23,6 +24,8 @@ export const statusRefreshScript = String.raw`
         [...replacement.querySelectorAll("details")]
           .find((details) => details.dataset.componentId === focused)
           ?.querySelector("summary")?.focus({ preventScroll: true });
+      } else if (feedFocused) {
+        replacement.querySelector(".feed-link")?.focus({ preventScroll: true });
       }
     } catch {
       // Keep the last results visible while the monitor is unreachable.

@@ -101,7 +101,7 @@ attempting sign-in with a person's credentials.
 
 The **Global SMTP fallback** check verifies the worker’s environment-configured SMTP connection and authentication
 using a separate transport with a two-second deadline. It sends no test messages.
-Missing global SMTP configuration shows unknown; failure degrades the worker component.
+Missing, incomplete, or invalid global SMTP configuration shows unknown; connection or authentication failure degrades the worker component.
 This does not test per-organization SMTP settings or delivery into a recipient's inbox.
 Outbox heartbeats publish after successful polls at most once every 15 seconds.
 A write gets a one-second wait, logs a distinct heartbeat error, and cannot hold
