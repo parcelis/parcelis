@@ -12,7 +12,7 @@
 # PostgreSQL and S3-compatible object storage remain external services in both
 # topologies, and database migrations stay an explicit deployment step.
 
-FROM docker.io/library/node:24.21.0-alpine AS base
+FROM docker.io/library/node:24.22.1-alpine AS base
 ENV FORCE_COLOR=0
 WORKDIR /repo
 RUN apk add --no-cache libc6-compat openssl && corepack enable
@@ -94,7 +94,7 @@ RUN pnpm build
 # ---------------------------------------------------------------------------
 # Shared production runtime base (web app + API)
 # ---------------------------------------------------------------------------
-FROM docker.io/library/node:24.21.0-alpine AS runtime-base
+FROM docker.io/library/node:24.22.1-alpine AS runtime-base
 WORKDIR /repo
 RUN apk add --no-cache nginx openssl supervisor && corepack enable
 
