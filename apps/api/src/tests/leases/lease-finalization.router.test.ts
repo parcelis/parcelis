@@ -234,7 +234,8 @@ function createDatabase(
 }
 
 test("finalizes today's draft in place and increments occupancy once", async () => {
-  const { caller, counts } = createDatabase(calendarDay(0));
+  const start = calendarDay(0);
+  const { caller, counts, activityRows } = createDatabase(start);
   const input = { leaseId: 9, expectedRevision: 4 };
   const first = await caller.leases.finalizeDraft(input);
   const repeated = await caller.leases.finalizeDraft(input);
@@ -242,10 +243,28 @@ test("finalizes today's draft in place and increments occupancy once", async () 
   assert.equal(first.status, "active");
   assert.equal(repeated.id, 9);
   assert.deepEqual(counts(), { occupiedIncrements: 1, outboxWrites: 0 });
+  assert.deepEqual(
+    activityRows()
+      .filter(({ action }) => action === "lease.activated")
+      .map(({ metadata }) => metadata),
+    [{ previousStatus: "draft", nextStatus: "active", startsOn: start.toISOString().slice(0, 10) }],
+  );
+});
+
+test("records the effective start date when a past draft becomes active", async () => {
+  const start = calendarDay(-10);
+  const { caller, activityRows } = createDatabase(start);
+  await caller.leases.finalizeDraft({ leaseId: 9, expectedRevision: 4 });
+  assert.deepEqual(
+    activityRows()
+      .filter(({ action }) => action === "lease.activated")
+      .map(({ metadata }) => metadata),
+    [{ previousStatus: "draft", nextStatus: "active", startsOn: start.toISOString().slice(0, 10) }],
+  );
 });
 
 test("finalizes a future draft as scheduled and records one activation event", async () => {
-  const { caller, counts, invoiceWrites } = createDatabase(calendarDay(10));
+  const { caller, counts, invoiceWrites, activityRows } = createDatabase(calendarDay(10));
   const input = { leaseId: 9, expectedRevision: 4 };
   const first = await caller.leases.finalizeDraft(input);
   const scheduledInvoiceCount = invoiceWrites();
@@ -254,6 +273,7 @@ test("finalizes a future draft as scheduled and records one activation event", a
   assert.deepEqual(counts(), { occupiedIncrements: 0, outboxWrites: 1 });
   assert.ok(scheduledInvoiceCount > 0);
   assert.equal(invoiceWrites(), scheduledInvoiceCount);
+  assert.equal(activityRows().filter(({ action }) => action === "lease.activated").length, 0);
 });
 
 test("schedules activation at the organization's local midnight", async () => {

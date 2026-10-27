@@ -11,6 +11,7 @@ import {
   Building2,
   CalendarDays,
   CalendarRange,
+  ChevronDown,
   CircleDollarSign,
   ClipboardEdit,
   DoorOpen,
@@ -72,14 +73,34 @@ function dueDay(day: number | undefined) {
 }
 
 function lifecycleLabel(action: string) {
-  if (action === "lease.activated") return "Lease activated";
+  if (action === "lease.created") return "Lease created";
+  if (action === "lease.finalized") return "Lease finalized";
+  if (action === "lease.activated") return "Lease started";
   if (action === "lease.expired") return "Lease ended";
   if (action === "lease.activation_failed") return "Activation needs attention";
   if (action === "lease.expiration_failed") return "Expiration needs attention";
   return "Lease activity";
 }
 
-function lifecycleMessage(metadata: unknown) {
+function lifecycleMessage(event: LeaseLifecycleEvent, startsOn: Date | string | null | undefined) {
+  const metadata = event.metadata;
+  if (event.action === "lease.activated") {
+    const start =
+      typeof metadata === "object" &&
+      metadata !== null &&
+      "startsOn" in metadata &&
+      typeof metadata.startsOn === "string"
+        ? metadata.startsOn
+        : startsOn;
+    if (start) {
+      return `Start date: ${new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(new Date(start))}`;
+    }
+  }
   if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) return null;
   return "message" in metadata && typeof metadata.message === "string" ? metadata.message : null;
 }
@@ -88,7 +109,7 @@ type LeaseLifecycleEvent = {
   id: number;
   action: string;
   metadata: unknown;
-  createdAt: Date | string;
+  createdAt: Date | string | null;
 };
 
 export default function LeaseDetailPage() {
@@ -101,6 +122,7 @@ export default function LeaseDetailPage() {
   const params = useParams<{ id: string }>();
   const leaseId = Number(params.id);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
   const canViewLease = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canEditLease = canViewLease && hasPermission(currentUserQuery.data?.permissions, "leases", "edit");
   const leaseQuery = useQuery({
@@ -130,7 +152,23 @@ export default function LeaseDetailPage() {
     onError: (error) => toast.error(error.message),
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
-  const lifecycleEvents = (lifecycleQuery.data ?? []) as LeaseLifecycleEvent[];
+  const lifecycleEvents: LeaseLifecycleEvent[] = [...(lifecycleQuery.data ?? [])];
+  if (
+    lifecycleQuery.isSuccess &&
+    (leaseRecord?.status === "active" || leaseRecord?.status === "notice") &&
+    leaseRecord.startsOn &&
+    !lifecycleEvents.some((event) => event.action === "lease.activated")
+  ) {
+    const creationEvent = lifecycleEvents.find(
+      (event) => event.action === "lease.finalized" || event.action === "lease.created",
+    );
+    lifecycleEvents.push({
+      id: -1,
+      action: "lease.activated",
+      metadata: null,
+      createdAt: creationEvent?.createdAt ?? null,
+    });
+  }
   const canRetryActivation =
     canEditLease &&
     leaseRecord?.status === "scheduled" &&
@@ -320,36 +358,6 @@ export default function LeaseDetailPage() {
                 />
                 <Metric icon={CalendarDays} label="Rent Due" value={dueDay(leaseRecord.rentDueDay)} />
               </section>
-              <Card className="mt-5">
-                <CardHeader>
-                  <h2 className="font-semibold text-parcelis-charcoal">Lease activity</h2>
-                </CardHeader>
-                <CardContent>
-                  {lifecycleQuery.isLoading ? (
-                    <LoadingState label="Loading lease activity…" />
-                  ) : lifecycleQuery.error ? (
-                    <p className="text-sm text-red-700">{lifecycleQuery.error.message}</p>
-                  ) : lifecycleEvents.length ? (
-                    <ul className="divide-y divide-parcelis-border">
-                      {lifecycleEvents.map((event) => (
-                        <li className="py-3" key={event.id}>
-                          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                            <span className="font-semibold text-parcelis-charcoal">{lifecycleLabel(event.action)}</span>
-                            <time className="text-parcelis-gray" dateTime={new Date(event.createdAt).toISOString()}>
-                              {new Date(event.createdAt).toLocaleString()}
-                            </time>
-                          </div>
-                          {lifecycleMessage(event.metadata) ? (
-                            <p className="mt-1 text-sm text-parcelis-gray">{lifecycleMessage(event.metadata)}</p>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-parcelis-gray">No lifecycle activity yet.</p>
-                  )}
-                </CardContent>
-              </Card>
               <section className="mt-5 flex flex-col gap-5 lg:flex-row">
                 <Card className="flex-1">
                   <CardHeader>
@@ -422,6 +430,58 @@ export default function LeaseDetailPage() {
                   </CardContent>
                 </Card>
               </section>
+              <Card className="mt-5">
+                <CardHeader className="border-b-0 p-0">
+                  <Button
+                    aria-controls="lease-activity"
+                    aria-expanded={isActivityOpen}
+                    className="h-auto w-full justify-between rounded-none px-5 py-4 text-left"
+                    onClick={() => setIsActivityOpen((open) => !open)}
+                    type="button"
+                    variant="ghost"
+                  >
+                    <h2 className="font-semibold text-parcelis-charcoal">Lease activity</h2>
+                    <ChevronDown
+                      className={`h-5 w-5 text-parcelis-gray transition-transform ${isActivityOpen ? "rotate-180" : ""}`}
+                    />
+                  </Button>
+                </CardHeader>
+                {isActivityOpen ? (
+                  <CardContent className="border-t border-parcelis-border" id="lease-activity">
+                    {lifecycleQuery.isLoading ? (
+                      <LoadingState label="Loading lease activity…" />
+                    ) : lifecycleQuery.error ? (
+                      <p className="text-sm text-red-700">{lifecycleQuery.error.message}</p>
+                    ) : lifecycleEvents.length ? (
+                      <ul className="divide-y divide-parcelis-border">
+                        {lifecycleEvents.map((event) => (
+                          <li className="py-3" key={event.id}>
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                              <span className="font-semibold text-parcelis-charcoal">
+                                {lifecycleLabel(event.action)}
+                              </span>
+                              {event.createdAt ? (
+                                <time className="text-parcelis-gray" dateTime={new Date(event.createdAt).toISOString()}>
+                                  {new Date(event.createdAt).toLocaleString()}
+                                </time>
+                              ) : (
+                                <span className="text-parcelis-gray">Log timestamp unavailable</span>
+                              )}
+                            </div>
+                            {lifecycleMessage(event, leaseRecord.startsOn) ? (
+                              <p className="mt-1 text-sm text-parcelis-gray">
+                                {lifecycleMessage(event, leaseRecord.startsOn)}
+                              </p>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-parcelis-gray">No lifecycle activity yet.</p>
+                    )}
+                  </CardContent>
+                ) : null}
+              </Card>
             </>
           )}
         </div>

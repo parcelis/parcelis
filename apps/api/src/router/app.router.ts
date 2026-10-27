@@ -2458,6 +2458,15 @@ export const appRouter = router({
               }
 
               if (input.status === LeaseStatus.active || input.status === LeaseStatus.notice) {
+                await recordActivityEvent(tx, {
+                  organizationId: ctx.organization.organizationId,
+                  subjectType: ActivitySubjectType.lease,
+                  subjectId: lease.id,
+                  subjectLabel: `Lease #${lease.id}`,
+                  propertyId: input.propertyId,
+                  action: "lease.activated",
+                  metadata: { nextStatus: input.status, startsOn: input.startsOn.toISOString().slice(0, 10) },
+                });
                 await tx.property.update({
                   where: { id: input.propertyId },
                   data: { occupiedUnits: property.occupiedUnits + 1 },
@@ -4536,6 +4545,21 @@ export const appRouter = router({
                   action: "lease.finalized",
                   metadata: { ...invoiceSummary, billingRevision: 1 },
                 });
+                if (status === LeaseStatus.active) {
+                  await recordActivityEvent(tx, {
+                    organizationId,
+                    subjectType: ActivitySubjectType.lease,
+                    subjectId: lease.id,
+                    subjectLabel: `Lease #${lease.id}`,
+                    propertyId: completeLease.propertyId,
+                    action: "lease.activated",
+                    metadata: {
+                      previousStatus: LeaseStatus.draft,
+                      nextStatus: LeaseStatus.active,
+                      startsOn: completeLease.startsOn.toISOString().slice(0, 10),
+                    },
+                  });
+                }
                 const finalized = await tx.lease.findFirstOrThrow({ where: { id: lease.id, organizationId } });
                 return { ...finalized, invoiceSummary };
               },
@@ -4825,6 +4849,21 @@ export const appRouter = router({
                     propertyId,
                     action: "lease.created",
                     metadata: { ...invoiceSummary, billingRevision: 1 },
+                  });
+                }
+
+                if (leaseData.status === LeaseStatus.active || leaseData.status === LeaseStatus.notice) {
+                  await recordActivityEvent(tx, {
+                    organizationId: ctx.organization.organizationId,
+                    subjectType: ActivitySubjectType.lease,
+                    subjectId: createdLease.id,
+                    subjectLabel: `Lease #${createdLease.id}`,
+                    propertyId,
+                    action: "lease.activated",
+                    metadata: {
+                      nextStatus: leaseData.status,
+                      startsOn: createdLease.startsOn.toISOString().slice(0, 10),
+                    },
                   });
                 }
 
