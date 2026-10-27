@@ -20,7 +20,7 @@ Use `parcelis/parcelis` when you want:
 - A simpler self-hosted setup that is closer to a single deployable unit.
 - The same public URL layout as the modular stack: web app at `/`, tRPC at `/trpc/*`, public API at `/api/*`, job dashboard at `/admin/jobs/`, documentation at `/docs/`.
 
-Use the modular [`docker-compose.yml`](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose.yml) stack when you want the documentation site and proxy as separately deployed or scaled services, or when you want to keep the proxy on a separate container. Note that the web app and API run together inside the `parcelis/app` image in the modular stack, so neither topology scales the web app independently from the API.
+Use the modular [Docker Compose stack](./deploy-with-docker-compose#setting-up-parcelis) when you want the documentation site and proxy as separately deployed or scaled services, or when you want to keep the proxy on a separate container. Note that the web app and API run together inside the `parcelis/app` image in the modular stack, so neither topology scales the web app independently from the API.
 
 ## Image name and tags
 
@@ -96,10 +96,17 @@ docker run --rm \
 
 ## Running with Docker Compose
 
-Copy the example below to your host alongside `.env.production`:
+Choose the exact release tag or full commit for your deployment. Download the single-image Compose file and environment template from that same revision:
 
-1. [docker-compose-single-image.yml](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose-single-image.yml) - the single-image stack with PostgreSQL, Redis, MinIO, bucket initialization, a migration job, and a worker.
-2. [.env.production.example](https://raw.githubusercontent.com/parcelis/parcelis/main/.env.production.example) - the same environment template used by the modular stack.
+```bash
+PARCELIS_REF='<release-tag-or-full-commit>'
+curl -fL "https://raw.githubusercontent.com/parcelis/parcelis/${PARCELIS_REF}/docker-compose-single-image.yml" -o docker-compose-single-image.yml
+curl -fL "https://raw.githubusercontent.com/parcelis/parcelis/${PARCELIS_REF}/.env.production.example" -o .env.production.example
+```
+
+Replace the placeholder before running these commands. Set `PARCELIS_VERSION` in `.env.production` to the image tag for that release, or an image built from the selected commit. Use the same `PARCELIS_REF` for the [PostgreSQL migration helper](./upgrade-postgresql#before-migrating-to-postgresql-18); do not mix tagged deployment files with downloads from `main`.
+
+For a new installation, configure the environment file and start the stack. Existing deployments must retain their saved `.env.production` and secrets.
 
 ```bash
 cp .env.production.example .env.production

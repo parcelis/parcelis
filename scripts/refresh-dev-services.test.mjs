@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-for (const service of ["proxy-service", "redis-service", "minio-service", "postgres-service"]) {
+for (const service of ["proxy-service", "redis-service", "minio-service", "postgres-service", "minio-init-service"]) {
   test(`refresh scopes PostgreSQL diagnostics when ${service} fails`, (t) => {
     const directory = mkdtempSync(join(tmpdir(), "parcelis-refresh-test-"));
     t.after(() => rmSync(directory, { recursive: true, force: true }));
