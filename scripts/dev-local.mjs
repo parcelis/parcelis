@@ -3,6 +3,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { findOpenPort } from "./port-utils.mjs";
+import { runPostgresCompose } from "./compose-postgres.mjs";
 
 const envPath = resolve(import.meta.dirname, "../.env");
 
@@ -125,7 +126,7 @@ function startDevelopmentServices() {
   try {
     console.log("[parcelis] Ensuring local services are running");
     runCompose(["up", "-d", "--force-recreate", "proxy-service"]);
-    runCompose(["up", "-d", "--wait", "postgres-service"]);
+    runPostgresCompose(runCompose, ["up", "-d", "--wait", "postgres-service"]);
     runCompose(["up", "-d", "--wait", "redis-service"]);
     runCompose(["up", "-d", "minio-service"]);
     runCompose(["run", "--rm", "minio-init-service"]);

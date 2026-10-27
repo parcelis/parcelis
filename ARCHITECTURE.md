@@ -25,6 +25,8 @@ shorter than Supervisor and Compose termination deadlines. It uses Next.js
 request handlers through a Node HTTP server because the standard CLI exposes no
 application-resource cleanup hook. The API does not use standalone output.
 
+PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](apps/docs/content/getting-started/upgrade-postgresql.mdx). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
+
 ## Overview
 
 Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, docs, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.

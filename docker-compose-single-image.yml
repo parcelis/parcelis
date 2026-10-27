@@ -1,3 +1,5 @@
+# PostgreSQL 16 installations: migrate before starting this updated stack.
+# See https://docs.parcelis.dev/getting-started/upgrade-postgresql and scripts/upgrade-postgres.mjs.
 # Single application image Compose example.
 #
 # Runs the published `parcelis/parcelis` image, which bundles the Parcelis web
@@ -19,14 +21,24 @@ name: parcelis-single-image
 
 services:
   postgres-service:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        if [ -f /legacy/PG_VERSION ] && [ ! -f /var/lib/postgresql/.parcelis-pg18-migrated ]; then
+          echo >&2 "Parcelis requires PostgreSQL 18. Existing database detected; startup blocked to protect your data."
+          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/getting-started/upgrade-postgresql."
+          exit 1
+        fi
+        exec /usr/local/bin/docker-entrypoint.sh postgres
     container_name: parcelis-single-image-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/legacy:ro
+      - postgres18-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -139,7 +151,11 @@ services:
     networks:
       - parcelis
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/v1/health && wget -q -O /dev/null http://127.0.0.1:3000/"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:3000/api/v1/health && wget -q -O /dev/null http://127.0.0.1:3000/",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -171,6 +187,7 @@ services:
 
 volumes:
   postgres-data:
+  postgres18-data:
   redis-data:
   minio-data:
 
