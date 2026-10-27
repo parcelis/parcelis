@@ -4119,15 +4119,43 @@ export const appRouter = router({
         const organizationId = ctx.organization.organizationId;
         const lease = await ctx.prisma.lease.findFirst({
           where: { id: input.id, organizationId },
-          select: { id: true },
+          select: { id: true, status: true, startsOn: true },
         });
         if (!lease) throw new TRPCError({ code: "NOT_FOUND", message: "Lease not found." });
-        return ctx.prisma.activityEvent.findMany({
+        const events = await ctx.prisma.activityEvent.findMany({
           where: { organizationId, subjectType: ActivitySubjectType.lease, subjectId: input.id },
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: 20,
           select: { id: true, action: true, metadata: true, createdAt: true, actorLabel: true },
         });
+        if (
+          (lease.status === LeaseStatus.active || lease.status === LeaseStatus.notice) &&
+          lease.startsOn &&
+          !events.some((event) => event.action === "lease.activated")
+        ) {
+          const activation = await ctx.prisma.activityEvent.findFirst({
+            where: {
+              organizationId,
+              subjectType: ActivitySubjectType.lease,
+              subjectId: input.id,
+              action: "lease.activated",
+            },
+            select: { id: true },
+          });
+          if (!activation) {
+            return [
+              ...events,
+              {
+                id: -1,
+                action: "lease.activated",
+                metadata: { startsOn: lease.startsOn.toISOString().slice(0, 10) },
+                createdAt: null,
+                actorLabel: null,
+              },
+            ];
+          }
+        }
+        return events;
       }),
     /** Saves fields on an editable lease draft using optimistic concurrency. */
     updateDraft: permissionProcedure("leases", "edit")

@@ -84,6 +84,18 @@ function lifecycleLabel(action: string) {
 
 function lifecycleMessage(event: LeaseLifecycleEvent, startsOn: Date | string | null | undefined) {
   const metadata = event.metadata;
+  const messages: string[] = [];
+  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
+    if (
+      "previousStatus" in metadata &&
+      typeof metadata.previousStatus === "string" &&
+      "nextStatus" in metadata &&
+      typeof metadata.nextStatus === "string"
+    ) {
+      messages.push(`${formatStatus(metadata.previousStatus)} → ${formatStatus(metadata.nextStatus)}`);
+    }
+    if ("message" in metadata && typeof metadata.message === "string") messages.push(metadata.message);
+  }
   if (event.action === "lease.activated") {
     const start =
       typeof metadata === "object" &&
@@ -93,16 +105,17 @@ function lifecycleMessage(event: LeaseLifecycleEvent, startsOn: Date | string | 
         ? metadata.startsOn
         : startsOn;
     if (start) {
-      return `Start date: ${new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(new Date(start))}`;
+      messages.push(
+        `Start date: ${new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          timeZone: "UTC",
+        }).format(new Date(start))}`,
+      );
     }
   }
-  if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) return null;
-  return "message" in metadata && typeof metadata.message === "string" ? metadata.message : null;
+  return messages.length ? messages.join(" · ") : null;
 }
 
 type LeaseLifecycleEvent = {
@@ -152,23 +165,7 @@ export default function LeaseDetailPage() {
     onError: (error) => toast.error(error.message),
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
-  const lifecycleEvents: LeaseLifecycleEvent[] = [...(lifecycleQuery.data ?? [])];
-  if (
-    lifecycleQuery.isSuccess &&
-    (leaseRecord?.status === "active" || leaseRecord?.status === "notice") &&
-    leaseRecord.startsOn &&
-    !lifecycleEvents.some((event) => event.action === "lease.activated")
-  ) {
-    const creationEvent = lifecycleEvents.find(
-      (event) => event.action === "lease.finalized" || event.action === "lease.created",
-    );
-    lifecycleEvents.push({
-      id: -1,
-      action: "lease.activated",
-      metadata: null,
-      createdAt: creationEvent?.createdAt ?? null,
-    });
-  }
+  const lifecycleEvents: LeaseLifecycleEvent[] = lifecycleQuery.data ?? [];
   const canRetryActivation =
     canEditLease &&
     leaseRecord?.status === "scheduled" &&
@@ -440,7 +437,7 @@ export default function LeaseDetailPage() {
                     type="button"
                     variant="ghost"
                   >
-                    <h2 className="font-semibold text-parcelis-charcoal">Lease activity</h2>
+                    <span className="font-semibold text-parcelis-charcoal">Lease activity</span>
                     <ChevronDown
                       className={`h-5 w-5 text-parcelis-gray transition-transform ${isActivityOpen ? "rotate-180" : ""}`}
                     />
