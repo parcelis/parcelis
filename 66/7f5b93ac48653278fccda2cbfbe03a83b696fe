@@ -1,0 +1,35 @@
+scripts/refresh-dev-services.mjs
+  s_3204274f2bdd23::t_7fd2ebafe895b0 17
+  s_3204274f2bdd23::t_a2390698bd54fb 18
+scripts/upgrade-postgres.mjs
+  s_3204274f2bdd23::t_7b380e2af6ba99 3-4,55,134-135,198-200,210-211,215,259-266
+  s_3204274f2bdd23::t_36647707c17f3f 267-268
+apps/docs/content/getting-started/upgrade-postgresql.mdx
+  s_3204274f2bdd23::t_87bf877a07dd37 35
+scripts/refresh-dev-services.test.mjs
+  s_3204274f2bdd23::t_a2390698bd54fb 1-41,43-48
+  s_3204274f2bdd23::t_7fd2ebafe895b0 42
+scripts/upgrade-postgres.test.mjs
+  s_3204274f2bdd23::t_13afee6fada8bd 2,4,55,60-65,73,83,105-107,125-130,134-147,150-151,156-159
+  s_3204274f2bdd23::t_b64e659a7bbfdf 12-16,66-72,131-133,148-149,152-155
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_3204274f2bdd23::t_87bf877a07dd37 10-12
+scripts/upgrade-postgres.integration.mjs
+  s_3204274f2bdd23::t_8817999b06397a 3,14,17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "667f5b93ac48653278fccda2cbfbe03a83b696fe",
+  "prompts": {},
+  "sessions": {
+    "s_3204274f2bdd23": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17b1c-ceb0-74c2-a915-33bd79f83acd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
