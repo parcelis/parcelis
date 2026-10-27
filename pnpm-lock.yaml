@@ -219,13 +219,13 @@ importers:
         version: 9.10.5(@bull-board/ui@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       '@bull-board/hono':
         specifier: ^9.10.4
-        version: 9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)
+        version: 9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.14)(typescript@6.0.3)
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
       '@hono/node-server':
         specifier: ^2.1.3
-        version: 2.1.5(hono@4.13.13)
+        version: 2.1.5(hono@4.13.14)
       '@parcelis/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -255,7 +255,7 @@ importers:
         version: 18.0.9
       hono:
         specifier: ^4.13.13
-        version: 4.13.13
+        version: 4.13.14
       next:
         specifier: ^16.3.8
         version: 16.4.2(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
@@ -570,7 +570,7 @@ importers:
         version: link:../config
       '@react-email/ui':
         specifier: ^6.9.3
-        version: 6.11.3(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
+        version: 6.11.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -6861,8 +6861,8 @@ packages:
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
 
-  hono@4.13.13:
-    resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
+  hono@4.13.14:
+    resolution: {integrity: sha512-yhRLQ21U6qa9Hsu2N7Qcbh8tE+WKEcoErjIo56LeSGiGXGp9sA7UpE86Ui9uexb61KakiGwuHMn2QdV7w6i6kQ==}
     engines: {node: '>=16.9.0'}
 
   hpack.js@2.1.6:
@@ -12003,12 +12003,12 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@bull-board/hono@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)':
+  '@bull-board/hono@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.14)(typescript@6.0.3)':
     dependencies:
       '@bull-board/api': 9.10.5(@bull-board/ui@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       '@bull-board/ui': 9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       ejs: 6.0.1
-      hono: 4.13.13
+      hono: 4.13.14
     transitivePeerDependencies:
       - bull
       - bullmq
@@ -13958,9 +13958,9 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hono/node-server@2.1.5(hono@4.13.13)':
+  '@hono/node-server@2.1.5(hono@4.13.14)':
     dependencies:
-      hono: 4.13.13
+      hono: 4.13.14
 
   '@hookform/error-message@2.0.1(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)':
     dependencies:
@@ -15113,11 +15113,11 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@react-email/ui@6.11.3(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)':
+  '@react-email/ui@6.11.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)':
     dependencies:
       esbuild: 0.28.2
       jiti: 2.6.1
-      next: 16.4.1(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
+      next: 16.4.1(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
     transitivePeerDependencies:
       - '@babel/core'
       - '@opentelemetry/api'
@@ -18803,7 +18803,7 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono@4.13.13: {}
+  hono@4.13.14: {}
 
   hpack.js@2.1.6:
     dependencies:
@@ -20296,7 +20296,7 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  next@16.4.1(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1):
+  next@16.4.1(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1):
     dependencies:
       '@next/env': 16.4.1
       '@swc/helpers': 0.5.23
