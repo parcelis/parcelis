@@ -1,0 +1,66 @@
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_3204274f2bdd23::t_0e629a8e01deaa 9-14
+scripts/dev-local.mjs
+  s_3204274f2bdd23::t_0e629a8e01deaa 6,129
+scripts/upgrade-postgres.integration.mjs
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-197
+apps/docs/sidebars.ts
+  s_3204274f2bdd23::t_0e629a8e01deaa 81
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_3204274f2bdd23::t_0e629a8e01deaa 9-12,19
+  s_3204274f2bdd23::t_00b4ab7edc6235 27
+apps/docs/content/getting-started.mdx
+  s_3204274f2bdd23::t_0e629a8e01deaa 9-10
+apps/docs/content/getting-started/deploy-with-docker-compose-single-image.mdx
+  s_3204274f2bdd23::t_0e629a8e01deaa 11-14,99-107,109
+scripts/upgrade-postgres.mjs
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-299
+CONTRIBUTING.md
+  s_3204274f2bdd23::t_0e629a8e01deaa 5-6
+docker-compose-single-image.yml
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-2,24-33,40-41,154-158,190,199
+.github/workflows/ci.yml
+  s_3204274f2bdd23::t_0e629a8e01deaa 9-52
+docker-compose.yml
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-2,7-16,23-24,181
+apps/docs/content/getting-started/upgrade-postgresql.mdx
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-122
+scripts/compose-postgres.test.mjs
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-35
+.gitignore
+  s_3204274f2bdd23::t_0e629a8e01deaa 15-17
+scripts/refresh-dev-services.mjs
+  s_3204274f2bdd23::t_0e629a8e01deaa 4,17-18
+scripts/upgrade-postgres.test.mjs
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-159
+package.json
+  s_3204274f2bdd23::t_0e629a8e01deaa 29
+README.md
+  s_3204274f2bdd23::t_0e629a8e01deaa 36-37
+scripts/compose-postgres.mjs
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-17
+scripts/refresh-dev-services.test.mjs
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-48
+ARCHITECTURE.md
+  s_3204274f2bdd23::t_0e629a8e01deaa 28-29
+DEPENDENCIES.md
+  s_3204274f2bdd23::t_0e629a8e01deaa 64
+docker-compose-dev.yml
+  s_3204274f2bdd23::t_0e629a8e01deaa 1-2,22-31,40-41,117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ba6482b03d3a991064f5b50fff930316ce987675",
+  "prompts": {},
+  "sessions": {
+    "s_3204274f2bdd23": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17b1c-ceb0-74c2-a915-33bd79f83acd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
