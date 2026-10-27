@@ -8,6 +8,10 @@ Parcelis publishes an optional **single application image**, `parcelis/parcelis`
 
 PostgreSQL, Redis, and S3-compatible object storage (such as MinIO) remain external services. Database migrations are still an explicit deployment step.
 
+:::danger Existing PostgreSQL 16 installations
+The supplied Compose files now require PostgreSQL 18. **Before running `up` with the updated files, follow [Upgrade PostgreSQL 16 to 18](./upgrade-postgresql).** Prisma migrations do not upgrade the database server. Existing volumes are preserved, and startup is blocked until the data migration is verified.
+:::
+
 ## When to use the single-image artifact
 
 Use `parcelis/parcelis` when you want:

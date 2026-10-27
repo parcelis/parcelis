@@ -6,6 +6,10 @@ sidebar_label: Deploy with Docker Compose
 
 Docker Compose is the recommended way to deploy Parcelis for a full production-style environment because it starts the application, documentation site, PostgreSQL, and MinIO together and runs the migration and storage initialization steps automatically.
 
+:::danger Existing PostgreSQL 16 installations
+The supplied Compose files now require PostgreSQL 18. **Before running `up` with the updated files, follow [Upgrade PostgreSQL 16 to 18](./upgrade-postgresql).** Prisma migrations do not upgrade the database server. Existing volumes are preserved, and startup is blocked until the data migration is verified.
+:::
+
 ## Requirements
 
 To run the Parcelis platform, the minimum requirements are simply those required to install and run Docker. For production deployments, we recommend a Linux host with a supported Docker engine and Compose v2 installation.

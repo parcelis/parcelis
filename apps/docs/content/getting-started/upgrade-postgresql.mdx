@@ -1,0 +1,115 @@
+---
+id: upgrade-postgresql
+title: Upgrade PostgreSQL 16 to 18
+sidebar_label: Upgrade PostgreSQL
+---
+
+Parcelis Compose deployments and local development now target **PostgreSQL 18**. This is a breaking deployment change. PostgreSQL 18 cannot open PostgreSQL 16 data files; Prisma migrations do not convert them.
+
+## Stay on PostgreSQL 16 until you are ready
+
+You can continue using your existing PostgreSQL 16 database until you are ready to migrate. Before starting an updated Compose file, edit its `postgres-service`:
+
+1. Change `image` to `postgres:16-alpine`.
+2. Remove the PostgreSQL 18 `entrypoint` and `command` overrides.
+3. Replace the `/legacy` and `postgres18-data` mounts with the original data mount shown below. Keep the service's existing environment, ports, health check, and networks.
+
+```yaml
+services:
+  postgres-service:
+    image: postgres:16-alpine
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+```
+
+Keep the same Compose project name and database credentials so the service uses your existing volume. **Changing only the image tag is not enough:** PostgreSQL 16 needs its original data mount. PostgreSQL 18 remains the maintained Compose target; this is a temporary local override.
+
+When you are ready to migrate, restore the supplied PostgreSQL 18 service configuration before running the migration helper below. If you have already accepted writes on PostgreSQL 18, follow [Failure and recovery](#failure-and-recovery) instead of switching back to the old volume.
+
+## Before migrating to PostgreSQL 18
+
+- Schedule downtime, drain incoming traffic, and stop **all** app and worker instances, scheduled jobs, and development watchers, including other hosts. Keep them stopped until verification finishes.
+- Save the previous release's Compose files, image tags, environment files, and secrets. Back up object storage and Redis separately; the script only migrates PostgreSQL.
+- Keep the same Compose project name, environment file, database credentials, and database name. Changing the project name can select different volumes and make existing data appear missing.
+- Provide disk space for the original database, a full logical backup, and the restored database plus indexes. Keep a separate off-host backup. Docker Compose v2 and Node.js 24 are required for the helper; pnpm and a local PostgreSQL installation are not required.
+- Download the updated Compose file and [scripts/upgrade-postgres.mjs](https://raw.githubusercontent.com/parcelis/parcelis/main/scripts/upgrade-postgres.mjs) from the same release. Preserve the script path shown below, or adjust commands to its location.
+
+**Do not run `docker compose down -v`, delete `postgres-data`, change credentials, or edit PostgreSQL's version file.** Do not start the updated application until the database upgrade finishes.
+
+## Run the migration
+
+Run these commands from the directory containing your Compose file. The first command performs preflight checks without stopping services or changing database contents. It downloads the PostgreSQL 16 and 18 helper images before downtime begins.
+
+For the modular production stack:
+
+```bash
+node scripts/upgrade-postgres.mjs -- --env-file .env.production -f docker-compose.yml
+```
+
+After draining traffic and stopping writers outside this Compose project, execute the migration:
+
+```bash
+node scripts/upgrade-postgres.mjs --execute --backup-dir ./postgres18-backup -- --env-file .env.production -f docker-compose.yml
+```
+
+For the single-image stack, use `-f docker-compose-single-image.yml` instead. For local development, stop `pnpm dev` and use:
+
+```bash
+node scripts/upgrade-postgres.mjs -- -f docker-compose-dev.yml
+node scripts/upgrade-postgres.mjs --execute --backup-dir ./postgres18-backup -- -f docker-compose-dev.yml
+```
+
+If you originally used `docker compose -p NAME`, include the same `-p NAME` after `--` in every command. The backup directory must not already exist. Backups contain private application data: keep them secure and copy the completed backup off-host.
+
+The helper:
+
+1. Checks the updated configuration, the existing PostgreSQL 16 volume, and an empty destination. It refuses to overwrite an existing destination.
+2. Stops **every service in the selected Compose project**. Services are not restarted automatically, even on failure.
+3. Starts isolated temporary database containers without published ports. The original PostgreSQL 16 database is opened normally to produce a consistent custom-format dump at `postgres18-backup/parcelis.dump`.
+4. Restores the application database into the separate `postgres18-data` volume. It preserves records, Prisma migration history, and sequence state. The original `postgres-data` volume remains available.
+5. Compares public table row counts and sequence values, updates planner statistics, and writes `verification.txt`. Only after successful verification does it mark the destination ready for Compose startup.
+
+The helper migrates only `POSTGRES_DB`, with one owner and the public schema. Other databases (such as `parcelis_test`) do not block migration: it lists them and leaves them in the original PostgreSQL 16 volume. They are not included in `parcelis.dump` and will not be available on PostgreSQL 18 unless migrated separately. Back up any additional databases you need before proceeding. The helper refuses custom roles or custom schemas in the selected database. For customized installations or managed PostgreSQL, use your provider's major upgrade process or a reviewed [PostgreSQL dump/restore procedure](https://www.postgresql.org/docs/18/upgrading.html), including roles, extensions, tablespaces, and ownership. Do not create the readiness marker to bypass a failed migration.
+
+## Start and verify PostgreSQL 18
+
+Keep public traffic disabled. For the modular stack:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.yml up -d --wait postgres-service
+docker compose --env-file .env.production -f docker-compose.yml exec postgres-service sh -ec 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SHOW server_version;"'
+docker compose --env-file .env.production -f docker-compose.yml pull
+docker compose --env-file .env.production -f docker-compose.yml run --rm --no-deps migrate-service
+docker compose --env-file .env.production -f docker-compose.yml up -d --remove-orphans
+docker compose --env-file .env.production -f docker-compose.yml ps
+```
+
+Use the single-image filename for that stack. If Prisma migrations fail, do not start the application: resolve the failure while traffic remains disabled.
+
+For local development:
+
+```bash
+docker compose -f docker-compose-dev.yml up -d --wait postgres-service
+pnpm db:deploy
+pnpm dev
+```
+
+Do not seed an existing deployment as part of this upgrade. Check `/api/v1/ready`, sign in with an existing account, inspect organizations, properties, tenants, leases, invoices, and uploads, and check worker logs. Confirm expected records and IDs and test creating a record to exercise sequences. Then restore traffic and monitor database and worker errors.
+
+Fresh installations have no legacy data and start PostgreSQL 18 normally. Existing installations that run the updated Compose file too soon get an explicit startup error directing them here; the app and migration service remain blocked by database health dependencies.
+
+For local development, `pnpm dev` and `pnpm dev:services:refresh` print PostgreSQL container logs, this guide's URL, and the migration preflight command when database startup fails. When running Compose directly, use `docker compose ... logs postgres-service` to read the database's startup message.
+
+## Failure and recovery
+
+Keep traffic and every writer stopped. The helper retains the original PostgreSQL 16 volume and any completed dump. A failed restore leaves the destination blocked. Inspect the error before retrying; the helper intentionally refuses a nonempty destination.
+
+If the helper was interrupted or reports a cleanup failure, use `docker ps -a` to find its `parcelis-pg16-upgrade-*` and `parcelis-pg18-upgrade-*` containers. Stop and remove those temporary containers before restarting Compose or retrying. Do not remove their database volumes.
+
+To retry a failed restore, first stop the updated stack with `docker compose ... down` **without `-v`**. Use `docker volume ls` and the preflight output to identify the exact destination, then remove **only the failed `postgres18-data` volume**, after confirming it contains no accepted application writes. Rerun with a new backup directory. Never remove `postgres-data`, Redis, or object-storage volumes.
+
+To return to PostgreSQL 16 before accepting application writes on 18, stop the updated stack without `-v`, restore the saved old Compose file, old application image tags, and environment, and start the old stack using the original project name. The old Compose file mounts the original `postgres-data` at `/var/lib/postgresql/data`. The preserved database has not had the new release's Prisma migrations applied to it.
+
+After accepting writes on 18, switching back to the old volume discards those new writes. Keep 18 as the source of truth and arrange data reconciliation or recovery; do not promise an automatic downgrade. Retain both volumes and backups until the upgrade is accepted and your retention period has passed.
+
+For external databases, rehearse the upgrade on a restored copy, take a final backup after stopping writers, upgrade through the provider, and confirm the endpoint and credentials before applying Parcelis migrations. This helper only supports the supplied local Docker named-volume layout.

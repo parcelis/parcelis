@@ -33,6 +33,8 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br/>
 
+PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](apps/docs/content/getting-started/upgrade-postgresql.mdx). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
+
 ## <p align="center"> We are currently under active development. While we have produced a demo website and pre-released versions, this software is not production ready. We will update once we have a basic MVP to pilot.</p>
 
 <br />

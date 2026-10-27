@@ -6,6 +6,10 @@ sidebar_label: Deploy with Docker
 
 Parcelis ships published container images for the application and documentation site. The simplest way to run the platform is to use Docker directly when you already have PostgreSQL and S3-compatible storage services available.
 
+:::danger Existing PostgreSQL 16 installations
+The supplied Compose files now require PostgreSQL 18. **Before running `up` with the updated files, follow [Upgrade PostgreSQL 16 to 18](./upgrade-postgresql).** Prisma migrations do not upgrade the database server. Existing volumes are preserved, and startup is blocked until the data migration is verified.
+:::
+
 ## Requirements
 
 To run Parcelis with Docker, the minimum requirements are simply those required to install and run Docker. The production Compose stack includes nginx as the proxy for the web app, API, and documentation site.

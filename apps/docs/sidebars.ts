@@ -78,6 +78,7 @@ const sidebars: SidebarsConfig = {
         "getting-started/deploy-with-docker",
         "getting-started/deploy-with-docker-compose",
         "getting-started/deploy-with-docker-compose-single-image",
+        "getting-started/upgrade-postgresql",
         "getting-started/email-configuration",
         "getting-started/status-monitor",
         "getting-started/api-token-rollout",
