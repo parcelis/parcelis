@@ -113,7 +113,7 @@ test("lease activity is read only within the active organization", async () => {
     lease: {
       findFirst: async ({ where }: { where: { id: number; organizationId: number } }) => {
         assert.deepEqual(where, { id: 9, organizationId: 7 });
-        return { id: 9 };
+        return { id: 9, status: "active", startsOn: new Date("2026-10-01") };
       },
     },
     activityEvent: {
@@ -138,3 +138,77 @@ test("the general activity list excludes lease events", async () => {
   });
   assert.deepEqual(await caller.activityEvents.list({}), []);
 });
+
+for (const status of ["active", "notice"] as const) {
+  test(`${status} lease does not infer a start when activation is outside the latest 20 events`, async () => {
+    const events = Array.from({ length: 20 }, (_, index) => ({
+      id: 100 - index,
+      action: "lease.expiration_failed",
+      metadata: { message: "Needs attention" },
+      createdAt: new Date("2026-10-10T12:00:00Z"),
+      actorLabel: null,
+    }));
+    const caller = createCaller({
+      lease: {
+        findFirst: async () => ({ id: 9, status, startsOn: new Date("2026-10-01") }),
+      },
+      activityEvent: {
+        findMany: async ({ take }: { take: number }) => {
+          assert.equal(take, 20);
+          return events;
+        },
+        findFirst: async ({ where }: { where: unknown }) => {
+          assert.deepEqual(where, {
+            organizationId: 7,
+            subjectType: "lease",
+            subjectId: 9,
+            action: "lease.activated",
+          });
+          return { id: 1 };
+        },
+      },
+    });
+    assert.deepEqual(await caller.leases.lifecycleEvents({ id: 9 }), events);
+  });
+
+  test(`${status} lease with no activation log has an inferred start without a fabricated timestamp`, async () => {
+    const finalized = {
+      id: 4,
+      action: "lease.finalized",
+      metadata: {},
+      createdAt: new Date("2026-09-20T12:00:00Z"),
+      actorLabel: null,
+    };
+    const caller = createCaller({
+      lease: {
+        findFirst: async () => ({ id: 9, status, startsOn: new Date("2026-10-01") }),
+      },
+      activityEvent: {
+        findMany: async () => [finalized],
+        findFirst: async () => null,
+      },
+    });
+    assert.deepEqual(await caller.leases.lifecycleEvents({ id: 9 }), [
+      finalized,
+      {
+        id: -1,
+        action: "lease.activated",
+        metadata: { startsOn: "2026-10-01" },
+        createdAt: null,
+        actorLabel: null,
+      },
+    ]);
+  });
+}
+
+for (const status of ["draft", "scheduled", "ended"] as const) {
+  test(`${status} lease does not get an inferred start`, async () => {
+    const caller = createCaller({
+      lease: {
+        findFirst: async () => ({ id: 9, status, startsOn: new Date("2026-10-01") }),
+      },
+      activityEvent: { findMany: async () => [] },
+    });
+    assert.deepEqual(await caller.leases.lifecycleEvents({ id: 9 }), []);
+  });
+}

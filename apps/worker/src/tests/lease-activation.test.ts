@@ -31,10 +31,12 @@ function createDatabase(input: {
   let previousStatus: string | null = input.occupiedLeaseId ? (input.previousStatus ?? "active") : null;
   let occupiedUnits = input.occupiedLeaseId ? 1 : 0;
   const activity: Array<{ subjectId: number; action: string }> = [];
+  const activationMetadata: unknown[] = [];
   const tx = {
     activityEvent: {
-      create: async ({ data }: { data: { subjectId: number; action: string } }) => {
+      create: async ({ data }: { data: { subjectId: number; action: string; metadata?: unknown } }) => {
         activity.push({ subjectId: data.subjectId, action: data.action });
+        if (data.action === "lease.activated") activationMetadata.push(data.metadata);
         return { id: activity.length };
       },
     },
@@ -115,16 +117,22 @@ function createDatabase(input: {
     current: () => ({ status, occupiedUnits }),
     previous: () => previousStatus,
     activity: () => activity,
+    activationMetadata: () => activationMetadata,
   };
 }
 
 test("activation changes status and occupancy only once", async () => {
-  const { prisma, current, activity } = createDatabase({ startsOn: new Date("2026-10-01T00:00:00.000Z") });
+  const { prisma, current, activity, activationMetadata } = createDatabase({
+    startsOn: new Date("2026-10-01T00:00:00.000Z"),
+  });
   const now = new Date("2026-10-01T12:00:00.000Z");
   assert.equal(await activateScheduledLease(prisma, 7, 9, now), true);
   assert.equal(await activateScheduledLease(prisma, 7, 9, now), false);
   assert.deepEqual(current(), { status: "active", occupiedUnits: 1 });
   assert.deepEqual(activity(), [{ subjectId: 9, action: "lease.activated" }]);
+  assert.deepEqual(activationMetadata(), [
+    { previousStatus: "scheduled", nextStatus: "active", startsOn: "2026-10-01" },
+  ]);
 });
 
 test("activation waits until the lease start", async () => {

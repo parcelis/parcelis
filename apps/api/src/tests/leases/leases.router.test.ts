@@ -240,6 +240,7 @@ for (const route of ["tenants", "leases"] as const) {
     test(`${route} ${billingResponsibility} lease generation creates invoices with the correct amounts and recipients`, async () => {
       const invoiceData: Array<{ amountCents: number; sourceKey: string }> = [];
       const recipientData: Array<{ invoiceId: number; tenantId: number }> = [];
+      const activityData: Array<{ action: string; metadata: unknown }> = [];
       let leaseData: unknown;
       const input = {
         ...individualLeaseInput,
@@ -294,7 +295,12 @@ for (const route of ["tenants", "leases"] as const) {
           },
         },
         invoiceItem: { createMany: async () => ({ count: expectedAmounts.length }) },
-        activityEvent: { create: async () => ({ id: 1 }) },
+        activityEvent: {
+          create: async ({ data }: { data: { action: string; metadata: unknown } }) => {
+            activityData.push(data);
+            return { id: activityData.length };
+          },
+        },
       };
       const caller = createCaller({
         ...tx,
@@ -303,6 +309,10 @@ for (const route of ["tenants", "leases"] as const) {
 
       const created = route === "tenants" ? await caller.tenants.createLease(input) : await caller.leases.create(input);
 
+      assert.deepEqual(
+        activityData.filter(({ action }) => action === "lease.activated").map(({ metadata }) => metadata),
+        [{ nextStatus: "active", startsOn: "2026-01-01" }],
+      );
       assert.deepEqual(
         invoiceData.map(({ amountCents }) => amountCents),
         expectedAmounts,

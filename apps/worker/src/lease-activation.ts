@@ -203,7 +203,11 @@ export async function activateScheduledLease(
               subjectLabel: `Lease #${leaseId}`,
               propertyId: lease.propertyId,
               action: "lease.activated",
-              metadata: { previousStatus: LeaseStatus.scheduled, nextStatus: LeaseStatus.active },
+              metadata: {
+                previousStatus: LeaseStatus.scheduled,
+                nextStatus: LeaseStatus.active,
+                startsOn: leaseDate(lease.startsOn),
+              },
             },
           });
           return true;
