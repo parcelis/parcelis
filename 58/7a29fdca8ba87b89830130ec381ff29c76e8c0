@@ -1,0 +1,26 @@
+scripts/upgrade-postgres.mjs
+  s_3204274f2bdd23::t_77b77c49351d3c 134-139,255-264,266-269
+  s_3204274f2bdd23::t_8099123e511cca 61,64,73,75,77-80,96,101,141,143-144,148,160,188,195,213,216,244-245,254,265
+apps/docs/content/getting-started/upgrade-postgresql.mdx
+  s_3204274f2bdd23::t_77b77c49351d3c 70
+scripts/upgrade-postgres.test.mjs
+  s_3204274f2bdd23::t_86050c65205e29 2-4,6,45-52,54-60,62-71,84-91,93-95,99-101
+  s_3204274f2bdd23::t_77b77c49351d3c 53,61,72-83,92,96-98
+  s_3204274f2bdd23::t_5a860c250d621e 102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "587a29fdca8ba87b89830130ec381ff29c76e8c0",
+  "prompts": {},
+  "sessions": {
+    "s_3204274f2bdd23": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17b1c-ceb0-74c2-a915-33bd79f83acd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
