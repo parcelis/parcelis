@@ -6,6 +6,50 @@ on:
     branches: [main]
 
 jobs:
+  postgres-upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.22.1
+      - run: docker pull postgres:16-alpine
+      - run: docker pull postgres:18-alpine
+      - run: node --test scripts/upgrade-postgres.integration.mjs
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: parcelis
+          POSTGRES_PASSWORD: parcelis
+          POSTGRES_DB: parcelis_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U parcelis -d parcelis_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://parcelis:parcelis@localhost:5432/parcelis_test?schema=public
+      OUTBOX_TEST_DATABASE_URL: postgresql://parcelis:parcelis@localhost:5432/parcelis_integration_test?schema=public
+      API_TOKEN_TEST_DATABASE_URL: postgresql://parcelis:parcelis@localhost:5432/parcelis_integration_test?schema=public
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.22.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:deploy
+      - run: docker exec ${{ job.services.postgres.id }} createdb -U parcelis parcelis_integration_test
+      - run: pnpm --filter @parcelis/email --filter @parcelis/jobs build
+      - run: pnpm --filter @parcelis/db test:integration
+      - run: pnpm --filter @parcelis/worker test:integration
+      - run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts'
+
   commit-messages:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
