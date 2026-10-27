@@ -216,10 +216,10 @@ importers:
         version: 3.1156.0
       '@bull-board/api':
         specifier: ^9.10.1
-        version: 9.10.5(@bull-board/ui@9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+        version: 9.10.5(@bull-board/ui@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       '@bull-board/hono':
         specifier: ^9.10.4
-        version: 9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)
+        version: 9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -249,7 +249,7 @@ importers:
         version: 0.45.1
       bullmq:
         specifier: ^6.3.9
-        version: 6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       dotenv:
         specifier: ^18.0.0
         version: 18.0.9
@@ -477,7 +477,7 @@ importers:
         version: link:../../packages/jobs
       bullmq:
         specifier: ^6.3.8
-        version: 6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0(supports-color@8.1.1)
@@ -585,7 +585,7 @@ importers:
     dependencies:
       bullmq:
         specifier: ^6.3.8
-        version: 6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       zod:
         specifier: ^4.6.5
         version: 4.6.7
@@ -5186,9 +5186,9 @@ packages:
   buffer@6.0.3:
     resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
 
-  bullmq@6.4.2:
-    resolution: {integrity: sha512-fCPPJUgJFwbaN7nZiU/JzQVydss+mA3FUYaepvJQnkSUr4jmzobZcqMSJZPZygN/esQZLppE/cTyTYTNniO3bQ==}
-    engines: {node: '>=14.17.0'}
+  bullmq@6.5.0:
+    resolution: {integrity: sha512-GDaUfEig2lWHS52aOI0h8f/W0m+5PPmHOJSahAKRMfi82BdL/2EqCuiDmJcNiwgpaZ0KHz7NxC8eNMI3bh8NQg==}
+    engines: {node: '>=14.18.0'}
     peerDependencies:
       bullmq-otel: '>=2.0.0'
       ioredis: '>=5.0.0'
@@ -11993,20 +11993,20 @@ snapshots:
 
   '@braintree/sanitize-url@7.1.2': {}
 
-  '@bull-board/api@9.10.5(@bull-board/ui@9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
+  '@bull-board/api@9.10.5(@bull-board/ui@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
     dependencies:
-      '@bull-board/ui': 9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/ui': 9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       redis-info: 3.1.0
       valibot: 1.5.0(typescript@6.0.3)
     optionalDependencies:
-      bullmq: 6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+      bullmq: 6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
     transitivePeerDependencies:
       - typescript
 
-  '@bull-board/hono@9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)':
+  '@bull-board/hono@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.13)(typescript@6.0.3)':
     dependencies:
-      '@bull-board/api': 9.10.5(@bull-board/ui@9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
-      '@bull-board/ui': 9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/api': 9.10.5(@bull-board/ui@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/ui': 9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       ejs: 6.0.1
       hono: 4.13.13
     transitivePeerDependencies:
@@ -12014,9 +12014,9 @@ snapshots:
       - bullmq
       - typescript
 
-  '@bull-board/ui@9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
+  '@bull-board/ui@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
     dependencies:
-      '@bull-board/api': 9.10.5(@bull-board/ui@9.10.5(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/api': 9.10.5(@bull-board/ui@9.10.5(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
     transitivePeerDependencies:
       - bull
       - bullmq
@@ -16785,7 +16785,7 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
-  bullmq@6.4.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1):
+  bullmq@6.5.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1):
     dependencies:
       cron-parser: 5.10.2
       msgpackr: 2.1.2
