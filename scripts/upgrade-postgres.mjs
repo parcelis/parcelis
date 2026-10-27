@@ -58,10 +58,10 @@ function docker(args, options = {}) {
   }
 }
 
-async function waitForDatabase(container, user, database) {
+async function waitForDatabase(container, user, database, executeDocker) {
   for (let attempt = 0; attempt < 60; attempt++) {
     try {
-      docker(["exec", container, "pg_isready", "-h", "127.0.0.1", "-U", user, "-d", database]);
+      executeDocker(["exec", container, "pg_isready", "-h", "127.0.0.1", "-U", user, "-d", database]);
       return;
     } catch {
       await new Promise((done) => setTimeout(done, 1000));
@@ -70,14 +70,14 @@ async function waitForDatabase(container, user, database) {
   throw new Error(`Database did not become ready: inspect docker logs ${container}`);
 }
 
-export async function upgrade(options) {
+export async function upgrade(options, executeDocker = docker) {
   const compose = ["compose", ...options.composeArgs];
-  const config = JSON.parse(docker([...compose, "config", "--format", "json"]));
+  const config = JSON.parse(executeDocker([...compose, "config", "--format", "json"]));
   const { sourceName, targetName, user, password, database } = migrationVolumes(config);
-  docker(["volume", "inspect", sourceName]);
-  docker(["pull", image]);
-  docker(["pull", "postgres:16-alpine"]);
-  const sourceVersion = docker([
+  executeDocker(["volume", "inspect", sourceName]);
+  executeDocker(["pull", image]);
+  executeDocker(["pull", "postgres:16-alpine"]);
+  const sourceVersion = executeDocker([
     "run",
     "--rm",
     "--network",
@@ -93,12 +93,12 @@ export async function upgrade(options) {
     throw new Error(`Expected PostgreSQL 16 data; found ${sourceVersion}. Use a manual migration.`);
   let targetExists = true;
   try {
-    docker(["volume", "inspect", targetName]);
+    executeDocker(["volume", "inspect", targetName]);
   } catch {
     targetExists = false;
   }
   if (targetExists) {
-    const contents = docker([
+    const contents = executeDocker([
       "run",
       "--rm",
       "--network",
@@ -131,18 +131,21 @@ export async function upgrade(options) {
   const containers = [];
   const cleanupErrors = [];
   const psql = (container, sql) =>
-    docker(["exec", "-i", container, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", user, "-d", database], {
-      input: sql,
-    }).trim();
+    executeDocker(
+      ["exec", "-i", container, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", user, "-d", database],
+      {
+        input: sql,
+      },
+    ).trim();
   try {
-    docker([...compose, "stop"]);
+    executeDocker([...compose, "stop"]);
     if (
-      docker(["ps", "-q", "--filter", `volume=${sourceName}`]).trim() ||
-      docker(["ps", "-q", "--filter", `volume=${targetName}`]).trim()
+      executeDocker(["ps", "-q", "--filter", `volume=${sourceName}`]).trim() ||
+      executeDocker(["ps", "-q", "--filter", `volume=${targetName}`]).trim()
     ) {
       throw new Error("Another container is using a database volume. Stop all writers before retrying.");
     }
-    docker([
+    executeDocker([
       "run",
       "-d",
       "--name",
@@ -154,7 +157,7 @@ export async function upgrade(options) {
       "postgres:16-alpine",
     ]);
     containers.push(source);
-    await waitForDatabase(source, user, database);
+    await waitForDatabase(source, user, database, executeDocker);
     const extraDatabases = JSON.parse(
       psql(
         source,
@@ -182,14 +185,14 @@ export async function upgrade(options) {
     const before = psql(source, snapshotSql);
     const dumpFd = openSync(backup, "wx", 0o600);
     try {
-      docker(["exec", source, "pg_dump", "-U", user, "-d", database, "--format=custom"], {
+      executeDocker(["exec", source, "pg_dump", "-U", user, "-d", database, "--format=custom"], {
         stdio: ["ignore", dumpFd, "pipe"],
       });
     } finally {
       closeSync(dumpFd);
     }
     console.log(`Backup saved: ${backup}`);
-    docker([
+    executeDocker([
       "run",
       "-d",
       "--name",
@@ -207,10 +210,10 @@ export async function upgrade(options) {
       image,
     ]);
     containers.push(target);
-    await waitForDatabase(target, user, database);
+    await waitForDatabase(target, user, database, executeDocker);
     const dumpInput = openSync(backup, "r");
     try {
-      docker(
+      executeDocker(
         [
           "exec",
           "-i",
@@ -235,16 +238,11 @@ export async function upgrade(options) {
       throw new Error("Table counts or sequence values differ. Destination remains blocked; keep traffic disabled.");
     psql(target, "ANALYZE;");
     writeFileSync(resolve(backupDirectory, "verification.txt"), `${before}\n`, { mode: 0o600 });
-    docker(["exec", target, "touch", marker]);
-    console.log("Restore verified: public table counts and sequence values match. Original volume retained.");
-    console.log(
-      "Services remain stopped. Follow the guide to start PostgreSQL 18, apply Prisma migrations, and verify the app before restoring traffic.",
-    );
   } finally {
     for (const container of containers.reverse()) {
       try {
-        docker(["stop", container]);
-        docker(["rm", container]);
+        executeDocker(["stop", container]);
+        executeDocker(["rm", container]);
       } catch (error) {
         cleanupErrors.push(error.message);
         console.error(`Temporary container cleanup failed: ${container}. ${error.message}`);
@@ -253,6 +251,22 @@ export async function upgrade(options) {
   }
   if (cleanupErrors.length)
     throw new Error("Stop and remove the temporary upgrade containers before starting Compose.");
+  executeDocker([
+    "run",
+    "--rm",
+    "--network",
+    "none",
+    "-v",
+    `${targetName}:/var/lib/postgresql`,
+    "--entrypoint",
+    "touch",
+    image,
+    marker,
+  ]);
+  console.log("Restore verified: public table counts and sequence values match. Original volume retained.");
+  console.log(
+    "Services remain stopped. Follow the guide to start PostgreSQL 18, apply Prisma migrations, and verify the app before restoring traffic.",
+  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
