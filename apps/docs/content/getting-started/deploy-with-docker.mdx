@@ -34,7 +34,7 @@ docker run -d --name parcelis-app \
   -e S3_BUCKET=parcelis-images \
   -e S3_ACCESS_KEY_ID=your-access-key \
   -e S3_SECRET_ACCESS_KEY=your-secret-key \
-  parcelis/app:v0.4.1
+  parcelis/apps:v0.4.1
 ```
 
 The published documentation image is designed to be mounted at `/docs/` by the nginx proxy. Use the production Compose stack when serving the application and documentation site together.
@@ -59,7 +59,7 @@ Pull the new image, then run migrations from that image with your production dat
 docker run --rm \
   -e DATABASE_URL="$DATABASE_URL" \
   -w /repo \
-  parcelis/app:v0.4.1 \
+  parcelis/apps:v0.4.1 \
   pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
 ```
 

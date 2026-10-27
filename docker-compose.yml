@@ -75,7 +75,7 @@ services:
       - parcelis
 
   migrate-service:
-    image: parcelis/app:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/apps:${PARCELIS_VERSION:-v0.4.1}
     container_name: parcelis-migrate
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     environment:
@@ -98,7 +98,7 @@ services:
       - parcelis
 
   app-service:
-    image: parcelis/app:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/apps:${PARCELIS_VERSION:-v0.4.1}
     container_name: parcelis-app
     stop_grace_period: 25s
     environment:
@@ -135,7 +135,7 @@ services:
       - parcelis
 
   worker-service:
-    image: parcelis/app:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/apps:${PARCELIS_VERSION:-v0.4.1}
     container_name: parcelis-worker
     command: pnpm --filter @parcelis/worker start
     environment:

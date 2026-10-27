@@ -416,7 +416,7 @@ The development stack provides the nginx proxy and local dependencies. `pnpm dev
 
 #### Production-style deployment
 
-Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/app`, `parcelis/docs`, and `parcelis/proxy`.
+Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/apps`, `parcelis/docs`, and `parcelis/proxy`.
 
 Copy `.env.production.example` to `.env.production`, replace every placeholder (including `REDIS_PASSWORD`), and set `PARCELIS_VERSION` to a release tag such as `v0.4.1` rather than using `latest`.
 
