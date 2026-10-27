@@ -1,0 +1,22 @@
+scripts/docker-publish.test.mjs
+  s_3204274f2bdd23::t_68ff9696a8d667 13
+  s_3204274f2bdd23::t_7fa716a532d1db 1-12,14-21
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_3204274f2bdd23::t_ca0022d6fdd49a 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "56ec86b805b9a1c3ca3168f2b86e712f1445ecdc",
+  "prompts": {},
+  "sessions": {
+    "s_3204274f2bdd23": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17b1c-ceb0-74c2-a915-33bd79f83acd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
