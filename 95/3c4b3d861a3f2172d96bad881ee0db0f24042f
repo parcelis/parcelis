@@ -1,0 +1,37 @@
+scripts/compose-postgres.mjs
+  s_3204274f2bdd23::t_5f5f41c48d7c4e 1-17
+docker-compose-single-image.yml
+  s_3204274f2bdd23::t_d2dc6b73d241be 2,30
+  s_3204274f2bdd23::t_ddd1c1203dabc3 1,24-29,31-33,40-41,190
+  s_3204274f2bdd23::t_f5ce4fc48a1be1 154-158,199
+scripts/refresh-dev-services.mjs
+  s_3204274f2bdd23::t_f74c986f88d80e 17-26
+  s_3204274f2bdd23::t_5f5f41c48d7c4e 4
+scripts/compose-postgres.test.mjs
+  s_3204274f2bdd23::t_5f5f41c48d7c4e 1-14,19-27,33-35
+  s_3204274f2bdd23::t_f74c986f88d80e 15-18,28-32
+scripts/dev-local.mjs
+  s_3204274f2bdd23::t_5f5f41c48d7c4e 6,129
+docker-compose.yml
+  s_3204274f2bdd23::t_ddd1c1203dabc3 1,7-12,14-16,23-24,181
+  s_3204274f2bdd23::t_d2dc6b73d241be 2,13
+docker-compose-dev.yml
+  s_3204274f2bdd23::t_ddd1c1203dabc3 1,22-27,29-31,40-41,117
+  s_3204274f2bdd23::t_d2dc6b73d241be 2,28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "953c4b3d861a3f2172d96bad881ee0db0f24042f",
+  "prompts": {},
+  "sessions": {
+    "s_3204274f2bdd23": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17b1c-ceb0-74c2-a915-33bd79f83acd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

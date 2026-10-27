@@ -1,0 +1,40 @@
+apps/docs/content/getting-started.mdx
+  s_3204274f2bdd23::t_066ab798db8ee6 9-10
+DEPENDENCIES.md
+  s_3204274f2bdd23::t_066ab798db8ee6 64
+ARCHITECTURE.md
+  s_3204274f2bdd23::t_066ab798db8ee6 28-29
+apps/docs/content/getting-started/upgrade-postgresql.mdx
+  s_3204274f2bdd23::t_6a984bc7a1cbd5 1-8,30-40,42-100,103-105,108-115
+  s_3204274f2bdd23::t_029a50b05f1f6b 9-29
+  s_3204274f2bdd23::t_93dc7c1bd2da30 101-102
+  s_3204274f2bdd23::t_471f585300b8e9 41,106-107
+CONTRIBUTING.md
+  s_3204274f2bdd23::t_066ab798db8ee6 5-6
+apps/docs/content/getting-started/deploy-with-docker-compose-single-image.mdx
+  s_3204274f2bdd23::t_066ab798db8ee6 11-14
+README.md
+  s_3204274f2bdd23::t_066ab798db8ee6 36-37
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  s_3204274f2bdd23::t_066ab798db8ee6 9-12
+apps/docs/sidebars.ts
+  s_3204274f2bdd23::t_066ab798db8ee6 81
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  s_3204274f2bdd23::t_066ab798db8ee6 9-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a16fa4aabccaa37ee9de09f6b59e657b7db7eb8e",
+  "prompts": {},
+  "sessions": {
+    "s_3204274f2bdd23": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17b1c-ceb0-74c2-a915-33bd79f83acd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
