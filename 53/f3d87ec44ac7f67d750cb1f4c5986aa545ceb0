@@ -1,0 +1,27 @@
+apps/docs/content/platform-user-guide/app-functionality/lease-details.mdx
+  s_05121777f00890::t_5a0ac99b9f1cc2 21,24-25
+apps/api/src/tests/leases/lease-lifecycle.router.test.ts
+  s_05121777f00890::t_ca79f3b8c36102 116
+  s_05121777f00890::t_ef20d531dcf8d2 141-214
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_05121777f00890::t_30f398ae49b85b 87-89,94-98,118,168,440
+  s_05121777f00890::t_2e162c84d1eb6c 90-93,108-115
+apps/api/src/router/app.router.ts
+  s_05121777f00890::t_30f398ae49b85b 4122,4125,4131-4158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53f3d87ec44ac7f67d750cb1f4c5986aa545ceb0",
+  "prompts": {},
+  "sessions": {
+    "s_05121777f00890": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17de1-3f76-70a0-9da2-812e39a09e0b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
