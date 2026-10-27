@@ -8,6 +8,10 @@ Parcelis publishes an optional **single application image**, `parcelis/parcelis`
 
 PostgreSQL, Redis, and S3-compatible object storage (such as MinIO) remain external services. Database migrations are still an explicit deployment step.
 
+:::danger Existing PostgreSQL 16 installations
+The supplied Compose files now require PostgreSQL 18. **Before running `up` with the updated files, follow [Upgrade PostgreSQL 16 to 18](./upgrade-postgresql).** Prisma migrations do not upgrade the database server. Existing volumes are preserved, and startup is blocked until the data migration is verified.
+:::
+
 ## When to use the single-image artifact
 
 Use `parcelis/parcelis` when you want:
@@ -16,7 +20,7 @@ Use `parcelis/parcelis` when you want:
 - A simpler self-hosted setup that is closer to a single deployable unit.
 - The same public URL layout as the modular stack: web app at `/`, tRPC at `/trpc/*`, public API at `/api/*`, job dashboard at `/admin/jobs/`, documentation at `/docs/`.
 
-Use the modular [`docker-compose.yml`](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose.yml) stack when you want the documentation site and proxy as separately deployed or scaled services, or when you want to keep the proxy on a separate container. Note that the web app and API run together inside the `parcelis/app` image in the modular stack, so neither topology scales the web app independently from the API.
+Use the modular [Docker Compose stack](./deploy-with-docker-compose#setting-up-parcelis) when you want the documentation site and proxy as separately deployed or scaled services, or when you want to keep the proxy on a separate container. Note that the web app and API run together inside the `parcelis/app` image in the modular stack, so neither topology scales the web app independently from the API.
 
 ## Image name and tags
 
@@ -92,10 +96,17 @@ docker run --rm \
 
 ## Running with Docker Compose
 
-Copy the example below to your host alongside `.env.production`:
+Choose the exact release tag or full commit for your deployment. Download the single-image Compose file and environment template from that same revision:
 
-1. [docker-compose-single-image.yml](https://raw.githubusercontent.com/parcelis/parcelis/main/docker-compose-single-image.yml) - the single-image stack with PostgreSQL, Redis, MinIO, bucket initialization, a migration job, and a worker.
-2. [.env.production.example](https://raw.githubusercontent.com/parcelis/parcelis/main/.env.production.example) - the same environment template used by the modular stack.
+```bash
+PARCELIS_REF='<release-tag-or-full-commit>'
+curl -fL "https://raw.githubusercontent.com/parcelis/parcelis/${PARCELIS_REF}/docker-compose-single-image.yml" -o docker-compose-single-image.yml
+curl -fL "https://raw.githubusercontent.com/parcelis/parcelis/${PARCELIS_REF}/.env.production.example" -o .env.production.example
+```
+
+Replace the placeholder before running these commands. Set `PARCELIS_VERSION` in `.env.production` to the release image tag, or the tag assigned to the locally built `parcelis/parcelis` image from the selected commit. This value is a tag only, such as `local-abc123`, not a full image reference. The application, migration, and worker services all use `parcelis/parcelis` with that same tag. For a locally built image, skip the `pull` command below. Use the same `PARCELIS_REF` for the [PostgreSQL migration helper](./upgrade-postgresql#before-migrating-to-postgresql-18); do not mix tagged deployment files with downloads from `main`.
+
+For a new installation, configure the environment file and start the stack. Existing deployments must retain their saved `.env.production` and secrets.
 
 ```bash
 cp .env.production.example .env.production

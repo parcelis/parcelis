@@ -2,6 +2,8 @@
 
 Thanks for contributing to Parcelis. Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
+PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](apps/docs/content/getting-started/upgrade-postgresql.mdx). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
+
 ## Contributor License Agreement
 
 By submitting a contribution, you accept the [Contributor License Agreement](CLA.md). It lets
