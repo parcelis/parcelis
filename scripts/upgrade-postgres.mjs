@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { closeSync, mkdirSync, openSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -51,7 +52,7 @@ function docker(args, options = {}) {
   try {
     return execFileSync("docker", args, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], ...options });
   } catch (error) {
-    // Do not include command arguments: container environment arguments contain credentials.
+    // Report Docker diagnostics without dumping command arguments.
     throw new Error(
       `Docker ${args[0]} failed: ${error.stderr?.toString().trim() || "check Docker and container logs"}`,
     );
@@ -130,6 +131,8 @@ export async function upgrade(options, executeDocker = docker) {
   const target = `parcelis-pg18-upgrade-${process.pid}`;
   const containers = [];
   const cleanupErrors = [];
+  let secretDirectory;
+  let passwordFile;
   const psql = (container, sql) =>
     executeDocker(
       ["exec", "-i", container, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", user, "-d", database],
@@ -192,6 +195,9 @@ export async function upgrade(options, executeDocker = docker) {
       closeSync(dumpFd);
     }
     console.log(`Backup saved: ${backup}`);
+    secretDirectory = mkdtempSync(resolve(tmpdir(), "parcelis-postgres-secret-"));
+    passwordFile = resolve(secretDirectory, "postgres-password");
+    writeFileSync(passwordFile, password, { mode: 0o600, flag: "wx" });
     executeDocker([
       "run",
       "-d",
@@ -201,10 +207,12 @@ export async function upgrade(options, executeDocker = docker) {
       "none",
       "-v",
       `${targetName}:/var/lib/postgresql`,
+      "-v",
+      `${passwordFile}:/run/secrets/postgres-password:ro`,
       "-e",
       `POSTGRES_USER=${user}`,
       "-e",
-      `POSTGRES_PASSWORD=${password}`,
+      "POSTGRES_PASSWORD_FILE=/run/secrets/postgres-password",
       "-e",
       `POSTGRES_DB=${database}`,
       image,
@@ -246,6 +254,16 @@ export async function upgrade(options, executeDocker = docker) {
       } catch (error) {
         cleanupErrors.push(error.message);
         console.error(`Temporary container cleanup failed: ${container}. ${error.message}`);
+      }
+    }
+    if (secretDirectory) {
+      try {
+        // Clear the mounted file even if a container could not be removed.
+        if (passwordFile && existsSync(passwordFile)) writeFileSync(passwordFile, "");
+        rmSync(secretDirectory, { recursive: true, force: true });
+      } catch (error) {
+        cleanupErrors.push(error.message);
+        console.error(`Password secret cleanup failed: ${secretDirectory}. ${error.message}`);
       }
     }
   }
