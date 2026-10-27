@@ -1,0 +1,22 @@
+CONTRIBUTING.md
+  h_a5ff85794783c2 419
+apps/docs/content/getting-started/deploy-with-docker-compose-single-image.mdx
+  h_a5ff85794783c2 7,19,31,143,147,149-150
+apps/docs/content/getting-started/deploy-with-docker-compose.mdx
+  h_a5ff85794783c2 17-23,25
+apps/docs/content/getting-started/deploy-with-docker.mdx
+  h_a5ff85794783c2 37,62
+docker-compose.yml
+  h_a5ff85794783c2 78,101,138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d5d1813b620525a07e7c7d4e55dc546554495e2c",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
