@@ -266,7 +266,10 @@ See the [rollout runbook](apps/docs/content/getting-started/api-token-rollout.md
 
 ## Documentation pipeline
 
-User-facing documentation is authored in `apps/docs/content`. API documentation is generated rather than hand-maintained:
+User-facing documentation is maintained in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs),
+on its `docusaurus-docs-site` branch under `docusaurus-site/docs`. The `apps/docs`
+directory remains a legacy copy in this repository. API documentation is generated
+rather than hand-maintained:
 
 ```text
 apps/api/src/router/public.router.ts
@@ -275,12 +278,18 @@ apps/api/src/router/public.router.ts
         v
 apps/api/openapi/parcelis.openapi.json
         |
-        | pnpm --filter @parcelis/docs generate:api
+        | copy to parcelis-docs/docusaurus-site/static/openapi/parcelis.openapi.json
         v
-apps/docs/content/api-reference
+parcelis-docs/docusaurus-site
+        |
+        | pnpm generate:api
+        v
+docs/api
 ```
 
 Update the applicable user guide and generated API reference whenever a user-facing workflow or public API contract changes.
+Link companion application and docs PRs and validate the docs with their own tooling;
+see [the contribution workflow](CONTRIBUTING.md#documentation-across-repositories).
 
 ## Local development
 

@@ -4,6 +4,12 @@ This is a high-level inventory of the technologies Parcelis intentionally uses. 
 
 When adding or removing a primary technology or service, update this file in the same change.
 
+The documentation PR check uses GitHub Actions and the existing `parcels-bot` GitHub
+App for one updating status comment per application PR. `actions/create-github-app-token`
+creates a short-lived, repository-scoped Issues write token from the assignment app
+credentials; `actions/github-script` validates PR metadata and posts the result. See
+[the contributor workflow](CONTRIBUTING.md#documentation-across-repositories) for setup.
+
 The separate API uses Next.js App Router and React DOM. Its Node.js handlers
 serve tRPC and REST through Fetch adapters. Bull Board uses `@bull-board/hono`
 and `hono`; `@hono/node-server` serves its static assets.
