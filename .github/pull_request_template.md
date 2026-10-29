@@ -33,7 +33,10 @@
 
 <!-- Required: fill exactly one of the first two fields below, leaving the other empty.
 Use a full https://github.com/parcelis/parcelis-docs/pull/<number> URL without Markdown formatting,
-or explain why no documentation changes are needed. Link back to this PR from the docs PR.
+or explain the changed scope and why no documentation changes are needed using at least
+20 characters and four distinct words. Generic statements such as "No documentation changes
+are needed" are insufficient; explanations require reviewer assessment.
+Link back to this PR from the docs PR.
 Include local documentation updates and docs validation results. Required docs must be
 complete before this change is considered complete. -->
 
