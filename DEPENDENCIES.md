@@ -67,7 +67,7 @@ artifacts of this repo's release workflow: the server mirror was verified at
 RELEASE.2025-09-07T16-13-09Z and the init mirror's `mc` client at
 RELEASE.2025-01-17T23-25-50Z. In the single-image stack they replace the removed
 Docker Hub `minio/*` images.
-Development and deployment PostgreSQL use `postgres:18-alpine`. Existing PostgreSQL 16 installations require the explicit dump/restore procedure in `apps/docs/content/getting-started/upgrade-postgresql.mdx`. Compose retains the legacy `postgres-data` volume and uses a separate `postgres18-data` volume; startup blocks unmigrated legacy installations.
+Development and deployment PostgreSQL use `postgres:18-alpine`. Existing PostgreSQL 16 installations require the explicit dump/restore procedure in [the maintained PostgreSQL upgrade guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/upgrade-postgresql.md). Compose retains the legacy `postgres-data` volume and uses a separate `postgres18-data` volume; startup blocks unmigrated legacy installations.
 
 ## Interface
 

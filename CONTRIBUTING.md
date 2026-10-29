@@ -2,7 +2,7 @@
 
 Thanks for contributing to Parcelis. Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
-PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](apps/docs/content/getting-started/upgrade-postgresql.mdx). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
+PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/upgrade-postgresql.md). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
 
 ## Contributor License Agreement
 
@@ -372,7 +372,7 @@ populated disposable tables. Set `API_TOKEN_ROLLBACK_API_ROOT` to the absolute p
 of a trusted pre-token `apps/api` checkout with its dependencies installed to exercise
 its REST Fetch route against the same schema. The rollback subtest is skipped only
 when this variable is unset; an invalid path or missing dependencies makes it fail. See the
-[API-token rollout runbook](apps/docs/content/getting-started/api-token-rollout.mdx)
+[API-token rollout runbook](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/api-token-rollout.md)
 for migration order, rollback limits, and the verification matrix.
 
 The worker integration suite also includes a Redis recovery test. Set `OUTBOX_TEST_REDIS_URL` to a local Redis instance to run it; otherwise that test is skipped. It creates and removes only a uniquely named test queue. Check the mapped Redis port with `docker compose -f docker-compose-dev.yml ps`; `pnpm dev` can choose a different port from the `REDIS_PORT` requested in `.env`:

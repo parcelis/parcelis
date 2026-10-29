@@ -25,13 +25,13 @@ shorter than Supervisor and Compose termination deadlines. It uses Next.js
 request handlers through a Node HTTP server because the standard CLI exposes no
 application-resource cleanup hook. The API does not use standalone output.
 
-PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](apps/docs/content/getting-started/upgrade-postgresql.mdx). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
+PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/upgrade-postgresql.md). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
 
 ## Overview
 
 Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, docs, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
-The independent status monitor is described in the [status monitor guide](apps/docs/content/getting-started/status-monitor.mdx).
+The independent status monitor is described in the [status monitor guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/status-monitor.md).
 
 ```text
 app image: Next.js web + Next.js API + worker + @parcelis/jobs
@@ -110,7 +110,7 @@ The worker also consumes `notification.email` jobs from the `account-notificatio
 
 Future leases write `lease.activate` outbox events that dispatch delayed BullMQ jobs for the start of the organization's local calendar date. The worker consumes these jobs from the `leasing-notifications` queue and activates each due lease in a transaction that also updates property occupancy. For a back-to-back lease, the same transaction ends an expired predecessor and transfers occupancy. A recurring BullMQ reconciliation job and an independent PostgreSQL scan at startup and every five minutes end eligible fixed-term leases and activate due scheduled leases after missed jobs, Redis loss, or timezone changes. Repeated jobs leave already transitioned leases unchanged. Successful transitions and safe failure summaries are recorded as lease activity events. Users with lease edit permission can retry due activation or expiration through an outbox event.
 
-The account email flow and recovery paths are illustrated in [Email Configuration](apps/docs/content/getting-started/email-configuration.mdx#background-delivery-and-recovery).
+The account email flow and recovery paths are illustrated in [Email Configuration](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/email-configuration.md#background-delivery-and-recovery).
 
 The API mounts Bull Board at `/admin/jobs` for application administrators. Administrators can operate queue jobs from the dashboard; unsafe requests require the configured web origin. The dashboard hides Redis connection details and redacts job payloads and error diagnostics before returning them. Local and production proxies expose it at `/admin/jobs/` on the Parcelis host. The web app routes dashboard visits through `/settings/jobs`, where Bull Board runs in a same-origin frame. The API validates the NextAuth JWT and current administrator account on every dashboard request.
 
@@ -207,7 +207,7 @@ handlers do not log Authorization headers.
 The generated OpenAPI contract explicitly declares bearer security for the reviewed
 organization REST operations and leaves health public. Its security classification
 is checked against the token allowlist. The published
-[API authentication guide](apps/docs/content/api-authentication.mdx) covers token
+[API authentication guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/API%20Reference/api-authentication.md) covers token
 creation, Bruno/curl setup, rotation, and authentication failures.
 
 Token validity is checked in PostgreSQL on every protected request without caching.
@@ -262,7 +262,7 @@ API-token deployment applies the additive token migration before exposing token
 creation and REST authentication together. Application rollback retains the table
 and existing browser-session secret; pre-token application routes reject bearer-only
 requests. Stored, unexpired, unrevoked tokens become usable again when token-aware code returns.
-See the [rollout runbook](apps/docs/content/getting-started/api-token-rollout.mdx).
+See the [rollout runbook](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/api-token-rollout.md).
 
 ## Documentation pipeline
 
