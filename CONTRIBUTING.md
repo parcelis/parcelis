@@ -2,7 +2,7 @@
 
 Thanks for contributing to Parcelis. Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
-PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](apps/docs/content/getting-started/upgrade-postgresql.mdx). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
+PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/upgrade-postgresql.md). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
 
 ## Contributor License Agreement
 
@@ -62,6 +62,69 @@ Pull requests validate every commit message in CI. If the repository uses squash
 ## Development
 
 Keep changes focused, run the relevant checks, and update user-facing documentation with workflow changes.
+
+### Documentation across repositories
+
+User-facing documentation is maintained in
+[parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs). Assess documentation
+impact when planning each change. Updates to workflows, behavior, configuration, setup,
+permissions, or public APIs require corresponding documentation changes before the task
+is complete.
+
+The current local docs checkout is `../parcelis-docs/parcelis-docs`. The published site
+uses the `docusaurus-docs-site` branch and keeps guides in `docusaurus-site/docs`.
+Read that repository's instructions and use its own package-manager version and checks.
+Use the docs repository for maintained user-facing content; `apps/docs` is a legacy copy.
+
+Keep applicable updates to `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, and
+`DEPENDENCIES.md` in the application PR. Open a companion PR for changes in the docs
+repository and link the two PRs in both directions. Include the docs PR link and validation
+results in the application PR, or explain why documentation changes are unnecessary.
+If the docs checkout is unavailable, record the affected pages and required changes as
+outstanding work; a follow-up note does not complete required documentation.
+
+The `Documentation requirement` CI check requires the `### Documentation` section in
+every application PR. Fill exactly one of these fields and leave the other empty:
+
+```text
+- Companion docs PR: https://github.com/parcelis/parcelis-docs/pull/123
+- Documentation not needed:
+```
+
+For an exemption, leave the PR field empty and explain the reason on the
+`Documentation not needed:` line. Placeholders such as `N/A` or `TODO` fail the check.
+Exemption reasons require reviewer assessment. The check verifies that a linked docs
+PR exists and is open (including drafts) or merged; closed, unmerged PRs fail.
+It does not assess documentation content or require the docs PR to merge first.
+It reruns when the application PR opens, reopens, changes description, receives commits,
+or becomes ready for review. Changes in the docs repo do not trigger it; rerun the
+application check after changing a linked docs PR's state.
+
+After this workflow reaches the default branch, configure `Documentation requirement`
+as a required status check in the application repository's branch protection or ruleset
+to block merging when it fails. The workflow executes code from the default branch and
+reads PR descriptions through the API with a read-only default token. That token can
+verify public docs PRs; private docs repositories require separate cross-repository read
+credentials.
+
+Each run writes a job summary and creates or updates one PR comment from
+`parcels-bot[bot]`, showing a green Passing or red Failing Documentation Update badge,
+correction guidance when needed, and a link to the run logs. The badge also links to the
+run. It updates only a comment owned by that bot with the
+documentation-check marker. Validation and API errors appear in the comment and fail
+the check. Authentication or comment-posting failures also fail the job; if posting is
+unavailable, inspect the run logs because the comment may retain an earlier result.
+
+Commenting reuses the `ASSIGNMENT_APP_ID` repository variable and
+`ASSIGNMENT_APP_PRIVATE_KEY` secret used by assignment automation. The app must be
+installed on this repository with Issues write permission. The workflow creates a
+short-lived token scoped to this repository with only that permission for commenting;
+it does not fall back to posting as `github-actions[bot]` if bot authentication fails.
+
+For public API changes, run `pnpm --filter @parcelis/api generate:openapi` here, then
+update `docusaurus-site/static/openapi/parcelis.openapi.json` in the docs repository.
+From its `docusaurus-site` directory, run `pnpm generate:api`, `pnpm typecheck`, and
+`pnpm build`. Include the generated API pages in the docs PR; do not hand-edit them.
 
 CI runs script tests, lint, type checks, and the application build on every pull request and push
 to `main`. Docker builds and container smoke tests are not part of PR CI. The release workflow
@@ -139,7 +202,7 @@ Apps:
 
 - `apps/web`: Next.js App Router frontend.
 - `apps/api`: separate Next.js API serving tRPC, REST, and Bull Board.
-- `apps/docs`: Docusaurus documentation site for platform and contributor guides.
+- `apps/docs`: legacy Docusaurus site; maintained guides live in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs).
 
 The API commands run Next.js on port 40010. `build` creates the production Next.js
 build; `typecheck` checks the API routes, modules, and tests. For direct API previews,
@@ -309,7 +372,7 @@ populated disposable tables. Set `API_TOKEN_ROLLBACK_API_ROOT` to the absolute p
 of a trusted pre-token `apps/api` checkout with its dependencies installed to exercise
 its REST Fetch route against the same schema. The rollback subtest is skipped only
 when this variable is unset; an invalid path or missing dependencies makes it fail. See the
-[API-token rollout runbook](apps/docs/content/getting-started/api-token-rollout.mdx)
+[API-token rollout runbook](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/api-token-rollout.md)
 for migration order, rollback limits, and the verification matrix.
 
 The worker integration suite also includes a Redis recovery test. Set `OUTBOX_TEST_REDIS_URL` to a local Redis instance to run it; otherwise that test is skipped. It creates and removes only a uniquely named test queue. Check the mapped Redis port with `docker compose -f docker-compose-dev.yml ps`; `pnpm dev` can choose a different port from the `REDIS_PORT` requested in `.env`:
