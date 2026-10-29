@@ -1,0 +1,25 @@
+DEPENDENCIES.md
+  s_b8e19b8e4e115c::t_6b527a3c17b82a 70
+README.md
+  s_b8e19b8e4e115c::t_6b527a3c17b82a 36,144
+ARCHITECTURE.md
+  s_b8e19b8e4e115c::t_6b527a3c17b82a 28,34,113,210,265
+CONTRIBUTING.md
+  s_b8e19b8e4e115c::t_6b527a3c17b82a 5,375
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ea0949d087eb9534e7cd3e24762b615af9b5d8e",
+  "prompts": {},
+  "sessions": {
+    "s_b8e19b8e4e115c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a188c3-4745-7752-9975-5ae309276f38",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
