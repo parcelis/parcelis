@@ -1,0 +1,34 @@
+.github/pull_request_template.md
+  s_b8e19b8e4e115c::t_2b700e77b33bc8 34-35,40-41
+  s_b8e19b8e4e115c::t_360bf25561ee91 32-33,36-39,42-43,48
+ARCHITECTURE.md
+  s_b8e19b8e4e115c::t_360bf25561ee91 269-272,281,283-287,291-292
+CONTRIBUTING.md
+  s_b8e19b8e4e115c::t_cd1b8dc5b168df 105-110,114-122
+  s_b8e19b8e4e115c::t_360bf25561ee91 66-85,124-128,205
+  s_b8e19b8e4e115c::t_2b700e77b33bc8 86-104,123
+  s_b8e19b8e4e115c::t_652c5de8b16d57 111-113
+AGENTS.md
+  s_b8e19b8e4e115c::t_360bf25561ee91 9,92-95,97,102-105
+  s_b8e19b8e4e115c::t_2b700e77b33bc8 106
+README.md
+  s_b8e19b8e4e115c::t_360bf25561ee91 162
+DEPENDENCIES.md
+  s_b8e19b8e4e115c::t_cd1b8dc5b168df 7-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "08be508d008713a71c3d3d78b91396b3cc04ac9b",
+  "prompts": {},
+  "sessions": {
+    "s_b8e19b8e4e115c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a188c3-4745-7752-9975-5ae309276f38",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
