@@ -33,7 +33,7 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 
 <br/>
 
-PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](apps/docs/content/getting-started/upgrade-postgresql.mdx). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
+PostgreSQL 18 is the database target for development and deployment. Existing PostgreSQL 16 data must be migrated before starting the updated Compose stack; follow the [PostgreSQL upgrade guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/upgrade-postgresql.md). The migration retains the original database volume and restores into a separate PostgreSQL 18 volume.
 
 ## <p align="center"> We are currently under active development. While we have produced a demo website and pre-released versions, this software is not production ready. We will update once we have a basic MVP to pilot.</p>
 
@@ -141,7 +141,7 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 For a local service-health dashboard, build `@parcelis/jobs`, then run `pnpm status`
 and open `http://localhost/status` with the dev web proxy running, or
 `http://127.0.0.1:40020` directly. See the
-[status monitor POC guide](apps/docs/content/getting-started/status-monitor.mdx)
+[status monitor POC guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/status-monitor.md)
 for configuration, checks, and limitations.
 Use `pnpm status:dev` while editing the monitor to restart it automatically on source changes.
 
@@ -159,7 +159,7 @@ Parcelis is a pnpm/Turbo monorepo. At a high level, it contains:
 
 - [`apps/web`](apps/web): the main Parcelis web app.
 - [`apps/api`](apps/api): the service that handles app data and requests.
-- [`apps/docs`](apps/docs): the Parcelis documentation site.
+- [`apps/docs`](apps/docs): legacy documentation site. Maintained documentation lives in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs); see the [documentation contribution workflow](CONTRIBUTING.md#documentation-across-repositories).
 - [`packages/ui`](packages/ui): reusable interface components and branding.
 - [`packages/schemas`](packages/schemas): shared rules for validating app data.
 - [`packages/db`](packages/db): database definitions, updates, and access code.

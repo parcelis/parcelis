@@ -6,7 +6,7 @@
 - Main apps:
   - `apps/web`: Next.js App Router frontend.
   - `apps/api`: Next.js API exposing tRPC, REST, and Bull Board.
-  - `apps/docs`: Documentation site.
+  - `apps/docs`: Legacy documentation site; maintained documentation lives in `parcelis/parcelis-docs`.
 - Shared packages:
   - `packages/ui`: shadcn/ui-style Parcelis primitives and brand components.
   - `packages/schemas`: shared Zod schemas and inferred TypeScript types.
@@ -89,14 +89,21 @@
 
 ## Docs
 
-- Docusaurus docs live in `apps/docs/content`.
+- User-facing documentation lives in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs).
+- The current local checkout is `../parcelis-docs/parcelis-docs`. Read its repository instructions before editing; use its own tooling and package-manager version.
+- The published Docusaurus site uses the `docusaurus-docs-site` branch, with guides in `docusaurus-site/docs` and its source OpenAPI specification in `docusaurus-site/static/openapi/parcelis.openapi.json`. Confirm these locations against that repository's instructions before editing.
+- Assess documentation impact when planning every change. Changes to user-facing workflows, behavior, configuration, setup, permissions, or public APIs require corresponding documentation updates.
 - Before finalizing a change, check whether it requires updates to any of the following:
-  - Docusaurus content in `apps/docs/content` for user-facing workflows, behavior, or setup.
+  - Guides and API reference in `parcelis/parcelis-docs`. Do not use `apps/docs/content` as the destination for maintained user-facing documentation.
   - `DEPENDENCIES.md` when adding, removing, or materially changing a direct dependency or service.
   - `CONTRIBUTING.md` when changing the contributor workflow, development setup, or contribution standards.
   - `README.md` when changing the project overview, architecture, local setup, or primary workflows.
   - `ARCHITECTURE.md` when changing application boundaries, request/data flows, package responsibilities, infrastructure, or local runtime topology.
-- Make the applicable documentation updates in the same change. If none are needed, state that in the handoff or pull request summary.
+- Complete applicable updates in both repositories as part of the same task. Keep repository-local documentation changes in the application PR and link the companion docs PR in both directions when PRs are requested. Do not stage, commit, push, or create PRs without authorization.
+- For public API changes, regenerate the OpenAPI specification in this repository, update the docs site's source specification, regenerate its API pages, and run the docs repository's relevant checks. Do not hand-edit generated API pages.
+- If the docs checkout is unavailable or cannot be edited, report the affected pages and required changes as outstanding work. Do not claim the task is complete while required documentation remains outstanding.
+- Include documentation changes and validation in the handoff or PR summary. If no documentation changes are needed, explain why.
+- The `Documentation requirement` CI check requires exactly one populated PR-template field: `Companion docs PR:` with a full docs PR URL, or `Documentation not needed:` with an explanation. Leave the other field empty; exemptions require review.
 - Keep docs concise and task-oriented.
 
 ## Git
