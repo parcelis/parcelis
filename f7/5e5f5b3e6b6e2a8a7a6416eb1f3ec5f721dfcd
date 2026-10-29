@@ -1,0 +1,31 @@
+.github/workflows/documentation.yml
+  s_b8e19b8e4e115c::t_a3a2a0f9a2445f 23-25,29,32-69
+  s_b8e19b8e4e115c::t_df75a08cf1a48a 2-22,26-28,30-31,70
+  s_b8e19b8e4e115c::t_578d5f778d297d 1
+scripts/check-pr-documentation.mjs
+  s_b8e19b8e4e115c::t_2b700e77b33bc8 6
+  s_b8e19b8e4e115c::t_652c5de8b16d57 78
+  s_b8e19b8e4e115c::t_df75a08cf1a48a 1-5,7-43
+  s_b8e19b8e4e115c::t_a3a2a0f9a2445f 44-77,79-115
+scripts/check-pr-documentation.test.mjs
+  s_b8e19b8e4e115c::t_c530d21a7236a9 73-118,123-133,136-138,146-166,170-173
+  s_b8e19b8e4e115c::t_273ac4abef99ce 3,119-122,134-135,139-142,167-169
+  s_b8e19b8e4e115c::t_652c5de8b16d57 143-145
+  s_b8e19b8e4e115c::t_df75a08cf1a48a 1-2,4-72,174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f75e5f5b3e6b6e2a8a7a6416eb1f3ec5f721dfcd",
+  "prompts": {},
+  "sessions": {
+    "s_b8e19b8e4e115c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a188c3-4745-7752-9975-5ae309276f38",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
