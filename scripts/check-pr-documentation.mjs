@@ -1,5 +1,21 @@
 const docsOwner = "parcelis";
 const docsRepo = "parcelis-docs";
+const genericExemptionWords = new Set([
+  "no",
+  "not",
+  "documentation",
+  "docs",
+  "change",
+  "changes",
+  "update",
+  "updates",
+  "needed",
+  "necessary",
+  "unnecessary",
+  "required",
+  "is",
+  "are",
+]);
 
 export async function checkDocumentation(body, getPullRequest) {
   const text = (body ?? "").replace(/<!--[\s\S]*?-->/g, "");
@@ -15,8 +31,12 @@ export async function checkDocumentation(body, getPullRequest) {
   }
 
   if (reason) {
-    if (!/[a-z]{3}/i.test(reason) || /^(?:n\/?a|none|not needed|todo|tbd)\.?$/i.test(reason)) {
-      throw new Error("Explain why documentation is not needed; a placeholder is insufficient.");
+    const words = reason.toLowerCase().match(/\p{L}{2,}/gu) ?? [];
+    if (reason.length < 20 || new Set(words).size < 4 || words.every((word) => genericExemptionWords.has(word))) {
+      throw new Error(
+        "Explain the changed scope and why documentation is unnecessary using at least 20 characters " +
+          "and four distinct words; a placeholder is insufficient. Explanations require reviewer assessment.",
+      );
     }
     return `Documentation exemption recorded for review: ${reason}`;
   }

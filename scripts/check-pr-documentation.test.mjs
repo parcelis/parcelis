@@ -1,10 +1,37 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { checkDocumentation, evaluateDocumentation, updateDocumentationComment } from "./check-pr-documentation.mjs";
 
 const url = "https://github.com/parcelis/parcelis-docs/pull/123";
 const body = (link = "", reason = "") =>
   `### Documentation\n\n- Companion docs PR: ${link}\n- Documentation not needed: ${reason}\n\n### Checklist\n`;
+
+test("repository PR template supports both documentation decisions", async () => {
+  const template = readFileSync(new URL("../.github/pull_request_template.md", import.meta.url), "utf8");
+  await assert.rejects(checkDocumentation(template), /provide either/);
+
+  const withDocs = template.replace("- Companion docs PR:", `- Companion docs PR: ${url}`);
+  let verified = false;
+  assert.match(
+    await checkDocumentation(withDocs, async (params) => {
+      assert.deepEqual(params, { owner: "parcelis", repo: "parcelis-docs", pull_number: 123 });
+      verified = true;
+      return { state: "open", merged_at: null };
+    }),
+    /Verified companion docs PR/,
+  );
+  assert.ok(verified);
+
+  const withoutDocs = template.replace(
+    "- Documentation not needed:",
+    "- Documentation not needed: Internal tooling change with no product behavior changes.",
+  );
+  assert.match(
+    await checkDocumentation(withoutDocs, () => assert.fail("Exemptions must not call GitHub")),
+    /exemption recorded for review/,
+  );
+});
 
 test("verifies an open or merged PR in the docs repository", async () => {
   for (const pr of [
@@ -40,8 +67,26 @@ test("requires one explicit decision in the documentation section", async () => 
 });
 
 test("rejects placeholder exemptions", async () => {
-  for (const reason of ["N/A", "none", "Not needed.", "TODO", "TBD", "-"]) {
+  for (const reason of [
+    "N/A",
+    "none",
+    "Not needed.",
+    "TODO",
+    "TBD",
+    "-",
+    "abc",
+    "abcdefghijklmnopqrstuvwxyz",
+    "test test test test test test",
+    "No documentation changes are needed.",
+    "Documentation is not needed.",
+  ]) {
     await assert.rejects(checkDocumentation(body("", reason)), /placeholder/);
+  }
+});
+
+test("accepts concise explanations of the changed scope", async () => {
+  for (const reason of ["Only internal tests changed.", "Seuls les tests internes ont changé."]) {
+    assert.match(await checkDocumentation(body("", reason)), /exemption recorded for review/);
   }
 });
 
@@ -93,7 +138,7 @@ test("captures validation and application PR API failures for reporting", async 
   });
   github.rest.pulls.get = async (params) => {
     assert.deepEqual(params, { owner: "parcelis", repo: "parcelis", pull_number: 42 });
-    return { data: { body: body("", "Internal tooling only.") } };
+    return { data: { body: body("", "Only internal build tooling changed.") } };
   };
   assert.equal((await evaluateDocumentation(github, context)).passed, true);
 });
