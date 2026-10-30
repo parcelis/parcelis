@@ -168,6 +168,8 @@ function getUnitRows(property: PropertyListItem) {
 type UnitRow = ReturnType<typeof getUnitRows>[number];
 
 function PropertyActionsMenu({
+  canArchive,
+  canDelete,
   canEdit,
   onArchive,
   onDelete,
@@ -176,6 +178,8 @@ function PropertyActionsMenu({
   onReactivate,
   property,
 }: {
+  canArchive: boolean;
+  canDelete: boolean;
   canEdit: boolean;
   onArchive: () => void;
   onDelete: () => void;
@@ -213,17 +217,21 @@ function PropertyActionsMenu({
           Add Notes
         </DropdownMenuItem>
         {isArchived ? (
-          <DropdownMenuItem onSelect={onReactivate}>
+          <DropdownMenuItem disabled={!canArchive} onSelect={onReactivate}>
             <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
             Unarchive
           </DropdownMenuItem>
         ) : (
-          <DropdownMenuItem onSelect={onArchive}>
+          <DropdownMenuItem disabled={!canArchive} onSelect={onArchive}>
             <Archive className="h-4 w-4 text-parcelis-green" />
             Archive
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
+        <DropdownMenuItem
+          className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
+          disabled={!canDelete}
+          onSelect={onDelete}
+        >
           <Trash2 className="h-4 w-4" />
           Delete
         </DropdownMenuItem>
@@ -305,7 +313,12 @@ export default function PropertiesPage() {
   });
   const canEditProperty =
     hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
-    hasPermission(currentUserQuery.data?.permissions, "units", "view");
+    hasPermission(currentUserQuery.data?.permissions, "units", "view") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "edit");
+  const canArchiveProperty = hasPermission(currentUserQuery.data?.permissions, "properties", "archive");
+  const canDeleteProperty =
+    hasPermission(currentUserQuery.data?.permissions, "properties", "delete") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "delete");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -650,8 +663,10 @@ export default function PropertiesPage() {
               Keep Active
             </Button>
             <Button
-              disabled={archiveProperty.isPending}
-              onClick={() => archivePropertyTarget && archiveProperty.mutate({ id: archivePropertyTarget.id })}
+              disabled={archiveProperty.isPending || !canArchiveProperty}
+              onClick={() =>
+                canArchiveProperty && archivePropertyTarget && archiveProperty.mutate({ id: archivePropertyTarget.id })
+              }
               type="button"
             >
               {archiveProperty.isPending ? (
@@ -678,8 +693,10 @@ export default function PropertiesPage() {
               Keep Property
             </Button>
             <Button
-              disabled={deleteProperty.isPending}
-              onClick={() => deletePropertyTarget && deleteProperty.mutate({ id: deletePropertyTarget.id })}
+              disabled={deleteProperty.isPending || !canDeleteProperty}
+              onClick={() =>
+                canDeleteProperty && deletePropertyTarget && deleteProperty.mutate({ id: deletePropertyTarget.id })
+              }
               type="button"
             >
               {deleteProperty.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -1034,13 +1051,15 @@ export default function PropertiesPage() {
                             </TableCell>
                             <TableCell className="px-5 py-4 text-right">
                               <PropertyActionsMenu
+                                canArchive={canArchiveProperty}
+                                canDelete={canDeleteProperty}
                                 canEdit={canEditProperty}
                                 onArchive={() => setArchivePropertyId(property.id)}
                                 onDelete={() => setDeletePropertyId(property.id)}
                                 onEdit={() => openEditProperty(property)}
                                 onNotes={() => openNotes(property)}
                                 onReactivate={() => {
-                                  if (!reactivateProperty.isPending) {
+                                  if (canArchiveProperty && !reactivateProperty.isPending) {
                                     reactivateProperty.mutate({ id: property.id });
                                   }
                                 }}

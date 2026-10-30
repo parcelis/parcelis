@@ -129,7 +129,10 @@ export default function PropertyDetailPage() {
   const property = propertyQuery.data;
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canViewUnits = hasPermission(currentUserQuery.data?.permissions, "units", "view");
-  const canEditProperty = canViewUnits && hasPermission(currentUserQuery.data?.permissions, "properties", "edit");
+  const canEditProperty =
+    canViewUnits &&
+    hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "edit");
   const canViewOccupancy = canViewLeases && canViewUnits;
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
   const canViewMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "view");
