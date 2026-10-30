@@ -3133,10 +3133,45 @@ export const appRouter = router({
     }),
     delete: publicProcedure.input(deleteInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
-      await ctx.prisma.invoice.findFirstOrThrow({
-        where: { id: input.id, organizationId: ctx.organization.organizationId },
-      });
-      return ctx.prisma.invoice.delete({ where: { id: input.id }, select: { id: true } });
+      try {
+        return await ctx.prisma.$transaction(
+          async (tx) => {
+            const invoice = await tx.invoice.findFirstOrThrow({
+              where: { id: input.id, organizationId: ctx.organization.organizationId },
+              select: {
+                id: true,
+                amountCents: true,
+                balanceCents: true,
+                paidOn: true,
+                paidByTenantId: true,
+                paymentMethod: true,
+                status: true,
+                _count: { select: { payments: true } },
+              },
+            });
+            if (
+              invoice._count.payments > 0 ||
+              invoice.balanceCents < invoice.amountCents ||
+              invoice.paidOn !== null ||
+              invoice.paidByTenantId !== null ||
+              invoice.paymentMethod !== null ||
+              invoice.status === "paid"
+            ) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Invoices with payment history cannot be deleted.",
+              });
+            }
+            return tx.invoice.delete({ where: { id: invoice.id }, select: { id: true } });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+          throw new TRPCError({ code: "CONFLICT", message: "This invoice changed while deleting. Please try again." });
+        }
+        throw error;
+      }
     }),
     deletePayment: publicProcedure.input(deleteInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");

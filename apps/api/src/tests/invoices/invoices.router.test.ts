@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
+import { Prisma } from "@parcelis/db";
 import { appRouter, getMonthlyDueDate } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -19,6 +20,103 @@ const paymentInput = {
   paidByTenantId: 12,
   paymentMethod: "check" as const,
 };
+
+test("invoice deletion allows an unpaid invoice without payment history", async () => {
+  let deleted = false;
+  const tx = {
+    invoice: {
+      findFirstOrThrow: async ({ where }: { where: unknown }) => {
+        assert.deepEqual(where, { id: 4, organizationId: 7 });
+        return {
+          id: 4,
+          amountCents: 10_000,
+          balanceCents: 10_000,
+          paidOn: null,
+          paidByTenantId: null,
+          paymentMethod: null,
+          status: "open",
+          _count: { payments: 0 },
+        };
+      },
+      delete: async () => {
+        deleted = true;
+        return { id: 4 };
+      },
+    },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
+      assert.deepEqual(options, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      return callback(tx);
+    },
+  });
+
+  assert.deepEqual(await caller.invoices.delete({ id: 4 }), { id: 4 });
+  assert.equal(deleted, true);
+});
+
+for (const [label, changes] of [
+  ["payment records", { _count: { payments: 1 } }],
+  ["a legacy partial payment", { balanceCents: 5_000 }],
+  ["a legacy paid status", { status: "paid" }],
+  ["a settlement date", { paidOn: new Date("2026-09-14") }],
+  ["a recorded payer", { paidByTenantId: 12 }],
+  ["a payment method", { paymentMethod: "check" }],
+] as const) {
+  test(`invoice deletion rejects ${label}`, async () => {
+    let deleted = false;
+    const tx = {
+      invoice: {
+        findFirstOrThrow: async () => ({
+          id: 4,
+          amountCents: 10_000,
+          balanceCents: 10_000,
+          paidOn: null,
+          paidByTenantId: null,
+          paymentMethod: null,
+          status: "open",
+          _count: { payments: 0 },
+          ...changes,
+        }),
+        delete: async () => {
+          deleted = true;
+        },
+      },
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    });
+    await assert.rejects(caller.invoices.delete({ id: 4 }), {
+      code: "BAD_REQUEST",
+      message: "Invoices with payment history cannot be deleted.",
+    });
+    assert.equal(deleted, false);
+  });
+}
+
+test("invoice deletion reports a concurrent write as a conflict", async () => {
+  const caller = createCaller({
+    $transaction: async () => {
+      throw new Prisma.PrismaClientKnownRequestError("serialization conflict", {
+        code: "P2034",
+        clientVersion: "test",
+      });
+    },
+  });
+  await assert.rejects(caller.invoices.delete({ id: 4 }), {
+    code: "CONFLICT",
+    message: "This invoice changed while deleting. Please try again.",
+  });
+});
+
+test("invoice deletion requires permission before reading the invoice", async () => {
+  const caller = appRouter.createCaller({
+    prisma: { rolePermission: { findUnique: async () => null } },
+    session: { user: { id: 1, role: "property_manager" } },
+    organization: { organizationId: 7 },
+  } as unknown as Context);
+  await assert.rejects(caller.invoices.delete({ id: 4 }), { code: "FORBIDDEN" });
+});
 
 test("generated rent due dates clamp to the final day of short months", () => {
   const cases = [
