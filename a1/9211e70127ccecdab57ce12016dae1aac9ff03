@@ -1,0 +1,25 @@
+scripts/fixtures/pr-check-exclusions.md
+  s_b516e6d627663c::t_89f760d1598e91 1-6
+scripts/check-pr-documentation.test.mjs
+  s_b516e6d627663c::t_89f760d1598e91 14-15,141,145,153,167,173-182,188,194-195
+.github/PR_CHECK_EXCLUSIONS.md
+  s_b516e6d627663c::t_89f760d1598e91 10-11
+scripts/check-pr-documentation.mjs
+  s_b516e6d627663c::t_89f760d1598e91 76-78,83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a19211e70127ccecdab57ce12016dae1aac9ff03",
+  "prompts": {},
+  "sessions": {
+    "s_b516e6d627663c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d78-7302-7bb1-925e-18ac4493fcd6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
