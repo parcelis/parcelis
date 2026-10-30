@@ -73,12 +73,14 @@ export function readExcludedAuthors(exclusionsPath = ".github/PR_CHECK_EXCLUSION
 
 export async function evaluateDocumentation(github, context, exclusionsPath) {
   try {
-    const excludedAuthors = new Set(readExcludedAuthors(exclusionsPath || undefined));
+    const excludedAuthors = new Set(
+      readExcludedAuthors(exclusionsPath || undefined).map((login) => login.toLowerCase()),
+    );
     const { data: pr } = await github.rest.pulls.get({
       ...context.repo,
       pull_number: context.payload.pull_request.number,
     });
-    if (excludedAuthors.has(pr.user?.login)) {
+    if (excludedAuthors.has(pr.user?.login?.toLowerCase())) {
       return { passed: true, message: `Documentation requirement excluded for PR author: ${pr.user.login}.` };
     }
     const message = await checkDocumentation(pr.body, async (params) => {

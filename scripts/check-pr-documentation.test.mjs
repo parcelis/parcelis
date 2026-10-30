@@ -11,6 +11,8 @@ import {
   updateDocumentationComment,
 } from "./check-pr-documentation.mjs";
 
+const exclusionsFixture = fileURLToPath(new URL("./fixtures/pr-check-exclusions.md", import.meta.url));
+
 const url = "https://github.com/parcelis/parcelis-docs/pull/123";
 const body = (link = "", reason = "") =>
   `### Documentation\n\n- Companion docs PR: ${link}\n- Documentation not needed: ${reason}\n\n### Checklist\n`;
@@ -136,11 +138,11 @@ test("captures validation and application PR API failures for reporting", async 
   const github = {
     rest: { pulls: { get: async () => ({ data: { body: body() } }) } },
   };
-  assert.equal((await evaluateDocumentation(github, context)).passed, false);
+  assert.equal((await evaluateDocumentation(github, context, exclusionsFixture)).passed, false);
   github.rest.pulls.get = async () => {
     throw new Error("API unavailable");
   };
-  assert.deepEqual(await evaluateDocumentation(github, context), {
+  assert.deepEqual(await evaluateDocumentation(github, context, exclusionsFixture), {
     passed: false,
     message: "API unavailable",
   });
@@ -148,7 +150,7 @@ test("captures validation and application PR API failures for reporting", async 
     assert.deepEqual(params, { owner: "parcelis", repo: "parcelis", pull_number: 42 });
     return { data: { body: body("", "Only internal build tooling changed.") } };
   };
-  assert.equal((await evaluateDocumentation(github, context)).passed, true);
+  assert.equal((await evaluateDocumentation(github, context, exclusionsFixture)).passed, true);
 });
 
 test("excludes Dependabot PRs even when a human triggers the check", async () => {
@@ -162,9 +164,19 @@ test("excludes Dependabot PRs even when a human triggers the check", async () =>
       },
     },
   };
-  assert.deepEqual(await evaluateDocumentation(github, { ...context, actor: "maintainer" }), {
+  assert.deepEqual(await evaluateDocumentation(github, { ...context, actor: "maintainer" }, exclusionsFixture), {
     passed: true,
     message: "Documentation requirement excluded for PR author: dependabot[bot].",
+  });
+});
+
+test("excludes API-reported Copilot using a lowercase fixture entry", async () => {
+  const github = {
+    rest: { pulls: { get: async () => ({ data: { user: { login: "Copilot" }, body: null } }) } },
+  };
+  assert.deepEqual(await evaluateDocumentation(github, context, exclusionsFixture), {
+    passed: true,
+    message: "Documentation requirement excluded for PR author: Copilot.",
   });
 });
 
@@ -173,14 +185,14 @@ test("does not exclude other PR authors when Dependabot triggers the check", asy
     const github = {
       rest: { pulls: { get: async () => ({ data: { user: { login }, body: null } }) } },
     };
-    const result = await evaluateDocumentation(github, { ...context, actor: "dependabot[bot]" });
+    const result = await evaluateDocumentation(github, { ...context, actor: "dependabot[bot]" }, exclusionsFixture);
     assert.equal(result.passed, false);
     assert.match(result.message, /provide either/);
   }
 });
 
-test("returns the authors listed in the repository exclusions file", () => {
-  assert.deepEqual(readExcludedAuthors(".github/PR_CHECK_EXCLUSIONS.md"), ["dependabot[bot]", "copilot"]);
+test("returns author entries from the fixed exclusions fixture", () => {
+  assert.deepEqual(readExcludedAuthors(exclusionsFixture), ["dependabot[bot]", "copilot"]);
 });
 
 test("reads exclusions from the configured file and reports missing files", async () => {
