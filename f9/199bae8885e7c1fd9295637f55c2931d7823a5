@@ -1,0 +1,21 @@
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_b516e6d627663c::t_be1a039efb13a9 132-135
+apps/web/app/(authenticated)/properties/page.tsx
+  s_b516e6d627663c::t_be1a039efb13a9 171-172,181-182,220,225,230-234,316-321,666-669,696-699,1054-1055,1062
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f9199bae8885e7c1fd9295637f55c2931d7823a5",
+  "prompts": {},
+  "sessions": {
+    "s_b516e6d627663c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d78-7302-7bb1-925e-18ac4493fcd6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
