@@ -1457,7 +1457,9 @@ export const appRouter = router({
     /** Lists properties with units, lease metrics, and maintenance metrics. */
     list: apiPermissionProcedure("properties", "view").query(async ({ ctx }) => {
       const permissions = await getPrincipalPermissions(ctx);
-      await synchronizeOverdueInvoices(ctx.prisma, ctx.organizationScope.organizationId);
+      if (permissions.invoices.view) {
+        await synchronizeOverdueInvoices(ctx.prisma, ctx.organizationScope.organizationId);
+      }
       const query = {
         where: { organizationId: ctx.organizationScope.organizationId },
         include: {
@@ -1544,16 +1546,16 @@ export const appRouter = router({
         properties.map(async (property) => {
           const leases = property.leases.flatMap((lease) => {
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
-            const firstTenant = lease.tenants[0]?.tenant;
-            if (!firstTenant) return [];
+            const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
             const amountOverdueCents = invoices.reduce((sum, inv) => sum + inv.balanceCents, 0);
             return [
               {
                 ...leaseData,
-                unitLabel: lease.unit?.name ?? "Not set",
+                unitId: permissions.units.view ? lease.unitId : null,
+                unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
                 tenant: firstTenant,
-                tenants: lease.tenants.map(({ tenant }) => tenant),
-                invoices,
+                tenants: permissions.tenants.view ? lease.tenants.map(({ tenant }) => tenant) : [],
+                invoices: permissions.invoices.view ? invoices : [],
                 amountOverdueCents,
               },
             ];
@@ -1563,15 +1565,38 @@ export const appRouter = router({
               ...property,
               leases,
             }),
-            units: property.units.map(({ _count, ...unit }) => ({
+            maintenanceTickets: permissions.maintenance.view
+              ? property.maintenanceTickets.map((ticket) => ({
+                  ...ticket,
+                  unitLabel: permissions.units.view ? ticket.unitLabel : null,
+                }))
+              : [],
+            units: (permissions.units.view ? property.units : []).map(({ _count, ...unit }) => ({
               ...serializeUnit(unit),
-              isOccupied: _count.leases > 0,
+              isOccupied: permissions.leases.view ? _count.leases > 0 : null,
             })),
           });
           return {
             ...result,
-            leases: leases.filter((lease) => lease.archivedAt === null),
-            leaseHistory: leases,
+            occupiedUnits: permissions.units.view && permissions.leases.view ? property.occupiedUnits : null,
+            monthlyRentCents: permissions.leases.view ? result.monthlyRentCents : null,
+            amountOverdueCents: permissions.leases.view && permissions.invoices.view ? result.amountOverdueCents : null,
+            expiringLeases90Days: permissions.leases.view ? result.expiringLeases90Days : null,
+            openMaintenanceTickets: permissions.maintenance.view ? result.openMaintenanceTickets : null,
+            urgentMaintenanceTickets: permissions.maintenance.view ? result.urgentMaintenanceTickets : null,
+            legacyNotes: permissions.property_notes.view ? property.legacyNotes : null,
+            legacyNoteId: permissions.property_notes.view ? property.legacyNoteId : null,
+            notes: permissions.property_notes.view ? property.legacyNotes : null,
+            leases: leases
+              .filter((lease) => lease.archivedAt === null)
+              .map((lease) => ({
+                ...lease,
+                amountOverdueCents: permissions.invoices.view ? lease.amountOverdueCents : null,
+              })),
+            leaseHistory: leases.map((lease) => ({
+              ...lease,
+              amountOverdueCents: permissions.invoices.view ? lease.amountOverdueCents : null,
+            })),
             imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
           };
         }),
@@ -1589,7 +1614,13 @@ export const appRouter = router({
             leases: {
               orderBy: { startsOn: "desc" },
               include: {
-                tenants: { include: { tenant: true } },
+                tenants: {
+                  select: {
+                    tenant: {
+                      select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+                    },
+                  },
+                },
                 unit: true,
                 invoices: { select: { balanceCents: true } },
               },
@@ -1625,15 +1656,17 @@ export const appRouter = router({
 
         const leases = rawLeases.flatMap((lease) => {
           const { tenants: _tenants, unit: _unit, invoices: _invoices, ...leaseData } = lease;
-          const firstTenant = lease.tenants[0]?.tenant;
-          if (!firstTenant) return [];
-          const amountOverdueCents = lease.invoices.reduce((sum, inv) => sum + inv.balanceCents, 0);
+          const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
+          const amountOverdueCents = permissions.invoices.view
+            ? lease.invoices.reduce((sum, inv) => sum + inv.balanceCents, 0)
+            : null;
           return [
             {
               ...leaseData,
-              unitLabel: lease.unit?.name ?? "Not set",
+              unitId: permissions.units.view ? lease.unitId : null,
+              unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
               tenant: firstTenant,
-              tenants: lease.tenants.map(({ tenant }) => tenant),
+              tenants: permissions.tenants.view ? lease.tenants.map(({ tenant }) => tenant) : [],
               amountOverdueCents,
             },
           ];
@@ -1645,7 +1678,18 @@ export const appRouter = router({
             leases: leases.filter((lease) => lease.archivedAt === null),
             leaseHistory: leases,
           }),
-          units: rawUnits.map(serializeUnit),
+          maintenanceTickets: permissions.maintenance.view
+            ? property.maintenanceTickets.map((ticket) => ({
+                ...ticket,
+                unitLabel: permissions.units.view ? ticket.unitLabel : null,
+                requestedByTenantId: permissions.tenants.view ? ticket.requestedByTenantId : null,
+              }))
+            : [],
+          occupiedUnits: permissions.units.view && permissions.leases.view ? property.occupiedUnits : null,
+          legacyNotes: permissions.property_notes.view ? property.legacyNotes : null,
+          legacyNoteId: permissions.property_notes.view ? property.legacyNoteId : null,
+          notes: permissions.property_notes.view ? property.legacyNotes : null,
+          units: permissions.units.view ? rawUnits.map(serializeUnit) : [],
           unitStatuses,
           imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
         };
@@ -2040,6 +2084,7 @@ export const appRouter = router({
   tenants: router({
     /** Lists tenants with their most recent lease first. */
     list: permissionProcedure("tenants", "view").query(async ({ ctx }) => {
+      const permissions = await getPrincipalPermissions(ctx);
       const tenants = await ctx.prisma.tenant.findMany({
         where: { organizationId: ctx.organization.organizationId },
         include: {
@@ -2071,20 +2116,29 @@ export const appRouter = router({
       return Promise.all(
         tenants.map(async (tenant) => ({
           ...tenant,
-          leases: tenant.leases
-            .map(({ lease }) => ({
-              ...lease,
-              unitLabel: lease.unit?.name ?? "Not set",
-              property: lease.property,
-            }))
-            .sort((left, right) => {
-              if (left.startsOn && right.startsOn) return right.startsOn.getTime() - left.startsOn.getTime();
-              if (left.startsOn) return -1;
-              if (right.startsOn) return 1;
-              return 0;
-            }),
+          legacyNotes: permissions.tenant_notes.view ? tenant.legacyNotes : null,
+          legacyNoteId: permissions.tenant_notes.view ? tenant.legacyNoteId : null,
+          leases: permissions.leases.view
+            ? tenant.leases
+                .map(({ lease }) => ({
+                  ...lease,
+                  unitId: permissions.units.view ? lease.unitId : null,
+                  unit: permissions.units.view ? lease.unit : null,
+                  unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
+                  propertyId: permissions.properties.view ? lease.propertyId : null,
+                  property: permissions.properties.view ? lease.property : null,
+                }))
+                .sort((left, right) => {
+                  if (left.startsOn && right.startsOn) {
+                    return right.startsOn.getTime() - left.startsOn.getTime();
+                  }
+                  if (left.startsOn) return -1;
+                  if (right.startsOn) return 1;
+                  return 0;
+                })
+            : [],
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
-          tenantStatus: getTenantStatus(tenant),
+          tenantStatus: tenant.archivedAt ? "archived" : permissions.leases.view ? getTenantStatus(tenant) : null,
         })),
       );
     }),
@@ -2092,6 +2146,7 @@ export const appRouter = router({
     byId: permissionProcedure("tenants", "view")
       .input(tenantByIdInputSchema)
       .query(async ({ ctx, input }) => {
+        const permissions = await getPrincipalPermissions(ctx);
         const tenant = await ctx.prisma.tenant.findFirst({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           include: {
@@ -2135,13 +2190,21 @@ export const appRouter = router({
 
         return {
           ...tenant,
-          leases: tenant.leases.map(({ lease }) => ({
-            ...lease,
-            unitLabel: lease.unit?.name ?? "Not set",
-            property: lease.property,
-          })),
+          legacyNotes: permissions.tenant_notes.view ? tenant.legacyNotes : null,
+          legacyNoteId: permissions.tenant_notes.view ? tenant.legacyNoteId : null,
+          leases: permissions.leases.view
+            ? tenant.leases.map(({ lease }) => ({
+                ...lease,
+                unitId: permissions.units.view ? lease.unitId : null,
+                unit: permissions.units.view ? lease.unit : null,
+                unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
+                propertyId: permissions.properties.view ? lease.propertyId : null,
+                property: permissions.properties.view ? lease.property : null,
+                invoices: permissions.invoices.view ? lease.invoices : [],
+              }))
+            : [],
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
-          tenantStatus: getTenantStatus(tenant),
+          tenantStatus: tenant.archivedAt ? "archived" : permissions.leases.view ? getTenantStatus(tenant) : null,
         };
       }),
     /** Creates a short-lived URL for uploading a tenant image to MinIO. */

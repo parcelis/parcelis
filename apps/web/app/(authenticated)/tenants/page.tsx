@@ -61,7 +61,6 @@ import {
 } from "../../../components/toast-messages";
 import { getTenantLink } from "../../../lib/entity-links";
 
-
 type TenantFilters = {
   accountStatus: string;
   insuranceStatus: string;
@@ -597,7 +596,11 @@ export default function TenantsPage() {
                                 <p className="font-medium text-parcelis-charcoal">
                                   {activeLease.property?.name ?? "Property not set"}
                                 </p>
-                                <p>{activeLease.unitLabel === "Not set" ? "Unit not set" : `Unit ${activeLease.unitLabel}`}</p>
+                                <p>
+                                  {activeLease.unitLabel === "Not set"
+                                    ? "Unit not set"
+                                    : `Unit ${activeLease.unitLabel}`}
+                                </p>
                               </>
                             ) : (
                               "No current lease"
@@ -624,7 +627,7 @@ export default function TenantsPage() {
                               className={`inline-flex items-center gap-2 font-semibold ${getStatusTone(tenant.tenantStatus)}`}
                             >
                               <CalendarCheck2 className="h-4 w-4" />
-                              {formatStatus(tenant.tenantStatus)}
+                              {tenant.tenantStatus === null ? "Unavailable" : formatStatus(tenant.tenantStatus)}
                             </span>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">

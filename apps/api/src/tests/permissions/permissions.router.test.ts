@@ -87,6 +87,169 @@ test("API denies resource reads when view permission is missing", async () => {
   ]);
 });
 
+test("tenant listing hides leases when lease view permission is missing", async () => {
+  const caller = createDeniedCaller({
+    rolePermission: {
+      findUnique: async ({ where }: { where: { role_resource: { resource: string } } }) => ({
+        canView: where.role_resource.resource === "tenants",
+      }),
+      findMany: async () => [{ resource: "tenants", canView: true }],
+    },
+    tenant: {
+      findMany: async () => [
+        {
+          id: 4,
+          firstName: "Sam",
+          lastName: "Tenant",
+          archivedAt: null,
+          imageObjectKey: null,
+          emergencyContacts: [],
+          leases: [
+            {
+              lease: {
+                id: 7,
+                startsOn: new Date("2026-01-01"),
+                endsOn: null,
+                status: "active",
+                termType: "month_to_month",
+                monthlyRentCents: 100_000,
+                propertyId: 2,
+                unitId: 3,
+                property: { id: 2, name: "Example Property" },
+                unit: { name: "1A" },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  } as unknown as Partial<PrismaClient>);
+
+  const tenants = await caller.tenants.list();
+
+  assert.equal(tenants.length, 1);
+  assert.equal(tenants[0]?.firstName, "Sam");
+  assert.deepEqual(tenants[0]?.leases, []);
+  assert.equal(tenants[0]?.tenantStatus, null);
+});
+
+test("tenant listing includes leases when lease view permission is granted", async () => {
+  const caller = createDeniedCaller({
+    rolePermission: {
+      findUnique: async ({ where }: { where: { role_resource: { resource: string } } }) => ({
+        canView: ["tenants", "leases", "properties", "units"].includes(where.role_resource.resource),
+      }),
+      findMany: async () =>
+        ["tenants", "leases", "properties", "units"].map((resource) => ({
+          resource,
+          canView: true,
+        })),
+    },
+    tenant: {
+      findMany: async () => [
+        {
+          id: 4,
+          firstName: "Sam",
+          lastName: "Tenant",
+          archivedAt: null,
+          imageObjectKey: null,
+          emergencyContacts: [],
+          leases: [
+            {
+              lease: {
+                id: 7,
+                startsOn: new Date("2026-01-01"),
+                endsOn: null,
+                status: "active",
+                termType: "month_to_month",
+                monthlyRentCents: 100_000,
+                propertyId: 2,
+                unitId: 3,
+                property: { id: 2, name: "Example Property" },
+                unit: { name: "1A" },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  } as unknown as Partial<PrismaClient>);
+
+  const tenants = await caller.tenants.list();
+
+  assert.equal(tenants.length, 1);
+  assert.equal(tenants[0]?.firstName, "Sam");
+  assert.equal(tenants[0]?.leases.length, 1);
+  assert.equal(tenants[0]?.leases[0]?.id, 7);
+  assert.equal(tenants[0]?.leases[0]?.monthlyRentCents, 100_000);
+  assert.equal(tenants[0]?.leases[0]?.unitLabel, "1A");
+  assert.equal(tenants[0]?.tenantStatus, "active");
+});
+
+test("tenant listing preserves archive status without lease view permission", async () => {
+  const caller = createDeniedCaller({
+    rolePermission: {
+      findUnique: async () => ({ canView: true }),
+      findMany: async () => [{ resource: "tenants", canView: true }],
+    },
+    tenant: {
+      findMany: async () => [
+        {
+          id: 4,
+          archivedAt: new Date("2026-01-01"),
+          imageObjectKey: null,
+          leases: [],
+        },
+      ],
+    },
+  } as unknown as Partial<PrismaClient>);
+
+  const tenants = await caller.tenants.list();
+
+  assert.equal(tenants[0]?.tenantStatus, "archived");
+  assert.deepEqual(tenants[0]?.leases, []);
+});
+
+test("tenant details hide leases when lease view permission is missing", async () => {
+  const caller = createDeniedCaller({
+    rolePermission: {
+      findUnique: async ({ where }: { where: { role_resource: { resource: string } } }) => ({
+        canView: where.role_resource.resource === "tenants",
+      }),
+      findMany: async () => [{ resource: "tenants", canView: true }],
+    },
+    tenant: {
+      findFirst: async () => ({
+        id: 4,
+        firstName: "Sam",
+        lastName: "Tenant",
+        archivedAt: null,
+        imageObjectKey: null,
+        emergencyContacts: [],
+        leases: [
+          {
+            lease: {
+              id: 7,
+              status: "active",
+              monthlyRentCents: 100_000,
+              property: { id: 2, name: "Example Property" },
+              unit: { name: "1A" },
+              invoices: [{ id: 8, invoiceNumber: "INV-8", balanceCents: 100_000 }],
+            },
+          },
+        ],
+      }),
+    },
+  } as unknown as Partial<PrismaClient>);
+
+  const tenant = await caller.tenants.byId({ id: 4 });
+
+  assert.ok(tenant);
+  assert.equal(tenant.firstName, "Sam");
+  assert.deepEqual(tenant.leases, []);
+  assert.equal(tenant.tenantStatus, null);
+});
+
 test("API denies archive operations when archive permission is missing", async () => {
   const caller = createDeniedCaller();
   await Promise.all([

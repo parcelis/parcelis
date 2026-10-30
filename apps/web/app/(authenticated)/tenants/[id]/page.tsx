@@ -689,7 +689,11 @@ export default function TenantDetailPage() {
                     <div className="grid w-full gap-3 sm:grid-cols-3">
                       <HeroStatus icon={BadgeCheck} label="Account Status" status={tenant.accountStatus} />
                       <HeroStatus icon={ShieldCheck} label="Insurance Status" status={tenant.insuranceStatus} />
-                      <HeroStatus icon={CalendarDays} label="Tenant Status" status={tenant.tenantStatus} />
+                      <HeroStatus
+                        icon={CalendarDays}
+                        label="Tenant Status"
+                        status={tenant.tenantStatus ?? "unavailable"}
+                      />
                     </div>
                   </div>
                 </div>

@@ -39,7 +39,7 @@ type IncomeProperty = {
     startsOn: Date | string | null;
     endsOn: Date | string | null;
     status: string;
-    tenant: { id: number; firstName: string; lastName: string };
+    tenant: { id: number; firstName: string; lastName: string } | null;
   }>;
 };
 
@@ -130,7 +130,7 @@ export function InvoiceDrawer({
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!property || !lease || lines.length === 0 || hasInvalidLine) return;
+    if (!property || !lease?.tenant || lines.length === 0 || hasInvalidLine) return;
     onCreate({
       propertyId: property.id,
       leaseId: lease.id,
@@ -223,9 +223,9 @@ export function InvoiceDrawer({
                 </Label>
                 <Label className="gap-2">
                   Tenant *
-                  <Select disabled required value={lease?.tenant.id ?? ""}>
-                    <option value="">Select lease first</option>
-                    {lease ? (
+                  <Select disabled required value={lease?.tenant?.id ?? ""}>
+                    <option value="">{lease && !lease.tenant ? "Unavailable" : "Select lease first"}</option>
+                    {lease?.tenant ? (
                       <option value={lease.tenant.id}>
                         {lease.tenant.firstName} {lease.tenant.lastName}
                       </option>
@@ -395,7 +395,14 @@ export function InvoiceDrawer({
             </Button>
             <Button
               className="min-w-40"
-              disabled={isPending || !lease || lines.length === 0 || hasInvalidLine || subtotalCents <= 0 || paidCents > subtotalCents}
+              disabled={
+                isPending ||
+                !lease?.tenant ||
+                lines.length === 0 ||
+                hasInvalidLine ||
+                subtotalCents <= 0 ||
+                paidCents > subtotalCents
+              }
               type="submit"
             >
               Create invoice <ChevronRight className="h-4 w-4" />

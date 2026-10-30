@@ -13,7 +13,6 @@ import { LoadingState } from "../../components/loading-state";
 import { uploadPropertyImage } from "../../components/property-image-upload";
 import { entityCreatedMessage } from "../../components/toast-messages";
 
-
 const tasks = [
   { label: "Renew lease for Unit 4B", due: "Today", icon: ClipboardCheck },
   { label: "Review HVAC quote", due: "Tomorrow", icon: Wrench },
@@ -55,8 +54,11 @@ export default function Page() {
 
   const properties = propertiesQuery.data ?? [];
   const totalUnits = properties.reduce((sum, property) => sum + property.unitCount, 0);
-  const occupiedUnits = properties.reduce((sum, property) => sum + property.occupiedUnits, 0);
-  const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
+  const occupiedUnits = properties.some((property) => property.occupiedUnits === null)
+    ? null
+    : properties.reduce((sum, property) => sum + (property.occupiedUnits ?? 0), 0);
+  const occupancyRate =
+    occupiedUnits === null ? null : totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
   const leasingCount = properties.filter((property) => property.status === "leasing").length;
 
   return (
@@ -122,14 +124,20 @@ export default function Page() {
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold text-parcelis-charcoal">$184,220</div>
-                <p className="mt-2 text-sm text-parcelis-gray">Collected across {occupiedUnits} occupied units</p>
+                <p className="mt-2 text-sm text-parcelis-gray">
+                  {occupiedUnits === null
+                    ? "Occupancy unavailable"
+                    : `Collected across ${occupiedUnits} occupied units`}
+                </p>
                 <div className="mt-5 h-3 rounded-full bg-parcelis-porcelain">
                   <div
                     className="h-3 rounded-full bg-parcelis-green"
-                    style={{ width: `${Math.min(occupancyRate, 100)}%` }}
+                    style={{ width: `${Math.min(occupancyRate ?? 0, 100)}%` }}
                   />
                 </div>
-                <p className="mt-3 text-sm font-medium text-parcelis-charcoal">{occupancyRate}% portfolio occupancy</p>
+                <p className="mt-3 text-sm font-medium text-parcelis-charcoal">
+                  {occupancyRate === null ? "Unavailable" : `${occupancyRate}%`} portfolio occupancy
+                </p>
               </CardContent>
             </Card>
           </section>
@@ -137,7 +145,11 @@ export default function Page() {
           <section className="grid gap-5 md:grid-cols-3">
             {[
               ["Properties", String(properties.length), `${leasingCount} actively leasing`],
-              ["Occupancy", `${occupancyRate}%`, `${occupiedUnits} of ${totalUnits} units occupied`],
+              [
+                "Occupancy",
+                `${occupancyRate === null ? "Unavailable" : `${occupancyRate}%`}`,
+                occupiedUnits === null ? "Unavailable" : `${occupiedUnits} of ${totalUnits} units occupied`,
+              ],
               ["Open Work Orders", "18", "4 need owner approval"],
             ].map(([label, value, detail]) => (
               <Card key={label}>
@@ -195,10 +207,11 @@ export default function Page() {
                           </td>
                           <td className="px-5 py-4">{property.unitCount}</td>
                           <td className="px-5 py-4">
-                            {property.unitCount > 0
-                              ? Math.round((property.occupiedUnits / property.unitCount) * 100)
-                              : 0}
-                            %
+                            {property.occupiedUnits === null
+                              ? "Unavailable"
+                              : property.unitCount > 0
+                                ? `${Math.round((property.occupiedUnits / property.unitCount) * 100)}%`
+                                : "0%"}
                           </td>
                           <td className="px-5 py-4">
                             <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">

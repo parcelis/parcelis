@@ -145,6 +145,15 @@ Object storage is configured in `apps/api/src/modules/object-storage.config.ts`.
 
 The API context resolves the active organization from the `x-parcelis-organization-slug` request header. The web proxy derives that header from `/o/{slug}` routes and stores the selected slug in a browser-session cookie so unscoped routes return to the selected organization. Requests without a selected organization fall back to the user's default organization. Switching organizations does not change that persistent default, which remains the initial fallback and determines the organization used for account verification and password-reset emails. `organizationProcedure` requires a valid organization context and operational queries and writes filter or persist its organization ID. Organization administrators can update organization details and avatars; application administrators can access every organization.
 
+Property and tenant read responses apply View permissions to related leases, tenants,
+units, properties, invoices, maintenance tickets, and legacy note fields. Restricted
+collections are empty; sensitive derived balances, occupancy, and tenant status are
+null rather than false zero/past values. Property capacity remains property data.
+The frontend displays unavailable metrics without inferring them from empty relations.
+Role grants are platform-wide, and the platform administrator bypass remains global;
+this is not organization-specific RBAC. Organization API tokens retain full access
+to the documented operations within their issuing organization.
+
 API-token management lives in `app.router.ts` under `apiTokens.list`,
 `apiTokens.create`, and `apiTokens.revoke`. A valid browser session and an active
 organization context are required. The context resolves the selected organization

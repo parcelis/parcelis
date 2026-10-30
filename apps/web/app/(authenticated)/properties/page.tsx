@@ -77,7 +77,6 @@ import {
 } from "../../../components/toast-messages";
 import { getPropertyLink, getUnitLink } from "../../../lib/entity-links";
 
-
 type PropertyFilters = {
   propertyId: string;
   city: string;
@@ -109,7 +108,8 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
-function formatCurrency(cents: number) {
+function formatCurrency(cents: number | null) {
+  if (cents === null) return "Unavailable";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -118,6 +118,7 @@ function formatCurrency(cents: number) {
 }
 
 function getUnitRows(property: PropertyListItem) {
+  if (property.units.length === 0) return [];
   const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
   const ticketCountsByUnit = new Map<string, number>();
   const now = new Date();
@@ -152,12 +153,13 @@ function getUnitRows(property: PropertyListItem) {
       id: unit?.id,
       link: unitLink,
       unitLabel,
-      isOccupied: activeLease?.status === "active",
-      monthlyRentCents: activeLease?.monthlyRentCents ?? 0,
-      amountOverdueCents: activeLease?.amountOverdueCents ?? 0,
-      expiringLeases90Days: isExpiring ? 1 : 0,
-      openMaintenanceTickets: ticketCountsByUnit.get(unitLabel) ?? 0,
-      status: activeLease?.status ?? "vacant",
+      isOccupied: property.occupiedUnits === null ? null : activeLease?.status === "active",
+      monthlyRentCents: property.monthlyRentCents === null ? null : (activeLease?.monthlyRentCents ?? 0),
+      amountOverdueCents: property.amountOverdueCents === null ? null : (activeLease?.amountOverdueCents ?? 0),
+      expiringLeases90Days: property.expiringLeases90Days === null ? null : isExpiring ? 1 : 0,
+      openMaintenanceTickets:
+        property.openMaintenanceTickets === null ? null : (ticketCountsByUnit.get(unitLabel) ?? 0),
+      status: property.occupiedUnits === null ? "unavailable" : (activeLease?.status ?? "vacant"),
     };
   });
 }
@@ -435,7 +437,7 @@ export default function PropertiesPage() {
     const matchesPostalCode = !appliedFilters.postalCode || property.postalCode.includes(appliedFilters.postalCode);
     const matchesStatus = appliedFilters.status === "all" || property.status === appliedFilters.status;
     const matchesUnits = !appliedFilters.minimumUnits || property.unitCount >= Number(appliedFilters.minimumUnits);
-    const matchesMaintenance = !appliedFilters.hasOpenMaintenance || property.openMaintenanceTickets > 0;
+    const matchesMaintenance = !appliedFilters.hasOpenMaintenance || (property.openMaintenanceTickets ?? 0) > 0;
     const matchesArchived = appliedFilters.archivedOnly
       ? property.status === "archived"
       : appliedFilters.status === "archived" || property.status !== "archived";
@@ -461,10 +463,17 @@ export default function PropertiesPage() {
     return Boolean(value);
   }).length;
   const totalUnits = properties.reduce((sum, property) => sum + property.unitCount, 0);
-  const occupiedUnits = properties.reduce((sum, property) => sum + property.occupiedUnits, 0);
-  const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
-  const monthlyRentCents = properties.reduce((sum, property) => sum + property.monthlyRentCents, 0);
-  const overdueCents = properties.reduce((sum, property) => sum + property.amountOverdueCents, 0);
+  const occupiedUnits = properties.some((property) => property.occupiedUnits === null)
+    ? null
+    : properties.reduce((sum, property) => sum + (property.occupiedUnits ?? 0), 0);
+  const occupancyRate =
+    occupiedUnits === null ? null : totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
+  const monthlyRentCents = properties.some((property) => property.monthlyRentCents === null)
+    ? null
+    : properties.reduce((sum, property) => sum + (property.monthlyRentCents ?? 0), 0);
+  const overdueCents = properties.some((property) => property.amountOverdueCents === null)
+    ? null
+    : properties.reduce((sum, property) => sum + (property.amountOverdueCents ?? 0), 0);
 
   function updateFilter<Key extends keyof PropertyFilters>(field: Key, value: PropertyFilters[Key]) {
     setDraftFilters((current) => ({ ...current, [field]: value }));
@@ -702,7 +711,9 @@ export default function PropertiesPage() {
                 Units
               </div>
               <div className="rounded-md bg-white/10 p-3">
-                <div className="text-2xl font-bold text-white">{occupancyRate}%</div>
+                <div className="text-2xl font-bold text-white">
+                  {occupancyRate === null ? "Unavailable" : `${occupancyRate}%`}
+                </div>
                 Occupancy
               </div>
               <div className="rounded-md bg-white/10 p-3">
@@ -945,10 +956,11 @@ export default function PropertiesPage() {
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
-                              {property.unitCount > 0
-                                ? Math.round((property.occupiedUnits / property.unitCount) * 100)
-                                : 0}
-                              %
+                              {property.occupiedUnits === null
+                                ? "Unavailable"
+                                : property.unitCount > 0
+                                  ? `${Math.round((property.occupiedUnits / property.unitCount) * 100)}%`
+                                  : "0%"}
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span className="inline-flex items-center gap-1 font-semibold text-parcelis-charcoal">
@@ -959,35 +971,41 @@ export default function PropertiesPage() {
                             <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 font-semibold ${
-                                  property.amountOverdueCents > 0 ? "text-red-700" : "text-parcelis-gray"
+                                  (property.amountOverdueCents ?? 0) > 0 ? "text-red-700" : "text-parcelis-gray"
                                 }`}
                               >
-                                {property.amountOverdueCents > 0 ? <AlertTriangle className="h-4 w-4" /> : null}
+                                {(property.amountOverdueCents ?? 0) > 0 ? <AlertTriangle className="h-4 w-4" /> : null}
                                 {formatCurrency(property.amountOverdueCents)}
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${
-                                  property.expiringLeases90Days > 0
+                                  (property.expiringLeases90Days ?? 0) > 0
                                     ? "bg-parcelis-green/15 text-parcelis-charcoal"
                                     : "bg-parcelis-porcelain text-parcelis-gray"
                                 }`}
                               >
                                 <CalendarClock className="h-4 w-4" />
-                                {property.expiringLeases90Days > 0
+                                {(property.expiringLeases90Days ?? 0) > 0
                                   ? `${property.expiringLeases90Days} expiring`
-                                  : "Clear"}
+                                  : property.expiringLeases90Days === null
+                                    ? "Unavailable"
+                                    : "Clear"}
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 font-semibold ${
-                                  property.openMaintenanceTickets > 0 ? "text-parcelis-charcoal" : "text-parcelis-gray"
+                                  (property.openMaintenanceTickets ?? 0) > 0
+                                    ? "text-parcelis-charcoal"
+                                    : "text-parcelis-gray"
                                 }`}
                               >
                                 <Wrench className="h-4 w-4 text-parcelis-green" />
-                                {property.openMaintenanceTickets} open
+                                {property.openMaintenanceTickets === null
+                                  ? "Unavailable"
+                                  : `${property.openMaintenanceTickets} open`}
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
@@ -1053,7 +1071,9 @@ export default function PropertiesPage() {
                                     {property.city}, {property.region}
                                   </TableCell>
                                   <TableCell className="px-5 py-3">1</TableCell>
-                                  <TableCell className="px-5 py-3">{unit.isOccupied ? "100%" : "0%"}</TableCell>
+                                  <TableCell className="px-5 py-3">
+                                    {unit.isOccupied === null ? "Unavailable" : unit.isOccupied ? "100%" : "0%"}
+                                  </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="font-semibold text-parcelis-charcoal">
                                       {formatCurrency(unit.monthlyRentCents)}
@@ -1062,7 +1082,7 @@ export default function PropertiesPage() {
                                   <TableCell className="px-5 py-3">
                                     <span
                                       className={
-                                        unit.amountOverdueCents > 0
+                                        (unit.amountOverdueCents ?? 0) > 0
                                           ? "font-semibold text-red-700"
                                           : "text-parcelis-gray"
                                       }
@@ -1072,13 +1092,19 @@ export default function PropertiesPage() {
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-gray">
-                                      {unit.expiringLeases90Days ? "Expiring" : "Clear"}
+                                      {unit.expiringLeases90Days === null
+                                        ? "Unavailable"
+                                        : unit.expiringLeases90Days
+                                          ? "Expiring"
+                                          : "Clear"}
                                     </span>
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="inline-flex items-center gap-1 text-parcelis-gray">
                                       <Wrench className="h-4 w-4 text-parcelis-green" />
-                                      {unit.openMaintenanceTickets} open
+                                      {unit.openMaintenanceTickets === null
+                                        ? "Unavailable"
+                                        : `${unit.openMaintenanceTickets} open`}
                                     </span>
                                   </TableCell>
                                   <TableCell className="px-5 py-3">

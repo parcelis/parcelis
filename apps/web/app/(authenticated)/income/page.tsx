@@ -22,6 +22,7 @@ import {
 } from "@parcelis/ui";
 import { formatInvoiceNumber } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../components/api-client";
+import { hasPermission } from "../../../components/property-access";
 import { LoadingState } from "../../../components/loading-state";
 import { InvoiceDrawer } from "../../../components/invoice-drawer";
 import { PageRail } from "../../../components/page-rail";
@@ -49,7 +50,7 @@ function formatDate(value: Date | string) {
   );
 }
 
-function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents: number | null }) {
+function getCurrentInvoice(lease: { amountOverdueCents: number | null; monthlyRentCents: number | null }) {
   const now = new Date();
   const dueOn = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const amountCents = lease.monthlyRentCents ?? 0;
@@ -60,7 +61,7 @@ function getCurrentInvoice(lease: { amountOverdueCents: number; monthlyRentCents
     dueOn,
     id: `INV-${dueOn.getUTCFullYear()}-${String(dueOn.getUTCMonth() + 1).padStart(2, "0")}`,
     paidOn: null,
-    status: lease.amountOverdueCents > 0 ? "Overdue" : "Current",
+    status: (lease.amountOverdueCents ?? 0) > 0 ? "Overdue" : "Current",
   };
 }
 
@@ -88,11 +89,11 @@ function getIncomeInvoiceStatus(invoice: {
 }
 
 function getTenantName(lease: {
-  tenant: { firstName: string; lastName: string };
+  tenant: { firstName: string; lastName: string } | null;
   tenants?: Array<{ firstName: string; lastName: string }>;
 }) {
-  const tenants = lease.tenants?.length ? lease.tenants : [lease.tenant];
-  return tenants.map((tenant) => `${tenant.firstName} ${tenant.lastName}`).join(", ");
+  const tenants = lease.tenants?.length ? lease.tenants : lease.tenant ? [lease.tenant] : [];
+  return tenants.map((tenant) => `${tenant.firstName} ${tenant.lastName}`).join(", ") || "Unavailable";
 }
 
 function parseEntityId(value: string | null) {
@@ -125,11 +126,21 @@ function IncomePageContent() {
   const tenantId = Number(searchParams.get("tenantId"));
   const selectedTenantId = Number.isInteger(tenantId) && tenantId > 0 ? tenantId : null;
   const selectedUnitId = parseEntityId(searchParams.get("unitId"));
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
+    enabled: canViewInvoices,
   });
-  const chargesQuery = useQuery({ queryKey: queryKeys.invoices.charges, queryFn: () => apiClient.invoices.charges.query() });
+  const chargesQuery = useQuery({
+    queryKey: queryKeys.invoices.charges,
+    queryFn: () => apiClient.invoices.charges.query(),
+    enabled: canViewInvoices,
+  });
   const properties = propertiesQuery.data ?? [];
   const createInvoice = useMutation({
     mutationFn: (input: Parameters<typeof apiClient.invoices.createManual.mutate>[0]) =>
@@ -165,8 +176,7 @@ function IncomePageContent() {
           (total, lease) =>
             total +
             lease.invoices.reduce(
-              (leaseTotal, invoice) =>
-                leaseTotal + (invoice.status === "overdue" ? invoice.balanceCents : 0),
+              (leaseTotal, invoice) => leaseTotal + (invoice.status === "overdue" ? invoice.balanceCents : 0),
               0,
             ),
           0,
@@ -242,6 +252,15 @@ function IncomePageContent() {
       else next.add(unitId);
       return next;
     });
+  }
+
+  if (currentUserQuery.isPending) return <LoadingState label="Loading income..." />;
+  if (!canViewInvoices) {
+    return (
+      <main className="p-6 lg:pl-[var(--parcelis-sidebar-width)]">
+        <p className="p-6 text-parcelis-gray">You do not have permission to view invoices.</p>
+      </main>
+    );
   }
 
   return (
@@ -361,7 +380,7 @@ function IncomePageContent() {
               ) : filteredIncomeProperties.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">
                   {selectedUnitId !== null && incomeProperties.length === 0
-                  ? "No income leases for the selected unit."
+                    ? "No income leases for the selected unit."
                     : incomeProperties.length === 0
                       ? "No income leases are available to report income yet."
                       : "No income records match your search."}
@@ -385,7 +404,9 @@ function IncomePageContent() {
                   <TableBody>
                     {filteredUnitGroups.map((group) => {
                       const isExpanded = expandedUnitIds.has(group.id);
-                      const invoiceRows: Array<Pick<ReturnType<typeof getCurrentInvoice>, "amountCents" | "balanceCents">> = [];
+                      const invoiceRows: Array<
+                        Pick<ReturnType<typeof getCurrentInvoice>, "amountCents" | "balanceCents">
+                      > = [];
                       for (const lease of group.incomeLeases) {
                         const persistedInvoices = getLeaseInvoices(lease);
                         if (persistedInvoices.length > 0) invoiceRows.push(...persistedInvoices);
@@ -495,9 +516,7 @@ function IncomePageContent() {
                                         )}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                        {persistedInvoice
-                                          ? getIncomeInvoiceStatus(persistedInvoice)
-                                          : invoice.status}
+                                        {persistedInvoice ? getIncomeInvoiceStatus(persistedInvoice) : invoice.status}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
                                         {formatCurrency(
