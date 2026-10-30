@@ -746,8 +746,8 @@ model InvoicePayment {
   amountCents   Int
   paymentMethod String
   paidOn        DateTime
-  invoice       Invoice  @relation("InvoicePaymentInvoice", fields: [invoiceId], references: [id], onDelete: Cascade)
-  recipient     InvoiceRecipient @relation("InvoicePaymentRecipient", fields: [organizationId, invoiceId, tenantId], references: [organizationId, invoiceId, tenantId], onDelete: Cascade)
+  invoice       Invoice  @relation("InvoicePaymentInvoice", fields: [invoiceId], references: [id], onDelete: Restrict)
+  recipient     InvoiceRecipient @relation("InvoicePaymentRecipient", fields: [organizationId, invoiceId, tenantId], references: [organizationId, invoiceId, tenantId], onDelete: Restrict)
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
   createdAt     DateTime @default(now())
 

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { Prisma, PrismaClient, PrismaPg } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
@@ -91,13 +92,61 @@ test(
       await assert.rejects(caller.invoices.delete({ id: legacyPartial.id }), { code: "BAD_REQUEST" });
       assert.ok(await prisma.invoice.findUnique({ where: { id: legacyPartial.id } }));
 
+      let protectedInvoiceId = 0;
+      let protectedPaymentId = 0;
       for (const amountCents of [5_000, 10_000]) {
         const invoice = await createInvoice();
         const payment = await recordPayment(invoice.id, amountCents);
         await assert.rejects(caller.invoices.delete({ id: invoice.id }), { code: "BAD_REQUEST" });
         assert.ok(await prisma.invoice.findUnique({ where: { id: invoice.id } }));
         assert.ok(await prisma.invoicePayment.findUnique({ where: { id: payment.id } }));
+        protectedInvoiceId = invoice.id;
+        protectedPaymentId = payment.id;
       }
+
+      await prisma.$executeRawUnsafe(`ALTER TABLE "InvoicePayment"
+        DROP CONSTRAINT "InvoicePayment_invoiceId_fkey",
+        ADD CONSTRAINT "InvoicePayment_invoiceId_fkey" FOREIGN KEY ("invoiceId")
+        REFERENCES "Invoice"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "InvoicePayment"
+        DROP CONSTRAINT "InvoicePayment_organizationId_invoiceId_tenantId_fkey",
+        ADD CONSTRAINT "InvoicePayment_organizationId_invoiceId_tenantId_fkey"
+        FOREIGN KEY ("organizationId", "invoiceId", "tenantId")
+        REFERENCES "InvoiceRecipient"("organizationId", "invoiceId", "tenantId")
+        ON DELETE CASCADE ON UPDATE CASCADE`);
+      const migration = await readFile(
+        new URL(
+          "../../../../../packages/db/prisma/migrations/20261030000000_protect_invoice_payment_history/migration.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      );
+      for (const statement of migration
+        .split(";")
+        .map((part) => part.trim())
+        .filter(Boolean)) {
+        await prisma.$executeRawUnsafe(statement);
+      }
+
+      assert.ok(await prisma.invoicePayment.findUnique({ where: { id: protectedPaymentId } }));
+      await assert.rejects(prisma.invoice.delete({ where: { id: protectedInvoiceId } }), { code: "P2003" });
+      await assert.rejects(
+        prisma.invoiceRecipient.delete({
+          where: {
+            organizationId_invoiceId_tenantId: {
+              organizationId: organization.id,
+              invoiceId: protectedInvoiceId,
+              tenantId: tenant.id,
+            },
+          },
+        }),
+        { code: "P2003" },
+      );
+      assert.ok(await prisma.invoice.findUnique({ where: { id: protectedInvoiceId } }));
+      assert.ok(await prisma.invoicePayment.findUnique({ where: { id: protectedPaymentId } }));
+      const directUnpaid = await createInvoice();
+      await prisma.invoice.delete({ where: { id: directUnpaid.id } });
+      assert.equal(await prisma.invoice.findUnique({ where: { id: directUnpaid.id } }), null);
 
       const foreign = await createInvoice();
       const isMissingInvoice = (error: unknown) =>
