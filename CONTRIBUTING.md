@@ -117,8 +117,8 @@ unavailable, inspect the run logs because the comment may retain an earlier resu
 
 Commenting reuses the `ASSIGNMENT_APP_ID` repository variable and
 `ASSIGNMENT_APP_PRIVATE_KEY` secret used by assignment automation. The app must be
-installed on this repository with Issues write permission. The workflow creates a
-short-lived token scoped to this repository with only that permission for commenting;
+installed on this repository with Issues write and Pull requests write permissions. The workflow
+creates a short-lived token scoped to this repository with both permissions for commenting;
 it does not fall back to posting as `github-actions[bot]` if bot authentication fails.
 
 For public API changes, run `pnpm --filter @parcelis/api generate:openapi` here, then
