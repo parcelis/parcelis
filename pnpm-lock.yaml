@@ -258,10 +258,10 @@ importers:
         version: 4.13.14
       next:
         specifier: ^16.3.8
-        version: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
+        version: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0)
       next-auth:
         specifier: 4.24.15
-        version: 4.24.15(next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 4.24.15(next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: ^19.2.8
         version: 19.3.1
@@ -313,10 +313,10 @@ importers:
         version: 5.2.0(@docusaurus/plugin-content-docs@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@docusaurus/utils-validation@3.10.2(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sharp@0.35.5(@types/node@24.19.2))(supports-color@8.1.1)(svgo@3.3.5))(@docusaurus/utils@3.10.2(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sharp@0.35.5(@types/node@24.19.2))(supports-color@8.1.1)(svgo@3.3.5))(@types/json-schema@7.0.15)(react@19.3.1)
       docusaurus-plugin-sass:
         specifier: ^0.2.6
-        version: 0.2.7(@docusaurus/core@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.106.1)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5))
+        version: 0.2.7(@docusaurus/core@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.107.0)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5))
       docusaurus-theme-openapi-docs:
         specifier: ^5.2.0
-        version: 5.2.0(13a42f2beb8b9547d50f75e17f149beb)
+        version: 5.2.0(95451f60396b13c8f58ecd7ca0fe3a47)
       react:
         specifier: ^19.2.8
         version: 19.3.1
@@ -325,7 +325,7 @@ importers:
         version: 19.3.1(react@19.3.1)
       sass:
         specifier: ^1.102.0
-        version: 1.106.1
+        version: 1.107.0
     devDependencies:
       '@docusaurus/plugin-content-docs':
         specifier: 3.10.2
@@ -416,10 +416,10 @@ importers:
         version: 1.62.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: ^16.3.3
-        version: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
+        version: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0)
       next-auth:
         specifier: 4.24.15
-        version: 4.24.15(next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 4.24.15(next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -570,7 +570,7 @@ importers:
         version: link:../config
       '@react-email/ui':
         specifier: ^6.9.3
-        version: 6.11.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
+        version: 6.11.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0)
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -653,7 +653,7 @@ importers:
         version: 1.62.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: ^16.3.3
-        version: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
+        version: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0)
       react:
         specifier: ^18.3.1 || ^19.0.0
         version: 19.3.1
@@ -9693,8 +9693,8 @@ packages:
       webpack:
         optional: true
 
-  sass@1.106.1:
-    resolution: {integrity: sha512-kD+Gi66vycZcbJt+42NC4z4PXNMcCajVrJPhqoKKXy5cOBMmJQt052CxIBcRjwYXeImHYOpu/ydWWGZQIenl7A==}
+  sass@1.107.0:
+    resolution: {integrity: sha512-+whPilvVNoAD57xvdIPLQT0gXo4RD1lHYw+Uw8zYHlojaeaMDxK14tc0JmEsz/XMns48h3lpypisMP+3E8eHQA==}
     engines: {node: '>=20.19.0'}
     hasBin: true
 
@@ -15113,11 +15113,11 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@react-email/ui@6.11.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)':
+  '@react-email/ui@6.11.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0)':
     dependencies:
       esbuild: 0.28.2
       jiti: 2.6.1
-      next: 16.4.1(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
+      next: 16.4.1(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0)
     transitivePeerDependencies:
       - '@babel/core'
       - '@opentelemetry/api'
@@ -17728,18 +17728,18 @@ snapshots:
       - '@types/json-schema'
       - encoding
 
-  docusaurus-plugin-sass@0.2.7(@docusaurus/core@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.106.1)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5)):
+  docusaurus-plugin-sass@0.2.7(@docusaurus/core@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.107.0)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5)):
     dependencies:
       '@docusaurus/core': 3.10.2(788f75cc7cb99cc93d9027668a1ca305)
-      sass: 1.106.1
-      sass-loader: 16.0.8(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.106.1)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5))
+      sass: 1.107.0
+      sass-loader: 16.0.8(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.107.0)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5))
     transitivePeerDependencies:
       - '@rspack/core'
       - node-sass
       - sass-embedded
       - webpack
 
-  docusaurus-theme-openapi-docs@5.2.0(13a42f2beb8b9547d50f75e17f149beb):
+  docusaurus-theme-openapi-docs@5.2.0(95451f60396b13c8f58ecd7ca0fe3a47):
     dependencies:
       '@docusaurus/theme-common': 3.10.2(@docusaurus/plugin-content-docs@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sharp@0.35.5(@types/node@24.19.2))(supports-color@8.1.1)(svgo@3.3.5)
       '@hookform/error-message': 2.0.1(react-dom@19.3.1(react@19.3.1))(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
@@ -17750,7 +17750,7 @@ snapshots:
       copy-text-to-clipboard: 3.2.2
       crypto-js: 4.2.0
       docusaurus-plugin-openapi-docs: 5.2.0(@docusaurus/plugin-content-docs@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@docusaurus/utils-validation@3.10.2(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sharp@0.35.5(@types/node@24.19.2))(supports-color@8.1.1)(svgo@3.3.5))(@docusaurus/utils@3.10.2(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sharp@0.35.5(@types/node@24.19.2))(supports-color@8.1.1)(svgo@3.3.5))(@types/json-schema@7.0.15)(react@19.3.1)
-      docusaurus-plugin-sass: 0.2.7(@docusaurus/core@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.106.1)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5))
+      docusaurus-plugin-sass: 0.2.7(@docusaurus/core@3.10.2(788f75cc7cb99cc93d9027668a1ca305))(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.107.0)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5))
       file-saver: 2.0.5
       lodash: 4.18.1
       pako: 3.0.2
@@ -17769,8 +17769,8 @@ snapshots:
       react-redux: 9.3.0(@types/react@19.3.0)(react@19.3.1)(redux@5.0.1)
       rehype-raw: 7.0.0
       remark-gfm: 4.0.1(supports-color@8.1.1)
-      sass: 1.106.1
-      sass-loader: 17.0.1(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.106.1)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5))
+      sass: 1.107.0
+      sass-loader: 17.0.1(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.107.0)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5))
       unist-util-visit: 5.1.0
       url: 0.11.4
       xml-formatter: 3.7.0
@@ -20276,13 +20276,13 @@ snapshots:
 
   neotraverse@0.6.15: {}
 
-  next-auth@4.24.15(next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  next-auth@4.24.15(next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       '@babel/runtime': 7.29.10
       '@panva/hkdf': 1.2.1
       cookie: 0.7.2
       jose: 4.15.9
-      next: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1)
+      next: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0)
       oauth: 0.9.15
       openid-client: 5.7.1
       preact: 10.29.8(preact-render-to-string@5.2.6)
@@ -20296,7 +20296,7 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  next@16.4.1(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1):
+  next@16.4.1(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0):
     dependencies:
       '@next/env': 16.4.1
       '@swc/helpers': 0.5.23
@@ -20316,14 +20316,14 @@ snapshots:
       '@next/swc-win32-arm64-msvc': 16.4.1
       '@next/swc-win32-x64-msvc': 16.4.1
       '@playwright/test': 1.64.1
-      sass: 1.106.1
+      sass: 1.107.0
       sharp: 0.35.5(@types/node@24.19.2)
     transitivePeerDependencies:
       - '@babel/core'
       - '@types/node'
       - babel-plugin-macros
 
-  next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1):
+  next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.0):
     dependencies:
       '@next/env': 16.4.3
       '@swc/helpers': 0.5.23
@@ -20343,7 +20343,7 @@ snapshots:
       '@next/swc-win32-arm64-msvc': 16.4.3
       '@next/swc-win32-x64-msvc': 16.4.3
       '@playwright/test': 1.64.1
-      sass: 1.106.1
+      sass: 1.107.0
       sharp: 0.35.5(@types/node@24.19.2)
     transitivePeerDependencies:
       - '@babel/core'
@@ -21982,21 +21982,21 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sass-loader@16.0.8(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.106.1)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5)):
+  sass-loader@16.0.8(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.107.0)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5)):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
       '@rspack/core': 1.7.12(@swc/helpers@0.5.23)
-      sass: 1.106.1
+      sass: 1.107.0
       webpack: 5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5)
 
-  sass-loader@17.0.1(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.106.1)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5)):
+  sass-loader@17.0.1(@rspack/core@1.7.12(@swc/helpers@0.5.23))(sass@1.107.0)(webpack@5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5)):
     optionalDependencies:
       '@rspack/core': 1.7.12(@swc/helpers@0.5.23)
-      sass: 1.106.1
+      sass: 1.107.0
       webpack: 5.112.0(@swc/core@1.16.18(@swc/helpers@0.5.23))(@swc/html@1.16.18)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@24.19.2))(svgo@3.3.5)
 
-  sass@1.106.1:
+  sass@1.107.0:
     dependencies:
       chokidar: 5.0.0
       immutable: 5.1.9
