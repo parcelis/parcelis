@@ -549,7 +549,9 @@ export default function PropertyDetailPage() {
                     <h2 className="font-semibold text-parcelis-charcoal">Active</h2>
                   </CardHeader>
                   <CardContent className="max-h-[34rem] space-y-3 overflow-y-auto pr-3">
-                    {leases.length === 0 ? (
+                    {!canViewLeases ? (
+                      <p className="text-sm text-parcelis-gray">You do not have permission to view leases.</p>
+                    ) : leases.length === 0 ? (
                       <p className="text-sm text-parcelis-gray">No leases are attached to this property yet.</p>
                     ) : (
                       leases.map((lease) => (
@@ -606,7 +608,11 @@ export default function PropertyDetailPage() {
                     <h2 className="font-semibold text-parcelis-charcoal">Maintenance</h2>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {maintenanceTickets.length === 0 ? (
+                    {!canViewMaintenance ? (
+                      <p className="text-sm text-parcelis-gray">
+                        You do not have permission to view maintenance tickets.
+                      </p>
+                    ) : maintenanceTickets.length === 0 ? (
                       <p className="text-sm text-parcelis-gray">
                         No maintenance tickets are attached to this property yet.
                       </p>
