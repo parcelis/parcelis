@@ -1,0 +1,25 @@
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_b516e6d627663c::t_f1b8d2a7d1e3a5 118,240,278
+  s_b516e6d627663c::t_7d56f70ef72f5e 272
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_b516e6d627663c::t_7d56f70ef72f5e 132,222
+  s_b516e6d627663c::t_f1b8d2a7d1e3a5 192,228,285,338
+apps/web/app/(authenticated)/properties/page.tsx
+  s_b516e6d627663c::t_f1b8d2a7d1e3a5 67,171,179,207,236,242,275,302-308,521,567,576,1037,1137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f52794749c18d7e5defee71916d51fffd5984e91",
+  "prompts": {},
+  "sessions": {
+    "s_b516e6d627663c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d78-7302-7bb1-925e-18ac4493fcd6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
