@@ -437,7 +437,10 @@ export default function PropertiesPage() {
     const matchesPostalCode = !appliedFilters.postalCode || property.postalCode.includes(appliedFilters.postalCode);
     const matchesStatus = appliedFilters.status === "all" || property.status === appliedFilters.status;
     const matchesUnits = !appliedFilters.minimumUnits || property.unitCount >= Number(appliedFilters.minimumUnits);
-    const matchesMaintenance = !appliedFilters.hasOpenMaintenance || (property.openMaintenanceTickets ?? 0) > 0;
+    const matchesMaintenance =
+      !appliedFilters.hasOpenMaintenance ||
+      property.openMaintenanceTickets === null ||
+      property.openMaintenanceTickets > 0;
     const matchesArchived = appliedFilters.archivedOnly
       ? property.status === "archived"
       : appliedFilters.status === "archived" || property.status !== "archived";
@@ -918,9 +921,11 @@ export default function PropertiesPage() {
                                     isExpanded ? `Collapse ${property.name} units` : `Expand ${property.name} units`
                                   }
                                   className={`grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray ${
-                                    property.unitCount > 1 ? "hover:bg-white" : "cursor-not-allowed opacity-40"
+                                    property.unitCount > 1 && property.units.length > 0
+                                      ? "hover:bg-white"
+                                      : "cursor-not-allowed opacity-40"
                                   }`}
-                                  disabled={property.unitCount <= 1}
+                                  disabled={property.unitCount <= 1 || property.units.length === 0}
                                   onClick={() => togglePropertyUnits(property.id)}
                                   type="button"
                                 >

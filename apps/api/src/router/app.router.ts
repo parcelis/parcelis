@@ -1547,6 +1547,7 @@ export const appRouter = router({
           const leases = property.leases.flatMap((lease) => {
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
+            if (permissions.tenants.view && !firstTenant) return [];
             const amountOverdueCents = invoices.reduce((sum, inv) => sum + inv.balanceCents, 0);
             return [
               {
@@ -1657,6 +1658,7 @@ export const appRouter = router({
         const leases = rawLeases.flatMap((lease) => {
           const { tenants: _tenants, unit: _unit, invoices: _invoices, ...leaseData } = lease;
           const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
+          if (permissions.tenants.view && !firstTenant) return [];
           const amountOverdueCents = permissions.invoices.view
             ? lease.invoices.reduce((sum, inv) => sum + inv.balanceCents, 0)
             : null;
@@ -2802,15 +2804,12 @@ export const appRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." });
       }
 
-      // Verify tenant is on this lease
-      const leaseTenant = await ctx.prisma.leaseTenant.findFirst({
-        where: { leaseId: lease.id, tenantId: input.tenantId },
-      });
-      if (!leaseTenant) {
+      const tenantId = input.tenantId ?? lease.tenants[0]?.tenantId;
+      if (tenantId === undefined || !lease.tenants.some((tenant) => tenant.tenantId === tenantId)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "The selected tenant is not on this lease." });
       }
       const recipientTenantIds =
-        lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [input.tenantId];
+        lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [tenantId];
 
       const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
       if (amountCents <= 0) {
@@ -2835,7 +2834,7 @@ export const appRouter = router({
               const existingInvoice = await tx.invoice.findFirst({
                 where: {
                   leaseId: lease.id,
-                  ...(lease.billingResponsibility === "joint" ? {} : { tenantId: input.tenantId }),
+                  ...(lease.billingResponsibility === "joint" ? {} : { tenantId }),
                   periodStartsOn: dueOn,
                 },
                 select: { invoiceNumber: true },
@@ -2852,7 +2851,7 @@ export const appRouter = router({
                   organizationId: ctx.organization.organizationId,
                   leaseId: lease.id,
                   propertyId: input.propertyId,
-                  tenantId: input.tenantId,
+                  tenantId,
                   recipients: {
                     create: recipientTenantIds.map((tenantId) => ({
                       organizationId: ctx.organization.organizationId,

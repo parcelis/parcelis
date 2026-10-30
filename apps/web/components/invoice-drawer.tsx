@@ -50,7 +50,7 @@ type InvoiceDrawerProps = {
   onCreate: (input: {
     propertyId: number;
     leaseId: number;
-    tenantId: number;
+    tenantId?: number;
     dueOn: Date;
     paidCents: number;
     items: Array<{ item: string; description?: string; quantity: number; rateCents: number }>;
@@ -130,11 +130,11 @@ export function InvoiceDrawer({
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!property || !lease?.tenant || lines.length === 0 || hasInvalidLine) return;
+    if (!property || !lease || lines.length === 0 || hasInvalidLine) return;
     onCreate({
       propertyId: property.id,
       leaseId: lease.id,
-      tenantId: lease.tenant.id,
+      tenantId: lease.tenant?.id,
       dueOn: new Date(`${dueOn}T00:00:00.000Z`),
       paidCents,
       items: lines.map((line) => ({
@@ -397,7 +397,7 @@ export function InvoiceDrawer({
               className="min-w-40"
               disabled={
                 isPending ||
-                !lease?.tenant ||
+                !lease ||
                 lines.length === 0 ||
                 hasInvalidLine ||
                 subtotalCents <= 0 ||

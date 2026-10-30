@@ -147,12 +147,14 @@ The API context resolves the active organization from the `x-parcelis-organizati
 
 Property and tenant read responses apply View permissions to related leases, tenants,
 units, properties, invoices, maintenance tickets, and legacy note fields. Restricted
-collections are empty; sensitive derived balances, occupancy, and tenant status are
-null rather than false zero/past values. Property capacity remains property data.
+collections are empty; sensitive derived balances, occupancy, and lease-derived tenant status are
+null rather than false zero/past values. Archived tenant status remains visible with
+Tenants View even without Leases View. Property capacity remains property data.
 The frontend displays unavailable metrics without inferring them from empty relations.
 Role grants are platform-wide, and the platform administrator bypass remains global;
-this is not organization-specific RBAC. Organization API tokens retain full access
-to the documented operations within their issuing organization.
+this is not organization-specific RBAC. Organization API tokens receive their issuing
+organization's capabilities for allowlisted REST operations. Feature flags, supported-action
+checks, nested ownership checks, and domain validation still apply.
 
 API-token management lives in `app.router.ts` under `apiTokens.list`,
 `apiTokens.create`, and `apiTokens.revoke`. A valid browser session and an active

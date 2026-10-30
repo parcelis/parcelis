@@ -132,6 +132,25 @@ for (const denied of resources.filter((resource) => resource !== "properties")) 
     }
   });
 }
+test("property reads omit tenantless leases only when tenants are visible", async () => {
+  for (const canViewTenants of [true, false]) {
+    const propertyWithoutTenants = { ...property, leases: [{ ...lease, tenants: [] }] };
+    const caller = createCaller(
+      resources.filter((resource) => canViewTenants || resource !== "tenants"),
+      {
+        property: {
+          findMany: async () => [propertyWithoutTenants],
+          findFirst: async () => propertyWithoutTenants,
+        },
+      },
+    );
+    for (const result of [(await caller.properties.list())[0]!, (await caller.properties.byId({ id: 2 }))!]) {
+      assert.equal(result.leases.length, canViewTenants ? 0 : 1);
+      assert.equal(result.leaseHistory.length, canViewTenants ? 0 : 1);
+    }
+  }
+});
+
 for (const denied of ["leases", "invoices", "properties", "units", "tenant_notes"] as PermissionResource[]) {
   test(`tenant list and detail redact denied ${denied} data`, async () => {
     const caller = createCaller(resources.filter((resource) => resource !== denied));

@@ -131,10 +131,11 @@ function IncomePageContent() {
     queryFn: () => apiClient.auth.me.query(),
   });
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
+  const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
-    enabled: canViewInvoices,
+    enabled: canViewInvoices && canViewLeases,
   });
   const chargesQuery = useQuery({
     queryKey: queryKeys.invoices.charges,
@@ -255,10 +256,30 @@ function IncomePageContent() {
   }
 
   if (currentUserQuery.isPending) return <LoadingState label="Loading income..." />;
-  if (!canViewInvoices) {
+  if (currentUserQuery.isError) {
     return (
       <main className="p-6 lg:pl-[var(--parcelis-sidebar-width)]">
-        <p className="p-6 text-parcelis-gray">You do not have permission to view invoices.</p>
+        <div role="alert" className="space-y-3 p-6 text-sm text-red-700">
+          <p>{currentUserQuery.error.message}</p>
+          <Button
+            variant="secondary"
+            onClick={() => void currentUserQuery.refetch()}
+            disabled={currentUserQuery.isFetching}
+          >
+            Retry
+          </Button>
+        </div>
+      </main>
+    );
+  }
+  if (!canViewInvoices || !canViewLeases) {
+    return (
+      <main className="p-6 lg:pl-[var(--parcelis-sidebar-width)]">
+        <p className="p-6 text-parcelis-gray">
+          {!canViewInvoices
+            ? "You do not have permission to view invoices."
+            : "Unavailable: you do not have permission to view leases."}
+        </p>
       </main>
     );
   }

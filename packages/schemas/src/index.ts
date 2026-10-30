@@ -853,7 +853,7 @@ const invoiceItemsSchema = z
 export const createManualInvoiceInputSchema = z.object({
   propertyId: idSchema,
   leaseId: idSchema,
-  tenantId: idSchema,
+  tenantId: idSchema.optional(),
   dueOn: z.coerce.date(),
   paidCents: z.number().int().nonnegative().max(maxDatabaseInteger),
   items: invoiceItemsSchema,

@@ -59,6 +59,7 @@ import {
   entityReactivatedMessage,
   entityUpdatedMessage,
 } from "../../../components/toast-messages";
+import { hasPermission } from "../../../components/property-access";
 import { getTenantLink } from "../../../lib/entity-links";
 
 type TenantFilters = {
@@ -169,6 +170,11 @@ function getStatusTone(status?: string | null) {
 
 export default function TenantsPage() {
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants.list,
     queryFn: () => apiClient.tenants.list.query(),
@@ -437,8 +443,8 @@ export default function TenantsPage() {
             </div>
             <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
               <Metric label="Tenants" value={tenants.length} />
-              <Metric label="Active" value={activeTenants.length} />
-              <Metric label="Past" value={pastTenants.length} />
+              <Metric label="Active" value={canViewLeases ? activeTenants.length : null} />
+              <Metric label="Past" value={canViewLeases ? pastTenants.length : null} />
               <Metric label="Archived" value={archivedTenants.length} />
             </div>
           </section>
@@ -591,7 +597,9 @@ export default function TenantsPage() {
                             ) : null}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {activeLease ? (
+                            {!canViewLeases ? (
+                              "Unavailable"
+                            ) : activeLease ? (
                               <>
                                 <p className="font-medium text-parcelis-charcoal">
                                   {activeLease.property?.name ?? "Property not set"}
@@ -631,11 +639,13 @@ export default function TenantsPage() {
                             </span>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {activeLease?.endsOn
-                              ? formatDate(activeLease.endsOn)
-                              : activeLease
-                                ? "Month-to-Month"
-                                : "—"}
+                            {!canViewLeases
+                              ? "Unavailable"
+                              : activeLease?.endsOn
+                                ? formatDate(activeLease.endsOn)
+                                : activeLease
+                                  ? "Month-to-Month"
+                                  : "—"}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right">
                             <TenantActionsMenu
@@ -661,10 +671,10 @@ export default function TenantsPage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="rounded-md bg-white/10 p-3">
-      <div className="text-2xl font-bold text-white">{value}</div>
+      <div className="text-2xl font-bold text-white">{value ?? "Unavailable"}</div>
       {label}
     </div>
   );

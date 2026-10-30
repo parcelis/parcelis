@@ -128,7 +128,8 @@ export default function PropertyDetailPage() {
 
   const property = propertyQuery.data;
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
-  const canViewOccupancy = canViewLeases && hasPermission(currentUserQuery.data?.permissions, "units", "view");
+  const canViewUnits = hasPermission(currentUserQuery.data?.permissions, "units", "view");
+  const canViewOccupancy = canViewLeases && canViewUnits;
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
   const canViewMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "view");
   const leases = property?.leases ?? [];
@@ -158,7 +159,7 @@ export default function PropertyDetailPage() {
       ].filter(([, value]) => Boolean(value))
     : [];
   const unitCards =
-    property && hasPermission(currentUserQuery.data?.permissions, "units", "view")
+    property && canViewUnits
       ? (property.units.length > 0
           ? property.units
           : Array.from({ length: unitCount }, (_, index) => ({
@@ -182,7 +183,9 @@ export default function PropertyDetailPage() {
           };
         })
       : [];
-  const filteredUnitCards = unitCards.filter(({ status }) => unitStatusFilter === "all" || status === unitStatusFilter);
+  const filteredUnitCards = unitCards.filter(
+    ({ status }) => !canViewLeases || unitStatusFilter === "all" || status === unitStatusFilter,
+  );
 
   function openEditDrawer() {
     if (!property) {
@@ -345,12 +348,14 @@ export default function PropertyDetailPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          {propertyQuery.isLoading ? (
+          {propertyQuery.isLoading || currentUserQuery.isLoading ? (
             <LoadingState className="min-h-[60vh]" label="Loading property" />
-          ) : propertyQuery.error ? (
+          ) : propertyQuery.error || currentUserQuery.error ? (
             <Card>
               <CardContent>
-                <p className="text-sm font-medium text-red-700">{propertyQuery.error.message}</p>
+                <p className="text-sm font-medium text-red-700">
+                  {(propertyQuery.error ?? currentUserQuery.error)?.message}
+                </p>
               </CardContent>
             </Card>
           ) : !property ? (
@@ -477,15 +482,22 @@ export default function PropertyDetailPage() {
                     <Select
                       aria-label="Filter units by status"
                       className="w-36"
+                      disabled={!canViewLeases || !canViewUnits}
                       onChange={(event) => setUnitStatusFilter(event.target.value)}
-                      value={unitStatusFilter}
+                      value={canViewLeases && canViewUnits ? unitStatusFilter : "unavailable"}
                     >
-                      <option value="all">All statuses</option>
-                      {property.unitStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {formatStatus(status)}
-                        </option>
-                      ))}
+                      {canViewLeases && canViewUnits ? (
+                        <>
+                          <option value="all">All statuses</option>
+                          {property.unitStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {formatStatus(status)}
+                            </option>
+                          ))}
+                        </>
+                      ) : (
+                        <option value="unavailable">Unavailable</option>
+                      )}
                     </Select>
                   </CardHeader>
                   <CardContent className="grid max-h-[34rem] gap-3 overflow-y-auto pr-3 sm:grid-cols-2">
@@ -525,7 +537,9 @@ export default function PropertyDetailPage() {
                       );
                     })}
                     {filteredUnitCards.length === 0 ? (
-                      <p className="text-sm text-parcelis-gray sm:col-span-2">No units match this status.</p>
+                      <p className="text-sm text-parcelis-gray sm:col-span-2">
+                        {canViewUnits ? "No units match this status." : "Unavailable"}
+                      </p>
                     ) : null}
                   </CardContent>
                 </Card>
@@ -559,7 +573,9 @@ export default function PropertyDetailPage() {
                               <CircleDollarSign className="h-4 w-4" />
                               {formatCurrency(lease.monthlyRentCents)}
                             </span>
-                            {(lease.amountOverdueCents ?? 0) > 0 ? (
+                            {lease.amountOverdueCents === null ? (
+                              <span className="inline-flex items-center gap-1">Overdue: Unavailable</span>
+                            ) : lease.amountOverdueCents > 0 ? (
                               <span className="inline-flex items-center gap-1 font-semibold text-red-700">
                                 Overdue {formatCurrency(lease.amountOverdueCents)}
                               </span>

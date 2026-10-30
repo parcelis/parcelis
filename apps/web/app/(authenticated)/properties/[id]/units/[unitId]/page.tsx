@@ -212,9 +212,9 @@ export default function UnitDetailPage() {
   const openTickets = unitTickets.filter((ticket) => isActiveMaintenanceTicketStatus(ticket.status));
   const utilities = unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
   const amenities = unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
-  const monthlyRentCents = lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0;
+  const monthlyRentCents = canViewLeases ? (lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0) : null;
   const overdueCents = lease?.amountOverdueCents ?? 0;
-  const collectedCents = lease ? Math.max(monthlyRentCents - overdueCents, 0) : 0;
+  const collectedCents = lease ? Math.max((monthlyRentCents ?? 0) - overdueCents, 0) : 0;
   const collectionRows = [
     [
       "Collected",
@@ -224,9 +224,16 @@ export default function UnitDetailPage() {
     ["Outstanding", canViewInvoices && canViewLeases ? formatCurrency(overdueCents) : "Unavailable", "bg-red-500"],
     ["Processing", "—", "bg-orange-500"],
     ["Coming Due", "—", "bg-amber-400"],
-    ["Monthly rent", formatCurrency(monthlyRentCents), "bg-parcelis-charcoal"],
+    [
+      "Monthly rent",
+      monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents),
+      "bg-parcelis-charcoal",
+    ],
   ];
-  const invoiceRows = canViewInvoices && lease?.startsOn ? getInvoiceRows(lease.startsOn, monthlyRentCents) : [];
+  const invoiceRows =
+    canViewInvoices && lease?.startsOn && monthlyRentCents !== null
+      ? getInvoiceRows(lease.startsOn, monthlyRentCents)
+      : [];
 
   function openEditUnitDrawer() {
     if (!property) {
@@ -526,7 +533,9 @@ export default function UnitDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-parcelis-gray">No active lease is attached to this unit.</p>
+                      <p className="text-sm text-parcelis-gray">
+                        {canViewLeases ? "No active lease is attached to this unit." : "Unavailable"}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -540,7 +549,9 @@ export default function UnitDetailPage() {
                       <div className="grid aspect-square place-items-center rounded-full border-[1.35rem] border-parcelis-green bg-white">
                         <div className="text-center">
                           <p className="text-xs font-semibold uppercase text-parcelis-gray">Total</p>
-                          <p className="text-xl font-bold text-parcelis-charcoal">{formatCurrency(monthlyRentCents)}</p>
+                          <p className="text-xl font-bold text-parcelis-charcoal">
+                            {monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents)}
+                          </p>
                         </div>
                       </div>
                       <div className="grid gap-3">
