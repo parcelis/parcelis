@@ -1,0 +1,22 @@
+.github/workflows/documentation.yml
+  s_01ee5fd34417f1::t_6523c4f27dcc32 52
+CONTRIBUTING.md
+  s_01ee5fd34417f1::t_5ad426153fbfd2 121
+  s_01ee5fd34417f1::t_6523c4f27dcc32 120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cae870ed500d49156fc620a5f7475985cfd38df4",
+  "prompts": {},
+  "sessions": {
+    "s_01ee5fd34417f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1896b-16c5-7d50-83a1-bd74a1c57399",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
