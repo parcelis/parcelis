@@ -255,6 +255,65 @@ test("manual joint invoices create recipients for every lease tenant", async () 
   });
 });
 
+test("manual invoices derive the earliest lease tenant with invoice create permission alone", async () => {
+  let invoiceData: { tenantId: number; recipients: unknown } | undefined;
+  const tx = {
+    invoice: {
+      findFirst: async () => null,
+      create: async ({ data }: { data: typeof invoiceData }) => {
+        invoiceData = data;
+        return { id: 4, invoiceNumber: 1, organizationId: 7, propertyId: 2, items: [] };
+      },
+    },
+    activityEvent: { create: async () => ({ id: 1 }) },
+  };
+  const caller = appRouter.createCaller({
+    prisma: {
+      rolePermission: {
+        findUnique: async ({ where }: { where: { role_resource: { resource: string } } }) =>
+          where.role_resource.resource === "invoices" ? { canCreate: true } : null,
+      },
+      lease: {
+        findFirst: async ({ where, select }: { where: unknown; select: { tenants: unknown } }) => {
+          assert.deepEqual(where, { id: 3, organizationId: 7 });
+          assert.deepEqual(select.tenants, {
+            orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
+            select: { tenantId: true },
+          });
+          return {
+            id: 3,
+            propertyId: 2,
+            status: "active",
+            billingResponsibility: "individual",
+            tenants: [{ tenantId: 12 }, { tenantId: 11 }],
+          };
+        },
+      },
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    },
+    session: { user: { id: 1, role: "property_manager" } },
+    organization: { organizationId: 7 },
+  } as unknown as Context);
+  const input = {
+    propertyId: 2,
+    leaseId: 3,
+    dueOn: new Date("2026-09-15"),
+    paidCents: 0,
+    items: [{ item: "Rent", quantity: 1, rateCents: 10_000 }],
+  };
+
+  await caller.invoices.createManual(input);
+  assert.equal(invoiceData?.tenantId, 12);
+  assert.deepEqual(invoiceData?.recipients, { create: [{ organizationId: 7, tenantId: 12 }] });
+  await caller.invoices.createManual({ ...input, tenantId: 11 });
+  assert.equal(invoiceData?.tenantId, 11);
+  assert.deepEqual(invoiceData?.recipients, { create: [{ organizationId: 7, tenantId: 11 }] });
+  await assert.rejects(() => caller.invoices.createManual({ ...input, tenantId: 99 }), {
+    code: "BAD_REQUEST",
+    message: "The selected tenant is not on this lease.",
+  });
+});
+
 test("manual invoices cannot be created for draft leases", async () => {
   const caller = createCaller({
     lease: {

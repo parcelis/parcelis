@@ -49,7 +49,6 @@ import { entityUpdatedMessage } from "../../../../components/toast-messages";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../../lib/format";
 
-
 function formatStatus(status: string) {
   return status
     .split("_")
@@ -128,6 +127,15 @@ export default function PropertyDetailPage() {
   const [unitStatusFilter, setUnitStatusFilter] = React.useState("all");
 
   const property = propertyQuery.data;
+  const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
+  const canViewUnits = hasPermission(currentUserQuery.data?.permissions, "units", "view");
+  const canEditProperty =
+    canViewUnits &&
+    hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "edit");
+  const canViewOccupancy = canViewLeases && canViewUnits;
+  const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
+  const canViewMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "view");
   const leases = property?.leases ?? [];
   const maintenanceTickets = property?.maintenanceTickets ?? [];
   const activeLeases = leases.filter((lease) => lease.status === "active" || lease.status === "notice");
@@ -135,7 +143,7 @@ export default function PropertyDetailPage() {
   const unitCount = property?.unitCount ?? 0;
   const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits / unitCount) * 100) : 0;
   const monthlyRentCents = activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0);
-  const amountOverdueCents = activeLeases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0);
+  const amountOverdueCents = activeLeases.reduce((sum, lease) => sum + (lease.amountOverdueCents ?? 0), 0);
   const expiringLeases90Days = activeLeases.filter((lease) => {
     const now = new Date();
     const expiresBefore = new Date(now);
@@ -154,32 +162,37 @@ export default function PropertyDetailPage() {
         ["Contact Address", property.contactAddress],
       ].filter(([, value]) => Boolean(value))
     : [];
-  const unitCards = property
-    ? (property.units.length > 0
-        ? property.units
-        : Array.from({ length: unitCount }, (_, index) => ({
-            id: String(index + 1),
-            name: String(index + 1),
-            bedrooms: null,
-            bathrooms: null,
-            squareFeet: null,
-            marketRateCents: 0,
-          }))
-      ).map((unit, index) => {
-        const lease = leases.find((item) => item.unitLabel === unit.name) ?? leases[index];
+  const unitCards =
+    property && canViewUnits
+      ? (property.units.length > 0
+          ? property.units
+          : Array.from({ length: unitCount }, (_, index) => ({
+              id: String(index + 1),
+              name: String(index + 1),
+              bedrooms: null,
+              bathrooms: null,
+              squareFeet: null,
+              marketRateCents: 0,
+            }))
+        ).map((unit, index) => {
+          const lease = leases.find((item) => item.unitLabel === unit.name) ?? leases[index];
 
-        return {
-          unit,
-          lease,
-          status: lease?.status ?? "vacant",
-          href: property.units.some((savedUnit) => savedUnit.id === unit.id) ? getUnitLink(property.id, unit.id) : null,
-        };
-      })
-    : [];
-  const filteredUnitCards = unitCards.filter(({ status }) => unitStatusFilter === "all" || status === unitStatusFilter);
+          return {
+            unit,
+            lease,
+            status: canViewLeases ? (lease?.status ?? "vacant") : "unavailable",
+            href: property.units.some((savedUnit) => savedUnit.id === unit.id)
+              ? getUnitLink(property.id, unit.id)
+              : null,
+          };
+        })
+      : [];
+  const filteredUnitCards = unitCards.filter(
+    ({ status }) => !canViewLeases || unitStatusFilter === "all" || status === unitStatusFilter,
+  );
 
   function openEditDrawer() {
-    if (!property) {
+    if (!property || !canEditProperty) {
       return;
     }
 
@@ -209,12 +222,13 @@ export default function PropertyDetailPage() {
         onImageDelete={() => deletePropertyImageMutation.mutate(propertyId)}
         onOpenChange={setIsEditDrawerOpen}
         onSubmit={(input, imageFile) =>
+          canEditProperty &&
           updateProperty.mutate({
             imageFile,
             input: { ...input, id: propertyId },
           })
         }
-        open={isEditDrawerOpen}
+        open={isEditDrawerOpen && canEditProperty}
         submitLabel="Save"
         unitHref={(unit) => (unit.id ? getUnitLink(propertyId, unit.id) : null)}
       />
@@ -271,7 +285,7 @@ export default function PropertyDetailPage() {
             <Button
               aria-label="Edit Property"
               className="hidden min-w-40 rounded-r-none md:inline-flex"
-              disabled={!property || !hasPermission(currentUserQuery.data?.permissions, "properties", "edit")}
+              disabled={!property || !canEditProperty}
               onClick={openEditDrawer}
             >
               <PenLine className="h-4 w-4" />
@@ -324,7 +338,7 @@ export default function PropertyDetailPage() {
             >
               <DropdownMenuItem
                 className="md:hidden"
-                disabled={!property || !hasPermission(currentUserQuery.data?.permissions, "properties", "edit")}
+                disabled={!property || !canEditProperty}
                 onSelect={openEditDrawer}
               >
                 <PenLine className="h-4 w-4" />
@@ -339,12 +353,14 @@ export default function PropertyDetailPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          {propertyQuery.isLoading ? (
+          {propertyQuery.isLoading || currentUserQuery.isLoading ? (
             <LoadingState className="min-h-[60vh]" label="Loading property" />
-          ) : propertyQuery.error ? (
+          ) : propertyQuery.error || currentUserQuery.error ? (
             <Card>
               <CardContent>
-                <p className="text-sm font-medium text-red-700">{propertyQuery.error.message}</p>
+                <p className="text-sm font-medium text-red-700">
+                  {(propertyQuery.error ?? currentUserQuery.error)?.message}
+                </p>
               </CardContent>
             </Card>
           ) : !property ? (
@@ -415,15 +431,30 @@ export default function PropertyDetailPage() {
 
               <section className="grid gap-5 md:grid-cols-4">
                 {[
-                  ["Units", String(unitCount), `${occupiedUnits} occupied`, DoorOpen],
-                  ["Occupancy", `${occupancyRate}%`, `${sampleVacantUnits} vacant`, Building2],
+                  [
+                    "Units",
+                    String(unitCount),
+                    canViewOccupancy ? `${occupiedUnits} occupied` : "Unavailable",
+                    DoorOpen,
+                  ],
+                  [
+                    "Occupancy",
+                    canViewOccupancy ? `${occupancyRate}%` : "Unavailable",
+                    canViewOccupancy ? `${sampleVacantUnits} vacant` : "Unavailable",
+                    Building2,
+                  ],
                   [
                     "Monthly Rent",
-                    formatCurrency(monthlyRentCents),
-                    `${activeLeases.length} active leases`,
+                    canViewLeases ? formatCurrency(monthlyRentCents) : "Unavailable",
+                    canViewLeases ? `${activeLeases.length} active leases` : "Unavailable",
                     CircleDollarSign,
                   ],
-                  ["Tickets", String(openMaintenanceTickets), `${expiringLeases90Days} leases expiring`, Wrench],
+                  [
+                    "Tickets",
+                    canViewMaintenance ? String(openMaintenanceTickets) : "Unavailable",
+                    canViewLeases ? `${expiringLeases90Days} leases expiring` : "Unavailable",
+                    Wrench,
+                  ],
                 ].map(([label, value, detail, Icon]) => (
                   <Card key={label as string}>
                     <CardContent>
@@ -438,7 +469,9 @@ export default function PropertyDetailPage() {
                         <p className="text-parcelis-gray">{detail as string}</p>
                         {label === "Monthly Rent" ? (
                           <p className="whitespace-nowrap font-semibold text-red-700">
-                            {formatCurrency(amountOverdueCents)} overdue
+                            {canViewInvoices && canViewLeases
+                              ? `${formatCurrency(amountOverdueCents)} overdue`
+                              : "Unavailable"}
                           </p>
                         ) : null}
                       </div>
@@ -454,15 +487,22 @@ export default function PropertyDetailPage() {
                     <Select
                       aria-label="Filter units by status"
                       className="w-36"
+                      disabled={!canViewLeases || !canViewUnits}
                       onChange={(event) => setUnitStatusFilter(event.target.value)}
-                      value={unitStatusFilter}
+                      value={canViewLeases && canViewUnits ? unitStatusFilter : "unavailable"}
                     >
-                      <option value="all">All statuses</option>
-                      {property.unitStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {formatStatus(status)}
-                        </option>
-                      ))}
+                      {canViewLeases && canViewUnits ? (
+                        <>
+                          <option value="all">All statuses</option>
+                          {property.unitStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {formatStatus(status)}
+                            </option>
+                          ))}
+                        </>
+                      ) : (
+                        <option value="unavailable">Unavailable</option>
+                      )}
                     </Select>
                   </CardHeader>
                   <CardContent className="grid max-h-[34rem] gap-3 overflow-y-auto pr-3 sm:grid-cols-2">
@@ -481,7 +521,7 @@ export default function PropertyDetailPage() {
                           </div>
                           <p className="mt-2 text-sm text-parcelis-gray">
                             {lease
-                              ? `${lease.tenant.firstName} ${lease.tenant.lastName}`
+                              ? `${lease.tenant?.firstName ?? "Unavailable"} ${lease.tenant?.lastName ?? ""}`
                               : formatCurrency(unit.marketRateCents)}
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-parcelis-gray">
@@ -502,7 +542,9 @@ export default function PropertyDetailPage() {
                       );
                     })}
                     {filteredUnitCards.length === 0 ? (
-                      <p className="text-sm text-parcelis-gray sm:col-span-2">No units match this status.</p>
+                      <p className="text-sm text-parcelis-gray sm:col-span-2">
+                        {canViewUnits ? "No units match this status." : "Unavailable"}
+                      </p>
                     ) : null}
                   </CardContent>
                 </Card>
@@ -512,7 +554,9 @@ export default function PropertyDetailPage() {
                     <h2 className="font-semibold text-parcelis-charcoal">Active</h2>
                   </CardHeader>
                   <CardContent className="max-h-[34rem] space-y-3 overflow-y-auto pr-3">
-                    {leases.length === 0 ? (
+                    {!canViewLeases ? (
+                      <p className="text-sm text-parcelis-gray">You do not have permission to view leases.</p>
+                    ) : leases.length === 0 ? (
                       <p className="text-sm text-parcelis-gray">No leases are attached to this property yet.</p>
                     ) : (
                       leases.map((lease) => (
@@ -520,11 +564,11 @@ export default function PropertyDetailPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="font-semibold text-parcelis-charcoal">
-                                Unit {lease.unitLabel} · {lease.tenant.firstName} {lease.tenant.lastName}
+                                Unit {lease.unitLabel} · {lease.tenant?.firstName ?? "Unavailable"}{" "}
+                                {lease.tenant?.lastName ?? ""}
                               </p>
                               <p className="mt-1 text-sm text-parcelis-gray">
-                                {formatDate(lease.startsOn)} to{" "}
-                                {formatLeaseEndDate(lease.endsOn, lease.termType)}
+                                {formatDate(lease.startsOn)} to {formatLeaseEndDate(lease.endsOn, lease.termType)}
                               </p>
                             </div>
                             <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
@@ -536,21 +580,23 @@ export default function PropertyDetailPage() {
                               <CircleDollarSign className="h-4 w-4" />
                               {formatCurrency(lease.monthlyRentCents)}
                             </span>
-                            {lease.amountOverdueCents > 0 ? (
+                            {lease.amountOverdueCents === null ? (
+                              <span className="inline-flex items-center gap-1">Overdue: Unavailable</span>
+                            ) : lease.amountOverdueCents > 0 ? (
                               <span className="inline-flex items-center gap-1 font-semibold text-red-700">
                                 Overdue {formatCurrency(lease.amountOverdueCents)}
                               </span>
                             ) : null}
-                            {lease.tenant.email ? (
+                            {lease.tenant?.email ? (
                               <span className="inline-flex items-center gap-1">
                                 <Mail className="h-4 w-4" />
-                                {lease.tenant.email}
+                                {lease.tenant?.email}
                               </span>
                             ) : null}
-                            {lease.tenant.phone ? (
+                            {lease.tenant?.phone ? (
                               <span className="inline-flex items-center gap-1">
                                 <Phone className="h-4 w-4" />
-                                {lease.tenant.phone}
+                                {lease.tenant?.phone}
                               </span>
                             ) : null}
                           </div>
@@ -567,7 +613,11 @@ export default function PropertyDetailPage() {
                     <h2 className="font-semibold text-parcelis-charcoal">Maintenance</h2>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {maintenanceTickets.length === 0 ? (
+                    {!canViewMaintenance ? (
+                      <p className="text-sm text-parcelis-gray">
+                        You do not have permission to view maintenance tickets.
+                      </p>
+                    ) : maintenanceTickets.length === 0 ? (
                       <p className="text-sm text-parcelis-gray">
                         No maintenance tickets are attached to this property yet.
                       </p>
@@ -599,11 +649,22 @@ export default function PropertyDetailPage() {
                   <CardContent>
                     <div className="grid gap-3">
                       {[
-                        ["Gross scheduled rent", formatCurrency(monthlyRentCents)],
-                        ["Overdue balance", formatCurrency(amountOverdueCents)],
-                        ["Leases expiring in 90 days", String(expiringLeases90Days)],
-                        ["Estimated vacancy loss", formatCurrency(Math.max(unitCount - occupiedUnits, 0) * 175000)],
-                        ["Owner distribution", formatCurrency(Math.max(monthlyRentCents - 126000, 0))],
+                        ["Gross scheduled rent", canViewLeases ? formatCurrency(monthlyRentCents) : "Unavailable"],
+                        [
+                          "Overdue balance",
+                          canViewLeases && canViewInvoices ? formatCurrency(amountOverdueCents) : "Unavailable",
+                        ],
+                        ["Leases expiring in 90 days", canViewLeases ? String(expiringLeases90Days) : "Unavailable"],
+                        [
+                          "Estimated vacancy loss",
+                          canViewOccupancy
+                            ? formatCurrency(Math.max(unitCount - occupiedUnits, 0) * 175000)
+                            : "Unavailable",
+                        ],
+                        [
+                          "Owner distribution",
+                          canViewLeases ? formatCurrency(Math.max(monthlyRentCents - 126000, 0)) : "Unavailable",
+                        ],
                       ].map(([label, value]) => (
                         <div
                           className="flex items-center justify-between rounded-md border border-parcelis-border p-3"

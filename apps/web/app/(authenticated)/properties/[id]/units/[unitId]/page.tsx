@@ -112,7 +112,10 @@ export default function UnitDetailPage() {
     queryKey: queryKeys.auth.me,
     queryFn: () => apiClient.auth.me.query(),
   });
+  const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
+  const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
   const canEditUnit =
+    hasPermission(currentUserQuery.data?.permissions, "units", "view") &&
     hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
     hasPermission(currentUserQuery.data?.permissions, "units", "edit");
   const canCreateMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "create");
@@ -210,20 +213,31 @@ export default function UnitDetailPage() {
   const openTickets = unitTickets.filter((ticket) => isActiveMaintenanceTicketStatus(ticket.status));
   const utilities = unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
   const amenities = unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
-  const monthlyRentCents = lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0;
+  const monthlyRentCents = canViewLeases ? (lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0) : null;
   const overdueCents = lease?.amountOverdueCents ?? 0;
-  const collectedCents = lease ? Math.max(monthlyRentCents - overdueCents, 0) : 0;
+  const collectedCents = lease ? Math.max((monthlyRentCents ?? 0) - overdueCents, 0) : 0;
   const collectionRows = [
-    ["Collected", formatCurrency(collectedCents), "bg-parcelis-green"],
-    ["Outstanding", formatCurrency(overdueCents), "bg-red-500"],
+    [
+      "Collected",
+      canViewInvoices && canViewLeases ? formatCurrency(collectedCents) : "Unavailable",
+      "bg-parcelis-green",
+    ],
+    ["Outstanding", canViewInvoices && canViewLeases ? formatCurrency(overdueCents) : "Unavailable", "bg-red-500"],
     ["Processing", "—", "bg-orange-500"],
     ["Coming Due", "—", "bg-amber-400"],
-    ["Monthly rent", formatCurrency(monthlyRentCents), "bg-parcelis-charcoal"],
+    [
+      "Monthly rent",
+      monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents),
+      "bg-parcelis-charcoal",
+    ],
   ];
-  const invoiceRows = lease?.startsOn ? getInvoiceRows(lease.startsOn, monthlyRentCents) : [];
+  const invoiceRows =
+    canViewInvoices && lease?.startsOn && monthlyRentCents !== null
+      ? getInvoiceRows(lease.startsOn, monthlyRentCents)
+      : [];
 
   function openEditUnitDrawer() {
-    if (!property) {
+    if (!property || !canEditUnit) {
       return;
     }
 
@@ -255,12 +269,13 @@ export default function UnitDetailPage() {
         onImageDelete={() => deletePropertyImageMutation.mutate(propertyId)}
         onOpenChange={setIsEditDrawerOpen}
         onSubmit={(input, imageFile) =>
+          canEditUnit &&
           updateProperty.mutate({
             imageFile,
             input: { ...input, id: propertyId },
           })
         }
-        open={isEditDrawerOpen}
+        open={isEditDrawerOpen && canEditUnit}
         submitLabel="Save"
         unitHref={(drawerUnit) => (drawerUnit.id ? getUnitLink(propertyId, drawerUnit.id) : null)}
       />
@@ -422,7 +437,7 @@ export default function UnitDetailPage() {
                       <span className="grid h-11 w-11 place-items-center rounded-md bg-white/10 text-parcelis-green">
                         <DoorOpen className="h-5 w-5" />
                       </span>
-                      <Badge variant="marker">{lease ? "Occupied" : "Vacant"}</Badge>
+                      <Badge variant="marker">{canViewLeases ? (lease ? "Occupied" : "Vacant") : "Unavailable"}</Badge>
                       <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold text-white/80">
                         {formatStatus(unit.unitType)}
                       </span>
@@ -520,7 +535,9 @@ export default function UnitDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-parcelis-gray">No active lease is attached to this unit.</p>
+                      <p className="text-sm text-parcelis-gray">
+                        {canViewLeases ? "No active lease is attached to this unit." : "Unavailable"}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -534,7 +551,9 @@ export default function UnitDetailPage() {
                       <div className="grid aspect-square place-items-center rounded-full border-[1.35rem] border-parcelis-green bg-white">
                         <div className="text-center">
                           <p className="text-xs font-semibold uppercase text-parcelis-gray">Total</p>
-                          <p className="text-xl font-bold text-parcelis-charcoal">{formatCurrency(monthlyRentCents)}</p>
+                          <p className="text-xl font-bold text-parcelis-charcoal">
+                            {monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents)}
+                          </p>
                         </div>
                       </div>
                       <div className="grid gap-3">

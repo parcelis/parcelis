@@ -39,7 +39,7 @@ type IncomeProperty = {
     startsOn: Date | string | null;
     endsOn: Date | string | null;
     status: string;
-    tenant: { id: number; firstName: string; lastName: string };
+    tenant: { id: number; firstName: string; lastName: string } | null;
   }>;
 };
 
@@ -50,7 +50,7 @@ type InvoiceDrawerProps = {
   onCreate: (input: {
     propertyId: number;
     leaseId: number;
-    tenantId: number;
+    tenantId?: number;
     dueOn: Date;
     paidCents: number;
     items: Array<{ item: string; description?: string; quantity: number; rateCents: number }>;
@@ -134,7 +134,7 @@ export function InvoiceDrawer({
     onCreate({
       propertyId: property.id,
       leaseId: lease.id,
-      tenantId: lease.tenant.id,
+      tenantId: lease.tenant?.id,
       dueOn: new Date(`${dueOn}T00:00:00.000Z`),
       paidCents,
       items: lines.map((line) => ({
@@ -223,9 +223,9 @@ export function InvoiceDrawer({
                 </Label>
                 <Label className="gap-2">
                   Tenant *
-                  <Select disabled required value={lease?.tenant.id ?? ""}>
-                    <option value="">Select lease first</option>
-                    {lease ? (
+                  <Select disabled required value={lease?.tenant?.id ?? ""}>
+                    <option value="">{lease && !lease.tenant ? "Unavailable" : "Select lease first"}</option>
+                    {lease?.tenant ? (
                       <option value={lease.tenant.id}>
                         {lease.tenant.firstName} {lease.tenant.lastName}
                       </option>
@@ -395,7 +395,14 @@ export function InvoiceDrawer({
             </Button>
             <Button
               className="min-w-40"
-              disabled={isPending || !lease || lines.length === 0 || hasInvalidLine || subtotalCents <= 0 || paidCents > subtotalCents}
+              disabled={
+                isPending ||
+                !lease ||
+                lines.length === 0 ||
+                hasInvalidLine ||
+                subtotalCents <= 0 ||
+                paidCents > subtotalCents
+              }
               type="submit"
             >
               Create invoice <ChevronRight className="h-4 w-4" />

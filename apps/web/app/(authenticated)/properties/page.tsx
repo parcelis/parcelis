@@ -64,6 +64,7 @@ import {
   getUnitFormStates,
 } from "../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../components/api-client";
+import { hasPermission } from "../../../components/property-access";
 import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
@@ -76,7 +77,6 @@ import {
   entityUpdatedMessage,
 } from "../../../components/toast-messages";
 import { getPropertyLink, getUnitLink } from "../../../lib/entity-links";
-
 
 type PropertyFilters = {
   propertyId: string;
@@ -109,7 +109,8 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
-function formatCurrency(cents: number) {
+function formatCurrency(cents: number | null) {
+  if (cents === null) return "Unavailable";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -118,6 +119,7 @@ function formatCurrency(cents: number) {
 }
 
 function getUnitRows(property: PropertyListItem) {
+  if (property.units.length === 0) return [];
   const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
   const ticketCountsByUnit = new Map<string, number>();
   const now = new Date();
@@ -152,12 +154,13 @@ function getUnitRows(property: PropertyListItem) {
       id: unit?.id,
       link: unitLink,
       unitLabel,
-      isOccupied: activeLease?.status === "active",
-      monthlyRentCents: activeLease?.monthlyRentCents ?? 0,
-      amountOverdueCents: activeLease?.amountOverdueCents ?? 0,
-      expiringLeases90Days: isExpiring ? 1 : 0,
-      openMaintenanceTickets: ticketCountsByUnit.get(unitLabel) ?? 0,
-      status: activeLease?.status ?? "vacant",
+      isOccupied: property.occupiedUnits === null ? null : activeLease?.status === "active",
+      monthlyRentCents: property.monthlyRentCents === null ? null : (activeLease?.monthlyRentCents ?? 0),
+      amountOverdueCents: property.amountOverdueCents === null ? null : (activeLease?.amountOverdueCents ?? 0),
+      expiringLeases90Days: property.expiringLeases90Days === null ? null : isExpiring ? 1 : 0,
+      openMaintenanceTickets:
+        property.openMaintenanceTickets === null ? null : (ticketCountsByUnit.get(unitLabel) ?? 0),
+      status: property.occupiedUnits === null ? "unavailable" : (activeLease?.status ?? "vacant"),
     };
   });
 }
@@ -165,6 +168,9 @@ function getUnitRows(property: PropertyListItem) {
 type UnitRow = ReturnType<typeof getUnitRows>[number];
 
 function PropertyActionsMenu({
+  canArchive,
+  canDelete,
+  canEdit,
   onArchive,
   onDelete,
   onEdit,
@@ -172,6 +178,9 @@ function PropertyActionsMenu({
   onReactivate,
   property,
 }: {
+  canArchive: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
   onArchive: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -199,7 +208,7 @@ function PropertyActionsMenu({
             View
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onEdit}>
+        <DropdownMenuItem disabled={!canEdit} onSelect={onEdit}>
           <Pencil className="h-4 w-4 text-parcelis-green" />
           Edit
         </DropdownMenuItem>
@@ -208,17 +217,21 @@ function PropertyActionsMenu({
           Add Notes
         </DropdownMenuItem>
         {isArchived ? (
-          <DropdownMenuItem onSelect={onReactivate}>
+          <DropdownMenuItem disabled={!canArchive} onSelect={onReactivate}>
             <ArchiveRestore className="h-4 w-4 text-parcelis-green" />
             Unarchive
           </DropdownMenuItem>
         ) : (
-          <DropdownMenuItem onSelect={onArchive}>
+          <DropdownMenuItem disabled={!canArchive} onSelect={onArchive}>
             <Archive className="h-4 w-4 text-parcelis-green" />
             Archive
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
+        <DropdownMenuItem
+          className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50"
+          disabled={!canDelete}
+          onSelect={onDelete}
+        >
           <Trash2 className="h-4 w-4" />
           Delete
         </DropdownMenuItem>
@@ -228,11 +241,13 @@ function PropertyActionsMenu({
 }
 
 function UnitActionsMenu({
+  canEdit,
   onDelete,
   onEdit,
   onNotes,
   unit,
 }: {
+  canEdit: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onNotes: () => void;
@@ -265,7 +280,7 @@ function UnitActionsMenu({
             View
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem disabled={!unit.id} onSelect={onEdit}>
+        <DropdownMenuItem disabled={!unit.id || !canEdit} onSelect={onEdit}>
           <Pencil className="h-4 w-4 text-parcelis-green" />
           Edit
         </DropdownMenuItem>
@@ -292,6 +307,18 @@ function UnitActionsMenu({
 
 export default function PropertiesPage() {
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditProperty =
+    hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "view") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "edit");
+  const canArchiveProperty = hasPermission(currentUserQuery.data?.permissions, "properties", "archive");
+  const canDeleteProperty =
+    hasPermission(currentUserQuery.data?.permissions, "properties", "delete") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "delete");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -435,7 +462,10 @@ export default function PropertiesPage() {
     const matchesPostalCode = !appliedFilters.postalCode || property.postalCode.includes(appliedFilters.postalCode);
     const matchesStatus = appliedFilters.status === "all" || property.status === appliedFilters.status;
     const matchesUnits = !appliedFilters.minimumUnits || property.unitCount >= Number(appliedFilters.minimumUnits);
-    const matchesMaintenance = !appliedFilters.hasOpenMaintenance || property.openMaintenanceTickets > 0;
+    const matchesMaintenance =
+      !appliedFilters.hasOpenMaintenance ||
+      property.openMaintenanceTickets === null ||
+      property.openMaintenanceTickets > 0;
     const matchesArchived = appliedFilters.archivedOnly
       ? property.status === "archived"
       : appliedFilters.status === "archived" || property.status !== "archived";
@@ -461,10 +491,17 @@ export default function PropertiesPage() {
     return Boolean(value);
   }).length;
   const totalUnits = properties.reduce((sum, property) => sum + property.unitCount, 0);
-  const occupiedUnits = properties.reduce((sum, property) => sum + property.occupiedUnits, 0);
-  const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
-  const monthlyRentCents = properties.reduce((sum, property) => sum + property.monthlyRentCents, 0);
-  const overdueCents = properties.reduce((sum, property) => sum + property.amountOverdueCents, 0);
+  const occupiedUnits = properties.some((property) => property.occupiedUnits === null)
+    ? null
+    : properties.reduce((sum, property) => sum + (property.occupiedUnits ?? 0), 0);
+  const occupancyRate =
+    occupiedUnits === null ? null : totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
+  const monthlyRentCents = properties.some((property) => property.monthlyRentCents === null)
+    ? null
+    : properties.reduce((sum, property) => sum + (property.monthlyRentCents ?? 0), 0);
+  const overdueCents = properties.some((property) => property.amountOverdueCents === null)
+    ? null
+    : properties.reduce((sum, property) => sum + (property.amountOverdueCents ?? 0), 0);
 
   function updateFilter<Key extends keyof PropertyFilters>(field: Key, value: PropertyFilters[Key]) {
     setDraftFilters((current) => ({ ...current, [field]: value }));
@@ -494,6 +531,7 @@ export default function PropertiesPage() {
   }
 
   function openEditProperty(property: PropertyListItem, unitId?: number) {
+    if (!canEditProperty) return;
     const nextForm = getPropertyFormState(property);
     setEditInitialForm(nextForm);
     setEditInitialUnits(getUnitFormStates(property));
@@ -539,6 +577,7 @@ export default function PropertiesPage() {
         onOpenChange={closePropertyDrawer}
         onSubmit={(input) => {
           if (editingProperty) {
+            if (!canEditProperty) return;
             updateProperty.mutate({
               imageFile: propertyImageFile,
               input: { ...input, id: editingProperty.id },
@@ -547,7 +586,7 @@ export default function PropertiesPage() {
             createProperty.mutate({ imageFile: propertyImageFile, input });
           }
         }}
-        open={isFormOpen}
+        open={isFormOpen && (!editingProperty || canEditProperty)}
         submitLabel={editingProperty ? "Save" : "Next"}
       />
       <AlertDialog open={Boolean(deleteUnitTarget)} onOpenChange={(open) => !open && setDeleteUnitTarget(null)}>
@@ -624,8 +663,10 @@ export default function PropertiesPage() {
               Keep Active
             </Button>
             <Button
-              disabled={archiveProperty.isPending}
-              onClick={() => archivePropertyTarget && archiveProperty.mutate({ id: archivePropertyTarget.id })}
+              disabled={archiveProperty.isPending || !canArchiveProperty}
+              onClick={() =>
+                canArchiveProperty && archivePropertyTarget && archiveProperty.mutate({ id: archivePropertyTarget.id })
+              }
               type="button"
             >
               {archiveProperty.isPending ? (
@@ -652,8 +693,10 @@ export default function PropertiesPage() {
               Keep Property
             </Button>
             <Button
-              disabled={deleteProperty.isPending}
-              onClick={() => deletePropertyTarget && deleteProperty.mutate({ id: deletePropertyTarget.id })}
+              disabled={deleteProperty.isPending || !canDeleteProperty}
+              onClick={() =>
+                canDeleteProperty && deletePropertyTarget && deleteProperty.mutate({ id: deletePropertyTarget.id })
+              }
               type="button"
             >
               {deleteProperty.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -702,7 +745,9 @@ export default function PropertiesPage() {
                 Units
               </div>
               <div className="rounded-md bg-white/10 p-3">
-                <div className="text-2xl font-bold text-white">{occupancyRate}%</div>
+                <div className="text-2xl font-bold text-white">
+                  {occupancyRate === null ? "Unavailable" : `${occupancyRate}%`}
+                </div>
                 Occupancy
               </div>
               <div className="rounded-md bg-white/10 p-3">
@@ -907,9 +952,11 @@ export default function PropertiesPage() {
                                     isExpanded ? `Collapse ${property.name} units` : `Expand ${property.name} units`
                                   }
                                   className={`grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray ${
-                                    property.unitCount > 1 ? "hover:bg-white" : "cursor-not-allowed opacity-40"
+                                    property.unitCount > 1 && property.units.length > 0
+                                      ? "hover:bg-white"
+                                      : "cursor-not-allowed opacity-40"
                                   }`}
-                                  disabled={property.unitCount <= 1}
+                                  disabled={property.unitCount <= 1 || property.units.length === 0}
                                   onClick={() => togglePropertyUnits(property.id)}
                                   type="button"
                                 >
@@ -945,10 +992,11 @@ export default function PropertiesPage() {
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
-                              {property.unitCount > 0
-                                ? Math.round((property.occupiedUnits / property.unitCount) * 100)
-                                : 0}
-                              %
+                              {property.occupiedUnits === null
+                                ? "Unavailable"
+                                : property.unitCount > 0
+                                  ? `${Math.round((property.occupiedUnits / property.unitCount) * 100)}%`
+                                  : "0%"}
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span className="inline-flex items-center gap-1 font-semibold text-parcelis-charcoal">
@@ -959,35 +1007,41 @@ export default function PropertiesPage() {
                             <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 font-semibold ${
-                                  property.amountOverdueCents > 0 ? "text-red-700" : "text-parcelis-gray"
+                                  (property.amountOverdueCents ?? 0) > 0 ? "text-red-700" : "text-parcelis-gray"
                                 }`}
                               >
-                                {property.amountOverdueCents > 0 ? <AlertTriangle className="h-4 w-4" /> : null}
+                                {(property.amountOverdueCents ?? 0) > 0 ? <AlertTriangle className="h-4 w-4" /> : null}
                                 {formatCurrency(property.amountOverdueCents)}
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${
-                                  property.expiringLeases90Days > 0
+                                  (property.expiringLeases90Days ?? 0) > 0
                                     ? "bg-parcelis-green/15 text-parcelis-charcoal"
                                     : "bg-parcelis-porcelain text-parcelis-gray"
                                 }`}
                               >
                                 <CalendarClock className="h-4 w-4" />
-                                {property.expiringLeases90Days > 0
+                                {(property.expiringLeases90Days ?? 0) > 0
                                   ? `${property.expiringLeases90Days} expiring`
-                                  : "Clear"}
+                                  : property.expiringLeases90Days === null
+                                    ? "Unavailable"
+                                    : "Clear"}
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span
                                 className={`inline-flex items-center gap-1 font-semibold ${
-                                  property.openMaintenanceTickets > 0 ? "text-parcelis-charcoal" : "text-parcelis-gray"
+                                  (property.openMaintenanceTickets ?? 0) > 0
+                                    ? "text-parcelis-charcoal"
+                                    : "text-parcelis-gray"
                                 }`}
                               >
                                 <Wrench className="h-4 w-4 text-parcelis-green" />
-                                {property.openMaintenanceTickets} open
+                                {property.openMaintenanceTickets === null
+                                  ? "Unavailable"
+                                  : `${property.openMaintenanceTickets} open`}
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
@@ -997,12 +1051,15 @@ export default function PropertiesPage() {
                             </TableCell>
                             <TableCell className="px-5 py-4 text-right">
                               <PropertyActionsMenu
+                                canArchive={canArchiveProperty}
+                                canDelete={canDeleteProperty}
+                                canEdit={canEditProperty}
                                 onArchive={() => setArchivePropertyId(property.id)}
                                 onDelete={() => setDeletePropertyId(property.id)}
                                 onEdit={() => openEditProperty(property)}
                                 onNotes={() => openNotes(property)}
                                 onReactivate={() => {
-                                  if (!reactivateProperty.isPending) {
+                                  if (canArchiveProperty && !reactivateProperty.isPending) {
                                     reactivateProperty.mutate({ id: property.id });
                                   }
                                 }}
@@ -1053,7 +1110,9 @@ export default function PropertiesPage() {
                                     {property.city}, {property.region}
                                   </TableCell>
                                   <TableCell className="px-5 py-3">1</TableCell>
-                                  <TableCell className="px-5 py-3">{unit.isOccupied ? "100%" : "0%"}</TableCell>
+                                  <TableCell className="px-5 py-3">
+                                    {unit.isOccupied === null ? "Unavailable" : unit.isOccupied ? "100%" : "0%"}
+                                  </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="font-semibold text-parcelis-charcoal">
                                       {formatCurrency(unit.monthlyRentCents)}
@@ -1062,7 +1121,7 @@ export default function PropertiesPage() {
                                   <TableCell className="px-5 py-3">
                                     <span
                                       className={
-                                        unit.amountOverdueCents > 0
+                                        (unit.amountOverdueCents ?? 0) > 0
                                           ? "font-semibold text-red-700"
                                           : "text-parcelis-gray"
                                       }
@@ -1072,13 +1131,19 @@ export default function PropertiesPage() {
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-gray">
-                                      {unit.expiringLeases90Days ? "Expiring" : "Clear"}
+                                      {unit.expiringLeases90Days === null
+                                        ? "Unavailable"
+                                        : unit.expiringLeases90Days
+                                          ? "Expiring"
+                                          : "Clear"}
                                     </span>
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="inline-flex items-center gap-1 text-parcelis-gray">
                                       <Wrench className="h-4 w-4 text-parcelis-green" />
-                                      {unit.openMaintenanceTickets} open
+                                      {unit.openMaintenanceTickets === null
+                                        ? "Unavailable"
+                                        : `${unit.openMaintenanceTickets} open`}
                                     </span>
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
@@ -1088,6 +1153,7 @@ export default function PropertiesPage() {
                                   </TableCell>
                                   <TableCell className="px-5 py-3 text-right">
                                     <UnitActionsMenu
+                                      canEdit={canEditProperty}
                                       onDelete={() => {
                                         if (unit.id) {
                                           setDeleteUnitTarget({

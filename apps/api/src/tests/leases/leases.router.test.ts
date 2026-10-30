@@ -449,7 +449,8 @@ test("property view/edit permission does not expose lease records or permit leas
   );
   assert.deepEqual((await caller.properties.list())[0]?.leases, []);
   assert.deepEqual((await caller.properties.list())[0]?.leaseHistory, []);
-  assert.equal((await caller.properties.list())[0]?.units[0]?.isOccupied, true);
+  assert.deepEqual((await caller.properties.list())[0]?.units, []);
+  assert.equal((await caller.properties.list())[0]?.occupiedUnits, null);
   assert.deepEqual((await caller.properties.byId({ id: 1 }))?.leases, []);
   assert.deepEqual((await caller.properties.byId({ id: 1 }))?.leaseHistory, []);
   for (const action of ["archive", "reactivate", "delete"] as const) {

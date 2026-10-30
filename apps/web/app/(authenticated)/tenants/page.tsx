@@ -59,8 +59,8 @@ import {
   entityReactivatedMessage,
   entityUpdatedMessage,
 } from "../../../components/toast-messages";
+import { hasPermission } from "../../../components/property-access";
 import { getTenantLink } from "../../../lib/entity-links";
-
 
 type TenantFilters = {
   accountStatus: string;
@@ -170,6 +170,11 @@ function getStatusTone(status?: string | null) {
 
 export default function TenantsPage() {
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants.list,
     queryFn: () => apiClient.tenants.list.query(),
@@ -260,6 +265,10 @@ export default function TenantsPage() {
   const activeTenants = tenants.filter((tenant) => tenant.tenantStatus === "active");
   const pastTenants = tenants.filter((tenant) => tenant.tenantStatus === "past");
   const archivedTenants = tenants.filter((tenant) => tenant.tenantStatus === "archived");
+  const appliedTenantStatus =
+    canViewLeases || appliedFilters.tenantStatus === "archived" ? appliedFilters.tenantStatus : "all";
+  const draftTenantStatus =
+    canViewLeases || draftFilters.tenantStatus === "archived" ? draftFilters.tenantStatus : "all";
   const filteredTenants = tenants.filter((tenant) => {
     const activeLease = tenant.leases.find((lease) => lease.status === "active" || lease.status === "notice");
     const query = search.toLowerCase();
@@ -276,12 +285,13 @@ export default function TenantsPage() {
       appliedFilters.accountStatus === "all" || tenant.accountStatus === appliedFilters.accountStatus;
     const matchesInsuranceStatus =
       appliedFilters.insuranceStatus === "all" || tenant.insuranceStatus === appliedFilters.insuranceStatus;
-    const matchesTenantStatus =
-      appliedFilters.tenantStatus === "all" || tenant.tenantStatus === appliedFilters.tenantStatus;
+    const matchesTenantStatus = appliedTenantStatus === "all" || tenant.tenantStatus === appliedTenantStatus;
 
     return matchesSearch && matchesAccountStatus && matchesInsuranceStatus && matchesTenantStatus;
   });
-  const activeFilterCount = Object.values(appliedFilters).filter((value) => value !== "all").length;
+  const activeFilterCount = Object.values({ ...appliedFilters, tenantStatus: appliedTenantStatus }).filter(
+    (value) => value !== "all",
+  ).length;
 
   function updateFilter<Key extends keyof TenantFilters>(key: Key, value: TenantFilters[Key]) {
     setDraftFilters((filters) => ({ ...filters, [key]: value }));
@@ -438,8 +448,8 @@ export default function TenantsPage() {
             </div>
             <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
               <Metric label="Tenants" value={tenants.length} />
-              <Metric label="Active" value={activeTenants.length} />
-              <Metric label="Past" value={pastTenants.length} />
+              <Metric label="Active" value={canViewLeases ? activeTenants.length : null} />
+              <Metric label="Past" value={canViewLeases ? pastTenants.length : null} />
               <Metric label="Archived" value={archivedTenants.length} />
             </div>
           </section>
@@ -478,11 +488,15 @@ export default function TenantsPage() {
                         <span>Tenant Status</span>
                         <Select
                           onChange={(event) => updateFilter("tenantStatus", event.target.value)}
-                          value={draftFilters.tenantStatus}
+                          value={draftTenantStatus}
                         >
                           <option value="all">All statuses</option>
-                          <option value="active">Active</option>
-                          <option value="past">Past</option>
+                          {canViewLeases ? (
+                            <>
+                              <option value="active">Active</option>
+                              <option value="past">Past</option>
+                            </>
+                          ) : null}
                           <option value="archived">Archived</option>
                         </Select>
                       </Label>
@@ -592,12 +606,18 @@ export default function TenantsPage() {
                             ) : null}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {activeLease ? (
+                            {!canViewLeases ? (
+                              "Unavailable"
+                            ) : activeLease ? (
                               <>
                                 <p className="font-medium text-parcelis-charcoal">
                                   {activeLease.property?.name ?? "Property not set"}
                                 </p>
-                                <p>{activeLease.unitLabel === "Not set" ? "Unit not set" : `Unit ${activeLease.unitLabel}`}</p>
+                                <p>
+                                  {activeLease.unitLabel === "Not set"
+                                    ? "Unit not set"
+                                    : `Unit ${activeLease.unitLabel}`}
+                                </p>
                               </>
                             ) : (
                               "No current lease"
@@ -624,15 +644,17 @@ export default function TenantsPage() {
                               className={`inline-flex items-center gap-2 font-semibold ${getStatusTone(tenant.tenantStatus)}`}
                             >
                               <CalendarCheck2 className="h-4 w-4" />
-                              {formatStatus(tenant.tenantStatus)}
+                              {tenant.tenantStatus === null ? "Unavailable" : formatStatus(tenant.tenantStatus)}
                             </span>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {activeLease?.endsOn
-                              ? formatDate(activeLease.endsOn)
-                              : activeLease
-                                ? "Month-to-Month"
-                                : "—"}
+                            {!canViewLeases
+                              ? "Unavailable"
+                              : activeLease?.endsOn
+                                ? formatDate(activeLease.endsOn)
+                                : activeLease
+                                  ? "Month-to-Month"
+                                  : "—"}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right">
                             <TenantActionsMenu
@@ -658,10 +680,10 @@ export default function TenantsPage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="rounded-md bg-white/10 p-3">
-      <div className="text-2xl font-bold text-white">{value}</div>
+      <div className="text-2xl font-bold text-white">{value ?? "Unavailable"}</div>
       {label}
     </div>
   );
