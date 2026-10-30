@@ -115,6 +115,7 @@ export default function UnitDetailPage() {
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
   const canEditUnit =
+    hasPermission(currentUserQuery.data?.permissions, "units", "view") &&
     hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
     hasPermission(currentUserQuery.data?.permissions, "units", "edit");
   const canCreateMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "create");
@@ -236,7 +237,7 @@ export default function UnitDetailPage() {
       : [];
 
   function openEditUnitDrawer() {
-    if (!property) {
+    if (!property || !canEditUnit) {
       return;
     }
 
@@ -268,12 +269,13 @@ export default function UnitDetailPage() {
         onImageDelete={() => deletePropertyImageMutation.mutate(propertyId)}
         onOpenChange={setIsEditDrawerOpen}
         onSubmit={(input, imageFile) =>
+          canEditUnit &&
           updateProperty.mutate({
             imageFile,
             input: { ...input, id: propertyId },
           })
         }
-        open={isEditDrawerOpen}
+        open={isEditDrawerOpen && canEditUnit}
         submitLabel="Save"
         unitHref={(drawerUnit) => (drawerUnit.id ? getUnitLink(propertyId, drawerUnit.id) : null)}
       />

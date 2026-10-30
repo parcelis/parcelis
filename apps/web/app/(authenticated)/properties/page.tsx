@@ -64,6 +64,7 @@ import {
   getUnitFormStates,
 } from "../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../components/api-client";
+import { hasPermission } from "../../../components/property-access";
 import { LoadingState } from "../../../components/loading-state";
 import { NotesDrawer } from "../../../components/notes-drawer";
 import { deletePropertyImage, uploadPropertyImage } from "../../../components/property-image-upload";
@@ -167,6 +168,7 @@ function getUnitRows(property: PropertyListItem) {
 type UnitRow = ReturnType<typeof getUnitRows>[number];
 
 function PropertyActionsMenu({
+  canEdit,
   onArchive,
   onDelete,
   onEdit,
@@ -174,6 +176,7 @@ function PropertyActionsMenu({
   onReactivate,
   property,
 }: {
+  canEdit: boolean;
   onArchive: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -201,7 +204,7 @@ function PropertyActionsMenu({
             View
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onEdit}>
+        <DropdownMenuItem disabled={!canEdit} onSelect={onEdit}>
           <Pencil className="h-4 w-4 text-parcelis-green" />
           Edit
         </DropdownMenuItem>
@@ -230,11 +233,13 @@ function PropertyActionsMenu({
 }
 
 function UnitActionsMenu({
+  canEdit,
   onDelete,
   onEdit,
   onNotes,
   unit,
 }: {
+  canEdit: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onNotes: () => void;
@@ -267,7 +272,7 @@ function UnitActionsMenu({
             View
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem disabled={!unit.id} onSelect={onEdit}>
+        <DropdownMenuItem disabled={!unit.id || !canEdit} onSelect={onEdit}>
           <Pencil className="h-4 w-4 text-parcelis-green" />
           Edit
         </DropdownMenuItem>
@@ -294,6 +299,13 @@ function UnitActionsMenu({
 
 export default function PropertiesPage() {
   const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canEditProperty =
+    hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
+    hasPermission(currentUserQuery.data?.permissions, "units", "view");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -506,6 +518,7 @@ export default function PropertiesPage() {
   }
 
   function openEditProperty(property: PropertyListItem, unitId?: number) {
+    if (!canEditProperty) return;
     const nextForm = getPropertyFormState(property);
     setEditInitialForm(nextForm);
     setEditInitialUnits(getUnitFormStates(property));
@@ -551,6 +564,7 @@ export default function PropertiesPage() {
         onOpenChange={closePropertyDrawer}
         onSubmit={(input) => {
           if (editingProperty) {
+            if (!canEditProperty) return;
             updateProperty.mutate({
               imageFile: propertyImageFile,
               input: { ...input, id: editingProperty.id },
@@ -559,7 +573,7 @@ export default function PropertiesPage() {
             createProperty.mutate({ imageFile: propertyImageFile, input });
           }
         }}
-        open={isFormOpen}
+        open={isFormOpen && (!editingProperty || canEditProperty)}
         submitLabel={editingProperty ? "Save" : "Next"}
       />
       <AlertDialog open={Boolean(deleteUnitTarget)} onOpenChange={(open) => !open && setDeleteUnitTarget(null)}>
@@ -1020,6 +1034,7 @@ export default function PropertiesPage() {
                             </TableCell>
                             <TableCell className="px-5 py-4 text-right">
                               <PropertyActionsMenu
+                                canEdit={canEditProperty}
                                 onArchive={() => setArchivePropertyId(property.id)}
                                 onDelete={() => setDeletePropertyId(property.id)}
                                 onEdit={() => openEditProperty(property)}
@@ -1119,6 +1134,7 @@ export default function PropertiesPage() {
                                   </TableCell>
                                   <TableCell className="px-5 py-3 text-right">
                                     <UnitActionsMenu
+                                      canEdit={canEditProperty}
                                       onDelete={() => {
                                         if (unit.id) {
                                           setDeleteUnitTarget({

@@ -129,6 +129,7 @@ export default function PropertyDetailPage() {
   const property = propertyQuery.data;
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canViewUnits = hasPermission(currentUserQuery.data?.permissions, "units", "view");
+  const canEditProperty = canViewUnits && hasPermission(currentUserQuery.data?.permissions, "properties", "edit");
   const canViewOccupancy = canViewLeases && canViewUnits;
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
   const canViewMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "view");
@@ -188,7 +189,7 @@ export default function PropertyDetailPage() {
   );
 
   function openEditDrawer() {
-    if (!property) {
+    if (!property || !canEditProperty) {
       return;
     }
 
@@ -218,12 +219,13 @@ export default function PropertyDetailPage() {
         onImageDelete={() => deletePropertyImageMutation.mutate(propertyId)}
         onOpenChange={setIsEditDrawerOpen}
         onSubmit={(input, imageFile) =>
+          canEditProperty &&
           updateProperty.mutate({
             imageFile,
             input: { ...input, id: propertyId },
           })
         }
-        open={isEditDrawerOpen}
+        open={isEditDrawerOpen && canEditProperty}
         submitLabel="Save"
         unitHref={(unit) => (unit.id ? getUnitLink(propertyId, unit.id) : null)}
       />
@@ -280,7 +282,7 @@ export default function PropertyDetailPage() {
             <Button
               aria-label="Edit Property"
               className="hidden min-w-40 rounded-r-none md:inline-flex"
-              disabled={!property || !hasPermission(currentUserQuery.data?.permissions, "properties", "edit")}
+              disabled={!property || !canEditProperty}
               onClick={openEditDrawer}
             >
               <PenLine className="h-4 w-4" />
@@ -333,7 +335,7 @@ export default function PropertyDetailPage() {
             >
               <DropdownMenuItem
                 className="md:hidden"
-                disabled={!property || !hasPermission(currentUserQuery.data?.permissions, "properties", "edit")}
+                disabled={!property || !canEditProperty}
                 onSelect={openEditDrawer}
               >
                 <PenLine className="h-4 w-4" />
