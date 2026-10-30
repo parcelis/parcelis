@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 24.22.2
       - run: docker pull postgres:16-alpine
       - run: docker pull postgres:18-alpine
       - run: node --test scripts/upgrade-postgres.integration.mjs
@@ -40,7 +40,7 @@ jobs:
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 24.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:deploy
@@ -60,7 +60,7 @@ jobs:
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 24.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint:commits --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}"
@@ -72,7 +72,7 @@ jobs:
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 24.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @parcelis/email --filter @parcelis/jobs build

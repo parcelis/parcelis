@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24.22.1-alpine
+FROM node:24.22.2-alpine
 
 WORKDIR /repo
 RUN apk add --no-cache openssl && corepack enable
