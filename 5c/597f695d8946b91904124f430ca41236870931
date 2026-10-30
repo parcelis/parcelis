@@ -1,0 +1,40 @@
+apps/web/app/(authenticated)/properties/page.tsx
+  s_5009af89eee8ad::t_46ca6279e34cf0 440-443,924-926,928
+apps/web/app/(authenticated)/income/page.tsx
+  s_5009af89eee8ad::t_3d66be5d4d1047 134,138,259-275,278-282
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_5009af89eee8ad::t_46ca6279e34cf0 131-132,162,186-188,351,353,356-358,485,487,489-500,540-542,576-578
+apps/api/src/router/app.router.ts
+  s_5009af89eee8ad::t_934fa67528a3a2 1550,1661,2807-2808,2812,2837,2854
+packages/schemas/src/index.ts
+  s_5009af89eee8ad::t_934fa67528a3a2 856
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_5009af89eee8ad::t_fc1aeecf020ba0 215,217,227-231,233-236,536-538,552-554
+apps/web/components/invoice-drawer.tsx
+  s_5009af89eee8ad::t_934fa67528a3a2 53,133,137,400
+ARCHITECTURE.md
+  s_5009af89eee8ad::t_3d66be5d4d1047 150-152,155-157
+apps/api/src/tests/permissions/nested-permissions.router.test.ts
+  s_5009af89eee8ad::t_8491d34a95bf23 138-144,146
+  s_5009af89eee8ad::t_23912df0d3fba7 135-137,145,147-153
+apps/web/app/(authenticated)/tenants/page.tsx
+  s_5009af89eee8ad::t_fc1aeecf020ba0 62,173-177,446-447,600-602,642-648,674,677
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_5009af89eee8ad::t_23912df0d3fba7 258-309
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5c597f695d8946b91904124f430ca41236870931",
+  "prompts": {},
+  "sessions": {
+    "s_5009af89eee8ad": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18b88-8d6f-71f1-8315-ec44a8e4d2c3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
