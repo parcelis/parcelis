@@ -1,0 +1,29 @@
+apps/api/src/tests/invoices/invoice-delete.integration.test.ts
+  s_01ee5fd34417f1::t_f10e4f747d61de 1-2,5-13,22,25,32,40-41,85,89,93,101,113,132-133,146,153
+  s_01ee5fd34417f1::t_9d22d254ec90f3 107-110
+  s_01ee5fd34417f1::t_92b01e4fd9fd6b 3-4,103-106,111
+  s_01ee5fd34417f1::t_3da8c040cc810c 14-21,23-24,26-31,33-39,42-65,67-84,86-88,90-92,94-100,102,112,114-131,134-145,147-152,154-155
+  s_01ee5fd34417f1::t_f62054e584dae1 66
+apps/api/src/router/app.router.ts
+  s_01ee5fd34417f1::t_c87e598f71f9e2 3136-3174
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_01ee5fd34417f1::t_3da8c040cc810c 31-38,71-78,81-83,86-88,90-91,101-102,107-108
+  s_01ee5fd34417f1::t_4538d6721e0797 4,24-30,39-70,79-80,84-85,89,92-100,103-106,109-119
+  s_01ee5fd34417f1::t_7d01991a2dba45 120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4704bcc959b2902c940c4d2e620eb26cd7348f44",
+  "prompts": {},
+  "sessions": {
+    "s_01ee5fd34417f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1896b-16c5-7d50-83a1-bd74a1c57399",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
