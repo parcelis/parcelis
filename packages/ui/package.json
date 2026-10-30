@@ -28,7 +28,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.32.0",
     "react-day-picker": "^10.0.1",
-    "react-timezone-select": "^3.3.3",
+    "react-timezone-select": "^4.0.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
