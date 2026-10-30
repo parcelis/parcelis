@@ -265,6 +265,10 @@ export default function TenantsPage() {
   const activeTenants = tenants.filter((tenant) => tenant.tenantStatus === "active");
   const pastTenants = tenants.filter((tenant) => tenant.tenantStatus === "past");
   const archivedTenants = tenants.filter((tenant) => tenant.tenantStatus === "archived");
+  const appliedTenantStatus =
+    canViewLeases || appliedFilters.tenantStatus === "archived" ? appliedFilters.tenantStatus : "all";
+  const draftTenantStatus =
+    canViewLeases || draftFilters.tenantStatus === "archived" ? draftFilters.tenantStatus : "all";
   const filteredTenants = tenants.filter((tenant) => {
     const activeLease = tenant.leases.find((lease) => lease.status === "active" || lease.status === "notice");
     const query = search.toLowerCase();
@@ -281,12 +285,13 @@ export default function TenantsPage() {
       appliedFilters.accountStatus === "all" || tenant.accountStatus === appliedFilters.accountStatus;
     const matchesInsuranceStatus =
       appliedFilters.insuranceStatus === "all" || tenant.insuranceStatus === appliedFilters.insuranceStatus;
-    const matchesTenantStatus =
-      appliedFilters.tenantStatus === "all" || tenant.tenantStatus === appliedFilters.tenantStatus;
+    const matchesTenantStatus = appliedTenantStatus === "all" || tenant.tenantStatus === appliedTenantStatus;
 
     return matchesSearch && matchesAccountStatus && matchesInsuranceStatus && matchesTenantStatus;
   });
-  const activeFilterCount = Object.values(appliedFilters).filter((value) => value !== "all").length;
+  const activeFilterCount = Object.values({ ...appliedFilters, tenantStatus: appliedTenantStatus }).filter(
+    (value) => value !== "all",
+  ).length;
 
   function updateFilter<Key extends keyof TenantFilters>(key: Key, value: TenantFilters[Key]) {
     setDraftFilters((filters) => ({ ...filters, [key]: value }));
@@ -483,11 +488,15 @@ export default function TenantsPage() {
                         <span>Tenant Status</span>
                         <Select
                           onChange={(event) => updateFilter("tenantStatus", event.target.value)}
-                          value={draftFilters.tenantStatus}
+                          value={draftTenantStatus}
                         >
                           <option value="all">All statuses</option>
-                          <option value="active">Active</option>
-                          <option value="past">Past</option>
+                          {canViewLeases ? (
+                            <>
+                              <option value="active">Active</option>
+                              <option value="past">Past</option>
+                            </>
+                          ) : null}
                           <option value="archived">Archived</option>
                         </Select>
                       </Label>
