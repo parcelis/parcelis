@@ -1,0 +1,35 @@
+scripts/check-pr-documentation.test.mjs
+  s_b516e6d627663c::t_edd7776b274b29 2-5,179-181,186-193,197-198,200,202-205
+  s_b516e6d627663c::t_9bf58ab856675f 154-178,206-208
+  s_b516e6d627663c::t_c0c54e0c66cdb6 194,196,199,201
+  s_b516e6d627663c::t_0345672e8dd6c7 7-12,182-185,195
+.github/PR_CHECK_EXCLUSIONS.md
+  s_b516e6d627663c::t_edd7776b274b29 12-14
+  s_b516e6d627663c::t_7acb7e7b220d1e 1-11
+.github/workflows/documentation.yml
+  s_b516e6d627663c::t_c0c54e0c66cdb6 32
+scripts/check-pr-documentation.mjs
+  s_b516e6d627663c::t_edd7776b274b29 2-3
+  s_b516e6d627663c::t_c0c54e0c66cdb6 74
+  s_b516e6d627663c::t_9bf58ab856675f 81-83
+  s_b516e6d627663c::t_0345672e8dd6c7 69-73,76
+  s_b516e6d627663c::t_5eeb0bf4f2d69f 1,4
+CONTRIBUTING.md
+  s_b516e6d627663c::t_edd7776b274b29 87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1c4d79a40372d8b62aef5562438ea7a68544c8e2",
+  "prompts": {},
+  "sessions": {
+    "s_b516e6d627663c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d78-7302-7bb1-925e-18ac4493fcd6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
