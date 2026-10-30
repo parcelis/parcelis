@@ -5,6 +5,7 @@ completing the documentation fields:
 
 - `dependabot[bot]`
 - `copilot`
+- `coderabbitai`
 
 To add an exclusion, add a bullet containing the exact GitHub login in backticks,
 using the format above. The check matches the PR author case-insensitively, regardless of who
