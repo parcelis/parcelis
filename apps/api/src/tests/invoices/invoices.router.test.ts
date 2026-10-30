@@ -255,7 +255,7 @@ test("manual joint invoices create recipients for every lease tenant", async () 
   });
 });
 
-test("manual invoices derive a lease tenant with invoice create permission alone", async () => {
+test("manual invoices derive the earliest lease tenant with invoice create permission alone", async () => {
   let invoiceData: { tenantId: number; recipients: unknown } | undefined;
   const tx = {
     invoice: {
@@ -274,14 +274,18 @@ test("manual invoices derive a lease tenant with invoice create permission alone
           where.role_resource.resource === "invoices" ? { canCreate: true } : null,
       },
       lease: {
-        findFirst: async ({ where }: { where: unknown }) => {
+        findFirst: async ({ where, select }: { where: unknown; select: { tenants: unknown } }) => {
           assert.deepEqual(where, { id: 3, organizationId: 7 });
+          assert.deepEqual(select.tenants, {
+            orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
+            select: { tenantId: true },
+          });
           return {
             id: 3,
             propertyId: 2,
             status: "active",
             billingResponsibility: "individual",
-            tenants: [{ tenantId: 11 }],
+            tenants: [{ tenantId: 12 }, { tenantId: 11 }],
           };
         },
       },
@@ -299,6 +303,9 @@ test("manual invoices derive a lease tenant with invoice create permission alone
   };
 
   await caller.invoices.createManual(input);
+  assert.equal(invoiceData?.tenantId, 12);
+  assert.deepEqual(invoiceData?.recipients, { create: [{ organizationId: 7, tenantId: 12 }] });
+  await caller.invoices.createManual({ ...input, tenantId: 11 });
   assert.equal(invoiceData?.tenantId, 11);
   assert.deepEqual(invoiceData?.recipients, { create: [{ organizationId: 7, tenantId: 11 }] });
   await assert.rejects(() => caller.invoices.createManual({ ...input, tenantId: 99 }), {

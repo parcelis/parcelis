@@ -2794,7 +2794,10 @@ export const appRouter = router({
           status: true,
           billingResponsibility: true,
           allowPartialPayments: true,
-          tenants: { select: { tenantId: true } },
+          tenants: {
+            orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
+            select: { tenantId: true },
+          },
         },
       });
       if (!lease || lease.propertyId === null || lease.propertyId !== input.propertyId) {
