@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24.22.1-alpine AS base
+FROM node:24.22.2-alpine AS base
 
 ENV FORCE_COLOR=0
 WORKDIR /repo
