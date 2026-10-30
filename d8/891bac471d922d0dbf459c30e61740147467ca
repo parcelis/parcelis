@@ -1,0 +1,25 @@
+packages/db/prisma/migrations/20261030000000_protect_invoice_payment_history/migration.sql
+  s_01ee5fd34417f1::t_58dea6fc55e564 1-12
+packages/db/prisma/schema.prisma
+  s_01ee5fd34417f1::t_58dea6fc55e564 749-750
+apps/api/src/tests/invoices/invoice-delete.integration.test.ts
+  s_01ee5fd34417f1::t_a9781fb082135d 2,95-96,103-104,107-117,122-123,128-132,145-149
+  s_01ee5fd34417f1::t_baee2450c45638 118-121,124-127,133-144
+  s_01ee5fd34417f1::t_ffcdaedb31fd81 150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d8891bac471d922d0dbf459c30e61740147467ca",
+  "prompts": {},
+  "sessions": {
+    "s_01ee5fd34417f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1896b-16c5-7d50-83a1-bd74a1c57399",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
