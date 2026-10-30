@@ -154,7 +154,9 @@ test("captures validation and application PR API failures for reporting", async 
 });
 
 test("uses default exclusions when the path is omitted or empty", async (t) => {
-  const [login] = readExcludedAuthors();
+  const defaultAuthors = readExcludedAuthors();
+  assert.deepEqual(defaultAuthors, ["dependabot[bot]", "copilot"]);
+  const [login] = defaultAuthors;
   if (!login) return t.skip("The default exclusions file has no authors.");
 
   const github = {
