@@ -84,7 +84,7 @@ If the docs checkout is unavailable, record the affected pages and required chan
 outstanding work; a follow-up note does not complete required documentation.
 
 The `Documentation requirement` CI check requires the `### Documentation` section in
-every application PR. Fill exactly one of these fields and leave the other empty:
+each non-excluded application PR. Fill exactly one of these fields and leave the other empty:
 
 ```text
 - Companion docs PR: https://github.com/parcelis/parcelis-docs/pull/123

@@ -29,7 +29,7 @@ jobs:
             const { evaluateDocumentation } = await import(
               pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/check-pr-documentation.mjs`).href
             );
-            const result = await evaluateDocumentation(github, context);
+            const result = await evaluateDocumentation(github, context, ${{ toJSON(vars.PR_CHECK_EXCLUSIONS_FILE) }});
             core.setOutput('passed', String(result.passed));
             core.setOutput('message', result.message);
             await core.summary

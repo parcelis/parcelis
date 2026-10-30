@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 const docsOwner = "parcelis";
 const docsRepo = "parcelis-docs";
 const genericExemptionWords = new Set([
@@ -62,12 +66,21 @@ export async function checkDocumentation(body, getPullRequest) {
   return `Verified companion docs PR: ${link} (${pr.merged_at ? "merged" : "open"}).`;
 }
 
-export async function evaluateDocumentation(github, context) {
+export function readExcludedAuthors(exclusionsPath = ".github/PR_CHECK_EXCLUSIONS.md") {
+  const exclusionsFile = resolve(fileURLToPath(new URL("..", import.meta.url)), exclusionsPath);
+  return Array.from(readFileSync(exclusionsFile, "utf8").matchAll(/^- `([^`\r\n]+)`[ \t]*\r?$/gm), (match) => match[1]);
+}
+
+export async function evaluateDocumentation(github, context, exclusionsPath) {
   try {
+    const excludedAuthors = new Set(readExcludedAuthors(exclusionsPath || undefined));
     const { data: pr } = await github.rest.pulls.get({
       ...context.repo,
       pull_number: context.payload.pull_request.number,
     });
+    if (excludedAuthors.has(pr.user?.login)) {
+      return { passed: true, message: `Documentation requirement excluded for PR author: ${pr.user.login}.` };
+    }
     const message = await checkDocumentation(pr.body, async (params) => {
       const { data } = await github.rest.pulls.get(params);
       return data;

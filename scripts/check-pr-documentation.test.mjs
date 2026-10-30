@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { checkDocumentation, evaluateDocumentation, updateDocumentationComment } from "./check-pr-documentation.mjs";
+import {
+  checkDocumentation,
+  evaluateDocumentation,
+  readExcludedAuthors,
+  updateDocumentationComment,
+} from "./check-pr-documentation.mjs";
 
 const url = "https://github.com/parcelis/parcelis-docs/pull/123";
 const body = (link = "", reason = "") =>
@@ -141,6 +149,61 @@ test("captures validation and application PR API failures for reporting", async 
     return { data: { body: body("", "Only internal build tooling changed.") } };
   };
   assert.equal((await evaluateDocumentation(github, context)).passed, true);
+});
+
+test("excludes Dependabot PRs even when a human triggers the check", async () => {
+  const github = {
+    rest: {
+      pulls: {
+        get: async (params) => {
+          assert.deepEqual(params, { owner: "parcelis", repo: "parcelis", pull_number: 42 });
+          return { data: { user: { login: "dependabot[bot]" }, body: null } };
+        },
+      },
+    },
+  };
+  assert.deepEqual(await evaluateDocumentation(github, { ...context, actor: "maintainer" }), {
+    passed: true,
+    message: "Documentation requirement excluded for PR author: dependabot[bot].",
+  });
+});
+
+test("does not exclude other PR authors when Dependabot triggers the check", async () => {
+  for (const login of ["contributor", "renovate[bot]", "dependabot"]) {
+    const github = {
+      rest: { pulls: { get: async () => ({ data: { user: { login }, body: null } }) } },
+    };
+    const result = await evaluateDocumentation(github, { ...context, actor: "dependabot[bot]" });
+    assert.equal(result.passed, false);
+    assert.match(result.message, /provide either/);
+  }
+});
+
+test("returns the authors listed in the repository exclusions file", () => {
+  assert.deepEqual(readExcludedAuthors(".github/PR_CHECK_EXCLUSIONS.md"), ["dependabot[bot]", "copilot"]);
+});
+
+test("reads exclusions from the configured file and reports missing files", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "parcelis-pr-exclusions-"));
+  const github = {
+    rest: { pulls: { get: async () => ({ data: { user: { login: "custom-bot[bot]" }, body: null } }) } },
+  };
+  try {
+    const file = join(directory, "exclusions.md");
+    writeFileSync(file, "# Exclusions\n\n- `custom-bot[bot]`\n");
+    const exclusionsPath = relative(fileURLToPath(new URL("..", import.meta.url)), file);
+    assert.deepEqual(readExcludedAuthors(exclusionsPath), ["custom-bot[bot]"]);
+    assert.equal((await evaluateDocumentation(github, context, exclusionsPath)).passed, true);
+
+    writeFileSync(file, "# Exclusions\n\n- `dependabot[bot]`\n");
+    assert.equal((await evaluateDocumentation(github, context, exclusionsPath)).passed, false);
+
+    const result = await evaluateDocumentation(github, context, join(directory, "missing.md"));
+    assert.equal(result.passed, false);
+    assert.match(result.message, /ENOENT/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 function commentClient(comments = []) {
