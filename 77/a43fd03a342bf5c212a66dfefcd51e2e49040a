@@ -1,0 +1,68 @@
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_01ee5fd34417f1::t_a60fe13def8a3b 115-116,219-224,229,431
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_01ee5fd34417f1::t_de8ace8f465e16 692-696
+ARCHITECTURE.md
+  s_01ee5fd34417f1::t_1b40e67652481d 148-156
+apps/web/app/(authenticated)/income/page.tsx
+  s_01ee5fd34417f1::t_16c13619bf7f7f 53,64,92,95
+  s_01ee5fd34417f1::t_a60fe13def8a3b 25,129-133,137-142,179,257-265,383,407-409,519
+  s_01ee5fd34417f1::t_d833d1262031c6 96
+apps/api/src/router/app.router.ts
+  s_01ee5fd34417f1::t_31932bd92e5685 2119-2120,2125-2126,2128-2129,2193-2194,2198-2199,2201-2203
+  s_01ee5fd34417f1::t_cf49f0e95200d8 2121-2124,2130-2139
+  s_01ee5fd34417f1::t_de8ace8f465e16 2149,2195-2197,2204-2205
+  s_01ee5fd34417f1::t_ff71ede922a0c9 1568-1573,1617-1623,1681-1687
+  s_01ee5fd34417f1::t_f5e8d0cb426b2f 1460-1462,1554,1557-1558,1574,1576,1581-1589,1596-1599,1660-1662,1666,1669,1688-1692
+  s_01ee5fd34417f1::t_a60fe13def8a3b 1549,1555,1590-1595,1659,1667,2127,2141,2200,2207
+  s_01ee5fd34417f1::t_5a53d5cde14f3a 2087
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_01ee5fd34417f1::t_16c13619bf7f7f 141,507,562,567,570,573,576
+  s_01ee5fd34417f1::t_4145f16089ccaf 424-429
+  s_01ee5fd34417f1::t_d186802a358b93 130,132-133,430-431,435,438-439,442-447,462-464,625-627,629-632,634,636-638,640
+  s_01ee5fd34417f1::t_4c00d5b63c1759 131,432-433,633
+  s_01ee5fd34417f1::t_7956f8adde4bde 160-173,175-184,434,546-547,550,628,635,639
+apps/web/components/invoice-drawer.tsx
+  s_01ee5fd34417f1::t_d833d1262031c6 227,398-405
+  s_01ee5fd34417f1::t_70b0bfe0a50322 133,226,228
+  s_01ee5fd34417f1::t_16c13619bf7f7f 42
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_01ee5fd34417f1::t_10ca622b300014 99-101,105,123-124,128,132,149-151,155,173-174,178,189-212
+  s_01ee5fd34417f1::t_b94a11e1e4181e 133,186
+  s_01ee5fd34417f1::t_2b057726d8a3fd 138,141-145,182-185
+  s_01ee5fd34417f1::t_0cd9a0f650452d 146
+  s_01ee5fd34417f1::t_d3e2eb22a5ebde 91-92,94-98,121,125-126,134,137,147-148,171,175-176,187,213-215,217-236,238-252
+  s_01ee5fd34417f1::t_87e8b94adb6f3a 90,93,102-104,106-120,122,127,129-131,135-136,139-140,152-154,156-170,172,177,179-181,188,216,237
+apps/web/app/(authenticated)/properties/page.tsx
+  s_01ee5fd34417f1::t_45876c4e7c5c9a 159-160,1085,1095-1099,1105-1107
+  s_01ee5fd34417f1::t_b4c70808b4c800 111-112,121,440,466-476,714-716,959-963,974,977,984,990,992-994,1000-1002,1006-1008
+  s_01ee5fd34417f1::t_d867bcc1e4c0b2 156-158,161-162,1074-1076
+apps/web/app/(authenticated)/tenants/page.tsx
+  s_01ee5fd34417f1::t_b94a11e1e4181e 630
+  s_01ee5fd34417f1::t_3f970d71307204 599-603
+apps/web/app/(authenticated)/page.tsx
+  s_01ee5fd34417f1::t_b4c70808b4c800 57-61,127-131,135,138-140,210-214
+  s_01ee5fd34417f1::t_d186802a358b93 148-150,152
+  s_01ee5fd34417f1::t_f96c5414d576ad 151
+apps/api/src/tests/permissions/nested-permissions.router.test.ts
+  s_01ee5fd34417f1::t_12707da0449110 1-16,18-46,48-61,63-73,75-77,79-183,185-213,215-231,234-238,240-247,250-257
+  s_01ee5fd34417f1::t_3c259cca2e2667 17,47,62,74,78,184,214,232-233,239,248-249
+apps/api/src/tests/leases/leases.router.test.ts
+  s_01ee5fd34417f1::t_8e1361fdcc92c1 452-453
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "77a43fd03a342bf5c212a66dfefcd51e2e49040a",
+  "prompts": {},
+  "sessions": {
+    "s_01ee5fd34417f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1896b-16c5-7d50-83a1-bd74a1c57399",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
