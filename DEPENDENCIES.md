@@ -76,7 +76,7 @@ Development and deployment PostgreSQL use `postgres:18-alpine`. Existing Postgre
 | [Tailwind CSS](https://tailwindcss.com/)                                 | Application styling.                                 |
 | [Radix UI](https://www.radix-ui.com/)                                    | Accessible building blocks for interface components. |
 | [Lucide](https://lucide.dev/)                                            | Interface icons.                                     |
-| [react-timezone-select](https://github.com/ndom91/react-timezone-select) | Timezone options for the organization setting.       |
+| [react-timezone-select v4](https://github.com/ndom91/react-timezone-select) | Timezone options for the organization setting.       |
 
 ## Development and delivery
 
