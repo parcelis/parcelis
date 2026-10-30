@@ -1,0 +1,19 @@
+apps/web/app/(authenticated)/tenants/page.tsx
+  s_b516e6d627663c::t_83e35f70913d49 268-271,288,292-294,491,494-499
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f516b163662fb925ac8646c9c3321e6a10df0bc",
+  "prompts": {},
+  "sessions": {
+    "s_b516e6d627663c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d78-7302-7bb1-925e-18ac4493fcd6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
