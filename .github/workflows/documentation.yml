@@ -49,6 +49,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-issues: write
+          permission-pull-requests: write
 
       - name: Update documentation comment
         if: ${{ !cancelled() && steps.app-token.outcome == 'success' }}
