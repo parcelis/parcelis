@@ -12,10 +12,13 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
-  Trash2,
+  Info,
+  RotateCcw,
   UserRound,
 } from "lucide-react";
 import {
+  Alert,
+  AlertDescription,
   AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
@@ -25,8 +28,10 @@ import {
   Button,
   Card,
   CardContent,
+  Label,
+  Textarea,
 } from "@parcelis/ui";
-import { apiClient } from "./api-client";
+import { apiClient, queryKeys } from "./api-client";
 import { formatInvoiceNumber } from "@parcelis/schemas";
 import { InvoiceActions } from "./invoice-actions";
 import { LoadingState } from "./loading-state";
@@ -80,6 +85,7 @@ function formatActivityAction(action: string) {
     "invoice.updated": "Invoice updated",
     "invoice.payment_recorded": "Payment recorded",
     "invoice.payment_deleted": "Payment deleted",
+    "invoice.payment_reversed": "Payment reversed",
   };
   return labels[action] ?? action;
 }
@@ -100,54 +106,69 @@ function getPaymentActivityMessage(event: InvoiceActivityEvent) {
   return `Payment of ${formatCurrency(metadata.amountCents)} received on ${formatDate(metadata.paidOn)} through ${formatPaymentMethod(metadata.paymentMethod)}${event.actorLabel ? `. Recorded by ${event.actorLabel}` : ""}.`;
 }
 
-function DeletePaymentButton({ paymentId }: { paymentId: number }) {
+function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; paymentId: number }) {
   const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
   const [isMounted, setIsMounted] = useState(false);
   const queryClient = useQueryClient();
   useEffect(() => setIsMounted(true), []);
-  const deletePayment = useMutation({
-    mutationFn: () => apiClient.invoices.deletePayment.mutate({ id: paymentId }),
+  const reversePayment = useMutation({
+    mutationFn: () => apiClient.invoices.reversePayment.mutate({ id: paymentId, reason }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["invoices"] });
       void queryClient.invalidateQueries({ queryKey: ["properties", "list"] });
       void queryClient.invalidateQueries({ queryKey: ["activityEvents"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notes.list({ invoiceId }) });
       setOpen(false);
+      setReason("");
     },
   });
   return (
     <>
       <Button
-        aria-label="Delete payment"
+        aria-label="Reverse payment"
         className="h-8 w-8 px-0"
         size="sm"
         type="button"
         variant="ghost"
         onClick={() => setOpen(true)}
       >
-        <Trash2 className="h-4 w-4 text-red-600" />
+        <RotateCcw className="h-4 w-4" />
       </Button>
       {isMounted
         ? createPortal(
             <AlertDialog onOpenChange={setOpen} open={open}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete payment?</AlertDialogTitle>
+                  <AlertDialogTitle>Reverse payment?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. The payment amount will be restored to the invoice balance.
+                    The payment will remain in the history and its amount will be restored to the invoice balance.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                {deletePayment.error ? <p className="text-sm text-red-700">{deletePayment.error.message}</p> : null}
+                <div className="mt-4 flex flex-col gap-3">
+                  <Label htmlFor={`reversal-reason-${paymentId}`}>Reason</Label>
+                  <Textarea
+                    id={`reversal-reason-${paymentId}`}
+                    maxLength={500}
+                    value={reason}
+                    onChange={(event) => setReason(event.target.value)}
+                  />
+                  <Alert className="bg-parcelis-porcelain text-parcelis-gray dark:bg-parcelis-slate" role="note">
+                    <Info aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                    <AlertDescription>This changes the records; it does not send money back.</AlertDescription>
+                  </Alert>
+                </div>
+                {reversePayment.error ? <p className="text-sm text-red-700">{reversePayment.error.message}</p> : null}
                 <AlertDialogFooter>
                   <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
                     Cancel
                   </Button>
                   <Button
-                    disabled={deletePayment.isPending}
+                    disabled={reversePayment.isPending || !reason.trim()}
                     type="button"
-                    variant="destructive"
-                    onClick={() => deletePayment.mutate()}
+                    onClick={() => reversePayment.mutate()}
                   >
-                    Delete payment
+                    Reverse payment
                   </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -440,7 +461,7 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
                             <div className="flex items-center gap-3">
                               <h2 className="font-semibold text-parcelis-charcoal">Payment activity</h2>
                               <span className="rounded-full bg-parcelis-green/20 px-2 py-0.5 text-xs font-semibold text-parcelis-charcoal">
-                                Payments received {payments.length}
+                                Payments received {payments.filter((payment) => !payment.reversedAt).length}
                               </span>
                             </div>
                             {payments.length ? (
@@ -464,12 +485,20 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
                                         <td className="py-3 text-parcelis-gray">{formatDate(payment.paidOn)}</td>
                                         <td className="py-3 text-parcelis-gray">
                                           {formatPaymentMethod(payment.paymentMethod)}
+                                          {payment.reversedAt ? (
+                                            <div className="mt-1 text-xs text-red-700">
+                                              Reversed {formatDateTime(payment.reversedAt)} by {payment.reversedByName}:{" "}
+                                              {payment.reversalReason}
+                                            </div>
+                                          ) : null}
                                         </td>
                                         <td className="py-3 text-right font-semibold text-parcelis-charcoal">
                                           {formatCurrency(payment.amountCents)}
                                         </td>
                                         <td className="py-2 pl-2 text-right">
-                                          <DeletePaymentButton paymentId={payment.id} />
+                                          {!payment.reversedAt ? (
+                                            <ReversePaymentButton invoiceId={invoice.id} paymentId={payment.id} />
+                                          ) : null}
                                         </td>
                                       </tr>
                                     ))}

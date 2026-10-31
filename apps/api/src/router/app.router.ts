@@ -14,7 +14,7 @@ import {
   leaseDraftCreateInputSchema,
   leaseDraftByKeyInputSchema,
   deleteInvoiceInputSchema,
-  deleteInvoicePaymentInputSchema,
+  reverseInvoicePaymentInputSchema,
   invoiceByIdInputSchema,
   invoiceListInputSchema,
   recordInvoicePaymentInputSchema,
@@ -2754,6 +2754,7 @@ export const appRouter = router({
           lease: { select: { unit: { select: { name: true } } } },
           items: { orderBy: { id: "asc" } },
           payments: {
+            where: { reversedAt: null },
             orderBy: { paidOn: "desc" },
             include: { tenant: { select: { firstName: true, lastName: true } } },
           },
@@ -3173,38 +3174,78 @@ export const appRouter = router({
         throw error;
       }
     }),
-    deletePayment: publicProcedure.input(deleteInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
+    reversePayment: publicProcedure.input(reverseInvoicePaymentInputSchema).mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
-      return ctx.prisma.$transaction(async (tx) => {
-        const payment = await tx.invoicePayment.findFirstOrThrow({
-          where: { id: input.id, invoice: { organizationId: ctx.organization.organizationId } },
-          select: { invoiceId: true, amountCents: true },
-        });
-        const invoice = await tx.invoice.findFirstOrThrow({
-          where: { id: payment.invoiceId, organizationId: ctx.organization.organizationId },
-          select: { amountCents: true, balanceCents: true, dueOn: true },
-        });
-        await tx.invoicePayment.delete({ where: { id: input.id } });
-        const latestPayment = await tx.invoicePayment.findFirst({
-          where: { invoiceId: payment.invoiceId },
-          orderBy: [{ paidOn: "desc" }, { id: "desc" }],
-        });
-        const balanceCents = Math.min(invoice.amountCents, invoice.balanceCents + payment.amountCents);
-        const updatedInvoice = await tx.invoice.update({
-          where: { id: payment.invoiceId },
-          data: {
-            balanceCents,
-            status: getInvoiceStatus(invoice.dueOn, balanceCents),
-            paidOn: balanceCents === 0 ? (latestPayment?.paidOn ?? null) : null,
-            paidByTenantId: balanceCents === 0 ? (latestPayment?.tenantId ?? null) : null,
-            paymentMethod: balanceCents === 0 ? (latestPayment?.paymentMethod ?? null) : null,
+      try {
+        return await ctx.prisma.$transaction(
+          async (tx) => {
+            const payment = await tx.invoicePayment.findFirstOrThrow({
+              where: { id: input.id, organizationId: ctx.organization.organizationId },
+              select: { invoiceId: true, amountCents: true, reversedAt: true },
+            });
+            if (payment.reversedAt) return { id: input.id };
+            const invoice = await tx.invoice.findFirstOrThrow({
+              where: { id: payment.invoiceId, organizationId: ctx.organization.organizationId },
+              select: { amountCents: true, balanceCents: true, dueOn: true, status: true },
+            });
+            if (invoice.status === "void" || invoice.balanceCents + payment.amountCents > invoice.amountCents) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message:
+                  "This payment cannot be reversed because the invoice balance is inconsistent or the invoice is void.",
+              });
+            }
+            const reversedAt = new Date();
+            await tx.invoicePayment.update({
+              where: { id: input.id },
+              data: {
+                reversedAt,
+                reversedById: String(ctx.user.id),
+                reversedByName: ctx.user.name,
+                reversalReason: input.reason,
+              },
+            });
+            const balanceCents = invoice.balanceCents + payment.amountCents;
+            const updatedInvoice = await tx.invoice.update({
+              where: { id: payment.invoiceId },
+              data: {
+                balanceCents,
+                status: getInvoiceStatus(invoice.dueOn, balanceCents),
+                paidOn: null,
+                paidByTenantId: null,
+                paymentMethod: null,
+              },
+            });
+            await tx.note.create({
+              data: {
+                invoiceId: payment.invoiceId,
+                body: `Payment of $${(payment.amountCents / 100).toFixed(2)} reversed by ${ctx.user.name}.\nReason: ${input.reason}`,
+              },
+            });
+            await recordInvoiceActivity(
+              tx,
+              updatedInvoice,
+              "invoice.payment_reversed",
+              {
+                paymentId: input.id,
+                amountCents: payment.amountCents,
+                reason: input.reason,
+              },
+              ctx.user,
+            );
+            return { id: input.id };
           },
-        });
-        await recordInvoiceActivity(tx, updatedInvoice, "invoice.payment_deleted", {
-          amountCents: payment.amountCents,
-        });
-        return { id: input.id };
-      });
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "This invoice changed while reversing the payment. Please try again.",
+          });
+        }
+        throw error;
+      }
     }),
   }),
   tags: router({

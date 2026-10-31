@@ -746,6 +746,10 @@ model InvoicePayment {
   amountCents   Int
   paymentMethod String
   paidOn        DateTime
+  reversedAt    DateTime?
+  reversedById  String?
+  reversedByName String?
+  reversalReason String?
   invoice       Invoice  @relation("InvoicePaymentInvoice", fields: [invoiceId], references: [id], onDelete: Restrict)
   recipient     InvoiceRecipient @relation("InvoicePaymentRecipient", fields: [organizationId, invoiceId, tenantId], references: [organizationId, invoiceId, tenantId], onDelete: Restrict)
   tenant        Tenant   @relation(fields: [tenantId], references: [id])

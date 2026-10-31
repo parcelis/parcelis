@@ -3,7 +3,7 @@
 import * as React from "react";
 import NextImage from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -51,6 +51,7 @@ import { NotesDrawer } from "../../../../components/notes-drawer";
 import { MaintenanceDrawer } from "../../../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../../../components/maintenance-image-upload";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
+import { formatDateTimeInTimeZone } from "../../../../lib/date";
 
 const label = (value: string) =>
   value
@@ -91,6 +92,11 @@ export default function MaintenanceTicketPage() {
   const [isLoggingOpen, setIsLoggingOpen] = React.useState(false);
   const [galleryIndex, setGalleryIndex] = React.useState<number | null>(null);
   const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const organizationQuery = useQuery({
+    queryKey: [...queryKeys.organizations.active, pathname],
+    queryFn: () => apiClient.organizations.active.query(),
+  });
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: () => apiClient.auth.me.query(),
@@ -677,13 +683,9 @@ export default function MaintenanceTicketPage() {
                               </DropdownMenu>
                             </div>
                             <p className="mt-3 text-xs text-parcelis-gray">
-                              {new Intl.DateTimeFormat("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                                hour: "numeric",
-                                minute: "2-digit",
-                              }).format(new Date(note.createdAt))}
+                              {organizationQuery.data?.timeZone
+                                ? formatDateTimeInTimeZone(note.createdAt, organizationQuery.data.timeZone)
+                                : "Time unavailable"}
                             </p>
                           </article>
                         ))
