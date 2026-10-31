@@ -589,7 +589,7 @@ export default function TenantsPage() {
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             <a
-                              className="flex items-center gap-2 hover:text-parcelis-charcoal"
+                              className="flex items-center gap-2 hover:text-parcelis-charcoal dark:hover:text-parcelis-porcelain"
                               href={`mailto:${tenant.email}`}
                             >
                               <Mail className="h-4 w-4 text-parcelis-green" />
@@ -597,7 +597,7 @@ export default function TenantsPage() {
                             </a>
                             {tenant.phone ? (
                               <a
-                                className="mt-1 flex items-center gap-2 hover:text-parcelis-charcoal"
+                                className="mt-1 flex items-center gap-2 hover:text-parcelis-charcoal dark:hover:text-parcelis-porcelain"
                                 href={`tel:${tenant.phone}`}
                               >
                                 <Phone className="h-4 w-4 text-parcelis-green" />
