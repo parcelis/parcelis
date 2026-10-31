@@ -309,7 +309,7 @@ export default function OrganizationSettingsPage() {
                           <TimezoneSelect onChange={setTimeZone} value={timeZone} />
                         </div>
                         <p className="mt-1 text-xs text-parcelis-gray">
-                          Lease dates will follow this timezone when lifecycle scheduling is enabled.
+                          Notes and lease lifecycle dates use this timezone.
                         </p>
                       </div>
                       <Button
@@ -356,7 +356,7 @@ export default function OrganizationSettingsPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="font-medium text-parcelis-charcoal">Timezone for lease dates</p>
+                        <p className="font-medium text-parcelis-charcoal">Organization timezone</p>
                         <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.timeZone}</p>
                       </div>
                     </div>

@@ -39,6 +39,7 @@ export type InvoiceActionInvoice = {
     amountCents: number;
     paidOn: Date | string;
     paymentMethod: string;
+    reversedAt: Date | string | null;
     tenant: { id: number; firstName: string; lastName: string };
   }>;
 };
@@ -93,7 +94,7 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   const [isOpeningPdf, setIsOpeningPdf] = React.useState(false);
   const isMountedRef = React.useRef(false);
   const pdfPreviewUrlRef = React.useRef<string | null>(null);
-  const hasPayments = (invoice.payments ?? []).length > 0;
+  const hasPayments = (invoice.payments ?? []).some((payment) => payment.reversedAt === null);
   const deleteInvoice = useMutation({
     mutationFn: () => apiClient.invoices.delete.mutate({ id: invoice.id }),
     onSuccess: () => router.push("/income"),

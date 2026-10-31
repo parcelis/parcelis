@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import {
   Building2,
   CircleArrowUp,
@@ -40,6 +41,7 @@ import {
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
 import { hasPermission } from "./property-access";
+import { formatDateTimeInTimeZone } from "../lib/date";
 
 type NoteSubject =
   | { propertyId: number }
@@ -82,16 +84,6 @@ type NotesDrawerProps = {
   subjectLabel: string;
 };
 
-function formatDate(date: Date | string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(date));
-}
-
 export function NotesDrawer({
   onOpenChange,
   open,
@@ -112,6 +104,12 @@ export function NotesDrawer({
   const wasOpen = React.useRef(open);
   const needsReset = React.useRef(false);
   const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const organizationQuery = useQuery({
+    queryKey: [...queryKeys.organizations.active, pathname],
+    queryFn: () => apiClient.organizations.active.query(),
+    enabled: open,
+  });
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: () => apiClient.auth.me.query(),
@@ -556,7 +554,11 @@ export function NotesDrawer({
                                 </DropdownMenu>
                               ) : null}
                             </div>
-                            <p className="mt-3 text-xs text-parcelis-gray">{formatDate(note.createdAt)}</p>
+                            <p className="mt-3 text-xs text-parcelis-gray">
+                              {organizationQuery.data?.timeZone
+                                ? formatDateTimeInTimeZone(note.createdAt, organizationQuery.data.timeZone)
+                                : "Time unavailable"}
+                            </p>
                           </>
                         )}
                       </article>

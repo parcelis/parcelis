@@ -102,7 +102,7 @@ export const AlertDialogContent = React.forwardRef<HTMLDivElement, React.HTMLAtt
     }
 
     return (
-      <div className="fixed inset-0 z-[60] grid place-items-center bg-black/30 px-4">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-4">
         <div
           aria-modal="true"
           className={cn(
@@ -121,7 +121,7 @@ export const AlertDialogContent = React.forwardRef<HTMLDivElement, React.HTMLAtt
 AlertDialogContent.displayName = "AlertDialogContent";
 
 export function AlertDialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("grid gap-2", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-2", className)} {...props} />;
 }
 
 export function AlertDialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
