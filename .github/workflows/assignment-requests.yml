@@ -28,6 +28,7 @@ jobs:
         uses: scoobs-mystery-bytes/assign-issue-action@8e106875e067c6a20da487f29797d16ee2ff7f3c
         with:
           github_token: ${{ steps.app-token.outputs.token || github.token }}
+          maintainers: 'scoobs-mystery-bytes'
           max_assignments: "10"
           required_label: "ready for development"
           enable_auto_suggestion: "true"
