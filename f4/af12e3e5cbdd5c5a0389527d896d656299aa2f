@@ -1,0 +1,14 @@
+.github/workflows/assignment-requests.yml
+  h_a5ff85794783c2 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f4af12e3e5cbdd5c5a0389527d896d656299aa2f",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
