@@ -1,0 +1,59 @@
+packages/schemas/src/index.ts
+  s_01ee5fd34417f1::t_592471820981f3 914-917
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_01ee5fd34417f1::t_15e8c824b7edfc 312,359
+apps/web/components/invoice-actions.tsx
+  s_01ee5fd34417f1::t_b0dc0eae51e231 42,97
+apps/web/components/invoice-detail-view.tsx
+  s_01ee5fd34417f1::t_b0dc0eae51e231 16,31-32,88,111,115-116,123,129,136,143,161,167,169,171,464,488-489,492-493
+  s_01ee5fd34417f1::t_312a53c8bfbac5 15,20-21,145
+  s_01ee5fd34417f1::t_308d4e24f6108a 490-491
+  s_01ee5fd34417f1::t_971f97a9d66c91 148-160
+  s_01ee5fd34417f1::t_b2f9b20c08d694 34,109,121,499-501
+apps/web/components/notes-drawer.tsx
+  s_01ee5fd34417f1::t_15e8c824b7edfc 4,44,107-112,557-561
+packages/ui/src/components/alert-dialog.tsx
+  s_01ee5fd34417f1::t_971f97a9d66c91 105,124
+apps/web/app/(authenticated)/maintenance/[id]/page.tsx
+  s_01ee5fd34417f1::t_15e8c824b7edfc 6,54,95-99,686-688
+apps/web/lib/date.test.ts
+  s_01ee5fd34417f1::t_51e5b19eb95a18 1-10,12
+  s_01ee5fd34417f1::t_f0cebda4b7ccf2 11
+apps/web/lib/date.ts
+  s_01ee5fd34417f1::t_15e8c824b7edfc 3-14
+packages/db/prisma/migrations/20261030010000_add_invoice_payment_reversal/migration.sql
+  s_01ee5fd34417f1::t_592471820981f3 1-5
+packages/db/prisma/schema.prisma
+  s_01ee5fd34417f1::t_592471820981f3 749-752
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_01ee5fd34417f1::t_aa5c0d8241fe6a 1-12,26,84,176,183,245,252
+  s_01ee5fd34417f1::t_6474d9e92b3072 111
+  s_01ee5fd34417f1::t_d32bbf47b2bb0b 184-186,190-203,211
+  s_01ee5fd34417f1::t_8869b5fa90a30d 131-136
+  s_01ee5fd34417f1::t_de9439b80696ff 109-110,119,138-149,154-157,165-168,173-175
+  s_01ee5fd34417f1::t_308d4e24f6108a 13-25,27-83,85-108,112-118,120-130,137,177-182,212-244,246-251,253-254
+  s_01ee5fd34417f1::t_db35c410dfd0bf 150-153,158-164,169-172
+  s_01ee5fd34417f1::t_0537babe3534f0 187-189,205-210
+  s_01ee5fd34417f1::t_b98654d627368b 204
+apps/api/src/router/app.router.ts
+  s_01ee5fd34417f1::t_308d4e24f6108a 3192-3196,3201,3203-3206,3225-3235,3242-3245
+  s_01ee5fd34417f1::t_15e8c824b7edfc 3222
+  s_01ee5fd34417f1::t_592471820981f3 17,2757,3177,3179-3191,3197,3199-3200,3207-3216,3223-3224,3236,3238-3241,3246-3248
+  s_01ee5fd34417f1::t_b2f9b20c08d694 3198,3202,3217-3221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "905be58c630c76f5fb3e728d38d1ba0f0bfcd386",
+  "prompts": {},
+  "sessions": {
+    "s_01ee5fd34417f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1896b-16c5-7d50-83a1-bd74a1c57399",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
