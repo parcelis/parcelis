@@ -11,6 +11,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - image: apps
@@ -61,3 +62,25 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Update Docker Hub description
+        if: matrix.image != 'parcelis'
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          # The legacy description API requires a user PAT; organization tokens are unsupported.
+          DOCKERHUB_DESCRIPTION_TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+          IMAGE: ${{ matrix.image }}
+          DESCRIPTION: ${{ matrix.description }}
+        run: |
+          token=$(jq -n '{identifier: env.DOCKERHUB_USERNAME, secret: env.DOCKERHUB_DESCRIPTION_TOKEN}' |
+            curl --fail --silent --show-error \
+              --header 'Content-Type: application/json' \
+              --data-binary @- https://hub.docker.com/v2/auth/token |
+            jq -er '.access_token | select(type == "string" and length > 0)')
+          echo "::add-mask::$token"
+          jq -n '{description: env.DESCRIPTION}' |
+            curl --fail --silent --show-error --output /dev/null \
+              --request PATCH \
+              --header "Authorization: Bearer $token" \
+              --header 'Content-Type: application/json' \
+              --data-binary @- "https://hub.docker.com/v2/repositories/parcelis/$IMAGE/"
