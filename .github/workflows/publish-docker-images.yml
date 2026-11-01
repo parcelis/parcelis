@@ -67,6 +67,7 @@ jobs:
         if: matrix.image != 'parcelis'
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          # The legacy description API requires a user PAT; organization tokens are unsupported.
           DOCKERHUB_DESCRIPTION_TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
           IMAGE: ${{ matrix.image }}
           DESCRIPTION: ${{ matrix.description }}
