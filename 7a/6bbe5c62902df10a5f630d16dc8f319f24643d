@@ -1,0 +1,19 @@
+.github/workflows/publish-docker-images.yml
+  s_8e36dc1fa3f4e6::t_8275d122bc3e2d 14,70,74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7a6bbe5c62902df10a5f630d16dc8f319f24643d",
+  "prompts": {},
+  "sessions": {
+    "s_8e36dc1fa3f4e6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a195cc-c153-7291-bb60-bd134b44e0aa",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
