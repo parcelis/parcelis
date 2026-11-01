@@ -11,6 +11,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - image: apps
@@ -66,11 +67,11 @@ jobs:
         if: matrix.image != 'parcelis'
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_DESCRIPTION_TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
           IMAGE: ${{ matrix.image }}
           DESCRIPTION: ${{ matrix.description }}
         run: |
-          token=$(jq -n '{identifier: env.DOCKERHUB_USERNAME, secret: env.DOCKERHUB_TOKEN}' |
+          token=$(jq -n '{identifier: env.DOCKERHUB_USERNAME, secret: env.DOCKERHUB_DESCRIPTION_TOKEN}' |
             curl --fail --silent --show-error \
               --header 'Content-Type: application/json' \
               --data-binary @- https://hub.docker.com/v2/auth/token |
