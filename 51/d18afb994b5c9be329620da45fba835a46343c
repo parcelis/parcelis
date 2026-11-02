@@ -1,0 +1,19 @@
+.github/workflows/lint.yml
+  s_260c5a99aa7216::t_b38af4ec321362 6-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "51d18afb994b5c9be329620da45fba835a46343c",
+  "prompts": {},
+  "sessions": {
+    "s_260c5a99aa7216": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a19e03-bf53-7193-9e77-9c8709129e14",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
