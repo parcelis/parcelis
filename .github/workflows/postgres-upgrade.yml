@@ -1,0 +1,29 @@
+name: PostgreSQL Upgrade
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/postgres-upgrade.yml"
+      - "scripts/upgrade-postgres*"
+      - "scripts/compose-postgres*"
+      - "docker-compose*.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/postgres-upgrade.yml"
+      - "scripts/upgrade-postgres*"
+      - "scripts/compose-postgres*"
+      - "docker-compose*.yml"
+  workflow_dispatch:
+
+jobs:
+  postgres-upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.22.2
+      - run: docker pull postgres:16-alpine
+      - run: docker pull postgres:18-alpine
+      - run: node --test scripts/upgrade-postgres.integration.mjs
