@@ -19,6 +19,27 @@ const genericExemptionWords = new Set([
   "required",
   "is",
   "are",
+  "for",
+  "this",
+  "that",
+  "these",
+  "the",
+  "a",
+  "an",
+  "pr",
+  "pull",
+  "request",
+  "in",
+  "to",
+  "be",
+  "been",
+  "does",
+  "do",
+  "any",
+  "need",
+  "needs",
+  "require",
+  "requires",
 ]);
 
 export function referencesApplicationPullRequest(body, number) {
@@ -51,7 +72,11 @@ export async function checkDocumentation(body, applicationNumber, listPullReques
   }
 
   if (reason) {
-    const words = reason.toLowerCase().match(/\p{L}{2,}/gu) ?? [];
+    const words =
+      reason
+        .normalize("NFKC")
+        .toLowerCase()
+        .match(/\p{L}{2,}/gu) ?? [];
     if (reason.length < 20 || new Set(words).size < 4 || words.every((word) => genericExemptionWords.has(word))) {
       throw new Error(
         "Explain the changed scope and why documentation is unnecessary using at least 20 characters " +

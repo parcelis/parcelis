@@ -110,8 +110,9 @@ discovers a matching docs PR automatically.
 For a documentation exemption, leave the companion field empty and explain the
 changed scope on the `Documentation not needed:` line under `### Documentation`.
 The explanation must contain at least 20 characters and four distinct words.
-Placeholders and generic statements such as `No documentation changes are needed`
-fail. Exemptions require reviewer assessment.
+Placeholders and generic statements such as `No documentation changes are needed for this PR`
+fail, even when they meet those thresholds. Include a concrete scope explanation, such as
+`Only internal tests changed.` Exemptions require reviewer assessment.
 
 Authors listed in [`.github/PR_CHECK_EXCLUSIONS.md`](.github/PR_CHECK_EXCLUSIONS.md)
 remain excluded, matched case-insensitively. The `PR_CHECK_EXCLUSIONS_FILE` repository

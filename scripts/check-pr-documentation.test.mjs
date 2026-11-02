@@ -116,7 +116,11 @@ test("optional companion URL must select a PR that references the application PR
 });
 
 test("valid exemptions bypass GitHub and still require a meaningful explanation", async () => {
-  for (const reason of ["Only internal tests changed.", "Seuls les tests internes ont changé."])
+  for (const reason of [
+    "Only internal tests changed.",
+    "Seuls les tests internes ont changé.",
+    "No documentation changes are needed for this PR; only CI tests changed.",
+  ])
     assert.match(await checkDocumentation(body("", reason), 42, () => assert.fail()), /exemption/);
   for (const reason of [
     "N/A",
@@ -130,6 +134,11 @@ test("valid exemptions bypass GitHub and still require a meaningful explanation"
     "test test test test test test",
     "No documentation changes are needed.",
     "Documentation is not needed.",
+    "No documentation changes are needed for this PR",
+    "  NO documentation changes are needed FOR THIS PR!!!  ",
+    "No documentation changes are needed for this pull request.",
+    "This PR does not require any documentation updates.",
+    "Ｎｏ documentation changes are needed for this ＰＲ.",
   ])
     await assert.rejects(checkDocumentation(body("", reason), 42), /placeholder/);
   await assert.rejects(checkDocumentation(body(url, "Only internal tests changed."), 42), /not both/);
