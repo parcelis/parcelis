@@ -237,6 +237,35 @@ test("captures validation and application PR API failures for reporting", async 
   assert.equal((await evaluateDocumentation(github, context, exclusionsFixture)).passed, true);
 });
 
+test("rerunning a failed check discovers a new docs PR without editing the application PR", async () => {
+  const application = { body: body(), user: { login: "contributor" } };
+  let docs = [];
+  let reads = 0;
+  let listings = 0;
+  const github = {
+    rest: {
+      pulls: {
+        async get() {
+          reads++;
+          return { data: application };
+        },
+        list() {},
+      },
+    },
+    async paginate() {
+      listings++;
+      return docs;
+    },
+  };
+  assert.equal((await evaluateDocumentation(github, context, exclusionsFixture)).passed, false);
+  docs = [docsPR()];
+  const result = await evaluateDocumentation(github, context, exclusionsFixture);
+  assert.equal(result.passed, true);
+  assert.match(result.message, /Verified companion docs PR/);
+  assert.equal(reads, 2);
+  assert.equal(listings, 2);
+});
+
 test("uses default exclusions when the path is omitted or empty", async (t) => {
   const defaultAuthors = readExcludedAuthors();
   assert.deepEqual(defaultAuthors, ["dependabot[bot]", "copilot", "coderabbitai"]);
