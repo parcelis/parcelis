@@ -1,0 +1,21 @@
+.github/workflows/documentation.yml
+  s_9f4de92f9831ff::t_4d9bee88326e82 22
+scripts/check-pr-documentation.test.mjs
+  s_9f4de92f9831ff::t_4d9bee88326e82 240-268
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6ff449b3afe7151cfa076550a5df5ea2ea7afea1",
+  "prompts": {},
+  "sessions": {
+    "s_9f4de92f9831ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a19af2-da11-7e03-92b3-ad4e4a7c5627",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
