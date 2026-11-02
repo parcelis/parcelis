@@ -7,6 +7,7 @@ config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env") })
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   skipTrailingSlashRedirect: true,
+  experimental: { proxyClientMaxBodySize: "16mb" },
   transpilePackages: ["@parcelis/ui", "@parcelis/schemas"],
   async rewrites() {
     const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:40010";

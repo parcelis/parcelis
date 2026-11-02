@@ -345,3 +345,21 @@ pnpm --filter @parcelis/worker test
 - Keep API routes thin: validate input, perform domain/database work, and return a stable contract.
 - Prefer transactions for multi-step writes that must remain consistent.
 - Treat object storage as a separate persistence boundary: store object keys in PostgreSQL, not file bytes.
+
+## Private bug reports
+
+Active staff submit in-app bug reports through the session-only `bugReports.submit`
+tRPC mutation. The API requires an accessible active organization and accepts only
+reviewed description, optional sanitized page URL, browser/app version, and up to
+three PNG/JPEG/WebP screenshots of 5 MB each. Reports go directly through the active
+organization's SMTP configuration (or deployment SMTP fallback) to the fixed
+`support@parcelis.dev` recipient. No report database records, object-storage uploads,
+outbox events, or public GitHub issues are created. The UI retains failed drafts in
+page memory for retry; maintainers review email privately outside Parcelis.
+
+The mutation uses multipart FormData through tRPC's non-batched HTTP link. Bundled
+nginx configurations allow 16 MB only on `/trpc/bugReports.submit`; the API also bounds
+request bodies before multipart parsing, and the web proxy buffers up to 16 MB.
+Screenshot file metadata and signatures are checked before email delivery. Existing
+per-process email throttling limits submissions to five attempts per staff user in
+15 minutes; this is not a distributed quota across replicas.

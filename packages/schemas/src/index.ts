@@ -1134,3 +1134,5 @@ export type ReorderApplicationStatusesInput = z.infer<typeof reorderApplicationS
 export type Applicant = z.infer<typeof applicantSchema>;
 export type ApplicationByIdInput = z.infer<typeof applicationByIdInputSchema>;
 export type SetApplicationStatusInput = z.infer<typeof setApplicationStatusInputSchema>;
+
+export * from "./bug-report";

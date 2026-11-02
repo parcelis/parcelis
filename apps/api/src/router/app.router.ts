@@ -126,6 +126,7 @@ import {
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
+import { bugReportsRouter } from "./bug-reports.router";
 import { getActivityActor } from "../modules/activity-actor";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
 import {
@@ -699,6 +700,7 @@ async function assertNonAdministratorUser(prisma: PrismaClient | Prisma.Transact
 }
 
 export const appRouter = router({
+  bugReports: bugReportsRouter,
   auth: authRouter,
   apiTokens: router({
     list: apiTokenManagementProcedure
