@@ -1,12 +1,14 @@
-
 > **Feature PRs without a linked, approved issue will be closed without review.**
 > Open or comment on a [feature request](https://github.com/parcelis/parcelis/issues/new?template=feature_request.yml) first and wait for maintainer approval before building.
+
 ### Description
 
 <!-- Describe the problem or feature and the user-facing outcome. -->
 
 ### Addresses
+
 - `{{ Enter the link to the issue(s) this PR is in relation to }}`
+
 <!-- Link the issue(s) this pull request addresses, for example: Fixes #123. -->
 
 -
@@ -31,12 +33,16 @@
 
 ### Documentation
 
-<!-- Required: fill exactly one of the first two fields below, leaving the other empty.
-Use a full https://github.com/parcelis/parcelis-docs/pull/<number> URL without Markdown formatting,
-or explain the changed scope and why no documentation changes are needed using at least
+<!-- When documentation is required, open a PR in parcelis/parcelis-docs and put this
+application PR's full URL or parcelis/parcelis#<number> in the docs PR description.
+The check discovers open (including draft) or merged docs PRs automatically. The
+Companion docs PR field is optional; use a full
+https://github.com/parcelis/parcelis-docs/pull/<number> URL to select a specific PR.
+If no documentation changes are needed, leave Companion docs PR empty and explain
+the changed scope and why documentation is unnecessary using at least
 20 characters and four distinct words. Generic statements such as "No documentation changes
 are needed" are insufficient; explanations require reviewer assessment.
-Link back to this PR from the docs PR.
+After opening or editing the docs PR, rerun the application documentation check.
 Include local documentation updates and docs validation results. Required docs must be
 complete before this change is considered complete. -->
 
