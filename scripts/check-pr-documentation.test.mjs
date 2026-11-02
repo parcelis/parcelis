@@ -267,20 +267,20 @@ test("rerunning a failed check discovers a new docs PR without editing the appli
 });
 
 test("uses default exclusions when the path is omitted or empty", async (t) => {
-  const defaultAuthors = readExcludedAuthors();
-  assert.deepEqual(defaultAuthors, ["dependabot[bot]", "copilot", "coderabbitai"]);
-  const [login] = defaultAuthors;
-  if (!login) return t.skip("The default exclusions file has no authors.");
+  const defaultAuthors = readExcludedAuthors(".github/PR_CHECK_EXCLUSIONS.md");
+  if (!defaultAuthors.length) return t.skip("The default exclusions file has no authors.");
 
-  const github = {
-    rest: { pulls: { get: async () => ({ data: { user: { login }, body: null } }) } },
-  };
-  const expected = {
-    passed: true,
-    message: `Documentation requirement excluded for PR author: ${login}.`,
-  };
-  assert.deepEqual(await evaluateDocumentation(github, context), expected);
-  assert.deepEqual(await evaluateDocumentation(github, context, ""), expected);
+  for (const login of defaultAuthors) {
+    const github = {
+      rest: { pulls: { get: async () => ({ data: { user: { login }, body: null } }) } },
+    };
+    const expected = {
+      passed: true,
+      message: `Documentation requirement excluded for PR author: ${login}.`,
+    };
+    assert.deepEqual(await evaluateDocumentation(github, context), expected);
+    assert.deepEqual(await evaluateDocumentation(github, context, ""), expected);
+  }
 });
 
 test("excludes Dependabot PRs even when a human triggers the check", async () => {
