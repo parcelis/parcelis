@@ -92,10 +92,17 @@ test("a valid companion can follow unrelated or closed PRs", async () => {
 });
 
 test("optional companion URL must select a PR that references the application PR", async () => {
-  assert.match(await checkDocumentation(body(url), 42, async () => [docsPR()]), /Verified/);
-  for (const prs of [[docsPR({ number: 456 })], [docsPR({ body: "parcelis/parcelis#43" })]])
+  const listPullRequests = () => assert.fail("Explicit companion URLs must not list docs PRs");
+  assert.match(
+    await checkDocumentation(body(url), 42, listPullRequests, async (params) => {
+      assert.deepEqual(params, { owner: "parcelis", repo: "parcelis-docs", pull_number: 123 });
+      return docsPR();
+    }),
+    /Verified/,
+  );
+  for (const pr of [docsPR({ number: 456 }), docsPR({ body: "parcelis/parcelis#43" }), docsPR({ state: "closed" })])
     await assert.rejects(
-      checkDocumentation(body(url), 42, async () => prs),
+      checkDocumentation(body(url), 42, listPullRequests, async () => pr),
       /No open or merged/,
     );
   for (const link of [
@@ -149,12 +156,15 @@ test("template supports discovery and exemptions; hidden and misplaced fields ar
 
 test("reports docs API errors rather than silently passing", async () => {
   for (const status of [403, 404, 500]) {
-    await assert.rejects(
-      checkDocumentation(body(), 42, async () => {
-        throw Object.assign(new Error("API failure"), { status });
-      }),
-      new RegExp(`Could not check documentation PRs.*${status}`),
-    );
+    const fail = async () => {
+      throw Object.assign(new Error("API failure"), { status });
+    };
+    for (const link of ["", url]) {
+      await assert.rejects(
+        checkDocumentation(body(link), 42, fail, fail),
+        new RegExp(`Could not check documentation PRs.*${status}`),
+      );
+    }
   }
 });
 
@@ -164,6 +174,35 @@ const context = {
   serverUrl: "https://github.com",
   runId: 789,
 };
+
+test("evaluation fetches an explicit companion directly without pagination", async () => {
+  const calls = [];
+  const github = {
+    rest: {
+      pulls: {
+        async get(params) {
+          calls.push(params);
+          return {
+            data:
+              params.repo === "parcelis"
+                ? { body: body(url), user: { login: "contributor" } }
+                : docsPR({ state: "closed", merged_at: "2026-10-29" }),
+          };
+        },
+      },
+    },
+    paginate() {
+      assert.fail("Explicit companion URLs must not paginate");
+    },
+  };
+  const result = await evaluateDocumentation(github, context, exclusionsFixture);
+  assert.equal(result.passed, true);
+  assert.match(result.message, /pull\/123 \(merged\)/);
+  assert.deepEqual(calls, [
+    { owner: "parcelis", repo: "parcelis", pull_number: 42 },
+    { owner: "parcelis", repo: "parcelis-docs", pull_number: 123 },
+  ]);
+});
 
 test("captures validation and application PR API failures for reporting", async () => {
   const github = {

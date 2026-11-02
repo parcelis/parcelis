@@ -40,7 +40,7 @@ export function referencesApplicationPullRequest(body, number) {
   });
 }
 
-export async function checkDocumentation(body, applicationNumber, listPullRequests) {
+export async function checkDocumentation(body, applicationNumber, listPullRequests, getPullRequest) {
   const text = (body ?? "").replace(/<!--[\s\S]*?-->/g, "");
   const section = text.split(/^### Documentation[ \t]*\r?$/m)[1]?.split(/^#{1,3}[ \t]/m)[0] ?? "";
   const link = section.match(/^- Companion docs PR:[ \t]*(.*)$/m)?.[1].trim() ?? "";
@@ -68,14 +68,16 @@ export async function checkDocumentation(body, applicationNumber, listPullReques
 
   let pullRequests;
   try {
-    pullRequests = await listPullRequests({
-      owner: docsOwner,
-      repo: docsRepo,
-      state: "all",
-      sort: "created",
-      direction: "desc",
-      per_page: 100,
-    });
+    pullRequests = match
+      ? [await getPullRequest({ owner: docsOwner, repo: docsRepo, pull_number: Number(match[1]) })]
+      : await listPullRequests({
+          owner: docsOwner,
+          repo: docsRepo,
+          state: "all",
+          sort: "created",
+          direction: "desc",
+          per_page: 100,
+        });
   } catch (error) {
     throw new Error(
       `Could not check documentation PRs (${error.status ?? "API error"}). Check repository access and rerun.`,
@@ -121,8 +123,11 @@ export async function evaluateDocumentation(github, context, exclusionsPath) {
         message: `Documentation requirement excluded for PR author: ${pr.user.login}.`,
       };
     }
-    const message = await checkDocumentation(pr.body, context.payload.pull_request.number, (params) =>
-      github.paginate(github.rest.pulls.list, params),
+    const message = await checkDocumentation(
+      pr.body,
+      context.payload.pull_request.number,
+      (params) => github.paginate(github.rest.pulls.list, params),
+      async (params) => (await github.rest.pulls.get(params)).data,
     );
     return { passed: true, message };
   } catch (error) {

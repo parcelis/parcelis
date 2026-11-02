@@ -97,8 +97,9 @@ the exact application PR number; references in HTML comments are ignored. Refere
 only in PR comments do not satisfy this check.
 
 An open docs PR (including a draft) or a merged docs PR passes. Closed, unmerged PRs
-do not pass. The check reads every page of docs PRs directly from the API rather than
-depending on GitHub's search index. It does not assess documentation content or
+do not pass. For discovery, the check reads every page of docs PRs directly from the API
+rather than depending on GitHub's search index. It fetches a supplied companion PR URL
+directly without listing docs PRs. It does not assess documentation content or
 require the docs PR to merge first.
 
 The `Companion docs PR:` field in the application PR is optional. When populated,
