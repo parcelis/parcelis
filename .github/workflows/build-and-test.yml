@@ -1,0 +1,24 @@
+name: Build & Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.22.2
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @parcelis/email --filter @parcelis/jobs build
+      - run: pnpm --filter @parcelis/api test
+      - run: pnpm test:scripts
+      - run: pnpm typecheck
+      - run: pnpm build
