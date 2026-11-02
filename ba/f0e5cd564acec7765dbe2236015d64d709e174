@@ -1,0 +1,31 @@
+.github/workflows/conventional-commits.yml
+  s_260c5a99aa7216::t_5bc2e8bf3647ff 1-21
+scripts/postgres-integration-changes.mjs
+  s_260c5a99aa7216::t_a63ca9ec74cb64 27-66,85-87,90
+  s_260c5a99aa7216::t_d774d68fd0b1f8 1-26,67-84,88-89,91-92
+.github/workflows/postgres-upgrade.yml
+  s_260c5a99aa7216::t_4349823410795c 1-29
+scripts/postgres-integration-changes.test.mjs
+  s_260c5a99aa7216::t_a63ca9ec74cb64 1-111
+.github/workflows/build-and-test.yml
+  s_260c5a99aa7216::t_5bc2e8bf3647ff 1-25
+.github/workflows/postgres-integration.yml
+  s_260c5a99aa7216::t_4349823410795c 1,7-8
+  s_260c5a99aa7216::t_d774d68fd0b1f8 9-10,13-14,16-18,21-23,27-29,31-37,65-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "baf0e5cd564acec7765dbe2236015d64d709e174",
+  "prompts": {},
+  "sessions": {
+    "s_260c5a99aa7216": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a19e03-bf53-7193-9e77-9c8709129e14",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
