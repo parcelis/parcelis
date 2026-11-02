@@ -1,0 +1,21 @@
+.github/workflows/postgres-upgrade.yml
+  s_260c5a99aa7216::t_135be0348ba842 19-21,27-28
+.github/workflows/postgres-integration.yml
+  s_260c5a99aa7216::t_117c35f02d2518 57-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e744c7f8cd49e74c630fe89907c3587ea1d898af",
+  "prompts": {},
+  "sessions": {
+    "s_260c5a99aa7216": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a19e03-bf53-7193-9e77-9c8709129e14",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
