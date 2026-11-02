@@ -171,7 +171,9 @@ test("reports docs API errors rather than silently passing", async () => {
     for (const link of ["", url]) {
       await assert.rejects(
         checkDocumentation(body(link), 42, fail, fail),
-        new RegExp(`Could not check documentation PRs.*${status}`),
+        link && status === 404
+          ? { message: `The linked docs PR was not found: ${url}. Check the companion URL and repository access.` }
+          : new RegExp(`Could not check documentation PRs.*${status}`),
       );
     }
   }

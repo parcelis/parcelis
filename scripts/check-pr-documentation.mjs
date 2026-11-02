@@ -104,6 +104,9 @@ export async function checkDocumentation(body, applicationNumber, listPullReques
           per_page: 100,
         });
   } catch (error) {
+    if (match && error.status === 404) {
+      throw new Error(`The linked docs PR was not found: ${link}. Check the companion URL and repository access.`);
+    }
     throw new Error(
       `Could not check documentation PRs (${error.status ?? "API error"}). Check repository access and rerun.`,
     );
