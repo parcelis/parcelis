@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Check documentation requirement
+      - name: Find linked documentation PR
         id: check
         uses: actions/github-script@v9
         with:

@@ -21,17 +21,33 @@ const genericExemptionWords = new Set([
   "are",
 ]);
 
-export async function checkDocumentation(body, getPullRequest) {
+export function referencesApplicationPullRequest(body, number) {
+  const text = (body ?? "").replace(/<!--[\s\S]*?-->/g, "");
+  const references = text.match(/https?:\/\/[^\s<>"'`]+|(?<![\w./-])parcelis\/parcelis#\d+(?![\w-])/gi) ?? [];
+  return references.some((reference) => {
+    if (/^parcelis\/parcelis#/i.test(reference)) {
+      return reference.toLowerCase() === `parcelis/parcelis#${number}`;
+    }
+    try {
+      const url = new URL(reference.replace(/[).,;!]+$/, ""));
+      return (
+        url.origin === "https://github.com" &&
+        url.pathname.toLowerCase().replace(/\/$/, "") === `/parcelis/parcelis/pull/${number}`
+      );
+    } catch {
+      return false;
+    }
+  });
+}
+
+export async function checkDocumentation(body, applicationNumber, listPullRequests) {
   const text = (body ?? "").replace(/<!--[\s\S]*?-->/g, "");
   const section = text.split(/^### Documentation[ \t]*\r?$/m)[1]?.split(/^#{1,3}[ \t]/m)[0] ?? "";
   const link = section.match(/^- Companion docs PR:[ \t]*(.*)$/m)?.[1].trim() ?? "";
   const reason = section.match(/^- Documentation not needed:[ \t]*(.*)$/m)?.[1].trim() ?? "";
 
-  if (Boolean(link) === Boolean(reason)) {
-    throw new Error(
-      "Under ### Documentation, provide either '- Companion docs PR: <URL>' or " +
-        "'- Documentation not needed: <explanation>', leaving the other field empty.",
-    );
+  if (link && reason) {
+    throw new Error("Provide either a companion docs PR or a documentation exemption, not both.");
   }
 
   if (reason) {
@@ -46,24 +62,43 @@ export async function checkDocumentation(body, getPullRequest) {
   }
 
   const match = link.match(/^https:\/\/github\.com\/parcelis\/parcelis-docs\/pull\/([1-9]\d*)\/?$/);
-  if (!match || !Number.isSafeInteger(Number(match[1]))) {
+  if (link && (!match || !Number.isSafeInteger(Number(match[1])))) {
     throw new Error("Companion docs PR must be a full https://github.com/parcelis/parcelis-docs/pull/<number> URL.");
   }
 
-  let pr;
+  let pullRequests;
   try {
-    pr = await getPullRequest({ owner: docsOwner, repo: docsRepo, pull_number: Number(match[1]) });
+    pullRequests = await listPullRequests({
+      owner: docsOwner,
+      repo: docsRepo,
+      state: "all",
+      sort: "created",
+      direction: "desc",
+      per_page: 100,
+    });
   } catch (error) {
     throw new Error(
-      `Could not verify the companion docs PR (${error.status ?? "API error"}). Check the URL and repository access.`,
+      `Could not check documentation PRs (${error.status ?? "API error"}). Check repository access and rerun.`,
     );
   }
 
-  if (pr.state !== "open" && !pr.merged_at) {
-    throw new Error("The companion docs PR was closed without merging. Link an open or merged docs PR.");
+  const linked = pullRequests.filter(
+    (pr) => (!match || pr.number === Number(match[1])) && referencesApplicationPullRequest(pr.body, applicationNumber),
+  );
+  const companion = linked.find((pr) => pr.state === "open" || pr.merged_at);
+  if (!companion) {
+    throw new Error(
+      `No open or merged documentation PR ${link ? `matching ${link} ` : ""}` +
+        `references parcelis/parcelis#${applicationNumber}. Add ` +
+        `https://github.com/parcelis/parcelis/pull/${applicationNumber} to the docs PR description ` +
+        "or provide a specific 'Documentation not needed:' explanation in the application PR.",
+    );
   }
 
-  return `Verified companion docs PR: ${link} (${pr.merged_at ? "merged" : "open"}).`;
+  return (
+    `Verified companion docs PR: https://github.com/${docsOwner}/${docsRepo}/pull/${companion.number} ` +
+    `(${companion.merged_at ? "merged" : "open"}); references parcelis/parcelis#${applicationNumber}.`
+  );
 }
 
 export function readExcludedAuthors(exclusionsPath = ".github/PR_CHECK_EXCLUSIONS.md") {
@@ -81,12 +116,14 @@ export async function evaluateDocumentation(github, context, exclusionsPath) {
       pull_number: context.payload.pull_request.number,
     });
     if (excludedAuthors.has(pr.user?.login?.toLowerCase())) {
-      return { passed: true, message: `Documentation requirement excluded for PR author: ${pr.user.login}.` };
+      return {
+        passed: true,
+        message: `Documentation requirement excluded for PR author: ${pr.user.login}.`,
+      };
     }
-    const message = await checkDocumentation(pr.body, async (params) => {
-      const { data } = await github.rest.pulls.get(params);
-      return data;
-    });
+    const message = await checkDocumentation(pr.body, context.payload.pull_request.number, (params) =>
+      github.paginate(github.rest.pulls.list, params),
+    );
     return { passed: true, message };
   } catch (error) {
     return { passed: false, message: error.message };
@@ -116,16 +153,16 @@ export async function updateDocumentationComment(github, context, botLogin, resu
     "",
     ...(!result.passed
       ? [
-          "In the PR description's `### Documentation` section, fill exactly one field:",
+          `Open a PR in parcelis/parcelis-docs and reference https://github.com/${owner}/${repo}/pull/${issue_number} in its description.`,
           "",
-          "- `Companion docs PR:` — full URL of an open or merged PR in `parcelis/parcelis-docs`.",
+          "- `Companion docs PR:` — optional full URL to select a specific linked docs PR.",
           "- `Documentation not needed:` — explain why this change needs no docs update.",
           "",
-          "Leave the other field empty. Correct the description to rerun this check. For API or permission errors, inspect the run logs and rerun after resolving the issue.",
+          "Leave the exemption empty when documentation is required. Correct the description to rerun this check, or rerun the check after opening or editing the docs PR. For API or permission errors, inspect the run logs and rerun after resolving the issue.",
           "",
         ]
       : []),
-    "Exemptions require reviewer assessment. This check verifies the link or explanation, not documentation content.",
+    "Exemptions require reviewer assessment. This check verifies a reference in the docs PR description or an exemption, not documentation content.",
     "",
     `[View run and logs](${runUrl})`,
   ].join("\n");
