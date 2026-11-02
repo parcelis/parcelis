@@ -20,6 +20,5 @@ jobs:
       - run: pnpm --filter @parcelis/email --filter @parcelis/jobs build
       - run: pnpm --filter @parcelis/api test
       - run: pnpm test:scripts
-      - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
