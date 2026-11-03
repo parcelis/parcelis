@@ -383,7 +383,7 @@ export const updateOrganizationInputSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
   address: organizationAddressSchema.nullable(),
   phone: z.string().trim().max(50).nullable(),
-  email: z.string().trim().email().max(320).nullable().optional(),
+  email: z.string().trim().email({ pattern: z.regexes.html5Email }).max(320).nullable().optional(),
   timeZone: organizationTimeZoneSchema.optional(),
 });
 export const organizationAvatarUploadInputSchema = z.object({

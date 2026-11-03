@@ -44,27 +44,37 @@ function fixture(role = "owner", email: string | null = "existing@example.com") 
       },
     },
     session: { userId: 7, user: { id: 7, role: "property_manager", accountStatus: "active" } },
-    organization: { organizationId: organization.id, role, organization },
+    organization: { organizationId: organization.id, role, organization: { ...organization } },
   } as unknown as Context;
-  return { caller: appRouter.createCaller(ctx), ctx, organization, writes: () => writes };
+  const freshCaller = () =>
+    appRouter.createCaller({
+      ...ctx,
+      organization: {
+        ...ctx.organization!,
+        organization: { ...ctx.organization!.organization, ...organization },
+      },
+    });
+  return { caller: appRouter.createCaller(ctx), freshCaller, ctx, organization, writes: () => writes };
 }
 
 for (const role of ["owner", "administrator"]) {
   test(`${role} saves the trimmed contact email in the active organization`, async () => {
-    const { caller, organization } = fixture(role);
+    const { caller, freshCaller, organization } = fixture(role);
     const result = await caller.organizations.update({ ...input, email: "  Contact@example.com  " });
     assert.equal(result.email, "Contact@example.com");
     assert.equal(organization.email, "Contact@example.com");
-    assert.equal((await caller.organizations.active()).email, "Contact@example.com");
+    assert.equal((await caller.organizations.active()).email, "existing@example.com");
+    assert.equal((await freshCaller().organizations.active()).email, "Contact@example.com");
   });
 }
 
 test("a contact email can be cleared without changing other contact details", async () => {
-  const { caller, organization } = fixture();
+  const { caller, freshCaller, organization } = fixture();
   await caller.organizations.update({ ...input, phone: "123456789", email: null });
   assert.equal(organization.email, null);
   assert.equal(organization.phone, "123456789");
-  assert.equal((await caller.organizations.active()).email, null);
+  assert.equal((await caller.organizations.active()).email, "existing@example.com");
+  assert.equal((await freshCaller().organizations.active()).email, null);
 });
 
 test("updates that omit email preserve the saved address", async () => {
@@ -115,4 +125,7 @@ test("the shared settings contract accepts optional, nullable, and trimmed conta
     updateOrganizationInputSchema.parse({ ...input, email: " contact@example.com " }).email,
     "contact@example.com",
   );
+  for (const email of ["billing&ops@example.com", "name+tag@example.com"]) {
+    assert.equal(updateOrganizationInputSchema.parse({ ...input, email: ` ${email} ` }).email, email);
+  }
 });

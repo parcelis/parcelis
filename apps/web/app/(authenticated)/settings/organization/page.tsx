@@ -319,6 +319,7 @@ export default function OrganizationSettingsPage() {
                         <Input
                           autoComplete="email"
                           className="mt-1"
+                          disabled={saveOrganizationDetails.isPending}
                           maxLength={320}
                           onChange={(event) => setEmail(event.target.value)}
                           type="email"
