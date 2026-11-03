@@ -1,11 +1,13 @@
+import { TRPCError } from "@trpc/server";
+import { getWebOrigin } from "../router/http";
+
 const maxRequestBytes = 16 * 1024 * 1024;
 
 // Bound multipart parsing even when the API is accessed without the bundled proxy.
 export async function limitBugReportRequest(request: Request): Promise<Request | Response> {
-  const multipart = request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data");
-  if ((!multipart && new URL(request.url).pathname !== "/trpc/bugReports.submit") || !request.body) return request;
+  if (new URL(request.url).pathname !== "/trpc/bugReports.submit" || !request.body) return request;
   const origin = request.headers.get("origin");
-  const webOrigin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
+  const webOrigin = getWebOrigin();
   if (origin && origin !== webOrigin && origin !== new URL(request.url).origin) {
     return Response.json({ error: { message: "Submit reports from the Parcelis app." } }, { status: 403 });
   }
@@ -16,22 +18,33 @@ export async function limitBugReportRequest(request: Request): Promise<Request |
     );
   if (Number(request.headers.get("content-length")) > maxRequestBytes) return tooLarge();
   const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
   let size = 0;
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > maxRequestBytes) {
-      await reader.cancel();
-      return tooLarge();
-    }
-    chunks.push(value);
-  }
+  // tRPC checks authentication and rate limits before its input parser reads this stream.
+  const body = new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
+        const { value, done } = await reader.read();
+        if (done) {
+          controller.close();
+          return;
+        }
+        size += value.byteLength;
+        if (size > maxRequestBytes) {
+          controller.error(new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "The report is too large." }));
+          await reader.cancel();
+          return;
+        }
+        controller.enqueue(value);
+      },
+      cancel: (reason) => reader.cancel(reason),
+    },
+    { highWaterMark: 0 },
+  );
   return new Request(request.url, {
     method: request.method,
     headers: request.headers,
-    body: Buffer.concat(chunks),
+    body,
     signal: request.signal,
-  });
+    duplex: "half",
+  } as RequestInit & { duplex: "half" });
 }

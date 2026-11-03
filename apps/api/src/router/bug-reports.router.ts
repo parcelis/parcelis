@@ -1,5 +1,5 @@
 import { bugReportDestination, bugReportFormSchema, userRoleValues } from "@parcelis/schemas";
-import { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
+import { EmailConfigurationError, getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
 import { TRPCError } from "@trpc/server";
 import { consumeEmailSendRateLimit } from "../modules/login-rate-limit";
 import { organizationProcedure, router } from "./trpc";
@@ -54,7 +54,17 @@ export const bugReportsRouter = router({
           attachments,
           emailConfig,
         });
-      } catch {
+      } catch (error) {
+        const failure = error as { code?: unknown; responseCode?: unknown } | null;
+        console.error("Failed to send bug report email.", {
+          organizationId: ctx.organization.organizationId,
+          failureType: error instanceof EmailConfigurationError ? "configuration" : "delivery",
+          code: typeof failure?.code === "string" && /^[A-Z0-9_]{1,32}$/.test(failure.code) ? failure.code : undefined,
+          responseCode:
+            typeof failure?.responseCode === "number" && Number.isInteger(failure.responseCode)
+              ? failure.responseCode
+              : undefined,
+        });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:

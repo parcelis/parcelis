@@ -1,11 +1,13 @@
 import { test, expect } from "./fixtures/authenticated";
 import type { Page } from "@playwright/test";
+import { version } from "../../apps/web/package.json";
 
 async function openReport(page: Page) {
   if ((page.viewportSize()?.width ?? 1440) < 1024) {
     await page.getByRole("button", { name: "Open navigation", exact: true }).click();
   }
   await page.getByRole("button", { name: "Open account menu" }).click();
+  await expect(page.getByRole("menuitem", { name: "Report a problem", exact: true })).toBeVisible();
   const items = page.getByRole("menuitem");
   const labels = await items.allTextContents();
   expect(labels.findIndex((value) => value.includes("Report a problem"))).toBe(
@@ -52,6 +54,9 @@ for (const [width, theme] of [
       );
     });
     const drawer = await openReport(page);
+    const currentPage = new URL(page.url());
+    const expectedPageUrl = `${currentPage.origin}${currentPage.pathname}`;
+    const expectedBrowser = await page.evaluate(() => navigator.userAgent);
     await expect(drawer.getByRole("checkbox", { name: "Include page URL" })).not.toBeChecked();
     await expect(drawer.getByRole("checkbox", { name: "Include browser / app version" })).not.toBeChecked();
     await expect(drawer.getByRole("button", { name: "Next", exact: true })).toBeDisabled();
@@ -70,6 +75,9 @@ for (const [width, theme] of [
     const review = page.getByRole("dialog", { name: "Review your report", exact: true });
     await expect(review.getByText("The save button stopped responding.", { exact: true })).toBeVisible();
     await expect(review.getByText("support@parcelis.dev", { exact: true })).toBeVisible();
+    await expect(review.getByText(expectedPageUrl, { exact: true })).toBeVisible();
+    await expect(review.getByText(expectedBrowser, { exact: true })).toBeVisible();
+    await expect(review.getByText(`Parcelis ${version}`, { exact: true })).toBeVisible();
     await expect(review.getByRole("img", { name: "Screenshot 1 preview" })).toBeVisible();
     expect(await review.innerText()).not.toContain("?private=");
     expect(await review.innerText()).not.toContain("#private");
@@ -95,6 +103,9 @@ for (const [width, theme] of [
     expect(normalizeBoundary(bodies[0]!)).toEqual(normalizeBoundary(bodies[1]!));
     expect(bodies[0]).not.toContain("secret");
     expect(bodies[0]).not.toContain("private-original-name");
+    expect(bodies[0]).toContain(expectedPageUrl);
+    expect(bodies[0]).toContain(expectedBrowser);
+    expect(bodies[0]).toContain(version);
     await page.getByRole("button", { name: "Done", exact: true }).click();
     const fresh = await openReport(page);
     await expect(fresh.getByRole("textbox", { name: "Description (required)" })).toHaveValue("");
@@ -123,6 +134,9 @@ test("sends a minimal report without optional context", async ({ page }) => {
 
 test("rejects unsupported, oversized and excess screenshots before submission", async ({ page }) => {
   const drawer = await openReport(page);
+  await expect(drawer.getByRole("button", { name: "Add screenshots", exact: true })).toHaveAccessibleDescription(
+    "Choose up to three PNG, JPEG, or WebP images, no larger than 5 MB each.",
+  );
   const picker = drawer.getByLabel("Screenshots (optional)", { exact: true });
   await picker.setInputFiles({ name: "unsupported.svg", mimeType: "image/svg+xml", buffer: Buffer.from("<svg />") });
   await expect(drawer.getByRole("alert")).toContainText("PNG, JPEG, or WebP");
@@ -148,4 +162,30 @@ test("rejects unsupported, oversized and excess screenshots before submission", 
   await drawer.getByRole("button", { name: "Remove screenshot 1", exact: true }).click();
   await expect(picker).toBeEnabled();
   await expect(drawer.getByRole("img")).toHaveCount(2);
+});
+
+test("clears stale context and errors on close while retaining the report draft", async ({ page }) => {
+  const drawer = await openReport(page);
+  await drawer.getByRole("textbox", { name: "Description (required)" }).fill("Keep this draft for retry.");
+  await drawer.getByRole("checkbox", { name: "Include page URL" }).check();
+  await drawer.getByRole("checkbox", { name: "Include browser / app version" }).check();
+  await drawer.getByLabel("Screenshots (optional)", { exact: true }).setInputFiles({
+    name: "unsupported.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.from("<svg />"),
+  });
+  await expect(drawer.getByRole("alert")).toBeVisible();
+  await drawer.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("link", { name: "Leases", exact: true }).click();
+  await expect(page).toHaveURL(/\/leases$/);
+  const reopened = await openReport(page);
+  await expect(reopened.getByRole("textbox", { name: "Description (required)" })).toHaveValue(
+    "Keep this draft for retry.",
+  );
+  await expect(reopened.getByRole("checkbox", { name: "Include page URL" })).not.toBeChecked();
+  await expect(reopened.getByRole("checkbox", { name: "Include browser / app version" })).not.toBeChecked();
+  await expect(reopened.getByRole("alert")).toHaveCount(0);
+  await reopened.getByRole("checkbox", { name: "Include page URL" }).check();
+  const url = new URL(page.url());
+  await expect(reopened.getByText(`${url.origin}${url.pathname}`, { exact: true })).toBeVisible();
 });

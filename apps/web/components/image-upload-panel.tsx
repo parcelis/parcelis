@@ -163,7 +163,6 @@ function MultipleImageUploadPanel({
         multiple
         disabled={disabled}
         accept={acceptedImageTypes.join(",")}
-        aria-describedby={`${inputId}-help`}
         tabIndex={-1}
         onChange={(event) => {
           const files = Array.from(event.target.files ?? []);
@@ -175,6 +174,7 @@ function MultipleImageUploadPanel({
         type="button"
         variant="secondary"
         aria-label={buttonLabel}
+        aria-describedby={`${inputId}-help`}
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
         className="h-auto min-h-28 w-full justify-start gap-4 whitespace-normal border-dashed px-4 py-5 text-left hover:border-parcelis-green dark:bg-parcelis-slate"

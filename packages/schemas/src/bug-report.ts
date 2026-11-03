@@ -16,11 +16,7 @@ export const bugReportImageSchema = z
   .file()
   .min(1, "Screenshots must not be empty.")
   .max(bugReportMaxImageBytes, bugReportImageMessage)
-  .mime([...bugReportImageTypes], bugReportImageMessage)
-  .refine(
-    (file) => file.name.length <= 200 && !Array.from(file.name).some((character) => character.charCodeAt(0) < 32),
-    "Use a shorter screenshot filename without control characters.",
-  );
+  .mime([...bugReportImageTypes], bugReportImageMessage);
 
 export const bugReportInputSchema = z.object({
   description: z.string().trim().min(1, "Describe the problem.").max(10000),

@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import type { PrismaClient } from "@parcelis/db";
-import { getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
+import { EmailConfigurationError, getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
 import { bugReportInputSchema, bugReportMaxImageBytes, sanitizeBugReportUrl, userRoleValues } from "@parcelis/schemas";
 import { TRPCError } from "@trpc/server";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { router } from "../../router/trpc";
 import { bugReportsRouter } from "../../router/bug-reports.router";
 import type { Context } from "../../router/context";
 import { resetRateLimits } from "../../modules/login-rate-limit";
@@ -151,8 +153,13 @@ test("rejects invalid descriptions, URLs, counts, sizes and screenshot content",
 });
 
 test("reports SMTP failure and rejected delivery without leaking server details; retry can succeed", async () => {
+  const logged = mock.method(console, "error", () => {});
   const send = mock.method(getEmailTransporter(), "sendMail", async () => {
-    throw new Error("private SMTP password");
+    throw Object.assign(new Error("private SMTP password"), {
+      code: "EAUTH",
+      responseCode: 535,
+      command: "AUTH private SMTP password",
+    });
   });
   const caller = bugReportsRouter.createCaller(context());
   await assert.rejects(
@@ -174,6 +181,37 @@ test("reports SMTP failure and rejected delivery without leaking server details;
     rejected: [],
   }));
   assert.deepEqual(await caller.submit(form()), { sent: true });
+  assert.equal(logged.mock.calls.length, 2);
+  assert.deepEqual(logged.mock.calls[0]?.arguments, [
+    "Failed to send bug report email.",
+    { organizationId: 42, failureType: "delivery", code: "EAUTH", responseCode: 535 },
+  ]);
+  assert.doesNotMatch(JSON.stringify(logged.mock.calls), /password|private@example.com|save button|AUTH private/);
+});
+
+test("logs configuration failures without exposing the error or its cause", async () => {
+  const logged = mock.method(console, "error", () => {});
+  const ctx = context();
+  mock.method(ctx.prisma.organizationEmailSettings, "findUnique", async () => {
+    throw new EmailConfigurationError("private configuration details", { cause: new Error("private password") });
+  });
+  await assert.rejects(bugReportsRouter.createCaller(ctx).submit(form()), /could not be sent/);
+  assert.deepEqual(logged.mock.calls[0]?.arguments, [
+    "Failed to send bug report email.",
+    { organizationId: 42, failureType: "configuration", code: undefined, responseCode: undefined },
+  ]);
+  assert.doesNotMatch(JSON.stringify(logged.mock.calls), /private|password|save button/);
+});
+
+test("accepts unusual original filenames and always sends generic attachment names", async () => {
+  const messages = captureMail();
+  const filename = `${"x".repeat(230)}\nprivate.png`;
+  const data = form();
+  data.set("screenshots", new File([pngBytes], filename, { type: "image/png" }));
+  await bugReportsRouter.createCaller(context()).submit(data);
+  assert.deepEqual(messages[0]?.attachments, [
+    { content: pngBytes, contentType: "image/png", filename: "screenshot-1.png" },
+  ]);
 });
 
 test("rate limits repeated submissions per user", async () => {
@@ -194,15 +232,109 @@ test("bounds multipart request size with or without Content-Length", async () =>
       headers,
       body: new Uint8Array(16 * 1024 * 1024 + 1),
     });
-  for (const input of [request(), request({ "content-length": String(16 * 1024 * 1024 + 1) })]) {
-    const response = await limitBugReportRequest(input);
-    assert.ok(response instanceof Response);
-    assert.equal(response.status, 413);
-  }
+  const declared = await limitBugReportRequest(request({ "content-length": String(16 * 1024 * 1024 + 1) }));
+  assert.ok(declared instanceof Response);
+  assert.equal(declared.status, 413);
+  const streamed = await limitBugReportRequest(request());
+  assert.ok(streamed instanceof Request);
+  await assert.rejects(
+    streamed.arrayBuffer(),
+    (error: unknown) => error instanceof TRPCError && error.code === "PAYLOAD_TOO_LARGE",
+  );
   const allowed = new Request("http://localhost/trpc/bugReports.submit", { method: "POST", body: form() });
   const bounded = await limitBugReportRequest(allowed);
   assert.ok(bounded instanceof Request);
   assert.equal((await bounded.formData()).get("description"), form().get("description"));
+});
+
+test("leaves unrelated multipart procedures completely untouched", async () => {
+  const request = new Request("http://localhost/trpc/futureUpload.submit", {
+    method: "POST",
+    headers: {
+      origin: "https://untrusted.example",
+      "content-type": "multipart/form-data; boundary=test",
+      "content-length": String(17 * 1024 * 1024),
+    },
+    body: "unrelated request",
+  });
+  assert.equal(await limitBugReportRequest(request), request);
+  assert.equal(request.bodyUsed, false);
+  assert.equal(request.body?.locked, false);
+});
+
+test("normalizes configured origins with a trailing slash", async () => {
+  const previous = process.env.WEB_ORIGIN;
+  process.env.WEB_ORIGIN = "https://app.example.com/";
+  try {
+    const request = new Request("http://api.internal/trpc/bugReports.submit", {
+      method: "POST",
+      headers: { origin: "https://app.example.com" },
+      body: form(),
+    });
+    const bounded = await limitBugReportRequest(request);
+    assert.ok(bounded instanceof Request);
+    assert.equal((await bounded.formData()).get("description"), form().get("description"));
+  } finally {
+    if (previous === undefined) delete process.env.WEB_ORIGIN;
+    else process.env.WEB_ORIGIN = previous;
+  }
+});
+
+async function streamReport(ctx: Context, byteLength = 1024) {
+  let reads = 0;
+  const stream = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        reads++;
+        controller.enqueue(new Uint8Array(byteLength));
+        controller.close();
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  const original = new Request("http://localhost/trpc/bugReports.submit", {
+    method: "POST",
+    headers: { "content-type": "multipart/form-data; boundary=test", cookie: "forged-session-cookie=invalid" },
+    body: stream,
+    duplex: "half",
+  } as RequestInit & { duplex: "half" });
+  const request = await limitBugReportRequest(original);
+  assert.ok(request instanceof Request);
+  assert.equal(reads, 0, "The limiter must not read the upload eagerly");
+  const response = await fetchRequestHandler({
+    endpoint: "/trpc",
+    req: request,
+    router: router({ bugReports: bugReportsRouter }),
+    createContext: () => ctx,
+  });
+  return { response, reads };
+}
+
+test("rejects unauthenticated or disallowed uploads without reading the request body", async () => {
+  for (const [ctx, status] of [
+    [{ ...context(), session: null }, 401],
+    [context("tenant"), 403],
+    [{ ...context(), organization: null }, 403],
+  ] as const) {
+    const result = await streamReport(ctx as Context);
+    assert.equal(result.response.status, status);
+    assert.equal(result.reads, 0);
+  }
+});
+
+test("enforces the submission rate limit before reading the upload", async () => {
+  captureMail();
+  const caller = bugReportsRouter.createCaller(context());
+  for (let i = 0; i < 5; i++) await caller.submit(form());
+  const result = await streamReport(context());
+  assert.equal(result.response.status, 429);
+  assert.equal(result.reads, 0);
+});
+
+test("returns HTTP 413 for oversized uploads without Content-Length", async () => {
+  const result = await streamReport(context(), 16 * 1024 * 1024 + 1);
+  assert.equal(result.response.status, 413, JSON.stringify(await result.response.json()));
+  assert.equal(result.reads, 1);
 });
 
 test("rejects cross-origin multipart submissions before reading the body", async () => {
@@ -217,8 +349,6 @@ test("rejects cross-origin multipart submissions before reading the body", async
 });
 
 test("multipart tRPC transport accepts all three maximum-size screenshots", async () => {
-  const { fetchRequestHandler } = await import("@trpc/server/adapters/fetch");
-  const { router } = await import("../../router/trpc");
   const messages = captureMail();
   const data = form();
   const image = new Uint8Array(bugReportMaxImageBytes);

@@ -69,6 +69,9 @@ export function BugReportDrawer({ open, onOpenChange }: { open: boolean; onOpenC
     if (send.isPending) return;
     onOpenChange(next);
     if (!next) {
+      setPageUrl(undefined);
+      setBrowserVersion(undefined);
+      setError(undefined);
       setReview(undefined);
       setSent(false);
       send.reset();
