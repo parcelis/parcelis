@@ -854,6 +854,7 @@ export const appRouter = router({
         postalCode: ctx.organization.organization.postalCode,
       },
       phone: ctx.organization.organization.phone,
+      email: ctx.organization.organization.email,
       role: ctx.organization.role,
     })),
     switch: publicProcedure.input(switchOrganizationInputSchema).mutation(async ({ ctx, input }) => {
@@ -887,6 +888,7 @@ export const appRouter = router({
             region: input.address?.region || null,
             postalCode: input.address?.postalCode || null,
             phone: input.phone?.trim() || null,
+            ...(input.email !== undefined ? { email: input.email } : {}),
             ...(input.timeZone ? { timeZone: input.timeZone } : {}),
           },
           select: {
@@ -899,6 +901,7 @@ export const appRouter = router({
             region: true,
             postalCode: true,
             phone: true,
+            email: true,
             timeZone: true,
           },
         });

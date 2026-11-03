@@ -44,6 +44,7 @@ export default function OrganizationSettingsPage() {
   });
   const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
   const [phone, setPhone] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [timeZone, setTimeZone] = React.useState("UTC");
   const updateAddressField = React.useCallback((field: keyof typeof addressForm, value: string) => {
     setAddressForm((current) => ({ ...current, [field]: value }));
@@ -86,6 +87,7 @@ export default function OrganizationSettingsPage() {
         postalCode: activeOrganizationQuery.data.address.postalCode ?? "",
       });
       setPhone(activeOrganizationQuery.data.phone ?? "");
+      setEmail(activeOrganizationQuery.data.email ?? "");
       setTimeZone(activeOrganizationQuery.data.timeZone);
     }
   }, [activeOrganizationQuery.data]);
@@ -97,6 +99,7 @@ export default function OrganizationSettingsPage() {
       slug,
       address,
       phone,
+      email,
       timeZone,
       avatarChanges,
     }: {
@@ -104,6 +107,7 @@ export default function OrganizationSettingsPage() {
       slug: string;
       address: { line1: string; line2: string; city: string; region: string; postalCode: string };
       phone: string;
+      email: string;
       timeZone: string;
       avatarChanges: AvatarChanges;
     }) => {
@@ -135,6 +139,7 @@ export default function OrganizationSettingsPage() {
             }
           : null,
         phone: phone.trim() || null,
+        email: email.trim() || null,
         timeZone,
       });
       return organization;
@@ -171,7 +176,12 @@ export default function OrganizationSettingsPage() {
 
         <div className="parcelis-page-shell">
           <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="organization" canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false} canManageRoles={canManageUsers} canManageUsers={canManageUsers} />
+            <SettingsRail
+              active="organization"
+              canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
+              canManageRoles={canManageUsers}
+              canManageUsers={canManageUsers}
+            />
             <div className="min-w-0 flex-1">
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
@@ -209,6 +219,7 @@ export default function OrganizationSettingsPage() {
                             region: addressForm.region.toUpperCase(),
                           },
                           phone,
+                          email,
                           timeZone,
                           avatarChanges,
                         });
@@ -303,6 +314,17 @@ export default function OrganizationSettingsPage() {
                           value={phone}
                         />
                       </Label>
+                      <Label>
+                        Organization email address (optional)
+                        <Input
+                          autoComplete="email"
+                          className="mt-1"
+                          maxLength={320}
+                          onChange={(event) => setEmail(event.target.value)}
+                          type="email"
+                          value={email}
+                        />
+                      </Label>
                       <div>
                         <Label>Organization Timezone</Label>
                         <div className="mt-1">
@@ -353,6 +375,12 @@ export default function OrganizationSettingsPage() {
                         <p className="font-medium text-parcelis-charcoal">Organization phone number</p>
                         <p className="mt-1 text-parcelis-gray">
                           {activeOrganizationQuery.data?.phone ?? "Not provided"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-parcelis-charcoal">Organization email address</p>
+                        <p className="mt-1 break-words text-parcelis-gray">
+                          {activeOrganizationQuery.data?.email ?? "Not provided"}
                         </p>
                       </div>
                       <div>
