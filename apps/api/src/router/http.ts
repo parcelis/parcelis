@@ -1,14 +1,16 @@
+export function getWebOrigin() {
+  try {
+    const url = new URL(process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`);
+    if (url.protocol === "http:" || url.protocol === "https:") return url.origin;
+  } catch {
+    return undefined;
+  }
+}
+
 export function applyApiHeaders(request: Request, response: Response) {
   response.headers.set("Cache-Control", "private, no-store");
   response.headers.append("Vary", "Origin");
-  let webOrigin: string;
-  try {
-    const url = new URL(process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return response;
-    webOrigin = url.origin;
-  } catch {
-    return response;
-  }
+  const webOrigin = getWebOrigin();
   if (request.headers.get("origin") === webOrigin) {
     response.headers.set("Access-Control-Allow-Origin", webOrigin);
     response.headers.set("Access-Control-Allow-Credentials", "true");

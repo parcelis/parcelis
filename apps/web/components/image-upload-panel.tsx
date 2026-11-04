@@ -3,9 +3,11 @@
 import * as React from "react";
 import { ImagePlus, Replace, Trash2, X } from "lucide-react";
 import Image from "next/image";
+import { Button } from "@parcelis/ui";
 import { imageContentTypes } from "./image-upload";
 
-type ImageUploadPanelProps = {
+type SingleImageUploadPanelProps = {
+  multiple?: false;
   alt: string;
   acceptedImageDescription?: string;
   acceptedImageTypes?: readonly string[];
@@ -20,7 +22,7 @@ type ImageUploadPanelProps = {
   title?: string;
 };
 
-export function ImageUploadPanel({
+function SingleImageUploadPanel({
   alt,
   acceptedImageDescription = "JPG, PNG, WebP, or GIF",
   acceptedImageTypes = imageContentTypes,
@@ -33,7 +35,7 @@ export function ImageUploadPanel({
   previewBackground,
   previewImageFit = "cover",
   title,
-}: ImageUploadPanelProps) {
+}: SingleImageUploadPanelProps) {
   const imageInputRef = React.useRef<HTMLInputElement | null>(null);
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const acceptedTypes = new Set(acceptedImageTypes);
@@ -125,5 +127,68 @@ export function ImageUploadPanel({
         {validationError ? <p className="mt-3 text-sm font-medium text-red-700">{validationError}</p> : null}
       </div>
     </section>
+  );
+}
+
+type MultipleImageUploadPanelProps = {
+  multiple: true;
+  inputId: string;
+  acceptedImageTypes: readonly string[];
+  acceptedImageDescription: string;
+  buttonLabel: string;
+  disabled?: boolean;
+  onImagesChange: (files: File[]) => void;
+};
+
+export function ImageUploadPanel(props: SingleImageUploadPanelProps | MultipleImageUploadPanelProps) {
+  return props.multiple ? <MultipleImageUploadPanel {...props} /> : <SingleImageUploadPanel {...props} />;
+}
+
+function MultipleImageUploadPanel({
+  inputId,
+  acceptedImageTypes,
+  acceptedImageDescription,
+  buttonLabel,
+  disabled = false,
+  onImagesChange,
+}: MultipleImageUploadPanelProps) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  return (
+    <div className="w-full">
+      <input
+        id={inputId}
+        ref={inputRef}
+        className="sr-only"
+        type="file"
+        multiple
+        disabled={disabled}
+        accept={acceptedImageTypes.join(",")}
+        tabIndex={-1}
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          event.target.value = "";
+          onImagesChange(files);
+        }}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        aria-label={buttonLabel}
+        aria-describedby={`${inputId}-help`}
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
+        className="h-auto min-h-28 w-full justify-start gap-4 whitespace-normal border-dashed px-4 py-5 text-left hover:border-parcelis-green dark:bg-parcelis-slate"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-parcelis-green/10">
+          <ImagePlus aria-hidden="true" className="h-5 w-5 text-parcelis-green" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-sm font-semibold">{buttonLabel}</span>
+          <span id={`${inputId}-help`} className="text-xs font-normal leading-5 text-parcelis-gray">
+            {acceptedImageDescription}
+          </span>
+        </span>
+      </Button>
+    </div>
   );
 }

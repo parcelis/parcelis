@@ -3,15 +3,18 @@ import { getPrisma } from "../../../modules/prisma";
 import { appRouter } from "../../../router/app.router";
 import { createFetchContext } from "../../../router/fetch-context";
 import { applyApiHeaders, handlePreflight } from "../../../router/http";
+import { limitBugReportRequest } from "../../../modules/bug-report-request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function handler(request: Request) {
+  const limitedRequest = await limitBugReportRequest(request);
+  if (limitedRequest instanceof Response) return applyApiHeaders(request, limitedRequest);
   const context = createFetchContext(getPrisma(), request);
   const response = await fetchRequestHandler({
     endpoint: "/trpc",
-    req: request,
+    req: limitedRequest,
     router: appRouter,
     createContext: context,
   });
