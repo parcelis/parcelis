@@ -1,0 +1,25 @@
+packages/db/prisma/migrations/20261104000000_require_complete_payment_reversal/migration.sql
+  s_4abf8535941d48::t_203560e6572d20 1-14
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_4abf8535941d48::t_203560e6572d20 2,33-39,103-104,106-110,115-116
+  s_4abf8535941d48::t_5faefdc1e97270 40-43,105
+  s_4abf8535941d48::t_e99a667d0542df 111-114
+apps/web/components/invoice-actions.tsx
+  s_4abf8535941d48::t_203560e6572d20 31-34,102-108,182-188,195-199,223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f1032dc862790b9635d14e1ad9a9b0d3a545ca11",
+  "prompts": {},
+  "sessions": {
+    "s_4abf8535941d48": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a861-315d-7ea1-82d1-54d10d9c3da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
