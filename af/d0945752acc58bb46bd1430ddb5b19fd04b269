@@ -1,0 +1,25 @@
+apps/web/lib/date.test.ts
+  s_4abf8535941d48::t_29aa242d2311c5 3
+.github/workflows/ci.yml
+  s_4abf8535941d48::t_29aa242d2311c5 84
+apps/web/package.json
+  s_4abf8535941d48::t_29aa242d2311c5 12
+apps/api/src/tests/invoices/invoice-delete.integration.test.ts
+  s_4abf8535941d48::t_29aa242d2311c5 191
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "afd0945752acc58bb46bd1430ddb5b19fd04b269",
+  "prompts": {},
+  "sessions": {
+    "s_4abf8535941d48": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a861-315d-7ea1-82d1-54d10d9c3da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
