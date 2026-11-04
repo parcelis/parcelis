@@ -5,7 +5,6 @@ export function hasInvoicePaymentHistory(
     paidOn: Date | string | null;
     paidByTenantId: number | null;
     paymentMethod: string | null;
-    status: string;
   },
   paymentCount: number,
 ) {
@@ -14,7 +13,6 @@ export function hasInvoicePaymentHistory(
     invoice.balanceCents < invoice.amountCents ||
     invoice.paidOn !== null ||
     invoice.paidByTenantId !== null ||
-    invoice.paymentMethod !== null ||
-    invoice.status === "paid"
+    invoice.paymentMethod !== null
   );
 }

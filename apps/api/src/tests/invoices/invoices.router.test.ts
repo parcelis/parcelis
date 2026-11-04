@@ -21,44 +21,53 @@ const paymentInput = {
   paymentMethod: "check" as const,
 };
 
-test("invoice deletion allows an unpaid invoice without payment history", async () => {
-  let deleted = false;
-  const tx = {
-    invoice: {
-      findFirstOrThrow: async ({ where }: { where: unknown }) => {
-        assert.deepEqual(where, { id: 4, organizationId: 7 });
-        return {
-          id: 4,
-          amountCents: 10_000,
-          balanceCents: 10_000,
-          paidOn: null,
-          paidByTenantId: null,
-          paymentMethod: null,
-          status: "open",
-          _count: { payments: 0 },
-        };
+for (const [label, amountCents, status] of [
+  ["an unpaid invoice", 10_000, "open"],
+  ["a zero-cent paid invoice", 0, "paid"],
+] as const) {
+  test(`invoice deletion allows ${label} without payment history`, async () => {
+    let deleted = false;
+    const tx = {
+      invoice: {
+        findFirstOrThrow: async ({ where }: { where: unknown }) => {
+          assert.deepEqual(where, { id: 4, organizationId: 7 });
+          return {
+            id: 4,
+            amountCents,
+            balanceCents: amountCents,
+            paidOn: null,
+            paidByTenantId: null,
+            paymentMethod: null,
+            status,
+            _count: { payments: 0 },
+          };
+        },
+        delete: async () => {
+          deleted = true;
+          return { id: 4 };
+        },
       },
-      delete: async () => {
-        deleted = true;
-        return { id: 4 };
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
+        assert.deepEqual(options, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        return callback(tx);
       },
-    },
-  };
-  const caller = createCaller({
-    $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
-      assert.deepEqual(options, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-      return callback(tx);
-    },
-  });
+    });
 
-  assert.deepEqual(await caller.invoices.delete({ id: 4 }), { id: 4 });
-  assert.equal(deleted, true);
-});
+    assert.deepEqual(await caller.invoices.delete({ id: 4 }), { id: 4 });
+    assert.equal(deleted, true);
+  });
+}
 
 for (const [label, changes] of [
   ["payment records", { _count: { payments: 1 } }],
   ["a legacy partial payment", { balanceCents: 5_000 }],
-  ["a legacy paid status", { status: "paid" }],
+  ["a fully paid invoice", { status: "paid", balanceCents: 0 }],
+  [
+    "a zero-cent invoice with payment records",
+    { amountCents: 0, balanceCents: 0, status: "paid", _count: { payments: 1 } },
+  ],
   ["a settlement date", { paidOn: new Date("2026-09-14") }],
   ["a recorded payer", { paidByTenantId: 12 }],
   ["a payment method", { paymentMethod: "check" }],
