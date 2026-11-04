@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PrismaClient, PrismaPg } from "@parcelis/db";
+import { Prisma, PrismaClient, PrismaPg } from "@parcelis/db";
+import { TRPCError } from "@trpc/server";
 import { createIsolatedTestSchema } from "../../../../../scripts/outbox-test-database.mjs";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
@@ -92,6 +93,10 @@ test(
       });
       await assert.rejects(
         createCaller(prisma, other.id).invoices.reversePayment({ id: fullPayment.id, reason: "Wrong account" }),
+        (error: unknown) =>
+          error instanceof TRPCError &&
+          error.cause instanceof Prisma.PrismaClientKnownRequestError &&
+          error.cause.code === "P2025",
       );
       await assert.rejects(
         createCaller(prisma, organization.id, "property_manager").invoices.reversePayment({
