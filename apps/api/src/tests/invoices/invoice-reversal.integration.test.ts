@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { Prisma, PrismaClient, PrismaPg } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
@@ -29,6 +30,17 @@ test(
       adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
     });
     try {
+      const migration = await readFile(
+        new URL(
+          "../../../../../packages/db/prisma/migrations/20261104000000_require_complete_payment_reversal/migration.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      );
+      await prisma.$executeRawUnsafe(
+        migration.replace('ALTER TABLE "InvoicePayment"', `ALTER TABLE "${isolated.schema}"."InvoicePayment"`),
+      );
+      const paymentTable = Prisma.raw(`"${isolated.schema}"."InvoicePayment"`);
       const organization = await prisma.organization.create({ data: { name: "Invoice test", slug: isolated.schema } });
       const other = await prisma.organization.create({ data: { name: "Other", slug: `${isolated.schema}-other` } });
       const property = await prisma.property.create({
@@ -88,6 +100,20 @@ test(
 
       const full = await createInvoice();
       const fullPayment = await pay(full.id, 10_000);
+      for (let mask = 1; mask < 15; mask++) {
+        await assert.rejects(
+          prisma.$executeRaw`UPDATE ${paymentTable} SET
+            "reversedAt" = ${mask & 1 ? new Date() : null},
+            "reversedById" = ${mask & 2 ? "42" : null},
+            "reversedByName" = ${mask & 4 ? "Test administrator" : null},
+            "reversalReason" = ${mask & 8 ? "Correction" : null}
+            WHERE "id" = ${fullPayment.id}`,
+          {
+            code: "P2010",
+            message: /violates check constraint "InvoicePayment_complete_reversal"/,
+          },
+        );
+      }
       await assert.rejects(caller.invoices.reversePayment({ id: fullPayment.id, reason: "  " }), {
         code: "BAD_REQUEST",
       });

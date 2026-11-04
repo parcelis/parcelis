@@ -28,6 +28,10 @@ export type InvoiceActionInvoice = {
   invoiceNumber: number;
   amountCents: number;
   balanceCents: number;
+  status: string;
+  paidOn: Date | string | null;
+  paidByTenantId: number | null;
+  paymentMethod: string | null;
   dueOn: Date | string;
   items: Array<{ id: number; item: string; description: string | null; quantity: number; rateCents: number }>;
   property: { name: string };
@@ -95,6 +99,13 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   const isMountedRef = React.useRef(false);
   const pdfPreviewUrlRef = React.useRef<string | null>(null);
   const hasPayments = (invoice.payments ?? []).some((payment) => payment.reversedAt === null);
+  const hasPaymentHistory =
+    invoice.payments.length > 0 ||
+    invoice.balanceCents < invoice.amountCents ||
+    invoice.paidOn !== null ||
+    invoice.paidByTenantId !== null ||
+    invoice.paymentMethod !== null ||
+    invoice.status === "paid";
   const deleteInvoice = useMutation({
     mutationFn: () => apiClient.invoices.delete.mutate({ id: invoice.id }),
     onSuccess: () => router.push("/income"),
@@ -168,13 +179,24 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
         <Button size="sm" type="button" variant="secondary" onClick={() => setNotesOpen(true)}>
           <StickyNote className="h-4 w-4" /> Add note
         </Button>
-        <Button size="sm" type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
+        <Button
+          disabled={hasPaymentHistory}
+          size="sm"
+          type="button"
+          variant="destructive"
+          onClick={() => setDeleteOpen(true)}
+        >
           <Trash2 className="h-4 w-4" /> Delete
         </Button>
         <Button size="sm" type="button" onClick={() => setEditOpen(true)}>
           <Pencil className="h-4 w-4" /> Edit invoice
         </Button>
       </div>
+      {hasPaymentHistory ? (
+        <p className="text-right text-sm text-parcelis-gray print:hidden">
+          Invoices with payment history cannot be deleted, even when all payments have been reversed.
+        </p>
+      ) : null}
       <RecordPaymentDrawer invoice={invoice} open={paymentOpen} onOpenChange={setPaymentOpen} />
       <NotesDrawer
         onOpenChange={setNotesOpen}
@@ -198,7 +220,7 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
               Cancel
             </Button>
             <Button
-              disabled={deleteInvoice.isPending}
+              disabled={deleteInvoice.isPending || hasPaymentHistory}
               type="button"
               variant="destructive"
               onClick={() => deleteInvoice.mutate()}
