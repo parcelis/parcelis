@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -112,6 +112,10 @@ function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; pay
   const [isMounted, setIsMounted] = useState(false);
   const queryClient = useQueryClient();
   useEffect(() => setIsMounted(true), []);
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) setReason("");
+  }, []);
   const reversePayment = useMutation({
     mutationFn: () => apiClient.invoices.reversePayment.mutate({ id: paymentId, reason }),
     onSuccess: () => {
@@ -119,10 +123,10 @@ function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; pay
       void queryClient.invalidateQueries({ queryKey: ["properties", "list"] });
       void queryClient.invalidateQueries({ queryKey: ["activityEvents"] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.notes.list({ invoiceId }) });
-      setOpen(false);
-      setReason("");
+      handleOpenChange(false);
     },
   });
+
   return (
     <>
       <Button
@@ -137,7 +141,7 @@ function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; pay
       </Button>
       {isMounted
         ? createPortal(
-            <AlertDialog onOpenChange={setOpen} open={open}>
+            <AlertDialog onOpenChange={handleOpenChange} open={open}>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Reverse payment?</AlertDialogTitle>
@@ -160,7 +164,7 @@ function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; pay
                 </div>
                 {reversePayment.error ? <p className="text-sm text-red-700">{reversePayment.error.message}</p> : null}
                 <AlertDialogFooter>
-                  <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+                  <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
                     Cancel
                   </Button>
                   <Button

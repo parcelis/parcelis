@@ -40,6 +40,7 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
+import { NoteTimeZoneStatus } from "./note-time-zone-status";
 import { hasPermission } from "./property-access";
 import { formatDateTimeInTimeZone } from "../lib/date";
 
@@ -475,6 +476,12 @@ export function NotesDrawer({
                   <p className="text-sm text-red-700">{notesQuery.error.message}</p>
                 ) : notesQuery.data?.length ? (
                   <div className="space-y-3">
+                    <NoteTimeZoneStatus
+                      timeZone={organizationQuery.data?.timeZone}
+                      isError={organizationQuery.isError}
+                      isFetching={organizationQuery.isFetching}
+                      onRetry={() => void organizationQuery.refetch()}
+                    />
                     {notesQuery.data.map((note) => (
                       <article
                         className="border-l-4 border-parcelis-green bg-parcelis-green/5 py-3 pl-4 pr-3"
@@ -554,11 +561,11 @@ export function NotesDrawer({
                                 </DropdownMenu>
                               ) : null}
                             </div>
-                            <p className="mt-3 text-xs text-parcelis-gray">
-                              {organizationQuery.data?.timeZone
-                                ? formatDateTimeInTimeZone(note.createdAt, organizationQuery.data.timeZone)
-                                : "Time unavailable"}
-                            </p>
+                            {organizationQuery.data?.timeZone ? (
+                              <p className="mt-3 text-xs text-parcelis-gray">
+                                {formatDateTimeInTimeZone(note.createdAt, organizationQuery.data.timeZone)}
+                              </p>
+                            ) : null}
                           </>
                         )}
                       </article>

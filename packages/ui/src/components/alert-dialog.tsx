@@ -102,11 +102,11 @@ export const AlertDialogContent = React.forwardRef<HTMLDivElement, React.HTMLAtt
     }
 
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-4">
+      <div className="fixed inset-0 z-[60] flex flex-col items-center overflow-y-auto bg-black/30 p-4">
         <div
           aria-modal="true"
           className={cn(
-            "w-full max-w-md rounded-lg border border-parcelis-border bg-white p-5 shadow-xl dark:bg-parcelis-slate",
+            "my-auto w-full max-w-md shrink-0 rounded-lg border border-parcelis-border bg-white p-5 shadow-xl dark:bg-parcelis-slate",
             className,
           )}
           ref={setRef}
