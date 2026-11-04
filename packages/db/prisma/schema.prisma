@@ -162,6 +162,7 @@ model Organization {
   region                String?
   postalCode            String?
   phone                 String?
+  email                 String?
   memberships           OrganizationMembership[]
   apiTokens              ApiToken[]
   properties            Property[]
