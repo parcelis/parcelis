@@ -1,0 +1,21 @@
+.github/workflows/ci.yml
+  s_4abf8535941d48::t_f502bff046e568 52-55
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_4abf8535941d48::t_f502bff046e568 9-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "65c33e5bcc75f1da3ef9c33a5e445c7b617e8287",
+  "prompts": {},
+  "sessions": {
+    "s_4abf8535941d48": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a861-315d-7ea1-82d1-54d10d9c3da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
