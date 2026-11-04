@@ -1,0 +1,21 @@
+scripts/check-pr-documentation.test.mjs
+  s_4abf8535941d48::t_b8bcda8cfc23fe 269-271
+.github/PR_CHECK_EXCLUSIONS.md
+  s_4abf8535941d48::t_a9e6acc9f27c19 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "39fb9b2403f655a3dc755e765397ca9cb708b64f",
+  "prompts": {},
+  "sessions": {
+    "s_4abf8535941d48": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a861-315d-7ea1-82d1-54d10d9c3da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
