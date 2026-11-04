@@ -1,0 +1,24 @@
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_4abf8535941d48::t_d784407047074e 24-27,61,66
+  s_4abf8535941d48::t_f55d440235177e 28-48,50-54,56,58-60,67-70
+packages/schemas/src/invoice-payment-history.ts
+  s_4abf8535941d48::t_d784407047074e 16
+packages/db/prisma/migrations/20261030000000_protect_invoice_payment_history/migration.sql
+  s_4abf8535941d48::t_d784407047074e 5,12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8389fab0d67fd4737e236817009c807eebdfaeb5",
+  "prompts": {},
+  "sessions": {
+    "s_4abf8535941d48": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a861-315d-7ea1-82d1-54d10d9c3da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
