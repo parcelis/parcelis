@@ -81,6 +81,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @parcelis/email --filter @parcelis/jobs build
       - run: pnpm --filter @parcelis/api test
+      - run: pnpm --filter @parcelis/web test
       - run: pnpm test:scripts
       - run: pnpm lint
       - run: pnpm typecheck

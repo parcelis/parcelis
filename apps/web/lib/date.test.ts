@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatDateTimeInTimeZone } from "./date";
+import { formatDateTimeInTimeZone } from "./date.ts";
 
 test("note timestamps use the organization timezone and daylight saving time", () => {
   const winter = new Date("2026-01-15T12:30:00Z");

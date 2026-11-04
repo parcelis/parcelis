@@ -188,6 +188,7 @@ test(
         payment = await recordPayment(racing.id, 5_000);
       } finally {
         resume();
+        await deleting.catch(() => {});
       }
       await assert.rejects(deleting, { code: "CONFLICT" });
       assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: racing.id } })).balanceCents, 5_000);
