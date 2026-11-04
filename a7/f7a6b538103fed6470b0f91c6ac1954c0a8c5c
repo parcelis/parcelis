@@ -1,0 +1,29 @@
+packages/ui/src/components/alert-dialog.tsx
+  s_4abf8535941d48::t_14a95e8cff0c60 105,109
+apps/web/components/invoice-detail-view.tsx
+  s_4abf8535941d48::t_14a95e8cff0c60 126,129,144,167
+  s_4abf8535941d48::t_902edb00911216 5,115-118
+apps/web/components/notes-drawer.tsx
+  s_4abf8535941d48::t_14a95e8cff0c60 43,479-484,564-568
+apps/web/app/(authenticated)/maintenance/[id]/page.tsx
+  s_4abf8535941d48::t_14a95e8cff0c60 50,617-624,694-698
+apps/web/components/note-time-zone-status.tsx
+  s_4abf8535941d48::t_65832049f112d5 27-31
+  s_4abf8535941d48::t_14a95e8cff0c60 1-26,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a7f7a6b538103fed6470b0f91c6ac1954c0a8c5c",
+  "prompts": {},
+  "sessions": {
+    "s_4abf8535941d48": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a861-315d-7ea1-82d1-54d10d9c3da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
