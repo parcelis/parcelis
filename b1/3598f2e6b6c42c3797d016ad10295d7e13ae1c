@@ -1,0 +1,31 @@
+packages/schemas/src/index.ts
+  s_4abf8535941d48::t_e4f39027bf8202 15
+packages/db/prisma/migrations/20261030000000_protect_invoice_payment_history/migration.sql
+  s_4abf8535941d48::t_e4f39027bf8202 5,12-18
+apps/api/src/router/app.router.ts
+  s_4abf8535941d48::t_e4f39027bf8202 17,3154
+packages/schemas/src/invoice-payment-history.ts
+  s_4abf8535941d48::t_e4f39027bf8202 1-20
+apps/web/components/invoice-detail-view.tsx
+  s_4abf8535941d48::t_2612b269eeca51 127-137,181-186
+  s_4abf8535941d48::t_e4f39027bf8202 122-123,126,164,168-172
+apps/web/components/invoice-actions.tsx
+  s_4abf8535941d48::t_e4f39027bf8202 4,103,155
+  s_4abf8535941d48::t_2612b269eeca51 156-195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b13598f2e6b6c42c3797d016ad10295d7e13ae1c",
+  "prompts": {},
+  "sessions": {
+    "s_4abf8535941d48": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a861-315d-7ea1-82d1-54d10d9c3da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
