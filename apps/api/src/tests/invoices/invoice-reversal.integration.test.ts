@@ -6,6 +6,9 @@ import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
 const databaseUrl = process.env.INVOICE_REVERSAL_INTEGRATION_TEST === "1" ? process.env.DATABASE_URL : undefined;
+if (process.env.INVOICE_REVERSAL_INTEGRATION_TEST === "1" && !databaseUrl) {
+  throw new Error("Invoice reversal integration tests require DATABASE_URL when enabled.");
+}
 if (databaseUrl && !["localhost", "127.0.0.1"].includes(new URL(databaseUrl).hostname)) {
   throw new Error("Invoice reversal integration tests require local PostgreSQL.");
 }

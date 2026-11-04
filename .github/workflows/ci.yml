@@ -49,6 +49,10 @@ jobs:
       - run: pnpm --filter @parcelis/db test:integration
       - run: pnpm --filter @parcelis/worker test:integration
       - run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts'
+      - name: Invoice reversal integration tests
+        run: pnpm --filter @parcelis/api exec tsx --test src/tests/invoices/invoice-reversal.integration.test.ts
+        env:
+          INVOICE_REVERSAL_INTEGRATION_TEST: "1"
 
   commit-messages:
     if: github.event_name == 'pull_request'
