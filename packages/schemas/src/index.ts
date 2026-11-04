@@ -12,6 +12,7 @@ export function isApplicationResource(resource: string) {
 
 export * from "./lease-rent-schedule.ts";
 export * from "./invoice-charge-description.ts";
+export * from "./invoice-payment-history.ts";
 
 const idSchema = z.coerce.number().int().positive();
 const maxDatabaseInteger = 2_147_483_647;

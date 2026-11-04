@@ -14,6 +14,7 @@ import {
   leaseDraftCreateInputSchema,
   leaseDraftByKeyInputSchema,
   deleteInvoiceInputSchema,
+  hasInvoicePaymentHistory,
   reverseInvoicePaymentInputSchema,
   invoiceByIdInputSchema,
   invoiceListInputSchema,
@@ -3150,14 +3151,7 @@ export const appRouter = router({
                 _count: { select: { payments: true } },
               },
             });
-            if (
-              invoice._count.payments > 0 ||
-              invoice.balanceCents < invoice.amountCents ||
-              invoice.paidOn !== null ||
-              invoice.paidByTenantId !== null ||
-              invoice.paymentMethod !== null ||
-              invoice.status === "paid"
-            ) {
+            if (hasInvoicePaymentHistory(invoice, invoice._count.payments)) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Invoices with payment history cannot be deleted.",

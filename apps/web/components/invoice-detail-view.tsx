@@ -112,10 +112,6 @@ function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; pay
   const [isMounted, setIsMounted] = useState(false);
   const queryClient = useQueryClient();
   useEffect(() => setIsMounted(true), []);
-  const handleOpenChange = useCallback((nextOpen: boolean) => {
-    setOpen(nextOpen);
-    if (!nextOpen) setReason("");
-  }, []);
   const reversePayment = useMutation({
     mutationFn: () => apiClient.invoices.reversePayment.mutate({ id: paymentId, reason }),
     onSuccess: () => {
@@ -123,9 +119,22 @@ function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; pay
       void queryClient.invalidateQueries({ queryKey: ["properties", "list"] });
       void queryClient.invalidateQueries({ queryKey: ["activityEvents"] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.notes.list({ invoiceId }) });
-      handleOpenChange(false);
+      setReason("");
+      setOpen(false);
     },
   });
+  const { isPending, reset } = reversePayment;
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (isPending) return;
+      if (!nextOpen) {
+        reset();
+        setReason("");
+      }
+      setOpen(nextOpen);
+    },
+    [isPending, reset],
+  );
 
   return (
     <>
@@ -152,10 +161,15 @@ function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; pay
                 <div className="mt-4 flex flex-col gap-3">
                   <Label htmlFor={`reversal-reason-${paymentId}`}>Reason</Label>
                   <Textarea
+                    disabled={reversePayment.isPending}
                     id={`reversal-reason-${paymentId}`}
                     maxLength={500}
                     value={reason}
-                    onChange={(event) => setReason(event.target.value)}
+                    onChange={(event) => {
+                      if (reversePayment.isPending) return;
+                      reversePayment.reset();
+                      setReason(event.target.value);
+                    }}
                   />
                   <Alert className="bg-parcelis-porcelain text-parcelis-gray dark:bg-parcelis-slate" role="note">
                     <Info aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
@@ -164,7 +178,12 @@ function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; pay
                 </div>
                 {reversePayment.error ? <p className="text-sm text-red-700">{reversePayment.error.message}</p> : null}
                 <AlertDialogFooter>
-                  <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
+                  <Button
+                    disabled={reversePayment.isPending}
+                    type="button"
+                    variant="secondary"
+                    onClick={() => handleOpenChange(false)}
+                  >
                     Cancel
                   </Button>
                   <Button
