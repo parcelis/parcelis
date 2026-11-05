@@ -13,8 +13,9 @@ test("release publishing covers every Parcelis runtime image used by Compose", (
     for (const [, service, image, tag] of compose.matchAll(/^ {2}([\w-]+):\n {4}image: ([^:\s]+):(.+)$/gm)) {
       if (!services.has(service)) continue;
       assert.ok(published.has(image), `${file}: ${service} uses ${image}, which CI does not publish`);
-      assert.ok(
-        tag.startsWith("${PARCELIS_VERSION:?"),
+      assert.match(
+        tag,
+        /^\$\{PARCELIS_VERSION:\?[^{}]+\}$/,
         `${file}: ${service} must require an explicit compatible image tag`,
       );
       checked++;
