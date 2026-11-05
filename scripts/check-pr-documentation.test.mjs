@@ -8,75 +8,120 @@ import {
   checkDocumentation,
   evaluateDocumentation,
   readExcludedAuthors,
+  referencesApplicationPullRequest,
   updateDocumentationComment,
 } from "./check-pr-documentation.mjs";
 
 const exclusionsFixture = fileURLToPath(new URL("./fixtures/pr-check-exclusions.md", import.meta.url));
-
 const url = "https://github.com/parcelis/parcelis-docs/pull/123";
+const appUrl = "https://github.com/parcelis/parcelis/pull/42";
 const body = (link = "", reason = "") =>
   `### Documentation\n\n- Companion docs PR: ${link}\n- Documentation not needed: ${reason}\n\n### Checklist\n`;
-
-test("repository PR template supports both documentation decisions", async () => {
-  const template = readFileSync(new URL("../.github/pull_request_template.md", import.meta.url), "utf8");
-  await assert.rejects(checkDocumentation(template), /provide either/);
-
-  const withDocs = template.replace("- Companion docs PR:", `- Companion docs PR: ${url}`);
-  let verified = false;
-  assert.match(
-    await checkDocumentation(withDocs, async (params) => {
-      assert.deepEqual(params, { owner: "parcelis", repo: "parcelis-docs", pull_number: 123 });
-      verified = true;
-      return { state: "open", merged_at: null };
-    }),
-    /Verified companion docs PR/,
-  );
-  assert.ok(verified);
-
-  const withoutDocs = template.replace(
-    "- Documentation not needed:",
-    "- Documentation not needed: Internal tooling change with no product behavior changes.",
-  );
-  assert.match(
-    await checkDocumentation(withoutDocs, () => assert.fail("Exemptions must not call GitHub")),
-    /exemption recorded for review/,
-  );
+const docsPR = (overrides = {}) => ({
+  number: 123,
+  body: `Related application PR: ${appUrl}`,
+  state: "open",
+  merged_at: null,
+  ...overrides,
 });
 
-test("verifies an open or merged PR in the docs repository", async () => {
-  for (const pr of [
-    { state: "open", merged_at: null },
-    { state: "closed", merged_at: "2026-10-29" },
-  ]) {
-    const result = await checkDocumentation(body(url), async (params) => {
-      assert.deepEqual(params, { owner: "parcelis", repo: "parcelis-docs", pull_number: 123 });
-      return pr;
-    });
-    assert.match(result, /Verified companion docs PR/);
+test("discovers documentation without a companion URL or documentation section", async () => {
+  for (const description of [null, body(), "A feature PR"]) {
+    assert.match(
+      await checkDocumentation(description, 42, async (params) => {
+        assert.deepEqual(params, {
+          owner: "parcelis",
+          repo: "parcelis-docs",
+          state: "all",
+          sort: "created",
+          direction: "desc",
+          per_page: 100,
+        });
+        return [docsPR()];
+      }),
+      /Verified companion docs PR:.*\/123/,
+    );
   }
 });
 
-test("allows a documented exemption without making an API call", async () => {
-  const result = await checkDocumentation(body("", "Internal refactor with no behavior changes."), () => {
-    assert.fail("An exemption must not call GitHub");
-  });
-  assert.match(result, /exemption recorded for review/);
-});
-
-test("requires one explicit decision in the documentation section", async () => {
-  for (const value of [
+test("recognizes exact full URLs and cross-repository references", () => {
+  for (const reference of [
+    appUrl,
+    `Related: ${appUrl}.`,
+    `[Application PR](${appUrl})`,
+    `${appUrl}/`,
+    `${appUrl}#discussion_r1`,
+    "parcelis/parcelis#42",
+    "Related: Parcelis/Parcelis#42.",
+  ])
+    assert.equal(referencesApplicationPullRequest(reference, 42), true, reference);
+  for (const reference of [
     null,
-    body(),
-    body(url, "No user-facing changes"),
-    `<!-- ${body(url)} -->`,
-    `### Description\n- Companion docs PR: ${url}\n### Documentation\n\n### Checklist\n`,
-    `### Documentation\n\n### Checklist\n- Companion docs PR: ${url}`,
-  ]) {
-    await assert.rejects(checkDocumentation(value), /provide either/);
-  }
+    "#42",
+    "parcelis/other#42",
+    "other/parcelis/parcelis#42",
+    "parcelis/parcelis#420",
+    "parcelis/parcelis#42abc",
+    "parcelis/parcelis#42-extra",
+    appUrl + "0",
+    appUrl + "/files",
+    appUrl + "garbage",
+    appUrl.replace("github.com", "github.com.example.com"),
+    appUrl.replace("github.com", "evil.example/github.com"),
+    appUrl.replace("https:", "http:"),
+    appUrl.replace("/pull/", "/issues/"),
+    `<!-- ${appUrl} -->`,
+    "https://evil.example/parcelis/parcelis#42",
+  ])
+    assert.equal(referencesApplicationPullRequest(reference, 42), false, reference);
 });
 
-test("rejects placeholder exemptions", async () => {
+test("accepts open drafts and merged PRs, rejecting unrelated and closed unmerged PRs", async () => {
+  for (const overrides of [{ draft: true }, { state: "closed", merged_at: "2026-10-29" }])
+    assert.match(await checkDocumentation(body(), 42, async () => [docsPR(overrides)]), /Verified/);
+  for (const prs of [[], [docsPR({ body: "Unrelated change" })], [docsPR({ state: "closed" })]])
+    await assert.rejects(
+      checkDocumentation(body(), 42, async () => prs),
+      /No open or merged/,
+    );
+});
+
+test("a valid companion can follow unrelated or closed PRs", async () => {
+  const prs = [docsPR({ number: 1, state: "closed" }), docsPR({ number: 2, body: "Unrelated" }), docsPR()];
+  assert.match(await checkDocumentation(body(), 42, async () => prs), /pull\/123/);
+});
+
+test("optional companion URL must select a PR that references the application PR", async () => {
+  const listPullRequests = () => assert.fail("Explicit companion URLs must not list docs PRs");
+  assert.match(
+    await checkDocumentation(body(url), 42, listPullRequests, async (params) => {
+      assert.deepEqual(params, { owner: "parcelis", repo: "parcelis-docs", pull_number: 123 });
+      return docsPR();
+    }),
+    /Verified/,
+  );
+  for (const pr of [docsPR({ number: 456 }), docsPR({ body: "parcelis/parcelis#43" }), docsPR({ state: "closed" })])
+    await assert.rejects(
+      checkDocumentation(body(url), 42, listPullRequests, async () => pr),
+      /No open or merged/,
+    );
+  for (const link of [
+    "https://github.com/other/docs/pull/123",
+    url.replace("/pull/", "/issues/"),
+    url.replace("github.com", "github.com.example.com"),
+    url + "garbage",
+    url.replace("123", "9007199254740992"),
+  ])
+    await assert.rejects(checkDocumentation(body(link), 42), /full https/);
+});
+
+test("valid exemptions bypass GitHub and still require a meaningful explanation", async () => {
+  for (const reason of [
+    "Only internal tests changed.",
+    "Seuls les tests internes ont changé.",
+    "No documentation changes are needed for this PR; only CI tests changed.",
+  ])
+    assert.match(await checkDocumentation(body("", reason), 42, () => assert.fail()), /exemption/);
   for (const reason of [
     "N/A",
     "none",
@@ -89,41 +134,48 @@ test("rejects placeholder exemptions", async () => {
     "test test test test test test",
     "No documentation changes are needed.",
     "Documentation is not needed.",
-  ]) {
-    await assert.rejects(checkDocumentation(body("", reason)), /placeholder/);
-  }
+    "No documentation changes are needed for this PR",
+    "  NO documentation changes are needed FOR THIS PR!!!  ",
+    "No documentation changes are needed for this pull request.",
+    "This PR does not require any documentation updates.",
+    "Ｎｏ documentation changes are needed for this ＰＲ.",
+  ])
+    await assert.rejects(checkDocumentation(body("", reason), 42), /placeholder/);
+  await assert.rejects(checkDocumentation(body(url, "Only internal tests changed."), 42), /not both/);
 });
 
-test("accepts concise explanations of the changed scope", async () => {
-  for (const reason of ["Only internal tests changed.", "Seuls les tests internes ont changé."]) {
-    assert.match(await checkDocumentation(body("", reason)), /exemption recorded for review/);
-  }
-});
-
-test("rejects links to other repositories, issues, or lookalike hosts", async () => {
-  for (const link of [
-    "https://github.com/other/docs/pull/123",
-    url.replace("/pull/", "/issues/"),
-    url.replace("github.com", "github.com.example.com"),
-    `${url}garbage`,
-    url.replace("123", "9007199254740992"),
-  ]) {
-    await assert.rejects(checkDocumentation(body(link)), /full https/);
-  }
-});
-
-test("rejects closed unmerged PRs and API failures", async () => {
-  await assert.rejects(
-    checkDocumentation(body(url), async () => ({ state: "closed", merged_at: null })),
-    /closed without merging/,
+test("template supports discovery and exemptions; hidden and misplaced fields are ignored", async () => {
+  const template = readFileSync(new URL("../.github/pull_request_template.md", import.meta.url), "utf8");
+  assert.match(await checkDocumentation(template, 42, async () => [docsPR()]), /Verified/);
+  const withoutDocs = template.replace(
+    "- Documentation not needed:",
+    "- Documentation not needed: Only internal tests changed.",
   );
-  for (const status of [404, 403, 500]) {
+  assert.match(await checkDocumentation(withoutDocs, 42), /exemption/);
+  for (const description of [
+    `<!-- ${body("", "Only internal tests changed.")} -->`,
+    "### Description\n- Documentation not needed: Only internal tests changed.",
+    "### Documentation\n\n### Checklist\n- Documentation not needed: Only internal tests changed.",
+  ])
     await assert.rejects(
-      checkDocumentation(body(url), async () => {
-        throw Object.assign(new Error("API failure"), { status });
-      }),
-      new RegExp(`Could not verify.*${status}`),
+      checkDocumentation(description, 42, async () => []),
+      /No open or merged/,
     );
+});
+
+test("reports docs API errors rather than silently passing", async () => {
+  for (const status of [403, 404, 500]) {
+    const fail = async () => {
+      throw Object.assign(new Error("API failure"), { status });
+    };
+    for (const link of ["", url]) {
+      await assert.rejects(
+        checkDocumentation(body(link), 42, fail, fail),
+        link && status === 404
+          ? { message: `The linked docs PR was not found: ${url}. Check the companion URL and repository access.` }
+          : new RegExp(`Could not check documentation PRs.*${status}`),
+      );
+    }
   }
 });
 
@@ -134,9 +186,41 @@ const context = {
   runId: 789,
 };
 
+test("evaluation fetches an explicit companion directly without pagination", async () => {
+  const calls = [];
+  const github = {
+    rest: {
+      pulls: {
+        async get(params) {
+          calls.push(params);
+          return {
+            data:
+              params.repo === "parcelis"
+                ? { body: body(url), user: { login: "contributor" } }
+                : docsPR({ state: "closed", merged_at: "2026-10-29" }),
+          };
+        },
+      },
+    },
+    paginate() {
+      assert.fail("Explicit companion URLs must not paginate");
+    },
+  };
+  const result = await evaluateDocumentation(github, context, exclusionsFixture);
+  assert.equal(result.passed, true);
+  assert.match(result.message, /pull\/123 \(merged\)/);
+  assert.deepEqual(calls, [
+    { owner: "parcelis", repo: "parcelis", pull_number: 42 },
+    { owner: "parcelis", repo: "parcelis-docs", pull_number: 123 },
+  ]);
+});
+
 test("captures validation and application PR API failures for reporting", async () => {
   const github = {
-    rest: { pulls: { get: async () => ({ data: { body: body() } }) } },
+    rest: { pulls: { get: async () => ({ data: { body: body() } }), list() {} } },
+    async paginate() {
+      return [];
+    },
   };
   assert.equal((await evaluateDocumentation(github, context, exclusionsFixture)).passed, false);
   github.rest.pulls.get = async () => {
@@ -153,21 +237,58 @@ test("captures validation and application PR API failures for reporting", async 
   assert.equal((await evaluateDocumentation(github, context, exclusionsFixture)).passed, true);
 });
 
-test("uses default exclusions when the path is omitted or empty", async (t) => {
-  const defaultAuthors = readExcludedAuthors();
-  assert.deepEqual(defaultAuthors, ["dependabot[bot]", "copilot"]);
-  const [login] = defaultAuthors;
-  if (!login) return t.skip("The default exclusions file has no authors.");
-
+test("rerunning a failed check discovers a new docs PR without editing the application PR", async () => {
+  const application = { body: body(), user: { login: "contributor" } };
+  let docs = [];
+  let reads = 0;
+  let listings = 0;
   const github = {
-    rest: { pulls: { get: async () => ({ data: { user: { login }, body: null } }) } },
+    rest: {
+      pulls: {
+        async get() {
+          reads++;
+          return { data: application };
+        },
+        list() {},
+      },
+    },
+    async paginate() {
+      listings++;
+      return docs;
+    },
   };
-  const expected = {
-    passed: true,
-    message: `Documentation requirement excluded for PR author: ${login}.`,
-  };
-  assert.deepEqual(await evaluateDocumentation(github, context), expected);
-  assert.deepEqual(await evaluateDocumentation(github, context, ""), expected);
+  assert.equal((await evaluateDocumentation(github, context, exclusionsFixture)).passed, false);
+  docs = [docsPR()];
+  const result = await evaluateDocumentation(github, context, exclusionsFixture);
+  assert.equal(result.passed, true);
+  assert.match(result.message, /Verified companion docs PR/);
+  assert.equal(reads, 2);
+  assert.equal(listings, 2);
+});
+
+test("uses default exclusions when the path is omitted or empty", async () => {
+  const defaultAuthors = readExcludedAuthors();
+  assert.deepEqual(defaultAuthors, [
+    "dependabot[bot]",
+    "renovate[bot]",
+    "copilot",
+    "coderabbitai",
+    "renovate",
+    "renovate-bot",
+  ]);
+
+  for (const login of defaultAuthors) {
+    const github = {
+      rest: { pulls: { get: async () => ({ data: { user: { login }, body: null } }) } },
+    };
+    const expected = {
+      passed: true,
+      excluded: true,
+      message: `Documentation requirement excluded for PR author: ${login}.`,
+    };
+    assert.deepEqual(await evaluateDocumentation(github, context), expected);
+    assert.deepEqual(await evaluateDocumentation(github, context, ""), expected);
+  }
 });
 
 test("excludes Dependabot PRs even when a human triggers the check", async () => {
@@ -183,6 +304,7 @@ test("excludes Dependabot PRs even when a human triggers the check", async () =>
   };
   assert.deepEqual(await evaluateDocumentation(github, { ...context, actor: "maintainer" }, exclusionsFixture), {
     passed: true,
+    excluded: true,
     message: "Documentation requirement excluded for PR author: dependabot[bot].",
   });
 });
@@ -193,6 +315,7 @@ test("excludes API-reported Copilot using a lowercase fixture entry", async () =
   };
   assert.deepEqual(await evaluateDocumentation(github, context, exclusionsFixture), {
     passed: true,
+    excluded: true,
     message: "Documentation requirement excluded for PR author: Copilot.",
   });
 });
@@ -200,11 +323,14 @@ test("excludes API-reported Copilot using a lowercase fixture entry", async () =
 test("does not exclude other PR authors when Dependabot triggers the check", async () => {
   for (const login of ["contributor", "renovate[bot]", "dependabot"]) {
     const github = {
-      rest: { pulls: { get: async () => ({ data: { user: { login }, body: null } }) } },
+      rest: { pulls: { get: async () => ({ data: { user: { login }, body: null } }), list() {} } },
+      async paginate() {
+        return [];
+      },
     };
     const result = await evaluateDocumentation(github, { ...context, actor: "dependabot[bot]" }, exclusionsFixture);
     assert.equal(result.passed, false);
-    assert.match(result.message, /provide either/);
+    assert.match(result.message, /No open or merged/);
   }
 });
 
@@ -215,7 +341,9 @@ test("returns author entries from the fixed exclusions fixture", () => {
 test("reads exclusions from the configured file and reports missing files", async () => {
   const directory = mkdtempSync(join(tmpdir(), "parcelis-pr-exclusions-"));
   const github = {
-    rest: { pulls: { get: async () => ({ data: { user: { login: "custom-bot[bot]" }, body: null } }) } },
+    rest: {
+      pulls: { get: async () => ({ data: { user: { login: "custom-bot[bot]" }, body: null } }) },
+    },
   };
   try {
     const file = join(directory, "exclusions.md");
@@ -282,11 +410,35 @@ test("updates one bot comment from failure to pass and back to failure", async (
   assert.ok(writes[2].body.includes("https://img.shields.io/badge/Documentation%20Update-Failing-red"));
   assert.match(writes[2].body, /Missing documentation decision/);
   assert.match(writes[2].body, /Correct the description/);
+  for (const write of writes) {
+    assert.ok(write.body.includes("Exemptions require reviewer assessment."));
+    assert.ok(!write.body.includes("No documentation action is needed"));
+  }
   assert.match(writes[2].body, /https:\/\/github.com\/parcelis\/parcelis\/actions\/runs\/789/);
 });
 
+test("excluded authors receive a distinct badge while the check passes", async () => {
+  const { github, writes } = commentClient();
+  await updateDocumentationComment(github, context, "parcels-bot[bot]", {
+    passed: true,
+    excluded: true,
+    message: "Documentation requirement excluded for PR author: dependabot[bot].",
+  });
+  assert.ok(writes[0].body.includes("Documentation Update: Exclusion Applied"));
+  assert.ok(writes[0].body.includes("https://img.shields.io/badge/Documentation_Update-Exclusion_Applied-gold"));
+  assert.ok(!writes[0].body.includes("Correct the description"));
+  assert.ok(writes[0].body.includes("The PR author is on the exclusions list."));
+  assert.ok(writes[0].body.includes("No documentation action is needed for this check."));
+  assert.ok(!writes[0].body.includes("This check verifies a reference"));
+  assert.ok(!writes[0].body.includes("Exemptions require reviewer assessment."));
+});
+
 test("ignores comments from other authors and escapes user-controlled Markdown and mentions", async () => {
-  const spoof = { id: 1, user: { login: "contributor" }, body: "<!-- parcelis-documentation-check -->\nFake pass" };
+  const spoof = {
+    id: 1,
+    user: { login: "contributor" },
+    body: "<!-- parcelis-documentation-check -->\nFake pass",
+  };
   const { github, writes } = commentClient([spoof]);
   const result = { passed: true, message: "Exemption: @parcelis/team <b>test</b> [link](url)" };
   await updateDocumentationComment(github, context, "parcels-bot[bot]", result);
@@ -305,7 +457,31 @@ test("comment API failures propagate so the workflow cannot silently pass", asyn
     throw new Error("Comment permission denied");
   };
   await assert.rejects(
-    updateDocumentationComment(github, context, "parcels-bot[bot]", { passed: true, message: "Verified" }),
+    updateDocumentationComment(github, context, "parcels-bot[bot]", {
+      passed: true,
+      message: "Verified",
+    }),
     /Comment permission denied/,
   );
+});
+
+test("evaluation paginates every docs PR page before checking the exact reference", async () => {
+  const list = () => {};
+  const github = {
+    rest: {
+      pulls: {
+        list,
+        get: async () => ({ data: { body: body(), user: { login: "contributor" } } }),
+      },
+    },
+    async paginate(method, params) {
+      assert.equal(method, list);
+      assert.equal(params.per_page, 100);
+      assert.equal(params.repo, "parcelis-docs");
+      return [...Array.from({ length: 100 }, (_, i) => docsPR({ number: i + 1000, body: "Unrelated" })), docsPR()];
+    },
+  };
+  const result = await evaluateDocumentation(github, context, exclusionsFixture);
+  assert.equal(result.passed, true);
+  assert.match(result.message, /pull\/123/);
 });

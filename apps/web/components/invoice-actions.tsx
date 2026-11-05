@@ -207,6 +207,11 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
             <Pencil className="h-4 w-4" /> Edit invoice
           </Button>
         </div>
+        {hasPaymentHistory ? (
+          <p className="text-right text-sm text-parcelis-gray">
+            Invoices with payment history cannot be deleted, even when all payments have been reversed.
+          </p>
+        ) : null}
       </div>
       <RecordPaymentDrawer invoice={invoice} open={paymentOpen} onOpenChange={setPaymentOpen} />
       <NotesDrawer

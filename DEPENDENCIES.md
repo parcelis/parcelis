@@ -60,12 +60,12 @@ NextAuth.js `4.24.15` provides email/password sign-in, CSRF protection, encrypte
 | [Bull Board](https://github.com/felixmosh/bull-board)                          | Administrator-only queue monitoring and job operations in the API.                        |
 | [Zod](https://zod.dev/)                                                        | Shared validation for application data.                                                   |
 
-Development and deployment Compose use the `parcelis/minio:final` mirror.
-The single-image stack additionally uses the `parcelis/minio-init:final` mirror
-for bucket initialization. Both are externally published MinIO mirrors, not
+Development, deployment, and single-image Compose use the `parcelis/minio:final`
+mirror and the `parcelis/minio-init:final` mirror for bucket initialization.
+Both are externally published MinIO mirrors, not
 artifacts of this repo's release workflow: the server mirror was verified at
 RELEASE.2025-09-07T16-13-09Z and the init mirror's `mc` client at
-RELEASE.2025-01-17T23-25-50Z. In the single-image stack they replace the removed
+RELEASE.2025-01-17T23-25-50Z. In all three stacks they replace the removed
 Docker Hub `minio/*` images.
 Development and deployment PostgreSQL use `postgres:18-alpine`. Existing PostgreSQL 16 installations require the explicit dump/restore procedure in [the maintained PostgreSQL upgrade guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/upgrade-postgresql.md). Compose retains the legacy `postgres-data` volume and uses a separate `postgres18-data` volume; startup blocks unmigrated legacy installations.
 

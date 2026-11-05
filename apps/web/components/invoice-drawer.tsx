@@ -3,6 +3,12 @@
 import * as React from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Button,
   Drawer,
   DrawerClose,
@@ -81,10 +87,15 @@ export function InvoiceDrawer({
   const [propertyId, setPropertyId] = React.useState("");
   const [unitId, setUnitId] = React.useState("");
   const [leaseId, setLeaseId] = React.useState("");
-  const [dueOn, setDueOn] = React.useState(getLocalDateInput());
+  const [dueOn, setDueOn] = React.useState(getLocalDateInput);
+  const [initialDueOn, setInitialDueOn] = React.useState(dueOn);
   const lastValidDueOnRef = React.useRef(dueOn);
   const [paid, setPaid] = React.useState("0");
   const [lines, setLines] = React.useState<InvoiceLine[]>([]);
+  const [discardOpen, setDiscardOpen] = React.useState(false);
+  const discardTitleId = React.useId();
+  const discardDescriptionId = React.useId();
+  const dirty = Boolean(propertyId || unitId || leaseId || dueOn !== initialDueOn || paid !== "0" || lines.length);
 
   const property = properties.find((item) => item.id === Number(propertyId));
   const unit = property?.units.find((item) => item.id === Number(unitId));
@@ -99,17 +110,32 @@ export function InvoiceDrawer({
   );
 
   React.useEffect(() => {
-    if (!open) {
-      setPropertyId("");
-      setUnitId("");
-      setLeaseId("");
-      const today = getLocalDateInput();
-      setDueOn(today);
-      lastValidDueOnRef.current = today;
-      setPaid("0");
-      setLines([]);
-    }
+    setPropertyId("");
+    setUnitId("");
+    setLeaseId("");
+    const today = getLocalDateInput();
+    setDueOn(today);
+    setInitialDueOn(today);
+    lastValidDueOnRef.current = today;
+    setPaid("0");
+    setLines([]);
+    setDiscardOpen(false);
   }, [open]);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      if (isPending) return;
+      if (discardOpen) {
+        setDiscardOpen(false);
+        return;
+      }
+      if (dirty) {
+        setDiscardOpen(true);
+        return;
+      }
+    }
+    onOpenChange(nextOpen);
+  }
 
   function updateLine(index: number, update: Partial<InvoiceLine>) {
     setLines((current) => current.map((line, lineIndex) => (lineIndex === index ? { ...line, ...update } : line)));
@@ -130,7 +156,7 @@ export function InvoiceDrawer({
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!property || !lease || lines.length === 0 || hasInvalidLine) return;
+    if (isPending || !property || !lease || lines.length === 0 || hasInvalidLine) return;
     onCreate({
       propertyId: property.id,
       leaseId: lease.id,
@@ -150,8 +176,40 @@ export function InvoiceDrawer({
   }
 
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
+    <Drawer onOpenChange={handleOpenChange} open={open}>
       <DrawerContent size="lg">
+        <AlertDialog onOpenChange={setDiscardOpen} open={discardOpen}>
+          <AlertDialogContent aria-labelledby={discardTitleId} aria-describedby={discardDescriptionId}>
+            <AlertDialogHeader>
+              <AlertDialogTitle id={discardTitleId}>Your changes will not be saved.</AlertDialogTitle>
+              <AlertDialogDescription id={discardDescriptionId}>
+                Discard this invoice and close the form?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <Button
+                className="min-w-40"
+                disabled={isPending}
+                type="button"
+                variant="secondary"
+                onClick={() => setDiscardOpen(false)}
+              >
+                Keep Editing
+              </Button>
+              <Button
+                className="min-w-40"
+                disabled={isPending}
+                type="button"
+                onClick={() => {
+                  setDiscardOpen(false);
+                  onOpenChange(false);
+                }}
+              >
+                Discard
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <DrawerHeader className="flex items-center gap-3">
           <DrawerClose disabled={isPending} />
           <div>
@@ -327,10 +385,12 @@ export function InvoiceDrawer({
                             </span>
                           )}
                           <Input
+                            aria-label={`Invoice item description ${index + 1}`}
                             value={line.description}
                             onChange={(event) => updateLine(index, { description: event.target.value })}
                           />
                           <Input
+                            aria-label={`Invoice item quantity ${index + 1}`}
                             min="1"
                             required
                             type="number"
@@ -338,6 +398,7 @@ export function InvoiceDrawer({
                             onChange={(event) => updateLine(index, { quantity: event.target.value })}
                           />
                           <Input
+                            aria-label={`Invoice item rate ${index + 1}`}
                             min="0"
                             required
                             step="0.01"
@@ -390,7 +451,13 @@ export function InvoiceDrawer({
             {error ? <p className="mt-5 text-sm font-medium text-red-700">{error.message}</p> : null}
           </div>
           <DrawerFooter className="flex items-center justify-between gap-3">
-            <Button disabled={isPending} type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button
+              className="min-w-40"
+              disabled={isPending}
+              type="button"
+              variant="secondary"
+              onClick={() => handleOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button

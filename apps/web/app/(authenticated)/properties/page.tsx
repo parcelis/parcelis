@@ -726,8 +726,8 @@ export default function PropertiesPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white md:flex-row md:items-end md:justify-between">
-            <div>
+          <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
+            <div className="min-w-0 lg:basis-64 lg:flex-1">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Properties</p>
               <h1 className="mt-5 text-3xl font-bold md:text-5xl">Portfolio directory</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
@@ -735,26 +735,26 @@ export default function PropertiesPage() {
                 financials.
               </p>
             </div>
-            <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-5 md:min-w-[700px]">
-              <div className="rounded-md bg-white/10 p-3">
+            <div className="flex w-full min-w-0 flex-col gap-2 text-sm text-white/75 sm:flex-row lg:w-[700px] lg:max-w-full">
+              <div className="min-w-0 flex-1 break-words rounded-md bg-white/10 p-3">
                 <div className="text-2xl font-bold text-white">{properties.length}</div>
                 Properties
               </div>
-              <div className="rounded-md bg-white/10 p-3">
+              <div className="min-w-0 flex-1 break-words rounded-md bg-white/10 p-3">
                 <div className="text-2xl font-bold text-white">{totalUnits}</div>
                 Units
               </div>
-              <div className="rounded-md bg-white/10 p-3">
+              <div className="min-w-0 flex-1 break-words rounded-md bg-white/10 p-3">
                 <div className="text-2xl font-bold text-white">
                   {occupancyRate === null ? "Unavailable" : `${occupancyRate}%`}
                 </div>
                 Occupancy
               </div>
-              <div className="rounded-md bg-white/10 p-3">
+              <div className="min-w-0 flex-1 break-words rounded-md bg-white/10 p-3">
                 <div className="text-2xl font-bold text-white">{formatCurrency(monthlyRentCents)}</div>
                 Rent Roll
               </div>
-              <div className="rounded-md bg-white/10 p-3">
+              <div className="min-w-0 flex-1 break-words rounded-md bg-white/10 p-3">
                 <div className="text-2xl font-bold text-white">{formatCurrency(overdueCents)}</div>
                 Overdue
               </div>
