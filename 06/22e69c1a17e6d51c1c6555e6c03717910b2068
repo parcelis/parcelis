@@ -1,0 +1,24 @@
+scripts/check-pr-documentation.test.mjs
+  s_d51ab3e5f71516::t_368cfd26539ea7 413-416,430-433
+scripts/check-pr-documentation.mjs
+  s_d51ab3e5f71516::t_368cfd26539ea7 203-205
+CONTRIBUTING.md
+  s_d51ab3e5f71516::t_368cfd26539ea7 132-133
+  s_d51ab3e5f71516::t_942639b99f1f2a 134-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0622e69c1a17e6d51c1c6555e6c03717910b2068",
+  "prompts": {},
+  "sessions": {
+    "s_d51ab3e5f71516": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a933-b3f7-73d2-94a5-75cbe199824a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
