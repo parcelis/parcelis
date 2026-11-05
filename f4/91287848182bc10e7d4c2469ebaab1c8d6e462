@@ -1,0 +1,22 @@
+scripts/docker-publish.test.mjs
+  s_3b878a54e00f41::t_6a7eae2a5e8581 16-18
+CONTRIBUTING.md
+  s_3b878a54e00f41::t_6a7eae2a5e8581 520,527-532
+  s_3b878a54e00f41::t_bfdfa0ea46720b 533-534
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f491287848182bc10e7d4c2469ebaab1c8d6e462",
+  "prompts": {},
+  "sessions": {
+    "s_3b878a54e00f41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1aa0a-1632-7f63-875f-15d61d9c3071",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
