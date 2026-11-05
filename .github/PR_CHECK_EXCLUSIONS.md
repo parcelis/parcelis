@@ -4,6 +4,7 @@ PRs authored by these GitHub accounts pass the documentation requirement without
 completing the documentation fields:
 
 - `dependabot[bot]`
+- `renovate[bot]`
 - `copilot`
 - `coderabbitai`
 - `renovate`

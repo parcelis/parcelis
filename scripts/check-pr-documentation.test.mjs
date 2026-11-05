@@ -266,9 +266,9 @@ test("rerunning a failed check discovers a new docs PR without editing the appli
   assert.equal(listings, 2);
 });
 
-test("uses default exclusions when the path is omitted or empty", async (t) => {
-  const defaultAuthors = readExcludedAuthors(".github/PR_CHECK_EXCLUSIONS.md");
-  if (!defaultAuthors.length) return t.skip("The default exclusions file has no authors.");
+test("uses default exclusions when the path is omitted or empty", async () => {
+  const defaultAuthors = readExcludedAuthors();
+  assert.deepEqual(defaultAuthors, ["dependabot[bot]", "renovate[bot]", "copilot", "coderabbitai"]);
 
   for (const login of defaultAuthors) {
     const github = {
