@@ -2319,7 +2319,7 @@ function NewLeasePageContent() {
                 </Button>
               ) : null}
               <Button className="h-11 py-6" disabled={createLeaseDraft.isPending} onClick={resumeExistingDraft}>
-                Resume draft
+                Resume lease
               </Button>
             </AlertDialogFooter>
             <div className="mt-8 md:hidden">
@@ -2344,7 +2344,7 @@ function NewLeasePageContent() {
                     </>
                   ) : null}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={resumeExistingDraft}>Resume draft</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={resumeExistingDraft}>Resume lease</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
