@@ -1,12 +1,11 @@
 import { config } from "dotenv";
-import { documentationRedirects } from "./documentation-redirects.mjs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import type { NextConfig } from "next";
+import { documentationRedirects } from "./documentation-redirects";
+import { resolve } from "node:path";
 
-config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env") });
+config({ path: resolve(__dirname, "../../.env") });
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   experimental: { proxyClientMaxBodySize: "17mb" },
   transpilePackages: ["@parcelis/ui", "@parcelis/schemas"],
@@ -45,7 +44,7 @@ const nextConfig = {
     ];
   },
   turbopack: {
-    root: resolve(dirname(fileURLToPath(import.meta.url)), "../.."),
+    root: resolve(__dirname, "../.."),
   },
 };
 

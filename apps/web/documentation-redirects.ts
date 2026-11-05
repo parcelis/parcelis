@@ -1,3 +1,5 @@
+import type { Redirect } from "next/dist/lib/load-custom-routes";
+
 const paths = {
   "/docs/getting-started": "/docs/contributor-getting-started",
   "/docs/api-authentication": "/docs/api-authentication",
@@ -53,7 +55,7 @@ const paths = {
   "/docs/:path*": "/",
 };
 
-export const documentationRedirects = [
+export const documentationRedirects: Redirect[] = [
   {
     source: "/docs/diagrams/:path*",
     destination:
