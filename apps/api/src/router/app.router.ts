@@ -166,6 +166,19 @@ import { queueNotificationEmailOutboxEvent } from "../modules/notification-outbo
 import { createApiToken, getApiTokenDisplayPrefix, getApiTokenExpiration, hashApiToken } from "../modules/api-tokens";
 
 // Select definitions for commonly used Prisma queries.
+const organizationCardSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  email: true,
+  phone: true,
+  addressLine1: true,
+  addressLine2: true,
+  city: true,
+  region: true,
+  postalCode: true,
+} satisfies Prisma.OrganizationSelect;
+
 const apiTokenMetadataSelect = {
   id: true,
   name: true,
@@ -826,7 +839,7 @@ export const appRouter = router({
     list: publicProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "administrator") {
         const organizations = await ctx.prisma.organization.findMany({
-          select: { id: true, name: true, slug: true },
+          select: organizationCardSelect,
           orderBy: { name: "asc" },
         });
         return organizations.map((organization) => ({ organization, role: "administrator" as const }));
@@ -835,7 +848,7 @@ export const appRouter = router({
         where: { userId: ctx.user.id },
         select: {
           role: true,
-          organization: { select: { id: true, name: true, slug: true } },
+          organization: { select: organizationCardSelect },
         },
         orderBy: { organization: { name: "asc" } },
       });

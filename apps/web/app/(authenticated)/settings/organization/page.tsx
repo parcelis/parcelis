@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label, TimezoneSelect } from "@parcelis/ui";
+import { OrganizationContactInformation } from "../../../../components/organization-contact-information";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../components/image-upload";
 import { LoadingState } from "../../../../components/loading-state";
@@ -416,12 +417,15 @@ export default function OrganizationSettingsPage() {
                       {accessibleOrganizationsQuery.data.map(({ organization, role }) => {
                         const isActive = organization.id === activeOrganizationQuery.data?.id;
                         return (
-                          <li className="flex items-center justify-between gap-4 px-4 py-3" key={organization.id}>
-                            <div>
-                              <p className="font-semibold text-parcelis-charcoal">{organization.name}</p>
+                          <li className="flex flex-wrap items-center justify-between gap-4 px-4 py-3" key={organization.id}>
+                            <div className="min-w-0 flex-1 basis-40">
+                              <p className="break-words font-semibold text-parcelis-charcoal">{organization.name}</p>
                               <p className="mt-1 text-sm capitalize text-parcelis-gray">{role}</p>
                             </div>
-                            {isActive ? <Badge>Current</Badge> : null}
+                            <div className="flex min-w-0 flex-wrap items-center gap-3">
+                              {isActive ? <Badge>Current</Badge> : null}
+                              <OrganizationContactInformation organization={organization} />
+                            </div>
                           </li>
                         );
                       })}
