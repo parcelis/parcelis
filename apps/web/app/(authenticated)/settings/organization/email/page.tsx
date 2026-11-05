@@ -150,7 +150,6 @@ export default function OrganizationEmailSettingsPage() {
 
         <div className="parcelis-page-shell">
           <SecondaryNavigationLayout
-            className="gap-6"
             navigation={
               <SettingsRail
                 active="email"

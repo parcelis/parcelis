@@ -104,7 +104,6 @@ export default function UserProfilePage() {
 
         <div className="parcelis-page-shell">
           <SecondaryNavigationLayout
-            className="gap-6"
             navigation={
               <SettingsRail
                 active="none"

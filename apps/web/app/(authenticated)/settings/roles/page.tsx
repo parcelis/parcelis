@@ -128,7 +128,6 @@ export default function RolesSettingsPage() {
 
         <div className="parcelis-page-shell">
           <SecondaryNavigationLayout
-            className="gap-6"
             navigation={
               <SettingsRail
                 active="roles"

@@ -60,7 +60,6 @@ export default function InvoicingSettingsPage() {
         </header>
         <div className="parcelis-page-shell">
           <SecondaryNavigationLayout
-            className="gap-6"
             navigation={
               <SettingsRail
                 active="invoicing"

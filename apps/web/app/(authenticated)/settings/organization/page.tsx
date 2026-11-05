@@ -177,7 +177,6 @@ export default function OrganizationSettingsPage() {
 
         <div className="parcelis-page-shell">
           <SecondaryNavigationLayout
-            className="gap-6"
             navigation={
               <SettingsRail
                 active="organization"

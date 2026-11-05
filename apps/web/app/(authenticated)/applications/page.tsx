@@ -154,7 +154,8 @@ function ApplicationsPageContent() {
           </Button>
         </header>
         <SecondaryNavigationLayout
-          className="parcelis-page-shell gap-5"
+          className="parcelis-page-shell"
+          gap={5}
           navigation={<ApplicationsRail active="applications" />}
           header={
             <section className="mb-6 flex flex-col gap-5 rounded-lg bg-parcelis-charcoal p-6 text-white 2xl:flex-row 2xl:items-end 2xl:justify-between">

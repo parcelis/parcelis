@@ -307,7 +307,6 @@ export default function SettingsPage() {
 
         <div className="parcelis-page-shell">
           <SecondaryNavigationLayout
-            className="gap-6"
             navigation={
               <SettingsRail
                 active="users"

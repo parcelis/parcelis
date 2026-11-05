@@ -270,7 +270,6 @@ export default function OrganizationApiTokensPage() {
         </header>
         <div className="parcelis-page-shell">
           <SecondaryNavigationLayout
-            className="gap-6"
             navigation={
               <SettingsRail
                 active="api-tokens"

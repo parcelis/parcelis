@@ -31,7 +31,8 @@ export function ApplicationsPageShell({
           </div>
         </header>
         <SecondaryNavigationLayout
-          className="parcelis-page-shell gap-5"
+          className="parcelis-page-shell"
+          gap={5}
           navigation={<ApplicationsRail active={active} />}
           header={
             <section className="rounded-lg bg-parcelis-charcoal p-6 text-white">
