@@ -4050,6 +4050,26 @@ export const appRouter = router({
           });
         }
 
+        if (existingNote.maintenanceTicketId) {
+          const ticket = await tx.maintenanceTicket.findFirstOrThrow({
+            where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
+          });
+          await recordActivityEvent(
+            tx,
+            {
+              organizationId: ticket.organizationId,
+              subjectType: ActivitySubjectType.maintenance_ticket,
+              subjectId: ticket.id,
+              subjectLabel: ticket.title,
+              subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
+              propertyId: ticket.propertyId,
+              action: "maintenance.note_updated",
+              metadata: { noteId: input.id },
+            },
+            ctx.user,
+          );
+        }
+
         return note;
       });
     }),
@@ -4098,6 +4118,26 @@ export const appRouter = router({
             where: { id: note.legacyTenant.id },
             data: { legacyNotes: null },
           });
+        }
+
+        if (existingNote.maintenanceTicketId) {
+          const ticket = await tx.maintenanceTicket.findFirstOrThrow({
+            where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
+          });
+          await recordActivityEvent(
+            tx,
+            {
+              organizationId: ticket.organizationId,
+              subjectType: ActivitySubjectType.maintenance_ticket,
+              subjectId: ticket.id,
+              subjectLabel: ticket.title,
+              subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
+              propertyId: ticket.propertyId,
+              action: "maintenance.note_deleted",
+              metadata: { noteId: input.id },
+            },
+            ctx.user,
+          );
         }
 
         return deletedNote;
