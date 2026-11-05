@@ -1,3 +1,4 @@
+/** Runs a Compose operation and reports PostgreSQL logs and migration guidance before rethrowing failures. */
 export function runPostgresCompose(runCompose, args) {
   try {
     runCompose(args);

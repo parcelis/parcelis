@@ -506,7 +506,20 @@ The development stack provides the nginx proxy and local dependencies. `pnpm dev
 
 Published releases publish separate Docker images for the application and nginx proxy: `parcelis/apps` and `parcelis/proxy`. The optional `parcelis/parcelis` image includes the application and public nginx routing. Documentation is hosted separately at `https://docs.parcelis.dev/`.
 
-Copy `.env.production.example` to `.env.production`, replace every placeholder (including `REDIS_PASSWORD`), and set `PARCELIS_VERSION` to a release tag such as `v0.4.1` rather than using `latest`.
+Copy `.env.production.example` to `.env.production`, replace every placeholder (including `REDIS_PASSWORD`), and set `PARCELIS_VERSION` to a release tag that includes the documentation removal, or a tag built from this checkout. The Compose files require an explicit value; older tags such as `v0.4.1` still require `docs-service` and must use their matching deployment files.
+
+Until a compatible release is published, build all modular images from this checkout with one tag:
+
+```bash
+docker build --target app -f Dockerfile.app -t parcelis/apps:local-docs-independent .
+docker build --target proxy -f infra/docker/proxy/Dockerfile -t parcelis/proxy:local-docs-independent .
+# Set PARCELIS_VERSION=local-docs-independent in .env.production.
+docker compose --env-file .env.production up -d --remove-orphans
+```
+
+Skip `pull` for locally built images. For the optional single-image stack, build
+`Dockerfile.app` with `--target single-image -t parcelis/parcelis:local-docs-independent`
+and use `docker-compose-single-image.yml`.
 
 ```bash
 docker compose --env-file .env.production pull

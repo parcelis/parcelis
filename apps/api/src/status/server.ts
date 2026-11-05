@@ -28,6 +28,7 @@ const webUrl = process.env.STATUS_WEB_URL ?? "http://localhost:30000/login";
 const apiUrl = process.env.STATUS_API_URL ?? "http://localhost:40010/api/v1/health";
 let stopping = false;
 
+/** Updates component health from application and dependency probes, then delivers transition alerts. */
 async function poll() {
   const checks = (
     await Promise.all([checkApplicationServices(webUrl, apiUrl), checkDependencies(true), checkBackgroundServices()])

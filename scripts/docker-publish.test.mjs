@@ -10,9 +10,13 @@ test("release publishing covers every Parcelis runtime image used by Compose", (
   for (const file of ["docker-compose.yml", "docker-compose-single-image.yml"]) {
     const compose = readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
     let checked = 0;
-    for (const [, service, image] of compose.matchAll(/^ {2}([\w-]+):\n {4}image: ([^:\s]+):/gm)) {
+    for (const [, service, image, tag] of compose.matchAll(/^ {2}([\w-]+):\n {4}image: ([^:\s]+):(.+)$/gm)) {
       if (!services.has(service)) continue;
       assert.ok(published.has(image), `${file}: ${service} uses ${image}, which CI does not publish`);
+      assert.ok(
+        tag.startsWith("${PARCELIS_VERSION:?"),
+        `${file}: ${service} must require an explicit compatible image tag`,
+      );
       checked++;
     }
     assert.equal(checked, file === "docker-compose.yml" ? 4 : 3);

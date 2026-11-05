@@ -104,7 +104,7 @@ services:
       - parcelis
 
   migrate-service:
-    image: parcelis/parcelis:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/parcelis:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-single-image-migrate
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     working_dir: /repo
@@ -117,7 +117,7 @@ services:
       - parcelis
 
   app-service:
-    image: parcelis/parcelis:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/parcelis:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-single-image-app
     ports:
       - "${APP_PORT:-3000}:3000"
@@ -162,7 +162,7 @@ services:
       start_period: 60s
 
   worker-service:
-    image: parcelis/parcelis:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/parcelis:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-single-image-worker
     command: pnpm --filter @parcelis/worker start
     environment:

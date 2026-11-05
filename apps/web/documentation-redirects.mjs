@@ -49,13 +49,20 @@ const paths = {
   "/docs/platform-user-guide/navigation-and-preferences/theme": "/docs/theme",
   "/docs/platform-user-guide/navigation-and-preferences/users": "/docs/users",
   "/docs/platform-user-guide/pricing": "/docs/pricing",
-  "/docs/diagrams/:path*": "/diagrams/:path*",
   "/docs/api-reference/:path*": "/docs/api/:path*",
   "/docs/:path*": "/",
 };
 
-export const documentationRedirects = Object.entries(paths).map(([source, path]) => ({
-  source,
-  destination: `https://docs.parcelis.dev${path}`,
-  permanent: true,
-}));
+export const documentationRedirects = [
+  {
+    source: "/docs/diagrams/:path*",
+    destination:
+      "https://raw.githubusercontent.com/parcelis/parcelis/ac46b31332e17ac40879c48e3e886e5ee015294b/apps/docs/static/diagrams/:path*",
+    permanent: true,
+  },
+  ...Object.entries(paths).map(([source, path]) => ({
+    source,
+    destination: `https://docs.parcelis.dev${path}`,
+    permanent: true,
+  })),
+];
