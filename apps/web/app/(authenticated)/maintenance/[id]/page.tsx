@@ -3,7 +3,7 @@
 import * as React from "react";
 import NextImage from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -47,10 +47,12 @@ import {
 import { hasPermission } from "../../../../components/property-access";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
+import { NoteTimeZoneStatus } from "../../../../components/note-time-zone-status";
 import { NotesDrawer } from "../../../../components/notes-drawer";
 import { MaintenanceDrawer } from "../../../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../../../components/maintenance-image-upload";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
+import { formatDateTimeInTimeZone } from "../../../../lib/date";
 
 const label = (value: string) =>
   value
@@ -91,6 +93,11 @@ export default function MaintenanceTicketPage() {
   const [isLoggingOpen, setIsLoggingOpen] = React.useState(false);
   const [galleryIndex, setGalleryIndex] = React.useState<number | null>(null);
   const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const organizationQuery = useQuery({
+    queryKey: [...queryKeys.organizations.active, pathname],
+    queryFn: () => apiClient.organizations.active.query(),
+  });
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: () => apiClient.auth.me.query(),
@@ -607,6 +614,14 @@ export default function MaintenanceTicketPage() {
                       </Button>
                     </CardHeader>
                     <CardContent className="space-y-3">
+                      {notesQuery.data?.length ? (
+                        <NoteTimeZoneStatus
+                          timeZone={organizationQuery.data?.timeZone}
+                          isError={organizationQuery.isError}
+                          isFetching={organizationQuery.isFetching}
+                          onRetry={() => void organizationQuery.refetch()}
+                        />
+                      ) : null}
                       {notesQuery.isLoading ? (
                         <LoadingState
                           className="min-h-0 justify-start py-2"
@@ -676,15 +691,11 @@ export default function MaintenanceTicketPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
-                            <p className="mt-3 text-xs text-parcelis-gray">
-                              {new Intl.DateTimeFormat("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                                hour: "numeric",
-                                minute: "2-digit",
-                              }).format(new Date(note.createdAt))}
-                            </p>
+                            {organizationQuery.data?.timeZone ? (
+                              <p className="mt-3 text-xs text-parcelis-gray">
+                                {formatDateTimeInTimeZone(note.createdAt, organizationQuery.data.timeZone)}
+                              </p>
+                            ) : null}
                           </article>
                         ))
                       ) : (

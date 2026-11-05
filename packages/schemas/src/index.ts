@@ -12,6 +12,7 @@ export function isApplicationResource(resource: string) {
 
 export * from "./lease-rent-schedule.ts";
 export * from "./invoice-charge-description.ts";
+export * from "./invoice-payment-history.ts";
 
 const idSchema = z.coerce.number().int().positive();
 const maxDatabaseInteger = 2_147_483_647;
@@ -912,7 +913,10 @@ export const updateInvoiceInputSchema = z.object({
   items: invoiceItemsSchema,
 });
 export const deleteInvoiceInputSchema = z.object({ id: idSchema });
-export const deleteInvoicePaymentInputSchema = z.object({ id: idSchema });
+export const reverseInvoicePaymentInputSchema = z.object({
+  id: idSchema,
+  reason: z.string().trim().min(1, "Enter a reason for reversing the payment.").max(500),
+});
 
 export const createPropertyInputSchema = propertySchema.omit({
   id: true,

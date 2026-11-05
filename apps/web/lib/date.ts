@@ -1,5 +1,17 @@
 type DateValue = Date | string;
 
+export function formatDateTimeInTimeZone(value: DateValue, timeZone: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+    timeZoneName: "short",
+  }).format(new Date(value));
+}
+
 export function formatDate(value: DateValue) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",

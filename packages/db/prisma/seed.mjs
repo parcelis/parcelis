@@ -228,12 +228,15 @@ async function upsertLease(organizationId, rentChargeId, data) {
     : await prisma.lease.create({ data: { ...leaseData, unitId, organizationId, rentChargeId } });
 
   if (tenantIds && tenantIds.length > 0) {
-    await prisma.invoice.deleteMany({ where: { leaseId: lease.id } });
-    await prisma.leaseTenant.deleteMany({ where: { leaseId: lease.id } });
-    await prisma.leaseTenant.createMany({
-      data: tenantIds.map((tenantId) => ({ organizationId, leaseId: lease.id, tenantId })),
-      skipDuplicates: true,
-    });
+    await prisma.$transaction([
+      prisma.invoicePayment.deleteMany({ where: { invoice: { leaseId: lease.id } } }),
+      prisma.invoice.deleteMany({ where: { leaseId: lease.id } }),
+      prisma.leaseTenant.deleteMany({ where: { leaseId: lease.id } }),
+      prisma.leaseTenant.createMany({
+        data: tenantIds.map((tenantId) => ({ organizationId, leaseId: lease.id, tenantId })),
+        skipDuplicates: true,
+      }),
+    ]);
   }
 
   return lease;

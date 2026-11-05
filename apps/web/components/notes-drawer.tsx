@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import {
   Building2,
   CircleArrowUp,
@@ -39,7 +40,9 @@ import {
 } from "@parcelis/ui";
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
+import { NoteTimeZoneStatus } from "./note-time-zone-status";
 import { hasPermission } from "./property-access";
+import { formatDateTimeInTimeZone } from "../lib/date";
 
 type NoteSubject =
   | { propertyId: number }
@@ -82,16 +85,6 @@ type NotesDrawerProps = {
   subjectLabel: string;
 };
 
-function formatDate(date: Date | string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(date));
-}
-
 export function NotesDrawer({
   onOpenChange,
   open,
@@ -112,6 +105,12 @@ export function NotesDrawer({
   const wasOpen = React.useRef(open);
   const needsReset = React.useRef(false);
   const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const organizationQuery = useQuery({
+    queryKey: [...queryKeys.organizations.active, pathname],
+    queryFn: () => apiClient.organizations.active.query(),
+    enabled: open,
+  });
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: () => apiClient.auth.me.query(),
@@ -477,6 +476,12 @@ export function NotesDrawer({
                   <p className="text-sm text-red-700">{notesQuery.error.message}</p>
                 ) : notesQuery.data?.length ? (
                   <div className="space-y-3">
+                    <NoteTimeZoneStatus
+                      timeZone={organizationQuery.data?.timeZone}
+                      isError={organizationQuery.isError}
+                      isFetching={organizationQuery.isFetching}
+                      onRetry={() => void organizationQuery.refetch()}
+                    />
                     {notesQuery.data.map((note) => (
                       <article
                         className="border-l-4 border-parcelis-green bg-parcelis-green/5 py-3 pl-4 pr-3"
@@ -556,7 +561,11 @@ export function NotesDrawer({
                                 </DropdownMenu>
                               ) : null}
                             </div>
-                            <p className="mt-3 text-xs text-parcelis-gray">{formatDate(note.createdAt)}</p>
+                            {organizationQuery.data?.timeZone ? (
+                              <p className="mt-3 text-xs text-parcelis-gray">
+                                {formatDateTimeInTimeZone(note.createdAt, organizationQuery.data.timeZone)}
+                              </p>
+                            ) : null}
                           </>
                         )}
                       </article>
