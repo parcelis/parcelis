@@ -6,7 +6,7 @@
 
 # Parcelis Single Image
 
-`parcelis/parcelis` packages the Parcelis web application, API, documentation,
+`parcelis/parcelis` packages the Parcelis web application, API,
 nginx routing, and worker runtime in one image for the single-image deployment.
 It provides the interface and application services for managing properties,
 leases, and tenants through one exposed application port.

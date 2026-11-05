@@ -8,9 +8,9 @@
 
 `parcelis/proxy` provides the nginx reverse proxy for the modular Parcelis
 deployment, giving browser requests a single entry point for the web application,
-API, and documentation.
+and API.
 
-It routes requests directly to `parcelis/apps` and `parcelis/docs` on the
+It routes requests directly to `parcelis/apps` on the
 container network. The connection to the API passes through one trusted proxy
 hop.
 
@@ -20,6 +20,6 @@ hop.
 
 [View the diagram in Lucid](https://lucid.app/lucidchart/844aa831-3d40-4c01-8708-bad13ac883e3/view).
 
-Use the [modular Compose stack](../../../docker-compose.yml) and its [environment template](../../../.env.production.example). The application images `parcelis/apps`, `parcelis/proxy`, `parcelis/docs`, and `parcelis/worker` use `latest` tags. For a specific release, replace only these application image tags with that release tag. Keep `parcelis/minio:final` and `parcelis/minio-init:final` unchanged.
+Use the [modular Compose stack](../../../docker-compose.yml) and its [environment template](../../../.env.production.example). The application images `parcelis/apps`, `parcelis/proxy`, and `parcelis/worker` use `latest` tags. For a specific release, replace only these application image tags with that release tag. Keep `parcelis/minio:final` and `parcelis/minio-init:final` unchanged.
 
 See the [deployment documentation](https://docs.parcelis.dev/) for setup and TLS configuration.

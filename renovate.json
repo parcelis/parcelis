@@ -81,12 +81,6 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "groupName": "Docusaurus",
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchPackageNames": ["@docusaurus/{/,}**", "docusaurus-{/,}**"]
-    },
-    {
       "groupName": "AWS SDK",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["minor", "patch"],

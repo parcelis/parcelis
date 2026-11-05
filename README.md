@@ -132,7 +132,7 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 | Data and validation           | [PostgreSQL](https://www.postgresql.org/), [Prisma](https://www.prisma.io/), and [Zod](https://zod.dev/)                                                                                                               |
 | Object storage                | [MinIO](https://min.io/) with the S3-compatible AWS SDK                                                                                                                                                                |
 | Interface                     | [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), and [Lucide](https://lucide.dev/)                                                                                                     |
-| Documentation                 | [Docusaurus](https://docusaurus.io/) and [MDX](https://mdxjs.com/)                                                                                                                                                     |
+| Documentation                 | [Docusaurus](https://docusaurus.io/) and [MDX](https://mdxjs.com/) located at parcelis/parcelis-docs                                                                                                                                                    |
 | Tooling                       | [TypeScript](https://www.typescriptlang.org/), [pnpm](https://pnpm.io/), [Turborepo](https://turbo.build/), [Playwright](https://playwright.dev/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) |
 | Local services and deployment | [Docker Compose](https://docs.docker.com/compose/)                                                                                                                                                                     |
 
@@ -160,7 +160,7 @@ Parcelis is a pnpm/Turbo monorepo. At a high level, it contains:
 - [`apps/web`](apps/web): the main Parcelis web app.
 - [`apps/api`](apps/api): the service that handles app data and requests.
 - [`apps/worker`](apps/worker): background job processing, published as `parcelis/worker` for the modular stack and bundled in `parcelis/parcelis` for the single-image stack.
-- [`apps/docs`](apps/docs): legacy documentation site. Maintained documentation lives in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs); see the [documentation contribution workflow](CONTRIBUTING.md#documentation-across-repositories).
+- Documentation is hosted at [docs.parcelis.dev](https://docs.parcelis.dev/) and maintained separately in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs); see the [documentation contribution workflow](CONTRIBUTING.md#documentation-across-repositories).
 - [`packages/ui`](packages/ui): reusable interface components and branding.
 - [`packages/schemas`](packages/schemas): shared rules for validating app data.
 - [`packages/db`](packages/db): database definitions, updates, and access code.
