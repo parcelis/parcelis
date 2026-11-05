@@ -1,9 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRequire } from "node:module";
-import nextConfig from "../apps/web/next.config.mjs";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(new URL("../apps/web/package.json", import.meta.url));
+const { default: loadConfig } = require("next/dist/server/config");
+const { PHASE_DEVELOPMENT_SERVER } = require("next/constants");
+const webDirectory = fileURLToPath(new URL("../apps/web/", import.meta.url));
+const originalDirectory = process.cwd();
+let nextConfig;
+try {
+  // Next's TypeScript config loader resolves imports from the CLI working directory.
+  process.chdir(webDirectory);
+  nextConfig = await loadConfig(PHASE_DEVELOPMENT_SERVER, webDirectory, { silent: true });
+} finally {
+  process.chdir(originalDirectory);
+}
+
 const { unstable_getResponseFromNextConfig, getRedirectUrl } = require("next/experimental/testing/server");
 
 test("legacy documentation links redirect without a local documentation server", async () => {
