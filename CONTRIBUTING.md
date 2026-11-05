@@ -519,13 +519,19 @@ docker build --target proxy -f infra/docker/proxy/Dockerfile -t parcelis/proxy:l
 docker compose --env-file .env.production up -d --remove-orphans
 ```
 
-Skip `pull` for locally built images. For the optional single-image stack, build
-`Dockerfile.app` with `--target single-image -t parcelis/parcelis:local-docs-independent`
-and use `docker-compose-single-image.yml`.
+Skip `pull` for locally built images. For compatible published modular images, use:
 
 ```bash
 docker compose --env-file .env.production pull
 docker compose --env-file .env.production up -d --remove-orphans
+```
+
+For the optional single-image stack, build and run:
+
+```bash
+docker build -f Dockerfile.app --target single-image -t parcelis/parcelis:local-docs-independent .
+# Set PARCELIS_VERSION=local-docs-independent in .env.production.
+docker compose --env-file .env.production -f docker-compose-single-image.yml up -d --remove-orphans
 ```
 
 The Compose stack runs the database migration job and MinIO provisioning before the application services become available. The `migrate` and `minio-init` containers exit after that initialization work; MinIO continues running and the app and worker services remain up. Put a TLS reverse proxy in front of the exposed web and object-storage endpoints configured in `.env.production`.
