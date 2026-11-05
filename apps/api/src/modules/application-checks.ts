@@ -1,5 +1,6 @@
 import { checkHttp, groupChecks, runCheck, type ServiceCheck } from "./service-checks";
 
+/** Checks web and API availability, authentication enforcement, and the monitoring session. */
 export async function checkApplicationServices(webUrl: string, apiUrl: string) {
   const webOrigin = new URL(webUrl).origin;
   const apiOrigin = new URL(apiUrl).origin;

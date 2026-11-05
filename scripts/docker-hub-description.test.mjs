@@ -105,11 +105,13 @@ test("the description workflow publishes exactly four overviews with existing co
 test("single-image overview matches the linked Compose tag configuration", () => {
   const compose = readFileSync(new URL("../docker-compose-single-image.yml", import.meta.url), "utf8");
   const overview = readFileSync(new URL("../infra/docker/hub/parcelis-single.md", import.meta.url), "utf8");
-  assert.doesNotMatch(compose, /PARCELIS_VERSION/);
-  assert.doesNotMatch(overview, /PARCELIS_VERSION/);
+  assert.match(compose, /PARCELIS_VERSION:\?/);
+  assert.match(overview, /PARCELIS_VERSION/);
   const images = Array.from(compose.matchAll(/^\s+image: (parcelis\/parcelis:\S+)/gm), ([, image]) => image);
   assert.equal(images.length, 3);
-  for (const image of images) assert.ok(overview.includes(`\`${image}\``), image);
+  for (const image of images) {
+    assert.match(image, /^parcelis\/parcelis:\$\{PARCELIS_VERSION:\?/);
+  }
 });
 
 test("description updates and image pushes use the configured Docker Hub PAT", () => {

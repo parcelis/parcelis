@@ -16,7 +16,6 @@ test("legacy documentation links redirect without a local documentation server",
     ["/docs/platform-user-guide/core-concepts/lease", "/docs/lease"],
     ["/docs/api-reference/properties-list", "/docs/api/properties-list"],
     ["/docs/api-authentication", "/docs/api-authentication"],
-    ["/docs/diagrams/parcelis-database-erd.vsdx", "/diagrams/parcelis-database-erd.vsdx"],
     ["/docs/unknown-page", "/"],
   ];
   for (const [source, destination] of cases) {
@@ -36,5 +35,23 @@ test("documentation redirects leave application and API routes available", async
       nextConfig,
     });
     assert.equal(getRedirectUrl(response), null, source);
+  }
+});
+
+test("legacy diagram downloads use the verified immutable archive", async () => {
+  for (const file of [
+    "parcelis-database-erd.vsdx",
+    "parcelis-database-erd-overview.vsdx",
+    "parcelis-database-erd-overview.png",
+  ]) {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://app.example.test/docs/diagrams/${file}`,
+      nextConfig,
+    });
+    assert.equal(response.status, 308);
+    assert.equal(
+      getRedirectUrl(response),
+      `https://raw.githubusercontent.com/parcelis/parcelis/ac46b31332e17ac40879c48e3e886e5ee015294b/apps/docs/static/diagrams/${file}`,
+    );
   }
 });
