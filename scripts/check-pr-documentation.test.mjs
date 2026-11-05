@@ -410,6 +410,10 @@ test("updates one bot comment from failure to pass and back to failure", async (
   assert.ok(writes[2].body.includes("https://img.shields.io/badge/Documentation%20Update-Failing-red"));
   assert.match(writes[2].body, /Missing documentation decision/);
   assert.match(writes[2].body, /Correct the description/);
+  for (const write of writes) {
+    assert.ok(write.body.includes("Exemptions require reviewer assessment."));
+    assert.ok(!write.body.includes("No documentation action is needed"));
+  }
   assert.match(writes[2].body, /https:\/\/github.com\/parcelis\/parcelis\/actions\/runs\/789/);
 });
 
@@ -423,6 +427,10 @@ test("excluded authors receive a distinct badge while the check passes", async (
   assert.ok(writes[0].body.includes("Documentation Update: Exclusion Applied"));
   assert.ok(writes[0].body.includes("https://img.shields.io/badge/Documentation_Update-Exclusion_Applied-gold"));
   assert.ok(!writes[0].body.includes("Correct the description"));
+  assert.ok(writes[0].body.includes("The PR author is on the exclusions list."));
+  assert.ok(writes[0].body.includes("No documentation action is needed for this check."));
+  assert.ok(!writes[0].body.includes("This check verifies a reference"));
+  assert.ok(!writes[0].body.includes("Exemptions require reviewer assessment."));
 });
 
 test("ignores comments from other authors and escapes user-controlled Markdown and mentions", async () => {

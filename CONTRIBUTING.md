@@ -129,9 +129,10 @@ verify public docs PRs; private docs repositories require separate cross-reposit
 credentials.
 
 Each run writes a job summary and creates or updates one PR comment from
-`parcels-bot[bot]`, showing a green Passing or red Failing Documentation Update badge,
-correction guidance when needed, and a link to the run logs. The badge also links to the
-run. It updates only a comment owned by that bot with the
+`parcels-bot[bot]`, showing a green Passing, red Failing, or gold Exclusion Applied
+Documentation Update badge. Excluded authors still pass the check and need no documentation
+action. The comment includes correction guidance when needed and a link to the run logs.
+The badge also links to the run. It updates only a comment owned by that bot with the
 documentation-check marker. Validation and API errors appear in the comment and fail
 the check. Authentication or comment-posting failures also fail the job; if posting is
 unavailable, inspect the run logs because the comment may retain an earlier result.

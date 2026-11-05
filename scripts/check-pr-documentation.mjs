@@ -200,7 +200,9 @@ export async function updateDocumentationComment(github, context, botLogin, resu
           "",
         ]
       : []),
-    "Exemptions require reviewer assessment. This check verifies a reference in the docs PR description or an exemption, not documentation content.",
+    result.excluded
+      ? "The PR author is on the exclusions list. No documentation action is needed for this check."
+      : "Exemptions require reviewer assessment. This check verifies a reference in the docs PR description or an exemption, not documentation content.",
     "",
     `[View run and logs](${runUrl})`,
   ].join("\n");
