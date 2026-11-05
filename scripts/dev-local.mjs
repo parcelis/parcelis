@@ -13,7 +13,6 @@ if (existsSync(envPath)) {
 
 const requestedApiPort = Number(process.env.API_PORT ?? 40010);
 const requestedAppPort = Number(process.env.APP_PORT ?? process.env.PORT ?? 30000);
-const requestedDocsPort = Number(process.env.DOCS_PORT ?? 40000);
 const requestedEmailPreviewPort = Number(process.env.EMAIL_PREVIEW_PORT ?? 30001);
 const requestedRedisPort = Number(process.env.REDIS_PORT ?? 63790);
 if (!Number.isInteger(requestedRedisPort) || requestedRedisPort < 1 || requestedRedisPort > 65535) {
@@ -65,15 +64,13 @@ async function stopListener(port) {
   console.log(`[parcelis] Stopped existing listener on port ${port}`);
 }
 
-await Promise.all([requestedAppPort, requestedDocsPort, requestedApiPort, requestedEmailPreviewPort].map(stopListener));
+await Promise.all([requestedAppPort, requestedApiPort, requestedEmailPreviewPort].map(stopListener));
 
 const reservedPorts = new Set();
 const apiPort = await findOpenPort(requestedApiPort, reservedPorts);
 reservedPorts.add(apiPort);
 const appPort = await findOpenPort(requestedAppPort, reservedPorts);
 reservedPorts.add(appPort);
-const docsPort = await findOpenPort(requestedDocsPort, reservedPorts);
-reservedPorts.add(docsPort);
 const emailPreviewPort = await findOpenPort(requestedEmailPreviewPort, reservedPorts);
 reservedPorts.add(emailPreviewPort);
 const redisPort = await findOpenPort(requestedRedisPort, reservedPorts);
@@ -112,7 +109,6 @@ function runCompose(args) {
     env: {
       ...process.env,
       API_PORT: String(apiPort),
-      DOCS_PORT: String(docsPort),
       APP_PORT: String(appPort),
       EMAIL_PREVIEW_PORT: String(emailPreviewPort),
       REDIS_PORT: String(redisPort),
@@ -193,16 +189,7 @@ const processes = [
       NEXT_PUBLIC_DARK_BRAND_LOGO_URL: darkBrandLogoUrl,
       PORT: String(appPort),
       API_INTERNAL_URL: `http://localhost:${apiPort}`,
-      DOCS_INTERNAL_URL: `http://localhost:${docsPort}`,
       NEXT_PUBLIC_API_URL: "",
-    },
-  },
-  {
-    name: "docs",
-    args: ["--filter", "@parcelis/docs", "dev:fixed"],
-    env: {
-      PORT: String(docsPort),
-      DOCS_BASE_URL: "/docs/",
     },
   },
   {
@@ -218,7 +205,6 @@ const processes = [
 console.log("[parcelis] Starting local development");
 console.log(`[parcelis] Web:  ${proxyOrigin}`);
 console.log(`[parcelis] API:  ${proxyOrigin}/api/v1`);
-console.log(`[parcelis] Docs: ${proxyOrigin}/docs/`);
 console.log(`[parcelis] Status: ${proxyOrigin}/status (run pnpm status:dev separately)`);
 console.log(`[parcelis] Email preview: http://localhost:${emailPreviewPort}`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);

@@ -1,6 +1,6 @@
 import { checkHttp, groupChecks, runCheck, type ServiceCheck } from "./service-checks";
 
-export async function checkApplicationServices(webUrl: string, apiUrl: string, docsUrl: string) {
+export async function checkApplicationServices(webUrl: string, apiUrl: string) {
   const webOrigin = new URL(webUrl).origin;
   const apiOrigin = new URL(apiUrl).origin;
   const email = process.env.STATUS_AUTH_EMAIL;
@@ -63,19 +63,11 @@ export async function checkApplicationServices(webUrl: string, apiUrl: string, d
         throw new Error("Authenticated request failed");
       }
     }),
-    checkHttp("docs", "Documentation", docsUrl, process.env.STATUS_DOCS_EXPECTED ?? "Parcelis"),
   ]);
-  const [web, api, boundary, session, docs] = checks as [
-    ServiceCheck,
-    ServiceCheck,
-    ServiceCheck,
-    ServiceCheck,
-    ServiceCheck,
-  ];
+  const [web, api, boundary, session] = checks as [ServiceCheck, ServiceCheck, ServiceCheck, ServiceCheck];
   if (session.status === "unknown") session.note = "A dedicated monitoring account has not been configured.";
   return [
     groupChecks("web", "Web application", [web, signIn], "web-http"),
     groupChecks("api", "API", [api, boundary, session], "api-http"),
-    docs,
   ];
 }

@@ -29,17 +29,16 @@ PostgreSQL 18 is the database target for development and deployment. Existing Po
 
 ## Overview
 
-Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, docs, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
+Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
 The independent status monitor is described in the [status monitor guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/status-monitor.md).
 
 ```text
 app image: Next.js web + Next.js API + worker + @parcelis/jobs
 
-Browser --> proxy container --+--> application container (app image)
-                              |       +--> Next.js web (apps/web)
-                              |       +--> Next.js API (apps/api) --Prisma--> PostgreSQL
-                              +--> documentation container (docs image)
+Browser --> proxy container ----> application container (app image)
+                                      +--> Next.js web (apps/web)
+                                      +--> Next.js API (apps/api) --Prisma--> PostgreSQL
 
 worker container (app image) --> worker (apps/worker) --> Redis
 ```
@@ -48,19 +47,19 @@ The browser reaches the API through the same application origin. Direct public
 asset URLs are served by MinIO / S3-compatible storage.
 
 During local development, nginx listens on `http://localhost` and routes `/` to
-the web app, `/trpc/*` and `/api/*` to the API, and `/docs/*` to Docusaurus.
-The web, API, docs, and worker application processes continue to run on their own host runtime for hot reload.
+the web app and `/trpc/*` and `/api/*` to the API. Next.js redirects legacy `/docs`
+links to the independent site at `https://docs.parcelis.dev/`.
+The web, API, and worker application processes continue to run on their own host runtime for hot reload.
 
 ## Monorepo structure
 
 ### Applications
 
-| Package            | Location      | Responsibility                                                | Default port |
-| ------------------ | ------------- | ------------------------------------------------------------- | ------------ |
-| `@parcelis/web`    | `apps/web`    | Next.js App Router operational UI                             | 30000        |
-| `@parcelis/api`    | `apps/api`    | Next.js API, tRPC, REST handlers, object-storage integration  | 40010        |
-| `@parcelis/docs`   | `apps/docs`   | Docusaurus user, contributor, and generated API documentation | 40000        |
-| `@parcelis/worker` | `apps/worker` | PostgreSQL outbox dispatch and BullMQ job enqueueing          | —            |
+| Package            | Location      | Responsibility                                               | Default port |
+| ------------------ | ------------- | ------------------------------------------------------------ | ------------ |
+| `@parcelis/web`    | `apps/web`    | Next.js App Router operational UI                            | 30000        |
+| `@parcelis/api`    | `apps/api`    | Next.js API, tRPC, REST handlers, object-storage integration | 40010        |
+| `@parcelis/worker` | `apps/worker` | PostgreSQL outbox dispatch and BullMQ job enqueueing         | —            |
 
 ### Shared packages
 
@@ -278,8 +277,8 @@ See the [rollout runbook](https://github.com/parcelis/parcelis-docs/blob/docusau
 ## Documentation pipeline
 
 User-facing documentation is maintained in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs),
-on its `docusaurus-docs-site` branch under `docusaurus-site/docs`. The `apps/docs`
-directory remains a legacy copy in this repository. API documentation is generated
+on its `docusaurus-docs-site` branch under `docusaurus-site/docs`. It builds and deploys
+independently; no documentation server is included in this monorepo. API documentation is generated
 rather than hand-maintained:
 
 ```text
@@ -304,7 +303,7 @@ see [the contribution workflow](CONTRIBUTING.md#documentation-across-repositorie
 
 ## Local development
 
-`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, Redis, MinIO, and the MinIO initialization job for host-based development. Redis is password-protected and reserved for background jobs. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` runs published Parcelis application and documentation images with PostgreSQL, Redis, and MinIO.
+`docker-compose-dev.yml` provides PostgreSQL, pgAdmin, Redis, MinIO, and the MinIO initialization job for host-based development. Redis is password-protected and reserved for background jobs. The initialization job creates the private image bucket, public asset bucket, bucket policy, and local brand assets. `docker-compose.yml` runs published Parcelis application and proxy images with PostgreSQL, Redis, and MinIO.
 
 ```bash
 pnpm install
@@ -335,7 +334,7 @@ pnpm --filter @parcelis/worker test
 
 ## Container deployment
 
-`Dockerfile.app` is the shared application Dockerfile. Its `app` target builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the modular `app` image, and its `single-image` target additionally bundles the documentation site into the single `parcelis` application image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to the separate Next.js API inside the application container. The `API_INTERNAL_PORT` build argument defaults to `4000` and renders the matching API port into nginx and Supervisor configuration for both targets. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `apps`, `docs`, `parcelis`, and `proxy` to Docker Hub when a GitHub release is published.
+`Dockerfile.app` is the shared application Dockerfile. Its `app` target builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the modular `app` image, and its `single-image` target includes public nginx routing in the single `parcelis` application image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to the separate Next.js API inside the application container. The `API_INTERNAL_PORT` build argument defaults to `4000` and renders the matching API port into nginx and Supervisor configuration for both targets. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image. Legacy `/docs` requests reach Next.js and redirect to the separately hosted documentation site. A release workflow publishes `apps`, `parcelis`, and `proxy` to Docker Hub when a GitHub release is published.
 
 ## Design rules
 

@@ -26,16 +26,11 @@ const port = Number(process.env.STATUS_PORT ?? 40020);
 const host = process.env.STATUS_HOST ?? "127.0.0.1";
 const webUrl = process.env.STATUS_WEB_URL ?? "http://localhost:30000/login";
 const apiUrl = process.env.STATUS_API_URL ?? "http://localhost:40010/api/v1/health";
-const docsUrl = process.env.STATUS_DOCS_URL ?? "http://localhost:40000/";
 let stopping = false;
 
 async function poll() {
   const checks = (
-    await Promise.all([
-      checkApplicationServices(webUrl, apiUrl, docsUrl),
-      checkDependencies(true),
-      checkBackgroundServices(),
-    ])
+    await Promise.all([checkApplicationServices(webUrl, apiUrl), checkDependencies(true), checkBackgroundServices()])
   ).flat();
   const alerts = applyCheckResults(components, checks);
   for (const alert of alerts) console.info(JSON.stringify(alert));

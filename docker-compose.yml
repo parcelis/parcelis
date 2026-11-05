@@ -1,5 +1,5 @@
 # PostgreSQL 16 installations: migrate before starting this updated stack.
-# See https://docs.parcelis.dev/getting-started/upgrade-postgresql and scripts/upgrade-postgres.mjs.
+# See https://docs.parcelis.dev/docs/upgrade-postgresql and scripts/upgrade-postgres.mjs.
 name: parcelis
 
 services:
@@ -10,7 +10,7 @@ services:
       - |
         if [ -f /legacy/PG_VERSION ] && [ ! -f /var/lib/postgresql/.parcelis-pg18-migrated ]; then
           echo >&2 "Parcelis requires PostgreSQL 18. Existing database detected; startup blocked to protect your data."
-          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/getting-started/upgrade-postgresql."
+          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/docs/upgrade-postgresql."
           exit 1
         fi
         exec /usr/local/bin/docker-entrypoint.sh postgres
@@ -105,7 +105,6 @@ services:
       - "${APP_PORT:-3000}:80"
     depends_on:
       - app-service
-      - docs-service
     networks:
       - parcelis
 
@@ -167,12 +166,6 @@ services:
         condition: service_completed_successfully
       redis-service:
         condition: service_healthy
-    networks:
-      - parcelis
-
-  docs-service:
-    image: parcelis/docs:${PARCELIS_VERSION:-v0.4.1}
-    container_name: parcelis-docs
     networks:
       - parcelis
 

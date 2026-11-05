@@ -1,9 +1,9 @@
 # PostgreSQL 16 installations: migrate before starting this updated stack.
-# See https://docs.parcelis.dev/getting-started/upgrade-postgresql and scripts/upgrade-postgres.mjs.
+# See https://docs.parcelis.dev/docs/upgrade-postgresql and scripts/upgrade-postgres.mjs.
 # Single application image Compose example.
 #
 # Runs the published `parcelis/parcelis` image, which bundles the Parcelis web
-# app, API, worker, documentation site, and nginx edge routing into one
+# app, API, worker, and nginx edge routing into one
 # application image. This is not a single-container deployment: PostgreSQL,
 # Redis, and S3-compatible object storage (MinIO is provided here) remain
 # separate services that you can replace with managed equivalents.
@@ -27,7 +27,7 @@ services:
       - |
         if [ -f /legacy/PG_VERSION ] && [ ! -f /var/lib/postgresql/.parcelis-pg18-migrated ]; then
           echo >&2 "Parcelis requires PostgreSQL 18. Existing database detected; startup blocked to protect your data."
-          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/getting-started/upgrade-postgresql."
+          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/docs/upgrade-postgresql."
           exit 1
         fi
         exec /usr/local/bin/docker-entrypoint.sh postgres

@@ -57,11 +57,7 @@ test("authentication checks do not report success without a monitoring account",
       return Response.json({ error: { data: { code: "UNAUTHORIZED" } } }, { status: 401 });
     return new Response(url.includes("/health") ? '{"service":"parcelis-api"}' : "Parcelis");
   });
-  const [web, api] = await checkApplicationServices(
-    "http://web.test/login",
-    "http://api.test/health",
-    "http://docs.test",
-  );
+  const [web, api] = await checkApplicationServices("http://web.test/login", "http://api.test/health");
   assert.equal(web?.status, "unknown");
   assert.equal(api?.status, "unknown");
   assert.equal(api?.checks?.find((check) => check.id === "auth-boundary")?.status, "operational");
@@ -100,7 +96,11 @@ test("sign-in verifies the web session and a protected API request using chunked
     }
     return new Response(url.includes("/health") ? '{"service":"parcelis-api"}' : "Parcelis");
   });
-  const checks = await checkApplicationServices("http://web.test/login", "http://api.test/health", "http://docs.test");
+  const checks = await checkApplicationServices("http://web.test/login", "http://api.test/health");
+  assert.deepEqual(
+    checks.map((check) => check.id),
+    ["web", "api"],
+  );
   assert.ok(checks.every((check) => check.status === "operational"));
   assert.equal(protectedRequests, 1);
   assert.ok(!JSON.stringify(checks).includes("private-monitor-password"));
