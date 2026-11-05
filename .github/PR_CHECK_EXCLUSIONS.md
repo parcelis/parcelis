@@ -10,6 +10,9 @@ completing the documentation fields:
 - `renovate`
 - `renovate-bot`
 
+Excluded PRs display a gold `Documentation Update: Exclusion Applied` badge in the bot comment.
+The documentation check still passes.
+
 To add an exclusion, add a bullet containing the exact GitHub login in backticks,
 using the format above. The check matches the PR author case-insensitively, regardless of who
 triggers or reruns the workflow. Other CI checks still apply.

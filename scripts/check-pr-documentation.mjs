@@ -148,6 +148,7 @@ export async function evaluateDocumentation(github, context, exclusionsPath) {
     if (excludedAuthors.has(pr.user?.login?.toLowerCase())) {
       return {
         passed: true,
+        excluded: true,
         message: `Documentation requirement excluded for PR author: ${pr.user.login}.`,
       };
     }
@@ -178,9 +179,13 @@ export async function updateDocumentationComment(github, context, botLogin, resu
   const { owner, repo } = context.repo;
   const issue_number = context.payload.pull_request.number;
   const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+  const status = result.excluded ? "Exclusion Applied" : result.passed ? "Passing" : "Failing";
+  const badge = result.excluded
+    ? "Documentation_Update-Exclusion_Applied-gold"
+    : `Documentation%20Update-${status}-${result.passed ? "green" : "red"}`;
   const body = [
     commentMarker,
-    `[![Documentation Update: ${result.passed ? "Passing" : "Failing"}](https://img.shields.io/badge/Documentation%20Update-${result.passed ? "Passing-green" : "Failing-red"})](${runUrl})`,
+    `[![Documentation Update: ${status}](https://img.shields.io/badge/${badge})](${runUrl})`,
     "",
     escapeMarkdown(result.message),
     "",
