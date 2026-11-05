@@ -91,7 +91,7 @@ services:
       - minio-data:/data
 
   minio-init-service:
-    image: minio/mc:latest
+    image: parcelis/minio-init:final
     container_name: parcelis-dev-minio-init
     depends_on:
       - minio-service

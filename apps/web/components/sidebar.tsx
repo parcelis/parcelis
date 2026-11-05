@@ -22,6 +22,7 @@ import {
   Lightbulb,
   Home,
   LogOut,
+  MessageSquareWarning,
   Settings,
   Users,
   Wrench,
@@ -46,6 +47,8 @@ import { useShortcut } from "./shortcut-provider";
 import { isMacPlatform, shortcutKeyParts, shortcutList, shortcuts } from "./shortcuts";
 import { apiClient, queryKeys } from "./api-client";
 import { ThemeSelector } from "./theme-selector";
+import { BugReportDrawer } from "./bug-report-drawer";
+import { userRoleValues } from "@parcelis/schemas";
 
 const navItems = [
   { label: "Portfolio", href: "/", key: "portfolio", icon: Home },
@@ -140,6 +143,7 @@ function SidebarContent({ active }: SidebarProps) {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const [changePasswordForm, setChangePasswordForm] = React.useState<ChangePasswordForm>(initialChangePasswordForm);
   const [isShortcutsOpen, setIsShortcutsOpen] = React.useState(false);
+  const [isBugReportOpen, setIsBugReportOpen] = React.useState(false);
   const [isMac, setIsMac] = React.useState(false);
   React.useEffect(() => {
     setIsMac(isMacPlatform());
@@ -710,6 +714,18 @@ function SidebarContent({ active }: SidebarProps) {
                 Request a feature
               </a>
             </DropdownMenuItem>
+            {currentUserQuery.data?.user.accountStatus === "active" &&
+            userRoleValues.includes(currentUserQuery.data.user.role) ? (
+              <DropdownMenuItem
+                onSelect={() => {
+                  closeMobileSidebar();
+                  setIsBugReportOpen(true);
+                }}
+              >
+                <MessageSquareWarning aria-hidden="true" className="h-4 w-4 shrink-0" />
+                Report a problem
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             {signOutError ? (
               <p className="px-3 py-2 text-xs text-red-700" role="alert">
@@ -734,6 +750,7 @@ function SidebarContent({ active }: SidebarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </aside>
+      <BugReportDrawer open={isBugReportOpen} onOpenChange={setIsBugReportOpen} />
     </>
   );
 }

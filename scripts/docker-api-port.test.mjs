@@ -20,7 +20,7 @@ test("Docker renders matching API ports into nginx and Supervisor", () => {
         nginx.matchAll(/proxy_pass http:\/\/127\.0\.0\.1:(\d+);/g),
         ([, value]) => value,
       );
-      assert.deepEqual(upstreamPorts, [apiPort, apiPort, apiPort, "3001"]);
+      assert.deepEqual(upstreamPorts, [apiPort, apiPort, apiPort, apiPort, "3001"]);
       assert.ok(!nginx.includes("__API_INTERNAL_PORT__"));
       assert.ok(!supervisor.includes("__API_INTERNAL_PORT__"));
       assert.match(nginx, new RegExp(`proxy_pass http://127\\.0\\.0\\.1:${apiPort}/api/v1/health;`));

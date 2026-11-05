@@ -3,8 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, CalendarClock, Filter, Plus, Search, UserRound } from "lucide-react";
+import { Building2, Filter, Plus, Search, UserRound } from "lucide-react";
+import type { Lease } from "@parcelis/schemas";
 import {
+  Badge,
   Button,
   Card,
   CardContent,
@@ -52,12 +54,34 @@ function formatStatus(value: string) {
     .map((part) => `${part[0] ?? ""}${part.slice(1)}`.replace(/^./, (character) => character.toUpperCase()))
     .join(" ");
 }
-function statusClass(value: string) {
-  if (value === "active") return "text-parcelis-green";
-  if (value === "notice") return "text-amber-600";
-  if (value === "ended") return "text-red-700";
-  return "text-parcelis-gray";
-}
+const neutralStatusClass = "border-transparent bg-parcelis-gray/10 text-parcelis-gray";
+const leaseStatusBadges = {
+  draft: {
+    label: "Draft",
+    className: "border-parcelis-border bg-transparent text-parcelis-gray",
+    dotClassName: "bg-current",
+  },
+  scheduled: {
+    label: "Scheduled",
+    className: "border-transparent bg-blue-500/10 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300",
+    dotClassName: "bg-current",
+  },
+  active: {
+    label: "Active",
+    className: "border-transparent bg-parcelis-green/15 text-parcelis-charcoal",
+    dotClassName: "bg-parcelis-green",
+  },
+  notice: {
+    label: "Notice",
+    className: "border-transparent bg-amber-500/10 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300",
+    dotClassName: "bg-current",
+  },
+  ended: {
+    label: "Ended",
+    className: neutralStatusClass,
+    dotClassName: "bg-current",
+  },
+} satisfies Record<Lease["status"], { label: string; className: string; dotClassName: string }>;
 
 export default function LeasesPage() {
   const [search, setSearch] = React.useState("");
@@ -279,6 +303,10 @@ type LeaseRowProps = {
 };
 
 function LeaseRow({ lease }: LeaseRowProps) {
+  const statusBadge = Object.hasOwn(leaseStatusBadges, lease.status)
+    ? leaseStatusBadges[lease.status]
+    : { label: formatStatus(lease.status), className: neutralStatusClass, dotClassName: "bg-current" };
+
   return (
     <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">
       <TableCell className="px-5 py-4">
@@ -309,10 +337,10 @@ function LeaseRow({ lease }: LeaseRowProps) {
         {formatCurrency(lease.monthlyRentCents)}
       </TableCell>
       <TableCell className="px-5 py-4">
-        <span className={`inline-flex items-center gap-2 font-semibold ${statusClass(lease.status)}`}>
-          <CalendarClock className="h-4 w-4" />
-          {formatStatus(lease.status)}
-        </span>
+        <Badge className={`h-6 w-fit gap-1.5 whitespace-nowrap ${statusBadge.className}`} variant="secondary">
+          <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusBadge.dotClassName}`} />
+          {statusBadge.label}
+        </Badge>
       </TableCell>
     </TableRow>
   );

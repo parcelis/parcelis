@@ -127,6 +127,7 @@ import {
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
 import { authRouter } from "./auth.router";
+import { bugReportsRouter } from "./bug-reports.router";
 import { getActivityActor } from "../modules/activity-actor";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
 import {
@@ -700,6 +701,7 @@ async function assertNonAdministratorUser(prisma: PrismaClient | Prisma.Transact
 }
 
 export const appRouter = router({
+  bugReports: bugReportsRouter,
   auth: authRouter,
   apiTokens: router({
     list: apiTokenManagementProcedure
@@ -855,6 +857,7 @@ export const appRouter = router({
         postalCode: ctx.organization.organization.postalCode,
       },
       phone: ctx.organization.organization.phone,
+      email: ctx.organization.organization.email,
       role: ctx.organization.role,
     })),
     switch: publicProcedure.input(switchOrganizationInputSchema).mutation(async ({ ctx, input }) => {
@@ -888,6 +891,7 @@ export const appRouter = router({
             region: input.address?.region || null,
             postalCode: input.address?.postalCode || null,
             phone: input.phone?.trim() || null,
+            ...(input.email !== undefined ? { email: input.email } : {}),
             ...(input.timeZone ? { timeZone: input.timeZone } : {}),
           },
           select: {
@@ -900,6 +904,7 @@ export const appRouter = router({
             region: true,
             postalCode: true,
             phone: true,
+            email: true,
             timeZone: true,
           },
         });

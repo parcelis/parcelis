@@ -19,8 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
-      - name: Check documentation requirement
+      - name: Find linked documentation PR
         id: check
         uses: actions/github-script@v9
         with:
@@ -31,6 +32,7 @@ jobs:
             );
             const result = await evaluateDocumentation(github, context, ${{ toJSON(vars.PR_CHECK_EXCLUSIONS_FILE) }});
             core.setOutput('passed', String(result.passed));
+            core.setOutput('excluded', String(result.excluded === true));
             core.setOutput('message', result.message);
             await core.summary
               .addHeading(`Documentation check: ${result.passed ? 'Passed' : 'Failed'}`)
@@ -56,6 +58,7 @@ jobs:
         uses: actions/github-script@v9
         env:
           DOCUMENTATION_PASSED: ${{ steps.check.outputs.passed }}
+          DOCUMENTATION_EXCLUDED: ${{ steps.check.outputs.excluded }}
           DOCUMENTATION_MESSAGE: ${{ steps.check.outputs.message }}
           DOCUMENTATION_BOT_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
         with:
@@ -67,5 +70,6 @@ jobs:
             );
             await updateDocumentationComment(github, context, process.env.DOCUMENTATION_BOT_LOGIN, {
               passed: process.env.DOCUMENTATION_PASSED === 'true',
+              excluded: process.env.DOCUMENTATION_EXCLUDED === 'true',
               message: process.env.DOCUMENTATION_MESSAGE,
             });

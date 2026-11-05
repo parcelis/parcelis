@@ -103,7 +103,7 @@
 - For public API changes, regenerate the OpenAPI specification in this repository, update the docs site's source specification, regenerate its API pages, and run the docs repository's relevant checks. Do not hand-edit generated API pages.
 - If the docs checkout is unavailable or cannot be edited, report the affected pages and required changes as outstanding work. Do not claim the task is complete while required documentation remains outstanding.
 - Include documentation changes and validation in the handoff or PR summary. If no documentation changes are needed, explain why.
-- The `Documentation requirement` CI check requires exactly one populated PR-template field: `Companion docs PR:` with a full docs PR URL, or `Documentation not needed:` with an explanation. Leave the other field empty; exemptions require review.
+- The `Documentation requirement` CI check discovers open or merged PRs in `parcelis/parcelis-docs` whose descriptions reference the exact application PR URL or `parcelis/parcelis#<number>`. `Companion docs PR:` is optional and selects a specific linked PR. Alternatively, provide a meaningful `Documentation not needed:` explanation and leave the companion field empty; exemptions require review. Rerun the application check after opening or editing the docs PR.
 - Keep docs concise and task-oriented.
 
 ## Git

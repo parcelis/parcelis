@@ -83,26 +83,44 @@ results in the application PR, or explain why documentation changes are unnecess
 If the docs checkout is unavailable, record the affected pages and required changes as
 outstanding work; a follow-up note does not complete required documentation.
 
-The `Documentation requirement` CI check requires the `### Documentation` section in
-each application PR unless its author matches an entry, case-insensitively, in
-[`.github/PR_CHECK_EXCLUSIONS.md`](.github/PR_CHECK_EXCLUSIONS.md). The GitHub Actions
-repository variable `PR_CHECK_EXCLUSIONS_FILE` can override that file path.
-For non-excluded PRs, fill exactly one of these fields and leave the other empty:
+The `Documentation requirement` CI check automatically checks PRs in
+[parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs) for a reference
+to the application PR in their descriptions. Include either the full application
+PR URL or its cross-repository reference in the docs PR description:
 
 ```text
-- Companion docs PR: https://github.com/parcelis/parcelis-docs/pull/123
-- Documentation not needed:
+Related application PR: https://github.com/parcelis/parcelis/pull/42
 ```
 
-For an exemption, leave the PR field empty and explain the reason on the
-`Documentation not needed:` line. Placeholders such as `N/A` or `TODO` fail the check.
-Exemption reasons require reviewer assessment. The check verifies that a linked docs
-PR exists and is open (including drafts) or merged; closed, unmerged PRs fail.
-It does not assess documentation content or require the docs PR to merge first.
-It reruns when the application PR opens, reopens, changes description, receives commits,
-or becomes ready for review. Changes in the docs repo do not trigger it; rerun the
-application check after changing a linked docs PR's state.
+`Related application PR: parcelis/parcelis#42` also works. The reference must match
+the exact application PR number; references in HTML comments are ignored. References
+only in PR comments do not satisfy this check.
 
+An open docs PR (including a draft) or a merged docs PR passes. Closed, unmerged PRs
+do not pass. For discovery, the check reads every page of docs PRs directly from the API
+rather than depending on GitHub's search index. It fetches a supplied companion PR URL
+directly without listing docs PRs. It does not assess documentation content or
+require the docs PR to merge first.
+
+The `Companion docs PR:` field in the application PR is optional. When populated,
+it must contain a full `https://github.com/parcelis/parcelis-docs/pull/<number>` URL,
+and that specific docs PR must reference the application PR. Otherwise, the check
+discovers a matching docs PR automatically.
+
+For a documentation exemption, leave the companion field empty and explain the
+changed scope on the `Documentation not needed:` line under `### Documentation`.
+The explanation must contain at least 20 characters and four distinct words.
+Placeholders and generic statements such as `No documentation changes are needed for this PR`
+fail, even when they meet those thresholds. Include a concrete scope explanation, such as
+`Only internal tests changed.` Exemptions require reviewer assessment.
+
+Authors listed in [`.github/PR_CHECK_EXCLUSIONS.md`](.github/PR_CHECK_EXCLUSIONS.md)
+remain excluded, matched case-insensitively. The `PR_CHECK_EXCLUSIONS_FILE` repository
+variable can override that file path.
+
+The check reruns when the application PR opens, reopens, changes description,
+receives commits, or becomes ready for review. Docs repo changes do not trigger it;
+rerun the application check after opening, editing, closing, or merging a docs PR.
 After this workflow reaches the default branch, configure `Documentation requirement`
 as a required status check in the application repository's branch protection or ruleset
 to block merging when it fails. The workflow executes code from the default branch and
@@ -111,9 +129,10 @@ verify public docs PRs; private docs repositories require separate cross-reposit
 credentials.
 
 Each run writes a job summary and creates or updates one PR comment from
-`parcels-bot[bot]`, showing a green Passing or red Failing Documentation Update badge,
-correction guidance when needed, and a link to the run logs. The badge also links to the
-run. It updates only a comment owned by that bot with the
+`parcels-bot[bot]`, showing a green Passing, red Failing, or gold Exclusion Applied
+Documentation Update badge. Excluded authors still pass the check and need no documentation
+action. The comment includes correction guidance when needed and a link to the run logs.
+The badge also links to the run. It updates only a comment owned by that bot with the
 documentation-check marker. Validation and API errors appear in the comment and fail
 the check. Authentication or comment-posting failures also fail the job; if posting is
 unavailable, inspect the run logs because the comment may retain an earlier result.

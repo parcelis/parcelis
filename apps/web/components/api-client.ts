@@ -1,25 +1,27 @@
 "use client";
 
-import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
+import { createTRPCProxyClient, httpBatchLink, httpLink, splitLink, isNonJsonSerializable } from "@trpc/client";
 import type { AppRouter } from "@parcelis/api/router";
 import type { NoteSubjectInput } from "@parcelis/schemas";
 
 export function createApiClient(organizationSlug?: string) {
+  const options = {
+    url: "/trpc",
+    async fetch(url: RequestInfo | URL, options?: RequestInit) {
+      const requestOrganizationSlug =
+        organizationSlug ??
+        (typeof window === "undefined" ? null : window.location.pathname.match(/^\/o\/([^/]+)/)?.[1]);
+      const headers = new Headers(options?.headers);
+      if (requestOrganizationSlug) headers.set("x-parcelis-organization-slug", requestOrganizationSlug);
+      return fetch(url, { ...options, credentials: "include", headers });
+    },
+  };
   return createTRPCProxyClient<AppRouter>({
     links: [
-      httpBatchLink({
-        url: "/trpc",
-        async fetch(url, options) {
-          const requestOrganizationSlug =
-            organizationSlug ??
-            (typeof window === "undefined" ? null : window.location.pathname.match(/^\/o\/([^/]+)/)?.[1]);
-          const headers = new Headers(options?.headers);
-          if (requestOrganizationSlug) {
-            headers.set("x-parcelis-organization-slug", requestOrganizationSlug);
-          }
-          const response = await fetch(url, { ...options, credentials: "include", headers });
-          return response;
-        },
+      splitLink({
+        condition: (operation) => isNonJsonSerializable(operation.input),
+        true: httpLink(options),
+        false: httpBatchLink(options),
       }),
     ],
   });
