@@ -268,7 +268,14 @@ test("rerunning a failed check discovers a new docs PR without editing the appli
 
 test("uses default exclusions when the path is omitted or empty", async () => {
   const defaultAuthors = readExcludedAuthors();
-  assert.deepEqual(defaultAuthors, ["dependabot[bot]", "renovate[bot]", "copilot", "coderabbitai"]);
+  assert.deepEqual(defaultAuthors, [
+    "dependabot[bot]",
+    "renovate[bot]",
+    "copilot",
+    "coderabbitai",
+    "renovate",
+    "renovate-bot",
+  ]);
 
   for (const login of defaultAuthors) {
     const github = {
@@ -276,6 +283,7 @@ test("uses default exclusions when the path is omitted or empty", async () => {
     };
     const expected = {
       passed: true,
+      excluded: true,
       message: `Documentation requirement excluded for PR author: ${login}.`,
     };
     assert.deepEqual(await evaluateDocumentation(github, context), expected);
@@ -296,6 +304,7 @@ test("excludes Dependabot PRs even when a human triggers the check", async () =>
   };
   assert.deepEqual(await evaluateDocumentation(github, { ...context, actor: "maintainer" }, exclusionsFixture), {
     passed: true,
+    excluded: true,
     message: "Documentation requirement excluded for PR author: dependabot[bot].",
   });
 });
@@ -306,6 +315,7 @@ test("excludes API-reported Copilot using a lowercase fixture entry", async () =
   };
   assert.deepEqual(await evaluateDocumentation(github, context, exclusionsFixture), {
     passed: true,
+    excluded: true,
     message: "Documentation requirement excluded for PR author: Copilot.",
   });
 });
@@ -400,7 +410,27 @@ test("updates one bot comment from failure to pass and back to failure", async (
   assert.ok(writes[2].body.includes("https://img.shields.io/badge/Documentation%20Update-Failing-red"));
   assert.match(writes[2].body, /Missing documentation decision/);
   assert.match(writes[2].body, /Correct the description/);
+  for (const write of writes) {
+    assert.ok(write.body.includes("Exemptions require reviewer assessment."));
+    assert.ok(!write.body.includes("No documentation action is needed"));
+  }
   assert.match(writes[2].body, /https:\/\/github.com\/parcelis\/parcelis\/actions\/runs\/789/);
+});
+
+test("excluded authors receive a distinct badge while the check passes", async () => {
+  const { github, writes } = commentClient();
+  await updateDocumentationComment(github, context, "parcels-bot[bot]", {
+    passed: true,
+    excluded: true,
+    message: "Documentation requirement excluded for PR author: dependabot[bot].",
+  });
+  assert.ok(writes[0].body.includes("Documentation Update: Exclusion Applied"));
+  assert.ok(writes[0].body.includes("https://img.shields.io/badge/Documentation_Update-Exclusion_Applied-gold"));
+  assert.ok(!writes[0].body.includes("Correct the description"));
+  assert.ok(writes[0].body.includes("The PR author is on the exclusions list."));
+  assert.ok(writes[0].body.includes("No documentation action is needed for this check."));
+  assert.ok(!writes[0].body.includes("This check verifies a reference"));
+  assert.ok(!writes[0].body.includes("Exemptions require reviewer assessment."));
 });
 
 test("ignores comments from other authors and escapes user-controlled Markdown and mentions", async () => {
