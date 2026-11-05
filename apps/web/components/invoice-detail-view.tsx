@@ -367,9 +367,17 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
                       </div>
                     </NavigationRail>
                   )}
-                  <div className="min-w-0 flex-1 space-y-5">
-                    <Card className="relative overflow-hidden dark:bg-parcelis-slate dark:text-parcelis-porcelain">
-                      <section className="grid gap-6 bg-parcelis-charcoal p-6 text-white md:grid-cols-[1.2fr_1fr] md:p-8">
+                  <div
+                    className={
+                      isEmbedded ? "min-w-0 flex-1 space-y-5" : "contents lg:block lg:min-w-0 lg:flex-1 lg:space-y-5"
+                    }
+                  >
+                    <Card
+                      className={`${isEmbedded ? "relative overflow-hidden" : "contents lg:relative lg:block lg:overflow-hidden"} dark:bg-parcelis-slate dark:text-parcelis-porcelain`}
+                    >
+                      <section
+                        className={`grid gap-6 bg-parcelis-charcoal p-6 text-white md:grid-cols-[1.2fr_1fr] md:p-8 ${isEmbedded ? "" : "order-first min-w-0 rounded-lg lg:rounded-none"}`}
+                      >
                         <div>
                           <div className="flex items-center gap-3 text-parcelis-green">
                             <FileText className="h-5 w-5" />
@@ -405,7 +413,9 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
                           </div>
                         </div>
                       </section>
-                      <CardContent className="p-0">
+                      <CardContent
+                        className={`p-0 ${isEmbedded ? "" : "min-w-0 rounded-lg border border-parcelis-border bg-white lg:rounded-none lg:border-0 dark:bg-parcelis-slate"}`}
+                      >
                         <section className="grid gap-5 border-b border-parcelis-border p-6 md:grid-cols-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-parcelis-gray">

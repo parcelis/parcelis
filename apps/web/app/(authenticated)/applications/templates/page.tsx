@@ -10,7 +10,7 @@ export default function ApplicationTemplatesPage() {
       icon={LayoutTemplate}
       title="Application templates"
     >
-      <Card className="mt-6">
+      <Card>
         <CardContent className="flex min-h-72 flex-col items-center justify-center p-8 text-center">
           <div className="grid h-12 w-12 place-items-center rounded-full bg-parcelis-green/15 text-parcelis-charcoal">
             <FilePlus2 className="h-6 w-6" />

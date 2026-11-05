@@ -1,5 +1,6 @@
 "use client";
 
+import { SecondaryNavigationLayout } from "../../../../../components/secondary-navigation-layout";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -148,9 +149,17 @@ export default function OrganizationEmailSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="email" canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false} canManageRoles={canManageRoles} canManageUsers={canManageUsers} />
-            <div className="min-w-0 flex-1">
+          <SecondaryNavigationLayout
+            className="gap-6"
+            navigation={
+              <SettingsRail
+                active="email"
+                canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
+                canManageRoles={canManageRoles}
+                canManageUsers={canManageUsers}
+              />
+            }
+            header={
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
                 <h1 className="mt-5 text-3xl font-bold md:text-5xl">Email</h1>
@@ -158,218 +167,209 @@ export default function OrganizationEmailSettingsPage() {
                   Configure the SMTP server used to send email for this organization.
                 </p>
               </section>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h2 className="font-semibold text-parcelis-charcoal">SMTP configuration</h2>
-                      <p className="mt-1 text-sm text-parcelis-gray">
-                        Leave this unconfigured to use the deployment’s email settings.
-                      </p>
-                      {emailSettingsEncryptionStatusQuery.data ? (
-                        <p
-                          aria-live="polite"
-                          className={`mt-3 text-sm font-medium ${
-                            emailSettingsEncryptionStatusQuery.data.configured ? "text-parcelis-green" : "text-red-700"
-                          }`}
-                        >
-                          {emailSettingsEncryptionStatusQuery.data.configured
-                            ? "SMTP credential encryption is configured."
-                            : "SMTP credential encryption is not configured. Set EMAIL_SETTINGS_ENCRYPTION_KEY in your .env file."}
-                        </p>
-                      ) : null}
-                    </div>
-                    <Mail className="h-5 w-5 text-parcelis-green" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {activeOrganizationQuery.error ? (
-                    <p className="text-sm font-medium text-red-700">{activeOrganizationQuery.error.message}</p>
-                  ) : !canManageOrganization && !activeOrganizationQuery.isLoading ? (
-                    <p className="text-sm text-parcelis-gray">
-                      You have view-only access to this organization’s settings.
+            }
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">SMTP configuration</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      Leave this unconfigured to use the deployment’s email settings.
                     </p>
-                  ) : activeOrganizationQuery.isLoading || emailSettingsQuery.isLoading ? (
-                    <LoadingState label="Loading email settings…" />
-                  ) : emailSettingsQuery.error ? (
-                    <p className="text-sm font-medium text-red-700">{emailSettingsQuery.error.message}</p>
-                  ) : (
-                    <form
-                      className="flex max-w-xl flex-col gap-6"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        saveEmailSettings.mutate();
-                      }}
-                    >
-                      <Label>
-                        SMTP host
+                    {emailSettingsEncryptionStatusQuery.data ? (
+                      <p
+                        aria-live="polite"
+                        className={`mt-3 text-sm font-medium ${
+                          emailSettingsEncryptionStatusQuery.data.configured ? "text-parcelis-green" : "text-red-700"
+                        }`}
+                      >
+                        {emailSettingsEncryptionStatusQuery.data.configured
+                          ? "SMTP credential encryption is configured."
+                          : "SMTP credential encryption is not configured. Set EMAIL_SETTINGS_ENCRYPTION_KEY in your .env file."}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Mail className="h-5 w-5 text-parcelis-green" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {activeOrganizationQuery.error ? (
+                  <p className="text-sm font-medium text-red-700">{activeOrganizationQuery.error.message}</p>
+                ) : !canManageOrganization && !activeOrganizationQuery.isLoading ? (
+                  <p className="text-sm text-parcelis-gray">
+                    You have view-only access to this organization’s settings.
+                  </p>
+                ) : activeOrganizationQuery.isLoading || emailSettingsQuery.isLoading ? (
+                  <LoadingState label="Loading email settings…" />
+                ) : emailSettingsQuery.error ? (
+                  <p className="text-sm font-medium text-red-700">{emailSettingsQuery.error.message}</p>
+                ) : (
+                  <form
+                    className="flex max-w-xl flex-col gap-6"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      saveEmailSettings.mutate();
+                    }}
+                  >
+                    <Label>
+                      SMTP host
+                      <Input className="mt-1" onChange={(event) => setHost(event.target.value)} required value={host} />
+                    </Label>
+                    <div className="flex flex-col gap-6 sm:flex-row">
+                      <Label className="flex-1">
+                        Security type
+                        <Select
+                          className="mt-1"
+                          onChange={(event) => setSecurityType(event.target.value as SmtpSecurityType)}
+                          value={securityType}
+                        >
+                          <option value="none">None</option>
+                          <option value="starttls">STARTTLS</option>
+                          <option value="tls">TLS</option>
+                        </Select>
+                      </Label>
+                      <Label className="flex-1">
+                        Port
                         <Input
                           className="mt-1"
-                          onChange={(event) => setHost(event.target.value)}
+                          max={65535}
+                          min={1}
+                          onChange={(event) => setPort(event.target.value)}
                           required
-                          value={host}
+                          type="number"
+                          value={port}
                         />
                       </Label>
-                      <div className="flex flex-col gap-6 sm:flex-row">
-                        <Label className="flex-1">
-                          Security type
-                          <Select
-                            className="mt-1"
-                            onChange={(event) => setSecurityType(event.target.value as SmtpSecurityType)}
-                            value={securityType}
-                          >
-                            <option value="none">None</option>
-                            <option value="starttls">STARTTLS</option>
-                            <option value="tls">TLS</option>
-                          </Select>
+                    </div>
+                    <Label>
+                      Sender name
+                      <Input className="mt-1" onChange={(event) => setFromName(event.target.value)} value={fromName} />
+                    </Label>
+                    <Label>
+                      From email address
+                      <Input
+                        className="mt-1"
+                        onChange={(event) => setFromEmail(event.target.value)}
+                        required
+                        type="email"
+                        value={fromEmail}
+                      />
+                    </Label>
+                    <div className="flex items-start gap-3 rounded-md border border-parcelis-border p-4">
+                      <Checkbox
+                        checked={requireSignIn}
+                        id="require-sign-in"
+                        onCheckedChange={(checked) => setRequireSignIn(checked === true)}
+                      />
+                      <div>
+                        <Label className="cursor-pointer" htmlFor="require-sign-in">
+                          Require sign in
                         </Label>
-                        <Label className="flex-1">
-                          Port
+                        <p className="mt-1 text-sm text-parcelis-gray">
+                          Use a username and password to authenticate with SMTP.
+                        </p>
+                      </div>
+                    </div>
+                    {requireSignIn ? (
+                      <>
+                        <Label>
+                          Username
                           <Input
                             className="mt-1"
-                            max={65535}
-                            min={1}
-                            onChange={(event) => setPort(event.target.value)}
+                            onChange={(event) => setUsername(event.target.value)}
                             required
-                            type="number"
-                            value={port}
+                            value={username}
                           />
                         </Label>
-                      </div>
-                      <Label>
-                        Sender name
-                        <Input
-                          className="mt-1"
-                          onChange={(event) => setFromName(event.target.value)}
-                          value={fromName}
-                        />
-                      </Label>
-                      <Label>
-                        From email address
-                        <Input
-                          className="mt-1"
-                          onChange={(event) => setFromEmail(event.target.value)}
-                          required
-                          type="email"
-                          value={fromEmail}
-                        />
-                      </Label>
-                      <div className="flex items-start gap-3 rounded-md border border-parcelis-border p-4">
-                        <Checkbox
-                          checked={requireSignIn}
-                          id="require-sign-in"
-                          onCheckedChange={(checked) => setRequireSignIn(checked === true)}
-                        />
-                        <div>
-                          <Label className="cursor-pointer" htmlFor="require-sign-in">
-                            Require sign in
-                          </Label>
-                          <p className="mt-1 text-sm text-parcelis-gray">
-                            Use a username and password to authenticate with SMTP.
-                          </p>
-                        </div>
-                      </div>
-                      {requireSignIn ? (
-                        <>
-                          <Label>
-                            Username
-                            <Input
-                              className="mt-1"
-                              onChange={(event) => setUsername(event.target.value)}
-                              required
-                              value={username}
-                            />
-                          </Label>
-                          <Label>
-                            Password
-                            <Input
-                              autoComplete="new-password"
-                              className="mt-1"
-                              onChange={(event) => setPassword(event.target.value)}
-                              placeholder={hasSavedPassword ? "Leave blank to keep the saved password" : undefined}
-                              required={!hasSavedPassword}
-                              type="password"
-                              value={password}
-                            />
-                            {hasSavedPassword ? (
-                              <span className="mt-1 flex items-center gap-2 text-xs text-parcelis-gray">
-                                <Badge variant="secondary">Saved</Badge>
-                                Enter a new password only to replace it.
-                              </span>
-                            ) : null}
-                          </Label>
-                        </>
-                      ) : null}
-                      {saveEmailSettings.error ? (
-                        <p className="text-sm font-medium text-red-700">{saveEmailSettings.error.message}</p>
-                      ) : null}
-                      <div className="flex flex-wrap gap-3">
-                        <Button className="min-w-40" disabled={saveEmailSettings.isPending} type="submit">
-                          Save email settings
-                        </Button>
+                        <Label>
+                          Password
+                          <Input
+                            autoComplete="new-password"
+                            className="mt-1"
+                            onChange={(event) => setPassword(event.target.value)}
+                            placeholder={hasSavedPassword ? "Leave blank to keep the saved password" : undefined}
+                            required={!hasSavedPassword}
+                            type="password"
+                            value={password}
+                          />
+                          {hasSavedPassword ? (
+                            <span className="mt-1 flex items-center gap-2 text-xs text-parcelis-gray">
+                              <Badge variant="secondary">Saved</Badge>
+                              Enter a new password only to replace it.
+                            </span>
+                          ) : null}
+                        </Label>
+                      </>
+                    ) : null}
+                    {saveEmailSettings.error ? (
+                      <p className="text-sm font-medium text-red-700">{saveEmailSettings.error.message}</p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-3">
+                      <Button className="min-w-40" disabled={saveEmailSettings.isPending} type="submit">
+                        Save email settings
+                      </Button>
+                      <Button
+                        className="min-w-40"
+                        disabled={
+                          sendTestEmail.isPending ||
+                          saveEmailSettings.isPending ||
+                          !emailSettingsQuery.data ||
+                          hasUnsavedChanges
+                        }
+                        onClick={() => sendTestEmail.mutate()}
+                        type="button"
+                        variant="secondary"
+                      >
+                        {sendTestEmail.isPending ? "Sending test email…" : "Send test email"}
+                      </Button>
+                      {emailSettingsQuery.data ? (
                         <Button
                           className="min-w-40"
-                          disabled={
-                            sendTestEmail.isPending ||
-                            saveEmailSettings.isPending ||
-                            !emailSettingsQuery.data ||
-                            hasUnsavedChanges
-                          }
-                          onClick={() => sendTestEmail.mutate()}
+                          onClick={() => setIsResetDialogOpen(true)}
                           type="button"
-                          variant="secondary"
+                          variant="destructive"
                         >
-                          {sendTestEmail.isPending ? "Sending test email…" : "Send test email"}
+                          <Trash2 className="h-4 w-4" />
+                          Reset configuration
                         </Button>
-                        {emailSettingsQuery.data ? (
-                          <Button
-                            className="min-w-40"
-                            onClick={() => setIsResetDialogOpen(true)}
-                            type="button"
-                            variant="destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Reset configuration
-                          </Button>
-                        ) : null}
-                      </div>
-                      {hasUnsavedChanges ? (
-                        <p className="text-sm text-parcelis-gray">Save changes before sending a test email.</p>
                       ) : null}
-                    </form>
-                  )}
-                </CardContent>
-              </Card>
-              <AlertDialog onOpenChange={setIsResetDialogOpen} open={isResetDialogOpen}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Reset organization SMTP settings?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This clears the form and makes future email use the deployment’s SMTP configuration until you save
-                      a new configuration.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  {deleteEmailSettings.error ? (
-                    <p className="text-sm font-medium text-red-700">{deleteEmailSettings.error.message}</p>
-                  ) : null}
-                  <AlertDialogFooter>
-                    <Button onClick={() => setIsResetDialogOpen(false)} type="button" variant="secondary">
-                      Cancel
-                    </Button>
-                    <Button
-                      disabled={deleteEmailSettings.isPending}
-                      onClick={() => deleteEmailSettings.mutate()}
-                      type="button"
-                      variant="destructive"
-                    >
-                      {deleteEmailSettings.isPending ? "Resetting settings…" : "Reset settings"}
-                    </Button>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </div>
+                    </div>
+                    {hasUnsavedChanges ? (
+                      <p className="text-sm text-parcelis-gray">Save changes before sending a test email.</p>
+                    ) : null}
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+            <AlertDialog onOpenChange={setIsResetDialogOpen} open={isResetDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset organization SMTP settings?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This clears the form and makes future email use the deployment’s SMTP configuration until you save a
+                    new configuration.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {deleteEmailSettings.error ? (
+                  <p className="text-sm font-medium text-red-700">{deleteEmailSettings.error.message}</p>
+                ) : null}
+                <AlertDialogFooter>
+                  <Button onClick={() => setIsResetDialogOpen(false)} type="button" variant="secondary">
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={deleteEmailSettings.isPending}
+                    onClick={() => deleteEmailSettings.mutate()}
+                    type="button"
+                    variant="destructive"
+                  >
+                    {deleteEmailSettings.isPending ? "Resetting settings…" : "Reset settings"}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </SecondaryNavigationLayout>
         </div>
       </section>
     </main>

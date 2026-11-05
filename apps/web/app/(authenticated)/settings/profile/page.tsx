@@ -1,5 +1,6 @@
 "use client";
 
+import { SecondaryNavigationLayout } from "../../../../components/secondary-navigation-layout";
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +15,6 @@ import { ImageUploadPanel } from "../../../../components/image-upload-panel";
 import { AccountInfoCard } from "../../../../components/account-info-card";
 import { deleteUserProfileImage, uploadUserProfileImage } from "../../../../components/user-profile-image-upload";
 import { settingUpdatedMessage } from "../../../../components/toast-messages";
-
 
 export default function ProfileSettingsPage() {
   const queryClient = useQueryClient();
@@ -89,110 +89,111 @@ export default function ProfileSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail
-              active="none"
-              canManageRoles={currentUserQuery.data?.user.role === "administrator"}
-              canManageUsers={currentUserQuery.data?.user.role === "administrator"}
-              canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
-            />
-            <div className="min-w-0 flex-1">
+          <SecondaryNavigationLayout
+            className="gap-6"
+            navigation={
+              <SettingsRail
+                active="none"
+                canManageRoles={currentUserQuery.data?.user.role === "administrator"}
+                canManageUsers={currentUserQuery.data?.user.role === "administrator"}
+                canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
+              />
+            }
+            header={
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
                 <h1 className="mt-2 text-3xl font-bold md:text-5xl">Profile</h1>
                 <p className="mt-3 max-w-2xl text-sm text-white/75">Manage the details shown for your account.</p>
               </section>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h2 className="font-semibold text-parcelis-charcoal">Personal details</h2>
-                      <p className="mt-1 text-sm text-parcelis-gray">Update your name and phone number.</p>
-                    </div>
-                    <CircleUserRound className="h-5 w-5 text-parcelis-green" />
+            }
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">Personal details</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">Update your name and phone number.</p>
                   </div>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-8 lg:flex-row">
-                  {currentUserQuery.isLoading ? (
-                    <LoadingState label="Loading profile…" />
-                  ) : currentUserQuery.error ? (
-                    <p className="text-sm font-medium text-red-700">{currentUserQuery.error.message}</p>
-                  ) : (
-                    <>
-                      <div className="w-full shrink-0 lg:w-64">
-                        <ImageUploadPanel
-                          acceptedImageDescription="GIF, JPG, PNG, or WebP"
-                          alt="Profile photo"
-                          hasPendingImage={Boolean(profileImageFile)}
-                          imagePreviewUrl={profileImagePreviewUrl ?? currentUserQuery.data?.user.imageUrl ?? null}
-                          isDeletePending={isProfileChangePending}
-                          onDelete={() => {
-                            if (profileImageFile) setProfileImageFile(null);
-                            else deleteProfileImageMutation.mutate();
-                          }}
-                          onImageChange={setProfileImageFile}
-                          title="Profile photo"
-                        />
-                        {deleteProfileImageMutation.error ? (
-                          <p className="mt-3 text-sm font-medium text-red-700">
-                            {deleteProfileImageMutation.error.message}
-                          </p>
-                        ) : null}
-                      </div>
-                      <form
-                        className="flex w-full max-w-2xl flex-wrap gap-5"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          updateProfileMutation.mutate();
+                  <CircleUserRound className="h-5 w-5 text-parcelis-green" />
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-8 lg:flex-row">
+                {currentUserQuery.isLoading ? (
+                  <LoadingState label="Loading profile…" />
+                ) : currentUserQuery.error ? (
+                  <p className="text-sm font-medium text-red-700">{currentUserQuery.error.message}</p>
+                ) : (
+                  <>
+                    <div className="w-full shrink-0 lg:w-64">
+                      <ImageUploadPanel
+                        acceptedImageDescription="GIF, JPG, PNG, or WebP"
+                        alt="Profile photo"
+                        hasPendingImage={Boolean(profileImageFile)}
+                        imagePreviewUrl={profileImagePreviewUrl ?? currentUserQuery.data?.user.imageUrl ?? null}
+                        isDeletePending={isProfileChangePending}
+                        onDelete={() => {
+                          if (profileImageFile) setProfileImageFile(null);
+                          else deleteProfileImageMutation.mutate();
                         }}
-                      >
-                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
-                          Name
-                          <Input
-                            className="mt-1"
-                            onChange={(event) => setName(event.target.value)}
-                            required
-                            value={name}
-                          />
-                        </Label>
-                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
-                          Phone
-                          <Input
-                            className="mt-1"
-                            onChange={(event) => setPhone(event.target.value)}
-                            type="tel"
-                            value={phone}
-                          />
-                        </Label>
-                        <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
-                          User role
-                          <Input className="mt-1" readOnly value={formatLabel(currentUserQuery.data?.user.role)} />
-                        </Label>
-                        {updateProfileMutation.error ? (
-                          <p className="w-full text-sm font-medium text-red-700">
-                            {updateProfileMutation.error.message}
-                          </p>
-                        ) : null}
-                        <div className="flex w-full justify-end">
-                          <Button disabled={isProfileChangePending} type="submit">
-                            Save changes
-                          </Button>
-                        </div>
-                      </form>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-              <AccountInfoCard
-                email={currentUserQuery.data?.user.email ?? ""}
-                onEmailChanged={async () => {
-                  await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
-                  await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
-                }}
-              />
-            </div>
-          </div>
+                        onImageChange={setProfileImageFile}
+                        title="Profile photo"
+                      />
+                      {deleteProfileImageMutation.error ? (
+                        <p className="mt-3 text-sm font-medium text-red-700">
+                          {deleteProfileImageMutation.error.message}
+                        </p>
+                      ) : null}
+                    </div>
+                    <form
+                      className="flex w-full max-w-2xl flex-wrap gap-5"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        updateProfileMutation.mutate();
+                      }}
+                    >
+                      <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
+                        Name
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setName(event.target.value)}
+                          required
+                          value={name}
+                        />
+                      </Label>
+                      <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
+                        Phone
+                        <Input
+                          className="mt-1"
+                          onChange={(event) => setPhone(event.target.value)}
+                          type="tel"
+                          value={phone}
+                        />
+                      </Label>
+                      <Label className="w-full md:basis-[calc((100%-1.25rem)/2)]">
+                        User role
+                        <Input className="mt-1" readOnly value={formatLabel(currentUserQuery.data?.user.role)} />
+                      </Label>
+                      {updateProfileMutation.error ? (
+                        <p className="w-full text-sm font-medium text-red-700">{updateProfileMutation.error.message}</p>
+                      ) : null}
+                      <div className="flex w-full justify-end">
+                        <Button disabled={isProfileChangePending} type="submit">
+                          Save changes
+                        </Button>
+                      </div>
+                    </form>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            <AccountInfoCard
+              email={currentUserQuery.data?.user.email ?? ""}
+              onEmailChanged={async () => {
+                await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+                await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+              }}
+            />
+          </SecondaryNavigationLayout>
         </div>
       </section>
     </main>
