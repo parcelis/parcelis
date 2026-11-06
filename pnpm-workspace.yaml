@@ -3,10 +3,8 @@ allowBuilds:
   "@prisma/engines": true
   "@swc/core": true
   argon2: true
-  core-js: true
   esbuild: true
   msgpackr-extract: false
-  postman-code-generators: true
   prisma: true
 
 minimumReleaseAge: 0
@@ -17,6 +15,3 @@ overrides:
 packages:
   - "apps/*"
   - "packages/*"
-
-patchedDependencies:
-  postman-code-generators@2.1.1: patches/postman-code-generators@2.1.1.patch

@@ -74,7 +74,9 @@ is complete.
 The current local docs checkout is `../parcelis-docs/parcelis-docs`. The published site
 uses the `docusaurus-docs-site` branch and keeps guides in `docusaurus-site/docs`.
 Read that repository's instructions and use its own package-manager version and checks.
-Use the docs repository for maintained user-facing content; `apps/docs` is a legacy copy.
+Documentation runs and deploys independently from this monorepo. Use the docs repository
+for all user-facing content and site changes. Application `/docs` links redirect to
+`https://docs.parcelis.dev/`; there is no local documentation server. It lives at parcelis/parcelis-docs/.
 
 Keep applicable updates to `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, and
 `DEPENDENCIES.md` in the application PR. Open a companion PR for changes in the docs
@@ -224,7 +226,7 @@ Apps:
 
 - `apps/web`: Next.js App Router frontend.
 - `apps/api`: separate Next.js API serving tRPC, REST, and Bull Board.
-- `apps/docs`: legacy Docusaurus site; maintained guides live in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs).
+- Documentation: maintained separately in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs).
 
 The API commands run Next.js on port 40010. `build` creates the production Next.js
 build; `typecheck` checks the API routes, modules, and tests. For direct API previews,
@@ -287,14 +289,14 @@ Run `pnpm status:dev` separately to edit the status monitor with automatic serve
 restarts. Service results update in place every 15 seconds without closing details;
 refresh the browser after layout or script changes. Restarting resets its in-memory history.
 
-`pnpm dev` starts the web, API, docs, React Email preview, shared jobs compiler, and worker apps with hot reload. It also starts nginx, PostgreSQL, Redis, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
+`pnpm dev` starts the web, API, React Email preview, shared jobs compiler, and worker apps with hot reload. It also starts nginx, PostgreSQL, Redis, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
 
 Use nginx as the normal local entry point:
 
 | Service              | URL                                                                                                      |
 | -------------------- | -------------------------------------------------------------------------------------------------------- |
 | Web app              | `http://localhost`                                                                                       |
-| Documentation        | `http://localhost/docs/`                                                                                 |
+| Documentation        | [docs.parcelis.dev](https://docs.parcelis.dev/)                                                          |
 | API                  | `http://localhost/api/v1`                                                                                |
 | React Email previews | `http://templates.localhost/` by default; use `http://templates.localhost:<PROXY_PORT>/` when configured |
 
@@ -305,7 +307,6 @@ The host processes and local services are also available directly:
 | Service       | Address                  |
 | ------------- | ------------------------ |
 | Web app       | `http://localhost:30000` |
-| Docs          | `http://localhost:40000` |
 | API           | `http://localhost:40010` |
 | Email preview | `http://localhost:30001` |
 | PostgreSQL    | `localhost:54320`        |
@@ -487,8 +488,8 @@ Review generated code before committing it; replace fragile selectors and add ou
 
 Parcelis uses two Compose workflows:
 
-- `docker-compose-dev.yml` starts nginx and the local infrastructure services needed for development: PostgreSQL, pgAdmin, Redis, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, docs, jobs, and worker processes stay on the host so you get hot reload.
-- `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, a separate worker container from the app image, plus PostgreSQL, Redis, and MinIO.
+- `docker-compose-dev.yml` starts nginx and the local infrastructure services needed for development: PostgreSQL, pgAdmin, Redis, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, jobs, and worker processes stay on the host so you get hot reload.
+- `docker-compose.yml` runs the production-style application stack using published images for the app and proxy containers, a separate worker container from the app image, plus PostgreSQL, Redis, and MinIO.
 
 #### Local development dependencies
 
@@ -499,21 +500,40 @@ cp .env.example .env
 docker compose -f docker-compose-dev.yml up -d
 ```
 
-The development stack provides the nginx proxy and local dependencies. `pnpm dev` starts nginx, PostgreSQL, Redis, MinIO, and MinIO initialization before starting the host-based web, API, docs, React Email preview, jobs, and worker processes. Keep the compose stack running while you work, then stop it when you are done. Set `PROXY_PORT` when port 80 is already in use.
+The development stack provides the nginx proxy and local dependencies. `pnpm dev` starts nginx, PostgreSQL, Redis, MinIO, and MinIO initialization before starting the host-based web, API, React Email preview, jobs, and worker processes. Keep the compose stack running while you work, then stop it when you are done. Set `PROXY_PORT` when port 80 is already in use.
 
 #### Production-style deployment
 
-Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/apps`, `parcelis/docs`, and `parcelis/proxy`.
+Published releases publish separate Docker images for the application and nginx proxy: `parcelis/apps` and `parcelis/proxy`. The optional `parcelis/parcelis` image includes the application and public nginx routing. Documentation is hosted separately at `https://docs.parcelis.dev/`.
 
-Copy `.env.production.example` to `.env.production`, replace every placeholder (including `REDIS_PASSWORD`), and set `PARCELIS_VERSION` to a release tag such as `v0.4.1` rather than using `latest`.
+Copy `.env.production.example` to `.env.production`, replace every placeholder (including `REDIS_PASSWORD`), and set `PARCELIS_VERSION` to a release tag that includes the documentation removal, or a tag built from this checkout. The Compose files require an explicit value; older tags such as `v0.4.1` still require `docs-service` and must use their matching deployment files.
+
+Until a compatible release is published, build all modular images from this checkout with one tag:
+
+```bash
+docker build --target app -f Dockerfile.app -t parcelis/apps:local-docs-independent .
+docker build --target proxy -f infra/docker/proxy/Dockerfile -t parcelis/proxy:local-docs-independent .
+# Set PARCELIS_VERSION=local-docs-independent in .env.production.
+docker compose --env-file .env.production up -d --remove-orphans
+```
+
+Skip `pull` for locally built images. For compatible published modular images, use:
 
 ```bash
 docker compose --env-file .env.production pull
 docker compose --env-file .env.production up -d --remove-orphans
 ```
 
-The Compose stack runs the database migration job and MinIO provisioning before the application services become available. The `migrate` and `minio-init` containers exit after that initialization work; MinIO continues running and the app, docs, and worker services remain up. Put a TLS reverse proxy in front of the exposed web, docs, and object-storage endpoints configured in `.env.production`.
-The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `APP_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
+For the optional single-image stack, build and run:
+
+```bash
+docker build -f Dockerfile.app --target single-image -t parcelis/parcelis:local-docs-independent .
+# Set PARCELIS_VERSION=local-docs-independent in .env.production.
+docker compose --env-file .env.production -f docker-compose-single-image.yml up -d --remove-orphans
+```
+
+The Compose stack runs the database migration job and MinIO provisioning before the application services become available. The `migrate` and `minio-init` containers exit after that initialization work; MinIO continues running and the app and worker services remain up. Put a TLS reverse proxy in front of the exposed web and object-storage endpoints configured in `.env.production`.
+The production nginx proxy serves the web UI at `/` and the API at `/api/v1`, on the configured `APP_PORT`. Next.js redirects legacy `/docs` links to the independent documentation site. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
 
 For logs and cleanup:
 
@@ -552,10 +572,10 @@ Property images use `properties/{propertyId}/images/{imageId}.{extension}`. Tena
 
 #### Custom ports
 
-Override local host ports with `APP_PORT`, `API_PORT`, `DOCS_PORT`, `POSTGRES_PORT`, `PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
+Override local host ports with `APP_PORT`, `API_PORT`, `POSTGRES_PORT`, `PGADMIN_PORT`, `MINIO_API_PORT`, and `MINIO_CONSOLE_PORT`:
 
 ```bash
-APP_PORT=43200 API_PORT=43202 DOCS_PORT=43201 POSTGRES_PORT=43203 PGADMIN_PORT=43204 MINIO_API_PORT=43205 MINIO_CONSOLE_PORT=43206 docker compose -f docker-compose-dev.yml up
+APP_PORT=43200 API_PORT=43202 POSTGRES_PORT=43203 PGADMIN_PORT=43204 MINIO_API_PORT=43205 MINIO_CONSOLE_PORT=43206 docker compose -f docker-compose-dev.yml up
 ```
 
 The containers keep their standard internal ports. Set only the variables you need to change.

@@ -1,17 +1,19 @@
 import { config } from "dotenv";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import type { NextConfig } from "next";
+import { documentationRedirects } from "./documentation-redirects";
+import { resolve } from "node:path";
 
-config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env") });
+config({ path: resolve(__dirname, "../../.env") });
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   experimental: { proxyClientMaxBodySize: "17mb" },
   transpilePackages: ["@parcelis/ui", "@parcelis/schemas"],
+  async redirects() {
+    return documentationRedirects;
+  },
   async rewrites() {
     const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:40010";
-    const docsUrl = process.env.DOCS_INTERNAL_URL || `http://localhost:${process.env.DOCS_PORT || "40000"}`;
     const statusUrl = process.env.STATUS_INTERNAL_URL || `http://localhost:${process.env.STATUS_PORT || "40020"}`;
 
     return [
@@ -28,18 +30,6 @@ const nextConfig = {
         destination: `${apiUrl}/api/auth/:path*`,
       },
       {
-        source: "/docs",
-        destination: `${docsUrl}/docs/`,
-      },
-      {
-        source: "/docs/",
-        destination: `${docsUrl}/docs/`,
-      },
-      {
-        source: "/docs/:path*",
-        destination: `${docsUrl}/docs/:path*`,
-      },
-      {
         source: "/trpc/:path*",
         destination: `${apiUrl}/trpc/:path*`,
       },
@@ -54,7 +44,7 @@ const nextConfig = {
     ];
   },
   turbopack: {
-    root: resolve(dirname(fileURLToPath(import.meta.url)), "../.."),
+    root: resolve(__dirname, "../.."),
   },
 };
 

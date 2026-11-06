@@ -1,9 +1,9 @@
 # PostgreSQL 16 installations: migrate before starting this updated stack.
-# See https://docs.parcelis.dev/getting-started/upgrade-postgresql and scripts/upgrade-postgres.mjs.
+# See https://docs.parcelis.dev/docs/upgrade-postgresql and scripts/upgrade-postgres.mjs.
 # Single application image Compose example.
 #
 # Runs the published `parcelis/parcelis` image, which bundles the Parcelis web
-# app, API, worker, documentation site, and nginx edge routing into one
+# app, API, worker, and nginx edge routing into one
 # application image. This is not a single-container deployment: PostgreSQL,
 # Redis, and S3-compatible object storage (MinIO is provided here) remain
 # separate services that you can replace with managed equivalents.
@@ -27,7 +27,7 @@ services:
       - |
         if [ -f /legacy/PG_VERSION ] && [ ! -f /var/lib/postgresql/.parcelis-pg18-migrated ]; then
           echo >&2 "Parcelis requires PostgreSQL 18. Existing database detected; startup blocked to protect your data."
-          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/getting-started/upgrade-postgresql."
+          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/docs/upgrade-postgresql."
           exit 1
         fi
         exec /usr/local/bin/docker-entrypoint.sh postgres
@@ -104,7 +104,7 @@ services:
       - parcelis
 
   migrate-service:
-    image: parcelis/parcelis:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/parcelis:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-single-image-migrate
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     working_dir: /repo
@@ -117,7 +117,7 @@ services:
       - parcelis
 
   app-service:
-    image: parcelis/parcelis:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/parcelis:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-single-image-app
     ports:
       - "${APP_PORT:-3000}:3000"
@@ -162,7 +162,7 @@ services:
       start_period: 60s
 
   worker-service:
-    image: parcelis/parcelis:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/parcelis:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-single-image-worker
     command: pnpm --filter @parcelis/worker start
     environment:
