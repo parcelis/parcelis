@@ -1,5 +1,6 @@
 "use client";
 
+import { SecondaryNavigationLayout } from "../../../components/secondary-navigation-layout";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -55,7 +56,6 @@ import {
   entityEnabledMessage,
   entityUpdatedMessage,
 } from "../../../components/toast-messages";
-
 
 type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
 
@@ -306,9 +306,16 @@ export default function SettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail active="users" canManageInvoicing={hasPermission(currentUserQuery.data?.permissions, "invoices", "view")} canManageRoles={isAdministrator} canManageUsers={canViewUsers} />
-            <div className="min-w-0 flex-1">
+          <SecondaryNavigationLayout
+            navigation={
+              <SettingsRail
+                active="users"
+                canManageInvoicing={hasPermission(currentUserQuery.data?.permissions, "invoices", "view")}
+                canManageRoles={isAdministrator}
+                canManageUsers={canViewUsers}
+              />
+            }
+            header={
               <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
                 <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">
                   <div className="rounded-md bg-white/10 p-3">
@@ -321,120 +328,120 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </PageRail>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h2 className="font-semibold text-parcelis-charcoal">User accounts</h2>
-                      <p className="mt-1 text-sm text-parcelis-gray">
-                        {users.length} {users.length === 1 ? "account" : "accounts"} created
-                      </p>
-                    </div>
-                    <Users className="h-5 w-5 text-parcelis-green" />
+            }
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">User accounts</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      {users.length} {users.length === 1 ? "account" : "accounts"} created
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent className="overflow-x-auto p-0">
-                  {!canViewUsers ? (
-                    <div className="min-h-48 p-5 text-sm text-parcelis-gray">
-                      You do not have permission to view the user directory.
-                    </div>
-                  ) : usersQuery.isLoading ? (
-                    <LoadingState label="Loading users…" />
-                  ) : usersQuery.error ? (
-                    <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
-                  ) : users.length === 0 ? (
-                    <div className="min-h-48 p-5 text-sm text-parcelis-gray">No user accounts yet.</div>
-                  ) : (
-                    <Table className="min-w-[1080px] border-collapse text-left">
-                      <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
-                        <TableRow className="border-0">
-                          <TableHead className="px-5 py-3 font-semibold">User</TableHead>
-                          <TableHead className="px-5 py-3 font-semibold">Email</TableHead>
-                          <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
-                          <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
-                          <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
-                          {canManageUserActions ? (
-                            <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
-                          ) : null}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((user) => (
-                          <TableRow
-                            className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
-                            key={user.id}
-                          >
-                            <TableCell className="px-5 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
-                                  <Users className="h-4 w-4" />
-                                </div>
-                                <Link
-                                  className="font-semibold text-parcelis-charcoal hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2"
-                                  href={`/settings/profile/${user.id}`}
-                                >
-                                  {user.name}
-                                </Link>
+                  <Users className="h-5 w-5 text-parcelis-green" />
+                </div>
+              </CardHeader>
+              <CardContent className="overflow-x-auto p-0">
+                {!canViewUsers ? (
+                  <div className="min-h-48 p-5 text-sm text-parcelis-gray">
+                    You do not have permission to view the user directory.
+                  </div>
+                ) : usersQuery.isLoading ? (
+                  <LoadingState label="Loading users…" />
+                ) : usersQuery.error ? (
+                  <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
+                ) : users.length === 0 ? (
+                  <div className="min-h-48 p-5 text-sm text-parcelis-gray">No user accounts yet.</div>
+                ) : (
+                  <Table className="min-w-[1080px] border-collapse text-left">
+                    <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                      <TableRow className="border-0">
+                        <TableHead className="px-5 py-3 font-semibold">User</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Email</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
+                        {canManageUserActions ? (
+                          <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
+                        ) : null}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow
+                          className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
+                          key={user.id}
+                        >
+                          <TableCell className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
+                                <Users className="h-4 w-4" />
                               </div>
-                            </TableCell>
-                            <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                              <Link
+                                className="font-semibold text-parcelis-charcoal hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2"
+                                href={`/settings/profile/${user.id}`}
+                              >
+                                {user.name}
+                              </Link>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            <a
+                              className="flex items-center gap-2 hover:text-parcelis-charcoal"
+                              href={`mailto:${user.email}`}
+                            >
+                              <Mail className="h-4 w-4 text-parcelis-green" />
+                              {user.email}
+                            </a>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            {user.phone ? (
                               <a
                                 className="flex items-center gap-2 hover:text-parcelis-charcoal"
-                                href={`mailto:${user.email}`}
+                                href={`tel:${user.phone}`}
                               >
-                                <Mail className="h-4 w-4 text-parcelis-green" />
-                                {user.email}
+                                <Phone className="h-4 w-4 text-parcelis-green" />
+                                {user.phone}
                               </a>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
+                            {formatLabel(user.role)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4">
+                            <Badge
+                              className="w-fit"
+                              variant={user.accountStatus === "active" ? "default" : "secondary"}
+                            >
+                              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                              {formatLabel(user.accountStatus)}
+                            </Badge>
+                          </TableCell>
+                          {canManageUserActions ? (
+                            <TableCell className="px-5 py-4 text-right">
+                              <UserActionsMenu
+                                canArchive={canArchiveUsers}
+                                canDelete={canDeleteUsers}
+                                canEdit={canEditUsers}
+                                canManage={isAdministrator || user.role !== "administrator"}
+                                onDelete={() => setDeleteUser(user)}
+                                onEdit={() => openEdit(user)}
+                                onToggleAccountStatus={() => setDisableUser(user)}
+                                user={user}
+                              />
                             </TableCell>
-                            <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                              {user.phone ? (
-                                <a
-                                  className="flex items-center gap-2 hover:text-parcelis-charcoal"
-                                  href={`tel:${user.phone}`}
-                                >
-                                  <Phone className="h-4 w-4 text-parcelis-green" />
-                                  {user.phone}
-                                </a>
-                              ) : (
-                                "—"
-                              )}
-                            </TableCell>
-                            <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
-                              {formatLabel(user.role)}
-                            </TableCell>
-                            <TableCell className="px-5 py-4">
-                              <Badge
-                                className="w-fit"
-                                variant={user.accountStatus === "active" ? "default" : "secondary"}
-                              >
-                                <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-                                {formatLabel(user.accountStatus)}
-                              </Badge>
-                            </TableCell>
-                            {canManageUserActions ? (
-                              <TableCell className="px-5 py-4 text-right">
-                                <UserActionsMenu
-                                  canArchive={canArchiveUsers}
-                                  canDelete={canDeleteUsers}
-                                  canEdit={canEditUsers}
-                                  canManage={isAdministrator || user.role !== "administrator"}
-                                  onDelete={() => setDeleteUser(user)}
-                                  onEdit={() => openEdit(user)}
-                                  onToggleAccountStatus={() => setDisableUser(user)}
-                                  user={user}
-                                />
-                              </TableCell>
-                            ) : null}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                          ) : null}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </SecondaryNavigationLayout>
         </div>
       </section>
     </main>

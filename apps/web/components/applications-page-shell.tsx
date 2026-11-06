@@ -1,9 +1,9 @@
+import { SecondaryNavigationLayout } from "./secondary-navigation-layout";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@parcelis/ui";
 import { ApplicationsRail, type ApplicationsRailActive } from "./applications-rail";
-
 
 type ApplicationsPageShellProps = {
   active: ApplicationsRailActive;
@@ -30,9 +30,11 @@ export function ApplicationsPageShell({
             </Button>
           </div>
         </header>
-        <div className="parcelis-page-shell flex flex-col gap-5 lg:flex-row">
-          <ApplicationsRail active={active} />
-          <div className="min-w-0 flex-1">
+        <SecondaryNavigationLayout
+          className="parcelis-page-shell"
+          gap={5}
+          navigation={<ApplicationsRail active={active} />}
+          header={
             <section className="rounded-lg bg-parcelis-charcoal p-6 text-white">
               <div className="flex items-center gap-3 text-parcelis-green">
                 <Icon className="h-5 w-5" />
@@ -41,9 +43,10 @@ export function ApplicationsPageShell({
               <h1 className="mt-5 text-3xl font-bold md:text-5xl">{title}</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">{description}</p>
             </section>
-            {children}
-          </div>
-        </div>
+          }
+        >
+          {children}
+        </SecondaryNavigationLayout>
       </section>
     </main>
   );

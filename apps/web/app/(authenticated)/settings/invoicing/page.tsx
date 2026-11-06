@@ -1,5 +1,6 @@
 "use client";
 
+import { SecondaryNavigationLayout } from "../../../../components/secondary-navigation-layout";
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -58,14 +59,16 @@ export default function InvoicingSettingsPage() {
           </Button>
         </header>
         <div className="parcelis-page-shell">
-          <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail
-              active="invoicing"
-              canManageInvoicing={canView}
-              canManageRoles={currentUserQuery.data?.user.role === "administrator"}
-              canManageUsers={hasPermission(currentUserQuery.data?.permissions, "users", "view")}
-            />
-            <div className="min-w-0 flex-1">
+          <SecondaryNavigationLayout
+            navigation={
+              <SettingsRail
+                active="invoicing"
+                canManageInvoicing={canView}
+                canManageRoles={currentUserQuery.data?.user.role === "administrator"}
+                canManageUsers={hasPermission(currentUserQuery.data?.permissions, "users", "view")}
+              />
+            }
+            header={
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
                 <h1 className="mt-5 text-3xl font-bold md:text-5xl">Invoicing</h1>
@@ -73,132 +76,133 @@ export default function InvoicingSettingsPage() {
                   Configure reusable invoice charges for leases and manual invoices.
                 </p>
               </section>
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h2 className="font-semibold text-parcelis-charcoal">Charges</h2>
-                      <p className="mt-1 text-sm text-parcelis-gray">
-                        Set an item name and an optional default description. Use {"{month}"} and {"{year}"} to include
-                        the invoice month.
-                      </p>
-                    </div>
-                    <ReceiptText className="h-5 w-5 text-parcelis-green" />
+            }
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">Charges</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      Set an item name and an optional default description. Use {"{month}"} and {"{year}"} to include
+                      the invoice month.
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {currentUserQuery.isLoading ? (
-                    <LoadingState label="Loading account…" />
-                  ) : currentUserQuery.error ? (
-                    <p className="text-sm text-red-700">{currentUserQuery.error.message}</p>
-                  ) : !canView ? (
-                    <p className="text-sm text-parcelis-gray">You don’t have permission to view invoice settings.</p>
-                  ) : (
-                    <>
-                      {(canCreate || canEdit) && (
-                        <form
-                          className="flex max-w-3xl flex-col gap-4"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            save.mutate();
-                          }}
-                        >
-                          <div className="flex flex-col gap-4 md:flex-row">
-                            <Label className="flex-1 gap-2">
-                              Item name *
-                              <Input
-                                maxLength={200}
-                                onChange={(event) => setName(event.target.value)}
-                                required
-                                value={name}
-                              />
-                            </Label>
-                            <Label className="flex-1 gap-2">
-                              Default description
-                              <Input
-                                maxLength={2000}
-                                onChange={(event) => setDescription(event.target.value)}
-                                value={description}
-                              />
-                            </Label>
-                          </div>
-                          <div className="flex flex-wrap gap-3">
-                            <Button disabled={save.isPending || (editing ? !canEdit : !canCreate)} type="submit">
-                              {editing ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                              {editing ? "Save charge" : "Add charge"}
-                            </Button>
-                            {editing && (
-                              <Button
-                                onClick={() => {
-                                  setEditing(null);
-                                  setName("");
-                                  setDescription("");
-                                }}
-                                type="button"
-                                variant="secondary"
-                              >
-                                Cancel
-                              </Button>
-                            )}
-                          </div>
-                          {save.error && <p className="text-sm text-red-700">{save.error.message}</p>}
-                        </form>
-                      )}
-                      {chargesQuery.isLoading ? (
-                        <LoadingState label="Loading charges…" />
-                      ) : chargesQuery.error ? (
-                        <p className="text-sm text-red-700">{chargesQuery.error.message}</p>
-                      ) : (
-                        <div className="divide-y divide-parcelis-border rounded-md border border-parcelis-border">
-                          {(chargesQuery.data ?? []).map((charge) => (
-                            <div className="flex items-center justify-between gap-4 p-4" key={charge.id}>
-                              <div className="min-w-0">
-                                <p className="font-semibold text-parcelis-charcoal">
-                                  {charge.name}
-                                  {charge.isDefault && <span className="ml-2 text-xs text-parcelis-gray">Default</span>}
-                                </p>
-                                <p className="text-sm text-parcelis-gray">
-                                  {charge.description || "No default description"}
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                {canEdit && (
-                                  <Button
-                                    aria-label={`Edit ${charge.name}`}
-                                    onClick={() => {
-                                      setEditing(charge.id);
-                                      setName(charge.name);
-                                      setDescription(charge.description ?? "");
-                                    }}
-                                    size="sm"
-                                    variant="secondary"
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                {canDelete && !charge.isDefault && (
-                                  <Button
-                                    aria-label={`Delete ${charge.name}`}
-                                    disabled={remove.isPending}
-                                    onClick={() => remove.mutate(charge.id)}
-                                    size="sm"
-                                    variant="destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                  <ReceiptText className="h-5 w-5 text-parcelis-green" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {currentUserQuery.isLoading ? (
+                  <LoadingState label="Loading account…" />
+                ) : currentUserQuery.error ? (
+                  <p className="text-sm text-red-700">{currentUserQuery.error.message}</p>
+                ) : !canView ? (
+                  <p className="text-sm text-parcelis-gray">You don’t have permission to view invoice settings.</p>
+                ) : (
+                  <>
+                    {(canCreate || canEdit) && (
+                      <form
+                        className="flex max-w-3xl flex-col gap-4"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          save.mutate();
+                        }}
+                      >
+                        <div className="flex flex-col gap-4 md:flex-row">
+                          <Label className="flex-1 gap-2">
+                            Item name *
+                            <Input
+                              maxLength={200}
+                              onChange={(event) => setName(event.target.value)}
+                              required
+                              value={name}
+                            />
+                          </Label>
+                          <Label className="flex-1 gap-2">
+                            Default description
+                            <Input
+                              maxLength={2000}
+                              onChange={(event) => setDescription(event.target.value)}
+                              value={description}
+                            />
+                          </Label>
                         </div>
-                      )}
-                      {remove.error && <p className="text-sm text-red-700">{remove.error.message}</p>}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                        <div className="flex flex-wrap gap-3">
+                          <Button disabled={save.isPending || (editing ? !canEdit : !canCreate)} type="submit">
+                            {editing ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                            {editing ? "Save charge" : "Add charge"}
+                          </Button>
+                          {editing && (
+                            <Button
+                              onClick={() => {
+                                setEditing(null);
+                                setName("");
+                                setDescription("");
+                              }}
+                              type="button"
+                              variant="secondary"
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                        </div>
+                        {save.error && <p className="text-sm text-red-700">{save.error.message}</p>}
+                      </form>
+                    )}
+                    {chargesQuery.isLoading ? (
+                      <LoadingState label="Loading charges…" />
+                    ) : chargesQuery.error ? (
+                      <p className="text-sm text-red-700">{chargesQuery.error.message}</p>
+                    ) : (
+                      <div className="divide-y divide-parcelis-border rounded-md border border-parcelis-border">
+                        {(chargesQuery.data ?? []).map((charge) => (
+                          <div className="flex items-center justify-between gap-4 p-4" key={charge.id}>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-parcelis-charcoal">
+                                {charge.name}
+                                {charge.isDefault && <span className="ml-2 text-xs text-parcelis-gray">Default</span>}
+                              </p>
+                              <p className="text-sm text-parcelis-gray">
+                                {charge.description || "No default description"}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              {canEdit && (
+                                <Button
+                                  aria-label={`Edit ${charge.name}`}
+                                  onClick={() => {
+                                    setEditing(charge.id);
+                                    setName(charge.name);
+                                    setDescription(charge.description ?? "");
+                                  }}
+                                  size="sm"
+                                  variant="secondary"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDelete && !charge.isDefault && (
+                                <Button
+                                  aria-label={`Delete ${charge.name}`}
+                                  disabled={remove.isPending}
+                                  onClick={() => remove.mutate(charge.id)}
+                                  size="sm"
+                                  variant="destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {remove.error && <p className="text-sm text-red-700">{remove.error.message}</p>}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </SecondaryNavigationLayout>
         </div>
       </section>
     </main>
