@@ -216,10 +216,10 @@ importers:
         version: 3.1162.0
       '@bull-board/api':
         specifier: ^9.10.1
-        version: 9.11.0(@bull-board/ui@9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+        version: 9.11.0(@bull-board/ui@9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       '@bull-board/hono':
         specifier: ^9.10.4
-        version: 9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.16)(typescript@6.0.3)
+        version: 9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.16)(typescript@6.0.3)
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -243,13 +243,13 @@ importers:
         version: 4.9.0(react@19.3.1)
       '@trpc/server':
         specifier: ^11.18.0
-        version: 11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3)
+        version: 11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3)
       argon2:
         specifier: ^0.45.1
         version: 0.45.2
       bullmq:
         specifier: ^6.3.9
-        version: 6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       dotenv:
         specifier: ^18.0.0
         version: 18.0.9
@@ -258,10 +258,10 @@ importers:
         version: 4.13.16
       next:
         specifier: ^16.3.8
-        version: 16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
+        version: 16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
       next-auth:
         specifier: 4.24.15
-        version: 4.24.15(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 4.24.15(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: ^19.2.8
         version: 19.3.1
@@ -270,7 +270,7 @@ importers:
         version: 19.3.1(react@19.3.1)
       trpc-to-openapi:
         specifier: ^3.3.0
-        version: 3.5.0(@trpc/server@11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3))(zod-openapi@5.4.6(zod@4.6.7))(zod@4.6.7)
+        version: 3.5.0(@trpc/server@11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3))(zod-openapi@5.4.6(zod@4.6.7))(zod@4.6.7)
       zod:
         specifier: ^4.4.3
         version: 4.6.7
@@ -480,7 +480,7 @@ importers:
         version: link:../../packages/jobs
       bullmq:
         specifier: ^6.3.8
-        version: 6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0(supports-color@8.1.1)
@@ -573,7 +573,7 @@ importers:
         version: link:../config
       '@react-email/ui':
         specifier: ^6.9.3
-        version: 6.11.6(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
+        version: 6.11.6(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -588,7 +588,7 @@ importers:
     dependencies:
       bullmq:
         specifier: ^6.3.8
-        version: 6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+        version: 6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       zod:
         specifier: ^4.6.5
         version: 4.6.7
@@ -656,7 +656,7 @@ importers:
         version: 1.68.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: ^16.3.3
-        version: 16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
+        version: 16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
       react:
         specifier: ^18.3.1 || ^19.0.0
         version: 19.3.1
@@ -668,7 +668,7 @@ importers:
         version: 19.3.1(react@19.3.1)
       react-timezone-select:
         specifier: ^4.0.0
-        version: 4.1.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 4.1.0(react-dom@19.3.1(react@19.3.1))(react-select@5.10.2(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.7.0
@@ -5216,8 +5216,8 @@ packages:
   buffer@6.0.3:
     resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
 
-  bullmq@6.7.0:
-    resolution: {integrity: sha512-+LnKsqZ+PRV/Iul7T84qEZYOewsgtnnmTc3/TjXZk6dSaOeK68AuR/p8uzQ6WIQ8Jvf/GjitjsUrmTaRV2cfsQ==}
+  bullmq@6.7.1:
+    resolution: {integrity: sha512-WIm9+O2ULs4tcEeKBwlH2so7Vzs6/K2Ru+FFb0V/v3FAlBjj5yNk7kC2KOm0/yMpdE93SvgPR+FC0jznX6ce1g==}
     engines: {node: '>=14.18.0'}
     peerDependencies:
       bullmq-otel: '>=2.0.0'
@@ -8118,8 +8118,8 @@ packages:
     resolution: {integrity: sha512-prUB8+Gc/1rEzaNo+3Rjo0Hdi6gFjQ9Td0mDsvAIkSGUyp6EADdEBiU71ZP5Mj4jCG+vai0qSNV+yisQAMYuSQ==}
     hasBin: true
 
-  msgpackr@2.1.3:
-    resolution: {integrity: sha512-C8pQ8SJjwH9C9JiCe5asXWvJC3melOxMuBj7vpTY95096ay6r1wPXG0XN56wMaRpzRPE3hdf4ufukia/j+beKQ==}
+  msgpackr@2.1.4:
+    resolution: {integrity: sha512-TvP18sX5U3MXoHHSUZen/FagaNTEJObyb8OlnJcNbqN6Ux/oCwYJrHhCOzi31bItyW/Efz1IDnRDKQ23j4ZuvA==}
 
   multicast-dns@7.2.5:
     resolution: {integrity: sha512-2eznPJP8z2BFLX50tf0LuODrpINqP1RVIm/CObbTcBRITQgmC/TjcREF1NeTBzIcR5XO/ukWo+YHOjBbFwIupg==}
@@ -9753,11 +9753,6 @@ packages:
 
   semver@7.7.1:
     resolution: {integrity: sha512-hlq8tAfn0m/61p4BVRcPzIGr6LKiMwo4VM6dGi6pt4qcRkmNzTcWq6eCEjEh+qXjkMDvPlOFFSGwQjoEa6gyMA==}
-    engines: {node: '>=10'}
-    hasBin: true
-
-  semver@7.8.5:
-    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -12003,20 +11998,20 @@ snapshots:
 
   '@braintree/sanitize-url@7.1.2': {}
 
-  '@bull-board/api@9.11.0(@bull-board/ui@9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
+  '@bull-board/api@9.11.0(@bull-board/ui@9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
     dependencies:
-      '@bull-board/ui': 9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/ui': 9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       redis-info: 3.1.0
       valibot: 1.5.0(typescript@6.0.3)
     optionalDependencies:
-      bullmq: 6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
+      bullmq: 6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
     transitivePeerDependencies:
       - typescript
 
-  '@bull-board/hono@9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.16)(typescript@6.0.3)':
+  '@bull-board/hono@9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(hono@4.13.16)(typescript@6.0.3)':
     dependencies:
-      '@bull-board/api': 9.11.0(@bull-board/ui@9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
-      '@bull-board/ui': 9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/api': 9.11.0(@bull-board/ui@9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/ui': 9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
       ejs: 6.0.1
       hono: 4.13.16
     transitivePeerDependencies:
@@ -12024,9 +12019,9 @@ snapshots:
       - bullmq
       - typescript
 
-  '@bull-board/ui@9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
+  '@bull-board/ui@9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)':
     dependencies:
-      '@bull-board/api': 9.11.0(@bull-board/ui@9.11.0(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
+      '@bull-board/api': 9.11.0(@bull-board/ui@9.11.0(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3))(bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1))(typescript@6.0.3)
     transitivePeerDependencies:
       - bull
       - bullmq
@@ -15123,11 +15118,11 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@react-email/ui@6.11.6(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)':
+  '@react-email/ui@6.11.6(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)':
     dependencies:
       esbuild: 0.28.2
       jiti: 2.6.1
-      next: 16.4.3(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
+      next: 16.4.3(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
     transitivePeerDependencies:
       - '@babel/core'
       - '@opentelemetry/api'
@@ -15756,14 +15751,6 @@ snapshots:
       '@types/express': 4.17.25
       '@types/ws': 8.18.2
       next: 16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
-
-  '@trpc/server@11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3)':
-    dependencies:
-      typescript: 6.0.3
-    optionalDependencies:
-      '@types/express': 4.17.25
-      '@types/ws': 8.18.2
-      next: 16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
 
   '@turbo/darwin-64@2.11.10':
     optional: true
@@ -16806,12 +16793,12 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
-  bullmq@6.7.0(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1):
+  bullmq@6.7.1(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1):
     dependencies:
       cron-parser: 5.10.3
-      msgpackr: 2.1.3
+      msgpackr: 2.1.4
       node-abort-controller: 3.1.1
-      semver: 7.8.5
+      semver: 7.8.6
       tslib: 2.9.1
     optionalDependencies:
       ioredis: 6.0.0(supports-color@8.1.1)
@@ -20247,7 +20234,7 @@ snapshots:
       '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.6
     optional: true
 
-  msgpackr@2.1.3:
+  msgpackr@2.1.4:
     optionalDependencies:
       msgpackr-extract: 3.0.6
 
@@ -20306,27 +20293,12 @@ snapshots:
       react-dom: 19.3.1(react@19.3.1)
       uuid: 11.1.1
 
-  next-auth@4.24.15(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
-    dependencies:
-      '@babel/runtime': 7.29.13
-      '@panva/hkdf': 1.2.1
-      cookie: 0.7.2
-      jose: 4.15.9
-      next: 16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1)
-      oauth: 0.9.15
-      openid-client: 5.7.1
-      preact: 10.29.8(preact-render-to-string@5.2.6)
-      preact-render-to-string: 5.2.6(preact@10.29.8)
-      react: 19.3.1
-      react-dom: 19.3.1(react@19.3.1)
-      uuid: 11.1.1
-
   next-themes@0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  next@16.4.3(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1):
+  next@16.4.3(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1):
     dependencies:
       '@next/env': 16.4.3
       '@swc/helpers': 0.5.23
@@ -20335,7 +20307,7 @@ snapshots:
       postcss: 8.5.23
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
-      styled-jsx: 5.1.6(@babel/core@7.29.13(supports-color@8.1.1))(react@19.3.1)
+      styled-jsx: 5.1.6(@babel/core@7.29.13(supports-color@8.1.1))(babel-plugin-macros@3.1.0)(react@19.3.1)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.4.3
       '@next/swc-darwin-x64': 16.4.3
@@ -20363,33 +20335,6 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
       styled-jsx: 5.1.6(@babel/core@7.29.13(supports-color@8.1.1))(babel-plugin-macros@3.1.0)(react@19.3.1)
-    optionalDependencies:
-      '@next/swc-darwin-arm64': 16.4.5
-      '@next/swc-darwin-x64': 16.4.5
-      '@next/swc-linux-arm64-gnu': 16.4.5
-      '@next/swc-linux-arm64-musl': 16.4.5
-      '@next/swc-linux-x64-gnu': 16.4.5
-      '@next/swc-linux-x64-musl': 16.4.5
-      '@next/swc-win32-arm64-msvc': 16.4.5
-      '@next/swc-win32-x64-msvc': 16.4.5
-      '@playwright/test': 1.64.1
-      sass: 1.107.1
-      sharp: 0.35.5(@types/node@24.19.2)
-    transitivePeerDependencies:
-      - '@babel/core'
-      - '@types/node'
-      - babel-plugin-macros
-
-  next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1):
-    dependencies:
-      '@next/env': 16.4.5
-      '@swc/helpers': 0.5.23
-      baseline-browser-mapping: 2.11.35
-      caniuse-lite: 1.0.30001820
-      postcss: 8.5.23
-      react: 19.3.1
-      react-dom: 19.3.1(react@19.3.1)
-      styled-jsx: 5.1.6(@babel/core@7.29.13(supports-color@8.1.1))(react@19.3.1)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.4.5
       '@next/swc-darwin-x64': 16.4.5
@@ -21710,12 +21655,14 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  react-timezone-select@4.1.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  react-timezone-select@4.1.0(react-dom@19.3.1(react@19.3.1))(react-select@5.10.2(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
       spacetime: 7.17.0
       timezone-soft: 1.7.1
+    optionalDependencies:
+      react-select: 5.10.2(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
 
   react-transition-group@4.4.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
@@ -22112,8 +22059,6 @@ snapshots:
   semver@6.3.2: {}
 
   semver@7.7.1: {}
-
-  semver@7.8.5: {}
 
   semver@7.8.6: {}
 
@@ -22568,13 +22513,6 @@ snapshots:
       '@babel/core': 7.29.13(supports-color@8.1.1)
       babel-plugin-macros: 3.1.0
 
-  styled-jsx@5.1.6(@babel/core@7.29.13(supports-color@8.1.1))(react@19.3.1):
-    dependencies:
-      client-only: 0.0.1
-      react: 19.3.1
-    optionalDependencies:
-      '@babel/core': 7.29.13(supports-color@8.1.1)
-
   stylehacks@6.1.1(postcss@8.5.32):
     dependencies:
       browserslist: 4.29.5
@@ -22745,9 +22683,9 @@ snapshots:
 
   trough@2.2.0: {}
 
-  trpc-to-openapi@3.5.0(@trpc/server@11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3))(zod-openapi@5.4.6(zod@4.6.7))(zod@4.6.7):
+  trpc-to-openapi@3.5.0(@trpc/server@11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3))(zod-openapi@5.4.6(zod@4.6.7))(zod@4.6.7):
     dependencies:
-      '@trpc/server': 11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3)
+      '@trpc/server': 11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.107.1))(typescript@6.0.3)
       co-body: 6.2.0
       h3: 1.15.11
       openapi3-ts: 4.6.2
