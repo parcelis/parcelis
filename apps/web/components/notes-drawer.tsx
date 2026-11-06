@@ -182,6 +182,9 @@ export function NotesDrawer({
         setEditDraft((currentDraft) => (currentDraft === variables.body ? "" : currentDraft));
       }
       await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
+      if ("maintenanceTicketId" in subject) {
+        await queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] });
+      }
     },
   });
   const deleteNote = useMutation({
@@ -191,6 +194,9 @@ export function NotesDrawer({
         setNotePendingDeletion((currentNoteId) => (currentNoteId === variables.id ? null : currentNoteId));
       }
       await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
+      if ("maintenanceTicketId" in subject) {
+        await queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] });
+      }
     },
   });
   const { reset: resetCreateNote } = createNote;
