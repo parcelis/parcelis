@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -48,9 +49,10 @@ import {
   isActiveMaintenanceTicketStatus,
   isTerminalMaintenanceTicketStatus,
   maintenanceTicketStatuses,
+  maintenanceDashboardFiltersSchema,
   formatMaintenanceTicketNumber,
 } from "@parcelis/schemas";
-import { apiClient } from "../../../components/api-client";
+import { apiClient, queryKeys } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
 import { MaintenanceDrawer } from "../../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../../components/maintenance-image-upload";
@@ -93,8 +95,9 @@ function formatDateTime(value: Date | string) {
     minute: "2-digit",
   }).format(new Date(value));
 }
-function ticketUnits(ticket: { units: Array<{ unit: { name: string } }> }) {
-  return ticket.units.length ? ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ") : "Property-wide";
+function ticketUnits(ticket: { unitLabel: string | null; units: Array<{ unit: { name: string } }> }) {
+  if (ticket.units.length) return ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ");
+  return ticket.unitLabel ? `Unit ${ticket.unitLabel}` : "Property-wide";
 }
 function statusBadgeClass(status: string) {
   if (status === "new") return "bg-parcelis-green/15 text-parcelis-charcoal";
@@ -107,11 +110,27 @@ function statusBadgeClass(status: string) {
 }
 
 export default function MaintenancePage() {
+  return (
+    <React.Suspense fallback={<LoadingState label="Loading maintenance tickets…" />}>
+      <MaintenancePageContent />
+    </React.Suspense>
+  );
+}
+
+function MaintenancePageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const filters = maintenanceDashboardFiltersSchema.parse({
+    propertyId: searchParams.get("propertyId") ?? undefined,
+    unitId: searchParams.get("unitId") ?? undefined,
+    status: searchParams.get("status") ?? undefined,
+  });
+  const propertyFilter = filters.propertyId === undefined ? "all" : String(filters.propertyId);
+  const unitFilter = filters.unitId === undefined ? "all" : String(filters.unitId);
+  const statusFilter = filters.status;
   const queryClient = useQueryClient();
   const [search, setSearch] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
-  const [statusFilter, setStatusFilter] = React.useState("all");
-  const [propertyFilter, setPropertyFilter] = React.useState("all");
   const [categoryFilter, setCategoryFilter] = React.useState("all");
   const [urgencyFilter, setUrgencyFilter] = React.useState("all");
   const [groupByProperty, setGroupByProperty] = React.useState(false);
@@ -127,6 +146,10 @@ export default function MaintenancePage() {
   } | null>(null);
   const [ticketAction, setTicketAction] = React.useState<TicketAction | null>(null);
   const [ticketActionNote, setTicketActionNote] = React.useState("");
+  const propertiesQuery = useQuery({
+    queryKey: queryKeys.properties.list,
+    queryFn: () => apiClient.properties.list.query(),
+  });
   const ticketsQuery = useQuery({
     queryKey: ["maintenance", "list"],
     queryFn: () => apiClient.maintenance.list.query(),
@@ -203,8 +226,18 @@ export default function MaintenancePage() {
   });
   const tickets = ticketsQuery.data ?? [];
   const activityEvents = (activityEventsQuery.data ?? []) as ActivityEventSummary[];
+  const properties = propertiesQuery.data ?? [];
+  const propertyOptions = properties.map((property) => [property.id, property.name] as const);
+  const unitOptions = properties
+    .filter((property) => propertyFilter === "all" || property.id === filters.propertyId)
+    .flatMap((property) => property.units.map((unit) => ({
+      ...unit,
+      propertyId: property.id,
+      propertyName: property.name,
+    })));
+  const selectedUnit = unitOptions.find((unit) => unit.id === filters.unitId);
   const normalizedSearch = search.toLowerCase();
-  const activeFilterCount = [statusFilter, propertyFilter, categoryFilter, urgencyFilter].filter(
+  const activeFilterCount = [statusFilter, propertyFilter, unitFilter, categoryFilter, urgencyFilter].filter(
     (value) => value !== "all",
   ).length;
   const filteredTickets = tickets.filter((ticket) =>
@@ -212,14 +245,32 @@ export default function MaintenancePage() {
       [ticket.title, ticket.property.name, ticket.category?.label ?? "", ticket.status].some((value) =>
         value.toLowerCase().includes(normalizedSearch),
       ),
-      statusFilter === "all" || ticket.status === statusFilter,
-      propertyFilter === "all" || ticket.propertyId === Number(propertyFilter),
+      statusFilter === "all" ||
+        (statusFilter === "open" ? isActiveMaintenanceTicketStatus(ticket.status) : ticket.status === statusFilter),
+      propertyFilter === "all" || ticket.propertyId === filters.propertyId,
+      unitFilter === "all" ||
+        ticket.units.some(({ unit }) => unit.id === filters.unitId) ||
+        (ticket.units.length === 0 &&
+          selectedUnit !== undefined &&
+          ticket.propertyId === selectedUnit.propertyId &&
+          ticket.unitLabel === selectedUnit.name),
       categoryFilter === "all" || ticket.category?.label === categoryFilter,
       urgencyFilter === "all" ||
         (urgencyFilter === "urgent" && ticket.isUrgent) ||
         (urgencyFilter === "standard" && !ticket.isUrgent),
     ].every(Boolean),
   );
+  function updateFilters(changes: { propertyId?: string; unitId?: string; status?: string }) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === undefined) continue;
+      if (value === "all") params.delete(key);
+      else params.set(key, value);
+    }
+    const query = params.toString();
+    router.replace(query ? `/maintenance?${query}` : "/maintenance", { scroll: false });
+  }
+
   const activeTickets = tickets.filter((ticket) => isActiveMaintenanceTicketStatus(ticket.status));
   const urgentTickets = tickets.filter((ticket) => ticket.isUrgent).length;
   const latestActionNote = latestActionNoteQuery.data?.[0];
@@ -334,11 +385,22 @@ export default function MaintenancePage() {
                   </Button>
                 </div>
                 {isFilterOpen ? (
-                  <div className="absolute right-0 top-full z-20 mt-3 grid w-full max-w-3xl gap-4 rounded-lg border border-parcelis-border bg-white p-5 shadow-lg md:grid-cols-4 dark:bg-parcelis-slate">
-                    <Label>
+                  <div className="absolute right-0 top-full z-20 mt-3 flex w-full max-w-3xl flex-wrap gap-4 rounded-lg border border-parcelis-border bg-white p-5 shadow-lg dark:bg-parcelis-slate">
+                    {propertiesQuery.isLoading ? (
+                      <p className="w-full text-sm text-parcelis-gray">Loading property and unit options…</p>
+                    ) : propertiesQuery.error ? (
+                      <p className="w-full text-sm text-red-700" role="alert">
+                        Unable to load property and unit options.
+                        <Button className="ml-2" size="sm" variant="secondary" onClick={() => propertiesQuery.refetch()}>
+                          Retry
+                        </Button>
+                      </p>
+                    ) : null}
+                    <Label className="min-w-0 flex-1 basis-40">
                       Status
-                      <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                      <Select value={statusFilter} onChange={(event) => updateFilters({ status: event.target.value })}>
                         <option value="all">All statuses</option>
+                        <option value="open">Open statuses</option>
                         {maintenanceTicketStatuses.map((status) => (
                           <option key={status} value={status}>
                             {label(status)}
@@ -346,20 +408,50 @@ export default function MaintenancePage() {
                         ))}
                       </Select>
                     </Label>
-                    <Label>
+                    <Label className="min-w-0 flex-1 basis-40">
                       Property
-                      <Select value={propertyFilter} onChange={(event) => setPropertyFilter(event.target.value)}>
+                      <Select
+                        disabled={propertiesQuery.isLoading || Boolean(propertiesQuery.error)}
+                        value={propertyFilter}
+                        onChange={(event) => {
+                          const propertyId = event.target.value;
+                          const unitBelongsToProperty = propertyId === "all" || properties.some((property) =>
+                            property.id === Number(propertyId) &&
+                            property.units.some((unit) => unit.id === filters.unitId),
+                          );
+                          updateFilters({ propertyId, ...(unitBelongsToProperty ? {} : { unitId: "all" }) });
+                        }}
+                      >
                         <option value="all">All properties</option>
-                        {Array.from(
-                          new Map(tickets.map((ticket) => [ticket.property.id, ticket.property.name])).entries(),
-                        ).map(([id, name]) => (
+                        {propertyFilter !== "all" && !propertyOptions.some(([id]) => id === filters.propertyId) ? (
+                          <option value={propertyFilter}>Selected property (#{propertyFilter})</option>
+                        ) : null}
+                        {propertyOptions.map(([id, name]) => (
                           <option key={id} value={id}>
                             {name}
                           </option>
                         ))}
                       </Select>
                     </Label>
-                    <Label>
+                    <Label className="min-w-0 flex-1 basis-40">
+                      Unit
+                      <Select
+                        disabled={propertiesQuery.isLoading || Boolean(propertiesQuery.error)}
+                        value={unitFilter}
+                        onChange={(event) => updateFilters({ unitId: event.target.value })}
+                      >
+                        <option value="all">All units</option>
+                        {unitFilter !== "all" && !unitOptions.some((unit) => unit.id === filters.unitId) ? (
+                          <option value={unitFilter}>Selected unit (#{unitFilter})</option>
+                        ) : null}
+                        {unitOptions.map((unit) => (
+                          <option key={unit.id} value={unit.id}>
+                            {propertyFilter === "all" ? `${unit.propertyName} · ` : ""}Unit {unit.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </Label>
+                    <Label className="min-w-0 flex-1 basis-40">
                       Category
                       <Select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
                         <option value="all">All categories</option>
@@ -372,7 +464,7 @@ export default function MaintenancePage() {
                         )}
                       </Select>
                     </Label>
-                    <Label>
+                    <Label className="min-w-0 flex-1 basis-40">
                       Priority
                       <Select value={urgencyFilter} onChange={(event) => setUrgencyFilter(event.target.value)}>
                         <option value="all">All priorities</option>
@@ -380,12 +472,11 @@ export default function MaintenancePage() {
                         <option value="standard">Standard</option>
                       </Select>
                     </Label>
-                    <div className="flex items-center justify-between border-t border-parcelis-border pt-4 md:col-span-4">
+                    <div className="flex w-full items-center justify-between border-t border-parcelis-border pt-4">
                       <button
                         className="text-sm font-semibold text-red-600 hover:underline"
                         onClick={() => {
-                          setStatusFilter("all");
-                          setPropertyFilter("all");
+                          updateFilters({ status: "all", propertyId: "all", unitId: "all" });
                           setCategoryFilter("all");
                           setUrgencyFilter("all");
                         }}
@@ -402,11 +493,17 @@ export default function MaintenancePage() {
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
-              {ticketsQuery.isLoading ? (
+              {ticketsQuery.isLoading || (filters.unitId !== undefined && propertiesQuery.isLoading) ? (
                 <LoadingState label="Loading maintenance tickets…" />
               ) : ticketsQuery.error ? (
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">
                   Unable to load maintenance tickets. Please try again.
+                </div>
+              ) : filteredTickets.length === 0 ? (
+                <div className="flex min-h-48 flex-col items-center justify-center gap-3 p-5 text-center text-sm text-parcelis-gray">
+                  <WrenchOff aria-hidden="true" className="h-8 w-8 text-parcelis-green" />
+                  <p>No maintenance tickets match your search or filters.</p>
+                  <p>Tickets may have changed. Adjust or clear the filters to view other tickets.</p>
                 </div>
               ) : groupByProperty ? (
                 <Table className="min-w-[860px] border-collapse text-left">
@@ -458,9 +555,7 @@ export default function MaintenancePage() {
                                       <span />
                                       <Wrench className="h-4 w-4 text-parcelis-green" />
                                       <span>
-                                        {ticket.units.length
-                                          ? ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ")
-                                          : "Property-wide"}
+                                        {ticketUnits(ticket)}
                                         <span className="ml-2 text-sm font-medium text-parcelis-gray">
                                           · {ticket.title}
                                         </span>
@@ -526,9 +621,7 @@ export default function MaintenancePage() {
                         <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                           <p className="font-medium text-parcelis-charcoal">{ticket.property.name}</p>
                           <p className="mt-1">
-                            {ticket.units.length > 0
-                              ? ticket.units.map((item) => `Unit ${item.unit.name}`).join(" | ")
-                              : "Property-wide"}
+                            {ticketUnits(ticket)}
                           </p>
                         </TableCell>
                         <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
