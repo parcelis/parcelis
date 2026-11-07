@@ -76,7 +76,7 @@ import {
   entityDeletedMessage,
   entityUpdatedMessage,
 } from "../../../components/toast-messages";
-import { getPropertyLink, getUnitLink } from "../../../lib/entity-links";
+import { getMaintenanceListLink, getPropertyLink, getUnitLink } from "../../../lib/entity-links";
 
 type PropertyFilters = {
   propertyId: string;
@@ -1031,18 +1031,22 @@ export default function PropertiesPage() {
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
-                              <span
-                                className={`inline-flex items-center gap-1 font-semibold ${
-                                  (property.openMaintenanceTickets ?? 0) > 0
-                                    ? "text-parcelis-charcoal"
-                                    : "text-parcelis-gray"
-                                }`}
-                              >
-                                <Wrench className="h-4 w-4 text-parcelis-green" />
-                                {property.openMaintenanceTickets === null
-                                  ? "Unavailable"
-                                  : `${property.openMaintenanceTickets} open`}
-                              </span>
+                              {property.openMaintenanceTickets === null ? (
+                                <span className="inline-flex items-center gap-1 text-parcelis-gray">
+                                  <Wrench aria-hidden="true" className="h-4 w-4 text-parcelis-green" />
+                                  Unavailable
+                                </span>
+                              ) : (
+                                <Button asChild className="h-auto p-0 hover:underline" size="sm" variant="ghost">
+                                  <Link
+                                    aria-label={`View ${property.openMaintenanceTickets} open maintenance tickets for ${property.name}`}
+                                    href={getMaintenanceListLink(property.id)}
+                                  >
+                                    <Wrench aria-hidden="true" className="h-4 w-4 text-parcelis-green" />
+                                    {property.openMaintenanceTickets} open
+                                  </Link>
+                                </Button>
+                              )}
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
@@ -1139,12 +1143,24 @@ export default function PropertiesPage() {
                                     </span>
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
-                                    <span className="inline-flex items-center gap-1 text-parcelis-gray">
-                                      <Wrench className="h-4 w-4 text-parcelis-green" />
-                                      {unit.openMaintenanceTickets === null
-                                        ? "Unavailable"
-                                        : `${unit.openMaintenanceTickets} open`}
-                                    </span>
+                                    {unit.openMaintenanceTickets !== null && unit.id !== undefined ? (
+                                      <Button asChild className="h-auto p-0 hover:underline" size="sm" variant="ghost">
+                                        <Link
+                                          aria-label={`View ${unit.openMaintenanceTickets} open maintenance tickets for ${property.name}, unit ${unit.unitLabel}`}
+                                          href={getMaintenanceListLink(property.id, unit.id)}
+                                        >
+                                          <Wrench aria-hidden="true" className="h-4 w-4 text-parcelis-green" />
+                                          {unit.openMaintenanceTickets} open
+                                        </Link>
+                                      </Button>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-parcelis-gray">
+                                        <Wrench aria-hidden="true" className="h-4 w-4 text-parcelis-green" />
+                                        {unit.openMaintenanceTickets === null
+                                          ? "Unavailable"
+                                          : `${unit.openMaintenanceTickets} open`}
+                                      </span>
+                                    )}
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
