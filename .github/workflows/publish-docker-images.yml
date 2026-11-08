@@ -10,6 +10,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      HAS_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -64,23 +66,30 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Update Docker Hub description
-        if: matrix.image != 'parcelis'
+        if: matrix.image != 'parcelis' && env.HAS_DOCKERHUB_TOKEN == 'true'
+        continue-on-error: true
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          # The legacy description API requires a user PAT; organization tokens are unsupported.
-          DOCKERHUB_DESCRIPTION_TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+          # The legacy description API requires a user PAT with repository write access.
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           IMAGE: ${{ matrix.image }}
           DESCRIPTION: ${{ matrix.description }}
         run: |
-          token=$(jq -n '{identifier: env.DOCKERHUB_USERNAME, secret: env.DOCKERHUB_DESCRIPTION_TOKEN}' |
+          token=$(jq -n '{identifier: env.DOCKERHUB_USERNAME, secret: env.DOCKERHUB_TOKEN}' |
             curl --fail --silent --show-error \
               --header 'Content-Type: application/json' \
               --data-binary @- https://hub.docker.com/v2/auth/token |
-            jq -er '.access_token | select(type == "string" and length > 0)')
+            jq -er '.access_token | select(type == "string" and length > 0)') || {
+              echo "::warning::Docker Hub token request failed for $IMAGE; skipping description update."
+              exit 0
+            }
           echo "::add-mask::$token"
           jq -n '{description: env.DESCRIPTION}' |
             curl --fail --silent --show-error --output /dev/null \
               --request PATCH \
               --header "Authorization: Bearer $token" \
               --header 'Content-Type: application/json' \
-              --data-binary @- "https://hub.docker.com/v2/repositories/parcelis/$IMAGE/"
+              --data-binary @- "https://hub.docker.com/v2/repositories/parcelis/$IMAGE/" || {
+                echo "::warning::Docker Hub description update failed for $IMAGE; continuing because this is optional."
+                exit 0
+              }
