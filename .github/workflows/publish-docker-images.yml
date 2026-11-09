@@ -21,6 +21,11 @@ jobs:
             target: app
             title: Parcelis Apps
             description: Parcelis application and API service for the Parcelis Docker Compose stack.
+          - image: worker
+            file: Dockerfile.app
+            target: worker
+            title: Parcelis Worker
+            description: Parcelis background job worker for the Parcelis Docker Compose stack.
           - image: docs
             file: apps/docs/Dockerfile
             target: nginx

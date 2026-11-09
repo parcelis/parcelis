@@ -488,7 +488,7 @@ Review generated code before committing it; replace fragile selectors and add ou
 Parcelis uses two Compose workflows:
 
 - `docker-compose-dev.yml` starts nginx and the local infrastructure services needed for development: PostgreSQL, pgAdmin, Redis, MinIO, and the one-shot MinIO initialization job. Use it with `pnpm dev`; the web, API, docs, jobs, and worker processes stay on the host so you get hot reload.
-- `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, a separate worker container from the app image, plus PostgreSQL, Redis, and MinIO.
+- `docker-compose.yml` runs the production-style application stack using published images for the app and docs containers, a dedicated `parcelis/worker` image, plus PostgreSQL, Redis, and MinIO. The optional `docker-compose-single-image.yml` retains its worker in the bundled `parcelis/parcelis` image.
 
 #### Local development dependencies
 
@@ -503,9 +503,17 @@ The development stack provides the nginx proxy and local dependencies. `pnpm dev
 
 #### Production-style deployment
 
-Published releases publish separate Docker images for the application, documentation site, and nginx proxy: `parcelis/apps`, `parcelis/docs`, and `parcelis/proxy`.
+Published releases publish separate Docker images for the application, worker, documentation site, and nginx proxy: `parcelis/apps`, `parcelis/worker`, `parcelis/docs`, and `parcelis/proxy`.
 
-Copy `.env.production.example` to `.env.production`, replace every placeholder (including `REDIS_PASSWORD`), and set `PARCELIS_VERSION` to a release tag such as `v0.4.1` rather than using `latest`.
+Copy `.env.production.example` to `.env.production` and replace every placeholder (including `REDIS_PASSWORD`). Both deployment Compose files use the `latest` tag for Parcelis application images. Run `pull` before `up` to fetch the current published images.
+
+To build the dedicated worker locally without building the web, API, or docs:
+
+```bash
+docker build --target worker -f Dockerfile.app -t parcelis/worker:latest .
+```
+
+For a complete local modular deployment, build the `app`, `worker`, docs, and proxy images with the `latest` tag and skip `pull` to use those local builds.
 
 ```bash
 docker compose --env-file .env.production pull

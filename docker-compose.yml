@@ -87,7 +87,7 @@ services:
       - parcelis
 
   migrate-service:
-    image: parcelis/apps:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/apps:latest
     container_name: parcelis-migrate
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     environment:
@@ -99,7 +99,7 @@ services:
       - parcelis
 
   proxy-service:
-    image: parcelis/proxy:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/proxy:latest
     container_name: parcelis-proxy
     ports:
       - "${APP_PORT:-3000}:80"
@@ -110,7 +110,7 @@ services:
       - parcelis
 
   app-service:
-    image: parcelis/apps:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/apps:latest
     container_name: parcelis-app
     stop_grace_period: 25s
     environment:
@@ -147,9 +147,9 @@ services:
       - parcelis
 
   worker-service:
-    image: parcelis/apps:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/worker:latest
     container_name: parcelis-worker
-    command: pnpm --filter @parcelis/worker start
+    stop_grace_period: 25s
     environment:
       EMAIL_FROM: ${EMAIL_FROM}
       SMTP_HOST: ${SMTP_HOST}
@@ -171,7 +171,7 @@ services:
       - parcelis
 
   docs-service:
-    image: parcelis/docs:${PARCELIS_VERSION:-v0.4.1}
+    image: parcelis/docs:latest
     container_name: parcelis-docs
     networks:
       - parcelis
