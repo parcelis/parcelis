@@ -2,9 +2,10 @@
 #
 # Shared Parcelis application Dockerfile with explicit targets.
 #
-# - `app`: modular image with the web app, API, worker, and internal nginx.
+# - `app`: modular image with the web app, API, and internal nginx.
 #   Deploy it together with the docs and proxy images, plus a worker container
 #   and Redis (Modular: app + worker + docs + proxy).
+# - `worker`: background worker with its production dependencies.
 # - `single-image`: single application image with the web app, API, worker,
 #   documentation site, and public nginx routing. Deploy it instead of the
 #   modular images (Simplified: single-image).
@@ -91,6 +92,19 @@ WORKDIR /repo/apps/docs
 ENV DOCS_BASE_URL=/docs/
 RUN pnpm build
 
+# The worker runtime is independent of the web, API, and docs build stages.
+FROM base AS worker
+ENV NODE_ENV=production
+COPY --from=worker-build /repo/packages/db packages/db
+COPY --from=worker-build /repo/packages/email/package.json packages/email/package.json
+COPY --from=worker-build /repo/packages/email/dist packages/email/dist
+COPY --from=worker-build /repo/packages/jobs/package.json packages/jobs/package.json
+COPY --from=worker-build /repo/packages/jobs/dist packages/jobs/dist
+COPY --from=worker-build /repo/apps/worker/package.json apps/worker/package.json
+COPY --from=worker-build /repo/apps/worker/dist apps/worker/dist
+RUN pnpm install --frozen-lockfile --prod --filter @parcelis/worker...
+CMD ["node", "apps/worker/dist/main.js"]
+
 # ---------------------------------------------------------------------------
 # Shared production runtime base (web app + API)
 # ---------------------------------------------------------------------------
@@ -114,23 +128,11 @@ COPY --from=api-build /repo/packages packages
 COPY --from=web-build /repo/apps/web/package.json apps/web/package.json
 COPY --from=web-build /repo/apps/web/.next apps/web/.next
 COPY --from=web-build /repo/apps/web/public apps/web/public
-# Worker: manifest and compiled output. The worker runs as a separate
-# container from this image via a Compose command override
-# (`pnpm --filter @parcelis/worker start`).
-COPY --from=worker-build /repo/apps/worker/package.json apps/worker/package.json
-COPY --from=worker-build /repo/apps/worker/dist apps/worker/dist
-
-# Production-only install: the API and web run from .next/ and the worker
-# runs from dist/, so the development toolchain stays out of the image. The Prisma CLI
-# is a production dependency of @parcelis/db, so migration tooling
-# (`prisma migrate deploy`) and the postinstall client generation remain
-# available.
-RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api... --filter @parcelis/web... --filter @parcelis/worker...
-
 # ---------------------------------------------------------------------------
 # Modular application image
 # ---------------------------------------------------------------------------
 FROM runtime-base AS app
+RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api... --filter @parcelis/web...
 ARG API_INTERNAL_PORT=4000
 COPY infra/docker/app/nginx.conf /etc/nginx/http.d/default.conf
 COPY infra/docker/app/supervisord.conf /etc/supervisord.conf
@@ -145,6 +147,9 @@ CMD ["supervisord", "-c", "/etc/supervisord.conf"]
 # Single application image (web app + API + docs + public nginx)
 # ---------------------------------------------------------------------------
 FROM runtime-base AS single-image
+COPY --from=worker-build /repo/apps/worker/package.json apps/worker/package.json
+COPY --from=worker-build /repo/apps/worker/dist apps/worker/dist
+RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api... --filter @parcelis/web... --filter @parcelis/worker...
 ARG API_INTERNAL_PORT=4000
 # Docs build output (static files served directly by nginx)
 COPY --from=docs-build /repo/apps/docs/build /usr/share/parcelis-docs

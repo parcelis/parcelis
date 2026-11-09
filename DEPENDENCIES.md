@@ -119,4 +119,4 @@ Direct JavaScript dependencies are declared in:
 
 `pnpm-lock.yaml` records the resolved dependency tree. Docker image tags are declared in `docker-compose.yml` and `apps/docs/Dockerfile`.
 
-Docker images are built from the shared Dockerfile.app (`app` target: modular web app + API + worker; `single-image` target: single application image with web app + API + worker + docs site + nginx edge routing), apps/docs/Dockerfile (modular docs site), and infra/docker/proxy/Dockerfile (modular proxy). Docker image tags are declared in docker-compose.yml and docker-compose-single-image.yml.
+Docker images are built from the shared `Dockerfile.app` (`app` target: modular web app + API; `worker` target: dedicated background worker with production dependencies; `single-image` target: web app + API + worker + docs site + nginx edge routing), `apps/docs/Dockerfile` (modular docs site), and `infra/docker/proxy/Dockerfile` (modular proxy). The modular stack uses `parcelis/worker`; the single-image stack retains its worker in `parcelis/parcelis`. Docker image tags are declared in `docker-compose.yml` and `docker-compose-single-image.yml`.

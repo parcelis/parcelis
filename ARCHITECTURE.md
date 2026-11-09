@@ -34,14 +34,15 @@ Parcelis is a property-management platform for landlords, small operators, and l
 The independent status monitor is described in the [status monitor guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/status-monitor.md).
 
 ```text
-app image: Next.js web + Next.js API + worker + @parcelis/jobs
+app image: Next.js web + Next.js API + @parcelis/jobs
+worker image: background worker + shared runtime dependencies
 
 Browser --> proxy container --+--> application container (app image)
                               |       +--> Next.js web (apps/web)
                               |       +--> Next.js API (apps/api) --Prisma--> PostgreSQL
                               +--> documentation container (docs image)
 
-worker container (app image) --> worker (apps/worker) --> Redis
+worker container (worker image) --> worker (apps/worker) --> Redis
 ```
 
 The browser reaches the API through the same application origin. Direct public
@@ -335,7 +336,9 @@ pnpm --filter @parcelis/worker test
 
 ## Container deployment
 
-`Dockerfile.app` is the shared application Dockerfile. Its `app` target builds `apps/web`, `apps/api`, `apps/worker`, and `packages/jobs` into the modular `app` image, and its `single-image` target additionally bundles the documentation site into the single `parcelis` application image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to the separate Next.js API inside the application container. The `API_INTERNAL_PORT` build argument defaults to `4000` and renders the matching API port into nginx and Supervisor configuration for both targets. Production Compose runs a separate worker container from the same image and connects it to Redis. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `apps`, `docs`, `parcelis`, and `proxy` to Docker Hub when a GitHub release is published.
+`Dockerfile.app` is the shared application Dockerfile. Its `app` target builds the web and API into `parcelis/apps`. Its independent `worker` target copies the compiled worker and its database, email, and jobs packages into `parcelis/worker`, installs only production dependencies, and starts Node directly. Building the worker target does not build the web, API, or documentation site, and the worker image contains no nginx, Supervisor, or web health check. Modular Compose uses this dedicated image and allows 25 seconds for graceful shutdown. Both deployment Compose files use the `latest` tag for Parcelis application images. The existing Redis heartbeats report worker readiness through the application status monitor.
+
+The `single-image` target continues to bundle the web, API, worker, and documentation site into `parcelis/parcelis`; its separate worker container still uses that same image. Nginx routes browser requests to Next.js and forwards `/trpc/*` and `/api/*` to the separate Next.js API inside the application container. The `API_INTERNAL_PORT` build argument defaults to `4000` and renders the matching API port into nginx and Supervisor configuration for both application targets. The production Compose proxy is the `proxy` image and routes `/docs/*` to the documentation container. A release workflow publishes `apps`, `worker`, `docs`, `parcelis`, and `proxy` to Docker Hub when a GitHub release is published.
 
 ## Design rules
 

@@ -159,6 +159,7 @@ Parcelis is a pnpm/Turbo monorepo. At a high level, it contains:
 
 - [`apps/web`](apps/web): the main Parcelis web app.
 - [`apps/api`](apps/api): the service that handles app data and requests.
+- [`apps/worker`](apps/worker): background job processing, published as `parcelis/worker` for the modular stack and bundled in `parcelis/parcelis` for the single-image stack.
 - [`apps/docs`](apps/docs): legacy documentation site. Maintained documentation lives in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs); see the [documentation contribution workflow](CONTRIBUTING.md#documentation-across-repositories).
 - [`packages/ui`](packages/ui): reusable interface components and branding.
 - [`packages/schemas`](packages/schemas): shared rules for validating app data.
