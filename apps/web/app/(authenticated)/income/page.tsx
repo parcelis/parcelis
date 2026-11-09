@@ -119,12 +119,14 @@ function IncomePageContent() {
   const [search, setSearch] = React.useState("");
   const [isInvoiceDrawerOpen, setIsInvoiceDrawerOpen] = React.useState(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [draftPropertyId, setDraftPropertyId] = React.useState("all");
   const [draftUnitId, setDraftUnitId] = React.useState("all");
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const tenantId = Number(searchParams.get("tenantId"));
   const selectedTenantId = Number.isInteger(tenantId) && tenantId > 0 ? tenantId : null;
+  const selectedPropertyId = parseEntityId(searchParams.get("propertyId"));
   const selectedUnitId = parseEntityId(searchParams.get("unitId"));
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.me,
@@ -158,13 +160,27 @@ function IncomePageContent() {
   const isSummaryLease = (lease: (typeof properties)[number]["leases"][number]) =>
     (lease.status === "active" || lease.status === "notice") &&
     (selectedTenantId === null || lease.tenants.some((tenant) => tenant.id === selectedTenantId));
+  const selectedTenant =
+    selectedTenantId === null
+      ? null
+      : properties
+          .flatMap((property) => property.leases.flatMap((lease) => lease.tenants))
+          .find((tenant) => tenant.id === selectedTenantId);
   const unitFilterOptions = properties
+    .filter((property) => draftPropertyId === "all" || property.id === parseEntityId(draftPropertyId))
     .map((property) => {
       const eligibleUnitIds = new Set(property.leases.filter(isEligibleIncomeLease).map((lease) => lease.unitId));
       return { ...property, units: property.units.filter((unit) => eligibleUnitIds.has(unit.id)) };
     })
     .filter((property) => property.units.length > 0);
+  const isDraftPropertyAvailable = draftPropertyId === "all" || properties.some(
+    (property) => property.id === parseEntityId(draftPropertyId),
+  );
+  const isDraftUnitAvailable = draftUnitId === "all" || unitFilterOptions.some((property) =>
+    property.units.some((unit) => unit.id === parseEntityId(draftUnitId)),
+  );
   const incomeProperties = properties
+    .filter((property) => selectedPropertyId === null || property.id === selectedPropertyId)
     .map((property) => {
       const incomeLeases = property.leases.filter(
         (lease) => isEligibleIncomeLease(lease) && (selectedUnitId === null || lease.unitId === selectedUnitId),
@@ -235,8 +251,10 @@ function IncomePageContent() {
     }));
   });
 
-  function setUnitFilter(unitId: number | null) {
+  function setIncomeFilters(propertyId: number | null, unitId: number | null) {
     const params = new URLSearchParams(searchParams.toString());
+    if (propertyId === null) params.delete("propertyId");
+    else params.set("propertyId", String(propertyId));
     if (unitId === null) params.delete("unitId");
     else params.set("unitId", String(unitId));
     const query = params.toString();
@@ -319,6 +337,16 @@ function IncomePageContent() {
             </div>
           </PageRail>
 
+          {selectedTenantId !== null ? (
+            <p className="mb-4 rounded-md border border-parcelis-border bg-white p-4 text-sm text-parcelis-gray dark:bg-parcelis-slate">
+              Tenant filter: {selectedTenant
+                ? `${selectedTenant.firstName} ${selectedTenant.lastName}`
+                : `Tenant #${selectedTenantId}`}.
+              {" "}Property and unit filters apply within this tenant’s income. Clearing filters keeps this
+              tenant restriction.
+            </p>
+          ) : null}
+
           <Card>
             <CardHeader>
               <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -344,6 +372,7 @@ function IncomePageContent() {
                   </label>
                   <Button
                     onClick={() => {
+                      setDraftPropertyId(selectedPropertyId === null ? "all" : String(selectedPropertyId));
                       setDraftUnitId(selectedUnitId === null ? "all" : String(selectedUnitId));
                       setIsFilterOpen((isOpen) => !isOpen);
                     }}
@@ -352,7 +381,9 @@ function IncomePageContent() {
                   >
                     <Filter className="h-4 w-4" />
                     Filters
-                    {selectedUnitId !== null ? " (1)" : ""}
+                    {selectedPropertyId !== null || selectedUnitId !== null
+                      ? ` (${Number(selectedPropertyId !== null) + Number(selectedUnitId !== null)})`
+                      : ""}
                   </Button>
                   <Button onClick={() => setGroupByUnit((grouped) => !grouped)} type="button" variant="secondary">
                     {groupByUnit ? "Grouped By Unit" : " Not Grouped"}
@@ -361,9 +392,39 @@ function IncomePageContent() {
                 {isFilterOpen ? (
                   <div className="absolute right-0 top-full z-20 mt-3 w-full max-w-sm rounded-lg border border-parcelis-border bg-white p-5 shadow-lg">
                     <Label className="gap-2">
+                      <span>Property</span>
+                      <Select
+                        onChange={(event) => {
+                          const propertyId = event.target.value;
+                          const property = properties.find((item) => item.id === parseEntityId(propertyId));
+                          setDraftPropertyId(propertyId);
+                          if (
+                            propertyId !== "all" &&
+                            !property?.units.some((unit) => unit.id === parseEntityId(draftUnitId))
+                          ) {
+                            setDraftUnitId("all");
+                          }
+                        }}
+                        value={draftPropertyId}
+                      >
+                        <option value="all">All properties</option>
+                        {!isDraftPropertyAvailable ? (
+                          <option value={draftPropertyId}>Unavailable property</option>
+                        ) : null}
+                        {properties.map((property) => (
+                          <option key={property.id} value={String(property.id)}>
+                            {property.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </Label>
+                    <Label className="mt-4 gap-2">
                       <span>Unit</span>
                       <Select onChange={(event) => setDraftUnitId(event.target.value)} value={draftUnitId}>
                         <option value="all">All units</option>
+                        {!isDraftUnitAvailable ? (
+                          <option value={draftUnitId}>Unavailable unit</option>
+                        ) : null}
                         {unitFilterOptions.map((property) => (
                           <optgroup key={property.id} label={property.name}>
                             {property.units.map((unit) => (
@@ -378,12 +439,15 @@ function IncomePageContent() {
                     <div className="mt-5 flex items-center justify-between border-t border-parcelis-border pt-4">
                       <button
                         className="text-sm font-semibold text-red-600 hover:underline"
-                        onClick={() => setUnitFilter(null)}
+                        onClick={() => setIncomeFilters(null, null)}
                         type="button"
                       >
                         Clear Filters
                       </button>
-                      <Button onClick={() => setUnitFilter(parseEntityId(draftUnitId))} type="button">
+                      <Button
+                        onClick={() => setIncomeFilters(parseEntityId(draftPropertyId), parseEntityId(draftUnitId))}
+                        type="button"
+                      >
                         Apply Filters
                       </Button>
                     </div>
@@ -400,11 +464,15 @@ function IncomePageContent() {
                 </div>
               ) : filteredIncomeProperties.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">
-                  {selectedUnitId !== null && incomeProperties.length === 0
-                    ? "No income leases for the selected unit."
-                    : incomeProperties.length === 0
-                      ? "No income leases are available to report income yet."
-                      : "No income records match your search."}
+                  {incomeProperties.length > 0
+                    ? "No income records match your search."
+                    : selectedPropertyId !== null && selectedUnitId !== null
+                      ? "No income leases match the selected property and unit."
+                      : selectedUnitId !== null
+                        ? "No income leases for the selected unit."
+                        : selectedPropertyId !== null
+                          ? "No scheduled, active, or notice-period income leases for the selected property."
+                          : "No income leases are available to report income yet."}
                 </div>
               ) : groupByUnit ? (
                 <Table className="min-w-[1360px] border-collapse text-left">
