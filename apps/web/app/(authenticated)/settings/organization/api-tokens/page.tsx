@@ -1,5 +1,6 @@
 "use client";
 
+import { SecondaryNavigationLayout } from "../../../../../components/secondary-navigation-layout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { apiTokenExpirationSchema, createApiTokenInputSchema, type ApiTokenExpiration } from "@parcelis/schemas";
@@ -268,14 +269,16 @@ export default function OrganizationApiTokensPage() {
           </div>
         </header>
         <div className="parcelis-page-shell">
-          <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail
-              active="api-tokens"
-              canManageRoles={currentUserQuery.data?.user.role === "administrator"}
-              canManageUsers={currentUserQuery.data?.permissions.users.view ?? false}
-              canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
-            />
-            <div className="min-w-0 flex-1">
+          <SecondaryNavigationLayout
+            navigation={
+              <SettingsRail
+                active="api-tokens"
+                canManageRoles={currentUserQuery.data?.user.role === "administrator"}
+                canManageUsers={currentUserQuery.data?.permissions.users.view ?? false}
+                canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
+              />
+            }
+            header={
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
                 <h1 className="mt-5 text-3xl font-bold md:text-5xl">API tokens</h1>
@@ -283,149 +286,148 @@ export default function OrganizationApiTokensPage() {
                   Manage integration credentials for {organization?.name ?? "this organization"}.
                 </p>
               </section>
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h2 className="font-semibold text-parcelis-charcoal">Integration credentials</h2>
-                      <p className="mt-1 text-sm text-parcelis-gray">
-                        Review token access, expiration, and recent use.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <KeyRound className="h-5 w-5 text-parcelis-green" aria-hidden="true" />
-                      {organizationQuery.isSuccess && canManageTokens ? (
-                        <Button className="min-w-40" onClick={() => handleCreateDrawerChange(true)}>
-                          Create token
-                        </Button>
-                      ) : null}
-                    </div>{" "}
+            }
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">Integration credentials</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">Review token access, expiration, and recent use.</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {organizationQuery.isPending ? (
-                    <LoadingState label="Loading organization…" />
-                  ) : organizationQuery.isError ? (
-                    <p className="text-sm text-red-700" role="alert">
-                      {organizationQuery.error.message}
-                    </p>
-                  ) : !organization || !canManageTokens ? (
-                    <p className="text-sm text-parcelis-gray" role="alert">
-                      Organization owner or administrator access is required.
-                    </p>
-                  ) : tokensQuery.isPending ? (
-                    <LoadingState label="Loading API tokens…" />
-                  ) : tokensQuery.isError ? (
-                    <p className="mt-4 text-sm text-red-700" role="alert">
-                      {tokensQuery.error.message}
-                    </p>
-                  ) : tokensQuery.data.items.length === 0 ? (
-                    <p className="mt-6 text-sm text-parcelis-gray">
-                      No API tokens yet. Create a token to connect an integration to {organization.name}.
-                    </p>
-                  ) : (
-                    <div className="mt-6 overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Token prefix</TableHead>
-                            <TableHead>Created by</TableHead>
-                            <TableHead>Created</TableHead>
-                            <TableHead>Expires</TableHead>
-                            <TableHead>Last used</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
+                  <div className="flex items-center gap-3">
+                    <KeyRound className="h-5 w-5 text-parcelis-green" aria-hidden="true" />
+                    {organizationQuery.isSuccess && canManageTokens ? (
+                      <Button className="min-w-40" onClick={() => handleCreateDrawerChange(true)}>
+                        Create token
+                      </Button>
+                    ) : null}
+                  </div>{" "}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {organizationQuery.isPending ? (
+                  <LoadingState label="Loading organization…" />
+                ) : organizationQuery.isError ? (
+                  <p className="text-sm text-red-700" role="alert">
+                    {organizationQuery.error.message}
+                  </p>
+                ) : !organization || !canManageTokens ? (
+                  <p className="text-sm text-parcelis-gray" role="alert">
+                    Organization owner or administrator access is required.
+                  </p>
+                ) : tokensQuery.isPending ? (
+                  <LoadingState label="Loading API tokens…" />
+                ) : tokensQuery.isError ? (
+                  <p className="mt-4 text-sm text-red-700" role="alert">
+                    {tokensQuery.error.message}
+                  </p>
+                ) : tokensQuery.data.items.length === 0 ? (
+                  <p className="mt-6 text-sm text-parcelis-gray">
+                    No API tokens yet. Create a token to connect an integration to {organization.name}.
+                  </p>
+                ) : (
+                  <div className="mt-6 overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Token prefix</TableHead>
+                          <TableHead>Created by</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead>Expires</TableHead>
+                          <TableHead>Last used</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tokensQuery.data.items.map((token) => (
+                          <TableRow key={token.id}>
+                            <TableCell className="font-medium">{token.name}</TableCell>
+                            <TableCell className="font-mono text-xs">{token.tokenPrefix}</TableCell>
+                            <TableCell>{token.createdByLabel}</TableCell>
+                            <TableCell className="whitespace-nowrap">{formatDate(token.createdAt)}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {token.expiresAt ? formatDate(token.expiresAt) : "Never"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {token.lastUsedAt ? formatDate(token.lastUsedAt) : "Never used"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge>
+                                {token.revokedAt
+                                  ? "Revoked"
+                                  : token.expiresAt && new Date(token.expiresAt).getTime() <= Date.now()
+                                    ? "Expired"
+                                    : "Active"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {token.revokedAt ? (
+                                <span className="text-xs text-parcelis-gray">Revoked</span>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  aria-label={`Revoke ${token.name}`}
+                                  onClick={() => {
+                                    setRevokeError(null);
+                                    setRevokeTarget({
+                                      organizationId: organization.id,
+                                      id: token.id,
+                                      name: token.name,
+                                    });
+                                  }}
+                                >
+                                  Revoke
+                                </Button>
+                              )}
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {tokensQuery.data.items.map((token) => (
-                            <TableRow key={token.id}>
-                              <TableCell className="font-medium">{token.name}</TableCell>
-                              <TableCell className="font-mono text-xs">{token.tokenPrefix}</TableCell>
-                              <TableCell>{token.createdByLabel}</TableCell>
-                              <TableCell className="whitespace-nowrap">{formatDate(token.createdAt)}</TableCell>
-                              <TableCell className="whitespace-nowrap">
-                                {token.expiresAt ? formatDate(token.expiresAt) : "Never"}
-                              </TableCell>
-                              <TableCell className="whitespace-nowrap">
-                                {token.lastUsedAt ? formatDate(token.lastUsedAt) : "Never used"}
-                              </TableCell>
-                              <TableCell>
-                                <Badge>
-                                  {token.revokedAt
-                                    ? "Revoked"
-                                    : token.expiresAt && new Date(token.expiresAt).getTime() <= Date.now()
-                                      ? "Expired"
-                                      : "Active"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {token.revokedAt ? (
-                                  <span className="text-xs text-parcelis-gray">Revoked</span>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    aria-label={`Revoke ${token.name}`}
-                                    onClick={() => {
-                                      setRevokeError(null);
-                                      setRevokeTarget({
-                                        organizationId: organization.id,
-                                        id: token.id,
-                                        name: token.name,
-                                      });
-                                    }}
-                                  >
-                                    Revoke
-                                  </Button>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                  {organization && canManageTokens && tokensQuery.isSuccess ? (
-                    <nav aria-label="API token pagination" className="mt-4 flex items-center justify-between gap-4">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={cursors.length <= 1 || tokensQuery.isFetching}
-                        onClick={() =>
-                          setPagination({
-                            organizationId: organization.id,
-                            cursors: cursors.slice(0, -1),
-                          })
-                        }
-                      >
-                        Previous
-                      </Button>
-                      <span className="text-sm text-parcelis-gray">Page {cursors.length}</span>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={!tokensQuery.data.nextCursor || tokensQuery.isFetching}
-                        onClick={() => {
-                          const nextCursor = tokensQuery.data.nextCursor;
-                          if (!nextCursor) return;
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {organization && canManageTokens && tokensQuery.isSuccess ? (
+                  <nav aria-label="API token pagination" className="mt-4 flex items-center justify-between gap-4">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={cursors.length <= 1 || tokensQuery.isFetching}
+                      onClick={() =>
+                        setPagination({
+                          organizationId: organization.id,
+                          cursors: cursors.slice(0, -1),
+                        })
+                      }
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-parcelis-gray">Page {cursors.length}</span>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={!tokensQuery.data.nextCursor || tokensQuery.isFetching}
+                      onClick={() => {
+                        const nextCursor = tokensQuery.data.nextCursor;
+                        if (!nextCursor) return;
 
-                          setPagination({
-                            organizationId: organization.id,
-                            cursors: [...cursors, nextCursor],
-                          });
-                        }}
-                      >
-                        Next
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </nav>
-                  ) : null}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                        setPagination({
+                          organizationId: organization.id,
+                          cursors: [...cursors, nextCursor],
+                        });
+                      }}
+                    >
+                      Next
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </nav>
+                ) : null}
+              </CardContent>
+            </Card>
+          </SecondaryNavigationLayout>
         </div>
       </section>
       {organization && canManageTokens ? (

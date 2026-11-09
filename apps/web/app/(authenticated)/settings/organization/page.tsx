@@ -1,5 +1,6 @@
 "use client";
 
+import { SecondaryNavigationLayout } from "../../../../components/secondary-navigation-layout";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -176,14 +177,16 @@ export default function OrganizationSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <div className="flex flex-col gap-6 md:flex-row">
-            <SettingsRail
-              active="organization"
-              canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
-              canManageRoles={canManageUsers}
-              canManageUsers={canManageUsers}
-            />
-            <div className="min-w-0 flex-1">
+          <SecondaryNavigationLayout
+            navigation={
+              <SettingsRail
+                active="organization"
+                canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
+                canManageRoles={canManageUsers}
+                canManageUsers={canManageUsers}
+              />
+            }
+            header={
               <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
                 <h1 className="mt-5 text-3xl font-bold md:text-5xl">Organization</h1>
@@ -191,252 +194,237 @@ export default function OrganizationSettingsPage() {
                   Manage this business’s workspace details.
                 </p>
               </section>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h2 className="font-semibold text-parcelis-charcoal">General</h2>
-                      <p className="mt-1 text-sm text-parcelis-gray">Here you can edit your organization’s settings.</p>
-                    </div>
-                    <Building2 className="h-5 w-5 text-parcelis-green" />
+            }
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">General</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">Here you can edit your organization’s settings.</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {activeOrganizationQuery.isLoading ? (
-                    <LoadingState label="Loading organization…" />
-                  ) : activeOrganizationQuery.error ? (
-                    <p className="text-sm font-medium text-red-700">{activeOrganizationQuery.error.message}</p>
-                  ) : canManageOrganization ? (
-                    <form
-                      className="flex max-w-xl flex-col gap-12"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        saveOrganizationDetails.mutate({
-                          name,
-                          slug,
-                          address: {
-                            ...addressForm,
-                            region: addressForm.region.toUpperCase(),
-                          },
-                          phone,
-                          email,
-                          timeZone,
-                          avatarChanges,
-                        });
-                      }}
-                    >
-                      <Label>Organization Avatar</Label>
-                      <div className="flex flex-col gap-20 sm:flex-row">
-                        <div className="min-w-0 flex-1">
-                          <Label>Light mode avatar</Label>
-                          <ImageUploadPanel
-                            acceptedImageDescription="JPG, PNG, WebP, or GIF"
-                            acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/gif"]}
-                            alt="Light mode organization avatar"
-                            imagePreviewUrl={
-                              avatarChanges.light === null
-                                ? null
-                                : (lightAvatarPreviewUrl ?? activeOrganizationQuery.data?.avatarUrl ?? null)
-                            }
-                            isDeletePending={saveOrganizationDetails.isPending}
-                            onDelete={() => setAvatarChanges((current) => ({ ...current, light: null }))}
-                            onImageChange={(file) =>
-                              file && setAvatarChanges((current) => ({ ...current, light: file }))
-                            }
-                            previewBackground="light"
-                            previewImageFit="contain"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <Label>Dark mode avatar</Label>
-                          <ImageUploadPanel
-                            acceptedImageDescription="JPG, PNG, WebP, or GIF"
-                            acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/gif"]}
-                            alt="Dark mode organization avatar"
-                            imagePreviewUrl={
-                              avatarChanges.dark === null
-                                ? null
-                                : (darkAvatarPreviewUrl ?? activeOrganizationQuery.data?.darkAvatarUrl ?? null)
-                            }
-                            isDeletePending={saveOrganizationDetails.isPending}
-                            onDelete={() => setAvatarChanges((current) => ({ ...current, dark: null }))}
-                            onImageChange={(file) =>
-                              file && setAvatarChanges((current) => ({ ...current, dark: file }))
-                            }
-                            previewBackground="dark"
-                            previewImageFit="contain"
-                          />
-                        </div>
-                      </div>
-                      <Label>
-                        Organization name
-                        <Input
-                          className="mt-1"
-                          onChange={(event) => setName(event.target.value)}
-                          required
-                          value={name}
+                  <Building2 className="h-5 w-5 text-parcelis-green" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {activeOrganizationQuery.isLoading ? (
+                  <LoadingState label="Loading organization…" />
+                ) : activeOrganizationQuery.error ? (
+                  <p className="text-sm font-medium text-red-700">{activeOrganizationQuery.error.message}</p>
+                ) : canManageOrganization ? (
+                  <form
+                    className="flex max-w-xl flex-col gap-12"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      saveOrganizationDetails.mutate({
+                        name,
+                        slug,
+                        address: {
+                          ...addressForm,
+                          region: addressForm.region.toUpperCase(),
+                        },
+                        phone,
+                        email,
+                        timeZone,
+                        avatarChanges,
+                      });
+                    }}
+                  >
+                    <Label>Organization Avatar</Label>
+                    <div className="flex flex-col gap-20 sm:flex-row">
+                      <div className="min-w-0 flex-1">
+                        <Label>Light mode avatar</Label>
+                        <ImageUploadPanel
+                          acceptedImageDescription="JPG, PNG, WebP, or GIF"
+                          acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/gif"]}
+                          alt="Light mode organization avatar"
+                          imagePreviewUrl={
+                            avatarChanges.light === null
+                              ? null
+                              : (lightAvatarPreviewUrl ?? activeOrganizationQuery.data?.avatarUrl ?? null)
+                          }
+                          isDeletePending={saveOrganizationDetails.isPending}
+                          onDelete={() => setAvatarChanges((current) => ({ ...current, light: null }))}
+                          onImageChange={(file) => file && setAvatarChanges((current) => ({ ...current, light: file }))}
+                          previewBackground="light"
+                          previewImageFit="contain"
                         />
-                      </Label>
-                      <Label>
-                        Organization URL
-                        <div className="mt-1 flex items-center rounded-md border border-parcelis-border bg-white focus-within:border-parcelis-green">
-                          <span className="border-r border-parcelis-border px-3 py-2 text-sm text-parcelis-gray">
-                            /o/
-                          </span>
-                          <Input
-                            className="border-0"
-                            onChange={(event) => setSlug(event.target.value.toLowerCase())}
-                            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                            required
-                            value={slug}
-                          />
-                        </div>
-                        <span className="mt-1 block text-xs text-parcelis-gray">
-                          Lowercase letters, numbers, and hyphens only.
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Label>Dark mode avatar</Label>
+                        <ImageUploadPanel
+                          acceptedImageDescription="JPG, PNG, WebP, or GIF"
+                          acceptedImageTypes={["image/jpeg", "image/png", "image/webp", "image/gif"]}
+                          alt="Dark mode organization avatar"
+                          imagePreviewUrl={
+                            avatarChanges.dark === null
+                              ? null
+                              : (darkAvatarPreviewUrl ?? activeOrganizationQuery.data?.darkAvatarUrl ?? null)
+                          }
+                          isDeletePending={saveOrganizationDetails.isPending}
+                          onDelete={() => setAvatarChanges((current) => ({ ...current, dark: null }))}
+                          onImageChange={(file) => file && setAvatarChanges((current) => ({ ...current, dark: file }))}
+                          previewBackground="dark"
+                          previewImageFit="contain"
+                        />
+                      </div>
+                    </div>
+                    <Label>
+                      Organization name
+                      <Input className="mt-1" onChange={(event) => setName(event.target.value)} required value={name} />
+                    </Label>
+                    <Label>
+                      Organization URL
+                      <div className="mt-1 flex items-center rounded-md border border-parcelis-border bg-white focus-within:border-parcelis-green">
+                        <span className="border-r border-parcelis-border px-3 py-2 text-sm text-parcelis-gray">
+                          /o/
                         </span>
-                      </Label>
-                      <AddressField
-                        addressLines={addressLines}
-                        ariaLabel="Show organization address details"
-                        label="Organization Address"
-                        onChange={updateAddressField}
-                        onOpenChange={setIsAddressPopoverOpen}
-                        open={isAddressPopoverOpen}
-                        values={addressForm}
+                        <Input
+                          className="border-0"
+                          onChange={(event) => setSlug(event.target.value.toLowerCase())}
+                          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                          required
+                          value={slug}
+                        />
+                      </div>
+                      <span className="mt-1 block text-xs text-parcelis-gray">
+                        Lowercase letters, numbers, and hyphens only.
+                      </span>
+                    </Label>
+                    <AddressField
+                      addressLines={addressLines}
+                      ariaLabel="Show organization address details"
+                      label="Organization Address"
+                      onChange={updateAddressField}
+                      onOpenChange={setIsAddressPopoverOpen}
+                      open={isAddressPopoverOpen}
+                      values={addressForm}
+                    />
+                    <Label>
+                      Organization phone number
+                      <Input
+                        className="mt-1"
+                        maxLength={50}
+                        onChange={(event) => setPhone(event.target.value)}
+                        type="tel"
+                        value={phone}
                       />
-                      <Label>
-                        Organization phone number
-                        <Input
-                          className="mt-1"
-                          maxLength={50}
-                          onChange={(event) => setPhone(event.target.value)}
-                          type="tel"
-                          value={phone}
-                        />
-                      </Label>
-                      <Label>
-                        Organization email address (optional)
-                        <Input
-                          autoComplete="email"
-                          className="mt-1"
-                          disabled={saveOrganizationDetails.isPending}
-                          maxLength={320}
-                          onChange={(event) => setEmail(event.target.value)}
-                          type="email"
-                          value={email}
-                        />
-                      </Label>
-                      <div>
-                        <Label>Organization Timezone</Label>
-                        <div className="mt-1">
-                          <TimezoneSelect onChange={setTimeZone} value={timeZone} />
-                        </div>
-                        <p className="mt-1 text-xs text-parcelis-gray">
-                          Notes and lease lifecycle dates use this timezone.
-                        </p>
-                      </div>
-                      <Button
-                        className="min-w-40 self-start"
+                    </Label>
+                    <Label>
+                      Organization email address (optional)
+                      <Input
+                        autoComplete="email"
+                        className="mt-1"
                         disabled={saveOrganizationDetails.isPending}
-                        type="submit"
-                      >
-                        Update organization
-                      </Button>
-                    </form>
-                  ) : (
-                    <div className="max-w-xl space-y-4 text-sm">
-                      <p className="text-parcelis-gray">You have view-only access to this organization’s settings.</p>
-                      <div>
-                        <p className="font-medium text-parcelis-charcoal">Organization name</p>
-                        <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.name}</p>
+                        maxLength={320}
+                        onChange={(event) => setEmail(event.target.value)}
+                        type="email"
+                        value={email}
+                      />
+                    </Label>
+                    <div>
+                      <Label>Organization Timezone</Label>
+                      <div className="mt-1">
+                        <TimezoneSelect onChange={setTimeZone} value={timeZone} />
                       </div>
-                      <div>
-                        <p className="font-medium text-parcelis-charcoal">Organization URL</p>
-                        <p className="mt-1 text-parcelis-gray">/o/{activeOrganizationQuery.data?.slug}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium text-parcelis-charcoal">Organization address</p>
-                        <p className="mt-1 text-parcelis-gray">
-                          {[
-                            activeOrganizationQuery.data?.address.line1,
-                            activeOrganizationQuery.data?.address.line2,
-                            [
-                              activeOrganizationQuery.data?.address.city,
-                              activeOrganizationQuery.data?.address.region,
-                              activeOrganizationQuery.data?.address.postalCode,
-                            ]
-                              .filter(Boolean)
-                              .join(", "),
+                      <p className="mt-1 text-xs text-parcelis-gray">
+                        Notes and lease lifecycle dates use this timezone.
+                      </p>
+                    </div>
+                    <Button className="min-w-40 self-start" disabled={saveOrganizationDetails.isPending} type="submit">
+                      Update organization
+                    </Button>
+                  </form>
+                ) : (
+                  <div className="max-w-xl space-y-4 text-sm">
+                    <p className="text-parcelis-gray">You have view-only access to this organization’s settings.</p>
+                    <div>
+                      <p className="font-medium text-parcelis-charcoal">Organization name</p>
+                      <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.name}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-parcelis-charcoal">Organization URL</p>
+                      <p className="mt-1 text-parcelis-gray">/o/{activeOrganizationQuery.data?.slug}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-parcelis-charcoal">Organization address</p>
+                      <p className="mt-1 text-parcelis-gray">
+                        {[
+                          activeOrganizationQuery.data?.address.line1,
+                          activeOrganizationQuery.data?.address.line2,
+                          [
+                            activeOrganizationQuery.data?.address.city,
+                            activeOrganizationQuery.data?.address.region,
+                            activeOrganizationQuery.data?.address.postalCode,
                           ]
                             .filter(Boolean)
-                            .join(" · ") || "Not provided"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-medium text-parcelis-charcoal">Organization phone number</p>
-                        <p className="mt-1 text-parcelis-gray">
-                          {activeOrganizationQuery.data?.phone ?? "Not provided"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-medium text-parcelis-charcoal">Organization email address</p>
-                        <p className="mt-1 break-words text-parcelis-gray">
-                          {activeOrganizationQuery.data?.email ?? "Not provided"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-medium text-parcelis-charcoal">Timezone for lease dates</p>
-                        <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.timeZone}</p>
-                      </div>
+                            .join(", "),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "Not provided"}
+                      </p>
                     </div>
-                  )}
-                  {saveOrganizationDetails.error ? (
-                    <p className="mt-3 text-sm font-medium text-red-700">{saveOrganizationDetails.error.message}</p>
-                  ) : null}
-                </CardContent>
-              </Card>
-
-              <Card className="mt-6">
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h2 className="font-semibold text-parcelis-charcoal">Organizations</h2>
-                      <p className="mt-1 text-sm text-parcelis-gray">Organizations you can access in Parcelis.</p>
+                      <p className="font-medium text-parcelis-charcoal">Organization phone number</p>
+                      <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.phone ?? "Not provided"}</p>
                     </div>
-                    <Badge variant="secondary">{accessibleOrganizationsQuery.data?.length ?? 0}</Badge>
+                    <div>
+                      <p className="font-medium text-parcelis-charcoal">Organization email address</p>
+                      <p className="mt-1 break-words text-parcelis-gray">
+                        {activeOrganizationQuery.data?.email ?? "Not provided"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-parcelis-charcoal">Timezone for lease dates</p>
+                      <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.timeZone}</p>
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {accessibleOrganizationsQuery.isLoading ? (
-                    <LoadingState label="Loading organizations…" />
-                  ) : accessibleOrganizationsQuery.error ? (
-                    <p className="text-sm font-medium text-red-700">{accessibleOrganizationsQuery.error.message}</p>
-                  ) : accessibleOrganizationsQuery.data?.length ? (
-                    <ul className="divide-y divide-parcelis-border rounded-md border border-parcelis-border">
-                      {accessibleOrganizationsQuery.data.map(({ organization, role }) => {
-                        const isActive = organization.id === activeOrganizationQuery.data?.id;
-                        return (
-                          <li className="flex flex-wrap items-center justify-between gap-4 px-4 py-3" key={organization.id}>
-                            <div className="min-w-0 flex-1 basis-40">
-                              <p className="break-words font-semibold text-parcelis-charcoal">{organization.name}</p>
-                              <p className="mt-1 text-sm capitalize text-parcelis-gray">{role}</p>
-                            </div>
-                            <div className="flex min-w-0 flex-wrap items-center gap-3">
-                              {isActive ? <Badge>Current</Badge> : null}
-                              <OrganizationContactInformation organization={organization} />
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-parcelis-gray">You do not have access to any organizations.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                )}
+                {saveOrganizationDetails.error ? (
+                  <p className="mt-3 text-sm font-medium text-red-700">{saveOrganizationDetails.error.message}</p>
+                ) : null}
+              </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">Organizations</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">Organizations you can access in Parcelis.</p>
+                  </div>
+                  <Badge variant="secondary">{accessibleOrganizationsQuery.data?.length ?? 0}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {accessibleOrganizationsQuery.isLoading ? (
+                  <LoadingState label="Loading organizations…" />
+                ) : accessibleOrganizationsQuery.error ? (
+                  <p className="text-sm font-medium text-red-700">{accessibleOrganizationsQuery.error.message}</p>
+                ) : accessibleOrganizationsQuery.data?.length ? (
+                  <ul className="divide-y divide-parcelis-border rounded-md border border-parcelis-border">
+                    {accessibleOrganizationsQuery.data.map(({ organization, role }) => {
+                      const isActive = organization.id === activeOrganizationQuery.data?.id;
+                      return (
+                        <li className="flex flex-wrap items-center justify-between gap-4 px-4 py-3" key={organization.id}>
+                          <div className="min-w-0 flex-1 basis-40">
+                            <p className="break-words font-semibold text-parcelis-charcoal">{organization.name}</p>
+                            <p className="mt-1 text-sm capitalize text-parcelis-gray">{role}</p>
+                          </div>
+                          <div className="flex min-w-0 flex-wrap items-center gap-3">
+                            {isActive ? <Badge>Current</Badge> : null}
+                            <OrganizationContactInformation organization={organization} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-parcelis-gray">You do not have access to any organizations.</p>
+                )}
+              </CardContent>
+            </Card>
+          </SecondaryNavigationLayout>
         </div>
       </section>
     </main>
