@@ -1,0 +1,64 @@
+name: Update Docker Hub Descriptions
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  descriptions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: apps
+            readme: infra/docker/hub/apps.md
+            description: Parcelis web application and API for property, lease, and tenant management.
+          - image: docs
+            readme: infra/docker/hub/docs.md
+            description: Bundled Parcelis documentation served through nginx.
+          - image: parcelis
+            readme: infra/docker/hub/parcelis-single.md
+            description: Parcelis web app, API, docs, nginx, and worker runtime in one image.
+          - image: proxy
+            readme: infra/docker/hub/proxy.md
+            description: Nginx reverse proxy for the modular Parcelis deployment.
+          - image: worker
+            readme: infra/docker/hub/worker.md
+            description: Parcelis background jobs for email notifications and scheduled lease transitions.
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.22.2
+
+      - name: Prepare repository description
+        env:
+          README_FILE: ${{ matrix.readme }}
+          DESCRIPTION: ${{ matrix.description }}
+        run: node scripts/docker-hub-description.mjs "$README_FILE" "$DESCRIPTION" > "$RUNNER_TEMP/docker-hub-description.json"
+
+      - name: Update Docker Hub description and overview
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          # The description API requires a user PAT with repository write access.
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          IMAGE: ${{ matrix.image }}
+        run: |
+          token=$(jq -n '{identifier: env.DOCKERHUB_USERNAME, secret: env.DOCKERHUB_TOKEN}' |
+            curl --fail --silent --show-error \
+              --header 'Content-Type: application/json' \
+              --data-binary @- https://hub.docker.com/v2/auth/token |
+            jq -er '.access_token | select(type == "string" and length > 0)')
+          echo "::add-mask::$token"
+          curl --fail --silent --show-error --output /dev/null \
+            --request PATCH \
+            --header "Authorization: Bearer $token" \
+            --header 'Content-Type: application/json' \
+            --data-binary @"$RUNNER_TEMP/docker-hub-description.json" \
+            "https://hub.docker.com/v2/repositories/parcelis/$IMAGE/"
