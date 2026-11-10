@@ -1,0 +1,20 @@
+scripts/docker-api-port.test.mjs
+  s_ef44d3e12d143b::t_7e1d9cc1dab5d0 17
+  s_ef44d3e12d143b::t_445a9157b26bd3 13-16,18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ac47e6fd451e31cddd02b5982b0df0fbc19a45a8",
+  "prompts": {},
+  "sessions": {
+    "s_ef44d3e12d143b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c3ff-6621-7ef3-8c63-119e5eb04350",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
