@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createDockerHubDescription } from "./docker-hub-description.mjs";
@@ -8,6 +8,7 @@ import { createDockerHubDescription } from "./docker-hub-description.mjs";
 const repository = "parcelis/parcelis";
 const revision = "0123456789abcdef0123456789abcdef01234567";
 const baseUrl = `https://raw.githubusercontent.com/${repository}/${revision}/assets/docker/hub/`;
+const sourceUrl = `https://github.com/${repository}/blob/${revision}/`;
 
 test("overview rendering converts HTML and Markdown images while preserving other content", () => {
   const markdown = [
@@ -37,7 +38,26 @@ test("invalid metadata cannot produce a publishing payload", () => {
   assert.throws(() => createDockerHubDescription(" \n", "Apps", repository, revision), /cannot be empty/);
 });
 
-test("the description workflow publishes all five overviews with existing commit-pinned images", () => {
+test("Compose and environment links use the same immutable revision as images", () => {
+  const markdown = [
+    "[Compose](../../../docker-compose.yml)",
+    "[Single image](../../../docker-compose-single-image.yml)",
+    "[Environment](../../../.env.production.example)",
+    "[Other project](https://github.com/example/project/blob/main/README.md)",
+  ].join("\n");
+  const { full_description: overview } = createDockerHubDescription(markdown, "Apps", repository, revision);
+  assert.equal(
+    overview,
+    [
+      `[Compose](${sourceUrl}docker-compose.yml)`,
+      `[Single image](${sourceUrl}docker-compose-single-image.yml)`,
+      `[Environment](${sourceUrl}.env.production.example)`,
+      "[Other project](https://github.com/example/project/blob/main/README.md)",
+    ].join("\n"),
+  );
+});
+
+test("the description workflow publishes exactly five overviews with existing commit-pinned resources", () => {
   const workflow = readFileSync(new URL("../.github/workflows/docker-hub-descriptions.yml", import.meta.url), "utf8");
   const entries = Array.from(
     workflow.matchAll(/- image: (\S+)\n\s+readme: (\S+)\n\s+description: ([^\n]+)/g),
@@ -45,6 +65,12 @@ test("the description workflow publishes all five overviews with existing commit
   );
   assert.deepEqual(entries.map(({ image }) => image).sort(), ["apps", "docs", "parcelis", "proxy", "worker"]);
   assert.equal(entries.find(({ image }) => image === "parcelis").readme, "infra/docker/hub/parcelis-single.md");
+  assert.deepEqual(
+    readdirSync(new URL("../infra/docker/hub", import.meta.url))
+      .filter((name) => name.endsWith(".md"))
+      .sort(),
+    entries.map(({ readme }) => readme.split("/").at(-1)).sort(),
+  );
   for (const { readme, description } of entries) {
     const output = execFileSync(process.execPath, ["scripts/docker-hub-description.mjs", readme, description], {
       cwd: fileURLToPath(new URL("..", import.meta.url)),
@@ -54,7 +80,15 @@ test("the description workflow publishes all five overviews with existing commit
     const payload = JSON.parse(output);
     assert.equal(payload.description, description);
     assert.doesNotMatch(payload.full_description, /\.\.\/\.\.\/\.\.\//);
+    assert.doesNotMatch(payload.full_description, /github\.com\/parcelis\/parcelis\/blob\/main\//);
     assert.match(payload.full_description, /View the diagram in Lucid/);
+    const composeFile = readme.endsWith("parcelis-single.md")
+      ? "docker-compose-single-image.yml"
+      : "docker-compose.yml";
+    assert.ok(payload.full_description.includes(`${sourceUrl}${composeFile}`), readme);
+    assert.ok(payload.full_description.includes(`${sourceUrl}.env.production.example`), readme);
+    assert.ok(existsSync(new URL(`../${composeFile}`, import.meta.url)));
+    assert.ok(existsSync(new URL("../.env.production.example", import.meta.url)));
     const images = Array.from(
       payload.full_description.matchAll(/https:\/\/raw\.githubusercontent\.com\/[^"'<>\)\s]+/g),
       ([url]) => url,
@@ -66,4 +100,23 @@ test("the description workflow publishes all five overviews with existing commit
       assert.ok(existsSync(new URL(`../${asset}`, import.meta.url)), `${readme}: missing ${asset}`);
     }
   }
+});
+
+test("single-image overview matches the linked Compose tag configuration", () => {
+  const compose = readFileSync(new URL("../docker-compose-single-image.yml", import.meta.url), "utf8");
+  const overview = readFileSync(new URL("../infra/docker/hub/parcelis-single.md", import.meta.url), "utf8");
+  assert.doesNotMatch(compose, /PARCELIS_VERSION/);
+  assert.doesNotMatch(overview, /PARCELIS_VERSION/);
+  const images = Array.from(compose.matchAll(/^\s+image: (parcelis\/parcelis:\S+)/gm), ([, image]) => image);
+  assert.equal(images.length, 3);
+  for (const image of images) assert.ok(overview.includes(`\`${image}\``), image);
+});
+
+test("description updates authenticate with a dedicated PAT rather than the push credential", () => {
+  const workflow = readFileSync(new URL("../.github/workflows/docker-hub-descriptions.yml", import.meta.url), "utf8");
+  assert.match(workflow, /DOCKERHUB_DESCRIPTION_TOKEN: \$\{\{ secrets\.DOCKERHUB_DESCRIPTION_TOKEN \}\}/);
+  assert.match(workflow, /secret: env\.DOCKERHUB_DESCRIPTION_TOKEN/);
+  assert.doesNotMatch(workflow, /secrets\.DOCKERHUB_TOKEN/);
+  const publish = readFileSync(new URL("../.github/workflows/publish-docker-images.yml", import.meta.url), "utf8");
+  assert.match(publish, /password: \$\{\{ secrets\.DOCKERHUB_TOKEN \}\}/);
 });

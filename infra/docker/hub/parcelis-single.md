@@ -16,12 +16,13 @@ The application and worker run in separate containers using this same image.
 It connects to PostgreSQL, Redis, and S3-compatible storage as external services.
 
 ### Deployment Architecture
+
 ![Parcelis single-image deployment architecture](../../../assets/docker/hub/parcelis-single-deployment-architecture.png)
 
 [View the diagram in Lucid](https://lucid.app/lucidchart/68fb062e-a8ed-4cc1-ba55-3740d605434d/view).
 
-Use the [single-image Compose stack](https://github.com/parcelis/parcelis/blob/main/docker-compose-single-image.yml)
-and its [environment template](https://github.com/parcelis/parcelis/blob/main/.env.production.example).
-Pin `PARCELIS_VERSION` to a release tag when deploying.
+Use the [single-image Compose stack](../../../docker-compose-single-image.yml)
+and its [environment template](../../../.env.production.example).
+This Compose example uses `parcelis/parcelis:latest` for the application, worker, and migration job.
 
 See the [deployment documentation](https://docs.parcelis.dev/) for setup and upgrades.

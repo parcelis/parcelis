@@ -15,10 +15,13 @@ export function createDockerHubDescription(markdown, description, repository, re
   if (!markdown.trim()) {
     throw new Error("Docker Hub overviews cannot be empty.");
   }
-  const baseUrl = `https://raw.githubusercontent.com/${repository}/${revision}/assets/docker/hub/`;
+  const sourceUrl = `https://github.com/${repository}/blob/${revision}/`;
+  const imageUrl = `https://raw.githubusercontent.com/${repository}/${revision}/`;
   const fullDescription = markdown.replace(
-    /\.\.\/\.\.\/\.\.\/assets\/docker\/hub\/([^"'<>\)\r\n]+)/g,
-    (_match, path) => baseUrl + path.split("/").map(encodeURIComponent).join("/"),
+    /\.\.\/\.\.\/\.\.\/([^"'<>\)\r\n]+)/g,
+    (_match, path) =>
+      (path.startsWith("assets/docker/hub/") ? imageUrl : sourceUrl) +
+      path.split("/").map(encodeURIComponent).join("/"),
   );
   return { description, full_description: fullDescription };
 }

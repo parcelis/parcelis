@@ -16,10 +16,11 @@ PostgreSQL, Redis, and S3-compatible storage, and runs alongside the separate
 `parcelis/worker` and `parcelis/docs` images.
 
 ## Deployment Architecture
-![Parcelis modular deployment architecture](<../../../assets/docker/hub/parcelis-modular-deployment-architecture.png>)
+
+![Parcelis modular deployment architecture](../../../assets/docker/hub/parcelis-modular-deployment-architecture.png)
 
 [View the diagram in Lucid](https://lucid.app/lucidchart/844aa831-3d40-4c01-8708-bad13ac883e3/view).
 
-Use the [modular Compose stack](https://github.com/parcelis/parcelis/blob/main/docker-compose.yml) and its [environment template](https://github.com/parcelis/parcelis/blob/main/.env.production.example). Choose a matching release tag for all Parcelis images in the stack.
+Use the [modular Compose stack](../../../docker-compose.yml) and its [environment template](../../../.env.production.example). The example uses `latest` tags. For a specific release, replace every Parcelis image tag in the Compose file with that release tag.
 
 See the [deployment documentation](https://docs.parcelis.dev/) for setup and upgrades.
