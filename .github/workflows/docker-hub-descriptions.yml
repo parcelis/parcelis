@@ -47,10 +47,10 @@ jobs:
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           # The description API requires a user PAT with repository write access.
-          DOCKERHUB_DESCRIPTION_TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           IMAGE: ${{ matrix.image }}
         run: |
-          token=$(jq -n '{identifier: env.DOCKERHUB_USERNAME, secret: env.DOCKERHUB_DESCRIPTION_TOKEN}' |
+          token=$(jq -n '{identifier: env.DOCKERHUB_USERNAME, secret: env.DOCKERHUB_TOKEN}' |
             curl --fail --silent --show-error \
               --header 'Content-Type: application/json' \
               --data-binary @- https://hub.docker.com/v2/auth/token |

@@ -112,11 +112,10 @@ test("single-image overview matches the linked Compose tag configuration", () =>
   for (const image of images) assert.ok(overview.includes(`\`${image}\``), image);
 });
 
-test("description updates authenticate with a dedicated PAT rather than the push credential", () => {
+test("description updates and image pushes use the configured Docker Hub PAT", () => {
   const workflow = readFileSync(new URL("../.github/workflows/docker-hub-descriptions.yml", import.meta.url), "utf8");
-  assert.match(workflow, /DOCKERHUB_DESCRIPTION_TOKEN: \$\{\{ secrets\.DOCKERHUB_DESCRIPTION_TOKEN \}\}/);
-  assert.match(workflow, /secret: env\.DOCKERHUB_DESCRIPTION_TOKEN/);
-  assert.doesNotMatch(workflow, /secrets\.DOCKERHUB_TOKEN/);
+  assert.match(workflow, /DOCKERHUB_TOKEN: \$\{\{ secrets\.DOCKERHUB_TOKEN \}\}/);
+  assert.match(workflow, /secret: env\.DOCKERHUB_TOKEN/);
   const publish = readFileSync(new URL("../.github/workflows/publish-docker-images.yml", import.meta.url), "utf8");
   assert.match(publish, /password: \$\{\{ secrets\.DOCKERHUB_TOKEN \}\}/);
 });

@@ -2,6 +2,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * Build a Docker Hub description payload with repository links pinned to a commit.
+ * @param {string} markdown Overview content with repository-relative resource links.
+ * @param {string} description Short repository description of at most 100 characters.
+ * @param {string} repository GitHub repository in owner/name format.
+ * @param {string} revision Full commit SHA used for source and image URLs.
+ * @returns {{description: string, full_description: string}} Docker Hub repository update payload.
+ */
 export function createDockerHubDescription(markdown, description, repository, revision) {
   if (!description?.trim() || description.length > 100) {
     throw new Error("Docker Hub descriptions must contain 1–100 characters.");
