@@ -1,0 +1,25 @@
+infra/docker/hub/apps.md
+  s_b86c21aa71f11d::t_239ea05ff98493 24
+infra/docker/hub/docs.md
+  s_b86c21aa71f11d::t_239ea05ff98493 22
+infra/docker/hub/proxy.md
+  s_b86c21aa71f11d::t_239ea05ff98493 24
+infra/docker/hub/worker.md
+  s_b86c21aa71f11d::t_239ea05ff98493 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f6a2cb6a6dc2e3921bff73f06504dde8efebd16d",
+  "prompts": {},
+  "sessions": {
+    "s_b86c21aa71f11d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c674-35ed-7823-b455-5a8040e4ad3f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
