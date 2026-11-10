@@ -1,0 +1,63 @@
+infra/docker/hub/docs.md
+  s_b86c21aa71f11d::t_9875f42c158054 17
+  s_b86c21aa71f11d::t_42d6d096d37271 1-2,4-5,15,18-19
+  s_b86c21aa71f11d::t_865e406925607c 6-14,20-23
+  s_b86c21aa71f11d::t_92c487e1d5f457 3
+  s_b86c21aa71f11d::t_c46072423ec887 16
+infra/docker/hub/parcelis-single.md
+  s_b86c21aa71f11d::t_f922553ae02f9e 1-2,4-17,20,22-27
+  s_b86c21aa71f11d::t_92c487e1d5f457 3
+  s_b86c21aa71f11d::t_9875f42c158054 19
+  s_b86c21aa71f11d::t_fc4082f8857200 21
+  s_b86c21aa71f11d::t_4c7e157cce99b4 18
+infra/docker/hub/apps.md
+  s_b86c21aa71f11d::t_8bc513e3e77ec6 1-2,4-9,13,17,20,22-25
+  s_b86c21aa71f11d::t_9875f42c158054 19
+  s_b86c21aa71f11d::t_92c487e1d5f457 3
+  s_b86c21aa71f11d::t_6240a37c6ab9b4 10-12,14-16
+  s_b86c21aa71f11d::t_d0e4abbe4a2b98 21
+  s_b86c21aa71f11d::t_cccb915d99d271 18
+.github/workflows/docker-hub-descriptions.yml
+  s_b86c21aa71f11d::t_68296392821a53 1-64
+scripts/docker-hub-description.test.mjs
+  s_b86c21aa71f11d::t_b3eb7bf1aac0cf 1-57,62-69
+  s_b86c21aa71f11d::t_97909663c4f37c 58-61
+infra/docker/hub/worker.md
+  s_b86c21aa71f11d::t_9875f42c158054 18
+  s_b86c21aa71f11d::t_1a6ad7bf0c5029 1-2,4-5
+  s_b86c21aa71f11d::t_92c487e1d5f457 3
+  s_b86c21aa71f11d::t_865e406925607c 6-16,22-24
+  s_b86c21aa71f11d::t_42d6d096d37271 19-21
+  s_b86c21aa71f11d::t_09f337fafe6286 17
+scripts/docker-hub-description.mjs
+  s_b86c21aa71f11d::t_68296392821a53 1-38
+infra/docker/hub/parcelis.md
+  s_b86c21aa71f11d::t_92c487e1d5f457 3
+  s_b86c21aa71f11d::t_9875f42c158054 16
+  s_b86c21aa71f11d::t_1a6ad7bf0c5029 1-2,4-5,7-11,19-22
+  s_b86c21aa71f11d::t_42d6d096d37271 6,12-14,17-18
+  s_b86c21aa71f11d::t_e0af24a591add1 15
+infra/docker/hub/proxy.md
+  s_b86c21aa71f11d::t_1a6ad7bf0c5029 1-2,4-5
+  s_b86c21aa71f11d::t_92c487e1d5f457 3
+  s_b86c21aa71f11d::t_865e406925607c 6-17,23-25
+  s_b86c21aa71f11d::t_9875f42c158054 19
+  s_b86c21aa71f11d::t_42d6d096d37271 20-22
+  s_b86c21aa71f11d::t_c897698c7696b8 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bab9859ad0f4e21d518bcf56c99cf2811c9364db",
+  "prompts": {},
+  "sessions": {
+    "s_b86c21aa71f11d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c674-35ed-7823-b455-5a8040e4ad3f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
