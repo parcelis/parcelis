@@ -15,6 +15,10 @@ import {
   Button,
   Dialog,
   DialogContent,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@parcelis/ui";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -175,15 +179,30 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
           <Button size="sm" type="button" variant="secondary" onClick={() => setNotesOpen(true)}>
             <StickyNote className="h-4 w-4" /> Add note
           </Button>
-          <Button
-            disabled={hasPaymentHistory}
-            size="sm"
-            type="button"
-            variant="destructive"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="h-4 w-4" /> Delete
-          </Button>
+          {hasPaymentHistory ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-disabled="true"
+                    className="opacity-50 hover:bg-white dark:hover:bg-parcelis-slate"
+                    size="sm"
+                    type="button"
+                    variant="destructive"
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent align="end" className="max-w-72">
+                  Invoices with associated payment history cannot be deleted.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button size="sm" type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="h-4 w-4" /> Delete
+            </Button>
+          )}
           <Button size="sm" type="button" onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4" /> Edit invoice
           </Button>
