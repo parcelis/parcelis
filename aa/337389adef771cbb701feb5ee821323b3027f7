@@ -1,0 +1,25 @@
+CONTRIBUTING.md
+  s_c6eedabea31ceb::t_db304fa64be7f2 246,248-249
+  s_c6eedabea31ceb::t_8ebef9f045054d 525
+DEPENDENCIES.md
+  s_c6eedabea31ceb::t_db304fa64be7f2 122
+ARCHITECTURE.md
+  s_c6eedabea31ceb::t_db304fa64be7f2 40-41,338,341-342
+  s_c6eedabea31ceb::t_8ebef9f045054d 340
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aa337389adef771cbb701feb5ee821323b3027f7",
+  "prompts": {},
+  "sessions": {
+    "s_c6eedabea31ceb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bf00-d094-7a13-932e-7ace18d12f11",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
