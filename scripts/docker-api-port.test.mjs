@@ -10,6 +10,12 @@ test("Docker keeps direct proxy routes and application listeners on matching API
   assert.match(dockerfile, /sed -i "s\/__API_INTERNAL_PORT__\/\$\{API_INTERNAL_PORT\}\/g"/);
   const proxyDockerfile = readFileSync(new URL("../infra/docker/proxy/Dockerfile", import.meta.url), "utf8");
   assert.equal(proxyDockerfile.match(/^ARG API_INTERNAL_PORT=(\d+)$/m)?.[1], defaultPort);
+  assert.ok(
+    proxyDockerfile.includes(
+      'RUN sed -i "s/__API_INTERNAL_PORT__/${API_INTERNAL_PORT}/g" /etc/nginx/conf.d/default.conf',
+    ),
+    "Proxy image must render the API port in its nginx configuration",
+  );
   for (const port of [defaultPort, "4100"]) {
     const render = (file) => execFileSync("sed", [`s/__API_INTERNAL_PORT__/${port}/g`, file], { encoding: "utf8" });
     const modularSupervisor = render(new URL("../infra/docker/app/supervisord.conf", import.meta.url).pathname);
