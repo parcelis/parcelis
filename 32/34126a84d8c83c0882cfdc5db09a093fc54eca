@@ -1,0 +1,19 @@
+DOCKER_DESIGN.md
+  s_c6eedabea31ceb::t_b8e7cd18caeda8 138-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3234126a84d8c83c0882cfdc5db09a093fc54eca",
+  "prompts": {},
+  "sessions": {
+    "s_c6eedabea31ceb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bf00-d094-7a13-932e-7ace18d12f11",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
