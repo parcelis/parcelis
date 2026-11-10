@@ -252,7 +252,7 @@ importers:
         version: 6.7.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)
       dotenv:
         specifier: ^18.0.0
-        version: 18.0.9
+        version: 18.0.10
       hono:
         specifier: ^4.13.13
         version: 4.13.16
@@ -410,7 +410,7 @@ importers:
         version: 11.24.0(@types/express@4.17.25)(@types/ws@8.18.2)(next@16.4.5(@babel/core@7.29.13(supports-color@8.1.1))(@playwright/test@1.65.0)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.108.1))(typescript@6.0.3)
       dotenv:
         specifier: ^18.0.0
-        version: 18.0.9
+        version: 18.0.10
       lucide-react:
         specifier: ^1.32.0
         version: 1.70.0(@types/react@19.3.0)(react@19.3.1)
@@ -6236,8 +6236,8 @@ packages:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
-  dotenv@18.0.9:
-    resolution: {integrity: sha512-3fVOW4cB02R066PUSwn8O4TJyz9NckQl7F81blIbaq9jKBm2tSmOKky7ZHIXzGvkVPXCSn6jkpziBPZdGFs8Tw==}
+  dotenv@18.0.10:
+    resolution: {integrity: sha512-89FAA1xchzK2mxVWdr5F/0rldwiueXs6zJM86rO66EzekR1iBdiXRthyG+m5GvkJaFH3C2LESzamTkgndmLT2A==}
     engines: {node: '>=12'}
     hasBin: true
 
@@ -17937,7 +17937,7 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-  dotenv@18.0.9: {}
+  dotenv@18.0.10: {}
 
   dunder-proto@1.0.1:
     dependencies:
