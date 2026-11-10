@@ -1,0 +1,23 @@
+scripts/docker-hub-description.mjs
+  s_b86c21aa71f11d::t_6ad60572d81af8 5-12
+scripts/docker-hub-description.test.mjs
+  s_b86c21aa71f11d::t_d5d0935b474e5c 115,117-118
+.github/workflows/docker-hub-descriptions.yml
+  s_b86c21aa71f11d::t_d5d0935b474e5c 50,53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e1c29819d78672e101f51d0e74a2e4bcf0e1a78b",
+  "prompts": {},
+  "sessions": {
+    "s_b86c21aa71f11d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c674-35ed-7823-b455-5a8040e4ad3f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
