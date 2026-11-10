@@ -243,9 +243,10 @@ Production rejects HTTP upgrades immediately; development forwards them to Next.
 
 Set `API_TRUST_PROXY_HOPS` only behind an enforced proxy boundary. The default `0`
 ignores forwarded client IPs, so IP-based rate limits share the unknown-IP bucket.
-The supplied production Compose stack has two nginx hops; use `2` only when public
+Both production Compose stacks have one nginx hop; use `1` only when public
 API traffic exclusively follows that path. Adjust the count for any additional proxy.
-The production environment example sets `2` for this stack.
+The production environment example sets `1`. Existing modular deployments using
+`API_TRUST_PROXY_HOPS=2` must change it to `1` when adopting direct proxy routing.
 Use decimal digits for the proxy count; empty values and other numeric formats are rejected.
 The launcher validates this value before starting Next.js; changes require restarting the API.
 `/settings/jobs`
@@ -521,7 +522,7 @@ docker compose --env-file .env.production up -d --remove-orphans
 ```
 
 The Compose stack runs the database migration job and MinIO provisioning before the application services become available. The `migrate` and `minio-init` containers exit after that initialization work; MinIO continues running and the app, docs, and worker services remain up. Put a TLS reverse proxy in front of the exposed web, docs, and object-storage endpoints configured in `.env.production`.
-The production nginx proxy serves the web UI at `/`, documentation at `/docs/`, and the API at `/api/v1` on the configured `APP_PORT`. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
+The production nginx proxy routes directly to the web process on `app-service:3001`, the API on `app-service:4000`, and the documentation container at `/docs/`. It exposes these routes on the configured `APP_PORT`; the app container has no nginx and publishes neither process port to the host. The proxy waits for both app processes to pass their health check. If changing the `API_INTERNAL_PORT` build argument, use the same value when building the `app` and `proxy` targets. Both app targets default `API_INTERNAL_URL` to the API loopback address and configured port for organization-access checks. The single-image target keeps its own nginx and loopback listeners. Terminate TLS at nginx or place a TLS proxy in front of it, and expose object storage separately when required.
 
 For logs and cleanup:
 

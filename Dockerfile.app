@@ -2,7 +2,7 @@
 #
 # Shared Parcelis application Dockerfile with explicit targets.
 #
-# - `app`: modular image with the web app, API, and internal nginx.
+# - `app`: modular image with the web app and API, routed by the proxy image.
 #   Deploy it together with the docs and proxy images, plus a worker container
 #   and Redis (Modular: app + worker + docs + proxy).
 # - `worker`: background worker with its production dependencies.
@@ -110,7 +110,7 @@ CMD ["node", "apps/worker/dist/main.js"]
 # ---------------------------------------------------------------------------
 FROM docker.io/library/node:24.22.2-alpine AS runtime-base
 WORKDIR /repo
-RUN apk add --no-cache nginx openssl supervisor && corepack enable
+RUN apk add --no-cache openssl supervisor && corepack enable
 
 # Workspace manifests and lockfile
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -128,35 +128,37 @@ COPY --from=api-build /repo/packages packages
 COPY --from=web-build /repo/apps/web/package.json apps/web/package.json
 COPY --from=web-build /repo/apps/web/.next apps/web/.next
 COPY --from=web-build /repo/apps/web/public apps/web/public
+
 # ---------------------------------------------------------------------------
 # Modular application image
 # ---------------------------------------------------------------------------
 FROM runtime-base AS app
 RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api... --filter @parcelis/web...
 ARG API_INTERNAL_PORT=4000
-COPY infra/docker/app/nginx.conf /etc/nginx/http.d/default.conf
+ENV API_PORT=${API_INTERNAL_PORT}
+ENV API_INTERNAL_URL=http://127.0.0.1:${API_INTERNAL_PORT}
 COPY infra/docker/app/supervisord.conf /etc/supervisord.conf
 RUN sed -i "s/__API_INTERNAL_PORT__/${API_INTERNAL_PORT}/g" \
-  /etc/nginx/http.d/default.conf /etc/supervisord.conf
-EXPOSE 3000
+  /etc/supervisord.conf
+EXPOSE 3001 ${API_INTERNAL_PORT}
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD sh -c 'wget -q -O /dev/null http://127.0.0.1:3000/api/v1/health && wget -q -O /dev/null http://127.0.0.1:3000/'
+  CMD wget -q -O /dev/null "http://127.0.0.1:${API_PORT}/api/v1/health" && wget -q -O /dev/null http://127.0.0.1:3001/
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]
 
 # ---------------------------------------------------------------------------
 # Single application image (web app + API + docs + public nginx)
 # ---------------------------------------------------------------------------
 FROM runtime-base AS single-image
+RUN apk add --no-cache nginx
 COPY --from=worker-build /repo/apps/worker/package.json apps/worker/package.json
 COPY --from=worker-build /repo/apps/worker/dist apps/worker/dist
 RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api... --filter @parcelis/web... --filter @parcelis/worker...
 ARG API_INTERNAL_PORT=4000
+ENV API_INTERNAL_URL=http://127.0.0.1:${API_INTERNAL_PORT}
 # Docs build output (static files served directly by nginx)
 COPY --from=docs-build /repo/apps/docs/build /usr/share/parcelis-docs
 COPY infra/docker/single-image/nginx.conf /etc/nginx/http.d/default.conf
-# Reuse the modular supervisor configuration: api + web + nginx on the same
-# loopback ports the nginx config expects.
-COPY infra/docker/app/supervisord.conf /etc/supervisord.conf
+COPY infra/docker/single-image/supervisord.conf /etc/supervisord.conf
 RUN sed -i "s/__API_INTERNAL_PORT__/${API_INTERNAL_PORT}/g" \
   /etc/nginx/http.d/default.conf /etc/supervisord.conf
 EXPOSE 3000
