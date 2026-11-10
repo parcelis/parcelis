@@ -1,0 +1,49 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+/**
+ * Build a Docker Hub description payload with repository links pinned to a commit.
+ * @param {string} markdown Overview content with repository-relative resource links.
+ * @param {string} description Short repository description of at most 100 characters.
+ * @param {string} repository GitHub repository in owner/name format.
+ * @param {string} revision Full commit SHA used for source and image URLs.
+ * @returns {{description: string, full_description: string}} Docker Hub repository update payload.
+ */
+export function createDockerHubDescription(markdown, description, repository, revision) {
+  if (!description?.trim() || description.length > 100) {
+    throw new Error("Docker Hub descriptions must contain 1–100 characters.");
+  }
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository ?? "")) {
+    throw new Error("GITHUB_REPOSITORY must identify the source owner and repository.");
+  }
+  if (!/^[a-f\d]{40}$/i.test(revision ?? "")) {
+    throw new Error("GITHUB_SHA must be a full commit SHA.");
+  }
+  if (!markdown.trim()) {
+    throw new Error("Docker Hub overviews cannot be empty.");
+  }
+  const sourceUrl = `https://github.com/${repository}/blob/${revision}/`;
+  const imageUrl = `https://raw.githubusercontent.com/${repository}/${revision}/`;
+  const fullDescription = markdown.replace(
+    /\.\.\/\.\.\/\.\.\/([^"'<>\)\r\n]+)/g,
+    (_match, path) =>
+      (path.startsWith("assets/docker/hub/") ? imageUrl : sourceUrl) +
+      path.split("/").map(encodeURIComponent).join("/"),
+  );
+  return { description, full_description: fullDescription };
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const [readmePath, description] = process.argv.slice(2);
+  if (!readmePath) {
+    throw new Error("Usage: node scripts/docker-hub-description.mjs <readme> <description>");
+  }
+  const payload = createDockerHubDescription(
+    readFileSync(readmePath, "utf8"),
+    description,
+    process.env.GITHUB_REPOSITORY,
+    process.env.GITHUB_SHA,
+  );
+  process.stdout.write(`${JSON.stringify(payload)}\n`);
+}
