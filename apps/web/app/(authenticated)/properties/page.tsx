@@ -121,22 +121,29 @@ function formatCurrency(cents: number | null) {
 function getUnitRows(property: PropertyListItem) {
   if (property.units.length === 0) return [];
   const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
-  const ticketCountsByUnit = new Map<string, number>();
+  const ticketCountsByUnit = new Map<number, number>();
+  const legacyTicketCountsByLabel = new Map<string, number>();
   const now = new Date();
   const expiresBefore = new Date(now);
   expiresBefore.setDate(expiresBefore.getDate() + 90);
 
   for (const ticket of property.maintenanceTickets) {
-    if (!ticket.unitLabel || !isActiveMaintenanceTicketStatus(ticket.status)) {
-      continue;
+    if (!isActiveMaintenanceTicketStatus(ticket.status)) continue;
+    if (ticket.units.length > 0) {
+      for (const { unitId } of ticket.units) {
+        ticketCountsByUnit.set(unitId, (ticketCountsByUnit.get(unitId) ?? 0) + 1);
+      }
+    } else if (ticket.unitLabel) {
+      legacyTicketCountsByLabel.set(ticket.unitLabel, (legacyTicketCountsByLabel.get(ticket.unitLabel) ?? 0) + 1);
     }
-    ticketCountsByUnit.set(ticket.unitLabel, (ticketCountsByUnit.get(ticket.unitLabel) ?? 0) + 1);
   }
 
   const unitLabels = new Set([
     ...property.units.map((unit) => unit.name),
     ...property.leases.map((lease) => lease.unitLabel),
-    ...property.maintenanceTickets.flatMap((ticket) => (ticket.unitLabel ? [ticket.unitLabel] : [])),
+    ...property.maintenanceTickets.flatMap((ticket) =>
+      ticket.units.length === 0 && ticket.unitLabel ? [ticket.unitLabel] : [],
+    ),
   ]);
   for (let index = 1; unitLabels.size < property.unitCount; index += 1) {
     unitLabels.add(String(index));
@@ -159,7 +166,9 @@ function getUnitRows(property: PropertyListItem) {
       amountOverdueCents: property.amountOverdueCents === null ? null : (activeLease?.amountOverdueCents ?? 0),
       expiringLeases90Days: property.expiringLeases90Days === null ? null : isExpiring ? 1 : 0,
       openMaintenanceTickets:
-        property.openMaintenanceTickets === null ? null : (ticketCountsByUnit.get(unitLabel) ?? 0),
+        property.openMaintenanceTickets === null
+          ? null
+          : (unit ? ticketCountsByUnit.get(unit.id) ?? 0 : 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
       status: property.occupiedUnits === null ? "unavailable" : (activeLease?.status ?? "vacant"),
     };
   });

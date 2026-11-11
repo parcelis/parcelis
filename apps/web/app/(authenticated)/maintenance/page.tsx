@@ -52,7 +52,7 @@ import {
   maintenanceDashboardFiltersSchema,
   formatMaintenanceTicketNumber,
 } from "@parcelis/schemas";
-import { apiClient, queryKeys } from "../../../components/api-client";
+import { apiClient } from "../../../components/api-client";
 import { LoadingState } from "../../../components/loading-state";
 import { MaintenanceDrawer } from "../../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../../components/maintenance-image-upload";
@@ -146,9 +146,9 @@ function MaintenancePageContent() {
   } | null>(null);
   const [ticketAction, setTicketAction] = React.useState<TicketAction | null>(null);
   const [ticketActionNote, setTicketActionNote] = React.useState("");
-  const propertiesQuery = useQuery({
-    queryKey: queryKeys.properties.list,
-    queryFn: () => apiClient.properties.list.query(),
+  const filterOptionsQuery = useQuery({
+    queryKey: ["maintenance", "filterOptions"],
+    queryFn: () => apiClient.maintenance.filterOptions.query(),
   });
   const ticketsQuery = useQuery({
     queryKey: ["maintenance", "list"],
@@ -226,7 +226,7 @@ function MaintenancePageContent() {
   });
   const tickets = ticketsQuery.data ?? [];
   const activityEvents = (activityEventsQuery.data ?? []) as ActivityEventSummary[];
-  const properties = propertiesQuery.data ?? [];
+  const properties = filterOptionsQuery.data ?? [];
   const propertyOptions = properties.map((property) => [property.id, property.name] as const);
   const unitOptions = properties
     .filter((property) => propertyFilter === "all" || property.id === filters.propertyId)
@@ -236,6 +236,12 @@ function MaintenancePageContent() {
       propertyName: property.name,
     })));
   const selectedUnit = unitOptions.find((unit) => unit.id === filters.unitId);
+  const unitLookupFailed = filters.unitId !== undefined &&
+    filterOptionsQuery.isError && filterOptionsQuery.data === undefined &&
+    tickets.some((ticket) =>
+      ticket.units.length === 0 && ticket.unitLabel !== null &&
+      (filters.propertyId === undefined || ticket.propertyId === filters.propertyId),
+    );
   const normalizedSearch = search.toLowerCase();
   const activeFilterCount = [statusFilter, propertyFilter, unitFilter, categoryFilter, urgencyFilter].filter(
     (value) => value !== "all",
@@ -386,12 +392,12 @@ function MaintenancePageContent() {
                 </div>
                 {isFilterOpen ? (
                   <div className="absolute right-0 top-full z-20 mt-3 flex w-full max-w-3xl flex-wrap gap-4 rounded-lg border border-parcelis-border bg-white p-5 shadow-lg dark:bg-parcelis-slate">
-                    {propertiesQuery.isLoading ? (
+                    {filterOptionsQuery.isLoading ? (
                       <p className="w-full text-sm text-parcelis-gray">Loading property and unit options…</p>
-                    ) : propertiesQuery.error ? (
+                    ) : filterOptionsQuery.error ? (
                       <p className="w-full text-sm text-red-700" role="alert">
                         Unable to load property and unit options.
-                        <Button className="ml-2" size="sm" variant="secondary" onClick={() => propertiesQuery.refetch()}>
+                        <Button className="ml-2" size="sm" variant="secondary" onClick={() => filterOptionsQuery.refetch()}>
                           Retry
                         </Button>
                       </p>
@@ -411,7 +417,7 @@ function MaintenancePageContent() {
                     <Label className="min-w-0 flex-1 basis-40">
                       Property
                       <Select
-                        disabled={propertiesQuery.isLoading || Boolean(propertiesQuery.error)}
+                        disabled={filterOptionsQuery.isLoading || Boolean(filterOptionsQuery.error)}
                         value={propertyFilter}
                         onChange={(event) => {
                           const propertyId = event.target.value;
@@ -436,7 +442,7 @@ function MaintenancePageContent() {
                     <Label className="min-w-0 flex-1 basis-40">
                       Unit
                       <Select
-                        disabled={propertiesQuery.isLoading || Boolean(propertiesQuery.error)}
+                        disabled={filterOptionsQuery.isLoading || Boolean(filterOptionsQuery.error)}
                         value={unitFilter}
                         onChange={(event) => updateFilters({ unitId: event.target.value })}
                       >
@@ -493,7 +499,21 @@ function MaintenancePageContent() {
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
-              {ticketsQuery.isLoading || (filters.unitId !== undefined && propertiesQuery.isLoading) ? (
+              {unitLookupFailed ? (
+                <div className="border-b border-parcelis-border p-5 text-sm text-parcelis-gray" role="alert">
+                  <p>Unit details could not be loaded. Results may omit tickets saved with a unit label.</p>
+                  <Button
+                    className="mt-3"
+                    onClick={() => filterOptionsQuery.refetch()}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Retry loading unit details
+                  </Button>
+                </div>
+              ) : null}
+              {ticketsQuery.isLoading || (filters.unitId !== undefined && filterOptionsQuery.isLoading) ? (
                 <LoadingState label="Loading maintenance tickets…" />
               ) : ticketsQuery.error ? (
                 <div className="min-h-48 p-5 text-sm font-medium text-red-700">
@@ -502,8 +522,12 @@ function MaintenancePageContent() {
               ) : filteredTickets.length === 0 ? (
                 <div className="flex min-h-48 flex-col items-center justify-center gap-3 p-5 text-center text-sm text-parcelis-gray">
                   <WrenchOff aria-hidden="true" className="h-8 w-8 text-parcelis-green" />
-                  <p>No maintenance tickets match your search or filters.</p>
-                  <p>Tickets may have changed. Adjust or clear the filters to view other tickets.</p>
+                  <p>{unitLookupFailed
+                    ? "Unable to determine all matching tickets."
+                    : "No maintenance tickets match your search or filters."}</p>
+                  <p>{unitLookupFailed
+                    ? "Retry loading unit details to complete the results."
+                    : "Tickets may have changed. Adjust or clear the filters to view other tickets."}</p>
                 </div>
               ) : groupByProperty ? (
                 <Table className="min-w-[860px] border-collapse text-left">
