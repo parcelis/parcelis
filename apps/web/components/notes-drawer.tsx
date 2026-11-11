@@ -167,10 +167,12 @@ export function NotesDrawer({
       if (variables.session === drawerSession.current) {
         setDraft((currentDraft) => (currentDraft === variables.body ? "" : currentDraft));
       }
-      await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
-      if ("maintenanceTicketId" in subject) {
-        await queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] });
-      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) }),
+        ...("maintenanceTicketId" in subject
+          ? [queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] })]
+          : []),
+      ]);
     },
   });
   const updateNote = useMutation({
@@ -181,7 +183,12 @@ export function NotesDrawer({
         setEditingNoteId((currentNoteId) => (currentNoteId === variables.id ? null : currentNoteId));
         setEditDraft((currentDraft) => (currentDraft === variables.body ? "" : currentDraft));
       }
-      await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) }),
+        ...("maintenanceTicketId" in subject
+          ? [queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] })]
+          : []),
+      ]);
     },
   });
   const deleteNote = useMutation({
@@ -190,7 +197,12 @@ export function NotesDrawer({
       if (variables.session === drawerSession.current) {
         setNotePendingDeletion((currentNoteId) => (currentNoteId === variables.id ? null : currentNoteId));
       }
-      await queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) }),
+        ...("maintenanceTicketId" in subject
+          ? [queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] })]
+          : []),
+      ]);
     },
   });
   const { reset: resetCreateNote } = createNote;
