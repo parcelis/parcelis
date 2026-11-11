@@ -1,7 +1,6 @@
-<div align="center" style="padding:5px 10px 0 10px; background-color:#101c29;">
-
+<p align="center">
   <img src="../../../assets/docker/hub/parcelis-banner-dark.png" alt="Parcelis" width="600" />
-</div>
+</p>
 
 #### Parcelis (PAR-suhl-iss) is an open-source property management platform for landlords, small operators, and local property teams.
 
