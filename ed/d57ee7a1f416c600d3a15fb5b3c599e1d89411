@@ -1,0 +1,62 @@
+apps/api/src/modules/application-checks.ts
+  s_3b878a54e00f41::t_b92013b5ef2284 3
+scripts/compose-postgres.mjs
+  s_3b878a54e00f41::t_b92013b5ef2284 1
+docker-compose-single-image.yml
+  s_3b878a54e00f41::t_b92013b5ef2284 107,120,165
+scripts/documentation-redirects.test.mjs
+  s_3b878a54e00f41::t_b92013b5ef2284 40-55
+  s_3b878a54e00f41::t_df6c29d145267e 56-57
+scripts/docker-publish.test.mjs
+  s_3b878a54e00f41::t_753f0418c0c6a7 16-19
+  s_3b878a54e00f41::t_89ec7a18caaf24 13
+.env.production.example
+  s_3b878a54e00f41::t_b92013b5ef2284 26-28
+  s_f25797f135fa32::t_091672acd98b49 29
+CONTRIBUTING.md
+  s_3b878a54e00f41::t_b92013b5ef2284 510-515,517-524
+  s_f25797f135fa32::t_1efb4d83d9a773 516
+apps/web/documentation-redirects.mjs
+  s_3b878a54e00f41::t_b92013b5ef2284 56-68
+docker-compose.yml
+  s_3b878a54e00f41::t_b92013b5ef2284 90,102,113
+  s_f25797f135fa32::t_1efb4d83d9a773 150
+apps/api/src/status/server.ts
+  s_3b878a54e00f41::t_b92013b5ef2284 31
+scripts/docker-hub-description.test.mjs
+  s_f25797f135fa32::t_1efb4d83d9a773 108-109,112-114
+infra/docker/hub/parcelis-single.md
+  s_f25797f135fa32::t_1efb4d83d9a773 25-26
+infra/docker/hub/worker.md
+  s_f25797f135fa32::t_1efb4d83d9a773 22
+infra/docker/hub/proxy.md
+  s_f25797f135fa32::t_1efb4d83d9a773 23
+ARCHITECTURE.md
+  s_f25797f135fa32::t_1efb4d83d9a773 337
+infra/docker/hub/apps.md
+  s_f25797f135fa32::t_1efb4d83d9a773 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "edd57ee7a1f416c600d3a15fb5b3c599e1d89411",
+  "prompts": {},
+  "sessions": {
+    "s_3b878a54e00f41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1aa0a-1632-7f63-875f-15d61d9c3071",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_f25797f135fa32": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c8a6-d7e0-7a43-a4fa-58e24d17e351",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

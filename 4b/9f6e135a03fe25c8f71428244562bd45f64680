@@ -1,0 +1,32 @@
+CONTRIBUTING.md
+  s_c86036bb1d0953::t_4d0a637ea4d539 529-531,534
+apps/api/scripts/status-dev.mjs
+  s_c86036bb1d0953::t_969ec7892671b2 9-13,50-60
+apps/api/src/tests/invoices/invoice-delete.integration.test.ts
+  s_c86036bb1d0953::t_3d08dac5468774 25-28
+scripts/documentation-redirects.test.mjs
+  s_c86036bb1d0953::t_509c6fc8a21b4f 12-20
+scripts/status-dev.test.mjs
+  s_c86036bb1d0953::t_942a57c289efdf 10,17-19,31,63-64,68-88
+scripts/dev-local.mjs
+  s_c86036bb1d0953::t_969ec7892671b2 123-124
+apps/web/next.config.ts
+  s_c86036bb1d0953::t_4d0a637ea4d539 3,6
+  s_c86036bb1d0953::t_7aa8c24c68b111 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4b9f6e135a03fe25c8f71428244562bd45f64680",
+  "prompts": {},
+  "sessions": {
+    "s_c86036bb1d0953": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c8cd-39e6-74c3-a3b4-ab6a86b62d01",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
