@@ -60,7 +60,7 @@ process.once("SIGTERM", () => process.exit(0));
       .split("\n")
       .filter(Boolean)
       .map((line) => JSON.parse(line));
-  await waitFor(() => output.includes("29999"));
+  await waitFor(() => output.includes("29999") && (errors.match(/Start pnpm dev/g)?.length ?? 0) >= 1);
   assert.equal(errors.match(/Start pnpm dev/g)?.length, 1);
   await writeFile(join(api, ".next/trace"), "unrelated build update");
   await delay(400);
@@ -85,6 +85,7 @@ process.once("SIGTERM", () => process.exit(0));
   }
   await changeAndWait(() => rm(runtime));
   assert.equal(starts().at(-1).url, "http://localhost:29999/login");
+  await waitFor(() => (errors.match(/Start pnpm dev/g)?.length ?? 0) >= 2);
   assert.equal(errors.match(/Start pnpm dev/g)?.length, 2);
   const processes = starts().map(({ pid }) => pid);
   const exited = once(child, "exit");
