@@ -1543,6 +1543,7 @@ export const appRouter = router({
             },
           },
           maintenanceTickets: {
+            where: { archivedAt: null },
             orderBy: { openedOn: "desc" },
             select: {
               id: true,
@@ -1553,6 +1554,7 @@ export const appRouter = router({
               priority: true,
               status: true,
               unitLabel: true,
+              units: { select: { unitId: true } },
             },
           },
           units: {
@@ -1612,6 +1614,7 @@ export const appRouter = router({
               ? property.maintenanceTickets.map((ticket) => ({
                   ...ticket,
                   unitLabel: permissions.units.view ? ticket.unitLabel : null,
+                  units: permissions.units.view ? ticket.units : [],
                 }))
               : [],
             units: (permissions.units.view ? property.units : []).map(({ _count, ...unit }) => ({
@@ -3564,6 +3567,20 @@ export const appRouter = router({
       }),
   }),
   maintenance: router({
+    filterOptions: permissionProcedure("maintenance", "view").query(({ ctx }) =>
+      ctx.prisma.property.findMany({
+        where: { organizationId: ctx.organization.organizationId },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          units: {
+            orderBy: { name: "asc" },
+            select: { id: true, name: true },
+          },
+        },
+      }),
+    ),
     list: permissionProcedure("maintenance", "view").query(({ ctx }) =>
       ctx.prisma.maintenanceTicket.findMany({
         where: { organizationId: ctx.organization.organizationId, archivedAt: null },

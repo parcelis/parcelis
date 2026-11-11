@@ -76,7 +76,7 @@ import {
   entityDeletedMessage,
   entityUpdatedMessage,
 } from "../../../components/toast-messages";
-import { getPropertyLink, getUnitLink } from "../../../lib/entity-links";
+import { getMaintenanceListLink, getPropertyLink, getUnitLink } from "../../../lib/entity-links";
 
 type PropertyFilters = {
   propertyId: string;
@@ -121,22 +121,29 @@ function formatCurrency(cents: number | null) {
 function getUnitRows(property: PropertyListItem) {
   if (property.units.length === 0) return [];
   const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
-  const ticketCountsByUnit = new Map<string, number>();
+  const ticketCountsByUnit = new Map<number, number>();
+  const legacyTicketCountsByLabel = new Map<string, number>();
   const now = new Date();
   const expiresBefore = new Date(now);
   expiresBefore.setDate(expiresBefore.getDate() + 90);
 
   for (const ticket of property.maintenanceTickets) {
-    if (!ticket.unitLabel || !isActiveMaintenanceTicketStatus(ticket.status)) {
-      continue;
+    if (!isActiveMaintenanceTicketStatus(ticket.status)) continue;
+    if (ticket.units.length > 0) {
+      for (const { unitId } of ticket.units) {
+        ticketCountsByUnit.set(unitId, (ticketCountsByUnit.get(unitId) ?? 0) + 1);
+      }
+    } else if (ticket.unitLabel) {
+      legacyTicketCountsByLabel.set(ticket.unitLabel, (legacyTicketCountsByLabel.get(ticket.unitLabel) ?? 0) + 1);
     }
-    ticketCountsByUnit.set(ticket.unitLabel, (ticketCountsByUnit.get(ticket.unitLabel) ?? 0) + 1);
   }
 
   const unitLabels = new Set([
     ...property.units.map((unit) => unit.name),
     ...property.leases.map((lease) => lease.unitLabel),
-    ...property.maintenanceTickets.flatMap((ticket) => (ticket.unitLabel ? [ticket.unitLabel] : [])),
+    ...property.maintenanceTickets.flatMap((ticket) =>
+      ticket.units.length === 0 && ticket.unitLabel ? [ticket.unitLabel] : [],
+    ),
   ]);
   for (let index = 1; unitLabels.size < property.unitCount; index += 1) {
     unitLabels.add(String(index));
@@ -159,7 +166,9 @@ function getUnitRows(property: PropertyListItem) {
       amountOverdueCents: property.amountOverdueCents === null ? null : (activeLease?.amountOverdueCents ?? 0),
       expiringLeases90Days: property.expiringLeases90Days === null ? null : isExpiring ? 1 : 0,
       openMaintenanceTickets:
-        property.openMaintenanceTickets === null ? null : (ticketCountsByUnit.get(unitLabel) ?? 0),
+        property.openMaintenanceTickets === null
+          ? null
+          : (unit ? ticketCountsByUnit.get(unit.id) ?? 0 : 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
       status: property.occupiedUnits === null ? "unavailable" : (activeLease?.status ?? "vacant"),
     };
   });
@@ -1031,18 +1040,22 @@ export default function PropertiesPage() {
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
-                              <span
-                                className={`inline-flex items-center gap-1 font-semibold ${
-                                  (property.openMaintenanceTickets ?? 0) > 0
-                                    ? "text-parcelis-charcoal"
-                                    : "text-parcelis-gray"
-                                }`}
-                              >
-                                <Wrench className="h-4 w-4 text-parcelis-green" />
-                                {property.openMaintenanceTickets === null
-                                  ? "Unavailable"
-                                  : `${property.openMaintenanceTickets} open`}
-                              </span>
+                              {property.openMaintenanceTickets === null ? (
+                                <span className="inline-flex items-center gap-1 text-parcelis-gray">
+                                  <Wrench aria-hidden="true" className="h-4 w-4 text-parcelis-green" />
+                                  Unavailable
+                                </span>
+                              ) : (
+                                <Button asChild className="h-auto p-0 hover:underline" size="sm" variant="ghost">
+                                  <Link
+                                    aria-label={`View ${property.openMaintenanceTickets} open maintenance tickets for ${property.name}`}
+                                    href={getMaintenanceListLink(property.id)}
+                                  >
+                                    <Wrench aria-hidden="true" className="h-4 w-4 text-parcelis-green" />
+                                    {property.openMaintenanceTickets} open
+                                  </Link>
+                                </Button>
+                              )}
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
@@ -1139,12 +1152,24 @@ export default function PropertiesPage() {
                                     </span>
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
-                                    <span className="inline-flex items-center gap-1 text-parcelis-gray">
-                                      <Wrench className="h-4 w-4 text-parcelis-green" />
-                                      {unit.openMaintenanceTickets === null
-                                        ? "Unavailable"
-                                        : `${unit.openMaintenanceTickets} open`}
-                                    </span>
+                                    {unit.openMaintenanceTickets !== null && unit.id !== undefined ? (
+                                      <Button asChild className="h-auto p-0 hover:underline" size="sm" variant="ghost">
+                                        <Link
+                                          aria-label={`View ${unit.openMaintenanceTickets} open maintenance tickets for ${property.name}, unit ${unit.unitLabel}`}
+                                          href={getMaintenanceListLink(property.id, unit.id)}
+                                        >
+                                          <Wrench aria-hidden="true" className="h-4 w-4 text-parcelis-green" />
+                                          {unit.openMaintenanceTickets} open
+                                        </Link>
+                                      </Button>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-parcelis-gray">
+                                        <Wrench aria-hidden="true" className="h-4 w-4 text-parcelis-green" />
+                                        {unit.openMaintenanceTickets === null
+                                          ? "Unavailable"
+                                          : `${unit.openMaintenanceTickets} open`}
+                                      </span>
+                                    )}
                                   </TableCell>
                                   <TableCell className="px-5 py-3">
                                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-parcelis-charcoal">

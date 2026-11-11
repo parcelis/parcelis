@@ -960,6 +960,12 @@ export const activeMaintenanceTicketStatuses = ["new", "in_progress", "pending",
 export const terminalMaintenanceTicketStatuses = ["resolved", "closed", "canceled"] as const;
 export const maintenanceTicketStatusSchema = z.enum(maintenanceTicketStatuses);
 
+export const maintenanceDashboardFiltersSchema = z.object({
+  propertyId: idSchema.optional().catch(undefined),
+  unitId: idSchema.optional().catch(undefined),
+  status: z.enum(["all", "open", ...maintenanceTicketStatuses]).catch("all"),
+});
+
 export function isActiveMaintenanceTicketStatus(status: string) {
   return activeMaintenanceTicketStatuses.includes(status as (typeof activeMaintenanceTicketStatuses)[number]);
 }
