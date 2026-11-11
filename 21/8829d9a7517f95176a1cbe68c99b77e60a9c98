@@ -1,0 +1,31 @@
+CONTRIBUTING.md
+  s_c86036bb1d0953::t_46348269b9edc5 293
+scripts/dev-local.mjs
+  s_c86036bb1d0953::t_95b77e3a53c081 18-23
+  s_c86036bb1d0953::t_46348269b9edc5 3,113-128
+  s_c86036bb1d0953::t_19a25ae3148105 24-26
+  s_c86036bb1d0953::t_64ed0a39d73f49 129
+apps/api/scripts/status-dev.mjs
+  s_c86036bb1d0953::t_130ba210461dfd 3-13
+  s_c86036bb1d0953::t_bc311fefa7a084 1-2,14-66
+apps/api/package.json
+  s_c86036bb1d0953::t_f31de5b9938abc 13
+.gitignore
+  s_c86036bb1d0953::t_46348269b9edc5 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "218829d9a7517f95176a1cbe68c99b77e60a9c98",
+  "prompts": {},
+  "sessions": {
+    "s_c86036bb1d0953": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c8cd-39e6-74c3-a3b4-ab6a86b62d01",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
