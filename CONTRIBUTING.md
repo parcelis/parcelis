@@ -526,9 +526,12 @@ docker compose --env-file .env.production pull
 docker compose --env-file .env.production up -d --remove-orphans
 ```
 
-For the optional single-image stack, build and run:
+The modular and single-image stacks are alternatives and cannot run simultaneously
+with the same configuration because they share host ports. Stop the modular stack
+before building and starting the optional single-image stack:
 
 ```bash
+docker compose --env-file .env.production -f docker-compose.yml down
 docker build -f Dockerfile.app --target single-image -t parcelis/parcelis:local-docs-independent .
 # Set PARCELIS_VERSION=local-docs-independent in .env.production.
 docker compose --env-file .env.production -f docker-compose-single-image.yml up -d --remove-orphans

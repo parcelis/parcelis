@@ -1,7 +1,9 @@
 import { config } from "dotenv";
 import type { NextConfig } from "next";
-import { documentationRedirects } from "./documentation-redirects";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
+
+const { documentationRedirects } = createRequire(resolve(__dirname, "next.config.ts"))("./documentation-redirects.ts");
 
 config({ path: resolve(__dirname, "../../.env") });
 

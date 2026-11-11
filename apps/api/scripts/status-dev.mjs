@@ -5,13 +5,12 @@ import { resolve } from "node:path";
 const runtimeDirectory = resolve(import.meta.dirname, "../../../.parcelis");
 mkdirSync(runtimeDirectory, { recursive: true });
 const runtimePath = resolve(runtimeDirectory, "dev-status.json");
-if (existsSync(runtimePath)) {
-  Object.assign(process.env, JSON.parse(readFileSync(runtimePath, "utf8")));
-} else {
-  console.warn("[status] Start pnpm dev to supply the selected development connection settings.");
-}
-
 if (process.argv.includes("--run")) {
+  if (existsSync(runtimePath)) {
+    Object.assign(process.env, JSON.parse(readFileSync(runtimePath, "utf8")));
+  } else {
+    console.warn("[status] Start pnpm dev to supply the selected development connection settings.");
+  }
   await import("../src/status/server.ts");
 } else {
   let child;
@@ -48,8 +47,17 @@ if (process.argv.includes("--run")) {
     }
   }
 
-  const watchers = [resolve(import.meta.dirname, "../src"), runtimeDirectory].map((directory) =>
-    watch(directory, { recursive: true }, () => {
+  const directories = [
+    { path: resolve(import.meta.dirname, "../src"), workspace: false },
+    { path: runtimeDirectory, workspace: false },
+    ...["jobs", "db", "schemas"].map((name) => ({
+      path: resolve(import.meta.dirname, `../../../packages/${name}`),
+      workspace: true,
+    })),
+  ];
+  const watchers = directories.map(({ path, workspace }) =>
+    watch(path, { recursive: true }, (_event, filename) => {
+      if (workspace && filename && !/^(src|dist)([/\\]|$)/.test(String(filename))) return;
       clearTimeout(timer);
       timer = setTimeout(() => void restart(), 200);
     }),

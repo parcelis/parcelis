@@ -120,6 +120,8 @@ writeFileSync(
     REDIS_URL: redisUrl,
     DATABASE_URL: databaseUrl,
     S3_ENDPOINT: objectStorageEndpoint,
+    S3_PUBLIC_ENDPOINT: objectStoragePublicEndpoint,
+    S3_REGION: process.env.S3_REGION ?? "us-east-1",
     S3_BUCKET: objectStorageBucket,
     S3_ACCESS_KEY_ID: objectStorageAccessKeyId,
     S3_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,

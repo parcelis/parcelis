@@ -7,16 +7,18 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
 
-test("status watcher follows selected ports, ignores build files, and stops its child", async (t) => {
+test("status watcher reloads settings and workspace code without retaining deleted settings", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "parcelis-status-watch-"));
   const api = join(root, "apps/api");
   await mkdir(join(api, "scripts"), { recursive: true });
   await mkdir(join(api, "src/status"), { recursive: true });
   await mkdir(join(api, ".next"));
   await mkdir(join(root, ".parcelis"));
+  for (const name of ["jobs", "db", "schemas"]) {
+    await mkdir(join(root, "packages", name, "src"), { recursive: true });
+  }
   await copyFile(new URL("../apps/api/scripts/status-dev.mjs", import.meta.url), join(api, "scripts/status-dev.mjs"));
   const runtime = join(root, ".parcelis/dev-status.json");
-  await writeFile(runtime, JSON.stringify({ STATUS_WEB_URL: "http://localhost:30001/login" }));
   await writeFile(
     join(api, "src/status/server.ts"),
     `console.log(JSON.stringify({ pid: process.pid, url: process.env.STATUS_WEB_URL }));
@@ -26,6 +28,7 @@ process.once("SIGTERM", () => process.exit(0));
   );
   const child = spawn(process.execPath, [join(api, "scripts/status-dev.mjs")], {
     cwd: api,
+    env: { ...process.env, STATUS_WEB_URL: "http://localhost:29999/login" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";
@@ -57,15 +60,32 @@ process.once("SIGTERM", () => process.exit(0));
       .split("\n")
       .filter(Boolean)
       .map((line) => JSON.parse(line));
-  await waitFor(() => output.includes("30001"));
+  await waitFor(() => output.includes("29999"));
+  assert.equal(errors.match(/Start pnpm dev/g)?.length, 1);
   await writeFile(join(api, ".next/trace"), "unrelated build update");
   await delay(400);
   assert.equal(starts().length, 1);
-  await writeFile(runtime, JSON.stringify({ STATUS_WEB_URL: "http://localhost:30002/login" }));
-  await waitFor(() => output.includes("30002"));
-  assert.equal(starts().length, 2);
-  await writeFile(join(api, "src/probe.ts"), "export {};\n");
-  await waitFor(() => starts().length === 3);
+  async function changeAndWait(change) {
+    const count = starts().length;
+    await change();
+    await waitFor(() => starts().length > count);
+  }
+  for (const port of [30001, 30002]) {
+    await changeAndWait(() => writeFile(runtime, JSON.stringify({ STATUS_WEB_URL: `http://localhost:${port}/login` })));
+    assert.equal(starts().at(-1).url, `http://localhost:${port}/login`);
+  }
+  await changeAndWait(() => writeFile(join(api, "src/probe.ts"), "export {};\n"));
+  for (const name of ["jobs", "db", "schemas"]) {
+    await changeAndWait(() => writeFile(join(root, "packages", name, "src/probe.ts"), "export {};\n"));
+    const dist = join(root, "packages", name, "dist");
+    await changeAndWait(async () => {
+      await mkdir(dist);
+      await writeFile(join(dist, "probe.js"), "export {};\n");
+    });
+  }
+  await changeAndWait(() => rm(runtime));
+  assert.equal(starts().at(-1).url, "http://localhost:29999/login");
+  assert.equal(errors.match(/Start pnpm dev/g)?.length, 2);
   const processes = starts().map(({ pid }) => pid);
   const exited = once(child, "exit");
   child.kill("SIGTERM");

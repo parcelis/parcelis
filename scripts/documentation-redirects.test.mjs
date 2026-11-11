@@ -9,12 +9,15 @@ const { PHASE_DEVELOPMENT_SERVER } = require("next/constants");
 const webDirectory = fileURLToPath(new URL("../apps/web/", import.meta.url));
 const originalDirectory = process.cwd();
 let nextConfig;
-try {
-  // Next's TypeScript config loader resolves imports from the CLI working directory.
-  process.chdir(webDirectory);
-  nextConfig = await loadConfig(PHASE_DEVELOPMENT_SERVER, webDirectory, { silent: true });
-} finally {
-  process.chdir(originalDirectory);
+for (const directory of [fileURLToPath(new URL("../", import.meta.url)), webDirectory]) {
+  try {
+    process.chdir(directory);
+    const config = await loadConfig(PHASE_DEVELOPMENT_SERVER, webDirectory, { silent: true });
+    assert.ok((await config.redirects()).length > 0);
+    nextConfig = config;
+  } finally {
+    process.chdir(originalDirectory);
+  }
 }
 
 const { unstable_getResponseFromNextConfig, getRedirectUrl } = require("next/experimental/testing/server");

@@ -22,7 +22,10 @@ test(
       throw error;
     });
     const connectionUrl = new URL(databaseUrl!);
-    connectionUrl.searchParams.set("options", `-c search_path=${isolated.schema}`);
+    connectionUrl.searchParams.set(
+      "options",
+      [connectionUrl.searchParams.get("options"), `-c search_path=${isolated.schema}`].filter(Boolean).join(" "),
+    );
     const prisma = new PrismaClient({
       adapter: new PrismaPg({ connectionString: connectionUrl.href }, { schema: isolated.schema }),
     });
