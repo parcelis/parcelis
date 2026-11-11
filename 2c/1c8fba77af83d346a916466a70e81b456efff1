@@ -1,0 +1,39 @@
+apps/api/src/modules/application-checks.ts
+  s_3b878a54e00f41::t_b92013b5ef2284 3
+scripts/compose-postgres.mjs
+  s_3b878a54e00f41::t_b92013b5ef2284 1
+docker-compose-single-image.yml
+  s_3b878a54e00f41::t_b92013b5ef2284 107,120,165
+scripts/documentation-redirects.test.mjs
+  s_3b878a54e00f41::t_b92013b5ef2284 40-55
+  s_3b878a54e00f41::t_df6c29d145267e 56-57
+scripts/docker-publish.test.mjs
+  s_3b878a54e00f41::t_753f0418c0c6a7 16-19
+  s_3b878a54e00f41::t_89ec7a18caaf24 13
+.env.production.example
+  s_3b878a54e00f41::t_b92013b5ef2284 26-28
+CONTRIBUTING.md
+  s_3b878a54e00f41::t_b92013b5ef2284 510-515,517-524
+apps/web/documentation-redirects.mjs
+  s_3b878a54e00f41::t_b92013b5ef2284 56-68
+docker-compose.yml
+  s_3b878a54e00f41::t_b92013b5ef2284 90,102,113
+apps/api/src/status/server.ts
+  s_3b878a54e00f41::t_b92013b5ef2284 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c1c8fba77af83d346a916466a70e81b456efff1",
+  "prompts": {},
+  "sessions": {
+    "s_3b878a54e00f41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1aa0a-1632-7f63-875f-15d61d9c3071",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

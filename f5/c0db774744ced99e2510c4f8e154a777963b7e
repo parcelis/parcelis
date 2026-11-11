@@ -1,0 +1,25 @@
+apps/web/next.config.ts
+  s_3b878a54e00f41::t_b6d1f9aaa1a068 1-51
+apps/web/documentation-redirects.ts
+  s_3b878a54e00f41::t_b6d1f9aaa1a068 1-70
+scripts/documentation-redirects.test.mjs
+  s_3b878a54e00f41::t_b6d1f9aaa1a068 4,7-8
+  s_3b878a54e00f41::t_7a272a0e621cea 9-18
+  s_3b878a54e00f41::t_283353c24f243e 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f5c0db774744ced99e2510c4f8e154a777963b7e",
+  "prompts": {},
+  "sessions": {
+    "s_3b878a54e00f41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1aa0a-1632-7f63-875f-15d61d9c3071",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
