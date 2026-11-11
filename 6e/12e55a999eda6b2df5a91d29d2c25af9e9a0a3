@@ -1,0 +1,26 @@
+tests/e2e/lease-draft.spec.ts
+  s_c86036bb1d0953::t_955a33ced993d7 728-729
+scripts/status-dev.test.mjs
+  s_c86036bb1d0953::t_ec5fbed8355998 1-32,39-53,60-76
+  s_c86036bb1d0953::t_43fbeaaed6ac35 33-38,54-59
+apps/api/src/tests/invoices/invoice-delete.integration.test.ts
+  s_c86036bb1d0953::t_f2cd5397080b53 24-25,27
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_c86036bb1d0953::t_955a33ced993d7 469,537
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6e12e55a999eda6b2df5a91d29d2c25af9e9a0a3",
+  "prompts": {},
+  "sessions": {
+    "s_c86036bb1d0953": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c8cd-39e6-74c3-a3b4-ab6a86b62d01",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
