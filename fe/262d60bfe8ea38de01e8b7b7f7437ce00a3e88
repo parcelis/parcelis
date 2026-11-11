@@ -1,0 +1,27 @@
+infra/docker/hub/parcelis-single.md
+  s_b86c21aa71f11d::t_0aeb05547b95d4 1,3
+infra/docker/hub/docs.md
+  s_b86c21aa71f11d::t_0aeb05547b95d4 1,3
+infra/docker/hub/apps.md
+  s_b86c21aa71f11d::t_0aeb05547b95d4 1,3
+infra/docker/hub/proxy.md
+  s_b86c21aa71f11d::t_0aeb05547b95d4 1,3
+infra/docker/hub/worker.md
+  s_b86c21aa71f11d::t_0aeb05547b95d4 1,3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fe262d60bfe8ea38de01e8b7b7f7437ce00a3e88",
+  "prompts": {},
+  "sessions": {
+    "s_b86c21aa71f11d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c674-35ed-7823-b455-5a8040e4ad3f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
