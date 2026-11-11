@@ -57,13 +57,13 @@ test("Compose and environment links use the same immutable revision as images", 
   );
 });
 
-test("the description workflow publishes exactly five overviews with existing commit-pinned resources", () => {
+test("the description workflow publishes exactly four overviews with existing commit-pinned resources", () => {
   const workflow = readFileSync(new URL("../.github/workflows/docker-hub-descriptions.yml", import.meta.url), "utf8");
   const entries = Array.from(
     workflow.matchAll(/- image: (\S+)\n\s+readme: (\S+)\n\s+description: ([^\n]+)/g),
     ([, image, readme, description]) => ({ image, readme, description }),
   );
-  assert.deepEqual(entries.map(({ image }) => image).sort(), ["apps", "docs", "parcelis", "proxy", "worker"]);
+  assert.deepEqual(entries.map(({ image }) => image).sort(), ["apps", "parcelis", "proxy", "worker"]);
   assert.equal(entries.find(({ image }) => image === "parcelis").readme, "infra/docker/hub/parcelis-single.md");
   assert.deepEqual(
     readdirSync(new URL("../infra/docker/hub", import.meta.url))
@@ -105,11 +105,13 @@ test("the description workflow publishes exactly five overviews with existing co
 test("single-image overview matches the linked Compose tag configuration", () => {
   const compose = readFileSync(new URL("../docker-compose-single-image.yml", import.meta.url), "utf8");
   const overview = readFileSync(new URL("../infra/docker/hub/parcelis-single.md", import.meta.url), "utf8");
-  assert.doesNotMatch(compose, /PARCELIS_VERSION/);
-  assert.doesNotMatch(overview, /PARCELIS_VERSION/);
+  assert.match(compose, /PARCELIS_VERSION:\?/);
+  assert.match(overview, /PARCELIS_VERSION/);
   const images = Array.from(compose.matchAll(/^\s+image: (parcelis\/parcelis:\S+)/gm), ([, image]) => image);
   assert.equal(images.length, 3);
-  for (const image of images) assert.ok(overview.includes(`\`${image}\``), image);
+  for (const image of images) {
+    assert.match(image, /^parcelis\/parcelis:\$\{PARCELIS_VERSION:\?/);
+  }
 });
 
 test("description updates and image pushes use the configured Docker Hub PAT", () => {

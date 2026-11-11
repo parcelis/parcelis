@@ -1,8 +1,6 @@
 node_modules
 .turbo
 .next
-apps/docs/.docusaurus
-apps/docs/build
 dist
 coverage
 playwright-report
@@ -15,3 +13,4 @@ test-results
 postgres-upgrade-*/
 postgres18-backup/
 *.dump
+.parcelis/

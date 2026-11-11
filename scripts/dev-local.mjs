@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { findOpenPort } from "./port-utils.mjs";
 import { runPostgresCompose } from "./compose-postgres.mjs";
@@ -13,67 +13,25 @@ if (existsSync(envPath)) {
 
 const requestedApiPort = Number(process.env.API_PORT ?? 40010);
 const requestedAppPort = Number(process.env.APP_PORT ?? process.env.PORT ?? 30000);
-const requestedDocsPort = Number(process.env.DOCS_PORT ?? 40000);
 const requestedEmailPreviewPort = Number(process.env.EMAIL_PREVIEW_PORT ?? 30001);
 const requestedRedisPort = Number(process.env.REDIS_PORT ?? 63790);
-if (!Number.isInteger(requestedRedisPort) || requestedRedisPort < 1 || requestedRedisPort > 65535) {
-  throw new Error(`Invalid Redis port: ${requestedRedisPort}`);
-}
-
-function getListenerProcessIds(port) {
-  try {
-    return execFileSync("lsof", ["-tiTCP:" + port, "-sTCP:LISTEN"], {
-      encoding: "utf8",
-    })
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map(Number);
-  } catch (error) {
-    if (error?.status === 1) return [];
-    throw error;
+const configuredPorts = [
+  requestedApiPort,
+  requestedAppPort,
+  requestedEmailPreviewPort,
+  requestedRedisPort,
+];
+for (const port of configuredPorts) {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid development port: ${port}`);
   }
 }
-
-function isRunning(processId) {
-  try {
-    process.kill(processId, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function stopListener(port) {
-  if (process.platform === "win32") return;
-
-  const processIds = getListenerProcessIds(port);
-  if (!processIds.length) return;
-
-  for (const processId of processIds) {
-    process.kill(processId, "SIGTERM");
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  for (const processId of processIds) {
-    if (isRunning(processId)) {
-      process.kill(processId, "SIGKILL");
-    }
-  }
-
-  console.log(`[parcelis] Stopped existing listener on port ${port}`);
-}
-
-await Promise.all([requestedAppPort, requestedDocsPort, requestedApiPort, requestedEmailPreviewPort].map(stopListener));
 
 const reservedPorts = new Set();
 const apiPort = await findOpenPort(requestedApiPort, reservedPorts);
 reservedPorts.add(apiPort);
 const appPort = await findOpenPort(requestedAppPort, reservedPorts);
 reservedPorts.add(appPort);
-const docsPort = await findOpenPort(requestedDocsPort, reservedPorts);
-reservedPorts.add(docsPort);
 const emailPreviewPort = await findOpenPort(requestedEmailPreviewPort, reservedPorts);
 reservedPorts.add(emailPreviewPort);
 const redisPort = await findOpenPort(requestedRedisPort, reservedPorts);
@@ -112,7 +70,6 @@ function runCompose(args) {
     env: {
       ...process.env,
       API_PORT: String(apiPort),
-      DOCS_PORT: String(docsPort),
       APP_PORT: String(appPort),
       EMAIL_PREVIEW_PORT: String(emailPreviewPort),
       REDIS_PORT: String(redisPort),
@@ -152,6 +109,25 @@ function buildJobsPackage() {
 
 startDevelopmentServices();
 buildJobsPackage();
+
+const runtimeDirectory = resolve(import.meta.dirname, "../.parcelis");
+mkdirSync(runtimeDirectory, { recursive: true });
+writeFileSync(
+  resolve(runtimeDirectory, "dev-status.json"),
+  JSON.stringify({
+    STATUS_WEB_URL: `http://localhost:${appPort}/login`,
+    STATUS_API_URL: `http://localhost:${apiPort}/api/v1/health`,
+    REDIS_URL: redisUrl,
+    DATABASE_URL: databaseUrl,
+    S3_ENDPOINT: objectStorageEndpoint,
+    S3_PUBLIC_ENDPOINT: objectStoragePublicEndpoint,
+    S3_REGION: process.env.S3_REGION ?? "us-east-1",
+    S3_BUCKET: objectStorageBucket,
+    S3_ACCESS_KEY_ID: objectStorageAccessKeyId,
+    S3_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,
+  }),
+  { mode: 0o600 },
+);
 
 const processes = [
   {
@@ -193,16 +169,7 @@ const processes = [
       NEXT_PUBLIC_DARK_BRAND_LOGO_URL: darkBrandLogoUrl,
       PORT: String(appPort),
       API_INTERNAL_URL: `http://localhost:${apiPort}`,
-      DOCS_INTERNAL_URL: `http://localhost:${docsPort}`,
       NEXT_PUBLIC_API_URL: "",
-    },
-  },
-  {
-    name: "docs",
-    args: ["--filter", "@parcelis/docs", "dev:fixed"],
-    env: {
-      PORT: String(docsPort),
-      DOCS_BASE_URL: "/docs/",
     },
   },
   {
@@ -218,7 +185,6 @@ const processes = [
 console.log("[parcelis] Starting local development");
 console.log(`[parcelis] Web:  ${proxyOrigin}`);
 console.log(`[parcelis] API:  ${proxyOrigin}/api/v1`);
-console.log(`[parcelis] Docs: ${proxyOrigin}/docs/`);
 console.log(`[parcelis] Status: ${proxyOrigin}/status (run pnpm status:dev separately)`);
 console.log(`[parcelis] Email preview: http://localhost:${emailPreviewPort}`);
 console.log(`[parcelis] Object storage: ${objectStoragePublicEndpoint} (${objectStorageBucket})`);

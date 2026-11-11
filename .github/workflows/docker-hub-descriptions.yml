@@ -18,12 +18,9 @@ jobs:
           - image: apps
             readme: infra/docker/hub/apps.md
             description: Parcelis web application and API for property, lease, and tenant management.
-          - image: docs
-            readme: infra/docker/hub/docs.md
-            description: Bundled Parcelis documentation served through nginx.
           - image: parcelis
             readme: infra/docker/hub/parcelis-single.md
-            description: Parcelis web app, API, docs, nginx, and worker runtime in one image.
+            description: Parcelis web app, API, nginx, and worker runtime in one image.
           - image: proxy
             readme: infra/docker/hub/proxy.md
             description: Nginx reverse proxy for the modular Parcelis deployment.

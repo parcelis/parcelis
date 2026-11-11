@@ -1,5 +1,5 @@
 # PostgreSQL 16 installations: migrate before starting this updated stack.
-# See https://docs.parcelis.dev/getting-started/upgrade-postgresql and scripts/upgrade-postgres.mjs.
+# See https://docs.parcelis.dev/docs/upgrade-postgresql and scripts/upgrade-postgres.mjs.
 name: parcelis
 
 services:
@@ -10,7 +10,7 @@ services:
       - |
         if [ -f /legacy/PG_VERSION ] && [ ! -f /var/lib/postgresql/.parcelis-pg18-migrated ]; then
           echo >&2 "Parcelis requires PostgreSQL 18. Existing database detected; startup blocked to protect your data."
-          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/getting-started/upgrade-postgresql."
+          echo >&2 "Run scripts/upgrade-postgres.mjs before starting this stack. See https://docs.parcelis.dev/docs/upgrade-postgresql."
           exit 1
         fi
         exec /usr/local/bin/docker-entrypoint.sh postgres
@@ -87,7 +87,7 @@ services:
       - parcelis
 
   migrate-service:
-    image: parcelis/apps:latest
+    image: parcelis/apps:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-migrate
     command: pnpm --filter @parcelis/db exec prisma migrate deploy --schema prisma/schema.prisma
     environment:
@@ -99,20 +99,18 @@ services:
       - parcelis
 
   proxy-service:
-    image: parcelis/proxy:latest
+    image: parcelis/proxy:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-proxy
     ports:
       - "${APP_PORT:-3000}:80"
     depends_on:
       app-service:
         condition: service_healthy
-      docs-service:
-        condition: service_started
     networks:
       - parcelis
 
   app-service:
-    image: parcelis/apps:latest
+    image: parcelis/apps:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-app
     stop_grace_period: 25s
     environment:
@@ -149,7 +147,7 @@ services:
       - parcelis
 
   worker-service:
-    image: parcelis/worker:latest
+    image: parcelis/worker:${PARCELIS_VERSION:?Set PARCELIS_VERSION to a docs-independent release or locally built tag}
     container_name: parcelis-worker
     stop_grace_period: 25s
     environment:
@@ -169,12 +167,6 @@ services:
         condition: service_completed_successfully
       redis-service:
         condition: service_healthy
-    networks:
-      - parcelis
-
-  docs-service:
-    image: parcelis/docs:latest
-    container_name: parcelis-docs
     networks:
       - parcelis
 

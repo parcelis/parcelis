@@ -34,7 +34,7 @@ test("Docker keeps direct proxy routes and application listeners on matching API
     }
     assert.ok(proxy.includes(`proxy_pass http://app-service:${port}/api/v1/health;`));
     assert.ok(proxy.includes("location / {\n    proxy_pass http://app-service:3001;"));
-    assert.ok(proxy.includes("proxy_pass http://docs-service/;"));
+    assert.ok(!proxy.includes("docs-service"));
 
     const nginx = render(new URL("../infra/docker/single-image/nginx.conf", import.meta.url).pathname);
     const supervisor = render(new URL("../infra/docker/single-image/supervisord.conf", import.meta.url).pathname);
