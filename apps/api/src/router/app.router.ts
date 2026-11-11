@@ -284,6 +284,29 @@ async function recordMaintenanceStatusEvent(
   });
 }
 
+async function recordMaintenanceNoteActivity(
+  tx: Prisma.TransactionClient,
+  ticket: { id: number; organizationId: number; propertyId: number; ticketNumber: number; title: string },
+  action: "maintenance.note_added" | "maintenance.note_updated" | "maintenance.note_deleted",
+  noteId: number,
+  actor: { id: string | number; name: string },
+) {
+  await recordActivityEvent(
+    tx,
+    {
+      organizationId: ticket.organizationId,
+      subjectType: ActivitySubjectType.maintenance_ticket,
+      subjectId: ticket.id,
+      subjectLabel: ticket.title,
+      subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
+      propertyId: ticket.propertyId,
+      action,
+      metadata: { noteId },
+    },
+    actor,
+  );
+}
+
 async function recordInvoiceActivity(
   tx: Prisma.TransactionClient,
   invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number },
@@ -3978,20 +4001,7 @@ export const appRouter = router({
             data: input,
             select: { id: true, body: true, createdAt: true, updatedAt: true },
           });
-          await recordActivityEvent(
-            tx,
-            {
-              organizationId: ticket.organizationId,
-              subjectType: ActivitySubjectType.maintenance_ticket,
-              subjectId: ticket.id,
-              subjectLabel: ticket.title,
-              subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
-              propertyId: ticket.propertyId,
-              action: "maintenance.note_added",
-              metadata: { noteId: note.id },
-            },
-            ctx.user,
-          );
+          await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_added", note.id, ctx.user);
           return note;
         });
       }
@@ -4054,20 +4064,7 @@ export const appRouter = router({
           const ticket = await tx.maintenanceTicket.findFirstOrThrow({
             where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
           });
-          await recordActivityEvent(
-            tx,
-            {
-              organizationId: ticket.organizationId,
-              subjectType: ActivitySubjectType.maintenance_ticket,
-              subjectId: ticket.id,
-              subjectLabel: ticket.title,
-              subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
-              propertyId: ticket.propertyId,
-              action: "maintenance.note_updated",
-              metadata: { noteId: input.id },
-            },
-            ctx.user,
-          );
+          await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_updated", input.id, ctx.user);
         }
 
         return note;
@@ -4124,20 +4121,7 @@ export const appRouter = router({
           const ticket = await tx.maintenanceTicket.findFirstOrThrow({
             where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
           });
-          await recordActivityEvent(
-            tx,
-            {
-              organizationId: ticket.organizationId,
-              subjectType: ActivitySubjectType.maintenance_ticket,
-              subjectId: ticket.id,
-              subjectLabel: ticket.title,
-              subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
-              propertyId: ticket.propertyId,
-              action: "maintenance.note_deleted",
-              metadata: { noteId: input.id },
-            },
-            ctx.user,
-          );
+          await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_deleted", input.id, ctx.user);
         }
 
         return deletedNote;
