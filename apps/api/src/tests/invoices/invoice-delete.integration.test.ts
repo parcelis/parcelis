@@ -21,8 +21,10 @@ test(
       await admin.$disconnect();
       throw error;
     });
+    const connectionUrl = new URL(databaseUrl!);
+    connectionUrl.searchParams.set("options", `-c search_path=${isolated.schema}`);
     const prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
+      adapter: new PrismaPg({ connectionString: connectionUrl.href }, { schema: isolated.schema }),
     });
     try {
       const organization = await prisma.organization.create({ data: { name: "Invoice test", slug: isolated.schema } });

@@ -466,6 +466,7 @@ function PropertySelector({
                                       className={`flex items-center gap-3 pl-12 ${
                                         unit.isAvailable ? "cursor-pointer" : "cursor-not-allowed"
                                       }`}
+                                      onClick={(event) => event.stopPropagation()}
                                     >
                                       <input
                                         checked={isSelected}
@@ -533,6 +534,7 @@ function PropertySelector({
                           <TableCell className="px-5 py-4">
                             <label
                               className={`flex items-center gap-4 ${unit.isAvailable ? "cursor-pointer" : "cursor-not-allowed"}`}
+                              onClick={(event) => event.stopPropagation()}
                             >
                               <input
                                 checked={isSelected}
