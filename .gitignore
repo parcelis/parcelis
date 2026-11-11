@@ -13,3 +13,4 @@ test-results
 postgres-upgrade-*/
 postgres18-backup/
 *.dump
+.parcelis/

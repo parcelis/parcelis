@@ -290,7 +290,7 @@ Run `pnpm status:dev` separately to edit the status monitor with automatic serve
 restarts. Service results update in place every 15 seconds without closing details;
 refresh the browser after layout or script changes. Restarting resets its in-memory history.
 
-`pnpm dev` starts the web, API, React Email preview, shared jobs compiler, and worker apps with hot reload. It also starts nginx, PostgreSQL, Redis, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It stops existing listeners on the configured app ports and chooses the next open port only when needed.
+`pnpm dev` starts the web, API, React Email preview, shared jobs compiler, and worker apps with hot reload. It also starts nginx, PostgreSQL, Redis, MinIO, and the one-shot MinIO initialization job, so Docker must be running. It uses the configured ports when available and increments occupied ports without stopping existing listeners. The selected web, API, Redis, database, and storage connection settings are saved privately in `.parcelis/dev-status.json`. `pnpm status:dev` reads these settings and restarts when they change, so its probes follow the running development services. Start `pnpm dev` first; plain `pnpm status` continues to use environment configuration.
 
 Use nginx as the normal local entry point:
 

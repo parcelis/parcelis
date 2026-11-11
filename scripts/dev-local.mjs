@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { findOpenPort } from "./port-utils.mjs";
 import { runPostgresCompose } from "./compose-postgres.mjs";
@@ -15,56 +15,17 @@ const requestedApiPort = Number(process.env.API_PORT ?? 40010);
 const requestedAppPort = Number(process.env.APP_PORT ?? process.env.PORT ?? 30000);
 const requestedEmailPreviewPort = Number(process.env.EMAIL_PREVIEW_PORT ?? 30001);
 const requestedRedisPort = Number(process.env.REDIS_PORT ?? 63790);
-if (!Number.isInteger(requestedRedisPort) || requestedRedisPort < 1 || requestedRedisPort > 65535) {
-  throw new Error(`Invalid Redis port: ${requestedRedisPort}`);
-}
-
-function getListenerProcessIds(port) {
-  try {
-    return execFileSync("lsof", ["-tiTCP:" + port, "-sTCP:LISTEN"], {
-      encoding: "utf8",
-    })
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map(Number);
-  } catch (error) {
-    if (error?.status === 1) return [];
-    throw error;
+const configuredPorts = [
+  requestedApiPort,
+  requestedAppPort,
+  requestedEmailPreviewPort,
+  requestedRedisPort,
+];
+for (const port of configuredPorts) {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid development port: ${port}`);
   }
 }
-
-function isRunning(processId) {
-  try {
-    process.kill(processId, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function stopListener(port) {
-  if (process.platform === "win32") return;
-
-  const processIds = getListenerProcessIds(port);
-  if (!processIds.length) return;
-
-  for (const processId of processIds) {
-    process.kill(processId, "SIGTERM");
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  for (const processId of processIds) {
-    if (isRunning(processId)) {
-      process.kill(processId, "SIGKILL");
-    }
-  }
-
-  console.log(`[parcelis] Stopped existing listener on port ${port}`);
-}
-
-await Promise.all([requestedAppPort, requestedApiPort, requestedEmailPreviewPort].map(stopListener));
 
 const reservedPorts = new Set();
 const apiPort = await findOpenPort(requestedApiPort, reservedPorts);
@@ -148,6 +109,23 @@ function buildJobsPackage() {
 
 startDevelopmentServices();
 buildJobsPackage();
+
+const runtimeDirectory = resolve(import.meta.dirname, "../.parcelis");
+mkdirSync(runtimeDirectory, { recursive: true });
+writeFileSync(
+  resolve(runtimeDirectory, "dev-status.json"),
+  JSON.stringify({
+    STATUS_WEB_URL: `http://localhost:${appPort}/login`,
+    STATUS_API_URL: `http://localhost:${apiPort}/api/v1/health`,
+    REDIS_URL: redisUrl,
+    DATABASE_URL: databaseUrl,
+    S3_ENDPOINT: objectStorageEndpoint,
+    S3_BUCKET: objectStorageBucket,
+    S3_ACCESS_KEY_ID: objectStorageAccessKeyId,
+    S3_SECRET_ACCESS_KEY: objectStorageSecretAccessKey,
+  }),
+  { mode: 0o600 },
+);
 
 const processes = [
   {
