@@ -1721,15 +1721,13 @@ export const appRouter = router({
         }
 
         const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
+        const today = getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone);
 
         const leases = rawLeases.flatMap((lease) => {
           const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
           const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
           const amountOverdueCents = permissions.invoices.view
-            ? summarizeInvoiceBalances(
-                invoices,
-                getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone),
-              ).overdueCents
+            ? summarizeInvoiceBalances(invoices, today).overdueCents
             : null;
           return [
             {
@@ -1739,7 +1737,9 @@ export const appRouter = router({
               tenant: firstTenant,
               tenants: permissions.tenants.view ? lease.tenants.map(({ tenant }) => tenant) : [],
               amountOverdueCents,
-              invoices: permissions.invoices.view ? invoices : [],
+              invoices: permissions.invoices.view
+                ? invoices.map((invoice) => ({ ...invoice, status: getReceivableStatus(invoice, today) }))
+                : [],
             },
           ];
         });

@@ -89,6 +89,10 @@ test("property list and detail retain historical debt and count joint obligation
   assert.equal(list.leaseHistory.length, 2);
   const detail = (await caller.properties.byId({ id: 1 }))!;
   assert.deepEqual(
+    detail.leases[0]?.invoices.map((invoice) => invoice.status),
+    ["overdue", "open", "void"],
+  );
+  assert.deepEqual(
     detail.leaseHistory.map((lease) => lease.amountOverdueCents),
     [4001, 1234],
   );
@@ -113,13 +117,13 @@ test("overdue reads and synchronization change at organization midnight, not UTC
   t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-01T03:00:00Z").getTime() });
   const property = fixture();
   property.leases[0]!.invoices = [
-    { id: 9, dueOn: new Date("2026-10-31"), status: "overdue", amountCents: 501, balanceCents: 501 },
+    { id: 9, dueOn: new Date("2026-10-31"), status: "open", amountCents: 501, balanceCents: 501 },
   ];
   property.leases = [property.leases[0]!];
   const boundaries: Date[] = [];
   const caller = appRouter.createCaller({
     prisma: {
-      property: { findMany: async () => [property] },
+      property: { findMany: async () => [property], findFirst: async () => property },
       invoice: {
         updateMany: async ({ where }: { where: { organizationId: number; dueOn?: { lt?: Date } } }) => {
           assert.equal(where.organizationId, 7);
@@ -133,8 +137,14 @@ test("overdue reads and synchronization change at organization midnight, not UTC
     organization: { organizationId: 7, organization: { timeZone: "America/Chicago" } },
   } as unknown as Context);
   assert.equal((await caller.properties.list())[0]!.amountOverdueCents, 0);
+  const beforeMidnight = (await caller.properties.byId({ id: 1 }))!;
+  assert.equal(beforeMidnight.leases[0]?.amountOverdueCents, 0);
+  assert.equal(beforeMidnight.leases[0]?.invoices[0]?.status, "open");
   t.mock.timers.setTime(new Date("2026-11-01T07:00:00Z").getTime());
   assert.equal((await caller.properties.list())[0]!.amountOverdueCents, 501);
+  const afterMidnight = (await caller.properties.byId({ id: 1 }))!;
+  assert.equal(afterMidnight.leases[0]?.amountOverdueCents, 501);
+  assert.equal(afterMidnight.leases[0]?.invoices[0]?.status, "overdue");
   assert.deepEqual(
     boundaries.map((date) => date.toISOString()),
     ["2026-10-31T00:00:00.000Z", "2026-11-01T00:00:00.000Z"],
