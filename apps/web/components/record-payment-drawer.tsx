@@ -21,28 +21,24 @@ import {
   Select,
 } from "@parcelis/ui";
 import { Plus, Trash2 } from "lucide-react";
-import { formatInvoiceNumber } from "@parcelis/schemas";
+import {
+  formatInvoiceNumber,
+  paymentMethodLabels,
+  paymentMethodValues,
+  type PaymentMethod,
+} from "@parcelis/schemas";
 import { apiClient } from "./api-client";
 import type { InvoiceActionInvoice } from "./invoice-actions";
 import { formatDate, getLocalDateInput } from "../lib/date";
 
 type PaymentEntry = { amount: string; method: string; paidOn: string; tenantId: string };
-const methods = [
-  ["cash", "Cash"],
-  ["money_order", "Money order"],
-  ["check", "Check"],
-  ["cashiers_check", "Cashier’s check"],
-  ["paypal", "PayPal"],
-  ["venmo", "Venmo"],
-  ["zelle", "Zelle"],
-  ["other", "Other"],
-] as const;
+const methods = paymentMethodValues.map((value) => [value, paymentMethodLabels[value]] as const);
 function toCents(value: string) {
   const amount = Number.parseFloat(value);
   return Number.isFinite(amount) ? Math.max(Math.round(amount * 100), 0) : 0;
 }
 function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  return new Intl.NumberFormat("en-TZ", { style: "currency", currency: "TZS", maximumFractionDigits: 0 }).format(cents / 100);
 }
 export function RecordPaymentDrawer({
   invoice,
@@ -85,8 +81,7 @@ export function RecordPaymentDrawer({
           amountCents: toCents(entry.amount),
           paidOn: new Date(`${entry.paidOn}T00:00:00.000Z`),
           paidByTenantId: Number(entry.tenantId),
-          paymentMethod: entry.method as
-            "cash" | "money_order" | "check" | "cashiers_check" | "paypal" | "venmo" | "zelle" | "other",
+          paymentMethod: entry.method as PaymentMethod,
         })),
       }),
     onSuccess: () => {

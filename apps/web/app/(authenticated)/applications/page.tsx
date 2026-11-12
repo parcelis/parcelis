@@ -30,9 +30,9 @@ import { getApplicationLink } from "../../../lib/entity-links";
 
 
 function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-TZ", {
     style: "currency",
-    currency: "USD",
+    currency: "TZS",
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }

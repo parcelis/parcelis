@@ -58,9 +58,9 @@ const label = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 const formatDate = (value: Date | string) =>
-  new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+  new Intl.DateTimeFormat("en-TZ", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 const formatDateTime = (value: Date | string) =>
-  new Intl.DateTimeFormat("en-US", {
+  new Intl.DateTimeFormat("en-TZ", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -677,7 +677,7 @@ export default function MaintenanceTicketPage() {
                               </DropdownMenu>
                             </div>
                             <p className="mt-3 text-xs text-parcelis-gray">
-                              {new Intl.DateTimeFormat("en-US", {
+                              {new Intl.DateTimeFormat("en-TZ", {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",

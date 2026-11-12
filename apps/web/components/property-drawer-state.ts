@@ -39,14 +39,17 @@ export function parseContactAddress(contactAddress: string | null | undefined) {
   const [line1 = "", line2 = "", cityRegionPostal = ""] =
     contactAddress?.split("\n") ?? [];
   const [city = "", regionPostal = ""] = cityRegionPostal.split(", ");
-  const [region = "", ...postalCodeParts] = regionPostal.split(" ");
+  // Region names can contain spaces ("Dar es Salaam"), so only a trailing numeric token is a postcode.
+  const postalCodeMatch = regionPostal.match(/^(.*?)\s*(\d[\d-]*)$/);
+  const region = postalCodeMatch ? (postalCodeMatch[1] ?? "") : regionPostal;
+  const postalCode = postalCodeMatch?.[2] ?? "";
 
   return {
     contactAddressLine1: line1,
     contactAddressLine2: line2,
     contactCity: city,
     contactRegion: region,
-    contactPostalCode: postalCodeParts.join(" "),
+    contactPostalCode: postalCode,
   };
 }
 

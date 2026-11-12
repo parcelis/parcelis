@@ -1,7 +1,7 @@
 type DateValue = Date | string;
 
 export function formatDate(value: DateValue) {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-TZ", {
     month: "short",
     day: "numeric",
     year: "numeric",

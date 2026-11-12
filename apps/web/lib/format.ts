@@ -12,7 +12,7 @@ export function formatLeaseEndDate(
   termType: "fixed" | "month_to_month" | null | undefined,
 ) {
   if (value) {
-    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
+    return new Intl.DateTimeFormat("en-TZ", { month: "short", day: "numeric", year: "numeric" }).format(
       new Date(value),
     );
   }

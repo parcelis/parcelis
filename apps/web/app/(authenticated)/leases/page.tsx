@@ -37,12 +37,12 @@ const initialFilters: LeaseFilters = {
 
 function formatDate(value: Date | string | null) {
   return value
-    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
+    ? new Intl.DateTimeFormat("en-TZ", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
     : "Not set";
 }
 function formatCurrency(cents: number | null) {
   if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
+  return new Intl.NumberFormat("en-TZ", { style: "currency", currency: "TZS", maximumFractionDigits: 0 }).format(
     cents / 100,
   );
 }

@@ -110,9 +110,9 @@ function formatStatus(status: string) {
 }
 
 function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-TZ", {
     style: "currency",
-    currency: "USD",
+    currency: "TZS",
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }
@@ -780,7 +780,7 @@ export default function PropertiesPage() {
                       </Label>
 
                       <Label className="gap-2 md:col-span-2">
-                        <span className="text-sm font-semibold text-parcelis-charcoal">State</span>
+                        <span className="text-sm font-semibold text-parcelis-charcoal">Region</span>
                         <Select
                           className="h-11"
                           onChange={(event) => updateFilter("region", event.target.value)}
@@ -796,7 +796,7 @@ export default function PropertiesPage() {
                       </Label>
 
                       <Label className="gap-2 md:col-span-2">
-                        <span className="text-sm font-semibold text-parcelis-charcoal">Zip</span>
+                        <span className="text-sm font-semibold text-parcelis-charcoal">Postcode</span>
                         <Input
                           className="h-11"
                           onChange={(event) => updateFilter("postalCode", event.target.value)}

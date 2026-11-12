@@ -21,12 +21,12 @@ const statusHeadings: Record<CheckStatus, string> = {
   unknown: "Some service checks have an unknown status",
 };
 const formatTime = (value: string) =>
-  new Intl.DateTimeFormat("en-US", {
+  new Intl.DateTimeFormat("en-TZ", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "America/Chicago",
+    timeZone: "Africa/Dar_es_Salaam",
     timeZoneName: "short",
   }).format(new Date(value));
 

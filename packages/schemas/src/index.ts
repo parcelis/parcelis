@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paymentMethodValues } from "./tanzania.ts";
 
 export type FeatureFlags = { applications: boolean };
 
@@ -12,6 +13,7 @@ export function isApplicationResource(resource: string) {
 
 export * from "./lease-rent-schedule.ts";
 export * from "./invoice-charge-description.ts";
+export * from "./tanzania.ts";
 
 const idSchema = z.coerce.number().int().positive();
 const maxDatabaseInteger = 2_147_483_647;
@@ -362,7 +364,7 @@ export const organizationAddressSchema = z.object({
   line1: z.string().trim().max(255).optional(),
   line2: z.string().trim().max(255).optional(),
   city: z.string().trim().max(100).optional(),
-  region: z.string().trim().max(2).optional(),
+  region: z.string().trim().max(100).optional(),
   postalCode: z.string().trim().max(20).optional(),
 });
 export const organizationTimeZoneSchema = z
@@ -372,7 +374,7 @@ export const organizationTimeZoneSchema = z
   .max(100)
   .refine((timeZone) => {
     try {
-      new Intl.DateTimeFormat("en-US", { timeZone });
+      new Intl.DateTimeFormat("en-TZ", { timeZone });
       return true;
     } catch {
       return false;
@@ -429,8 +431,9 @@ export const addressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().nullable().optional(),
   city: z.string().min(1),
-  region: z.string().min(2).max(2),
-  postalCode: z.string().min(5),
+  region: z.string().trim().min(2).max(100),
+  // Tanzanian postcodes are rarely used, so an empty value is accepted.
+  postalCode: z.string().trim().max(20),
 });
 
 export const propertyStatusSchema = z.enum(["active", "maintenance", "leasing", "archived"]);
@@ -868,7 +871,7 @@ export const recordInvoicePaymentInputSchema = z.object({
   amountCents: z.number().int().positive(),
   paidOn: z.coerce.date(),
   paidByTenantId: idSchema,
-  paymentMethod: z.enum(["cash", "money_order", "check", "cashiers_check", "paypal", "venmo", "zelle", "other"]),
+  paymentMethod: z.enum(paymentMethodValues),
 });
 export const recordInvoicePaymentsInputSchema = z.object({
   id: idSchema,

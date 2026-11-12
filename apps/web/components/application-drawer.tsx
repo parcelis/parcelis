@@ -16,7 +16,7 @@ import {
   Select,
 } from "@parcelis/ui";
 import type { AddressFieldValues } from "@parcelis/ui";
-import type { CreateApplicationInput, UpdateApplicationInput } from "@parcelis/schemas";
+import { tanzaniaRegions, type CreateApplicationInput, type UpdateApplicationInput } from "@parcelis/schemas";
 import { toUtcDateInput } from "../lib/date";
 
 type ApplicationDrawerInitialValues = {
@@ -119,12 +119,11 @@ export function ApplicationDrawer({
       line1: form.addressLine1.trim(),
       line2: form.addressLine2.trim() || null,
       city: form.city.trim(),
-      region: form.region.trim().toUpperCase(),
+      region: form.region.trim(),
       postalCode: form.postalCode.trim(),
     };
     const hasAddress = Object.values(address).some(Boolean);
-    const hasCompleteAddress =
-      Boolean(address.line1) && Boolean(address.city) && address.region.length === 2 && address.postalCode.length >= 5;
+    const hasCompleteAddress = Boolean(address.line1) && Boolean(address.city) && address.region.length >= 2;
 
     if ((!initialValues && !hasCompleteAddress) || (hasAddress && !hasCompleteAddress)) {
       setAddressError("Enter an address line, city, two-letter state, and postal code.");
@@ -268,6 +267,7 @@ export function ApplicationDrawer({
                   onChange={updateAddressField}
                   onOpenChange={setIsAddressPopoverOpen}
                   open={isAddressPopoverOpen}
+                  regionOptions={tanzaniaRegions}
                   required
                   values={{
                     line1: form.addressLine1,

@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { formatInvoiceNumber } from "@parcelis/schemas";
+import { formatInvoiceNumber, formatPaymentMethod } from "@parcelis/schemas";
 import {
   Defs,
   Document,
@@ -200,20 +200,13 @@ const styles = StyleSheet.create({
 });
 
 function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", { currency: "USD", style: "currency" }).format(cents / 100);
+  return new Intl.NumberFormat("en-TZ", { currency: "TZS", maximumFractionDigits: 0, style: "currency" }).format(cents / 100);
 }
 
 function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", timeZone: "UTC", year: "numeric" }).format(
+  return new Intl.DateTimeFormat("en-TZ", { day: "numeric", month: "long", timeZone: "UTC", year: "numeric" }).format(
     value,
   );
-}
-
-function formatPaymentMethod(method: string) {
-  return method
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function getInvoiceStatus(invoice: Pick<InvoicePdfInvoice, "balanceCents" | "status">) {

@@ -131,9 +131,9 @@ const initialLeaseDraft: LeaseDraft = {
 };
 
 function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-TZ", {
     style: "currency",
-    currency: "USD",
+    currency: "TZS",
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }
@@ -176,11 +176,11 @@ function getLeaseDraftSaveData(draft: LeaseDraft, defaultRentChargeId: number | 
 }
 
 function formatCurrencyExact(cents: number) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-TZ", {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    currency: "TZS",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(cents / 100);
 }
 
@@ -209,7 +209,7 @@ function formatDateInput(date: Date) {
 }
 
 function formatDateLabel(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-TZ", { day: "numeric", month: "long", year: "numeric" }).format(date);
 }
 
 function formatDayOfMonth(day: number) {

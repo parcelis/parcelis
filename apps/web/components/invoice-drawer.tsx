@@ -66,7 +66,7 @@ function toCents(value: string) {
 }
 
 function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  return new Intl.NumberFormat("en-TZ", { style: "currency", currency: "TZS", maximumFractionDigits: 0 }).format(cents / 100);
 }
 
 export function InvoiceDrawer({

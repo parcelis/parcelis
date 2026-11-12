@@ -27,7 +27,7 @@ import {
   CardContent,
 } from "@parcelis/ui";
 import { apiClient } from "./api-client";
-import { formatInvoiceNumber } from "@parcelis/schemas";
+import { formatInvoiceNumber, formatPaymentMethod } from "@parcelis/schemas";
 import { InvoiceActions } from "./invoice-actions";
 import { LoadingState } from "./loading-state";
 import { NavigationRail } from "./navigation-rail";
@@ -35,7 +35,7 @@ import { formatDate } from "../lib/date";
 import { getInvoiceLink, getPropertyLink } from "../lib/entity-links";
 
 function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  return new Intl.NumberFormat("en-TZ", { style: "currency", currency: "TZS", maximumFractionDigits: 0 }).format(cents / 100);
 }
 
 function invoiceStatusClass(status: string) {
@@ -57,15 +57,8 @@ function getInvoiceStamp(invoice: { amountCents: number; balanceCents: number; s
   return null;
 }
 
-function formatPaymentMethod(method: string) {
-  return method
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 function formatDateTime(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-TZ", {
     month: "short",
     day: "numeric",
     year: "numeric",

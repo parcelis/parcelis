@@ -82,10 +82,10 @@ function label(value: string) {
     .join(" ");
 }
 function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-TZ", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 function formatDateTime(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-TZ", {
     month: "short",
     day: "numeric",
     year: "numeric",

@@ -163,7 +163,7 @@ export async function runDeploymentSmoke({
     amountCents: 120_000,
     paidByTenantId: tenantId,
     paidOn: `${year}-01-01`,
-    paymentMethod: "check",
+    paymentMethod: "cheque",
   });
   const paid = await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } });
   assert.equal(paid.balanceCents, 0);

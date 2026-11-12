@@ -63,7 +63,7 @@ import { formatLeaseEndDate } from "../../../../lib/format";
 
 function formatDate(date: Date | string | null) {
   if (!date) return "Not set";
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-TZ", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -72,9 +72,9 @@ function formatDate(date: Date | string | null) {
 
 function formatCurrency(cents: number | null) {
   if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-TZ", {
     style: "currency",
-    currency: "USD",
+    currency: "TZS",
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }

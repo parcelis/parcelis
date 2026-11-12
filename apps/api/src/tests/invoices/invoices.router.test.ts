@@ -17,7 +17,7 @@ const paymentInput = {
   amountCents: 5_000,
   paidOn: new Date("2026-09-14"),
   paidByTenantId: 12,
-  paymentMethod: "check" as const,
+  paymentMethod: "cheque" as const,
 };
 
 test("generated rent due dates clamp to the final day of short months", () => {
@@ -75,7 +75,7 @@ test("joint invoice accepts a payment from any recipient", async () => {
     invoiceId: 4,
     tenantId: 12,
     amountCents: 5_000,
-    paymentMethod: "check",
+    paymentMethod: "cheque",
     paidOn: paymentInput.paidOn,
   });
   assert.deepEqual(invoiceUpdateData, {
@@ -120,7 +120,7 @@ test("joint invoice records batch payments from recipient tenants", async () => 
       invoiceId: 4,
       tenantId: 12,
       amountCents: 5_000,
-      paymentMethod: "check",
+      paymentMethod: "cheque",
       paidOn: paymentInput.paidOn,
     },
   ]);

@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label, TimezoneSelect } from "@parcelis/ui";
+import { defaultTimeZone, tanzaniaRegions } from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../components/image-upload";
 import { LoadingState } from "../../../../components/loading-state";
@@ -44,7 +45,7 @@ export default function OrganizationSettingsPage() {
   });
   const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
   const [phone, setPhone] = React.useState("");
-  const [timeZone, setTimeZone] = React.useState("UTC");
+  const [timeZone, setTimeZone] = React.useState<string>(defaultTimeZone);
   const updateAddressField = React.useCallback((field: keyof typeof addressForm, value: string) => {
     setAddressForm((current) => ({ ...current, [field]: value }));
   }, []);
@@ -204,10 +205,7 @@ export default function OrganizationSettingsPage() {
                         saveOrganizationDetails.mutate({
                           name,
                           slug,
-                          address: {
-                            ...addressForm,
-                            region: addressForm.region.toUpperCase(),
-                          },
+                          address: addressForm,
                           phone,
                           timeZone,
                           avatarChanges,
@@ -291,6 +289,7 @@ export default function OrganizationSettingsPage() {
                         onChange={updateAddressField}
                         onOpenChange={setIsAddressPopoverOpen}
                         open={isAddressPopoverOpen}
+                        regionOptions={tanzaniaRegions}
                         values={addressForm}
                       />
                       <Label>

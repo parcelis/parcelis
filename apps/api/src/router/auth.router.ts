@@ -1,5 +1,6 @@
 import {
   authRegisterInputSchema,
+  defaultTimeZone,
   changeEmailInputSchema,
   changePasswordInputSchema,
   requestEmailVerificationInputSchema,
@@ -70,7 +71,7 @@ export const authRouter = router({
           select: { id: true, email: true },
         });
         const organization = await tx.organization.create({
-          data: { name: "My organization", slug: `organization-${createdUser.id}` },
+          data: { name: "My organization", slug: `organization-${createdUser.id}`, timeZone: defaultTimeZone },
           select: { id: true },
         });
         await tx.invoiceCharge.create({

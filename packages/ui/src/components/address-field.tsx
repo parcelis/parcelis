@@ -6,6 +6,7 @@ import { FieldLabel } from "./label";
 import { Input } from "./input";
 import { Label } from "./label";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { Select } from "./select";
 
 export type AddressFieldValues = {
   city: string;
@@ -22,6 +23,7 @@ export function AddressField({
   onChange,
   onOpenChange,
   open,
+  regionOptions,
   required = false,
   values,
 }: {
@@ -31,6 +33,7 @@ export function AddressField({
   onChange: (field: keyof AddressFieldValues, value: string) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  regionOptions?: readonly string[];
   required?: boolean;
   values: AddressFieldValues;
 }) {
@@ -51,7 +54,7 @@ export function AddressField({
                 onOpenChange(true);
               }
             }}
-            placeholder="123 Main Street"
+            placeholder="Plot 12, Haile Selassie Road"
             readOnly
             required={required && !formattedAddress}
             value={formattedAddress}
@@ -72,7 +75,7 @@ export function AddressField({
               <FieldLabel>Address Line 1</FieldLabel>
               <Input
                 onChange={(event) => onChange("line1", event.target.value)}
-                placeholder="123 Main Street"
+                placeholder="Plot 12, Haile Selassie Road"
                 value={values.line1}
               />
             </Label>
@@ -80,26 +83,35 @@ export function AddressField({
               <FieldLabel>Address Line 2</FieldLabel>
               <Input
                 onChange={(event) => onChange("line2", event.target.value)}
-                placeholder="Suite 200"
+                placeholder="Ward or area, e.g. Masaki"
                 value={values.line2}
               />
             </Label>
             <Label className="md:col-span-2">
-              <FieldLabel>City</FieldLabel>
+              <FieldLabel>City or District</FieldLabel>
               <Input onChange={(event) => onChange("city", event.target.value)} value={values.city} />
             </Label>
-            <div className="grid gap-4 md:col-span-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+            <div className="grid gap-4 md:col-span-2 md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
               <Label>
-                <FieldLabel>State</FieldLabel>
-                <Input
-                  className="uppercase"
-                  maxLength={2}
-                  onChange={(event) => onChange("region", event.target.value)}
-                  value={values.region}
-                />
+                <FieldLabel>Region</FieldLabel>
+                {regionOptions ? (
+                  <Select onChange={(event) => onChange("region", event.target.value)} value={values.region}>
+                    <option value="">Select</option>
+                    {values.region && !regionOptions.includes(values.region) ? (
+                      <option value={values.region}>{values.region}</option>
+                    ) : null}
+                    {regionOptions.map((region) => (
+                      <option key={region} value={region}>
+                        {region}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <Input onChange={(event) => onChange("region", event.target.value)} value={values.region} />
+                )}
               </Label>
               <Label>
-                <FieldLabel>Postal Code</FieldLabel>
+                <FieldLabel>Postcode (optional)</FieldLabel>
                 <Input onChange={(event) => onChange("postalCode", event.target.value)} value={values.postalCode} />
               </Label>
             </div>

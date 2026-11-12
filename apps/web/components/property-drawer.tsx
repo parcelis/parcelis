@@ -43,7 +43,12 @@ import {
   PopoverTrigger,
   Select,
 } from "@parcelis/ui";
-import { propertyTypeValues, type CreatePropertyInput, type PropertyType } from "@parcelis/schemas";
+import {
+  propertyTypeValues,
+  tanzaniaRegions,
+  type CreatePropertyInput,
+  type PropertyType,
+} from "@parcelis/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
@@ -218,7 +223,7 @@ export function PropertyDrawer({
     },
   });
   const canContinueToUnitDetails = Boolean(
-    form.name && form.line1 && form.city && form.region && form.postalCode && form.propertyType && form.unitCount,
+    form.name && form.line1 && form.city && form.region && form.propertyType && form.unitCount,
   );
   const canSubmitUnitDetails =
     units.length > 0 && units.every((unit) => unit.unitName && unit.marketRate && unit.unitType);
@@ -494,7 +499,7 @@ export function PropertyDrawer({
           line1: form.line1,
           line2: form.line2 || undefined,
           city: form.city,
-          region: form.region.toUpperCase(),
+          region: form.region,
           postalCode: form.postalCode,
         },
         unitCount: Number(form.unitCount),
@@ -693,6 +698,7 @@ export function PropertyDrawer({
                           onChange={updateField}
                           onOpenChange={setIsAddressPopoverOpen}
                           open={isAddressPopoverOpen}
+                          regionOptions={tanzaniaRegions}
                           required
                           values={form}
                         />
@@ -701,7 +707,7 @@ export function PropertyDrawer({
                           <FieldLabel>Name</FieldLabel>
                           <Input
                             onChange={(event) => updateField("name", event.target.value)}
-                            placeholder="Vine Street Lofts"
+                            placeholder="Masaki Heights"
                             required
                             value={form.name}
                           />
@@ -864,6 +870,7 @@ export function PropertyDrawer({
                             }}
                             onOpenChange={setIsContactAddressPopoverOpen}
                             open={isContactAddressPopoverOpen}
+                            regionOptions={tanzaniaRegions}
                             values={{
                               city: form.contactCity,
                               line1: form.contactAddressLine1,
