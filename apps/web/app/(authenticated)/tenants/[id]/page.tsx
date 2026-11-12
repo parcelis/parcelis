@@ -227,7 +227,8 @@ export default function TenantDetailPage() {
   );
   const balances = today && canViewInvoices && canViewLeases ? summarizeInvoiceBalances(tenantInvoices, today) : null;
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
-  const currentInvoice = tenantInvoices.find((invoice) => today && getReceivableStatus(invoice, today) === "open");
+  const currentLeaseInvoices = currentLease?.invoices ?? [];
+  const currentInvoice = currentLeaseInvoices.find((invoice) => today && getReceivableStatus(invoice, today) === "open");
   const pastDueInvoice = tenantInvoices.find((invoice) => today && getReceivableStatus(invoice, today) === "overdue");
   const overdueCents = balances?.overdueCents ?? null;
   const currentInvoiceId = currentInvoice ? formatInvoiceNumber(currentInvoice.invoiceNumber) : null;
@@ -777,7 +778,11 @@ export default function TenantDetailPage() {
                         <div className="space-y-6">
                           <div>
                             <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
-                            {currentInvoiceId ? (
+                            {today === null ? (
+                              <p className="mt-1 text-base font-bold text-parcelis-charcoal">
+                                {organizationQuery.isLoading ? "Loading balance..." : "Balance unavailable."}
+                              </p>
+                            ) : currentInvoiceId ? (
                               <Link
                                 className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
                                 href={getInvoiceLink(currentInvoice!.id)}

@@ -13,7 +13,7 @@ export function getBillingCalendarDate(timeZone: string, now = new Date()) {
     day: "2-digit",
   }).formatToParts(now);
   const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
-  return `${values.year}-${values.month}-${values.day}`;
+  return `${String(values.year).padStart(4, "0")}-${values.month}-${values.day}`;
 }
 
 export function getInvoiceCalendarDate(dueOn: Date | string) {

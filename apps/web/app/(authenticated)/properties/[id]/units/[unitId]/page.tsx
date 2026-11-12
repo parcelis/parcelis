@@ -233,12 +233,12 @@ export default function UnitDetailPage() {
       "bg-parcelis-charcoal",
     ],
   ];
-  const invoiceRows = canViewInvoices
+  const invoiceRows = canViewInvoices && today
     ? invoices.filter(
         (invoice) =>
           invoice.status !== "void" &&
           invoice.balanceCents > 0 &&
-          (!today || getInvoiceCalendarDate(invoice.dueOn) >= today),
+          getInvoiceCalendarDate(invoice.dueOn) >= today,
       )
     : [];
 

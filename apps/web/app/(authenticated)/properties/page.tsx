@@ -121,11 +121,12 @@ function formatCurrency(cents: number | null) {
 
 function getUnitRows(property: PropertyListItem) {
   if (property.units.length === 0) return [];
-  const leaseByUnit = new Map(
+  const activeOrNoticeLeaseByUnit = new Map(
     property.leases
       .filter((lease) => lease.status === "active" || lease.status === "notice")
       .map((lease) => [lease.unitLabel, lease]),
   );
+  const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
   const ticketCountsByUnit = new Map<number, number>();
   const legacyTicketCountsByLabel = new Map<string, number>();
   const now = new Date();
@@ -157,7 +158,8 @@ function getUnitRows(property: PropertyListItem) {
   return Array.from(unitLabels, (unitLabel) => {
     const unit = property.units.find((item) => item.name === unitLabel);
     const unitLink = unit ? getUnitLink(property.id, unit.id) : null;
-    const activeLease = leaseByUnit.get(unitLabel);
+    const activeLease = activeOrNoticeLeaseByUnit.get(unitLabel);
+    const statusLease = leaseByUnit.get(unitLabel);
     const endsOn =
       activeLease?.endsOn !== null && activeLease?.endsOn !== undefined ? new Date(activeLease.endsOn) : null;
     const isExpiring = Boolean(endsOn && endsOn >= now && endsOn <= expiresBefore);
@@ -179,7 +181,7 @@ function getUnitRows(property: PropertyListItem) {
         property.openMaintenanceTickets === null
           ? null
           : (unit ? (ticketCountsByUnit.get(unit.id) ?? 0) : 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
-      status: property.occupiedUnits === null ? "unavailable" : (activeLease?.status ?? "vacant"),
+      status: property.occupiedUnits === null ? "unavailable" : (statusLease?.status ?? "vacant"),
     };
   });
 }

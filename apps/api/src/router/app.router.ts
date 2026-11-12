@@ -1,5 +1,4 @@
 import {
-  getBillingCalendarDate,
   getReceivableStatus,
   summarizeInvoiceBalances,
   createManualInvoiceInputSchema,
@@ -520,7 +519,7 @@ function getTenantStatus(tenant: { archivedAt: Date | null; leases: Array<{ leas
 }
 
 function getInvoiceStatus(dueOn: Date, balanceCents: number, timeZone: string) {
-  return getReceivableStatus({ dueOn, balanceCents, status: "open" }, getBillingCalendarDate(timeZone));
+  return getReceivableStatus({ dueOn, balanceCents, status: "open" }, getCalendarDate(new Date(), timeZone));
 }
 
 export function getMonthlyDueDate(periodStartsOn: Date, rentDueDay: number) {
@@ -596,7 +595,7 @@ async function synchronizeOverdueInvoices(
   organizationId: number,
   timeZone: string,
 ) {
-  const today = new Date(`${getBillingCalendarDate(timeZone)}T00:00:00.000Z`);
+  const today = new Date(`${getCalendarDate(new Date(), timeZone)}T00:00:00.000Z`);
   await Promise.all([
     prisma.invoice.updateMany({
       where: { organizationId, status: "overdue", balanceCents: 0 },
@@ -1605,7 +1604,7 @@ export const appRouter = router({
             if (permissions.tenants.view && !firstTenant) return [];
             const amountOverdueCents = summarizeInvoiceBalances(
               invoices,
-              getBillingCalendarDate(ctx.organizationScope.organization.timeZone),
+              getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone),
             ).overdueCents;
             return [
               {
@@ -1682,7 +1681,16 @@ export const appRouter = router({
                   },
                 },
                 unit: true,
-                invoices: { select: { id: true, invoiceNumber: true, balanceCents: true, amountCents: true, dueOn: true, status: true } },
+                invoices: {
+                  select: {
+                    id: true,
+                    invoiceNumber: true,
+                    balanceCents: true,
+                    amountCents: true,
+                    dueOn: true,
+                    status: true,
+                  },
+                },
               },
             },
             maintenanceTickets: {
@@ -1721,7 +1729,7 @@ export const appRouter = router({
           const amountOverdueCents = permissions.invoices.view
             ? summarizeInvoiceBalances(
                 invoices,
-                getBillingCalendarDate(ctx.organizationScope.organization.timeZone),
+                getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone),
               ).overdueCents
             : null;
           return [

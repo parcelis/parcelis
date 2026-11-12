@@ -20,6 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@parcelis/schemas": "workspace:*",
     "bullmq": "^6.3.8",
     "zod": "^4.6.5"
   },

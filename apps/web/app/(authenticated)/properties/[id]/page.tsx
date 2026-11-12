@@ -46,6 +46,7 @@ import { hasPermission } from "../../../../components/property-access";
 import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
+import { formatDate } from "../../../../lib/date";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../../lib/format";
 
@@ -64,16 +65,6 @@ function formatCurrency(cents: number | null) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(cents / 100);
-}
-
-function formatDate(date: Date | string | null, options?: { timeZone?: string }) {
-  if (!date) return "Not set";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: options?.timeZone,
-  }).format(new Date(date));
 }
 
 export default function PropertyDetailPage() {
@@ -573,7 +564,7 @@ export default function PropertyDetailPage() {
                                 {lease.tenant?.lastName ?? ""}
                               </p>
                               <p className="mt-1 text-sm text-parcelis-gray">
-                                {formatDate(lease.startsOn, { timeZone: "UTC" })} to{" "}
+                                {lease.startsOn ? formatDate(lease.startsOn) : "Not set"} to{" "}
                                 {formatLeaseEndDate(lease.endsOn, lease.termType)}
                               </p>
                             </div>

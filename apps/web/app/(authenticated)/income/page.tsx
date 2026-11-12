@@ -235,11 +235,10 @@ function IncomePageContent() {
   const filteredUnitGroups = Array.from(unitGroups.values());
   const ungroupedIncomeRows = incomeLeases.flatMap(({ property, lease }) => {
     const persistedInvoices = getLeaseInvoices(lease);
-    return persistedInvoices.map((persistedInvoice) => ({
+    return persistedInvoices.map((invoice) => ({
       property,
       lease,
-      invoice: persistedInvoice,
-      persistedInvoice,
+      invoice,
     }));
   });
 
@@ -376,8 +375,8 @@ function IncomePageContent() {
                   </h2>
                   <p className="mt-1 text-sm text-parcelis-gray">
                     {groupByUnit
-                      ? "Scheduled, active, and notice-period leases, grouped by unit."
-                      : "Scheduled, active, and notice-period leases listed by property and unit."}
+                      ? "Scheduled, active, notice-period, and historical leases, grouped by unit."
+                      : "Scheduled, active, notice-period, and historical leases listed by property and unit."}
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -474,13 +473,7 @@ function IncomePageContent() {
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
-              {propertiesQuery.isLoading ? (
-                <LoadingState label="Loading income…" />
-              ) : propertiesQuery.error ? (
-                <div className="min-h-48 p-5 text-sm font-medium text-red-700">
-                  Unable to load income. Please try again.
-                </div>
-              ) : filteredIncomeProperties.length === 0 ? (
+              {filteredIncomeProperties.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">
                   {incomeProperties.length > 0
                     ? "No income records match your search."
@@ -489,7 +482,7 @@ function IncomePageContent() {
                       : selectedUnitId !== null
                         ? "No income leases for the selected unit."
                         : selectedPropertyId !== null
-                          ? "No scheduled, active, or notice-period income leases for the selected property."
+                          ? "No scheduled, active, notice-period, or historical income leases for the selected property."
                           : "No income leases are available to report income yet."}
                 </div>
               ) : groupByUnit ? (
@@ -588,23 +581,22 @@ function IncomePageContent() {
                                     </TableRow>
                                   );
                                 }
-                                return persistedInvoices.map((persistedInvoice) => {
-                                  const invoice = persistedInvoice;
+                                return persistedInvoices.map((invoice) => {
                                   return (
                                     <TableRow
                                       className="cursor-pointer border-t border-parcelis-border bg-parcelis-porcelain/45 hover:bg-parcelis-porcelain/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
-                                      key={persistedInvoice ? persistedInvoice.id : `${lease.id}-current`}
+                                      key={invoice.id}
                                       onClick={() => {
-                                        if (persistedInvoice) router.push(getInvoiceLink(persistedInvoice.id));
+                                        router.push(getInvoiceLink(invoice.id));
                                       }}
                                       onKeyDown={(event) => {
-                                        if (persistedInvoice && (event.key === "Enter" || event.key === " ")) {
+                                        if (event.key === "Enter" || event.key === " ") {
                                           event.preventDefault();
-                                          router.push(getInvoiceLink(persistedInvoice.id));
+                                          router.push(getInvoiceLink(invoice.id));
                                         }
                                       }}
-                                      role={persistedInvoice ? "link" : undefined}
-                                      tabIndex={persistedInvoice ? 0 : undefined}
+                                      role="link"
+                                      tabIndex={0}
                                     >
                                       <TableCell className="px-5 py-3">
                                         <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal">
@@ -629,29 +621,21 @@ function IncomePageContent() {
                                         {formatDate(invoice.dueOn)}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                        {persistedInvoice?.paidOn ? formatDate(persistedInvoice.paidOn) : "—"}
+                                        {invoice.paidOn ? formatDate(invoice.paidOn) : "—"}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm font-medium text-parcelis-charcoal">
-                                        {persistedInvoice ? (
-                                          <Link
-                                            className="text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
-                                            href={getInvoiceLink(Number.parseInt(String(persistedInvoice.id), 10))}
-                                          >
-                                            {formatInvoiceNumber(persistedInvoice.invoiceNumber)}
-                                          </Link>
-                                        ) : (
-                                          invoice.id
-                                        )}
+                                        <Link
+                                          className="text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
+                                          href={getInvoiceLink(Number.parseInt(String(invoice.id), 10))}
+                                        >
+                                          {formatInvoiceNumber(invoice.invoiceNumber)}
+                                        </Link>
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                        {persistedInvoice
-                                          ? getIncomeInvoiceStatus(persistedInvoice, today)
-                                          : invoice.status}
+                                        {getIncomeInvoiceStatus(invoice, today)}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
-                                        {formatCurrency(
-                                          persistedInvoice ? persistedInvoice.amountCents : lease.monthlyRentCents,
-                                        )}
+                                        {formatCurrency(invoice.amountCents)}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
                                         —
@@ -662,7 +646,7 @@ function IncomePageContent() {
                                         )}
                                       </TableCell>
                                       <TableCell
-                                        className={`px-5 py-3 text-right text-sm font-semibold ${persistedInvoice && isUpcomingInvoice(persistedInvoice, today) ? "text-parcelis-gray" : getReceivableStatus(invoice, today) === "overdue" ? "text-red-700" : "text-parcelis-gray"}`}
+                                        className={`px-5 py-3 text-right text-sm font-semibold ${isUpcomingInvoice(invoice, today) ? "text-parcelis-gray" : getReceivableStatus(invoice, today) === "overdue" ? "text-red-700" : "text-parcelis-gray"}`}
                                       >
                                         {formatCurrency(invoice.status === "void" ? 0 : invoice.balanceCents)}
                                       </TableCell>
@@ -708,22 +692,22 @@ function IncomePageContent() {
                           </TableCell>
                         </TableRow>
                       ))}
-                    {ungroupedIncomeRows.map(({ property, lease, invoice, persistedInvoice }) => {
+                    {ungroupedIncomeRows.map(({ property, lease, invoice }) => {
                       return (
                         <TableRow
                           className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
-                          key={persistedInvoice ? persistedInvoice.id : `${lease.id}-current`}
+                          key={invoice.id}
                           onClick={() => {
-                            if (persistedInvoice) router.push(getInvoiceLink(persistedInvoice.id));
+                            router.push(getInvoiceLink(invoice.id));
                           }}
                           onKeyDown={(event) => {
-                            if (persistedInvoice && (event.key === "Enter" || event.key === " ")) {
+                            if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
-                              router.push(getInvoiceLink(persistedInvoice.id));
+                              router.push(getInvoiceLink(invoice.id));
                             }
                           }}
-                          role={persistedInvoice ? "link" : undefined}
-                          tabIndex={persistedInvoice ? 0 : undefined}
+                          role="link"
+                          tabIndex={0}
                         >
                           <TableCell className="px-5 py-4">
                             <div className="space-y-1">
@@ -741,16 +725,12 @@ function IncomePageContent() {
                             {invoice.paidOn ? formatDate(invoice.paidOn) : "—"}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {persistedInvoice ? (
-                              <Link
-                                className="font-medium text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
-                                href={getInvoiceLink(Number.parseInt(String(persistedInvoice.id), 10))}
-                              >
-                                {formatInvoiceNumber(persistedInvoice.invoiceNumber)}
-                              </Link>
-                            ) : (
-                              <span className="font-medium text-parcelis-charcoal">{invoice.id}</span>
-                            )}
+                            <Link
+                              className="font-medium text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
+                              href={getInvoiceLink(Number.parseInt(String(invoice.id), 10))}
+                            >
+                              {formatInvoiceNumber(invoice.invoiceNumber)}
+                            </Link>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             <span className="font-medium text-parcelis-charcoal">{lease.unitLabel}</span>
@@ -763,14 +743,12 @@ function IncomePageContent() {
                             {formatCurrency(invoice.status === "void" ? 0 : invoice.amountCents - invoice.balanceCents)}
                           </TableCell>
                           <TableCell
-                            className={`px-5 py-4 text-right text-sm font-semibold ${persistedInvoice && isUpcomingInvoice(persistedInvoice, today) ? "text-parcelis-gray" : getReceivableStatus(invoice, today) === "overdue" ? "text-red-700" : "text-parcelis-gray"}`}
+                            className={`px-5 py-4 text-right text-sm font-semibold ${isUpcomingInvoice(invoice, today) ? "text-parcelis-gray" : getReceivableStatus(invoice, today) === "overdue" ? "text-red-700" : "text-parcelis-gray"}`}
                           >
                             {formatCurrency(invoice.status === "void" ? 0 : invoice.balanceCents)}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {persistedInvoice
-                              ? getIncomeInvoiceStatus(persistedInvoice, today)
-                              : getIncomeInvoiceStatus(invoice, today)}
+                            {getIncomeInvoiceStatus(invoice, today)}
                           </TableCell>
                         </TableRow>
                       );
