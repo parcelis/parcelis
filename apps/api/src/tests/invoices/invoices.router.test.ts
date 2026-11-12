@@ -568,3 +568,31 @@ test("invoice reads scope overdue synchronization to the active organization", a
     );
   }
 });
+
+test("invoice directory uses organization-scoped recipients without filtering historical leases", async () => {
+  for (const tenantId of [undefined, 12]) {
+    const rows = [
+      { id: 41, leaseId: 3, amountCents: 12345, balanceCents: 12345, status: "overdue" },
+      { id: 42, leaseId: 4, amountCents: 6789, balanceCents: 0, status: "paid" },
+      { id: 43, leaseId: 5, amountCents: 123, balanceCents: 123, status: "void" },
+    ];
+    const caller = createCaller({
+      invoice: {
+        updateMany: async () => ({ count: 0 }),
+        findMany: async ({ where }: { where: unknown }) => {
+          assert.deepEqual(where, {
+            organizationId: 7,
+            ...(tenantId ? { recipients: { some: { tenantId } } } : {}),
+          });
+          return rows.map((row) => ({ ...row, lease: { unit: { name: "101" } } }));
+        },
+      },
+    });
+    const result = await caller.invoices.list(tenantId ? { tenantId } : {});
+    assert.deepEqual(
+      result.map(({ id, amountCents, balanceCents }) => ({ id, amountCents, balanceCents })),
+      rows.map(({ id, amountCents, balanceCents }) => ({ id, amountCents, balanceCents })),
+    );
+    assert.equal(result.length, 3);
+  }
+});

@@ -1601,7 +1601,6 @@ export const appRouter = router({
           const leases = property.leases.flatMap((lease) => {
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
-            if (permissions.tenants.view && !firstTenant) return [];
             const amountOverdueCents = summarizeInvoiceBalances(
               invoices,
               getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone),
@@ -1725,7 +1724,6 @@ export const appRouter = router({
         const leases = rawLeases.flatMap((lease) => {
           const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
           const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
-          if (permissions.tenants.view && !firstTenant) return [];
           const amountOverdueCents = permissions.invoices.view
             ? summarizeInvoiceBalances(
                 invoices,
@@ -2949,7 +2947,11 @@ export const appRouter = router({
                   dueOn,
                   amountCents,
                   balanceCents: amountCents - input.paidCents,
-                  status: getInvoiceStatus(dueOn, amountCents - input.paidCents, ctx.organization.organization.timeZone),
+                  status: getInvoiceStatus(
+                    dueOn,
+                    amountCents - input.paidCents,
+                    ctx.organization.organization.timeZone,
+                  ),
                   paidOn: input.paidCents === amountCents ? dueOn : null,
                   paidByTenantId: input.paidCents === amountCents ? tenantId : null,
                   paymentMethod: input.paidCents === amountCents ? "other" : null,

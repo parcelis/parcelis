@@ -101,6 +101,10 @@ function IncomePageContent() {
   const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<string>>(new Set());
   const [groupByUnit, setGroupByUnit] = React.useState(true);
   const [search, setSearch] = React.useState("");
+  const [leaseHistoryFilter, setLeaseHistoryFilter] = React.useState("all");
+  const [invoiceFilter, setInvoiceFilter] = React.useState("active");
+  const [draftLeaseHistoryFilter, setDraftLeaseHistoryFilter] = React.useState("all");
+  const [draftInvoiceFilter, setDraftInvoiceFilter] = React.useState("active");
   const [isInvoiceDrawerOpen, setIsInvoiceDrawerOpen] = React.useState(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [draftPropertyId, setDraftPropertyId] = React.useState("all");
@@ -117,6 +121,7 @@ function IncomePageContent() {
     queryFn: () => apiClient.auth.me.query(),
   });
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
+  const canCreateInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "create");
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
@@ -133,17 +138,31 @@ function IncomePageContent() {
     queryFn: () => apiClient.organizations.active.query(),
   });
   const today = organizationQuery.data?.timeZone ? getBillingCalendarDate(organizationQuery.data.timeZone) : null;
-  const tenantInvoicesQuery = useQuery({
+  const invoicesQuery = useQuery({
     queryKey: ["invoices", "list", { tenantId: selectedTenantId }],
-    queryFn: () => apiClient.invoices.list.query({ tenantId: selectedTenantId! }),
-    enabled: canViewInvoices && selectedTenantId !== null,
+    queryFn: () => apiClient.invoices.list.query(selectedTenantId === null ? {} : { tenantId: selectedTenantId }),
+    enabled: canViewInvoices,
   });
-  const tenantInvoiceIds = new Set(tenantInvoicesQuery.data?.map((invoice) => invoice.id));
+  const invoicesByLease = new Map<number, NonNullable<typeof invoicesQuery.data>>();
+  for (const invoice of invoicesQuery.data ?? []) {
+    const invoices = invoicesByLease.get(invoice.leaseId) ?? [];
+    invoices.push(invoice);
+    invoicesByLease.set(invoice.leaseId, invoices);
+  }
+  const matchesInvoiceFilter = (invoice: { status: string; balanceCents: number }, filter = invoiceFilter) => {
+    if (filter === "all") return true;
+    if (filter === "void") return invoice.status === "void";
+    if (invoice.status === "void") return false;
+    if (filter === "outstanding") return invoice.balanceCents > 0;
+    if (filter === "paid") return invoice.balanceCents === 0;
+    return true;
+  };
   const properties = (propertiesQuery.data ?? []).map((property) => ({
     ...property,
     leases: property.leaseHistory.map((lease) => ({
       ...lease,
-      invoices: lease.invoices.filter((invoice) => selectedTenantId === null || tenantInvoiceIds.has(invoice.id)),
+      hasSavedInvoices: invoicesByLease.has(lease.id),
+      invoices: (invoicesByLease.get(lease.id) ?? []).filter((invoice) => matchesInvoiceFilter(invoice)),
     })),
   }));
   const createInvoice = useMutation({
@@ -155,10 +174,23 @@ function IncomePageContent() {
       setIsInvoiceDrawerOpen(false);
     },
   });
-  const isEligibleIncomeLease = (lease: (typeof properties)[number]["leases"][number]) =>
+  const isEligibleIncomeLease = (
+    lease: (typeof properties)[number]["leases"][number],
+    historyFilter = leaseHistoryFilter,
+    filter = invoiceFilter,
+  ) =>
     lease.status !== "draft" &&
-    (selectedTenantId === null || lease.tenants.some((tenant) => tenant.id === selectedTenantId));
+    (selectedTenantId === null ||
+      invoicesByLease.has(lease.id) ||
+      lease.tenants.some((tenant) => tenant.id === selectedTenantId)) &&
+    (historyFilter === "all" ||
+      (historyFilter === "historical"
+        ? lease.archivedAt !== null || lease.status === "ended"
+        : lease.archivedAt === null && lease.status !== "ended")) &&
+    (filter === "active" ||
+      (invoicesByLease.get(lease.id) ?? []).some((invoice) => matchesInvoiceFilter(invoice, filter)));
   const isSummaryLease = (lease: (typeof properties)[number]["leases"][number]) =>
+    lease.archivedAt === null &&
     (lease.status === "active" || lease.status === "notice") &&
     (selectedTenantId === null || lease.tenants.some((tenant) => tenant.id === selectedTenantId));
   const selectedTenant =
@@ -170,7 +202,11 @@ function IncomePageContent() {
   const unitFilterOptions = properties
     .filter((property) => draftPropertyId === "all" || property.id === parseEntityId(draftPropertyId))
     .map((property) => {
-      const eligibleUnitIds = new Set(property.leases.filter(isEligibleIncomeLease).map((lease) => lease.unitId));
+      const eligibleUnitIds = new Set(
+        property.leases
+          .filter((lease) => isEligibleIncomeLease(lease, draftLeaseHistoryFilter, draftInvoiceFilter))
+          .map((lease) => lease.unitId),
+      );
       return { ...property, units: property.units.filter((unit) => eligibleUnitIds.has(unit.id)) };
     })
     .filter((property) => property.units.length > 0);
@@ -185,15 +221,17 @@ function IncomePageContent() {
       const incomeLeases = property.leases.filter(
         (lease) => isEligibleIncomeLease(lease) && (selectedUnitId === null || lease.unitId === selectedUnitId),
       );
-      const summaryLeases = incomeLeases.filter(isSummaryLease);
       return {
         ...property,
         incomeLeases,
-        monthlyRentCents: summaryLeases.reduce((total, lease) => total + (lease.monthlyRentCents ?? 0), 0),
       };
     })
     .filter((property) => property.incomeLeases.length > 0);
-  const scheduledIncomeCents = incomeProperties.reduce((total, property) => total + property.monthlyRentCents, 0);
+  const scheduledIncomeCents = properties
+    .filter((property) => selectedPropertyId === null || property.id === selectedPropertyId)
+    .flatMap((property) => property.leases)
+    .filter((lease) => isSummaryLease(lease) && (selectedUnitId === null || lease.unitId === selectedUnitId))
+    .reduce((total, lease) => total + (lease.monthlyRentCents ?? 0), 0);
   const balances = summarizeInvoiceBalances(
     incomeProperties.flatMap((property) => property.incomeLeases.flatMap((lease) => lease.invoices)),
     today ?? "",
@@ -235,13 +273,11 @@ function IncomePageContent() {
   const filteredUnitGroups = Array.from(unitGroups.values());
   const ungroupedIncomeRows = incomeLeases.flatMap(({ property, lease }) => {
     const persistedInvoices = getLeaseInvoices(lease);
-    return persistedInvoices
-      .filter((invoice) => invoice.status !== "void")
-      .map((invoice) => ({
-        property,
-        lease,
-        invoice,
-      }));
+    return persistedInvoices.map((invoice) => ({
+      property,
+      lease,
+      invoice,
+    }));
   });
 
   function setIncomeFilters(propertyId: number | null, unitId: number | null) {
@@ -295,18 +331,9 @@ function IncomePageContent() {
     );
   }
 
-  if (
-    organizationQuery.isPending ||
-    propertiesQuery.isPending ||
-    (selectedTenantId !== null && tenantInvoicesQuery.isPending)
-  )
+  if (organizationQuery.isPending || propertiesQuery.isPending || invoicesQuery.isPending)
     return <LoadingState label="Loading income..." />;
-  if (
-    organizationQuery.isError ||
-    propertiesQuery.isError ||
-    (selectedTenantId !== null && tenantInvoicesQuery.isError) ||
-    !today
-  ) {
+  if (organizationQuery.isError || propertiesQuery.isError || invoicesQuery.isError || !today) {
     return (
       <main className="p-6 lg:pl-[var(--parcelis-sidebar-width)]">
         <p role="alert">Unable to load income. Refresh to retry.</p>
@@ -323,9 +350,11 @@ function IncomePageContent() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button className="min-w-40" onClick={() => setIsInvoiceDrawerOpen(true)} type="button">
-            <Plus className="h-4 w-4" /> New Invoice
-          </Button>
+          {canCreateInvoices ? (
+            <Button className="min-w-40" onClick={() => setIsInvoiceDrawerOpen(true)} type="button">
+              <Plus className="h-4 w-4" /> New Invoice
+            </Button>
+          ) : null}
         </header>
         <div className="parcelis-page-shell">
           <PageRail
@@ -395,6 +424,8 @@ function IncomePageContent() {
                     onClick={() => {
                       setDraftPropertyId(selectedPropertyId === null ? "all" : String(selectedPropertyId));
                       setDraftUnitId(selectedUnitId === null ? "all" : String(selectedUnitId));
+                      setDraftLeaseHistoryFilter(leaseHistoryFilter);
+                      setDraftInvoiceFilter(invoiceFilter);
                       setIsFilterOpen((isOpen) => !isOpen);
                     }}
                     type="button"
@@ -402,8 +433,11 @@ function IncomePageContent() {
                   >
                     <Filter className="h-4 w-4" />
                     Filters
-                    {selectedPropertyId !== null || selectedUnitId !== null
-                      ? ` (${Number(selectedPropertyId !== null) + Number(selectedUnitId !== null)})`
+                    {selectedPropertyId !== null ||
+                    selectedUnitId !== null ||
+                    leaseHistoryFilter !== "all" ||
+                    invoiceFilter !== "active"
+                      ? ` (${Number(selectedPropertyId !== null) + Number(selectedUnitId !== null) + Number(leaseHistoryFilter !== "all") + Number(invoiceFilter !== "active")})`
                       : ""}
                   </Button>
                   <Button onClick={() => setGroupByUnit((grouped) => !grouped)} type="button" variant="secondary">
@@ -412,6 +446,32 @@ function IncomePageContent() {
                 </div>
                 {isFilterOpen ? (
                   <div className="absolute right-0 top-full z-20 mt-3 w-full max-w-sm rounded-lg border border-parcelis-border bg-white p-5 shadow-lg">
+                    <Label className="mb-4 gap-2">
+                      <span>Lease history</span>
+                      <Select
+                        aria-label="Lease history"
+                        value={draftLeaseHistoryFilter}
+                        onChange={(event) => setDraftLeaseHistoryFilter(event.target.value)}
+                      >
+                        <option value="all">All lease history</option>
+                        <option value="current">Current and scheduled leases</option>
+                        <option value="historical">Ended and archived leases</option>
+                      </Select>
+                    </Label>
+                    <Label className="mb-4 gap-2">
+                      <span>Invoices</span>
+                      <Select
+                        aria-label="Invoices"
+                        value={draftInvoiceFilter}
+                        onChange={(event) => setDraftInvoiceFilter(event.target.value)}
+                      >
+                        <option value="active">Non-void invoices</option>
+                        <option value="all">All saved invoices</option>
+                        <option value="outstanding">Outstanding invoices</option>
+                        <option value="paid">Fully paid invoices</option>
+                        <option value="void">Voided invoices</option>
+                      </Select>
+                    </Label>
                     <Label className="gap-2">
                       <span>Property</span>
                       <Select
@@ -458,13 +518,21 @@ function IncomePageContent() {
                     <div className="mt-5 flex items-center justify-between border-t border-parcelis-border pt-4">
                       <button
                         className="text-sm font-semibold text-red-600 hover:underline"
-                        onClick={() => setIncomeFilters(null, null)}
+                        onClick={() => {
+                          setLeaseHistoryFilter("all");
+                          setInvoiceFilter("active");
+                          setIncomeFilters(null, null);
+                        }}
                         type="button"
                       >
                         Clear Filters
                       </button>
                       <Button
-                        onClick={() => setIncomeFilters(parseEntityId(draftPropertyId), parseEntityId(draftUnitId))}
+                        onClick={() => {
+                          setLeaseHistoryFilter(draftLeaseHistoryFilter);
+                          setInvoiceFilter(draftInvoiceFilter);
+                          setIncomeFilters(parseEntityId(draftPropertyId), parseEntityId(draftUnitId));
+                        }}
                         type="button"
                       >
                         Apply Filters
@@ -485,7 +553,7 @@ function IncomePageContent() {
                         ? "No income leases for the selected unit."
                         : selectedPropertyId !== null
                           ? "No scheduled, active, notice-period, or historical income leases for the selected property."
-                          : "No income leases are available to report income yet."}
+                          : "No saved invoices or leases match these filters."}
                 </div>
               ) : groupByUnit ? (
                 <Table className="min-w-[1360px] border-collapse text-left">
@@ -527,7 +595,7 @@ function IncomePageContent() {
                                 onClick={() => toggleUnit(group.id)}
                                 type="button"
                               >
-                                <span className="grid h-8 w-8 place-items-center rounded-md border border-parcelis-border">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-parcelis-border">
                                   <ChevronRight
                                     className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
                                   />
@@ -558,7 +626,7 @@ function IncomePageContent() {
                             ? group.incomeLeases.map((lease) => {
                                 const tenantName = getTenantName(lease);
                                 const persistedInvoices = getLeaseInvoices(lease);
-                                const activeInvoices = persistedInvoices.filter((invoice) => invoice.status !== "void");
+                                const activeInvoices = persistedInvoices;
                                 if (activeInvoices.length === 0) {
                                   return (
                                     <TableRow
@@ -566,7 +634,7 @@ function IncomePageContent() {
                                       key={`lease-${lease.id}-no-invoices`}
                                     >
                                       <TableCell className="px-5 py-3">
-                                        <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal">
+                                        <div className="flex items-center gap-3 pl-11 font-semibold text-parcelis-charcoal">
                                           <span />
                                           <span className="flex items-center gap-2">
                                             {tenantName}
@@ -579,9 +647,9 @@ function IncomePageContent() {
                                         </div>
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray" colSpan={9}>
-                                        {persistedInvoices.length === 0
-                                          ? "No saved invoices for this unit. Create an invoice using New Invoice."
-                                          : "No active invoices for this unit. Existing saved invoices are voided."}
+                                        {lease.hasSavedInvoices
+                                          ? "No invoices match these filters."
+                                          : "No saved invoices for this lease."}
                                       </TableCell>
                                     </TableRow>
                                   );
@@ -604,7 +672,7 @@ function IncomePageContent() {
                                       tabIndex={0}
                                     >
                                       <TableCell className="px-5 py-3">
-                                        <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal">
+                                        <div className="flex items-center gap-3 pl-11 font-semibold text-parcelis-charcoal">
                                           <span />
                                           <span className="flex items-center gap-2">
                                             {tenantName}
@@ -693,28 +761,9 @@ function IncomePageContent() {
                             </p>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray" colSpan={9}>
-                            No saved invoices for this lease. Create an invoice using New Invoice.
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    {incomeLeases
-                      .filter(({ lease }) => {
-                        const persistedInvoices = getLeaseInvoices(lease);
-                        return (
-                          persistedInvoices.length > 0 &&
-                          persistedInvoices.every((invoice) => invoice.status === "void")
-                        );
-                      })
-                      .map(({ property, lease }) => (
-                        <TableRow key={`lease-${lease.id}-only-void-invoices`}>
-                          <TableCell className="px-5 py-4">
-                            <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
-                            <p className="text-sm text-parcelis-gray">
-                              Unit {lease.unitLabel} · {getTenantName(lease)}
-                            </p>
-                          </TableCell>
-                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray" colSpan={9}>
-                            No active invoices for this lease. Existing saved invoices are voided.
+                            {lease.hasSavedInvoices
+                              ? "No invoices match these filters."
+                              : "No saved invoices for this lease."}
                           </TableCell>
                         </TableRow>
                       ))}
