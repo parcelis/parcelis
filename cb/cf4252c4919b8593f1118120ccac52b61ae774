@@ -1,0 +1,21 @@
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_5b5aa467ce4736::t_1158dffb014a48 21
+  s_5b5aa467ce4736::t_722eed0d130978 273-280,287-301,307-323,330-342,345-354,359-365,372-375,379-389
+  s_5b5aa467ce4736::t_ab110794114577 281-286,302-306,324-329,343-344,355-358,366-371,376-378
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cbcf4252c4919b8593f1118120ccac52b61ae774",
+  "prompts": {},
+  "sessions": {
+    "s_5b5aa467ce4736": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cca7-30b2-7591-a816-7f1332c99b06",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
