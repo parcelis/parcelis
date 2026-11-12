@@ -99,6 +99,62 @@ test(
         });
 
       const full = await createInvoice();
+      await t.test("manual invoices persist initial payments and restore settlement after edits", async () => {
+        await prisma.lease.update({ where: { id: lease.id }, data: { status: "active" } });
+        for (const paidCents of [5_000, 10_000]) {
+          const dueOn = new Date(Date.UTC(2040, paidCents === 5_000 ? 0 : 1, 1));
+          const manual = await caller.invoices.createManual({
+            propertyId: property.id,
+            leaseId: lease.id,
+            tenantId: tenant.id,
+            dueOn,
+            paidCents,
+            items: [{ item: "Rent", quantity: 1, rateCents: 10_000 }],
+          });
+          const payment = await prisma.invoicePayment.findFirstOrThrow({ where: { invoiceId: manual.id } });
+          assert.equal(payment.amountCents, paidCents);
+          assert.equal(payment.tenantId, tenant.id);
+          assert.equal(payment.paymentMethod, "other");
+          assert.equal(payment.paidOn.getTime(), dueOn.getTime());
+          for (const rateCents of [15_000, paidCents]) {
+            await caller.invoices.update({ id: manual.id, dueOn, items: [{ item: "Rent", quantity: 1, rateCents }] });
+          }
+          const restored = await prisma.invoice.findUniqueOrThrow({ where: { id: manual.id } });
+          assert.equal(restored.balanceCents, 0);
+          assert.equal(restored.paidOn?.getTime(), dueOn.getTime());
+          assert.equal(restored.paidByTenantId, tenant.id);
+          assert.equal(restored.paymentMethod, "other");
+        }
+      });
+      await t.test("legacy settlement backfill preserves dates and does not duplicate payment history", async () => {
+        const legacy = await createInvoice();
+        const paidOn = new Date("2028-04-12");
+        await prisma.invoice.update({ where: { id: legacy.id }, data: { balanceCents: 0, status: "paid", paidOn } });
+        const migration = await readFile(
+          new URL(
+            "../../../../../packages/db/prisma/migrations/20261111000000_backfill_manual_invoice_payments/migration.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        );
+        const sql = migration
+          .replaceAll('"InvoicePayment"', `"${isolated.schema}"."InvoicePayment"`)
+          .replaceAll('"Invoice"', `"${isolated.schema}"."Invoice"`);
+        await prisma.$executeRawUnsafe(sql);
+        await prisma.$executeRawUnsafe(sql);
+        assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: legacy.id } }), 1);
+        for (const rateCents of [15_000, 10_000]) {
+          await caller.invoices.update({
+            id: legacy.id,
+            dueOn: legacy.dueOn,
+            items: [{ item: "Rent", quantity: 1, rateCents }],
+          });
+        }
+        const restored = await prisma.invoice.findUniqueOrThrow({ where: { id: legacy.id } });
+        assert.equal(restored.paidOn?.getTime(), paidOn.getTime());
+        assert.equal(restored.paidByTenantId, tenant.id);
+        assert.equal(restored.paymentMethod, "other");
+      });
       const fullPayment = await pay(full.id, 10_000);
       for (let mask = 1; mask < 15; mask++) {
         await assert.rejects(

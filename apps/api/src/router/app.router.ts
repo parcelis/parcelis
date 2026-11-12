@@ -2903,7 +2903,6 @@ export const appRouter = router({
                   tenantId,
                   recipients: {
                     create: recipientTenantIds.map((tenantId) => ({
-                      organizationId: ctx.organization.organizationId,
                       tenantId,
                     })),
                   },
@@ -2914,6 +2913,8 @@ export const appRouter = router({
                   balanceCents: amountCents - input.paidCents,
                   status: getInvoiceStatus(dueOn, amountCents - input.paidCents),
                   paidOn: input.paidCents === amountCents ? dueOn : null,
+                  paidByTenantId: input.paidCents === amountCents ? tenantId : null,
+                  paymentMethod: input.paidCents === amountCents ? "other" : null,
                   items: {
                     create: input.items.map((item) => ({
                       ...item,
@@ -2924,6 +2925,18 @@ export const appRouter = router({
                 },
                 include: { items: true },
               });
+              if (input.paidCents > 0) {
+                await tx.invoicePayment.create({
+                  data: {
+                    organizationId: ctx.organization.organizationId,
+                    invoiceId: invoice.id,
+                    tenantId,
+                    amountCents: input.paidCents,
+                    paidOn: dueOn,
+                    paymentMethod: "other",
+                  },
+                });
+              }
               await recordInvoiceActivity(tx, invoice, "invoice.created");
               return invoice;
             },
