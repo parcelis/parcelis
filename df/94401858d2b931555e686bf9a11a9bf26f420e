@@ -1,0 +1,58 @@
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_9aab87f804cee5::t_396644bfbe991f 64-65
+  s_9aab87f804cee5::t_9cfe6750f06466 69,75,148-151,576-577
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_9aab87f804cee5::t_a3fa1335eb0e37 4-9,237-242
+  s_9aab87f804cee5::t_191752bbb99823 84-85,198-202,216-219,222-223,226-229,643-646,648
+  s_13769a40d720ee::t_74b779ccc60578 95
+  s_9aab87f804cee5::t_dfc127dcfaee08 243
+  s_9aab87f804cee5::t_fc05304e9e63ec 236
+apps/web/app/(authenticated)/income/page.tsx
+  s_13769a40d720ee::t_d31db603801506 136-143,148,773
+  s_9aab87f804cee5::t_6c59e580677617 592
+  s_13769a40d720ee::t_107728dc04d57f 667,696-710,763,766,768
+  s_13769a40d720ee::t_c13170c8a53f80 144-147,297-308
+  s_13769a40d720ee::t_0978a98b18f9af 133-135
+  s_13769a40d720ee::t_dd32014e52d34e 771-772
+  s_9aab87f804cee5::t_84771cf97e3a7d 566-591
+  s_13769a40d720ee::t_2b6e4ec75ed72d 309-311
+  s_9aab87f804cee5::t_00c050771bf722 23-29,42-43,60-61,64-72,131-132,159,177-181,197-200,238,241,335,341-342,345,348-355,361-362,364-366,445,514,517-518,647-649,660-662,665
+  s_13769a40d720ee::t_9d6d51c5b9a6ca 312-314
+  s_9aab87f804cee5::t_14e713837e74a7 315
+apps/web/app/(authenticated)/properties/page.tsx
+  s_13769a40d720ee::t_199abb0092a99e 124-128,171-176,181
+  s_13769a40d720ee::t_d31db603801506 117-118
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_9aab87f804cee5::t_631e65ee376d14 10-14,229-231
+  s_9aab87f804cee5::t_ec9eec2cb32a15 748-750
+  s_9aab87f804cee5::t_65b5db6e848c05 744-746
+  s_13769a40d720ee::t_107728dc04d57f 135-136,220-226,228
+  s_9aab87f804cee5::t_2bfad71037518b 747
+  s_13769a40d720ee::t_d31db603801506 84-85
+  s_9aab87f804cee5::t_74cd1b1294ff51 69,75,232,234,727,793-797,800,811-822,915
+  s_9aab87f804cee5::t_49dd62e9362404 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df94401858d2b931555e686bf9a11a9bf26f420e",
+  "prompts": {},
+  "sessions": {
+    "s_13769a40d720ee": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ce29-b4f0-7ae1-9fb3-ff711fc67edf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_9aab87f804cee5": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "668d4172-27f9-4fb2-8d35-a4152cd5449e",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
