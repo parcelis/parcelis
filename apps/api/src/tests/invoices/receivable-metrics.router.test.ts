@@ -56,7 +56,26 @@ test("property list and detail retain historical debt and count joint obligation
   const property = fixture();
   const caller = appRouter.createCaller({
     prisma: {
-      property: { findMany: async () => [property], findFirst: async () => property },
+      property: {
+        findMany: async () => [property],
+        findFirst: async ({
+          include,
+        }: {
+          include: { leases: { include: { invoices: { select: Record<string, boolean> } } } };
+        }) => ({
+          ...property,
+          leases: property.leases.map((lease) => ({
+            ...lease,
+            invoices: lease.invoices.map((invoice) =>
+              Object.fromEntries(
+                Object.entries(invoice).filter(
+                  ([field]) => include.leases.include.invoices.select[field],
+                ),
+              ),
+            ),
+          })),
+        }),
+      },
       invoice: { updateMany: async () => ({ count: 0 }) },
     },
     req: { headers: {} },

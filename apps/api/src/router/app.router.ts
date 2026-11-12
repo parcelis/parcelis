@@ -1687,6 +1687,7 @@ export const appRouter = router({
                     balanceCents: true,
                     amountCents: true,
                     dueOn: true,
+                    paidOn: true,
                     status: true,
                   },
                 },
