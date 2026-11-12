@@ -1,0 +1,22 @@
+packages/db/prisma/migrations/20261111000000_backfill_manual_invoice_payments/migration.sql
+  s_5b5aa467ce4736::t_45adb94df86631 1-10
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_5b5aa467ce4736::t_83264cc2d3a6f4 134-139,172-175
+  s_5b5aa467ce4736::t_45185f48cb7662 133,140-146,156,158-164,166-171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2bf2c5411bcaa78b780c69a84c4440ed17a8003a",
+  "prompts": {},
+  "sessions": {
+    "s_5b5aa467ce4736": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cca7-30b2-7591-a816-7f1332c99b06",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
