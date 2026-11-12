@@ -1,0 +1,22 @@
+apps/api/src/router/app.router.ts
+  s_b6ce9364d4ae41::t_5fd70d5c6f68ad 1724,1730,1740-1742
+apps/api/src/tests/invoices/receivable-metrics.router.test.ts
+  s_b6ce9364d4ae41::t_5fd70d5c6f68ad 120,126,140-142,145-147
+  s_b6ce9364d4ae41::t_7f5b1f1b37fb2b 91-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bb4a2c1fee8210f4657825efda8eecd6212467e6",
+  "prompts": {},
+  "sessions": {
+    "s_b6ce9364d4ae41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d11f-2473-7640-b4a8-ebc46c3a3d67",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
