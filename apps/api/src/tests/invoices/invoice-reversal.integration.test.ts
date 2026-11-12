@@ -86,7 +86,7 @@ test(
         appRouter.createCaller({
           prisma: client,
           session: { user: { id: 42, name: "Test administrator", role } },
-          organization: { organizationId },
+          organization: { organizationId, organization: { timeZone: "UTC" } },
         } as unknown as Context);
       const caller = createCaller(prisma);
       const pay = (id: number, amountCents: number) =>

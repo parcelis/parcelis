@@ -9,7 +9,7 @@ function createCaller(prisma: unknown) {
   return appRouter.createCaller({
     prisma,
     session: { user: { id: 1, name: "Administrator", role: "administrator" } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
   } as unknown as Context);
 }
 
@@ -218,7 +218,7 @@ test("invoice deletion requires permission before reading the invoice", async ()
   const caller = appRouter.createCaller({
     prisma: { rolePermission: { findUnique: async () => null } },
     session: { user: { id: 1, role: "property_manager" } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
   } as unknown as Context);
   await assert.rejects(caller.invoices.delete({ id: 4 }), { code: "FORBIDDEN" });
 });
@@ -492,7 +492,7 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
       $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
     },
     session: { user: { id: 1, role: "property_manager" } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
   } as unknown as Context);
   const input = {
     propertyId: 2,
@@ -537,10 +537,10 @@ test("manual invoices cannot be created for draft leases", async () => {
 
 test("invoice reads scope overdue synchronization to the active organization", async () => {
   for (const operation of ["list", "byId", "pdf"] as const) {
-    const updates: Array<{ where: { organizationId: number } }> = [];
+    const updates: Array<{ where: { organizationId: number }; data: { status: string } }> = [];
     const caller = createCaller({
       invoice: {
-        updateMany: async (query: { where: { organizationId: number } }) => {
+        updateMany: async (query: { where: { organizationId: number }; data: { status: string } }) => {
           updates.push(query);
           return { count: 0 };
         },
@@ -555,10 +555,15 @@ test("invoice reads scope overdue synchronization to the active organization", a
         caller.invoices.pdf({ id: 4 }),
         (error) => error instanceof TRPCError && error.code === "NOT_FOUND",
       );
-    assert.equal(updates.length, 2, operation);
+    assert.equal(updates.length, 3, operation);
+    assert.deepEqual(
+      updates.find(({ data }) => data.status === "paid"),
+      { where: { organizationId: 7, status: "overdue", balanceCents: 0 }, data: { status: "paid" } },
+      operation,
+    );
     assert.deepEqual(
       updates.map(({ where }) => where.organizationId),
-      [7, 7],
+      [7, 7, 7],
       operation,
     );
   }
