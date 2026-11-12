@@ -244,6 +244,32 @@ test(
       );
 
       const racing = await createInvoice();
+      const edited = await createInvoice();
+      const editedPayment = await pay(edited.id, 10_000);
+      const settled = await prisma.invoice.findUniqueOrThrow({ where: { id: edited.id } });
+      const edit = (rateCents: number) =>
+        caller.invoices.update({
+          id: edited.id,
+          dueOn: edited.dueOn,
+          items: [{ item: "Rent", quantity: 1, rateCents }],
+        });
+      await edit(10_000);
+      assert.equal(
+        (await prisma.invoice.findUniqueOrThrow({ where: { id: edited.id } })).paidOn?.getTime(),
+        settled.paidOn?.getTime(),
+      );
+      await edit(15_000);
+      const reopened = await prisma.invoice.findUniqueOrThrow({ where: { id: edited.id } });
+      assert.equal(reopened.balanceCents, 5_000);
+      assert.notEqual(reopened.status, "paid");
+      assert.equal(reopened.paidOn, null);
+      assert.equal(reopened.paidByTenantId, null);
+      assert.equal(reopened.paymentMethod, null);
+      assert.deepEqual(
+        await prisma.invoicePayment.findUniqueOrThrow({ where: { id: editedPayment.id } }),
+        editedPayment,
+      );
+
       const original = await pay(racing.id, 2_500);
       let selected!: () => void;
       let resume!: () => void;

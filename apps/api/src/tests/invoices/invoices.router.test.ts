@@ -21,6 +21,52 @@ const paymentInput = {
   paymentMethod: "check" as const,
 };
 
+for (const totalCents of [10_000, 15_000]) {
+  test(`editing a paid invoice to ${totalCents} cents keeps settlement metadata consistent`, async () => {
+    const invoice = {
+      id: 4,
+      invoiceNumber: 4,
+      organizationId: 7,
+      propertyId: 2,
+      amountCents: 10_000,
+      balanceCents: 0,
+      status: "paid",
+      paidOn: new Date("2026-09-14"),
+      paidByTenantId: 12,
+      paymentMethod: "check",
+    };
+    const tx = {
+      invoice: {
+        findFirstOrThrow: async ({ where }: { where: unknown }) => {
+          assert.deepEqual(where, { id: 4, organizationId: 7 });
+          return invoice;
+        },
+        update: async ({ data }: { data: Record<string, unknown> }) => ({ ...invoice, ...data }),
+      },
+      activityEvent: { create: async () => ({}) },
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
+        assert.deepEqual(options, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        return callback(tx);
+      },
+    });
+
+    const updated = await caller.invoices.update({
+      id: 4,
+      dueOn: new Date("2030-01-01"),
+      items: [{ item: "Rent", quantity: 1, rateCents: totalCents }],
+    });
+
+    const remainsPaid = totalCents === 10_000;
+    assert.equal(updated.balanceCents, totalCents - 10_000);
+    assert.equal(updated.status, remainsPaid ? "paid" : "open");
+    assert.equal(updated.paidOn, remainsPaid ? invoice.paidOn : null);
+    assert.equal(updated.paidByTenantId, remainsPaid ? invoice.paidByTenantId : null);
+    assert.equal(updated.paymentMethod, remainsPaid ? invoice.paymentMethod : null);
+  });
+}
+
 for (const [label, amountCents, status] of [
   ["an unpaid invoice", 10_000, "open"],
   ["a zero-cent paid invoice", 0, "paid"],

@@ -3154,6 +3154,7 @@ export const appRouter = router({
                 amountCents,
                 balanceCents: amountCents - paidCents,
                 status: getInvoiceStatus(dueOn, amountCents - paidCents),
+                ...(amountCents > paidCents ? { paidOn: null, paidByTenantId: null, paymentMethod: null } : {}),
                 items: {
                   deleteMany: {},
                   create: input.items.map((item) => ({
