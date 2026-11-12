@@ -2903,7 +2903,6 @@ export const appRouter = router({
                   tenantId,
                   recipients: {
                     create: recipientTenantIds.map((tenantId) => ({
-                      organizationId: ctx.organization.organizationId,
                       tenantId,
                     })),
                   },
@@ -2914,6 +2913,8 @@ export const appRouter = router({
                   balanceCents: amountCents - input.paidCents,
                   status: getInvoiceStatus(dueOn, amountCents - input.paidCents),
                   paidOn: input.paidCents === amountCents ? dueOn : null,
+                  paidByTenantId: input.paidCents === amountCents ? tenantId : null,
+                  paymentMethod: input.paidCents === amountCents ? "other" : null,
                   items: {
                     create: input.items.map((item) => ({
                       ...item,
@@ -2924,6 +2925,18 @@ export const appRouter = router({
                 },
                 include: { items: true },
               });
+              if (input.paidCents > 0) {
+                await tx.invoicePayment.create({
+                  data: {
+                    organizationId: ctx.organization.organizationId,
+                    invoiceId: invoice.id,
+                    tenantId,
+                    amountCents: input.paidCents,
+                    paidOn: dueOn,
+                    paymentMethod: "other",
+                  },
+                });
+              }
               await recordInvoiceActivity(tx, invoice, "invoice.created");
               return invoice;
             },
@@ -3147,6 +3160,14 @@ export const appRouter = router({
                 message: "Invoice total cannot be lower than payments received.",
               });
             }
+            const latestPayment =
+              amountCents === paidCents && invoice.balanceCents > 0
+                ? await tx.invoicePayment.findFirst({
+                    where: { invoiceId: input.id, organizationId: ctx.organization.organizationId, reversedAt: null },
+                    orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+                    select: { paidOn: true, tenantId: true, paymentMethod: true },
+                  })
+                : null;
             const updatedInvoice = await tx.invoice.update({
               where: { id: input.id },
               data: {
@@ -3154,6 +3175,15 @@ export const appRouter = router({
                 amountCents,
                 balanceCents: amountCents - paidCents,
                 status: getInvoiceStatus(dueOn, amountCents - paidCents),
+                ...(amountCents > paidCents
+                  ? { paidOn: null, paidByTenantId: null, paymentMethod: null }
+                  : latestPayment
+                    ? {
+                        paidOn: latestPayment.paidOn,
+                        paidByTenantId: latestPayment.tenantId,
+                        paymentMethod: latestPayment.paymentMethod,
+                      }
+                    : {}),
                 items: {
                   deleteMany: {},
                   create: input.items.map((item) => ({

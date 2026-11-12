@@ -21,6 +21,102 @@ const paymentInput = {
   paymentMethod: "check" as const,
 };
 
+test("settling an outstanding invoice restores the latest unreversed payment details", async () => {
+  const payment = { paidOn: new Date("2026-09-15"), tenantId: 99, paymentMethod: "cash" };
+  let paymentLookups = 0;
+  const tx = {
+    invoice: {
+      findFirstOrThrow: async () => ({ amountCents: 15_000, balanceCents: 5_000 }),
+      update: async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 4,
+        invoiceNumber: 4,
+        organizationId: 7,
+        propertyId: 2,
+        ...data,
+      }),
+    },
+    invoicePayment: {
+      findFirst: async (args: unknown) => {
+        paymentLookups += 1;
+        assert.deepEqual(args, {
+          where: { invoiceId: 4, organizationId: 7, reversedAt: null },
+          orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+          select: { paidOn: true, tenantId: true, paymentMethod: true },
+        });
+        return payment;
+      },
+    },
+    activityEvent: { create: async () => ({}) },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+  const updated = await caller.invoices.update({
+    id: 4,
+    dueOn: new Date("2030-01-01"),
+    items: [{ item: "Rent", quantity: 1, rateCents: 10_000 }],
+  });
+  assert.equal(paymentLookups, 1);
+  assert.equal(updated.balanceCents, 0);
+  assert.equal(updated.status, "paid");
+  assert.equal(updated.paidOn, payment.paidOn);
+  assert.equal(updated.paidByTenantId, payment.tenantId);
+  assert.equal(updated.paymentMethod, payment.paymentMethod);
+});
+
+for (const totalCents of [10_000, 15_000]) {
+  test(`editing a paid invoice to ${totalCents} cents keeps settlement metadata consistent`, async () => {
+    const invoice = {
+      id: 4,
+      invoiceNumber: 4,
+      organizationId: 7,
+      propertyId: 2,
+      amountCents: 10_000,
+      balanceCents: 0,
+      status: "paid",
+      paidOn: new Date("2026-09-14"),
+      paidByTenantId: 12,
+      paymentMethod: "check",
+    };
+    const tx = {
+      invoice: {
+        findFirstOrThrow: async ({ where }: { where: unknown }) => {
+          assert.deepEqual(where, { id: 4, organizationId: 7 });
+          return invoice;
+        },
+        update: async ({ data }: { data: Record<string, unknown> }) => ({ ...invoice, ...data }),
+      },
+      activityEvent: { create: async () => ({}) },
+      invoicePayment: {
+        findFirst: async () => ({
+          paidOn: new Date("2026-09-15"),
+          tenantId: 99,
+          paymentMethod: "cash",
+        }),
+      },
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
+        assert.deepEqual(options, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        return callback(tx);
+      },
+    });
+
+    const updated = await caller.invoices.update({
+      id: 4,
+      dueOn: new Date("2030-01-01"),
+      items: [{ item: "Rent", quantity: 1, rateCents: totalCents }],
+    });
+
+    const remainsPaid = totalCents === 10_000;
+    assert.equal(updated.balanceCents, totalCents - 10_000);
+    assert.equal(updated.status, remainsPaid ? "paid" : "open");
+    assert.equal(updated.paidOn, remainsPaid ? invoice.paidOn : null);
+    assert.equal(updated.paidByTenantId, remainsPaid ? invoice.paidByTenantId : null);
+    assert.equal(updated.paymentMethod, remainsPaid ? invoice.paymentMethod : null);
+  });
+}
+
 for (const [label, amountCents, status] of [
   ["an unpaid invoice", 10_000, "open"],
   ["a zero-cent paid invoice", 0, "paid"],
@@ -355,10 +451,7 @@ test("manual joint invoices create recipients for every lease tenant", async () 
   });
 
   assert.deepEqual((invoiceData as { recipients: unknown }).recipients, {
-    create: [
-      { organizationId: 7, tenantId: 11 },
-      { organizationId: 7, tenantId: 12 },
-    ],
+    create: [{ tenantId: 11 }, { tenantId: 12 }],
   });
 });
 
@@ -411,10 +504,10 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
 
   await caller.invoices.createManual(input);
   assert.equal(invoiceData?.tenantId, 12);
-  assert.deepEqual(invoiceData?.recipients, { create: [{ organizationId: 7, tenantId: 12 }] });
+  assert.deepEqual(invoiceData?.recipients, { create: [{ tenantId: 12 }] });
   await caller.invoices.createManual({ ...input, tenantId: 11 });
   assert.equal(invoiceData?.tenantId, 11);
-  assert.deepEqual(invoiceData?.recipients, { create: [{ organizationId: 7, tenantId: 11 }] });
+  assert.deepEqual(invoiceData?.recipients, { create: [{ tenantId: 11 }] });
   await assert.rejects(() => caller.invoices.createManual({ ...input, tenantId: 99 }), {
     code: "BAD_REQUEST",
     message: "The selected tenant is not on this lease.",
