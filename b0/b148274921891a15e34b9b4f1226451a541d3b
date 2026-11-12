@@ -1,0 +1,37 @@
+apps/api/src/tests/invoices/receivable-metrics.router.test.ts
+  s_13769a40d720ee::t_c13170c8a53f80 12-40,47-52,61-64,76,84-87,93,96
+  s_13769a40d720ee::t_2ab0b0cc522f85 1-11,41-46,53-60,65,69,72,75,89,97
+  s_13769a40d720ee::t_f216da7349607d 66-68,70-71,73-74,77-83,88,90-92,94-95
+apps/api/src/tests/invoices/invoice-balances.test.ts
+  s_13769a40d720ee::t_c13170c8a53f80 21-25,27-30
+  s_13769a40d720ee::t_2ab0b0cc522f85 1-20,26,31,39
+  s_13769a40d720ee::t_98d8c25e38b9c5 32-38
+apps/api/src/tests/leases/leases.router.test.ts
+  s_13769a40d720ee::t_82231e3ebecc11 554,593
+apps/api/src/router/app.router.ts
+  s_13769a40d720ee::t_3042fb66e9bd44 2-4,501,522-523,594-599,601-604,610,1510-1514,1606-1609,1685,1718,1722-1725,1735,2760-2764,2784-2788,2817-2821,2944,3049,3140,3207,3311
+apps/api/src/tests/invoices/invoice-delete.integration.test.ts
+  s_13769a40d720ee::t_4f4a257d28f08f 80
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_13769a40d720ee::t_7d4c3b85809937 89
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_13769a40d720ee::t_830f47dd9e5ee4 12,221,495,540,543,558-563,566
+apps/api/src/tests/permissions/nested-permissions.router.test.ts
+  s_13769a40d720ee::t_ef4bc8031d12c4 20,87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b0b148274921891a15e34b9b4f1226451a541d3b",
+  "prompts": {},
+  "sessions": {
+    "s_13769a40d720ee": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ce29-b4f0-7ae1-9fb3-ff711fc67edf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
