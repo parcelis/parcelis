@@ -1,0 +1,26 @@
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_5b5aa467ce4736::t_e4ac70f8f0506c 45,54,60,69
+  s_5b5aa467ce4736::t_857ba5415f809c 24,68
+  s_5b5aa467ce4736::t_b00b0e2bc2cdec 25-44,46-53,55-59,61-67
+apps/api/src/router/app.router.ts
+  s_5b5aa467ce4736::t_b00b0e2bc2cdec 3157
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_5b5aa467ce4736::t_b05d70975c3217 250-255,257-260,268-271
+  s_5b5aa467ce4736::t_49be00e18877b6 247-249,256,261-267,272
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "88f053d0dcab20323b9f247edc17d36cd930e8e3",
+  "prompts": {},
+  "sessions": {
+    "s_5b5aa467ce4736": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cca7-30b2-7591-a816-7f1332c99b06",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
