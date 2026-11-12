@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getBillingCalendarDate,
+  getInvoiceCalendarDate,
   getReceivableStatus,
   summarizeInvoiceBalances,
   formatInvoiceNumber,
@@ -228,7 +229,12 @@ export default function TenantDetailPage() {
   const balances = today && canViewInvoices && canViewLeases ? summarizeInvoiceBalances(tenantInvoices, today) : null;
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
   const currentLeaseInvoices = currentLease?.invoices ?? [];
-  const currentInvoice = currentLeaseInvoices.find((invoice) => today && getReceivableStatus(invoice, today) === "open");
+  const currentInvoice =
+    today === null
+      ? undefined
+      : currentLeaseInvoices
+          .filter((invoice) => getReceivableStatus(invoice, today) === "open")
+          .sort((left, right) => getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)))[0];
   const pastDueInvoice = tenantInvoices.find((invoice) => today && getReceivableStatus(invoice, today) === "overdue");
   const overdueCents = balances?.overdueCents ?? null;
   const currentInvoiceId = currentInvoice ? formatInvoiceNumber(currentInvoice.invoiceNumber) : null;
@@ -778,7 +784,7 @@ export default function TenantDetailPage() {
                         <div className="space-y-6">
                           <div>
                             <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
-                            {today === null ? (
+                            {overdueCents === null ? (
                               <p className="mt-1 text-base font-bold text-parcelis-charcoal">
                                 {organizationQuery.isLoading ? "Loading balance..." : "Balance unavailable."}
                               </p>

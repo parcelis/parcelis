@@ -235,11 +235,13 @@ function IncomePageContent() {
   const filteredUnitGroups = Array.from(unitGroups.values());
   const ungroupedIncomeRows = incomeLeases.flatMap(({ property, lease }) => {
     const persistedInvoices = getLeaseInvoices(lease);
-    return persistedInvoices.map((invoice) => ({
+    return persistedInvoices
+      .filter((invoice) => invoice.status !== "void")
+      .map((invoice) => ({
       property,
       lease,
       invoice,
-    }));
+      }));
   });
 
   function setIncomeFilters(propertyId: number | null, unitId: number | null) {
@@ -555,7 +557,9 @@ function IncomePageContent() {
                           {isExpanded
                             ? group.incomeLeases.map((lease) => {
                                 const tenantName = getTenantName(lease);
-                                const persistedInvoices = getLeaseInvoices(lease);
+                                const persistedInvoices = getLeaseInvoices(lease).filter(
+                                  (invoice) => invoice.status !== "void",
+                                );
                                 if (persistedInvoices.length === 0) {
                                   return (
                                     <TableRow
@@ -678,7 +682,7 @@ function IncomePageContent() {
                   </TableHeader>
                   <TableBody>
                     {incomeLeases
-                      .filter(({ lease }) => getLeaseInvoices(lease).length === 0)
+                      .filter(({ lease }) => getLeaseInvoices(lease).every((invoice) => invoice.status === "void"))
                       .map(({ property, lease }) => (
                         <TableRow key={`lease-${lease.id}-no-invoices`}>
                           <TableCell className="px-5 py-4">
