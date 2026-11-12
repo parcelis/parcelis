@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -45,7 +45,6 @@ import { userRoleValues } from "@parcelis/schemas";
 import { LoadingState } from "../../../components/loading-state";
 import { CreateUserDrawer, initialCreateUserFormState } from "../../../components/create-user-drawer";
 import { EditUserDrawer, type EditUserFormState } from "../../../components/edit-user-drawer";
-import { PageRail } from "../../../components/page-rail";
 import { hasPermission } from "../../../components/property-access";
 import { SettingsRail } from "../../../components/settings-rail";
 import { formatLabel } from "../../../lib/format";
@@ -306,7 +305,7 @@ export default function SettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="users"
@@ -316,18 +315,18 @@ export default function SettingsPage() {
               />
             }
             header={
-              <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
-                <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">
-                  <div className="rounded-md bg-white/10 p-3">
-                    <div className="text-2xl font-bold text-white">{activeUsers ?? "—"}</div>
+              <SettingsPanelHeader description="Review the accounts with access to Parcelis." title="Users">
+                <div className="flex flex-wrap gap-2 text-sm text-parcelis-gray">
+                  <div className="rounded-md bg-parcelis-porcelain p-3">
+                    <div className="text-2xl font-bold text-parcelis-charcoal">{activeUsers ?? "—"}</div>
                     Active accounts
                   </div>
-                  <div className="rounded-md bg-white/10 p-3">
-                    <div className="text-2xl font-bold text-white">{disabledUsers ?? "—"}</div>
+                  <div className="rounded-md bg-parcelis-porcelain p-3">
+                    <div className="text-2xl font-bold text-parcelis-charcoal">{disabledUsers ?? "—"}</div>
                     Disabled accounts
                   </div>
                 </div>
-              </PageRail>
+              </SettingsPanelHeader>
             }
           >
             <Card>
@@ -441,7 +440,7 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>

@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -127,7 +127,7 @@ export default function RolesSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="roles"
@@ -137,13 +137,10 @@ export default function RolesSettingsPage() {
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Roles & permissions</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                  Control which areas each role can access and the actions allowed there.
-                </p>
-              </section>
+              <SettingsPanelHeader
+                title={<>Roles & permissions</>}
+                description={<>Control which areas each role can access and the actions allowed there.</>}
+              />
             }
           >
             {currentUserQuery.isLoading ? (
@@ -318,7 +315,7 @@ export default function RolesSettingsPage() {
                 </CardContent>
               </Card>
             )}
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>

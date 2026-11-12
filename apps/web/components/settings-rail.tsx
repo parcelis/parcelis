@@ -1,16 +1,12 @@
 "use client";
 
+import { useId } from "react";
 import Link from "next/link";
-import { Building2, ReceiptText, ShieldCheck } from "lucide-react";
-import { NavigationRail, NavigationRailGroup } from "./navigation-rail";
+import { Building2, KeyRound, Mail, ReceiptText, ShieldCheck, Users } from "lucide-react";
+import { Select, SettingsPanelGroup } from "@parcelis/ui";
 import { useQuery } from "@tanstack/react-query";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { apiClient, queryKeys } from "./api-client";
-
-const items = [
-  { href: "/settings/roles", key: "roles", label: "Roles" },
-  { href: "/settings", key: "users", label: "Users" },
-] as const;
 
 export function SettingsRail({
   active,
@@ -18,87 +14,92 @@ export function SettingsRail({
   canManageRoles = false,
   canManageInvoicing = false,
 }: {
-  active: "none" | "organization" | "email" | "api-tokens" | "invoicing" | (typeof items)[number]["key"];
+  active: "none" | "organization" | "email" | "api-tokens" | "invoicing" | "roles" | "users";
   canManageRoles?: boolean;
   canManageInvoicing?: boolean;
   canManageUsers?: boolean;
 }) {
   const pathname = usePathname();
-
+  const router = useRouter();
+  const selectId = useId();
   const organizationQuery = useQuery({
     queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
   });
-
   const canManageTokens = ["owner", "administrator"].includes(organizationQuery.data?.role ?? "");
+  const groups = [
+    {
+      label: "Organization",
+      items: [
+        { key: "organization", href: "/settings/organization", label: "General", icon: Building2 },
+        { key: "email", href: "/settings/organization/email", label: "Email", icon: Mail },
+        ...(canManageTokens
+          ? [{ key: "api-tokens", href: "/settings/organization/api-tokens", label: "API tokens", icon: KeyRound }]
+          : []),
+      ],
+    },
+    {
+      label: "Invoicing",
+      items: canManageInvoicing
+        ? [{ key: "invoicing", href: "/settings/invoicing", label: "Charges", icon: ReceiptText }]
+        : [],
+    },
+    {
+      label: "Security",
+      items: [
+        ...(canManageRoles ? [{ key: "roles", href: "/settings/roles", label: "Roles", icon: ShieldCheck }] : []),
+        ...(canManageUsers ? [{ key: "users", href: "/settings", label: "Users", icon: Users }] : []),
+      ],
+    },
+  ].filter((group) => group.items.length > 0);
+
   return (
-    <NavigationRail title="Settings">
-      <nav aria-label="Settings navigation" className="space-y-1">
-        <NavigationRailGroup icon={Building2} label="Organization">
-          <Link
-            className={`block rounded-md px-2 py-1.5 text-xs font-medium ${
-              active === "organization"
-                ? "bg-parcelis-green/20 text-parcelis-charcoal"
-                : "text-parcelis-gray hover:bg-parcelis-porcelain"
-            }`}
-            href="/settings/organization"
-          >
-            General
-          </Link>
-          <Link
-            className={`mt-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium ${
-              active === "email"
-                ? "bg-parcelis-green/20 text-parcelis-charcoal"
-                : "text-parcelis-gray hover:bg-parcelis-porcelain"
-            }`}
-            href="/settings/organization/email"
-          >
-            Email
-          </Link>
-          {canManageTokens ? (
-            <Link
-              className={`mt-1 block rounded-md px-2 py-1.5 text-xs font-medium ${
-                active === "api-tokens"
-                  ? "bg-parcelis-green/20 text-parcelis-charcoal"
-                  : "text-parcelis-gray hover:bg-parcelis-porcelain"
-              }`}
-              href="/settings/organization/api-tokens"
-              aria-current={active === "api-tokens" ? "page" : undefined}
-            >
-              API tokens
-            </Link>
+    <>
+      <div className="md:hidden">
+        <label className="sr-only" htmlFor={selectId}>
+          Settings section
+        </label>
+        <Select
+          id={selectId}
+          value={active}
+          onChange={(event) => {
+            const item = groups.flatMap((group) => group.items).find((item) => item.key === event.target.value);
+            if (item) router.push(item.href);
+          }}
+        >
+          {active === "none" ? (
+            <option value="none" disabled>
+              Choose a settings section
+            </option>
           ) : null}
-        </NavigationRailGroup>
-        {canManageInvoicing ? (
-          <NavigationRailGroup icon={ReceiptText} label="Invoicing">
-            <Link
-              className={`block rounded-md px-2 py-1.5 text-xs font-medium ${active === "invoicing" ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`}
-              href="/settings/invoicing"
-            >
-              Charges
-            </Link>
-          </NavigationRailGroup>
-        ) : null}
-        {canManageRoles || canManageUsers ? (
-          <NavigationRailGroup icon={ShieldCheck} label="Security">
-            {items.map((item) =>
-              (item.key === "roles" ? canManageRoles : canManageUsers) ? (
-                <Link
-                  className={`block rounded-md px-2 py-1.5 text-xs font-medium ${
-                    active === item.key
-                      ? "bg-parcelis-green/20 text-parcelis-charcoal"
-                      : "text-parcelis-gray hover:bg-parcelis-porcelain"
-                  }`}
-                  href={item.href}
-                  key={item.key}
-                >
+          {groups.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.items.map((item) => (
+                <option key={item.key} value={item.key}>
                   {item.label}
-                </Link>
-              ) : null,
-            )}
-          </NavigationRailGroup>
-        ) : null}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </Select>
+      </div>
+      <nav aria-label="Settings navigation" className="hidden flex-col gap-6 md:flex">
+        {groups.map(({ label, items }) => (
+          <SettingsPanelGroup key={label} title={label}>
+            {items.map(({ icon: Icon, ...item }) => (
+              <Link
+                key={item.key}
+                href={item.href}
+                aria-current={active === item.key ? "page" : undefined}
+                className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${active === item.key ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray hover:bg-parcelis-porcelain"}`}
+              >
+                <Icon className="size-4 shrink-0" aria-hidden="true" />
+                {item.label}
+              </Link>
+            ))}
+          </SettingsPanelGroup>
+        ))}
       </nav>
-    </NavigationRail>
+    </>
   );
 }

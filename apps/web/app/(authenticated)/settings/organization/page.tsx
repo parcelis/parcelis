@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -177,7 +177,7 @@ export default function OrganizationSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="organization"
@@ -187,13 +187,10 @@ export default function OrganizationSettingsPage() {
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Organization</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                  Manage this business’s workspace details.
-                </p>
-              </section>
+              <SettingsPanelHeader
+                title={<>Organization</>}
+                description={<>Manage this business’s workspace details.</>}
+              />
             }
           >
             <Card>
@@ -406,7 +403,10 @@ export default function OrganizationSettingsPage() {
                     {accessibleOrganizationsQuery.data.map(({ organization, role }) => {
                       const isActive = organization.id === activeOrganizationQuery.data?.id;
                       return (
-                        <li className="flex flex-wrap items-center justify-between gap-4 px-4 py-3" key={organization.id}>
+                        <li
+                          className="flex flex-wrap items-center justify-between gap-4 px-4 py-3"
+                          key={organization.id}
+                        >
                           <div className="min-w-0 flex-1 basis-40">
                             <p className="break-words font-semibold text-parcelis-charcoal">{organization.name}</p>
                             <p className="mt-1 text-sm capitalize text-parcelis-gray">{role}</p>
@@ -424,7 +424,7 @@ export default function OrganizationSettingsPage() {
                 )}
               </CardContent>
             </Card>
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>

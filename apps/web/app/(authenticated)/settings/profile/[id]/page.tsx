@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -103,7 +103,7 @@ export default function UserProfilePage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="none"
@@ -113,13 +113,16 @@ export default function UserProfilePage() {
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Users</p>
-                <h1 className="mt-2 text-3xl font-bold md:text-5xl">{profileQuery.data?.name ?? "Profile"}</h1>
-                <p className="mt-3 max-w-2xl text-sm text-white/75">
-                  {isOwnProfile ? "Manage the details shown for your account." : "Manage this user's account details."}
-                </p>
-              </section>
+              <SettingsPanelHeader
+                title={<>{profileQuery.data?.name ?? "Profile"}</>}
+                description={
+                  <>
+                    {isOwnProfile
+                      ? "Manage the details shown for your account."
+                      : "Manage this user's account details."}
+                  </>
+                }
+              />
             }
           >
             <Card>
@@ -229,7 +232,7 @@ export default function UserProfilePage() {
                 }}
               />
             ) : null}
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>
