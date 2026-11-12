@@ -238,9 +238,9 @@ function IncomePageContent() {
     return persistedInvoices
       .filter((invoice) => invoice.status !== "void")
       .map((invoice) => ({
-      property,
-      lease,
-      invoice,
+        property,
+        lease,
+        invoice,
       }));
   });
 
@@ -557,10 +557,9 @@ function IncomePageContent() {
                           {isExpanded
                             ? group.incomeLeases.map((lease) => {
                                 const tenantName = getTenantName(lease);
-                                const persistedInvoices = getLeaseInvoices(lease).filter(
-                                  (invoice) => invoice.status !== "void",
-                                );
-                                if (persistedInvoices.length === 0) {
+                                const persistedInvoices = getLeaseInvoices(lease);
+                                const activeInvoices = persistedInvoices.filter((invoice) => invoice.status !== "void");
+                                if (activeInvoices.length === 0) {
                                   return (
                                     <TableRow
                                       className="border-t border-parcelis-border bg-parcelis-porcelain/45"
@@ -580,12 +579,14 @@ function IncomePageContent() {
                                         </div>
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray" colSpan={9}>
-                                        No saved invoices for this unit. Create an invoice using New Invoice.
+                                        {persistedInvoices.length === 0
+                                          ? "No saved invoices for this unit. Create an invoice using New Invoice."
+                                          : "No active invoices for this unit. Existing saved invoices are voided."}
                                       </TableCell>
                                     </TableRow>
                                   );
                                 }
-                                return persistedInvoices.map((invoice) => {
+                                return activeInvoices.map((invoice) => {
                                   return (
                                     <TableRow
                                       className="cursor-pointer border-t border-parcelis-border bg-parcelis-porcelain/45 hover:bg-parcelis-porcelain/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
@@ -682,7 +683,7 @@ function IncomePageContent() {
                   </TableHeader>
                   <TableBody>
                     {incomeLeases
-                      .filter(({ lease }) => getLeaseInvoices(lease).every((invoice) => invoice.status === "void"))
+                      .filter(({ lease }) => getLeaseInvoices(lease).length === 0)
                       .map(({ property, lease }) => (
                         <TableRow key={`lease-${lease.id}-no-invoices`}>
                           <TableCell className="px-5 py-4">
@@ -693,6 +694,27 @@ function IncomePageContent() {
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray" colSpan={9}>
                             No saved invoices for this lease. Create an invoice using New Invoice.
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    {incomeLeases
+                      .filter(({ lease }) => {
+                        const persistedInvoices = getLeaseInvoices(lease);
+                        return (
+                          persistedInvoices.length > 0 &&
+                          persistedInvoices.every((invoice) => invoice.status === "void")
+                        );
+                      })
+                      .map(({ property, lease }) => (
+                        <TableRow key={`lease-${lease.id}-only-void-invoices`}>
+                          <TableCell className="px-5 py-4">
+                            <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
+                            <p className="text-sm text-parcelis-gray">
+                              Unit {lease.unitLabel} · {getTenantName(lease)}
+                            </p>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray" colSpan={9}>
+                            No active invoices for this lease. Existing saved invoices are voided.
                           </TableCell>
                         </TableRow>
                       ))}

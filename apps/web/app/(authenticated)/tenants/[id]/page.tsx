@@ -235,7 +235,12 @@ export default function TenantDetailPage() {
       : currentLeaseInvoices
           .filter((invoice) => getReceivableStatus(invoice, today) === "open")
           .sort((left, right) => getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)))[0];
-  const pastDueInvoice = tenantInvoices.find((invoice) => today && getReceivableStatus(invoice, today) === "overdue");
+  const pastDueInvoice =
+    today === null
+      ? undefined
+      : tenantInvoices
+          .filter((invoice) => getReceivableStatus(invoice, today) === "overdue")
+          .sort((left, right) => getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)))[0];
   const overdueCents = balances?.overdueCents ?? null;
   const currentInvoiceId = currentInvoice ? formatInvoiceNumber(currentInvoice.invoiceNumber) : null;
   const pastDueInvoiceId = pastDueInvoice ? formatInvoiceNumber(pastDueInvoice.invoiceNumber) : null;
