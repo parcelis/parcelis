@@ -1,0 +1,21 @@
+apps/web/app/(authenticated)/properties/page.tsx
+  s_9aab87f804cee5::t_f526a2dcbff11f 163,185
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_9aab87f804cee5::t_d9940a89d80c2c 244-246,656-665
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f200312b88a78bd4592bc36def95b67487b6834",
+  "prompts": {},
+  "sessions": {
+    "s_9aab87f804cee5": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "668d4172-27f9-4fb2-8d35-a4152cd5449e",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
