@@ -44,7 +44,13 @@ for (const totalCents of [10_000, 15_000]) {
         update: async ({ data }: { data: Record<string, unknown> }) => ({ ...invoice, ...data }),
       },
       activityEvent: { create: async () => ({}) },
-      invoicePayment: { findFirst: async () => null },
+      invoicePayment: {
+        findFirst: async () => ({
+          paidOn: new Date("2026-09-15"),
+          tenantId: 99,
+          paymentMethod: "cash",
+        }),
+      },
     };
     const caller = createCaller({
       $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {

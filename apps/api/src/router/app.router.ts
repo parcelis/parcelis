@@ -3148,7 +3148,7 @@ export const appRouter = router({
               });
             }
             const latestPayment =
-              amountCents === paidCents
+              amountCents === paidCents && invoice.balanceCents > 0
                 ? await tx.invoicePayment.findFirst({
                     where: { invoiceId: input.id, organizationId: ctx.organization.organizationId, reversedAt: null },
                     orderBy: [{ paidOn: "desc" }, { id: "desc" }],
