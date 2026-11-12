@@ -160,6 +160,7 @@ function getUnitRows(property: PropertyListItem) {
     const unitLink = unit ? getUnitLink(property.id, unit.id) : null;
     const activeLease = activeOrNoticeLeaseByUnit.get(unitLabel);
     const statusLease = leaseByUnit.get(unitLabel);
+    const preferredStatusLease = activeLease ?? statusLease;
     const endsOn =
       activeLease?.endsOn !== null && activeLease?.endsOn !== undefined ? new Date(activeLease.endsOn) : null;
     const isExpiring = Boolean(endsOn && endsOn >= now && endsOn <= expiresBefore);
@@ -181,7 +182,7 @@ function getUnitRows(property: PropertyListItem) {
         property.openMaintenanceTickets === null
           ? null
           : (unit ? (ticketCountsByUnit.get(unit.id) ?? 0) : 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
-      status: property.occupiedUnits === null ? "unavailable" : (statusLease?.status ?? "vacant"),
+      status: property.occupiedUnits === null ? "unavailable" : (preferredStatusLease?.status ?? "vacant"),
     };
   });
 }

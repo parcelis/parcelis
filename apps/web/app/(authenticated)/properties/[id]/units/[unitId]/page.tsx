@@ -241,6 +241,9 @@ export default function UnitDetailPage() {
           getInvoiceCalendarDate(invoice.dueOn) >= today,
       )
     : [];
+  const isUpcomingInvoicesLoading = canViewInvoices && organizationQuery.isLoading;
+  const isUpcomingInvoicesUnavailable =
+    !canViewInvoices || (!organizationQuery.isLoading && (organizationQuery.isError || !today));
 
   function openEditUnitDrawer() {
     if (!property || !canEditUnit) {
@@ -649,6 +652,16 @@ export default function UnitDetailPage() {
                             </span>
                           </div>
                         ))}
+                      </div>
+                    ) : isUpcomingInvoicesLoading ? (
+                      <div className="flex items-center gap-3 text-sm text-parcelis-gray">
+                        <FileText className="h-4 w-4" />
+                        Loading upcoming invoices...
+                      </div>
+                    ) : isUpcomingInvoicesUnavailable ? (
+                      <div className="flex items-center gap-3 text-sm text-parcelis-gray">
+                        <FileText className="h-4 w-4" />
+                        Upcoming invoices are unavailable.
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 text-sm text-parcelis-gray">
