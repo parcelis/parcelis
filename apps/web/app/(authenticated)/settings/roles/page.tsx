@@ -169,96 +169,105 @@ export default function RolesSettingsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="overflow-x-auto">
-                  <Table className="min-w-[680px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Area</TableHead>
-                        {permissionActionValues.map((action) => (
-                          <TableHead className="text-center" key={action}>
-                            {action.charAt(0).toUpperCase() + action.slice(1)}
-                          </TableHead>
+                  <div className="overflow-hidden rounded-xl border border-parcelis-border">
+                    <Table className="min-w-[680px] [&_tr]:border-parcelis-border [&_td]:px-2 [&_td]:py-2 [&_[role=checkbox]]:size-4 [&_[role=checkbox]_svg]:size-3">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="h-10 px-2 font-medium text-parcelis-charcoal">Area</TableHead>
+                          {permissionActionValues.map((action) => (
+                            <TableHead
+                              className="h-10 w-20 px-2 text-center font-medium text-parcelis-charcoal"
+                              key={action}
+                            >
+                              {action.charAt(0).toUpperCase() + action.slice(1)}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {permissionCatalog.map(({ actions, description, label, resource }) => (
+                          <TableRow key={resource}>
+                            <TableCell>
+                              <p className="font-medium text-parcelis-charcoal">{label}</p>
+                              <p className="mt-0.5 text-xs text-parcelis-gray">{description}</p>
+                            </TableCell>
+                            {permissionActionValues.map((action) => (
+                              <TableCell className="text-center" key={action}>
+                                {actions.includes(action) ? (
+                                  <Checkbox
+                                    aria-label={`${action} ${label}`}
+                                    checked={Boolean(draft[resource][action])}
+                                    disabled={selectedRole.role === "administrator"}
+                                    onCheckedChange={(checked) => setPermission(resource, action, checked === true)}
+                                  />
+                                ) : (
+                                  "—"
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
                         ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {permissionCatalog.map(({ actions, description, label, resource }) => (
-                        <TableRow key={resource}>
+                        <TableRow>
                           <TableCell>
-                            <p className="font-semibold text-parcelis-charcoal">{label}</p>
-                            <p className="mt-1 text-xs text-parcelis-gray">{description}</p>
+                            <button
+                              aria-expanded={notesExpanded}
+                              className="flex items-center gap-2 font-medium text-parcelis-charcoal"
+                              onClick={() => setNotesExpanded((value) => !value)}
+                              type="button"
+                            >
+                              {notesExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                              Notes
+                            </button>
+                            <p className="mt-0.5 pl-6 text-xs text-parcelis-gray">
+                              Set all note scopes together or expand them individually.
+                            </p>
                           </TableCell>
                           {permissionActionValues.map((action) => (
                             <TableCell className="text-center" key={action}>
-                              {actions.includes(action) ? (
-                                <Checkbox
-                                  aria-label={`${action} ${label}`}
-                                  checked={Boolean(draft[resource][action])}
-                                  disabled={selectedRole.role === "administrator"}
-                                  onCheckedChange={(checked) => setPermission(resource, action, checked === true)}
-                                />
-                              ) : (
+                              {action === "archive" ? (
                                 "—"
+                              ) : (
+                                <Checkbox
+                                  aria-label={`${action} all notes`}
+                                  checked={getNotePermissionState(action)}
+                                  disabled={selectedRole.role === "administrator"}
+                                  onCheckedChange={(checked) => setAllNotePermissions(action, checked === true)}
+                                />
                               )}
                             </TableCell>
                           ))}
                         </TableRow>
-                      ))}
-                      <TableRow className="bg-parcelis-porcelain/60 dark:bg-parcelis-charcoal/55">
-                        <TableCell>
-                          <button
-                            aria-expanded={notesExpanded}
-                            className="flex items-center gap-2 font-semibold text-parcelis-charcoal"
-                            onClick={() => setNotesExpanded((value) => !value)}
-                            type="button"
-                          >
-                            {notesExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            Notes
-                          </button>
-                          <p className="mt-1 pl-6 text-xs text-parcelis-gray">
-                            Set all note scopes together or expand them individually.
-                          </p>
-                        </TableCell>
-                        {permissionActionValues.map((action) => (
-                          <TableCell className="text-center" key={action}>
-                            {action === "archive" ? (
-                              "—"
-                            ) : (
-                              <Checkbox
-                                aria-label={`${action} all notes`}
-                                checked={getNotePermissionState(action)}
-                                disabled={selectedRole.role === "administrator"}
-                                onCheckedChange={(checked) => setAllNotePermissions(action, checked === true)}
-                              />
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      {notesExpanded
-                        ? notePermissionCatalog.map(({ description, label, resource }) => (
-                            <TableRow key={resource}>
-                              <TableCell className="pl-10">
-                                <p className="font-semibold text-parcelis-charcoal">{label}</p>
-                                <p className="mt-1 text-xs text-parcelis-gray">{description}</p>
-                              </TableCell>
-                              {permissionActionValues.map((action) => (
-                                <TableCell className="text-center" key={action}>
-                                  {action === "archive" ? (
-                                    "—"
-                                  ) : (
-                                    <Checkbox
-                                      aria-label={`${action} ${label}`}
-                                      checked={Boolean(draft[resource][action])}
-                                      disabled={selectedRole.role === "administrator"}
-                                      onCheckedChange={(checked) => setPermission(resource, action, checked === true)}
-                                    />
-                                  )}
+                        {notesExpanded
+                          ? notePermissionCatalog.map(({ description, label, resource }) => (
+                              <TableRow key={resource}>
+                                <TableCell className="!pl-8">
+                                  <p className="font-medium text-parcelis-charcoal">{label}</p>
+                                  <p className="mt-0.5 text-xs text-parcelis-gray">{description}</p>
                                 </TableCell>
-                              ))}
-                            </TableRow>
-                          ))
-                        : null}
-                    </TableBody>
-                  </Table>
+                                {permissionActionValues.map((action) => (
+                                  <TableCell className="text-center" key={action}>
+                                    {action === "archive" ? (
+                                      "—"
+                                    ) : (
+                                      <Checkbox
+                                        aria-label={`${action} ${label}`}
+                                        checked={Boolean(draft[resource][action])}
+                                        disabled={selectedRole.role === "administrator"}
+                                        onCheckedChange={(checked) => setPermission(resource, action, checked === true)}
+                                      />
+                                    )}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            ))
+                          : null}
+                      </TableBody>
+                    </Table>
+                  </div>
                   <div className="mt-6 flex items-center justify-between gap-3">
                     <Button className="min-w-40" onClick={() => setSelectedRole(null)} variant="secondary">
                       Back
@@ -283,35 +292,47 @@ export default function RolesSettingsPage() {
                 <CardHeader>
                   <h2 className="font-semibold text-parcelis-charcoal">Roles</h2>
                 </CardHeader>
-                <CardContent className="overflow-x-auto p-0">
-                  <Table className="min-w-[640px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Visible areas</TableHead>
-                        <TableHead />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(rolesQuery.data ?? []).map((role) => (
-                        <TableRow key={role.role}>
-                          <TableCell className="font-semibold text-parcelis-charcoal">
-                            {formatLabel(role.role)}
-                          </TableCell>
-                          <TableCell>
-                            {role.role === "administrator"
-                              ? "Full access"
-                              : `${permissionCatalog.filter(({ resource }) => role.permissions[resource].view).length} of ${permissionCatalog.length}`}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button onClick={() => selectRole(role)} size="sm" variant="secondary">
-                              Manage
-                            </Button>
-                          </TableCell>
+                <CardContent>
+                  <div className="overflow-hidden rounded-xl border border-parcelis-border">
+                    <Table className="min-w-[440px] [&_tr]:border-parcelis-border [&_td]:px-3 [&_td]:py-2">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="h-10 px-3 text-xs font-medium text-parcelis-gray">Role</TableHead>
+                          <TableHead className="h-10 px-3 text-xs font-medium text-parcelis-gray">
+                            Visible areas
+                          </TableHead>
+                          <TableHead className="h-10 px-3">
+                            <span className="sr-only">Actions</span>
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {(rolesQuery.data ?? []).map((role) => (
+                          <TableRow className="hover:bg-parcelis-porcelain/50" key={role.role}>
+                            <TableCell className="font-medium text-parcelis-charcoal">
+                              {formatLabel(role.role)}
+                            </TableCell>
+                            <TableCell className="text-parcelis-gray">
+                              {role.role === "administrator"
+                                ? "Full access"
+                                : `${permissionCatalog.filter(({ resource }) => role.permissions[resource].view).length} of ${permissionCatalog.length}`}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                aria-label={`Manage ${formatLabel(role.role)} permissions`}
+                                onClick={() => selectRole(role)}
+                                size="sm"
+                                variant="ghost"
+                              >
+                                Manage
+                                <ChevronRight className="size-4" aria-hidden="true" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             )}
