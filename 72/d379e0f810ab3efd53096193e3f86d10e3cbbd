@@ -1,0 +1,21 @@
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_5b5aa467ce4736::t_eeb02920ec792a 47-53
+apps/api/src/router/app.router.ts
+  s_5b5aa467ce4736::t_bbce8d5eaa1712 3151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "72d379e0f810ab3efd53096193e3f86d10e3cbbd",
+  "prompts": {},
+  "sessions": {
+    "s_5b5aa467ce4736": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cca7-30b2-7591-a816-7f1332c99b06",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
