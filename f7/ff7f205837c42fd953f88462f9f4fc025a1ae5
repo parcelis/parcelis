@@ -1,0 +1,42 @@
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_9aab87f804cee5::t_b2e98efd17f954 49
+  s_9aab87f804cee5::t_185df0bc6438bd 567
+apps/web/app/(authenticated)/properties/page.tsx
+  s_9aab87f804cee5::t_6513cabb4bd6c0 124,129,161-162,184
+packages/jobs/src/lease-dates.ts
+  s_9aab87f804cee5::t_95a92dd8f367bf 1-2,4
+packages/jobs/package.json
+  s_9aab87f804cee5::t_0075a43f5d9f20 23
+packages/schemas/src/invoice-balances.ts
+  s_9aab87f804cee5::t_7161481df1a083 16
+apps/api/src/router/app.router.ts
+  s_9aab87f804cee5::t_c43419cf53d6f8 1607,1732
+  s_9aab87f804cee5::t_127dfc12a85b7b 1684-1693
+  s_9aab87f804cee5::t_62e24ad23b8ccf 522,598
+packages/schemas/src/index.ts
+  s_9aab87f804cee5::t_1f923f914396ff 1149
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_9aab87f804cee5::t_5312b6e338846b 230-231,781-785
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_9aab87f804cee5::t_daac8eef9faaa7 236,241
+apps/web/app/(authenticated)/income/page.tsx
+  s_9aab87f804cee5::t_cfb5c679d2c817 238,241,378-379,476,485,584,588,590,593,595,598-599,624,627-632,635,638,649,695,699,701,704,706,709-710,728-733,746,751
+pnpm-lock.yaml
+  s_9aab87f804cee5::t_9add8267ec5576 528-530
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7ff7f205837c42fd953f88462f9f4fc025a1ae5",
+  "prompts": {},
+  "sessions": {
+    "s_9aab87f804cee5": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "668d4172-27f9-4fb2-8d35-a4152cd5449e",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
