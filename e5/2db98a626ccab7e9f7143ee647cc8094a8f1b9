@@ -1,0 +1,26 @@
+packages/ui/src/components/settings-panel.tsx
+  s_b6ce9364d4ae41::t_b4aae6f79e6499 761-763,766-769,806-808
+  s_b6ce9364d4ae41::t_1621b75ef3b51c 764,773-775,795-796
+  s_b6ce9364d4ae41::t_454d2388652627 1-621,623-746,811-814
+  s_b6ce9364d4ae41::t_228b793f321a2e 783-794,797-800
+  s_b6ce9364d4ae41::t_f497a7d4a03ecf 622,747-760,765,770-772,776-780,801-805,809-810
+  s_b6ce9364d4ae41::t_8deef6e89201fe 781-782
+packages/ui/src/index.ts
+  s_b6ce9364d4ae41::t_454d2388652627 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e52db98a626ccab7e9f7143ee647cc8094a8f1b9",
+  "prompts": {},
+  "sessions": {
+    "s_b6ce9364d4ae41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d11f-2473-7640-b4a8-ebc46c3a3d67",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
