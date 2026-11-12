@@ -1,3 +1,13 @@
+INSERT INTO "InvoiceRecipient" ("organizationId", "invoiceId", "tenantId")
+SELECT i."organizationId", i."id", COALESCE(i."paidByTenantId", i."tenantId")
+FROM "Invoice" i
+WHERE i."balanceCents" = 0
+  AND i."amountCents" > 0
+  AND i."paidOn" IS NOT NULL
+  AND i."status" = 'paid'
+  AND NOT EXISTS (SELECT 1 FROM "InvoicePayment" p WHERE p."invoiceId" = i."id")
+ON CONFLICT ("organizationId", "invoiceId", "tenantId") DO NOTHING;
+
 INSERT INTO "InvoicePayment" (
   "organizationId", "invoiceId", "tenantId", "amountCents", "paymentMethod", "paidOn", "createdAt"
 )

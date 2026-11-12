@@ -130,6 +130,20 @@ test(
         const legacy = await createInvoice();
         const paidOn = new Date("2028-04-12");
         await prisma.invoice.update({ where: { id: legacy.id }, data: { balanceCents: 0, status: "paid", paidOn } });
+        const coTenant = await prisma.tenant.create({
+          data: {
+            organizationId: organization.id,
+            firstName: "Legacy",
+            lastName: "Payer",
+            email: "legacy@example.test",
+          },
+        });
+        const jointLegacy = await createInvoice();
+        await prisma.invoice.update({
+          where: { id: jointLegacy.id },
+          data: { balanceCents: 0, status: "paid", paidOn, paidByTenantId: coTenant.id, paymentMethod: "cash" },
+        });
+        assert.equal(await prisma.invoiceRecipient.count({ where: { invoiceId: jointLegacy.id } }), 1);
         const migration = await readFile(
           new URL(
             "../../../../../packages/db/prisma/migrations/20261111000000_backfill_manual_invoice_payments/migration.sql",
@@ -139,10 +153,26 @@ test(
         );
         const sql = migration
           .replaceAll('"InvoicePayment"', `"${isolated.schema}"."InvoicePayment"`)
+          .replaceAll('"InvoiceRecipient"', `"${isolated.schema}"."InvoiceRecipient"`)
           .replaceAll('"Invoice"', `"${isolated.schema}"."Invoice"`);
-        await prisma.$executeRawUnsafe(sql);
-        await prisma.$executeRawUnsafe(sql);
+        for (let attempt = 0; attempt < 2; attempt++) {
+          await prisma.$transaction(async (tx) => {
+            for (const statement of sql.split(";").filter((statement) => statement.trim())) {
+              await tx.$executeRawUnsafe(statement);
+            }
+          });
+        }
         assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: legacy.id } }), 1);
+        const jointPayments = await prisma.invoicePayment.findMany({ where: { invoiceId: jointLegacy.id } });
+        assert.equal(jointPayments.length, 1);
+        assert.equal(jointPayments[0]?.tenantId, coTenant.id);
+        assert.equal(jointPayments[0]?.paidOn.getTime(), paidOn.getTime());
+        assert.equal(jointPayments[0]?.paymentMethod, "cash");
+        const recipients = await prisma.invoiceRecipient.findMany({ where: { invoiceId: jointLegacy.id } });
+        assert.deepEqual(
+          recipients.map((recipient) => recipient.tenantId).sort((a, b) => a - b),
+          [tenant.id, coTenant.id],
+        );
         for (const rateCents of [15_000, 10_000]) {
           await caller.invoices.update({
             id: legacy.id,
