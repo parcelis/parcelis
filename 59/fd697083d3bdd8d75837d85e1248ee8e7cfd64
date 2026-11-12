@@ -1,0 +1,29 @@
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_5b5aa467ce4736::t_ca91b22c53f297 107-111,133-141,147-151
+  s_5b5aa467ce4736::t_4fd2b9dc321035 103
+  s_5b5aa467ce4736::t_77eec55214bbab 102,104-106,112-132,142-146,152-157
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_5b5aa467ce4736::t_219214a45f8adb 24-30,36-54,57-66
+  s_5b5aa467ce4736::t_a72caeb54355d4 31-35,55-56
+  s_5b5aa467ce4736::t_2136436ea44f25 454,507,510
+apps/api/src/router/app.router.ts
+  s_5b5aa467ce4736::t_56e232dd939ad4 2916-2917,2928-2939
+packages/db/prisma/migrations/20261111000000_backfill_manual_invoice_payments/migration.sql
+  s_5b5aa467ce4736::t_905504ae417721 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59fd697083d3bdd8d75837d85e1248ee8e7cfd64",
+  "prompts": {},
+  "sessions": {
+    "s_5b5aa467ce4736": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cca7-30b2-7591-a816-7f1332c99b06",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
