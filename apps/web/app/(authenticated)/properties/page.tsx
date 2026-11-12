@@ -114,13 +114,18 @@ function formatCurrency(cents: number | null) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 
 function getUnitRows(property: PropertyListItem) {
   if (property.units.length === 0) return [];
-  const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
+  const leaseByUnit = new Map(
+    property.leases
+      .filter((lease) => lease.status === "active" || lease.status === "notice")
+      .map((lease) => [lease.unitLabel, lease]),
+  );
   const ticketCountsByUnit = new Map<number, number>();
   const legacyTicketCountsByLabel = new Map<string, number>();
   const now = new Date();
@@ -163,12 +168,17 @@ function getUnitRows(property: PropertyListItem) {
       unitLabel,
       isOccupied: property.occupiedUnits === null ? null : activeLease?.status === "active",
       monthlyRentCents: property.monthlyRentCents === null ? null : (activeLease?.monthlyRentCents ?? 0),
-      amountOverdueCents: property.amountOverdueCents === null ? null : (activeLease?.amountOverdueCents ?? 0),
+      amountOverdueCents:
+        property.amountOverdueCents === null
+          ? null
+          : property.leaseHistory
+              .filter((lease) => (unit ? lease.unitId === unit.id : lease.unitLabel === unitLabel))
+              .reduce((sum, lease) => sum + (lease.amountOverdueCents ?? 0), 0),
       expiringLeases90Days: property.expiringLeases90Days === null ? null : isExpiring ? 1 : 0,
       openMaintenanceTickets:
         property.openMaintenanceTickets === null
           ? null
-          : (unit ? ticketCountsByUnit.get(unit.id) ?? 0 : 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
+          : (unit ? (ticketCountsByUnit.get(unit.id) ?? 0) : 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
       status: property.occupiedUnits === null ? "unavailable" : (activeLease?.status ?? "vacant"),
     };
   });

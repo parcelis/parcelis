@@ -61,16 +61,18 @@ function formatCurrency(cents: number | null) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 
-function formatDate(date: Date | string | null) {
+function formatDate(date: Date | string | null, options?: { timeZone?: string }) {
   if (!date) return "Not set";
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: options?.timeZone,
   }).format(new Date(date));
 }
 
@@ -143,7 +145,10 @@ export default function PropertyDetailPage() {
   const unitCount = property?.unitCount ?? 0;
   const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits / unitCount) * 100) : 0;
   const monthlyRentCents = activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0);
-  const amountOverdueCents = activeLeases.reduce((sum, lease) => sum + (lease.amountOverdueCents ?? 0), 0);
+  const amountOverdueCents = (property?.leaseHistory ?? []).reduce(
+    (sum, lease) => sum + (lease.amountOverdueCents ?? 0),
+    0,
+  );
   const expiringLeases90Days = activeLeases.filter((lease) => {
     const now = new Date();
     const expiresBefore = new Date(now);
@@ -568,7 +573,8 @@ export default function PropertyDetailPage() {
                                 {lease.tenant?.lastName ?? ""}
                               </p>
                               <p className="mt-1 text-sm text-parcelis-gray">
-                                {formatDate(lease.startsOn)} to {formatLeaseEndDate(lease.endsOn, lease.termType)}
+                                {formatDate(lease.startsOn, { timeZone: "UTC" })} to{" "}
+                                {formatLeaseEndDate(lease.endsOn, lease.termType)}
                               </p>
                             </div>
                             <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
