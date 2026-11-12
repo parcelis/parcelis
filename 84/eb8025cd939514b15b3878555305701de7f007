@@ -1,0 +1,42 @@
+apps/web/app/(authenticated)/income/page.tsx
+  s_7c58a1c34d76cf::t_07d784b9b32321 164,193,650-652,764-766
+  s_7c58a1c34d76cf::t_df3095f3cd1c76 230-234
+  s_7c58a1c34d76cf::t_df21544b574926 104-105,124,141,143-144,146-151,155,158-159,183,188-189,334,336,353-357,427-428,436-440,449-451,455-463,467-474,521-525,531-535,556,598,629,637,675
+  s_7c58a1c34d76cf::t_22f72a6bec045f 106-107,152-154,156-157,165,177-181,184-187,190-191,205-209,276-280,452-454,464-466
+apps/api/src/tests/permissions/nested-permissions.router.test.ts
+  s_7c58a1c34d76cf::t_9747170c47a5f5 20-27,142,155-158
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_7c58a1c34d76cf::t_9747170c47a5f5 571-598
+tests/e2e/income-directory.spec.ts
+  s_7c58a1c34d76cf::t_c92933a3e08eed 1,27-30,47
+  s_7c58a1c34d76cf::t_a76dfa31ec1d68 95-98
+  s_7c58a1c34d76cf::t_c14f8c5b1f590e 100-101,103,110,112-114,118-120,123-126,132,134,136
+  s_7c58a1c34d76cf::t_df3095f3cd1c76 111
+  s_7c58a1c34d76cf::t_9c66def71c9c8c 2-26,31-46,48-61,65-94,99,102,104-109,115-117,121-122,127-131,135,137-138
+  s_7c58a1c34d76cf::t_e2566344e5cbf4 62-64,133
+ISSUE-312-REVIEW.md
+  s_7c58a1c34d76cf::t_765d24cd10c023 60,66-67
+  s_7c58a1c34d76cf::t_37c6bdd3fe5e73 64,68-69
+  s_7c58a1c34d76cf::t_09615a3665af7c 1-23,25-59,61-63,65,70-73
+  s_7c58a1c34d76cf::t_df3095f3cd1c76 24
+apps/web/components/invoice-actions.tsx
+  s_7c58a1c34d76cf::t_d9fb849dd4c772 197
+apps/api/src/router/app.router.ts
+  s_7c58a1c34d76cf::t_d51ecd3980fd41 2950-2954
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "84eb8025cd939514b15b3878555305701de7f007",
+  "prompts": {},
+  "sessions": {
+    "s_7c58a1c34d76cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d04c-8812-7ca0-9c7d-59ba38f87f17",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
