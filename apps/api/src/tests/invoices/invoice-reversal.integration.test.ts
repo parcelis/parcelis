@@ -287,6 +287,20 @@ test(
       );
       assert.deepEqual(await prisma.invoice.findUniqueOrThrow({ where: { id: edited.id } }), reopened);
 
+      const reversedLaterPayment = await pay(edited.id, 5_000);
+      await prisma.invoicePayment.update({
+        where: { id: reversedLaterPayment.id },
+        data: { paidOn: new Date("2029-02-01"), paymentMethod: "cash" },
+      });
+      await caller.invoices.reversePayment({ id: reversedLaterPayment.id, reason: "Correction before editing" });
+      await edit(10_000);
+      const resettled = await prisma.invoice.findUniqueOrThrow({ where: { id: edited.id } });
+      assert.equal(resettled.balanceCents, 0);
+      assert.equal(resettled.status, "paid");
+      assert.equal(resettled.paidOn?.getTime(), editedPayment.paidOn.getTime());
+      assert.equal(resettled.paidByTenantId, editedPayment.tenantId);
+      assert.equal(resettled.paymentMethod, editedPayment.paymentMethod);
+
       const coTenant = await prisma.tenant.create({
         data: { organizationId: organization.id, firstName: "Joint", lastName: "Tenant", email: "joint@example.test" },
       });
@@ -314,6 +328,17 @@ test(
       assert.equal(jointBalance.paymentMethod, null);
       assert.deepEqual(await prisma.invoicePayment.findUniqueOrThrow({ where: { id: jointSecond.id } }), jointSecond);
       assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: joint.id } }), 2);
+      await caller.invoices.update({
+        id: joint.id,
+        dueOn: joint.dueOn,
+        items: [{ item: "Corrected rent", quantity: 1, rateCents: 6_000 }],
+      });
+      const settledJoint = await prisma.invoice.findUniqueOrThrow({ where: { id: joint.id } });
+      assert.equal(settledJoint.balanceCents, 0);
+      assert.equal(settledJoint.status, "paid");
+      assert.equal(settledJoint.paidOn?.getTime(), jointSecond.paidOn.getTime());
+      assert.equal(settledJoint.paidByTenantId, coTenant.id);
+      assert.equal(settledJoint.paymentMethod, jointSecond.paymentMethod);
 
       for (const concurrentAction of ["payment", "reversal", "edit"] as const) {
         await t.test(`invoice edit conflicts with concurrent ${concurrentAction} and can be retried`, async () => {
