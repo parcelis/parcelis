@@ -1596,15 +1596,13 @@ export const appRouter = router({
             .findMany({ ...query, include: { ...query.include, leases: false } })
             .then((properties) => properties.map((property) => ({ ...property, leases: [] })));
 
+      const today = getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone);
       return Promise.all(
         properties.map(async (property) => {
           const leases = property.leases.flatMap((lease) => {
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
-            const amountOverdueCents = summarizeInvoiceBalances(
-              invoices,
-              getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone),
-            ).overdueCents;
+            const amountOverdueCents = summarizeInvoiceBalances(invoices, today).overdueCents;
             return [
               {
                 ...leaseData,
@@ -1612,7 +1610,9 @@ export const appRouter = router({
                 unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
                 tenant: firstTenant,
                 tenants: permissions.tenants.view ? lease.tenants.map(({ tenant }) => tenant) : [],
-                invoices: permissions.invoices.view ? invoices : [],
+                invoices: permissions.invoices.view
+                  ? invoices.map((invoice) => ({ ...invoice, status: getReceivableStatus(invoice, today) }))
+                  : [],
                 amountOverdueCents,
               },
             ];

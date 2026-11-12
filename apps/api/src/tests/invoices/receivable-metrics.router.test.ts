@@ -89,14 +89,14 @@ test("property list and detail retain historical debt and count joint obligation
   assert.equal(list.leaseHistory.length, 2);
   const detail = (await caller.properties.byId({ id: 1 }))!;
   assert.deepEqual(
-    detail.leases[0]?.invoices.map((invoice) => invoice.status),
-    ["overdue", "open", "void"],
-  );
-  assert.deepEqual(
     detail.leaseHistory.map((lease) => lease.amountOverdueCents),
     [4001, 1234],
   );
   for (const response of [list, detail]) {
+    assert.deepEqual(
+      Object.fromEntries(response.leases[0]!.invoices.map((invoice) => [invoice.id, invoice.status])),
+      { 1: "overdue", 2: "open", 3: "void" },
+    );
     const historicalLease = response.leaseHistory.find((lease) => lease.id === 2);
     assert.deepEqual(
       historicalLease?.invoices.find((invoice) => invoice.id === 5),
