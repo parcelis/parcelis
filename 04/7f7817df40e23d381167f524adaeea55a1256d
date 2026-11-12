@@ -1,0 +1,26 @@
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_9aab87f804cee5::t_dcd6386dc8c60e 236,244,246-247
+Dockerfile.app
+  s_9aab87f804cee5::t_d7602b762ac5ea 87-88
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_9aab87f804cee5::t_bfa141b9a0b459 11,232-237
+  s_9aab87f804cee5::t_bd6dc5c3389a99 787
+apps/web/app/(authenticated)/income/page.tsx
+  s_9aab87f804cee5::t_f6414ce32493ef 238-240,244,560-562,685
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "047f7817df40e23d381167f524adaeea55a1256d",
+  "prompts": {},
+  "sessions": {
+    "s_9aab87f804cee5": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "668d4172-27f9-4fb2-8d35-a4152cd5449e",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
