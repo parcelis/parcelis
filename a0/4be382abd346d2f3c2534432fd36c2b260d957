@@ -1,0 +1,46 @@
+apps/api/src/tests/invoices/invoice-balances.test.ts
+  s_7c58a1c34d76cf::t_337cdb28a52b76 8-11
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_7c58a1c34d76cf::t_c32aad8cd8b40b 129,147-150,161-173,224-237,245-265
+  s_7c58a1c34d76cf::t_d72c164c48d606 174-185,207-222
+  s_7c58a1c34d76cf::t_776eb4199ae269 186-192,195-196
+  s_7c58a1c34d76cf::t_80d0a089f54dcb 151-160,238-244
+packages/db/prisma/migrations/20261112000000_reconcile_legacy_invoice_payments/migration.sql
+  s_7c58a1c34d76cf::t_80d0a089f54dcb 3-6,29-32
+  s_7c58a1c34d76cf::t_cf812a9a567095 20-22,48-56
+  s_7c58a1c34d76cf::t_d72c164c48d606 59-63
+  s_7c58a1c34d76cf::t_776eb4199ae269 1-2,7-19,23-28,33-47,57-58
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_7c58a1c34d76cf::t_d1901536ea2e96 234,761-763
+  s_7c58a1c34d76cf::t_484985eb504fa8 236-238,244-246
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_7c58a1c34d76cf::t_d72c164c48d606 561
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_7c58a1c34d76cf::t_484985eb504fa8 236-242
+apps/api/src/tests/invoices/receivable-metrics.router.test.ts
+  s_7c58a1c34d76cf::t_337cdb28a52b76 37-48,76-90
+apps/api/src/router/app.router.ts
+  s_7c58a1c34d76cf::t_d72c164c48d606 601
+DEPENDENCIES.md
+  s_7c58a1c34d76cf::t_d72c164c48d606 116-120
+apps/web/app/(authenticated)/income/page.tsx
+  s_7c58a1c34d76cf::t_5144709936f516 844
+tests/e2e/income-directory.spec.ts
+  s_7c58a1c34d76cf::t_9b7a8146576a84 1-5,31-42,58,69-70,144-161
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a04be382abd346d2f3c2534432fd36c2b260d957",
+  "prompts": {},
+  "sessions": {
+    "s_7c58a1c34d76cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d04c-8812-7ca0-9c7d-59ba38f87f17",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
