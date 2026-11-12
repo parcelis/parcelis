@@ -1,0 +1,21 @@
+packages/schemas/src/index.ts
+  s_13769a40d720ee::t_9517c50cfd73c5 1150-1151
+packages/schemas/src/invoice-balances.ts
+  s_13769a40d720ee::t_e913d70b5cdca5 1-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b979527ca44ced6c8c7180b20f7bf0c8d4b5c493",
+  "prompts": {},
+  "sessions": {
+    "s_13769a40d720ee": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ce29-b4f0-7ae1-9fb3-ff711fc67edf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
