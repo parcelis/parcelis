@@ -233,14 +233,13 @@ export default function UnitDetailPage() {
       "bg-parcelis-charcoal",
     ],
   ];
-  const invoiceRows = canViewInvoices && canViewLeases && today
-    ? invoices.filter(
-        (invoice) =>
-          invoice.status !== "void" &&
-          invoice.balanceCents > 0 &&
-          getInvoiceCalendarDate(invoice.dueOn) >= today,
-      )
-    : [];
+  const invoiceRows =
+    canViewInvoices && canViewLeases && today
+      ? invoices.filter(
+          (invoice) =>
+            invoice.status !== "void" && invoice.balanceCents > 0 && getInvoiceCalendarDate(invoice.dueOn) > today,
+        )
+      : [];
   const isUpcomingInvoicesLoading = currentUserQuery.isLoading || (canViewInvoices && organizationQuery.isLoading);
   const isUpcomingInvoicesUnavailable =
     !currentUserQuery.isLoading &&

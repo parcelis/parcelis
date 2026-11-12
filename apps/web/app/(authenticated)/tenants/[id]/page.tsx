@@ -228,19 +228,22 @@ export default function TenantDetailPage() {
   );
   const balances = today && canViewInvoices && canViewLeases ? summarizeInvoiceBalances(tenantInvoices, today) : null;
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
-  const currentLeaseInvoices = currentLease?.invoices ?? [];
   const currentInvoice =
     today === null
       ? undefined
-      : currentLeaseInvoices
+      : tenantInvoices
           .filter((invoice) => getReceivableStatus(invoice, today) === "open")
-          .sort((left, right) => getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)))[0];
+          .sort((left, right) =>
+            getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)),
+          )[0];
   const pastDueInvoice =
     today === null
       ? undefined
       : tenantInvoices
           .filter((invoice) => getReceivableStatus(invoice, today) === "overdue")
-          .sort((left, right) => getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)))[0];
+          .sort((left, right) =>
+            getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)),
+          )[0];
   const overdueCents = balances?.overdueCents ?? null;
   const currentInvoiceId = currentInvoice ? formatInvoiceNumber(currentInvoice.invoiceNumber) : null;
   const pastDueInvoiceId = pastDueInvoice ? formatInvoiceNumber(pastDueInvoice.invoiceNumber) : null;
@@ -755,7 +758,9 @@ export default function TenantDetailPage() {
                   value={currentLease ? formatCurrency(currentLease.monthlyRentCents) : "—"}
                   detail={
                     !balances
-                      ? "Balance unavailable"
+                      ? organizationQuery.isLoading
+                        ? "Loading balance..."
+                        : "Balance unavailable"
                       : overdueCents !== null && overdueCents > 0
                         ? `${formatCurrency(overdueCents)} overdue`
                         : "No balance overdue"

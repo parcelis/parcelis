@@ -34,7 +34,18 @@ function fixture() {
         status: "ended",
         archivedAt: new Date(),
         monthlyRentCents: 50000,
-        invoices: [{ ...invoices[0], id: 4, balanceCents: 1234 }],
+        invoices: [
+          { ...invoices[0], id: 4, balanceCents: 1234 },
+          {
+            id: 5,
+            invoiceNumber: 5,
+            dueOn: new Date("2000-02-01"),
+            paidOn: new Date("2000-02-03"),
+            status: "paid",
+            amountCents: 7007,
+            balanceCents: 0,
+          },
+        ],
       },
     ],
   };
@@ -62,6 +73,21 @@ test("property list and detail retain historical debt and count joint obligation
     detail.leaseHistory.map((lease) => lease.amountOverdueCents),
     [4001, 1234],
   );
+  for (const response of [list, detail]) {
+    const historicalLease = response.leaseHistory.find((lease) => lease.id === 2);
+    assert.deepEqual(
+      historicalLease?.invoices.find((invoice) => invoice.id === 5),
+      {
+        id: 5,
+        invoiceNumber: 5,
+        dueOn: new Date("2000-02-01"),
+        paidOn: new Date("2000-02-03"),
+        status: "paid",
+        amountCents: 7007,
+        balanceCents: 0,
+      },
+    );
+  }
 });
 
 test("overdue reads and synchronization change at organization midnight, not UTC midnight", async (t) => {

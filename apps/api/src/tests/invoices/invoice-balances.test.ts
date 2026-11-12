@@ -5,8 +5,10 @@ import { getBillingCalendarDate, getReceivableStatus, summarizeInvoiceBalances }
 test("billing date follows organization midnight across DST and year boundaries", () => {
   assert.equal(getBillingCalendarDate("America/Chicago", new Date("2027-01-01T02:00:00Z")), "2026-12-31");
   assert.equal(getBillingCalendarDate("Pacific/Auckland", new Date("2026-12-31T12:00:00Z")), "2027-01-01");
-  assert.equal(getBillingCalendarDate("America/Chicago", new Date("2026-03-08T07:59:00Z")), "2026-03-08");
-  assert.equal(getBillingCalendarDate("America/Chicago", new Date("2026-03-08T08:01:00Z")), "2026-03-08");
+  assert.equal(getBillingCalendarDate("America/Chicago", new Date("2026-03-09T04:59:00Z")), "2026-03-08");
+  assert.equal(getBillingCalendarDate("America/Chicago", new Date("2026-03-09T05:01:00Z")), "2026-03-09");
+  assert.equal(getBillingCalendarDate("America/Chicago", new Date("2026-11-02T05:59:00Z")), "2026-11-01");
+  assert.equal(getBillingCalendarDate("America/Chicago", new Date("2026-11-02T06:01:00Z")), "2026-11-02");
 });
 
 test("balances separate future, current and overdue charges without trusting stale status", () => {

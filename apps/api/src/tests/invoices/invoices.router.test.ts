@@ -558,7 +558,7 @@ test("invoice reads scope overdue synchronization to the active organization", a
     assert.equal(updates.length, 3, operation);
     assert.deepEqual(
       updates.find(({ data }) => data.status === "paid"),
-      { where: { organizationId: 7, status: "overdue", balanceCents: 0 }, data: { status: "paid" } },
+      { where: { organizationId: 7, status: { in: ["open", "overdue"] }, balanceCents: 0 }, data: { status: "paid" } },
       operation,
     );
     assert.deepEqual(

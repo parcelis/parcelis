@@ -126,7 +126,7 @@ test(
           assert.equal(restored.paymentMethod, "other");
         }
       });
-      await t.test("legacy settlement backfill preserves dates and does not duplicate payment history", async () => {
+      await t.test("legacy backfill reconciles partial and settled payments without duplicating history", async () => {
         const legacy = await createInvoice();
         const paidOn = new Date("2028-04-12");
         await prisma.invoice.update({ where: { id: legacy.id }, data: { balanceCents: 0, status: "paid", paidOn } });
@@ -144,14 +144,56 @@ test(
           data: { balanceCents: 0, status: "paid", paidOn, paidByTenantId: coTenant.id, paymentMethod: "cash" },
         });
         assert.equal(await prisma.invoiceRecipient.count({ where: { invoiceId: jointLegacy.id } }), 1);
-        const migration = await readFile(
-          new URL(
-            "../../../../../packages/db/prisma/migrations/20261111000000_backfill_manual_invoice_payments/migration.sql",
-            import.meta.url,
+        const partialLegacy = await createInvoice();
+        await prisma.invoice.update({ where: { id: partialLegacy.id }, data: { balanceCents: 6_000 } });
+        const laterSettled = await createInvoice();
+        await prisma.invoice.update({ where: { id: laterSettled.id }, data: { balanceCents: 7_000 } });
+        await prisma.invoiceRecipient.create({
+          data: { organizationId: organization.id, invoiceId: laterSettled.id, tenantId: coTenant.id },
+        });
+        const laterPayment = await caller.invoices.recordPayment({
+          id: laterSettled.id,
+          amountCents: 7_000,
+          paidByTenantId: coTenant.id,
+          paidOn: new Date("2029-01-01"),
+          paymentMethod: "cash",
+        });
+        const withReversal = await createInvoice();
+        const reversedPayment = await pay(withReversal.id, 2_000);
+        await caller.invoices.reversePayment({ id: reversedPayment.id, reason: "Legacy correction" });
+        await pay(withReversal.id, 1_000);
+        await prisma.invoice.update({ where: { id: withReversal.id }, data: { balanceCents: 6_000 } });
+        const voidLegacy = await createInvoice();
+        await prisma.invoice.update({ where: { id: voidLegacy.id }, data: { status: "void", balanceCents: 5_000 } });
+        const unpaidLegacy = await createInvoice();
+        const reconciled = await createInvoice();
+        await pay(reconciled.id, 4_000);
+        const overRecorded = await createInvoice();
+        await pay(overRecorded.id, 5_000);
+        await prisma.invoice.update({ where: { id: overRecorded.id }, data: { balanceCents: 7_000 } });
+        const staleSettled = await Promise.all([createInvoice(), createInvoice()]);
+        for (const [index, invoice] of staleSettled.entries()) {
+          await prisma.invoice.update({
+            where: { id: invoice.id },
+            data: { balanceCents: 0, status: index === 0 ? "open" : "overdue", paidOn },
+          });
+        }
+        const voidSettled = await createInvoice();
+        await prisma.invoice.update({
+          where: { id: voidSettled.id },
+          data: { balanceCents: 0, status: "void", paidOn },
+        });
+        const migrations = await Promise.all(
+          ["20261111000000_backfill_manual_invoice_payments", "20261112000000_reconcile_legacy_invoice_payments"].map(
+            (name) =>
+              readFile(
+                new URL(`../../../../../packages/db/prisma/migrations/${name}/migration.sql`, import.meta.url),
+                "utf8",
+              ),
           ),
-          "utf8",
         );
-        const sql = migration
+        const sql = migrations
+          .join("\n")
           .replaceAll('"InvoicePayment"', `"${isolated.schema}"."InvoicePayment"`)
           .replaceAll('"InvoiceRecipient"', `"${isolated.schema}"."InvoiceRecipient"`)
           .replaceAll('"Invoice"', `"${isolated.schema}"."Invoice"`);
@@ -162,7 +204,65 @@ test(
             }
           });
         }
+        for (const invoice of staleSettled) {
+          const saved = await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } });
+          const payments = await prisma.invoicePayment.findMany({ where: { invoiceId: invoice.id } });
+          assert.equal(saved.status, "paid");
+          assert.equal(saved.balanceCents, 0);
+          assert.equal(payments.length, 1);
+          assert.equal(payments[0]?.amountCents, 10_000);
+          assert.equal(payments[0]?.paidOn.getTime(), paidOn.getTime());
+        }
+        const staleOpen = staleSettled[0]!;
+        await prisma.invoice.update({ where: { id: staleOpen.id }, data: { status: "open" } });
+        const directory = await caller.invoices.list({});
+        assert.equal(directory.find((invoice) => invoice.id === staleOpen.id)?.status, "paid");
+        assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: staleOpen.id } })).status, "paid");
+        assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: voidSettled.id } })).status, "void");
+        assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: voidSettled.id } }), 0);
         assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: legacy.id } }), 1);
+        const partialPayment = await prisma.invoicePayment.findFirstOrThrow({ where: { invoiceId: partialLegacy.id } });
+        assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: partialLegacy.id } }), 1);
+        assert.equal(partialPayment.amountCents, 4_000);
+        assert.equal(partialPayment.paidOn.getTime(), partialLegacy.dueOn.getTime());
+        assert.equal(partialPayment.paymentMethod, "other");
+        const laterPayments = await prisma.invoicePayment.findMany({ where: { invoiceId: laterSettled.id } });
+        assert.deepEqual(
+          laterPayments.map((payment) => payment.amountCents).sort((a, b) => a - b),
+          [3_000, 7_000],
+        );
+        assert.equal(
+          laterPayments.find((payment) => payment.id === laterPayment.id)?.paidOn.getTime(),
+          new Date("2029-01-01").getTime(),
+        );
+        const recordedLaterPayment = laterPayments.find((payment) => payment.id === laterPayment.id)!;
+        assert.equal(recordedLaterPayment.tenantId, coTenant.id);
+        assert.equal(recordedLaterPayment.paymentMethod, "cash");
+        const residualPayment = laterPayments.find((payment) => payment.id !== laterPayment.id)!;
+        assert.equal(residualPayment.tenantId, tenant.id);
+        assert.equal(residualPayment.paidOn.getTime(), laterSettled.dueOn.getTime());
+        assert.equal(residualPayment.paymentMethod, "other");
+        const reversalPayments = await prisma.invoicePayment.findMany({ where: { invoiceId: withReversal.id } });
+        assert.equal(reversalPayments.length, 3);
+        assert.equal(
+          reversalPayments
+            .filter((payment) => payment.reversedAt === null)
+            .reduce((total, payment) => total + payment.amountCents, 0),
+          4_000,
+        );
+        assert.equal(reversalPayments.find((payment) => payment.id === reversedPayment.id)?.amountCents, 2_000);
+        assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: voidLegacy.id } }), 0);
+        assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: unpaidLegacy.id } }), 0);
+        assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: reconciled.id } }), 1);
+        assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: overRecorded.id } }), 1);
+        for (const invoice of [partialLegacy, laterSettled, withReversal]) {
+          const saved = await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } });
+          const total = await prisma.invoicePayment.aggregate({
+            where: { invoiceId: invoice.id, reversedAt: null },
+            _sum: { amountCents: true },
+          });
+          assert.equal(total._sum.amountCents, saved.amountCents - saved.balanceCents);
+        }
         const jointPayments = await prisma.invoicePayment.findMany({ where: { invoiceId: jointLegacy.id } });
         assert.equal(jointPayments.length, 1);
         assert.equal(jointPayments[0]?.tenantId, coTenant.id);

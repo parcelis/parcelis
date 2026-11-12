@@ -113,3 +113,8 @@ Direct JavaScript dependencies are declared in:
 `pnpm-lock.yaml` records the resolved dependency tree. Docker image tags are declared in the Compose files.
 
 Docker images are built from the shared `Dockerfile.app` (`app` target: modular web app + API; `worker` target: dedicated background worker with production dependencies; `single-image` target: web app + API + worker + nginx edge routing), and `infra/docker/proxy/Dockerfile` (modular proxy). The modular stack uses `parcelis/worker`; the single-image stack retains its worker in `parcelis/parcelis`. The modular app runs web and API under Supervisor; nginx is provided by the proxy image. The single-image target bundles nginx. Docker image tags are declared in `docker-compose.yml` and `docker-compose-single-image.yml`.
+
+`@parcelis/jobs` depends on the workspace package `@parcelis/schemas` for the organization-local
+billing calendar helper shared with the API and web. The worker Docker target copies the schemas
+package manifest and source before installing production dependencies. The workspace dependency is
+recorded in `pnpm-lock.yaml`.

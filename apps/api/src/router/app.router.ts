@@ -598,7 +598,7 @@ async function synchronizeOverdueInvoices(
   const today = new Date(`${getCalendarDate(new Date(), timeZone)}T00:00:00.000Z`);
   await Promise.all([
     prisma.invoice.updateMany({
-      where: { organizationId, status: "overdue", balanceCents: 0 },
+      where: { organizationId, status: { in: ["open", "overdue"] }, balanceCents: 0 },
       data: { status: "paid" },
     }),
     prisma.invoice.updateMany({

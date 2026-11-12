@@ -1,4 +1,8 @@
-import { expect, test } from "./fixtures/authenticated";
+import { expect, test as authenticatedTest } from "./fixtures/authenticated";
+
+const test = authenticatedTest.extend<{ canCreateInvoices: boolean }>({
+  canCreateInvoices: [false, { option: true }],
+});
 
 const invoice = {
   id: 901,
@@ -24,7 +28,18 @@ const lease = {
   invoices: [{ ...invoice, id: 999, invoiceNumber: 999, amountCents: 99999 }],
 };
 
-test.beforeEach(async ({ context, page }) => {
+const currentLease = {
+  ...lease,
+  id: 12,
+  status: "active",
+  archivedAt: null,
+  startsOn: "2026-01-01T00:00:00.000Z",
+  endsOn: null,
+  tenants: [{ id: 12, firstName: "Current", lastName: "Tenant" }],
+  invoices: [],
+};
+
+test.beforeEach(async ({ context, page, canCreateInvoices }) => {
   const response = await page.request.get("/trpc/organizations.active");
   expect(response.ok()).toBe(true);
   const organization = (await response.json()).result.data;
@@ -40,7 +55,7 @@ test.beforeEach(async ({ context, page }) => {
           permissions: Object.fromEntries(
             ["properties", "leases", "invoices", "units", "tenants"].map((resource) => [
               resource,
-              { view: true, create: false },
+              { view: true, create: resource === "invoices" && canCreateInvoices },
             ]),
           ),
         };
@@ -51,18 +66,8 @@ test.beforeEach(async ({ context, page }) => {
             id: 2,
             name: "History House",
             units: [{ id: 3, name: "101" }],
-            leases: [],
-            leaseHistory: [
-              lease,
-              {
-                ...lease,
-                id: 12,
-                status: "active",
-                archivedAt: null,
-                tenants: [{ id: 12, firstName: "Current", lastName: "Tenant" }],
-                invoices: [],
-              },
-            ],
+            leases: [currentLease],
+            leaseHistory: [lease, currentLease],
           },
         ];
       if (procedure === "invoices.list") {
@@ -135,4 +140,22 @@ test("recipient filter retains a former co-tenant's invoice without current leas
   await page.goto("/income?tenantId=99");
   await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toHaveCount(0);
   await expect(page.getByText("No saved invoices or leases match these filters.")).toBeVisible();
+});
+
+test.describe("manual invoice creation", () => {
+  test.use({ canCreateInvoices: true });
+
+  test("archived leases remain in the directory and are excluded from the create drawer", async ({ page }) => {
+    await page.goto("/income");
+    await page.getByRole("button", { name: "Unit 101 · History House" }).click();
+    await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "New Invoice" }).click();
+    const drawer = page.getByRole("dialog", { name: "New invoice", exact: true });
+    await drawer.getByLabel(/^Property \*/).selectOption("2");
+    await drawer.getByLabel(/^Unit \*/).selectOption("3");
+    const leaseSelect = drawer.getByLabel(/^Term \/ lease \*/);
+    await expect(leaseSelect.locator("option[value='11']")).toHaveCount(0);
+    await expect(leaseSelect.locator("option[value='12']")).toHaveCount(1);
+    await leaseSelect.selectOption("12");
+  });
 });

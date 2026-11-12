@@ -841,7 +841,7 @@ function IncomePageContent() {
           onCreate={(input) => createInvoice.mutate(input)}
           onOpenChange={setIsInvoiceDrawerOpen}
           open={isInvoiceDrawerOpen}
-          properties={properties}
+          properties={propertiesQuery.data ?? []}
         />
       </section>
     </main>
