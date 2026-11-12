@@ -1,0 +1,21 @@
+AGENTS.md
+  s_aa94e32d88a62a::t_c8567d7787d8c2 93
+  s_aa94e32d88a62a::t_9e22600765fdee 16,38-39,60,91-92,94-105
+  s_aa94e32d88a62a::t_cb2feb88661fec 106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1a284104c47e3a4c921dd99bc948527fe7f20069",
+  "prompts": {},
+  "sessions": {
+    "s_aa94e32d88a62a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d115-e2f7-7cd3-ac34-19eea04b5647",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
