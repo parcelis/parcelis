@@ -6,7 +6,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { formatInvoiceNumber } from "@parcelis/schemas";
+import {
+  getBillingCalendarDate,
+  getInvoiceCalendarDate,
+  getReceivableStatus,
+  summarizeInvoiceBalances,
+  formatInvoiceNumber,
+} from "@parcelis/schemas";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -61,12 +67,13 @@ import { entityUpdatedMessage } from "../../../../components/toast-messages";
 import { getInvoiceLink, getPropertyLink, getTenantInvoicesLink } from "../../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../../lib/format";
 
-function formatDate(date: Date | string | null) {
+function formatDate(date: Date | string | null, options?: { timeZone?: string }) {
   if (!date) return "Not set";
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: options?.timeZone,
   }).format(new Date(date));
 }
 
@@ -75,7 +82,8 @@ function formatCurrency(cents: number | null) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 
@@ -125,6 +133,8 @@ export default function TenantDetailPage() {
     queryFn: () => apiClient.auth.me.query(),
   });
   const canEditTenant = hasPermission(currentUserQuery.data?.permissions, "tenants", "edit");
+  const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
+  const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canCreateInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "create");
   const canCreateLease =
     hasPermission(currentUserQuery.data?.permissions, "leases", "create") &&
@@ -208,17 +218,32 @@ export default function TenantDetailPage() {
       ]);
     },
   });
-  const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
-  const currentInvoice = currentLease?.invoices.find(
-    (invoice) => invoice.status === "open" || invoice.status === "overdue",
+  const organizationQuery = useQuery({
+    queryKey: queryKeys.organizations.active,
+    queryFn: () => apiClient.organizations.active.query(),
+  });
+  const today = organizationQuery.data?.timeZone ? getBillingCalendarDate(organizationQuery.data.timeZone) : null;
+  const tenantInvoices = Array.from(
+    new Map((tenant?.leases.flatMap((lease) => lease.invoices) ?? []).map((invoice) => [invoice.id, invoice])).values(),
   );
-  const overdueCents = currentInvoice?.balanceCents ?? 0;
-  const currentInvoiceCents = currentInvoice?.amountCents ?? 0;
-  const rentCollectedCents = Math.max(currentInvoiceCents - overdueCents, 0);
-  const otherCollectedCents = 0;
-  const totalCollectedCents = rentCollectedCents + otherCollectedCents;
+  const balances = today && canViewInvoices && canViewLeases ? summarizeInvoiceBalances(tenantInvoices, today) : null;
+  const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
+  const currentLeaseInvoices = currentLease?.invoices ?? [];
+  const currentInvoice =
+    today === null
+      ? undefined
+      : currentLeaseInvoices
+          .filter((invoice) => getReceivableStatus(invoice, today) === "open")
+          .sort((left, right) => getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)))[0];
+  const pastDueInvoice =
+    today === null
+      ? undefined
+      : tenantInvoices
+          .filter((invoice) => getReceivableStatus(invoice, today) === "overdue")
+          .sort((left, right) => getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)))[0];
+  const overdueCents = balances?.overdueCents ?? null;
   const currentInvoiceId = currentInvoice ? formatInvoiceNumber(currentInvoice.invoiceNumber) : null;
-  const pastDueInvoiceId = currentInvoice?.status === "overdue" ? currentInvoiceId : null;
+  const pastDueInvoiceId = pastDueInvoice ? formatInvoiceNumber(pastDueInvoice.invoiceNumber) : null;
 
   function openTenantDrawer() {
     if (!tenant) return;
@@ -711,7 +736,7 @@ export default function TenantDetailPage() {
                         <div className="mt-2 flex items-center justify-between gap-3 text-xs">
                           <span>
                             <span className="font-semibold text-parcelis-charcoal">Start</span>{" "}
-                            {formatDate(currentLease.startsOn)}
+                            {formatDate(currentLease.startsOn, { timeZone: "UTC" })}
                           </span>
                           <span className="text-right">
                             <span className="font-semibold text-parcelis-charcoal">End</span>{" "}
@@ -728,7 +753,13 @@ export default function TenantDetailPage() {
                   icon={CircleDollarSign}
                   label="Monthly Rent"
                   value={currentLease ? formatCurrency(currentLease.monthlyRentCents) : "—"}
-                  detail={overdueCents > 0 ? `${formatCurrency(overdueCents)} overdue` : "No balance overdue"}
+                  detail={
+                    !balances
+                      ? "Balance unavailable"
+                      : overdueCents !== null && overdueCents > 0
+                        ? `${formatCurrency(overdueCents)} overdue`
+                        : "No balance overdue"
+                  }
                 />
                 <MetricCard
                   icon={ScrollText}
@@ -758,7 +789,11 @@ export default function TenantDetailPage() {
                         <div className="space-y-6">
                           <div>
                             <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
-                            {currentInvoiceId ? (
+                            {overdueCents === null ? (
+                              <p className="mt-1 text-base font-bold text-parcelis-charcoal">
+                                {organizationQuery.isLoading ? "Loading balance..." : "Balance unavailable."}
+                              </p>
+                            ) : currentInvoiceId ? (
                               <Link
                                 className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
                                 href={getInvoiceLink(currentInvoice!.id)}
@@ -771,10 +806,14 @@ export default function TenantDetailPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-parcelis-gray">Past Due Invoices</p>
-                            {overdueCents > 0 && pastDueInvoiceId ? (
+                            {overdueCents === null ? (
+                              <p className="mt-1 text-base font-bold text-parcelis-charcoal">
+                                {organizationQuery.isLoading ? "Loading balance..." : "Balance unavailable."}
+                              </p>
+                            ) : overdueCents > 0 && pastDueInvoiceId ? (
                               <Link
                                 className="mt-1 inline-block text-base font-bold text-parcelis-green hover:underline"
-                                href={getInvoiceLink(currentInvoice!.id)}
+                                href={getInvoiceLink(pastDueInvoice!.id)}
                               >
                                 {pastDueInvoiceId}
                               </Link>
@@ -785,9 +824,18 @@ export default function TenantDetailPage() {
                         </div>
                       </div>
                       <div className="space-y-6">
-                        <CollectionMetric label="Total Rent Collected" value={formatCurrency(rentCollectedCents)} />
-                        <CollectionMetric label="Other Collected" value={formatCurrency(otherCollectedCents)} />
-                        <CollectionMetric label="Total" value={formatCurrency(totalCollectedCents)} />
+                        <CollectionMetric
+                          label="Net payments recorded (all dates, shared obligations)"
+                          value={balances ? formatCurrency(balances.recordedPaymentCents) : "Unavailable"}
+                        />
+                        <CollectionMetric
+                          label="Outstanding balance"
+                          value={balances ? formatCurrency(balances.outstandingCents) : "Unavailable"}
+                        />
+                        <CollectionMetric
+                          label="Overdue balance"
+                          value={balances ? formatCurrency(balances.overdueCents) : "Unavailable"}
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -880,7 +928,7 @@ export default function TenantDetailPage() {
                                 <p className="mt-1 text-sm text-parcelis-gray">Unit {lease.unitLabel}</p>
                               </TableCell>
                               <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                                {formatDate(lease.startsOn)}
+                                {formatDate(lease.startsOn, { timeZone: "UTC" })}
                                 <br />
                                 {formatLeaseEndDate(lease.endsOn, lease.termType)}
                               </TableCell>

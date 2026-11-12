@@ -17,7 +17,7 @@ const resources: PermissionResource[] = [
   "tenant_notes",
 ];
 const tenant = { id: 4, firstName: "Private", lastName: "Tenant", email: "private@example.com" };
-const invoice = { id: 8, balanceCents: 12345, invoiceNumber: "INV-private" };
+const invoice = { dueOn: new Date("2020-01-01"), status: "overdue", amountCents: 12345, id: 8, balanceCents: 12345, invoiceNumber: "INV-private" };
 const lease = {
   id: 7,
   unitId: 3,
@@ -84,7 +84,7 @@ function createCaller(
     },
     req: { headers: {} },
     session: { userId: 1, user: { id: 1, role } },
-    organization: { organizationId: 1, organization: { id: 1 } },
+    organization: { organizationId: 1, organization: { id: 1, timeZone: "UTC" } },
   } as unknown as Context);
 }
 for (const denied of resources.filter((resource) => resource !== "properties")) {

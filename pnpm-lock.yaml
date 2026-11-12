@@ -525,6 +525,9 @@ importers:
 
   packages/jobs:
     dependencies:
+      '@parcelis/schemas':
+        specifier: workspace:*
+        version: link:../schemas
       bullmq:
         specifier: ^6.3.8
         version: 6.7.3(ioredis@6.0.0(supports-color@7.2.0))(pg@8.23.1)

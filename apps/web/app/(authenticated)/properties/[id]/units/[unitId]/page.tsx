@@ -1,6 +1,12 @@
 "use client";
 
 import * as React from "react";
+import {
+  getBillingCalendarDate,
+  getInvoiceCalendarDate,
+  summarizeInvoiceBalances,
+  formatInvoiceNumber,
+} from "@parcelis/schemas";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -75,7 +81,8 @@ function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 
@@ -85,21 +92,8 @@ function formatDate(date: Date | string | null) {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   }).format(new Date(date));
-}
-
-function getInvoiceRows(startDate: Date | string, amountCents: number) {
-  const start = new Date(startDate);
-
-  return Array.from({ length: 3 }, (_, index) => {
-    const dueDate = new Date(start.getFullYear(), start.getMonth() + index + 1, 1);
-
-    return {
-      id: `INV-${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, "0")}`,
-      dueDate,
-      amountCents,
-    };
-  });
 }
 
 export default function UnitDetailPage() {
@@ -201,6 +195,11 @@ export default function UnitDetailPage() {
   const [editForm, setEditForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
 
+  const organizationQuery = useQuery({
+    queryKey: queryKeys.organizations.active,
+    queryFn: () => apiClient.organizations.active.query(),
+  });
+  const today = organizationQuery.data?.timeZone ? getBillingCalendarDate(organizationQuery.data.timeZone) : null;
   const property = propertyQuery.data;
   const unit = property?.units.find((item) => item.id === unitId) ?? null;
   const unitLeaseDrafts = (leaseDraftsQuery.data ?? []).filter((draft) => draft.unit?.id === unitId);
@@ -214,27 +213,38 @@ export default function UnitDetailPage() {
   const utilities = unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
   const amenities = unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
   const monthlyRentCents = canViewLeases ? (lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0) : null;
-  const overdueCents = lease?.amountOverdueCents ?? 0;
-  const collectedCents = lease ? Math.max((monthlyRentCents ?? 0) - overdueCents, 0) : 0;
+  const invoices = (property?.leaseHistory ?? [])
+    .filter((item) => item.unitId === unitId)
+    .flatMap((item) => item.invoices);
+  const balances = today && canViewInvoices && canViewLeases ? summarizeInvoiceBalances(invoices, today) : null;
   const collectionRows = [
     [
-      "Collected",
-      canViewInvoices && canViewLeases ? formatCurrency(collectedCents) : "Unavailable",
+      "Net payments recorded (all dates)",
+      balances ? formatCurrency(balances.recordedPaymentCents) : "Unavailable",
       "bg-parcelis-green",
     ],
-    ["Outstanding", canViewInvoices && canViewLeases ? formatCurrency(overdueCents) : "Unavailable", "bg-red-500"],
-    ["Processing", "—", "bg-orange-500"],
-    ["Coming Due", "—", "bg-amber-400"],
+    ["Outstanding", balances ? formatCurrency(balances.outstandingCents) : "Unavailable", "bg-red-500"],
+    ["Overdue", balances ? formatCurrency(balances.overdueCents) : "Unavailable", "bg-red-500"],
+    ["Due today", balances ? formatCurrency(balances.dueTodayCents) : "Unavailable", "bg-orange-500"],
+    ["Future scheduled balance", balances ? formatCurrency(balances.futureCents) : "Unavailable", "bg-amber-400"],
     [
       "Monthly rent",
       monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents),
       "bg-parcelis-charcoal",
     ],
   ];
-  const invoiceRows =
-    canViewInvoices && lease?.startsOn && monthlyRentCents !== null
-      ? getInvoiceRows(lease.startsOn, monthlyRentCents)
-      : [];
+  const invoiceRows = canViewInvoices && canViewLeases && today
+    ? invoices.filter(
+        (invoice) =>
+          invoice.status !== "void" &&
+          invoice.balanceCents > 0 &&
+          getInvoiceCalendarDate(invoice.dueOn) >= today,
+      )
+    : [];
+  const isUpcomingInvoicesLoading = currentUserQuery.isLoading || (canViewInvoices && organizationQuery.isLoading);
+  const isUpcomingInvoicesUnavailable =
+    !currentUserQuery.isLoading &&
+    (!canViewInvoices || !canViewLeases || (!organizationQuery.isLoading && (organizationQuery.isError || !today)));
 
   function openEditUnitDrawer() {
     if (!property || !canEditUnit) {
@@ -634,13 +644,25 @@ export default function UnitDetailPage() {
                             className="grid grid-cols-[1fr_1fr_8rem] border-t border-parcelis-border px-4 py-3 text-sm"
                             key={invoice.id}
                           >
-                            <span className="font-semibold text-parcelis-charcoal">{invoice.id}</span>
-                            <span className="text-parcelis-gray">{formatDate(invoice.dueDate)}</span>
+                            <span className="font-semibold text-parcelis-charcoal">
+                              {formatInvoiceNumber(invoice.invoiceNumber)}
+                            </span>
+                            <span className="text-parcelis-gray">{formatDate(invoice.dueOn)}</span>
                             <span className="text-right font-semibold text-parcelis-charcoal">
-                              {formatCurrency(invoice.amountCents)}
+                              {formatCurrency(invoice.balanceCents)}
                             </span>
                           </div>
                         ))}
+                      </div>
+                    ) : isUpcomingInvoicesLoading ? (
+                      <div className="flex items-center gap-3 text-sm text-parcelis-gray">
+                        <FileText className="h-4 w-4" />
+                        Loading upcoming invoices...
+                      </div>
+                    ) : isUpcomingInvoicesUnavailable ? (
+                      <div className="flex items-center gap-3 text-sm text-parcelis-gray">
+                        <FileText className="h-4 w-4" />
+                        Upcoming invoices are unavailable.
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 text-sm text-parcelis-gray">
