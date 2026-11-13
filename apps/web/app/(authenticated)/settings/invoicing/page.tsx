@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -59,7 +59,7 @@ export default function InvoicingSettingsPage() {
           </Button>
         </header>
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="invoicing"
@@ -69,13 +69,10 @@ export default function InvoicingSettingsPage() {
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Invoicing</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                  Configure reusable invoice charges for leases and manual invoices.
-                </p>
-              </section>
+              <SettingsPanelHeader
+                title={<>Invoicing</>}
+                description={<>Configure reusable invoice charges for leases and manual invoices.</>}
+              />
             }
           >
             <Card>
@@ -202,7 +199,7 @@ export default function InvoicingSettingsPage() {
                 )}
               </CardContent>
             </Card>
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>

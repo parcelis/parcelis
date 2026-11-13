@@ -12,7 +12,39 @@ const nextConfig: NextConfig = {
   experimental: { proxyClientMaxBodySize: "17mb" },
   transpilePackages: ["@parcelis/ui", "@parcelis/schemas"],
   async redirects() {
-    return documentationRedirects;
+    return [
+      ...documentationRedirects,
+      {
+        source: "/settings/organization",
+        destination: "/settings/organization/general",
+        permanent: true,
+      },
+      {
+        source: "/o/:organizationSlug/settings/organization",
+        destination: "/o/:organizationSlug/settings/organization/general",
+        permanent: true,
+      },
+      {
+        source: "/settings",
+        destination: "/settings/security/users",
+        permanent: true,
+      },
+      {
+        source: "/settings/roles",
+        destination: "/settings/security/roles",
+        permanent: true,
+      },
+      {
+        source: "/o/:organizationSlug/settings",
+        destination: "/o/:organizationSlug/settings/security/users",
+        permanent: true,
+      },
+      {
+        source: "/o/:organizationSlug/settings/roles",
+        destination: "/o/:organizationSlug/settings/security/roles",
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:40010";

@@ -1,8 +1,8 @@
 import { test, expect } from "./fixtures/authenticated";
 
 test("locks contact email while saving and keeps the draft when saving fails", async ({ page }) => {
-  await page.goto("/settings/organization");
-  await expect(page).toHaveURL(/\/o\/[^/]+\/settings\/organization$/);
+  await page.goto("/settings/organization/general");
+  await expect(page).toHaveURL(/\/o\/[^/]+\/settings\/organization\/general$/);
   await expect(page.getByRole("textbox", { name: "Organization name", exact: true })).not.toHaveValue("");
   const email = page.getByRole("textbox", { name: "Organization email address (optional)", exact: true });
   const save = page.getByRole("button", { name: "Update organization", exact: true });
