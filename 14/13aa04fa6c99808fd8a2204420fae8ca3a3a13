@@ -1,0 +1,19 @@
+packages/ui/src/components/settings-panel.tsx
+  s_125e27ad845aef::t_3ecc741e177ce4 144,147,171,253,686,696,711,734
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1413aa04fa6c99808fd8a2204420fae8ca3a3a13",
+  "prompts": {},
+  "sessions": {
+    "s_125e27ad845aef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d691-7dfa-7611-8307-a7ad0420fcf0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
