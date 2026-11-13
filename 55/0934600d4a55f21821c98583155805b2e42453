@@ -1,0 +1,28 @@
+packages/schemas/src/currency.ts
+  s_c3131777e6e246::t_11366c1c926e70 5-8
+  s_c3131777e6e246::t_7fd6f9d7060d0a 2-3,9-33
+  s_c3131777e6e246::t_1f932e416284e8 1
+  s_c3131777e6e246::t_56e0683982b81f 4
+packages/schemas/src/index.ts
+  s_c3131777e6e246::t_7fd6f9d7060d0a 16
+packages/db/src/tests/currency-migration.integration.ts
+  s_c3131777e6e246::t_37787ad4a39bf5 30-44,46-96,99,105-107,110,114-141,143,148-152,154-169,171-189,191-197,199-200
+  s_c3131777e6e246::t_1fdae8e8766d7a 1-29,45,142,144-147,153,170,190,198
+  s_c3131777e6e246::t_2b6c8bdde98b2c 97-98,100-104,108-109,111-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "550934600d4a55f21821c98583155805b2e42453",
+  "prompts": {},
+  "sessions": {
+    "s_c3131777e6e246": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d25c-2f45-73d1-9bfd-ff4b10f1435c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
