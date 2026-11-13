@@ -103,6 +103,7 @@ import {
   type UserRole,
   replayFailedOutboxEvent,
   recordOutboxEvent,
+  lockOrganizationCurrency,
 } from "@parcelis/db";
 import { getCalendarDate, getStartOfCalendarDate, outboxEventTypes } from "@parcelis/jobs";
 import { createLeaseRentInvoices, getLeaseRentInvoiceSummary } from "../leases/lease-rent-invoices";
@@ -423,7 +424,7 @@ function getUnitUpdateData(unitDetails: UnitDetailsInput) {
 }
 
 async function validateUnitOptionIds(
-  prisma: PrismaClient,
+  prisma: PrismaClient | Prisma.TransactionClient,
   organizationId: number,
   units: Array<Pick<UnitDetailsInput, "amenityTypeIds" | "utilityTypeIds">>,
 ) {
@@ -1819,6 +1820,9 @@ export const appRouter = router({
           });
         await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, input.units);
         return ctx.prisma.$transaction(async (tx) => {
+          if (input.units.length > 0) {
+            await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
+          }
           const initialProperty = await tx.property.create({
             select: propertySelect,
             data: {
@@ -1904,9 +1908,12 @@ export const appRouter = router({
           .$transaction(
             async (tx) => {
               const currentProperty = await tx.property.findUniqueOrThrow({
-                where: { id: input.id },
+                where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
                 select: { legacyNoteId: true },
               });
+              if (input.units.length > 0) {
+                await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
+              }
               const legacyNote =
                 input.notes === undefined
                   ? {}
@@ -5188,13 +5195,14 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         await requirePrincipalPermission(ctx, "properties", "view");
         const { propertyId, ...unitDetails } = input;
-        await ctx.prisma.property.findFirstOrThrow({
-          where: { id: propertyId, organizationId: ctx.organizationScope.organizationId },
-        });
-        await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, [unitDetails]);
+        const unit = await ctx.prisma.$transaction(async (tx) => {
+          await tx.property.findFirstOrThrow({
+            where: { id: propertyId, organizationId: ctx.organizationScope.organizationId },
+          });
+          await validateUnitOptionIds(tx, ctx.organizationScope.organizationId, [unitDetails]);
+          await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
 
-        return ctx.prisma.unit
-          .create({
+          return tx.unit.create({
             data: getUnitCreateData(propertyId, unitDetails),
             include: {
               amenities: {
@@ -5204,18 +5212,21 @@ export const appRouter = router({
                 select: { option: { select: { id: true, label: true } } },
               },
             },
-          })
-          .then(serializeUnit);
+          });
+        });
+
+        return serializeUnit(unit);
       }),
     /** Updates a unit by its ID. */
     update: apiPermissionProcedure("units", "edit")
       .input(updateUnitInputSchema)
       .mutation(async ({ ctx, input }) => {
-        await ctx.prisma.unit.findFirstOrThrow({
-          where: { id: input.id, property: { organizationId: ctx.organizationScope.organizationId } },
-        });
-        await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, [input]);
         const unit = await ctx.prisma.$transaction(async (tx) => {
+          await tx.unit.findFirstOrThrow({
+            where: { id: input.id, property: { organizationId: ctx.organizationScope.organizationId } },
+          });
+          await validateUnitOptionIds(tx, ctx.organizationScope.organizationId, [input]);
+          await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
           await tx.unitUtility.deleteMany({ where: { unitId: input.id } });
           await tx.unitAmenity.deleteMany({ where: { unitId: input.id } });
 
