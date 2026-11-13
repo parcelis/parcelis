@@ -81,7 +81,11 @@ function createDatabase(
           }
           assert.deepEqual(where.status, { in: ["active", "notice", "scheduled"] });
           assert.deepEqual(where.startsOn, lease.endsOn ? { lte: lease.endsOn } : undefined);
-          assert.deepEqual(where.OR, [{ endsOn: null }, { endsOn: { gte: lease.startsOn } }]);
+          assert.deepEqual(where.OR, [
+            { endsOn: null },
+            { continueMonthToMonthAfterEnd: true },
+            { endsOn: { gte: lease.startsOn } },
+          ]);
           if (overlap) return { id: 30 };
           if (!existingLease) return null;
           const startsBeforeEnd = !lease.endsOn || existingLease.startsOn <= lease.endsOn;

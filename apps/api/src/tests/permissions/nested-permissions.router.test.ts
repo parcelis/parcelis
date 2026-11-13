@@ -228,6 +228,7 @@ test("direct record reads and PDFs scope foreign IDs to the current organization
           { maintenanceTicket: { organizationId: 1 } },
           { application: { organizationId: 1 } },
           { invoice: { organizationId: 1 } },
+          { lease: { organizationId: 1 } },
         ]);
         return [];
       },
