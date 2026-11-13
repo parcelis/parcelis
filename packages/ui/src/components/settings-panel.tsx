@@ -141,10 +141,10 @@ const dayOptions = [
 
 function SettingsCard({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5 text-card-foreground sm:p-6 lg:flex-row [&>div]:lg:flex-1 lg:gap-6">
+    <section className="flex flex-col gap-4 rounded-2xl border border-parcelis-border bg-white p-5 text-parcelis-charcoal sm:p-6 lg:flex-row [&>div]:lg:flex-1 lg:gap-6">
       <div>
         <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="mt-2 max-w-xs text-sm text-muted-foreground">{description}</p>
+        <p className="mt-2 max-w-xs text-sm text-parcelis-gray">{description}</p>
       </div>
       <div className="flex min-w-0 flex-col gap-4">{children}</div>
     </section>
@@ -168,7 +168,7 @@ function Field({
       <Label htmlFor={id}>{label}</Label>
       {children(id, descriptionId)}
       {hint && (
-        <p id={descriptionId} className="text-xs text-muted-foreground">
+        <p id={descriptionId} className="text-xs text-parcelis-gray">
           {hint}
         </p>
       )}
@@ -250,7 +250,7 @@ function Toggle({
           {label}
         </Label>
         {hint && (
-          <p id={id + "-hint"} className="text-xs text-muted-foreground">
+          <p id={id + "-hint"} className="text-xs text-parcelis-gray">
             {hint}
           </p>
         )}
@@ -683,7 +683,7 @@ function SettingsFormPanel({ initialValues = defaults, onSave }: SettingsPanelPr
           <nav aria-label="Settings sections" className="hidden flex-col gap-5 md:flex">
             {groups.map((group) => (
               <div key={group.label} className="flex flex-col gap-1">
-                <p className="px-3 pb-1 text-xs font-medium uppercase text-muted-foreground">{group.label}</p>
+                <p className="px-3 pb-1 text-xs font-medium uppercase text-parcelis-gray">{group.label}</p>
                 {group.sections.map((key) => {
                   const Icon = panels[key].icon;
                   return (
@@ -693,7 +693,7 @@ function SettingsFormPanel({ initialValues = defaults, onSave }: SettingsPanelPr
                       variant="ghost"
                       disabled={isSaving}
                       aria-current={section === key ? "page" : undefined}
-                      className={`w-full justify-start gap-2 px-3 ${section === key ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
+                      className={`w-full justify-start gap-2 px-3 ${section === key ? "bg-parcelis-green/20 text-parcelis-charcoal" : "text-parcelis-gray"}`}
                       onClick={() => navigate(key)}
                     >
                       <Icon className="size-4" aria-hidden="true" />
@@ -708,7 +708,7 @@ function SettingsFormPanel({ initialValues = defaults, onSave }: SettingsPanelPr
         <div className="min-w-0">
           <header className="border-b px-6 py-4">
             <h2 className="text-base font-semibold">{title}</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+            <p className="mt-0.5 text-xs text-parcelis-gray">{description}</p>
           </header>
           <form onSubmit={submit} aria-label={`${title} settings`} aria-busy={isSaving}>
             <fieldset disabled={isSaving} className="flex min-w-0 flex-col gap-5 p-4 sm:p-6">
@@ -731,7 +731,7 @@ function SettingsFormPanel({ initialValues = defaults, onSave }: SettingsPanelPr
             <footer className="flex flex-wrap items-center justify-end gap-3 border-t px-4 py-4 sm:px-6">
               <p
                 role="status"
-                className={`text-sm ${status === "error" ? "text-destructive" : "text-muted-foreground"}`}
+                className={`text-sm ${status === "error" ? "text-red-700" : "text-parcelis-gray"}`}
               >
                 {status === "saved" && (onSave ? "Changes saved." : "Changes applied for this session.")}
                 {status === "error" && "Couldn’t save changes. Try again."}
