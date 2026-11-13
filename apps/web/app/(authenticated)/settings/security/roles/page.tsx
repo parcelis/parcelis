@@ -29,12 +29,12 @@ import {
   type PermissionFlags,
   type PermissionResource,
 } from "@parcelis/schemas";
-import { useFeatureFlags } from "../../../../components/feature-flags";
-import { apiClient, queryKeys } from "../../../../components/api-client";
-import { LoadingState } from "../../../../components/loading-state";
-import { SettingsRail } from "../../../../components/settings-rail";
-import { formatLabel } from "../../../../lib/format";
-import { settingUpdatedMessage } from "../../../../components/toast-messages";
+import { useFeatureFlags } from "../../../../../components/feature-flags";
+import { apiClient, queryKeys } from "../../../../../components/api-client";
+import { LoadingState } from "../../../../../components/loading-state";
+import { SettingsRail } from "../../../../../components/settings-rail";
+import { formatLabel } from "../../../../../lib/format";
+import { settingUpdatedMessage } from "../../../../../components/toast-messages";
 
 type PermissionMatrix = Record<PermissionResource, PermissionFlags>;
 type Role = Awaited<ReturnType<typeof apiClient.roles.list.query>>[number];
@@ -74,9 +74,11 @@ export default function RolesSettingsPage() {
           };
         }),
       }),
-    onSuccess: async () => {
-      setSelectedRole(null);
-      setDraft(null);
+    onSuccess: async (_result, { role }) => {
+      if (selectedRole?.role === role) {
+        setSelectedRole(null);
+        setDraft(null);
+      }
       await queryClient.invalidateQueries({ queryKey: ["roles", "list"] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
       toast.success(settingUpdatedMessage("Permissions"));

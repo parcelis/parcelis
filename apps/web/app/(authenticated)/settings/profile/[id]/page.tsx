@@ -97,7 +97,7 @@ export default function UserProfilePage() {
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
             <Button asChild className="min-w-40" variant="secondary">
-              <Link href="/settings">Back to users</Link>
+              <Link href="/settings/security/users">Back to users</Link>
             </Button>
           </div>
         </header>

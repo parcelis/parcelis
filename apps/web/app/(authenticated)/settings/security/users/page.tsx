@@ -40,21 +40,21 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import { apiClient, queryKeys } from "../../../components/api-client";
+import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { userRoleValues } from "@parcelis/schemas";
-import { LoadingState } from "../../../components/loading-state";
-import { CreateUserDrawer, initialCreateUserFormState } from "../../../components/create-user-drawer";
-import { EditUserDrawer, type EditUserFormState } from "../../../components/edit-user-drawer";
-import { hasPermission } from "../../../components/property-access";
-import { SettingsRail } from "../../../components/settings-rail";
-import { formatLabel } from "../../../lib/format";
+import { LoadingState } from "../../../../../components/loading-state";
+import { CreateUserDrawer, initialCreateUserFormState } from "../../../../../components/create-user-drawer";
+import { EditUserDrawer, type EditUserFormState } from "../../../../../components/edit-user-drawer";
+import { hasPermission } from "../../../../../components/property-access";
+import { SettingsRail } from "../../../../../components/settings-rail";
+import { formatLabel } from "../../../../../lib/format";
 import {
   entityCreatedMessage,
   entityDeletedMessage,
   entityDisabledMessage,
   entityEnabledMessage,
   entityUpdatedMessage,
-} from "../../../components/toast-messages";
+} from "../../../../../components/toast-messages";
 
 type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
 
@@ -195,6 +195,20 @@ export default function SettingsPage() {
     },
   });
 
+  function openAccountStatusDialog(user: UserListItem) {
+    if (disableUser && disableUser.id !== user.id) {
+      updateAccountStatusMutation.reset();
+    }
+    setDisableUser(user);
+  }
+
+  function openDeleteDialog(user: UserListItem) {
+    if (deleteUser && deleteUser.id !== user.id) {
+      deleteUserMutation.reset();
+    }
+    setDeleteUser(user);
+  }
+
   function openEdit(user: UserListItem) {
     updateUserRequest.reset();
     setEditForm({
@@ -245,6 +259,9 @@ export default function SettingsPage() {
                 : `${disableUser?.name} will no longer be able to sign in.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {updateAccountStatusMutation.error ? (
+            <p className="mt-4 text-sm text-red-700">{updateAccountStatusMutation.error.message}</p>
+          ) : null}
           <AlertDialogFooter>
             <Button onClick={() => setDisableUser(null)} type="button" variant="secondary">
               Cancel
@@ -274,6 +291,7 @@ export default function SettingsPage() {
               {"'s"} account and active sessions.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteUserMutation.error ? <p className="mt-4 text-sm text-red-700">{deleteUserMutation.error.message}</p> : null}
           <AlertDialogFooter>
             <Button onClick={() => setDeleteUser(null)} type="button" variant="secondary">
               Cancel
@@ -426,9 +444,9 @@ export default function SettingsPage() {
                                 canDelete={canDeleteUsers}
                                 canEdit={canEditUsers}
                                 canManage={isAdministrator || user.role !== "administrator"}
-                                onDelete={() => setDeleteUser(user)}
+                                onDelete={() => openDeleteDialog(user)}
                                 onEdit={() => openEdit(user)}
-                                onToggleAccountStatus={() => setDisableUser(user)}
+                                onToggleAccountStatus={() => openAccountStatusDialog(user)}
                                 user={user}
                               />
                             </TableCell>

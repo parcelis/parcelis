@@ -31,7 +31,7 @@ export function SettingsRail({
     {
       label: "Organization",
       items: [
-        { key: "organization", href: "/settings/organization", label: "General", icon: Building2 },
+        { key: "organization", href: "/settings/organization/general", label: "General", icon: Building2 },
         { key: "email", href: "/settings/organization/email", label: "Email", icon: Mail },
         ...(canManageTokens
           ? [{ key: "api-tokens", href: "/settings/organization/api-tokens", label: "API tokens", icon: KeyRound }]
@@ -47,8 +47,8 @@ export function SettingsRail({
     {
       label: "Security",
       items: [
-        ...(canManageRoles ? [{ key: "roles", href: "/settings/roles", label: "Roles", icon: ShieldCheck }] : []),
-        ...(canManageUsers ? [{ key: "users", href: "/settings", label: "Users", icon: Users }] : []),
+        ...(canManageRoles ? [{ key: "roles", href: "/settings/security/roles", label: "Roles", icon: ShieldCheck }] : []),
+        ...(canManageUsers ? [{ key: "users", href: "/settings/security/users", label: "Users", icon: Users }] : []),
       ],
     },
   ].filter((group) => group.items.length > 0);

@@ -8,13 +8,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label, TimezoneSelect } from "@parcelis/ui";
-import { OrganizationContactInformation } from "../../../../components/organization-contact-information";
-import { apiClient, queryKeys } from "../../../../components/api-client";
-import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../components/image-upload";
-import { LoadingState } from "../../../../components/loading-state";
-import { SettingsRail } from "../../../../components/settings-rail";
-import { ImageUploadPanel } from "../../../../components/image-upload-panel";
-import { settingUpdatedMessage } from "../../../../components/toast-messages";
+import { OrganizationContactInformation } from "../../../../../components/organization-contact-information";
+import { apiClient, queryKeys } from "../../../../../components/api-client";
+import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../../components/image-upload";
+import { LoadingState } from "../../../../../components/loading-state";
+import { SettingsRail } from "../../../../../components/settings-rail";
+import { ImageUploadPanel } from "../../../../../components/image-upload-panel";
+import { settingUpdatedMessage } from "../../../../../components/toast-messages";
 
 type AvatarVariant = "light" | "dark";
 type AvatarChanges = Partial<Record<AvatarVariant, File | null>>;
@@ -94,7 +94,8 @@ export default function OrganizationSettingsPage() {
     }
   }, [activeOrganizationQuery.data]);
   const canManageOrganization = ["owner", "administrator"].includes(activeOrganizationQuery.data?.role ?? "");
-  const canManageUsers = currentUserQuery.data?.user.role === "administrator";
+  const canManageUsers = currentUserQuery.data?.permissions.users.view ?? false;
+  const canManageRoles = currentUserQuery.data?.user.role === "administrator";
   const saveOrganizationDetails = useMutation({
     mutationFn: async ({
       name,
@@ -182,7 +183,7 @@ export default function OrganizationSettingsPage() {
               <SettingsRail
                 active="organization"
                 canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
-                canManageRoles={canManageUsers}
+                canManageRoles={canManageRoles}
                 canManageUsers={canManageUsers}
               />
             }
