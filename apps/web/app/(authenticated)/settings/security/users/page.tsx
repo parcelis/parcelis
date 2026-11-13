@@ -247,7 +247,15 @@ export default function SettingsPage() {
         onSubmit={() => editUser && updateUserRequest.mutate({ ...editForm, id: editUser.id })}
         open={Boolean(editUser)}
       />
-      <AlertDialog onOpenChange={(open) => !open && setDisableUser(null)} open={Boolean(disableUser)}>
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            updateAccountStatusMutation.reset();
+            setDisableUser(null);
+          }
+        }}
+        open={Boolean(disableUser)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -260,7 +268,9 @@ export default function SettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           {updateAccountStatusMutation.error ? (
-            <p className="mt-4 text-sm text-red-700">{updateAccountStatusMutation.error.message}</p>
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {updateAccountStatusMutation.error.message}
+            </p>
           ) : null}
           <AlertDialogFooter>
             <Button onClick={() => setDisableUser(null)} type="button" variant="secondary">
@@ -282,7 +292,15 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog onOpenChange={(open) => !open && setDeleteUser(null)} open={Boolean(deleteUser)}>
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            deleteUserMutation.reset();
+            setDeleteUser(null);
+          }
+        }}
+        open={Boolean(deleteUser)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete user?</AlertDialogTitle>
@@ -291,7 +309,11 @@ export default function SettingsPage() {
               {"'s"} account and active sessions.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {deleteUserMutation.error ? <p className="mt-4 text-sm text-red-700">{deleteUserMutation.error.message}</p> : null}
+          {deleteUserMutation.error ? (
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {deleteUserMutation.error.message}
+            </p>
+          ) : null}
           <AlertDialogFooter>
             <Button onClick={() => setDeleteUser(null)} type="button" variant="secondary">
               Cancel
