@@ -196,14 +196,14 @@ export default function SettingsPage() {
   });
 
   function openAccountStatusDialog(user: UserListItem) {
-    if (disableUser && disableUser.id !== user.id) {
+    if (!updateAccountStatusMutation.isPending) {
       updateAccountStatusMutation.reset();
     }
     setDisableUser(user);
   }
 
   function openDeleteDialog(user: UserListItem) {
-    if (deleteUser && deleteUser.id !== user.id) {
+    if (!deleteUserMutation.isPending) {
       deleteUserMutation.reset();
     }
     setDeleteUser(user);
@@ -250,7 +250,9 @@ export default function SettingsPage() {
       <AlertDialog
         onOpenChange={(open) => {
           if (!open) {
-            updateAccountStatusMutation.reset();
+            if (!updateAccountStatusMutation.isPending) {
+              updateAccountStatusMutation.reset();
+            }
             setDisableUser(null);
           }
         }}
@@ -295,7 +297,9 @@ export default function SettingsPage() {
       <AlertDialog
         onOpenChange={(open) => {
           if (!open) {
-            deleteUserMutation.reset();
+            if (!deleteUserMutation.isPending) {
+              deleteUserMutation.reset();
+            }
             setDeleteUser(null);
           }
         }}
