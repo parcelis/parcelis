@@ -731,7 +731,7 @@ function SettingsFormPanel({ initialValues = defaults, onSave }: SettingsPanelPr
             <footer className="flex flex-wrap items-center justify-end gap-3 border-t px-4 py-4 sm:px-6">
               <p
                 role="status"
-                className={`text-sm ${status === "error" ? "text-red-700" : "text-parcelis-gray"}`}
+                className={`text-sm ${status === "error" ? "text-red-700 dark:text-red-300" : "text-parcelis-gray"}`}
               >
                 {status === "saved" && (onSave ? "Changes saved." : "Changes applied for this session.")}
                 {status === "error" && "Couldn’t save changes. Try again."}
