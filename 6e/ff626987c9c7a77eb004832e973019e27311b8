@@ -1,0 +1,20 @@
+apps/web/app/(authenticated)/settings/security/users/page.tsx
+  s_9aab87f804cee5::t_1b935d0a60a390 295-303,312-316
+  s_9aab87f804cee5::t_93e1bb1f75702a 250-258,271-273
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6eff626987c9c7a77eb004832e973019e27311b8",
+  "prompts": {},
+  "sessions": {
+    "s_9aab87f804cee5": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "668d4172-27f9-4fb2-8d35-a4152cd5449e",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
