@@ -196,16 +196,14 @@ export default function SettingsPage() {
   });
 
   function openAccountStatusDialog(user: UserListItem) {
-    if (!updateAccountStatusMutation.isPending) {
-      updateAccountStatusMutation.reset();
-    }
+    if (updateAccountStatusMutation.isPending) return;
+    updateAccountStatusMutation.reset();
     setDisableUser(user);
   }
 
   function openDeleteDialog(user: UserListItem) {
-    if (!deleteUserMutation.isPending) {
-      deleteUserMutation.reset();
-    }
+    if (deleteUserMutation.isPending) return;
+    deleteUserMutation.reset();
     setDeleteUser(user);
   }
 
