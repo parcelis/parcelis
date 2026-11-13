@@ -1,0 +1,26 @@
+packages/db/prisma/schema.prisma
+  s_c3131777e6e246::t_a9f14f8461f54d 156-157,608,677
+packages/db/package.json
+  s_c3131777e6e246::t_1fdae8e8766d7a 16
+packages/db/prisma/migrations/20261112000000_add_currency_models/migration.sql
+  s_c3131777e6e246::t_a9f14f8461f54d 1-30
+apps/api/src/tests/currencies/currency.schema.test.ts
+  s_c3131777e6e246::t_11366c1c926e70 5,22-23
+  s_c3131777e6e246::t_7fd6f9d7060d0a 1-4,6-21,24-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e14626ecfdbcb946a0567899bac2d655d032d8cf",
+  "prompts": {},
+  "sessions": {
+    "s_c3131777e6e246": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d25c-2f45-73d1-9bfd-ff4b10f1435c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
