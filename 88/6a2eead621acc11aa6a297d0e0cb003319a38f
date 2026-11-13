@@ -1,0 +1,26 @@
+CURRENCY_INVENTORY.md
+  s_c3131777e6e246::t_370854ee6dec67 23,27-46,64,196-197,210-213,215-219,240-243
+  s_c3131777e6e246::t_b10fadc62c89f3 47-62
+  s_c3131777e6e246::t_22b8ddc94a588a 1-8,81-86,96-103,106-109,127-142,152-192,194-195,198-209,214,220-223,225,227,229,231,233,235,237,239
+  s_c3131777e6e246::t_0de989d988327d 87-95,143-151,193,224,226,228,230,232,234,236,238
+  s_c3131777e6e246::t_350bd88bf7af05 24,63,65-80,104-105
+  s_c3131777e6e246::t_11366c1c926e70 14-15
+  s_c3131777e6e246::t_4ec4eaec5e244a 9-13,16-22,25-26
+  s_c3131777e6e246::t_39a53bacbfb7ae 110-126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "886a2eead621acc11aa6a297d0e0cb003319a38f",
+  "prompts": {},
+  "sessions": {
+    "s_c3131777e6e246": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d25c-2f45-73d1-9bfd-ff4b10f1435c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
