@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.2
+          node-version: 24.22.3
       - run: docker pull postgres:16-alpine
       - run: docker pull postgres:18-alpine
       - run: node --test scripts/upgrade-postgres.integration.mjs
