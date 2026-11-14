@@ -107,6 +107,7 @@ import {
 } from "@parcelis/db";
 import { getCalendarDate, getStartOfCalendarDate, outboxEventTypes } from "@parcelis/jobs";
 import { createLeaseRentInvoices, getLeaseRentInvoiceSummary } from "../leases/lease-rent-invoices";
+import { lockLeaseCurrency } from "../leases/lease-currency";
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
@@ -557,6 +558,7 @@ async function writeLeaseRentSchedule(
     leaseId: number;
     propertyId: number;
     rentChargeId?: number | null;
+    currencyCode: string;
     today: string;
     charges: ReturnType<typeof planLeaseRentCharges>;
   },
@@ -2522,9 +2524,11 @@ export const appRouter = router({
                 input.tenantAllocations.map((allocation) => [allocation.tenantId, allocation]),
               );
 
+              const currencyCode = await lockOrganizationCurrency(tx, ctx.organization.organizationId);
               const lease = await tx.lease.create({
                 data: {
                   organizationId: ctx.organization.organizationId,
+                  currencyCode,
                   propertyId: input.propertyId,
                   unitId: input.unitId,
                   securityDepositCents: input.securityDepositCents,
@@ -2541,7 +2545,6 @@ export const appRouter = router({
                       const allocation = allocationsByTenantId.get(tenantId);
 
                       return {
-                        organizationId: ctx.organization.organizationId,
                         tenantId,
                         rentShareCents: allocation?.rentShareCents,
                         depositShareCents: allocation?.depositShareCents,
@@ -2560,6 +2563,7 @@ export const appRouter = router({
                   organizationId: ctx.organization.organizationId,
                   leaseId: lease.id,
                   propertyId: input.propertyId,
+                  currencyCode,
                   today: getCalendarDate(new Date(), ctx.organization.organization.timeZone),
                   charges: rentCharges,
                 });
@@ -4410,6 +4414,7 @@ export const appRouter = router({
                   monthlyRentCents: true,
                   rentChargeId: true,
                   securityDepositCents: true,
+                  currencyCode: true,
                   rentDueDay: true,
                   continueMonthToMonthAfterEnd: true,
                   billingResponsibility: true,
@@ -4531,7 +4536,41 @@ export const appRouter = router({
                 }
               }
 
+              const replaceTenants =
+                data.tenantIds !== undefined || data.tenantAllocations !== undefined || billingResponsibilityChanged;
+              const tenantIds = data.tenantIds ?? current.tenants.map(({ tenantId }) => tenantId);
+              const allocations =
+                parsed.data.billingResponsibility === "joint"
+                  ? []
+                  : (data.tenantAllocations ?? (billingResponsibilityChanged ? [] : current.tenants));
+              const tenantRows = tenantIds.map((tenantId) => {
+                const allocation = allocations.find((item) => item.tenantId === tenantId);
+                return {
+                  organizationId,
+                  leaseId: input.leaseId,
+                  tenantId,
+                  rentShareCents: allocation?.rentShareCents ?? null,
+                  depositShareCents: allocation?.depositShareCents ?? null,
+                };
+              });
+              const hasMonetaryData =
+                data.monthlyRentCents != null ||
+                data.securityDepositCents != null ||
+                current.monthlyRentCents !== null ||
+                current.securityDepositCents !== 0 ||
+                current.tenants.some(
+                  ({ rentShareCents, depositShareCents }) => rentShareCents != null || depositShareCents != null,
+                ) ||
+                (replaceTenants &&
+                  tenantRows.some(
+                    ({ rentShareCents, depositShareCents }) => rentShareCents !== null || depositShareCents !== null,
+                  ));
+              const currencyCode =
+                current.currencyCode !== null || hasMonetaryData
+                  ? await lockLeaseCurrency(tx, organizationId, current.currencyCode)
+                  : null;
               const updateData: Prisma.LeaseUncheckedUpdateManyInput = {
+                currencyCode,
                 propertyId: parsed.data.propertyId ?? null,
                 unitId: parsed.data.unitId ?? null,
                 termType: parsed.data.termType ?? null,
@@ -4560,36 +4599,9 @@ export const appRouter = router({
               if (updated.count !== 1)
                 throw new TRPCError({ code: "CONFLICT", message: "Lease draft has changed. Reload and try again." });
 
-              if (
-                data.tenantIds !== undefined ||
-                data.tenantAllocations !== undefined ||
-                billingResponsibilityChanged
-              ) {
+              if (replaceTenants) {
                 await tx.leaseTenant.deleteMany({ where: { organizationId, leaseId: input.leaseId } });
-                const tenantIds = data.tenantIds ?? current.tenants.map(({ tenantId }) => tenantId);
-                const savedAllocations = billingResponsibilityChanged
-                  ? []
-                  : current.tenants.map(({ tenantId, rentShareCents, depositShareCents }) => ({
-                      tenantId,
-                      rentShareCents: rentShareCents ?? 0,
-                      depositShareCents: depositShareCents ?? 0,
-                    }));
-                const allocations =
-                  parsed.data.billingResponsibility === "joint" ? [] : (data.tenantAllocations ?? savedAllocations);
-                if (tenantIds.length > 0) {
-                  await tx.leaseTenant.createMany({
-                    data: tenantIds.map((tenantId) => {
-                      const allocation = allocations.find((item) => item.tenantId === tenantId);
-                      return {
-                        organizationId,
-                        leaseId: input.leaseId,
-                        tenantId,
-                        rentShareCents: allocation?.rentShareCents ?? null,
-                        depositShareCents: allocation?.depositShareCents ?? null,
-                      };
-                    }),
-                  });
-                }
+                if (tenantRows.length > 0) await tx.leaseTenant.createMany({ data: tenantRows });
               }
               return tx.lease.findFirstOrThrow({ where: { id: input.leaseId, organizationId } });
             },
@@ -4630,6 +4642,10 @@ export const appRouter = router({
                     lease.revision === input.expectedRevision + 1 &&
                     (lease.status === LeaseStatus.active || lease.status === LeaseStatus.scheduled)
                   ) {
+                    if (lease.currencyCode === null) {
+                      throw new TRPCError({ code: "CONFLICT", message: "Lease currency has not been set." });
+                    }
+                    await lockLeaseCurrency(tx, organizationId, lease.currencyCode);
                     const invoiceSummary = await getLeaseRentInvoiceSummary(tx, organizationId, lease.id, 1);
                     return { ...lease, invoiceSummary };
                   }
@@ -4678,6 +4694,10 @@ export const appRouter = router({
                   });
                 }
                 const completeLease = validation.data;
+                if (lease.currencyCode === null) {
+                  throw new TRPCError({ code: "CONFLICT", message: "Save lease amounts before finalizing the lease." });
+                }
+                const currencyCode = await lockLeaseCurrency(tx, organizationId, lease.currencyCode);
                 const rentChargeId = lease.rentChargeId;
                 await tx.property.findFirstOrThrow({
                   where: { id: completeLease.propertyId, organizationId },
@@ -4728,6 +4748,7 @@ export const appRouter = router({
                   organizationId,
                   leaseId: lease.id,
                   propertyId: completeLease.propertyId,
+                  currencyCode,
                   rentChargeId,
                   today,
                   charges: rentCharges,
@@ -5039,9 +5060,11 @@ export const appRouter = router({
                   });
                 }
 
+                const currencyCode = await lockOrganizationCurrency(tx, ctx.organization.organizationId);
                 const createdLease = await tx.lease.create({
                   data: {
                     organizationId: ctx.organization.organizationId,
+                    currencyCode,
                     propertyId,
                     unitId,
                     ...leaseData,
@@ -5059,7 +5082,6 @@ export const appRouter = router({
                         const allocation = allocationsByTenantId.get(tenantId);
 
                         return {
-                          organizationId: ctx.organization.organizationId,
                           tenantId,
                           rentShareCents: allocation?.rentShareCents,
                           depositShareCents: allocation?.depositShareCents,
@@ -5092,6 +5114,7 @@ export const appRouter = router({
                     organizationId: ctx.organization.organizationId,
                     leaseId: createdLease.id,
                     propertyId,
+                    currencyCode,
                     rentChargeId:
                       rentChargeId ??
                       (
