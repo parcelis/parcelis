@@ -369,3 +369,37 @@ oversized chunked requests with HTTP 413 rather than parse a truncated upload.
 Screenshot file types, sizes, and signatures are checked before email delivery. Existing
 per-process email throttling limits submissions to five attempts per staff user in
 15 minutes; this is not a distributed quota across replicas.
+
+
+## Lease operations
+
+The session-only `leaseOperations` tRPC router contains lease settings, resident
+assignment, renewal, and termination operations. Shared schemas
+validate inputs, organization checks scope every record, and lease permissions
+are checked independently of property permissions. Mutations use serializable
+transactions and revision checks. Lease notes reuse `Note` with an exclusive
+`leaseId` subject and a separate `lease_notes` permission resource; parent lease
+view permission is required as well. Existing non-administrator roles must be
+granted the new note permissions explicitly.
+
+A renewal creates a linked draft and reuses the existing lease wizard and
+finalization path for validation, invoices, and activation. A unique predecessor
+reference prevents duplicate successor drafts. Renewal creation also checks for
+an existing unarchived unit draft inside the serializable transaction and rejects
+conflicts before inserting another draft. Termination records its date,
+reason, and explicit final-period policy in the activity log, disables continued
+month-to-month occupancy, and voids only wholly unpaid later-period invoices.
+It requires invoice edit permission when later-period invoices must be voided,
+preserves the existing final-period charge, and rejects credits/refunds. A lease
+continuing month to month may receive a termination date after its original fixed
+term; other fixed leases cannot be extended through termination.
+Existing lifecycle reconciliation reads the updated lease from PostgreSQL and
+ends occupancy after the final day; immediate past-date termination updates
+occupancy in the same transaction. Stale worker jobs cannot revive an ended lease.
+
+Settings, household, renewal, and termination writes record lease activity events.
+The lease listing and Lease Details header reuse the same `LeaseOperationDrawer`
+and `NotesDrawer`, with page-local open state mounted outside each dropdown.
+Both entry points use the same existing API mutations, permissions, and query
+invalidation. The detail page keeps its desktop action buttons, mobile menu,
+and existing archive, delete, and lifecycle-retry handlers.

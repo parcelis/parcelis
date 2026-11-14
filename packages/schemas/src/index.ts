@@ -171,6 +171,7 @@ export const notePermissionResourceValues = [
   "application_notes",
   "maintenance_notes",
   "invoice_notes",
+  "lease_notes",
 ] as const;
 export const permissionResourceValues = [...primaryPermissionResourceValues, ...notePermissionResourceValues] as const;
 export const permissionActionValues = ["view", "create", "edit", "archive", "delete"] as const;
@@ -258,6 +259,7 @@ export const notePermissionCatalog: ReadonlyArray<{
     description: "Notes attached to maintenance tickets.",
   },
   { resource: "invoice_notes", label: "Invoice Notes", description: "Notes attached to invoices." },
+  { resource: "lease_notes", label: "Lease Notes", description: "Notes attached to leases." },
 ];
 export const updateUserInputSchema = z.object({
   id: idSchema,
@@ -493,6 +495,7 @@ const unitNoteSubjectSchema = z.object({ unitId: idSchema }).strict();
 const tenantNoteSubjectSchema = z.object({ tenantId: idSchema }).strict();
 const maintenanceTicketNoteSubjectSchema = z.object({ maintenanceTicketId: idSchema }).strict();
 const applicationNoteSubjectSchema = z.object({ applicationId: idSchema }).strict();
+const leaseNoteSubjectSchema = z.object({ leaseId: idSchema }).strict();
 const invoiceNoteSubjectSchema = z.object({ invoiceId: idSchema }).strict();
 const noteSubjectSchemas = [
   propertyNoteSubjectSchema,
@@ -501,6 +504,7 @@ const noteSubjectSchemas = [
   maintenanceTicketNoteSubjectSchema,
   applicationNoteSubjectSchema,
   invoiceNoteSubjectSchema,
+  leaseNoteSubjectSchema,
 ] as const;
 
 export const noteSubjectInputSchema = z.union(noteSubjectSchemas);
@@ -631,6 +635,28 @@ export const leaseDraftFinalizeInputSchema = z.object({
 });
 
 export const leaseByIdInputSchema = z.object({ id: idSchema });
+
+export const leaseOperationInputSchema = z.object({
+  id: idSchema,
+  expectedRevision: z.number().int().nonnegative(),
+});
+export const leaseEditInputSchema = leaseOperationInputSchema.extend({
+  endsOn: z.coerce.date().nullable(),
+  continueMonthToMonthAfterEnd: z.boolean(),
+  allowPartialPayments: z.boolean(),
+});
+export const leaseEditTenantsInputSchema = leaseOperationInputSchema.extend({
+  tenantIds: leaseDraftTenantIdsSchema.min(1),
+});
+export const leaseRenewInputSchema = leaseOperationInputSchema.extend({
+  startsOn: z.coerce.date(),
+});
+export const leaseTerminateInputSchema = leaseOperationInputSchema.extend({
+  endsOn: z.coerce.date(),
+  reason: z.string().trim().min(1).max(2000),
+  finalPeriodPolicy: z.literal("full_period"),
+});
+
 export const outboxEventByIdInputSchema = z.object({ id: idSchema });
 export const outboxEventListInputSchema = z.object({ limit: z.number().int().min(1).max(100).default(50) });
 

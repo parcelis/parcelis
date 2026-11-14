@@ -3,10 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Filter, Plus, Search, UserRound } from "lucide-react";
-import type { Lease } from "@parcelis/schemas";
+import { Building2, Filter, Plus, Search } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -21,11 +19,13 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import { apiClient, queryKeys } from "../../../components/api-client";
-import { LoadingState } from "../../../components/loading-state";
-import { LeaseDrafts } from "../../../components/lease-drafts";
-import { getLeaseLink, getNewLeaseLink, getTenantLink } from "../../../lib/entity-links";
-import { formatLeaseEndDate } from "../../../lib/format";
+import { apiClient, queryKeys } from "@/components/api-client";
+import { hasPermission } from "@/components/property-access";
+import { LoadingState } from "@/components/loading-state";
+import { LeaseDrafts } from "@/components/lease-drafts";
+import { getNewLeaseLink } from "@/lib/entity-links";
+import { LeaseMetric } from "./components/lease-metric";
+import { LeaseRow } from "./components/lease-row";
 
 type LeaseFilters = {
   status: string;
@@ -37,53 +37,20 @@ const initialFilters: LeaseFilters = {
   archived: "active",
 };
 
-function formatDate(value: Date | string | null) {
-  return value
-    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
-    : "Not set";
-}
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    cents / 100,
-  );
-}
-function formatStatus(value: string) {
-  return value
-    .split("_")
-    .map((part) => `${part[0] ?? ""}${part.slice(1)}`.replace(/^./, (character) => character.toUpperCase()))
-    .join(" ");
-}
-const neutralStatusClass = "border-transparent bg-parcelis-gray/10 text-parcelis-gray";
-const leaseStatusBadges = {
-  draft: {
-    label: "Draft",
-    className: "border-parcelis-border bg-transparent text-parcelis-gray",
-    dotClassName: "bg-current",
-  },
-  scheduled: {
-    label: "Scheduled",
-    className: "border-transparent bg-blue-500/10 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300",
-    dotClassName: "bg-current",
-  },
-  active: {
-    label: "Active",
-    className: "border-transparent bg-parcelis-green/15 text-parcelis-charcoal",
-    dotClassName: "bg-parcelis-green",
-  },
-  notice: {
-    label: "Notice",
-    className: "border-transparent bg-amber-500/10 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300",
-    dotClassName: "bg-current",
-  },
-  ended: {
-    label: "Ended",
-    className: neutralStatusClass,
-    dotClassName: "bg-current",
-  },
-} satisfies Record<Lease["status"], { label: string; className: string; dotClassName: string }>;
-
 export default function LeasesPage() {
+  const currentUserQuery = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const canViewLease = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
+  const canEditLease = canViewLease && hasPermission(currentUserQuery.data?.permissions, "leases", "edit");
+  const canArchiveLease = canViewLease && hasPermission(currentUserQuery.data?.permissions, "leases", "archive");
+  const canDeleteLease = canViewLease && hasPermission(currentUserQuery.data?.permissions, "leases", "delete");
+  const draftsQuery = useQuery({
+    queryKey: queryKeys.leases.drafts,
+    queryFn: () => apiClient.leases.drafts.query(),
+    enabled: canEditLease,
+  });
   const [search, setSearch] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [draftFilters, setDraftFilters] = React.useState<LeaseFilters>(initialFilters);
@@ -166,10 +133,10 @@ export default function LeasesPage() {
               </p>
             </div>
             <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-4 md:min-w-[540px]">
-              <Metric label="All leases" value={leases.length} />
-              <Metric label="Active" value={activeLeases.length} />
-              <Metric label="Expiring soon" value={expiringLeases.length} />
-              <Metric label="Notice given" value={noticeLeases.length} />
+              <LeaseMetric label="All leases" value={leases.length} />
+              <LeaseMetric label="Active" value={activeLeases.length} />
+              <LeaseMetric label="Expiring soon" value={expiringLeases.length} />
+              <LeaseMetric label="Notice given" value={noticeLeases.length} />
             </div>
           </section>
           <LeaseDrafts />
@@ -266,6 +233,7 @@ export default function LeasesPage() {
                       <TableHead className="w-36 px-5 py-3 font-semibold">Term</TableHead>
                       <TableHead className="w-36 px-5 py-3 font-semibold">Monthly rent</TableHead>
                       <TableHead className="w-32 px-5 py-3 font-semibold">Status</TableHead>
+                      <TableHead className="w-20 px-5 py-3 text-right font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -275,16 +243,40 @@ export default function LeasesPage() {
                             className="border-t border-parcelis-border bg-parcelis-porcelain/45"
                             key={`property-${propertyId}`}
                           >
-                            <TableCell className="px-5 py-3 font-semibold text-parcelis-charcoal" colSpan={5}>
+                            <TableCell className="px-5 py-3 font-semibold text-parcelis-charcoal" colSpan={6}>
                               <span className="flex items-center gap-2">
                                 <Building2 className="h-4 w-4 text-parcelis-green" />
                                 {group.name} ({group.leases.length})
                               </span>
                             </TableCell>
                           </TableRow>,
-                          ...group.leases.map((lease) => <LeaseRow key={lease.id} lease={lease} />),
+                          ...group.leases.map((lease) => (
+                            <LeaseRow
+                              key={lease.id}
+                              lease={lease}
+                              canView={canViewLease}
+                              canEdit={canEditLease}
+                              canArchive={canArchiveLease}
+                              canDelete={canDeleteLease}
+                              draftKey={
+                                draftsQuery.data?.find((draft) => draft.id === lease.id)?.leaseDraftKey ?? undefined
+                              }
+                            />
+                          )),
                         ])
-                      : filteredLeases.map((lease) => <LeaseRow key={lease.id} lease={lease} />)}
+                      : filteredLeases.map((lease) => (
+                          <LeaseRow
+                            key={lease.id}
+                            lease={lease}
+                            canView={canViewLease}
+                            canEdit={canEditLease}
+                            canArchive={canArchiveLease}
+                            canDelete={canDeleteLease}
+                            draftKey={
+                              draftsQuery.data?.find((draft) => draft.id === lease.id)?.leaseDraftKey ?? undefined
+                            }
+                          />
+                        ))}
                   </TableBody>
                 </Table>
               )}
@@ -293,64 +285,5 @@ export default function LeasesPage() {
         </div>
       </section>
     </main>
-  );
-}
-
-type LeaseRowProps = {
-  lease: Awaited<ReturnType<typeof apiClient.properties.list.query>>[number]["leases"][number] & {
-    property: Awaited<ReturnType<typeof apiClient.properties.list.query>>[number];
-  };
-};
-
-function LeaseRow({ lease }: LeaseRowProps) {
-  const statusBadge = Object.hasOwn(leaseStatusBadges, lease.status)
-    ? leaseStatusBadges[lease.status]
-    : { label: formatStatus(lease.status), className: neutralStatusClass, dotClassName: "bg-current" };
-
-  return (
-    <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">
-      <TableCell className="px-5 py-4">
-        <Link className="font-semibold text-parcelis-charcoal hover:text-parcelis-green" href={getLeaseLink(lease.id)}>
-          Lease #{lease.id}
-        </Link>
-        <p className="mt-1 text-sm text-parcelis-gray">
-          {lease.property.name} · Unit {lease.unitLabel}
-        </p>
-      </TableCell>
-      <TableCell className="px-5 py-4">
-        {lease.tenants.map((tenant) => (
-          <Link
-            className="mb-1 flex items-center gap-2 text-sm font-medium text-parcelis-charcoal hover:text-parcelis-green"
-            href={getTenantLink(tenant.id)}
-            key={tenant.id}
-          >
-            <UserRound className="h-4 w-4 text-parcelis-green" />
-            {tenant.firstName} {tenant.lastName}
-          </Link>
-        ))}
-      </TableCell>
-      <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-        <p>{formatDate(lease.startsOn)}</p>
-        <p className="mt-1">to {formatLeaseEndDate(lease.endsOn, lease.termType)}</p>
-      </TableCell>
-      <TableCell className="px-5 py-4 font-semibold text-parcelis-charcoal">
-        {formatCurrency(lease.monthlyRentCents)}
-      </TableCell>
-      <TableCell className="px-5 py-4">
-        <Badge className={`h-6 w-fit gap-1.5 whitespace-nowrap ${statusBadge.className}`} variant="secondary">
-          <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusBadge.dotClassName}`} />
-          {statusBadge.label}
-        </Badge>
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-md bg-white/10 p-3">
-      <div className="text-2xl font-bold text-white">{value}</div>
-      {label}
-    </div>
   );
 }
