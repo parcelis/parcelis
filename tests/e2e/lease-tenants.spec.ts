@@ -104,17 +104,19 @@ test("shows shared tenants on lease cards, the selected lease record, and tenant
     const drawer = page.getByRole("dialog").filter({
       has: page.getByRole("heading", { name: "Tenant Lease Record", exact: true }),
     });
-    const drawerTenants = drawer.getByRole("list", { name: "Tenants", exact: true });
-    await expect(drawerTenants.getByRole("link")).toHaveCount(3);
+    const drawerTenants = drawer.getByRole("list", { name: "Co-tenants", exact: true });
+    await expect(drawerTenants.getByRole("link")).toHaveCount(2);
+    await expect(drawerTenants.getByRole("link", { name: name(tenants[0]!), exact: true })).toHaveCount(0);
     await expect(drawerTenants.getByRole("link", { name: name(tenants[2]!), exact: true })).toBeVisible();
     await drawerTenants.getByRole("link", { name: name(tenants[1]!), exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/tenants/${tenants[1]!.id}$`));
 
     for (const tenant of tenants) {
       await page.goto(`/o/${slug}/tenants/${tenant.id}`);
-      const history = page.getByRole("list", { name: "Tenants", exact: true });
-      await expect(history.getByRole("link")).toHaveCount(3);
-      for (const other of tenants) {
+      const history = page.getByRole("list", { name: "Co-tenants", exact: true });
+      await expect(history.getByRole("link")).toHaveCount(2);
+      await expect(history.getByRole("link", { name: name(tenant), exact: true })).toHaveCount(0);
+      for (const other of tenants.filter((other) => other.id !== tenant.id)) {
         await expect(history.getByRole("link", { name: name(other), exact: true })).toBeVisible();
       }
     }
@@ -126,7 +128,7 @@ test("shows shared tenants on lease cards, the selected lease record, and tenant
     await expect(page.getByRole("list", { name: "Co-tenants", exact: true })).toHaveCount(0);
     await page.goto(`/o/${slug}/tenants/${tenantIds[0]}`);
     await expect(page.getByRole("heading", { name: name(tenants[0]!), exact: true })).toBeVisible();
-    await expect(page.getByRole("list", { name: "Tenants", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("list", { name: "Co-tenants", exact: true })).toHaveCount(0);
 
     await prisma.leaseTenant.create({ data: { organizationId, leaseId: lease.id, tenantId: tenantIds[2]! } });
     await page.goto(leasePath);
@@ -137,7 +139,7 @@ test("shows shared tenants on lease cards, the selected lease record, and tenant
     await expect(coTenants.getByRole("link")).toHaveCount(1);
     await expect(coTenants.getByRole("link", { name: name(tenants[2]!), exact: true })).toBeVisible();
     await page.goto(`/o/${slug}/tenants/${tenantIds[0]}`);
-    await expect(page.getByRole("list", { name: "Tenants", exact: true }).getByRole("link")).toHaveCount(2);
+    await expect(page.getByRole("list", { name: "Co-tenants", exact: true }).getByRole("link")).toHaveCount(1);
   } finally {
     await prisma.lease.deleteMany({ where: { id: { in: leaseIds } } });
     await prisma.tenant.deleteMany({ where: { id: { in: tenantIds } } });

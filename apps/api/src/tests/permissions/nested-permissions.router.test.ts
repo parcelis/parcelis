@@ -17,6 +17,7 @@ const resources: PermissionResource[] = [
   "tenant_notes",
 ];
 const tenant = { id: 4, firstName: "Private", lastName: "Tenant", email: "private@example.com" };
+const tenantSummary = { id: tenant.id, firstName: tenant.firstName, lastName: tenant.lastName };
 const invoice = { id: 8, balanceCents: 12345, invoiceNumber: "INV-private" };
 const lease = {
   id: 7,
@@ -28,7 +29,7 @@ const lease = {
   startsOn: new Date("2026-01-01"),
   endsOn: null,
   monthlyRentCents: 100_000,
-  tenants: [{ tenant }],
+  tenants: [{ tenant: tenantSummary }],
   unit: { name: "Private unit" },
   property: { id: 2, name: "Private property" },
   invoices: [invoice],
@@ -190,7 +191,7 @@ for (const role of ["property_manager", "administrator"]) {
     assert.equal(result.notes, property.legacyNotes);
     assert.equal(result.maintenanceTickets[0]?.id, 9);
     const detail = await caller.tenants.byId({ id: 4 });
-    assert.deepEqual(detail?.leases[0]?.tenants, [tenant]);
+    assert.deepEqual(detail?.leases[0]?.tenants, [tenantSummary]);
     assert.equal(detail?.leases[0]?.invoices[0]?.id, 8);
     assert.equal(detail?.tenantStatus, "active");
     assert.equal(detail?.legacyNotes, tenantRecord.legacyNotes);

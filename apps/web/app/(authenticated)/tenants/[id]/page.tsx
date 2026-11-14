@@ -879,7 +879,7 @@ export default function TenantDetailPage() {
                                   "Not set"
                                 )}
                                 <p className="mt-1 text-sm text-parcelis-gray">Unit {lease.unitLabel}</p>
-                                <LeaseTenantList tenants={lease.tenants} />
+                                <LeaseTenantList currentTenantId={tenantId} tenants={lease.tenants} />
                               </TableCell>
                               <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                                 {formatDate(lease.startsOn)}

@@ -219,7 +219,7 @@ export function TenantRecordDrawer({ onOpenChange, open, leaseId, tenantId }: Te
                     {selectedLease && selectedLease.tenants.length > 1 ? "Associated Tenants" : "Roommates"}
                   </h3>
                   {selectedLease && selectedLease.tenants.length > 1 ? (
-                    <LeaseTenantList tenants={selectedLease.tenants} />
+                    <LeaseTenantList currentTenantId={tenant.id} tenants={selectedLease.tenants} />
                   ) : (
                     <p className="mt-3 text-sm text-parcelis-gray">No roommates on this lease.</p>
                   )}
