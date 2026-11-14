@@ -53,6 +53,7 @@ import { apiClient, queryKeys } from "../../../../components/api-client";
 import { deleteTenantImage, uploadTenantImage } from "../../../../components/tenant-image-upload";
 import { TenantDrawer, initialTenantFormState, type TenantFormState } from "../../../../components/tenant-drawer";
 import { LoadingState } from "../../../../components/loading-state";
+import { LeaseTenantList } from "../../../../components/lease-tenant-list";
 import { NotesDrawer } from "../../../../components/notes-drawer";
 import { hasPermission } from "../../../../components/property-access";
 import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
@@ -166,8 +167,8 @@ export default function TenantDetailPage() {
       setIsTenantDrawerOpen(false);
       setTenantImageFile(null);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.leases.all }),
       ]);
       toast.success(entityUpdatedMessage("Tenant", `${variables.input.firstName} ${variables.input.lastName}`));
     },
@@ -878,6 +879,7 @@ export default function TenantDetailPage() {
                                   "Not set"
                                 )}
                                 <p className="mt-1 text-sm text-parcelis-gray">Unit {lease.unitLabel}</p>
+                                <LeaseTenantList tenants={lease.tenants} />
                               </TableCell>
                               <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                                 {formatDate(lease.startsOn)}

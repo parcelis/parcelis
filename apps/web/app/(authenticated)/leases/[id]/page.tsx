@@ -28,6 +28,7 @@ import { hasPermission } from "../../../../components/property-access";
 import { LoadingState } from "../../../../components/loading-state";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { TenantRecordDrawer } from "../../../../components/tenant-record-drawer";
+import { LeaseTenantList } from "../../../../components/lease-tenant-list";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../../lib/format";
 
@@ -177,9 +178,9 @@ export default function LeaseDetailPage() {
   const unit = leaseRecord?.unit;
   const refreshLeaseData = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["leases"] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.leases.all }),
       queryClient.invalidateQueries({ queryKey: ["properties"] }),
-      queryClient.invalidateQueries({ queryKey: ["tenants"] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all }),
     ]);
   };
   const returnToLeases = async () => {
@@ -407,22 +408,32 @@ export default function LeaseDetailPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {leaseRecord.tenants.map((tenant) => (
-                      <Link
-                        className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
+                      <article
+                        aria-label={`${tenant.firstName} ${tenant.lastName}`}
+                        className="rounded-md border border-parcelis-border transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
                         key={tenant.id}
-                        href={getTenantLink(tenant.id)}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          setSelectedTenantId(tenant.id);
-                        }}
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-parcelis-porcelain text-parcelis-green">
-                          <UserRound className="h-4 w-4" />
-                        </div>
-                        <span className="font-semibold text-parcelis-charcoal">
-                          {tenant.firstName} {tenant.lastName}
-                        </span>
-                      </Link>
+                        <Link
+                          className="flex items-center gap-3 p-3"
+                          href={getTenantLink(tenant.id)}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setSelectedTenantId(tenant.id);
+                          }}
+                        >
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-parcelis-porcelain text-parcelis-green">
+                            <UserRound className="h-4 w-4" />
+                          </div>
+                          <span className="min-w-0 break-words font-semibold text-parcelis-charcoal">
+                            {tenant.firstName} {tenant.lastName}
+                          </span>
+                        </Link>
+                        {leaseRecord.tenants.length > 1 ? (
+                          <div className="px-3 pb-3">
+                            <LeaseTenantList currentTenantId={tenant.id} tenants={leaseRecord.tenants} />
+                          </div>
+                        ) : null}
+                      </article>
                     ))}
                   </CardContent>
                 </Card>
@@ -488,7 +499,7 @@ export default function LeaseDetailPage() {
           if (!open) setSelectedTenantId(null);
         }}
         open={selectedTenantId !== null}
-        relatedTenants={leaseRecord?.tenants ?? []}
+        leaseId={leaseId}
         tenantId={selectedTenantId}
       />
     </main>
