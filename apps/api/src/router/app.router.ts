@@ -3470,6 +3470,7 @@ export const appRouter = router({
         }
 
         return ctx.prisma.$transaction(async (tx) => {
+          await lockOrganizationCurrency(tx, ctx.organization.organizationId);
           const applicant = await tx.applicant.create({
             data: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
           });
@@ -3522,6 +3523,7 @@ export const appRouter = router({
 
         const applicantData = getApplicantData(input.applicant);
         return ctx.prisma.$transaction(async (tx) => {
+          await lockOrganizationCurrency(tx, ctx.organization.organizationId);
           const applicantUsageCount = await tx.application.count({
             where: { organizationId: ctx.organization.organizationId, applicantId: application.applicantId },
           });
