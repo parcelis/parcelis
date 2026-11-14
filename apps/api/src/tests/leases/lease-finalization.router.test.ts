@@ -21,6 +21,7 @@ function draft(startsOn: Date) {
   return {
     id: 9,
     organizationId: 7,
+    currencyCode: "USD",
     status: "draft",
     revision: 4,
     archivedAt: null,
@@ -139,7 +140,10 @@ function createDatabase(
       },
     },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
-    organization: { findUniqueOrThrow: async () => ({ timeZone }) },
+    organization: {
+      updateMany: async () => ({ count: 1 }),
+      findUniqueOrThrow: async () => ({ timeZone, currencyCode: "USD" }),
+    },
     tenant: { findMany: async () => lease.tenants.map(({ tenantId }) => ({ id: tenantId })) },
     outboxEvent: {
       createMany: async ({
