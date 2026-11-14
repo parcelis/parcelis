@@ -399,6 +399,8 @@ ends occupancy after the final day; immediate past-date termination updates
 occupancy in the same transaction. Stale worker jobs cannot revive an ended lease.
 
 Settings, household, renewal, and termination writes record lease activity events.
-The lease listing uses a row actions component, with drawers mounted outside
-the dropdown so they remain open after selecting a menu item. Detail-page actions
-are unchanged.
+The lease listing and Lease Details header reuse the same `LeaseOperationDrawer`
+and `NotesDrawer`, with page-local open state mounted outside each dropdown.
+Both entry points use the same existing API mutations, permissions, and query
+invalidation. The detail page keeps its desktop action buttons, mobile menu,
+and existing archive, delete, and lifecycle-retry handlers.

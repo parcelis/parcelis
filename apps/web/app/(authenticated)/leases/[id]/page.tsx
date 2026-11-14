@@ -13,7 +13,6 @@ import {
   CalendarRange,
   ChevronDown,
   CircleDollarSign,
-  ClipboardEdit,
   DoorOpen,
   PenLine,
   RefreshCw,
@@ -28,6 +27,8 @@ import { hasPermission } from "../../../../components/property-access";
 import { LoadingState } from "../../../../components/loading-state";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { TenantRecordDrawer } from "../../../../components/tenant-record-drawer";
+import { NotesDrawer } from "../../../../components/notes-drawer";
+import { LeaseOperationDrawer, type LeaseOperation } from "../components/lease-operation-drawer";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../../lib/format";
 
@@ -136,8 +137,13 @@ export default function LeaseDetailPage() {
   const leaseId = Number(params.id);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [operation, setOperation] = useState<LeaseOperation | null>(null);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const canViewLease = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canEditLease = canViewLease && hasPermission(currentUserQuery.data?.permissions, "leases", "edit");
+  const canRenewLease = canEditLease && hasPermission(currentUserQuery.data?.permissions, "leases", "create");
+  const canEditTenants = canEditLease && hasPermission(currentUserQuery.data?.permissions, "tenants", "view");
+  const canViewNotes = canViewLease && hasPermission(currentUserQuery.data?.permissions, "lease_notes", "view");
   const leaseQuery = useQuery({
     enabled: canViewLease,
     queryKey: queryKeys.leases.byId(leaseId),
@@ -166,6 +172,9 @@ export default function LeaseDetailPage() {
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
   const lifecycleEvents: LeaseLifecycleEvent[] = lifecycleQuery.data ?? [];
+  const isMutable = Boolean(
+    leaseRecord && !leaseRecord.archivedAt && leaseRecord.status !== "draft" && leaseRecord.status !== "ended",
+  );
   const canRetryActivation =
     canEditLease &&
     leaseRecord?.status === "scheduled" &&
@@ -202,14 +211,20 @@ export default function LeaseDetailPage() {
           <div className="flex flex-wrap justify-end gap-2">
             <div aria-label="Lease actions" className="flex items-center rounded-md shadow-sm" role="group">
               {canEditLease ? (
-                <Button disabled={!leaseRecord} className="hidden rounded-r-none md:inline-flex" variant="primary">
+                <Button
+                  disabled={!isMutable}
+                  className="hidden rounded-r-none md:inline-flex"
+                  variant="primary"
+                  onClick={() => setOperation("edit")}
+                >
                   <PenLine className="h-4 w-4" />
                   Edit Lease
                 </Button>
               ) : null}
-              {hasPermission(currentUserQuery.data?.permissions, "leases", "create") ? (
+              {canRenewLease ? (
                 <Button
-                  disabled={!leaseRecord}
+                  disabled={!leaseRecord || leaseRecord.status === "draft" || Boolean(leaseRecord.archivedAt)}
+                  onClick={() => setOperation("renew")}
                   className={`hidden md:inline-flex ${canEditLease ? "rounded-none border-l-0" : "rounded-r-none"}`}
                   variant="secondary"
                 >
@@ -219,7 +234,7 @@ export default function LeaseDetailPage() {
               ) : null}
               <EntityLifecycleControls
                 presentation="dropdown"
-                hasLeadingAction={canEditLease || hasPermission(currentUserQuery.data?.permissions, "leases", "create")}
+                hasLeadingAction={canEditLease || canRenewLease}
                 archiveDescription="This hides the lease from the default lease directory while preserving its status, tenant assignments, and invoices. Archiving does not terminate the lease."
                 canArchive={hasPermission(currentUserQuery.data?.permissions, "leases", "archive")}
                 canDelete={hasPermission(currentUserQuery.data?.permissions, "leases", "delete")}
@@ -236,13 +251,17 @@ export default function LeaseDetailPage() {
                 onReactivateSuccess={refreshLeaseData}
               >
                 {canEditLease ? (
-                  <DropdownMenuItem className="md:hidden" disabled={!leaseRecord}>
+                  <DropdownMenuItem className="md:hidden" disabled={!isMutable} onSelect={() => setOperation("edit")}>
                     <PenLine className="h-4 w-4" />
                     Edit Lease
                   </DropdownMenuItem>
                 ) : null}
-                {hasPermission(currentUserQuery.data?.permissions, "leases", "create") ? (
-                  <DropdownMenuItem className="md:hidden" disabled={!leaseRecord}>
+                {canRenewLease ? (
+                  <DropdownMenuItem
+                    className="md:hidden"
+                    disabled={!leaseRecord || leaseRecord.status === "draft" || Boolean(leaseRecord.archivedAt)}
+                    onSelect={() => setOperation("renew")}
+                  >
                     <RefreshCw className="h-4 w-4" />
                     Renew Lease
                   </DropdownMenuItem>
@@ -250,14 +269,16 @@ export default function LeaseDetailPage() {
                 <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
                   Tenant Management
                 </p>
-                <DropdownMenuItem disabled={!canEditLease}>
+                <DropdownMenuItem disabled={!isMutable || !canEditTenants} onSelect={() => setOperation("tenants")}>
                   <UserRoundCog className="h-4 w-4 text-parcelis-green" />
                   Edit Tenants
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <StickyNotePlusIcon />
-                  Notes
-                </DropdownMenuItem>
+                {canViewNotes ? (
+                  <DropdownMenuItem disabled={!leaseRecord} onSelect={() => setIsNotesOpen(true)}>
+                    <StickyNotePlusIcon />
+                    Notes
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuSeparator />
                 <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
                   Lease Actions
@@ -274,12 +295,9 @@ export default function LeaseDetailPage() {
                     Retry expiration
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem disabled={!canEditLease}>
-                  <ClipboardEdit className="h-4 w-4 text-parcelis-green" />
-                  Initiate Damage Report
-                </DropdownMenuItem>
                 <DropdownMenuItem
-                  disabled={!canEditLease}
+                  disabled={!isMutable || !canEditLease}
+                  onSelect={() => setOperation("terminate")}
                   className="text-red-600 focus:bg-red-50 focus:text-red-700 hover:bg-red-50"
                 >
                   <XCircle className="h-4 w-4" />
@@ -483,6 +501,12 @@ export default function LeaseDetailPage() {
           )}
         </div>
       </section>
+      {operation && leaseRecord ? (
+        <LeaseOperationDrawer leaseId={leaseId} operation={operation} onClose={() => setOperation(null)} />
+      ) : null}
+      {isNotesOpen && leaseRecord ? (
+        <NotesDrawer subject={{ leaseId }} subjectLabel={`Lease #${leaseId}`} open onOpenChange={setIsNotesOpen} />
+      ) : null}
       <TenantRecordDrawer
         onOpenChange={(open) => {
           if (!open) setSelectedTenantId(null);
