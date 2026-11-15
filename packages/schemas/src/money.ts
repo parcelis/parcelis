@@ -75,3 +75,13 @@ export function sumMinorUnits(values: readonly number[]): number {
   }
   return Number(total);
 }
+
+export function sumMoneyMinorUnits(
+  values: ReadonlyArray<{ currencyCode: string | null; amountMinorUnits: number }>,
+  currencyCode: string | null,
+) {
+  if (values.some((value) => value.currencyCode !== currencyCode)) {
+    throw new RangeError("Cannot total amounts from different currencies.");
+  }
+  return sumMinorUnits(values.map((value) => value.amountMinorUnits));
+}

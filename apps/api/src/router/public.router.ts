@@ -1,6 +1,7 @@
 import {
   createPropertyInputSchema,
   organizationCurrencySettingsSchema,
+  currencyContextSchema,
   createTagInputSchema,
   createUnitInputSchema,
   leaseStatusSchema,
@@ -26,9 +27,13 @@ import { publicProcedure, router } from "./trpc";
 const objectSchema = z.object({}).passthrough();
 const dataObjectSchema = z.object({ data: objectSchema });
 const dataListSchema = z.object({ data: z.array(objectSchema) });
+const currencyObjectSchema = currencyContextSchema.passthrough();
+const dataCurrencyObjectSchema = z.object({ data: currencyObjectSchema });
+const dataCurrencyListSchema = z.object({ data: z.array(currencyObjectSchema) });
 const propertyByIdResponseSchema = z.object({
   data: z
     .object({
+      ...currencyContextSchema.shape,
       unitStatuses: z
         .array(z.union([z.literal("vacant"), leaseStatusSchema]))
         .describe("Unit status values available for filtering."),
@@ -53,7 +58,7 @@ export const publicRouter = router({
       .meta({
         openapi: { protect: true, method: "GET", path: "/properties", tags: ["Properties"] },
       })
-      .output(dataListSchema)
+      .output(dataCurrencyListSchema)
       .query(async ({ ctx }) => ({
         data: await appRouter.createCaller(ctx).properties.list(),
       })),
@@ -71,7 +76,7 @@ export const publicRouter = router({
         openapi: { protect: true, method: "POST", path: "/properties", tags: ["Properties"] },
       })
       .input(createPropertyInputSchema)
-      .output(dataObjectSchema)
+      .output(dataCurrencyObjectSchema)
       .mutation(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).properties.create(input),
       })),
@@ -80,7 +85,7 @@ export const publicRouter = router({
         openapi: { protect: true, method: "PUT", path: "/properties/{id}", tags: ["Properties"] },
       })
       .input(updatePropertyInputSchema)
-      .output(dataObjectSchema)
+      .output(dataCurrencyObjectSchema)
       .mutation(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).properties.update(input),
       })),
@@ -234,7 +239,7 @@ export const publicRouter = router({
     list: publicProcedure
       .meta({ openapi: { protect: true, method: "GET", path: "/units", tags: ["Units"] } })
       .input(listUnitsInputSchema)
-      .output(dataListSchema)
+      .output(dataCurrencyListSchema)
       .query(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).units.list(input),
       })),
@@ -243,14 +248,14 @@ export const publicRouter = router({
         openapi: { protect: true, method: "GET", path: "/units/{id}", tags: ["Units"] },
       })
       .input(unitByIdInputSchema)
-      .output(z.object({ data: objectSchema.nullable() }))
+      .output(z.object({ data: currencyObjectSchema.nullable() }))
       .query(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).units.byId(input),
       })),
     create: publicProcedure
       .meta({ openapi: { protect: true, method: "POST", path: "/units", tags: ["Units"] } })
       .input(createUnitInputSchema)
-      .output(dataObjectSchema)
+      .output(dataCurrencyObjectSchema)
       .mutation(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).units.create(input),
       })),
@@ -259,7 +264,7 @@ export const publicRouter = router({
         openapi: { protect: true, method: "PATCH", path: "/units/{id}", tags: ["Units"] },
       })
       .input(updateUnitInputSchema)
-      .output(dataObjectSchema)
+      .output(dataCurrencyObjectSchema)
       .mutation(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).units.update(input),
       })),
@@ -268,7 +273,7 @@ export const publicRouter = router({
         openapi: { protect: true, method: "DELETE", path: "/units/{id}", tags: ["Units"] },
       })
       .input(unitByIdInputSchema)
-      .output(dataObjectSchema)
+      .output(dataCurrencyObjectSchema)
       .mutation(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).units.delete(input),
       })),

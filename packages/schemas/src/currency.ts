@@ -6,6 +6,7 @@ export const currencyCodeValues = ["USD"] as const;
 
 // Currency code schema
 export const currencyCodeSchema = z.enum(currencyCodeValues);
+export const currencyContextSchema = z.object({ currencyCode: z.string().pipe(currencyCodeSchema) });
 
 // Currency metadata schema
 export const currencyMetadataSchema = z.object({

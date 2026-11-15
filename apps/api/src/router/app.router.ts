@@ -4,7 +4,7 @@ import {
   organizationCurrencySettingsSchema,
   formatMinorUnits,
   getCurrencyMetadata,
-  sumMinorUnits,
+  sumMoneyMinorUnits,
   createInvoiceChargeInputSchema,
   updateInvoiceChargeInputSchema,
   deleteInvoiceChargeInputSchema,
@@ -478,6 +478,7 @@ function withOperatingMetrics<
   T extends {
     leases: Array<{
       monthlyRentCents: number | null;
+      currencyCode: string | null;
       amountOverdueCents: number;
       endsOn: Date | null;
       status: string;
@@ -489,7 +490,7 @@ function withOperatingMetrics<
       unitLabel: string | null;
     }>;
   },
->(property: T) {
+>(property: T, currencyCode: string) {
   const now = new Date();
   const expiresBefore = new Date(now);
   expiresBefore.setDate(expiresBefore.getDate() + 90);
@@ -503,8 +504,17 @@ function withOperatingMetrics<
 
   return {
     ...property,
-    monthlyRentCents: sumMinorUnits(activeLeases.map((lease) => lease.monthlyRentCents ?? 0)),
-    amountOverdueCents: sumMinorUnits(activeLeases.map((lease) => lease.amountOverdueCents)),
+    monthlyRentCents: sumMoneyMinorUnits(
+      activeLeases.map((lease) => ({
+        currencyCode: lease.currencyCode,
+        amountMinorUnits: lease.monthlyRentCents ?? 0,
+      })),
+      currencyCode,
+    ),
+    amountOverdueCents: sumMoneyMinorUnits(
+      activeLeases.map((lease) => ({ currencyCode: lease.currencyCode, amountMinorUnits: lease.amountOverdueCents })),
+      currencyCode,
+    ),
     expiringLeases90Days: activeLeases.filter(
       (lease) => lease.endsOn !== null && lease.endsOn >= now && lease.endsOn <= expiresBefore,
     ).length,
@@ -1655,7 +1665,10 @@ export const appRouter = router({
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
             if (permissions.tenants.view && !firstTenant) return [];
-            const amountOverdueCents = sumMinorUnits(invoices.map((inv) => inv.balanceCents));
+            const amountOverdueCents = sumMoneyMinorUnits(
+              invoices.map((inv) => ({ currencyCode: inv.currencyCode, amountMinorUnits: inv.balanceCents })),
+              lease.currencyCode,
+            );
             return [
               {
                 ...leaseData,
@@ -1668,23 +1681,26 @@ export const appRouter = router({
               },
             ];
           });
-          const result = withOperatingMetrics({
-            ...withPropertyNotes({
-              ...property,
-              leases,
-            }),
-            maintenanceTickets: permissions.maintenance.view
-              ? property.maintenanceTickets.map((ticket) => ({
-                  ...ticket,
-                  unitLabel: permissions.units.view ? ticket.unitLabel : null,
-                  units: permissions.units.view ? ticket.units : [],
-                }))
-              : [],
-            units: (permissions.units.view ? property.units : []).map(({ _count, ...unit }) => ({
-              ...serializeUnit(unit, ctx.organizationScope.organization.currencyCode),
-              isOccupied: permissions.leases.view ? _count.leases > 0 : null,
-            })),
-          });
+          const result = withOperatingMetrics(
+            {
+              ...withPropertyNotes({
+                ...property,
+                leases,
+              }),
+              maintenanceTickets: permissions.maintenance.view
+                ? property.maintenanceTickets.map((ticket) => ({
+                    ...ticket,
+                    unitLabel: permissions.units.view ? ticket.unitLabel : null,
+                    units: permissions.units.view ? ticket.units : [],
+                  }))
+                : [],
+              units: (permissions.units.view ? property.units : []).map(({ _count, ...unit }) => ({
+                ...serializeUnit(unit, ctx.organizationScope.organization.currencyCode),
+                isOccupied: permissions.leases.view ? _count.leases > 0 : null,
+              })),
+            },
+            ctx.organizationScope.organization.currencyCode,
+          );
           return {
             ...result,
             currencyCode: ctx.organizationScope.organization.currencyCode,
@@ -1732,7 +1748,7 @@ export const appRouter = router({
                   },
                 },
                 unit: true,
-                invoices: { select: { balanceCents: true } },
+                invoices: { select: { balanceCents: true, currencyCode: true } },
               },
             },
             maintenanceTickets: {
@@ -1769,7 +1785,10 @@ export const appRouter = router({
           const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
           if (permissions.tenants.view && !firstTenant) return [];
           const amountOverdueCents = permissions.invoices.view
-            ? sumMinorUnits(lease.invoices.map((inv) => inv.balanceCents))
+            ? sumMoneyMinorUnits(
+                lease.invoices.map((inv) => ({ currencyCode: inv.currencyCode, amountMinorUnits: inv.balanceCents })),
+                lease.currencyCode,
+              )
             : null;
           return [
             {
