@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
 import { queueNames, type QueueRegistry } from "@parcelis/jobs";
@@ -8,6 +9,9 @@ import { createTestSessionCookie } from "../auth/session-cookie";
 import { closeJobDashboard, createJobDashboard, createJobDashboardHandler } from "../../modules/job-dashboard";
 
 const origin = process.env.WEB_ORIGIN ?? `http://localhost:${process.env.APP_PORT ?? 30000}`;
+const fixtureEmail = () => `fixture-${randomUUID()}@example.test`;
+const fixtureToken = () => `fixture-token-${randomUUID()}`;
+const fixtureSecret = () => `fixture-secret-${randomUUID()}`;
 
 function database(role: string | null = "administrator") {
   let reads = 0;
@@ -115,13 +119,13 @@ test("Next.js dashboard responses redact private data, diagnostics, and job opti
   const app = new Hono().get("/admin/jobs/api/private", (c) =>
     c.json({
       job: {
-        data: { organizationId: 3, email: "private@example.test", token: "secret" },
-        opts: { attempts: 3, secret: "private" },
-        failedReason: "private@example.test secret",
-        stacktrace: ["private path"],
-        logs: ["private log"],
-        progress: { email: "private@example.test" },
-        returnValue: { token: "secret" },
+        data: { organizationId: 3, email: fixtureEmail(), token: fixtureToken() },
+        opts: { attempts: 3, secret: fixtureSecret() },
+        failedReason: `${fixtureEmail()} secret`,
+        stacktrace: ["fixture-path"],
+        logs: ["fixture log"],
+        progress: { email: fixtureEmail() },
+        returnValue: { token: fixtureToken() },
       },
     }),
   );
@@ -141,8 +145,8 @@ test("Next.js dashboard responses redact private data, diagnostics, and job opti
 });
 
 test("Bull Board job responses redact private fields and preserve null progress and results", async () => {
-  let progress: unknown = { email: "private@example.test" };
-  let returnvalue: unknown = { token: "secret" };
+  let progress: unknown = { email: fixtureEmail() };
+  let returnvalue: unknown = { token: fixtureToken() };
   const queue = {
     name: "test-queue",
     metaValues: { version: "bullmq:6" },
@@ -151,10 +155,10 @@ test("Bull Board job responses redact private fields and preserve null progress 
       toJSON: () => ({
         id: "1",
         name: "test-job",
-        data: { organizationId: 3, email: "private@example.test", token: "secret" },
-        opts: { attempts: 3, secret: "private" },
-        failedReason: "private connection details",
-        stacktrace: ["private path"],
+        data: { organizationId: 3, email: fixtureEmail(), token: fixtureToken() },
+        opts: { attempts: 3, secret: fixtureSecret() },
+        failedReason: "fixture connection details",
+        stacktrace: ["fixture path"],
         progress,
         returnvalue,
       }),

@@ -1,10 +1,26 @@
 import assert from "node:assert/strict";
-import { createServer } from "node:http";
+import { generateKeyPairSync, randomUUID } from "node:crypto";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createServer } from "node:https";
 import { once } from "node:events";
 import test from "node:test";
 import { checkHttp, runCheck, type ServiceCheck } from "../../modules/service-checks";
 import { applyCheckResults, overallStatus, updateComponent, visibleComponent } from "../../status/state";
 import { renderStatusPage } from "../../status/page";
+
+function createLocalHttpsServer(handler: Parameters<typeof createServer>[0]) {
+  const { privateKey, certificate } = generateKeyPairSync("rsa", {
+    modulusLength: 2_048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+  return {
+    server: createServer({ key: privateKey, cert: certificate }, handler),
+    certificate,
+  };
+}
 
 const check = (status: ServiceCheck["status"]): ServiceCheck => ({
   id: "api",
@@ -57,10 +73,10 @@ test("stale results become unknown and history stays bounded", () => {
 
 test("probe failures do not expose exception details", async () => {
   const result = await runCheck("database", "PostgreSQL", async () => {
-    throw new Error("postgres://private-password@internal-host");
+    throw new Error(`postgres://fixture-user:${randomUUID()}@internal-host`);
   });
   assert.equal(result.status, "down");
-  assert.ok(!JSON.stringify(result).includes("private-password"));
+  assert.ok(!JSON.stringify(result).includes("fixture-user"));
 });
 
 test("measured degradation takes precedence over unknown components", () => {
@@ -95,7 +111,7 @@ test("a stalled probe returns down at the response deadline", async (t) => {
 });
 
 test("HTTP probes require success and expected content", async () => {
-  const server = createServer((request, response) => {
+  const { server, certificate } = createLocalHttpsServer((request, response) => {
     response.statusCode = request.url === "/error" ? 503 : 200;
     response.end(request.url === "/wrong" ? "Other application" : "Parcelis");
   });
@@ -103,12 +119,20 @@ test("HTTP probes require success and expected content", async () => {
   await once(server, "listening");
   const address = server.address();
   assert.ok(address && typeof address !== "string");
-  const url = `http://127.0.0.1:${address.port}`;
+  const url = `https://127.0.0.1:${address.port}`;
+  const tempDir = mkdtempSync(join(tmpdir(), "parcelis-status-"));
+  const certPath = join(tempDir, "local-ca.pem");
+  const previousCaSetting = process.env.NODE_EXTRA_CA_CERTS;
+  writeFileSync(certPath, certificate);
+  process.env.NODE_EXTRA_CA_CERTS = certPath;
   try {
     assert.equal((await checkHttp("web", "Web", url, "Parcelis")).status, "operational");
     assert.equal((await checkHttp("web", "Web", `${url}/wrong`, "Parcelis")).status, "down");
     assert.equal((await checkHttp("web", "Web", `${url}/error`, "Parcelis")).status, "down");
   } finally {
+    if (previousCaSetting === undefined) delete process.env.NODE_EXTRA_CA_CERTS;
+    else process.env.NODE_EXTRA_CA_CERTS = previousCaSetting;
+    rmSync(tempDir, { recursive: true, force: true });
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }

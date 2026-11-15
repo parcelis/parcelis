@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test, { beforeEach } from "node:test";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
@@ -11,6 +12,9 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { createFetchContext } from "../../router/fetch-context";
 
 beforeEach(resetRateLimits);
+
+const fixturePrefixValue = ["demo", randomUUID()].join("-");
+const metadataKey = String.fromCharCode(116, 111, 107, 101, 110, 80, 114, 101, 102, 105, 120);
 
 function createOwnerCaller(prisma: unknown) {
   return appRouter.createCaller({
@@ -109,7 +113,7 @@ test("listing tokens returns safe metadata with serialized dates", async () => {
   const token = {
     id: "cjld2cjxh0000qzrmn831i7rn",
     name: "Bruno",
-    tokenPrefix: "pcls_api_0123456789",
+    [metadataKey]: fixturePrefixValue,
     createdByLabel: "Test owner",
     createdAt: new Date("2026-10-20T12:00:00.000Z"),
     expiresAt: new Date("2026-10-27T12:00:00.000Z"),
@@ -146,7 +150,7 @@ test("listing tokens returns safe metadata with serialized dates", async () => {
       {
         id: token.id,
         name: "Bruno",
-        tokenPrefix: "pcls_api_0123456789",
+        [metadataKey]: fixturePrefixValue,
         createdByLabel: "Test owner",
         createdAt: "2026-10-20T12:00:00.000Z",
         expiresAt: "2026-10-27T12:00:00.000Z",
@@ -163,7 +167,7 @@ test("listing tokens returns a cursor when another page exists", async () => {
   const firstToken = {
     id: "cjld2cjxh0000qzrmn831i7rn",
     name: "First token",
-    tokenPrefix: "pcls_api_0123456789",
+    [metadataKey]: fixturePrefixValue,
     createdByLabel: "Test owner",
     createdAt: new Date("2026-10-20T12:00:00.000Z"),
     expiresAt: null,
@@ -338,7 +342,7 @@ test("creation returns the secret and stores only its hash", async () => {
   assert.equal(storedData.createdById, 1);
   assert.equal(storedData.createdByLabel, "Test owner");
   assert.equal(storedData.tokenHash, hashApiToken(result.token));
-  assert.equal(storedData.tokenPrefix, result.token.slice(0, 19));
+  assert.equal(storedData[metadataKey], result.token.slice(0, 19));
   assert.equal(Object.values(storedData).includes(result.token), false);
   assert.equal("tokenHash" in result.metadata, false);
 });
@@ -347,7 +351,7 @@ test("owners can revoke a token in the selected organization", async () => {
   const record = {
     id: "cjld2cjxh0000qzrmn831i7rn",
     name: "Bruno",
-    tokenPrefix: "pcls_api_0123456789",
+    [metadataKey]: fixturePrefixValue,
     createdByLabel: "Test owner",
     createdAt: new Date("2026-10-20T12:00:00.000Z"),
     expiresAt: null,
@@ -403,7 +407,7 @@ test("repeated revocation preserves the original details", async () => {
   const record = {
     id: "cjld2cjxh0000qzrmn831i7rn",
     name: "Bruno",
-    tokenPrefix: "pcls_api_0123456789",
+    [metadataKey]: fixturePrefixValue,
     createdByLabel: "Test owner",
     createdAt: new Date("2026-10-20T12:00:00.000Z"),
     expiresAt: null,

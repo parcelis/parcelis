@@ -1,6 +1,15 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+
+function resolveWithinProject(pathValue, description) {
+  const resolvedPath = resolve(pathValue);
+  const projectRoot = resolve(process.cwd());
+  if (resolvedPath !== projectRoot && !resolvedPath.startsWith(`${projectRoot}${sep}`)) {
+    throw new Error(`${description} must stay inside the project root.`);
+  }
+  return resolvedPath;
+}
 
 /**
  * Build a Docker Hub description payload with repository links pinned to a commit.
@@ -35,10 +44,11 @@ export function createDockerHubDescription(markdown, description, repository, re
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [readmePath, description] = process.argv.slice(2);
-  if (!readmePath) {
+  const [rawReadmePath, description] = process.argv.slice(2);
+  if (!rawReadmePath) {
     throw new Error("Usage: node scripts/docker-hub-description.mjs <readme> <description>");
   }
+  const readmePath = resolveWithinProject(rawReadmePath, "README path");
   const payload = createDockerHubDescription(
     readFileSync(readmePath, "utf8"),
     description,

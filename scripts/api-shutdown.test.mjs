@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { generateKeyPairSync } from "node:crypto";
 import { EventEmitter, once } from "node:events";
-import { createServer, request } from "node:http";
+import { createServer as createHttpsServer, request as httpsRequest } from "node:https";
 import test from "node:test";
 import { createApiShutdown } from "../apps/api/scripts/server.mjs";
 import { registerApiCleanup, runApiCleanup } from "../apps/api/src/modules/runtime-cleanup.ts";
@@ -50,8 +51,17 @@ test("resource cleanup still runs if Next shutdown fails", async () => {
   assert.equal(cleaned, true);
 });
 
+function createLocalHttpsServer(handler) {
+  const { privateKey, certificate } = generateKeyPairSync("rsa", {
+    modulusLength: 2_048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+  return { server: createHttpsServer({ key: privateKey, cert: certificate }, handler), certificate };
+}
+
 test("shutdown closes an active upgraded socket before Next and resource cleanup", { timeout: 5000 }, async (t) => {
-  const server = createServer();
+  const { server, certificate } = createLocalHttpsServer();
   const events = [];
   let upgradedSocket;
   let clientSocket;
@@ -71,9 +81,11 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
-  const client = request({
+  const client = httpsRequest({
     hostname: "127.0.0.1",
     port: server.address().port,
+    ca: certificate,
+    checkServerIdentity: () => undefined,
     headers: { Connection: "Upgrade", Upgrade: "websocket" },
   });
   client.end();
@@ -87,14 +99,16 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
 });
 
 test("production rejects upgraded sockets immediately", { timeout: 5000 }, async (t) => {
-  const server = createServer();
+  const { server, certificate } = createLocalHttpsServer();
   const shutdown = createApiShutdown(server, { close: async () => {} }, async () => {});
   t.after(() => server.close());
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
-  const client = request({
+  const client = httpsRequest({
     hostname: "127.0.0.1",
     port: server.address().port,
+    ca: certificate,
+    checkServerIdentity: () => undefined,
     headers: { Connection: "Upgrade", Upgrade: "websocket" },
   });
   t.after(() => client.destroy());

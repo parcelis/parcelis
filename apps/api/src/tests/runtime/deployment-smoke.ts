@@ -68,7 +68,7 @@ export async function runDeploymentSmoke({
     body: new URLSearchParams({
       csrfToken,
       email: "pdf@example.test",
-      password: "Deployment-test-password-123!",
+      password: ["fixture", "deploy", randomUUID()].join("-"),
       json: "true",
       callbackUrl: base,
     }),
