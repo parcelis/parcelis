@@ -1,0 +1,21 @@
+packages/schemas/src/money.ts
+  s_934f7ee35e2f1a::t_6c9a0bcad3a6c8 49,54-60,62
+apps/api/src/tests/currencies/money.test.ts
+  s_934f7ee35e2f1a::t_252b03b3bc540a 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "866476b2c4164fcc12ed8ed1325f609618266bab",
+  "prompts": {},
+  "sessions": {
+    "s_934f7ee35e2f1a": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d29adde5-6d23-4658-8bb9-e2c79158c128",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
