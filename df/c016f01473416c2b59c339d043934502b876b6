@@ -1,0 +1,132 @@
+scripts/upgrade-postgres.mjs
+  s_ddf9e2a4055fbe::t_2ccf1ffca59971 5,8-15
+  s_ddf9e2a4055fbe::t_58b2b215de1973 37
+  s_ddf9e2a4055fbe::t_a7c2f4618c8f5c 16
+scripts/docker-hub-description.mjs
+  s_ddf9e2a4055fbe::t_9c082e206b4fec 2,5-12
+  s_ddf9e2a4055fbe::t_76bd77fd8286b3 47-48,51
+  s_ddf9e2a4055fbe::t_0d116410df0fb8 13
+scripts/api-shutdown.test.mjs
+  s_ddf9e2a4055fbe::t_45e1439b32163d 64
+  s_ddf9e2a4055fbe::t_6e3f73d698348f 60
+  s_ddf9e2a4055fbe::t_4badded0d37c08 107
+  s_ddf9e2a4055fbe::t_dc074b0dc13fe2 2,4
+  s_ddf9e2a4055fbe::t_6c7d61c14bdb48 54-59,61-62
+  s_ddf9e2a4055fbe::t_1317d3a2e3061e 87-88
+  s_ddf9e2a4055fbe::t_dcd68433b0f1cc 84
+  s_ddf9e2a4055fbe::t_834c654f16e863 102,110-111
+apps/api/src/tests/health/status.test.ts
+  s_ddf9e2a4055fbe::t_fb4807081f306f 19-22
+  s_ddf9e2a4055fbe::t_f606cb1ed3fdb9 3-5
+  s_ddf9e2a4055fbe::t_24657ad4956eb6 13-18,23-24
+  s_ddf9e2a4055fbe::t_2350f6abd5e679 76
+  s_ddf9e2a4055fbe::t_1e4b8d08a95597 79
+  s_ddf9e2a4055fbe::t_f4f2c39d1d41c2 2,6
+  s_ddf9e2a4055fbe::t_ac64dcf570acf0 114,123-127,133-135
+  s_ddf9e2a4055fbe::t_b7015117fb4b5b 122
+apps/api/src/tests/auth/password-session.router.test.ts
+  s_ddf9e2a4055fbe::t_f28842ca815aa0 2,8-9,12
+  s_ddf9e2a4055fbe::t_d4db14dadcf3a5 90-91,94-95,100
+  s_ddf9e2a4055fbe::t_b874fbf4496188 29-30,33-34,39
+apps/api/src/tests/jobs/job-dashboard.fetch.test.ts
+  s_ddf9e2a4055fbe::t_01ef8a8e08097c 122-128
+  s_ddf9e2a4055fbe::t_eee97c475b6817 148-149
+  s_ddf9e2a4055fbe::t_1c3907df078bd0 2
+  s_ddf9e2a4055fbe::t_82c4ad264c84f4 12-14
+  s_ddf9e2a4055fbe::t_1f22c3e02c4f08 158-161
+apps/api/src/tests/jobs/job-dashboard-redaction.test.ts
+  s_ddf9e2a4055fbe::t_77477f40acfad5 2,6-8,10,13-19
+packages/email/src/tests/transport.test.ts
+  s_ddf9e2a4055fbe::t_c2acb2765da924 16
+  s_ddf9e2a4055fbe::t_fbcfead11ef514 2
+apps/api/src/tests/health/shutdown.test.ts
+  s_ddf9e2a4055fbe::t_37b4f0476f690c 39-43
+  s_ddf9e2a4055fbe::t_91086c98adc4ef 3,5
+  s_ddf9e2a4055fbe::t_3030cc6c3f5e37 16-19
+  s_ddf9e2a4055fbe::t_dfb067023823c8 26
+  s_ddf9e2a4055fbe::t_4a43e93ac08b19 10-15,20-21
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_ddf9e2a4055fbe::t_d4921a47e075c8 92
+  s_ddf9e2a4055fbe::t_b490184ba26912 2
+  s_ddf9e2a4055fbe::t_312a563442b971 337
+  s_ddf9e2a4055fbe::t_1beaa08594e123 51-53,55-56
+apps/api/src/status/server.ts
+  s_ddf9e2a4055fbe::t_28a30f3b0135fc 64
+  s_ddf9e2a4055fbe::t_35bef395df9de8 106
+  s_ddf9e2a4055fbe::t_c992952355db18 98
+  s_ddf9e2a4055fbe::t_7bbf263d1049d9 25-29
+  s_ddf9e2a4055fbe::t_8d76c5afe0e741 1-2
+  s_ddf9e2a4055fbe::t_6ff07209e9389f 33-34
+apps/api/src/tests/email/email-settings.unit.test.ts
+  s_ddf9e2a4055fbe::t_c6be8e17b1e99e 22-25
+  s_ddf9e2a4055fbe::t_78ceb277dd3a43 60
+  s_ddf9e2a4055fbe::t_64c361741deb27 2
+  s_ddf9e2a4055fbe::t_881bc7b8d533a5 16
+  s_ddf9e2a4055fbe::t_8ba2e6391db89f 36-37
+apps/api/src/tests/runtime/deployment-smoke.ts
+  s_ddf9e2a4055fbe::t_69fd7cb2992bb4 71
+apps/api/src/tests/api-tokens/api-tokens.router.test.ts
+  s_ddf9e2a4055fbe::t_8c08a490f67d1e 410
+  s_ddf9e2a4055fbe::t_21da0dbd5a63e5 170
+  s_ddf9e2a4055fbe::t_f4214439d28587 18
+  s_ddf9e2a4055fbe::t_33b82cedfd5ad1 153
+  s_ddf9e2a4055fbe::t_5efde1ff0ef839 345
+  s_ddf9e2a4055fbe::t_a12d7470915dd1 354
+  s_ddf9e2a4055fbe::t_69217786700695 2
+  s_ddf9e2a4055fbe::t_4311539ea32b87 17
+  s_ddf9e2a4055fbe::t_24e62a550eee45 16
+  s_ddf9e2a4055fbe::t_c4d169ff321a0a 116
+apps/api/src/tests/auth/nextauth.test.ts
+  s_ddf9e2a4055fbe::t_f81f62adc734ba 17
+  s_ddf9e2a4055fbe::t_9cf5cdd92f0c6e 130
+  s_ddf9e2a4055fbe::t_ca13f9926d10ba 216,219
+  s_ddf9e2a4055fbe::t_63097ba963b635 2
+  s_ddf9e2a4055fbe::t_b4bc12cd5881c5 29
+  s_ddf9e2a4055fbe::t_10f9d397e59551 18
+  s_ddf9e2a4055fbe::t_f4098e254ab502 20-22
+  s_ddf9e2a4055fbe::t_2cf7bf79ce36ef 126
+  s_ddf9e2a4055fbe::t_76a298ad13d542 109
+  s_ddf9e2a4055fbe::t_2b1547ca3a0fa1 19
+  s_ddf9e2a4055fbe::t_8925fd90563a8e 205
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_ddf9e2a4055fbe::t_b1ff97c0f97dc3 611
+  s_ddf9e2a4055fbe::t_2ddc246d7f4d39 347
+  s_ddf9e2a4055fbe::t_b0009650d3f690 643
+  s_ddf9e2a4055fbe::t_afa0712d349c57 799
+  s_ddf9e2a4055fbe::t_69d930a46bbe4e 565
+  s_ddf9e2a4055fbe::t_06a6570d659aeb 406-407,411
+  s_ddf9e2a4055fbe::t_36dc6626e47580 374,376
+  s_ddf9e2a4055fbe::t_355e2057edf1f5 70
+  s_ddf9e2a4055fbe::t_b4f46f999e3469 691
+  s_ddf9e2a4055fbe::t_4cfcc0d295a8ad 388,398
+  s_ddf9e2a4055fbe::t_598da20a5f637f 480
+  s_ddf9e2a4055fbe::t_9fa0a681f182fc 436
+  s_ddf9e2a4055fbe::t_ce365cc757bc14 738,740
+  s_ddf9e2a4055fbe::t_b02206b4c0e9c1 763
+  s_ddf9e2a4055fbe::t_b34f071f4d805c 69,71
+  s_ddf9e2a4055fbe::t_35e4aa36bffa6b 314
+  s_ddf9e2a4055fbe::t_25a68b8719850a 457
+  s_ddf9e2a4055fbe::t_3e6554c508607c 3
+  s_ddf9e2a4055fbe::t_89b9cfecdcafb4 520
+apps/api/src/tests/organizations/contact-email.test.ts
+  s_ddf9e2a4055fbe::t_1135d4ab093e5b 2
+  s_ddf9e2a4055fbe::t_3d6042fdf5b194 9-10,12
+  s_ddf9e2a4055fbe::t_f7d89e03f5737a 65,67-72
+  s_ddf9e2a4055fbe::t_a3547825bd7f52 81,88-89,94-102,109-110,118-119,124,132,138,142-143,145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dfc016f01473416c2b59c339d043934502b876b6",
+  "prompts": {},
+  "sessions": {
+    "s_ddf9e2a4055fbe": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "e5b6164b-b3be-47b1-9429-1d5d74301dab",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
