@@ -465,7 +465,7 @@ test("finalization creates the complete rent schedule once", async () => {
     activityRows()
       .filter(({ action }) => action === "lease.finalized")
       .map(({ metadata }) => metadata),
-    [{ invoiceCount: 12, rentTotalCents, billingRevision: 1 }],
+    [{ invoiceCount: 12, rentTotalCents, billingRevision: 1, currencyCode: "USD" }],
   );
   assert.equal(invoiceRows()[0]?.sourceKey, `rent:${start.toISOString().slice(0, 7)}:joint`);
   assert.equal(invoiceRows()[0]?.billingRevision, 1);
