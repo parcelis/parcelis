@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { currencyCodeSchema } from "./currency.ts";
+import { maxStoredMinorUnits, storedMinorUnitsSchema } from "./money.ts";
 
 export type FeatureFlags = { applications: boolean };
 
@@ -14,9 +16,10 @@ export * from "./lease-rent-schedule.ts";
 export * from "./invoice-charge-description.ts";
 export * from "./invoice-payment-history.ts";
 export * from "./currency.ts";
+export * from "./money.ts";
 
 const idSchema = z.coerce.number().int().positive();
-const maxDatabaseInteger = 2_147_483_647;
+const maxDatabaseInteger = maxStoredMinorUnits;
 export const imageUploadMaxSizeBytes = 2 * 1024 * 1024;
 export const imageUploadMaxSizeMessage = `Images must be ${imageUploadMaxSizeBytes / 1024 / 1024} MB or smaller.`;
 
@@ -387,6 +390,7 @@ export const updateOrganizationInputSchema = z.object({
   phone: z.string().trim().max(50).nullable(),
   email: z.string().trim().email({ pattern: z.regexes.html5Email }).max(320).nullable().optional(),
   timeZone: organizationTimeZoneSchema.optional(),
+  currencyCode: currencyCodeSchema.optional(),
 });
 export const organizationAvatarUploadInputSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
@@ -464,7 +468,7 @@ export const createTagInputSchema = z.object({
 export const unitDetailsInputSchema = z.object({
   id: idSchema.optional(),
   name: z.string().min(1),
-  marketRateCents: z.number().int().nonnegative(),
+  marketRateCents: storedMinorUnitsSchema,
   unitType: unitTypeSchema,
   bedrooms: z.number().int().nonnegative().optional(),
   bathrooms: z.number().nonnegative().optional(),
@@ -850,9 +854,14 @@ const invoiceItemsSchema = z
   .array(invoiceItemInputSchema)
   .min(1)
   .max(50)
-  .refine((items) => items.reduce((total, item) => total + item.quantity * item.rateCents, 0) <= maxDatabaseInteger, {
-    message: "Invoice total exceeds the maximum supported amount.",
-  });
+  .refine(
+    (items) =>
+      items.reduce((total, item) => total + BigInt(item.quantity) * BigInt(item.rateCents), 0n) <=
+      BigInt(maxDatabaseInteger),
+    {
+      message: "Invoice total exceeds the maximum supported amount.",
+    },
+  );
 export const createManualInvoiceInputSchema = z.object({
   propertyId: idSchema,
   leaseId: idSchema,
@@ -863,7 +872,7 @@ export const createManualInvoiceInputSchema = z.object({
 });
 export const recordInvoicePaymentInputSchema = z.object({
   id: idSchema,
-  amountCents: z.number().int().positive(),
+  amountCents: storedMinorUnitsSchema.positive(),
   paidOn: z.coerce.date(),
   paidByTenantId: idSchema,
   paymentMethod: z.enum(["cash", "money_order", "check", "cashiers_check", "paypal", "venmo", "zelle", "other"]),
@@ -873,7 +882,14 @@ export const recordInvoicePaymentsInputSchema = z.object({
   payments: z
     .array(recordInvoicePaymentInputSchema.omit({ id: true }))
     .min(1)
-    .max(50),
+    .max(50)
+    .refine(
+      (payments) =>
+        payments.reduce((total, payment) => total + BigInt(payment.amountCents), 0n) <= BigInt(maxDatabaseInteger),
+      {
+        message: "Payment total exceeds the maximum supported amount.",
+      },
+    ),
 });
 
 export const invoiceActionInvoiceSchema = z.object({

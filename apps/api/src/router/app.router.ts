@@ -1,5 +1,10 @@
 import {
   createManualInvoiceInputSchema,
+  currencyMetadata,
+  organizationCurrencySettingsSchema,
+  formatMinorUnits,
+  getCurrencyMetadata,
+  sumMinorUnits,
   createInvoiceChargeInputSchema,
   updateInvoiceChargeInputSchema,
   deleteInvoiceChargeInputSchema,
@@ -325,9 +330,9 @@ async function recordMaintenanceNoteActivity(
 
 async function recordInvoiceActivity(
   tx: Prisma.TransactionClient,
-  invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number },
+  invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number; currencyCode: string },
   action: string,
-  metadata?: Prisma.InputJsonValue,
+  metadata?: Prisma.InputJsonObject,
   actor?: { id: string | number; name: string },
 ) {
   await recordActivityEvent(
@@ -340,7 +345,7 @@ async function recordInvoiceActivity(
       subjectReference: formatInvoiceNumber(invoice.invoiceNumber),
       propertyId: invoice.propertyId,
       action,
-      metadata,
+      metadata: { ...metadata, currencyCode: invoice.currencyCode },
     },
     actor,
   );
@@ -459,9 +464,10 @@ function serializeUnit<
     amenities: Array<{ option: { id: number } }>;
     utilities: Array<{ option: { id: number } }>;
   },
->(unit: T) {
+>(unit: T, currencyCode: string) {
   return {
     ...unit,
+    currencyCode,
     bathrooms: unit.bathrooms === null ? null : Number(unit.bathrooms),
     amenityTypeIds: unit.amenities.map((amenity) => amenity.option.id),
     utilityTypeIds: unit.utilities.map((utility) => utility.option.id),
@@ -497,8 +503,8 @@ function withOperatingMetrics<
 
   return {
     ...property,
-    monthlyRentCents: activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0),
-    amountOverdueCents: activeLeases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0),
+    monthlyRentCents: sumMinorUnits(activeLeases.map((lease) => lease.monthlyRentCents ?? 0)),
+    amountOverdueCents: sumMinorUnits(activeLeases.map((lease) => lease.amountOverdueCents)),
     expiringLeases90Days: activeLeases.filter(
       (lease) => lease.endsOn !== null && lease.endsOn >= now && lease.endsOn <= expiresBefore,
     ).length,
@@ -863,6 +869,28 @@ export const appRouter = router({
       }),
   }),
   organizations: router({
+    currency: organizationApiProcedure.output(organizationCurrencySettingsSchema).query(async ({ ctx }) => {
+      const organization = await ctx.prisma.organization.findUniqueOrThrow({
+        where: { id: ctx.organizationScope.organizationId },
+        select: { currencyCode: true, currencyLockedAt: true },
+      });
+      const canManage =
+        ctx.principal.kind === "user" &&
+        (ctx.organization?.role === "owner" || ctx.organization?.role === "administrator");
+      const restrictionReason =
+        organization.currencyLockedAt !== null
+          ? ("monetary_data_saved" as const)
+          : canManage
+            ? null
+            : ("insufficient_permissions" as const);
+      return {
+        ...organization,
+        currencyCode: organizationCurrencySettingsSchema.shape.currencyCode.parse(organization.currencyCode),
+        canChangeCurrency: restrictionReason === null,
+        restrictionReason,
+        supportedCurrencies: Object.values(currencyMetadata),
+      };
+    }),
     list: publicProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "administrator") {
         const organizations = await ctx.prisma.organization.findMany({
@@ -885,6 +913,8 @@ export const appRouter = router({
       name: ctx.organization.organization.name,
       slug: ctx.organization.organization.slug,
       timeZone: ctx.organization.organization.timeZone,
+      currencyCode: ctx.organization.organization.currencyCode,
+      currencyLockedAt: ctx.organization.organization.currencyLockedAt,
       avatarObjectKey: ctx.organization.organization.avatarObjectKey,
       avatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.avatarObjectKey),
       darkAvatarObjectKey: ctx.organization.organization.darkAvatarObjectKey,
@@ -920,7 +950,7 @@ export const appRouter = router({
     update: organizationProcedure.input(updateOrganizationInputSchema).mutation(async ({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
       try {
-        const organization = await ctx.prisma.organization.update({
+        const update = {
           where: { id: ctx.organization.organizationId },
           data: {
             name: input.name,
@@ -946,8 +976,35 @@ export const appRouter = router({
             phone: true,
             email: true,
             timeZone: true,
+            currencyCode: true,
+            currencyLockedAt: true,
           },
-        });
+        } satisfies Prisma.OrganizationUpdateArgs;
+        const organization =
+          input.currencyCode === undefined
+            ? await ctx.prisma.organization.update(update)
+            : await ctx.prisma.$transaction(async (tx) => {
+                const current = await tx.organization.findUniqueOrThrow({
+                  where: update.where,
+                  select: { currencyCode: true },
+                });
+                if (current.currencyCode === input.currencyCode) return tx.organization.update(update);
+                const changed = await tx.organization.updateMany({
+                  where: {
+                    id: ctx.organization.organizationId,
+                    currencyCode: current.currencyCode,
+                    currencyLockedAt: null,
+                  },
+                  data: { ...update.data, currencyCode: input.currencyCode },
+                });
+                if (changed.count !== 1) {
+                  throw new TRPCError({
+                    code: "CONFLICT",
+                    message: "Organization currency is locked by saved monetary data.",
+                  });
+                }
+                return tx.organization.findUniqueOrThrow({ where: update.where, select: update.select });
+              });
         return {
           ...organization,
           address: {
@@ -1513,6 +1570,7 @@ export const appRouter = router({
           leases: {
             select: {
               monthlyRentCents: true,
+              currencyCode: true,
               archivedAt: true,
               id: true,
               startsOn: true,
@@ -1541,6 +1599,7 @@ export const appRouter = router({
                   paidOn: true,
                   status: true,
                   amountCents: true,
+                  currencyCode: true,
                   balanceCents: true,
                 },
               },
@@ -1596,7 +1655,7 @@ export const appRouter = router({
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
             if (permissions.tenants.view && !firstTenant) return [];
-            const amountOverdueCents = invoices.reduce((sum, inv) => sum + inv.balanceCents, 0);
+            const amountOverdueCents = sumMinorUnits(invoices.map((inv) => inv.balanceCents));
             return [
               {
                 ...leaseData,
@@ -1622,12 +1681,13 @@ export const appRouter = router({
                 }))
               : [],
             units: (permissions.units.view ? property.units : []).map(({ _count, ...unit }) => ({
-              ...serializeUnit(unit),
+              ...serializeUnit(unit, ctx.organizationScope.organization.currencyCode),
               isOccupied: permissions.leases.view ? _count.leases > 0 : null,
             })),
           });
           return {
             ...result,
+            currencyCode: ctx.organizationScope.organization.currencyCode,
             occupiedUnits: permissions.units.view && permissions.leases.view ? property.occupiedUnits : null,
             monthlyRentCents: permissions.leases.view ? result.monthlyRentCents : null,
             amountOverdueCents: permissions.leases.view && permissions.invoices.view ? result.amountOverdueCents : null,
@@ -1709,7 +1769,7 @@ export const appRouter = router({
           const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
           if (permissions.tenants.view && !firstTenant) return [];
           const amountOverdueCents = permissions.invoices.view
-            ? lease.invoices.reduce((sum, inv) => sum + inv.balanceCents, 0)
+            ? sumMinorUnits(lease.invoices.map((inv) => inv.balanceCents))
             : null;
           return [
             {
@@ -1724,6 +1784,7 @@ export const appRouter = router({
         });
 
         return {
+          currencyCode: ctx.organizationScope.organization.currencyCode,
           ...withPropertyNotes({
             ...propertyData,
             leases: leases.filter((lease) => lease.archivedAt === null),
@@ -1740,7 +1801,9 @@ export const appRouter = router({
           legacyNotes: permissions.property_notes.view ? property.legacyNotes : null,
           legacyNoteId: permissions.property_notes.view ? property.legacyNoteId : null,
           notes: permissions.property_notes.view ? property.legacyNotes : null,
-          units: permissions.units.view ? rawUnits.map(serializeUnit) : [],
+          units: permissions.units.view
+            ? rawUnits.map((unit) => serializeUnit(unit, ctx.organizationScope.organization.currencyCode))
+            : [],
           unitStatuses,
           imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
         };
@@ -1823,9 +1886,10 @@ export const appRouter = router({
           });
         await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, input.units);
         return ctx.prisma.$transaction(async (tx) => {
-          if (input.units.length > 0) {
-            await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
-          }
+          const currencyCode =
+            input.units.length > 0
+              ? await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId)
+              : ctx.organizationScope.organization.currencyCode;
           const initialProperty = await tx.property.create({
             select: propertySelect,
             data: {
@@ -1864,7 +1928,7 @@ export const appRouter = router({
             ),
           );
 
-          return withPropertyNotes(property);
+          return withPropertyNotes({ ...property, currencyCode });
         });
       }),
     /** Updates a property and synchronizes its units. */
@@ -1914,9 +1978,10 @@ export const appRouter = router({
                 where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
                 select: { legacyNoteId: true },
               });
-              if (input.units.length > 0) {
-                await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
-              }
+              const currencyCode =
+                input.units.length > 0
+                  ? await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId)
+                  : ctx.organizationScope.organization.currencyCode;
               const legacyNote =
                 input.notes === undefined
                   ? {}
@@ -1996,7 +2061,7 @@ export const appRouter = router({
                   });
                 }),
               );
-              return updatedProperty;
+              return { ...updatedProperty, currencyCode };
             },
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
           )
@@ -2158,6 +2223,7 @@ export const appRouter = router({
                   termType: true,
                   endsOn: true,
                   monthlyRentCents: true,
+                  currencyCode: true,
                   propertyId: true,
                   unitId: true,
                   unit: { select: { name: true } },
@@ -2220,6 +2286,7 @@ export const appRouter = router({
                     status: true,
                     termType: true,
                     monthlyRentCents: true,
+                    currencyCode: true,
                     unitId: true,
                     propertyId: true,
                     unit: { select: { name: true } },
@@ -2231,6 +2298,7 @@ export const appRouter = router({
                         status: true,
                         dueOn: true,
                         amountCents: true,
+                        currencyCode: true,
                         paidOn: true,
                         balanceCents: true,
                         invoiceNumber: true,
@@ -2575,7 +2643,7 @@ export const appRouter = router({
                   subjectLabel: `Lease #${lease.id}`,
                   propertyId: input.propertyId,
                   action: "lease.created",
-                  metadata: { ...invoiceSummary, billingRevision: 1 },
+                  metadata: { ...invoiceSummary, billingRevision: 1, currencyCode },
                 });
               }
 
@@ -3050,7 +3118,7 @@ export const appRouter = router({
               },
               ctx.user,
             );
-            return payment;
+            return { ...payment, currencyCode: invoice.currencyCode };
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
@@ -3145,7 +3213,7 @@ export const appRouter = router({
                 ctx.user,
               );
             }
-            return payments;
+            return payments.map((payment) => ({ ...payment, currencyCode: invoice.currencyCode }));
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
@@ -3323,7 +3391,7 @@ export const appRouter = router({
             await tx.note.create({
               data: {
                 invoiceId: payment.invoiceId,
-                body: `Payment of ${new Intl.NumberFormat("en-US", { style: "currency", currency: invoice.currencyCode }).format(payment.amountCents / 100)} reversed by ${ctx.user.name}.\nReason: ${input.reason}`,
+                body: `Payment of ${formatMinorUnits(payment.amountCents, getCurrencyMetadata(invoice.currencyCode))} reversed by ${ctx.user.name}.\nReason: ${input.reason}`,
               },
             });
             await recordInvoiceActivity(
@@ -3450,27 +3518,38 @@ export const appRouter = router({
   }),
   applications: router({
     list: permissionProcedure("applications", "view").query(({ ctx }) =>
-      ctx.prisma.application.findMany({
-        where: { organizationId: ctx.organization.organizationId, archivedAt: null },
-        orderBy: [{ submittedOn: "desc" }, { id: "desc" }],
-        include: {
-          property: { select: { id: true, name: true } },
-          applicant: true,
-          status: { select: { id: true, label: true } },
-        },
-      }),
+      ctx.prisma.application
+        .findMany({
+          where: { organizationId: ctx.organization.organizationId, archivedAt: null },
+          orderBy: [{ submittedOn: "desc" }, { id: "desc" }],
+          include: {
+            property: { select: { id: true, name: true } },
+            applicant: true,
+            status: { select: { id: true, label: true } },
+          },
+        })
+        .then((applications) =>
+          applications.map((application) => ({
+            ...application,
+            currencyCode: ctx.organization.organization.currencyCode,
+          })),
+        ),
     ),
     byId: permissionProcedure("applications", "view")
       .input(applicationByIdInputSchema)
       .query(({ ctx, input }) =>
-        ctx.prisma.application.findFirst({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
-          include: {
-            property: { select: { id: true, name: true, city: true, region: true } },
-            applicant: true,
-            status: { select: { id: true, label: true } },
-          },
-        }),
+        ctx.prisma.application
+          .findFirst({
+            where: { id: input.id, organizationId: ctx.organization.organizationId },
+            include: {
+              property: { select: { id: true, name: true, city: true, region: true } },
+              applicant: true,
+              status: { select: { id: true, label: true } },
+            },
+          })
+          .then((application) =>
+            application ? { ...application, currencyCode: ctx.organization.organization.currencyCode } : null,
+          ),
       ),
     create: permissionProcedure("applications", "create")
       .input(createApplicationInputSchema)
@@ -3499,12 +3578,12 @@ export const appRouter = router({
         }
 
         return ctx.prisma.$transaction(async (tx) => {
-          await lockOrganizationCurrency(tx, ctx.organization.organizationId);
+          const currencyCode = await lockOrganizationCurrency(tx, ctx.organization.organizationId);
           const applicant = await tx.applicant.create({
             data: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
           });
 
-          return tx.application.create({
+          const saved = await tx.application.create({
             data: {
               organizationId: ctx.organization.organizationId,
               propertyId: input.propertyId,
@@ -3514,6 +3593,7 @@ export const appRouter = router({
               applicantId: applicant.id,
             },
           });
+          return { ...saved, currencyCode };
         });
       }),
     update: permissionProcedure("applications", "edit")
@@ -3552,7 +3632,7 @@ export const appRouter = router({
 
         const applicantData = getApplicantData(input.applicant);
         return ctx.prisma.$transaction(async (tx) => {
-          await lockOrganizationCurrency(tx, ctx.organization.organizationId);
+          const currencyCode = await lockOrganizationCurrency(tx, ctx.organization.organizationId);
           const applicantUsageCount = await tx.application.count({
             where: { organizationId: ctx.organization.organizationId, applicantId: application.applicantId },
           });
@@ -3562,7 +3642,7 @@ export const appRouter = router({
                   data: { organizationId: ctx.organization.organizationId, ...applicantData },
                 })
               : await tx.applicant.update({ where: { id: application.applicantId }, data: applicantData });
-          return tx.application.update({
+          const saved = await tx.application.update({
             where: { id: input.id },
             data: {
               propertyId: input.propertyId,
@@ -3572,6 +3652,7 @@ export const appRouter = router({
               applicantId: applicant.id,
             },
           });
+          return { ...saved, currencyCode };
         });
       }),
     updateStatus: permissionProcedure("applications", "edit")
@@ -4364,6 +4445,7 @@ export const appRouter = router({
             startsOn: true,
             endsOn: true,
             monthlyRentCents: true,
+            currencyCode: true,
             rentChargeId: true,
             rentDueDay: true,
             property: { select: { id: true, name: true } },
@@ -4437,9 +4519,9 @@ export const appRouter = router({
                   startsOn: true,
                   endsOn: true,
                   monthlyRentCents: true,
+                  currencyCode: true,
                   rentChargeId: true,
                   securityDepositCents: true,
-                  currencyCode: true,
                   rentDueDay: true,
                   continueMonthToMonthAfterEnd: true,
                   billingResponsibility: true,
@@ -4850,7 +4932,7 @@ export const appRouter = router({
                   subjectLabel: `Lease #${lease.id}`,
                   propertyId: completeLease.propertyId,
                   action: "lease.finalized",
-                  metadata: { ...invoiceSummary, billingRevision: 1 },
+                  metadata: { ...invoiceSummary, billingRevision: 1, currencyCode },
                 });
                 if (status === LeaseStatus.active) {
                   await recordActivityEvent(tx, {
@@ -5157,7 +5239,7 @@ export const appRouter = router({
                     subjectLabel: `Lease #${createdLease.id}`,
                     propertyId,
                     action: "lease.created",
-                    metadata: { ...invoiceSummary, billingRevision: 1 },
+                    metadata: { ...invoiceSummary, billingRevision: 1, currencyCode },
                   });
                 }
 
@@ -5218,7 +5300,7 @@ export const appRouter = router({
           },
         });
 
-        return units.map(serializeUnit);
+        return units.map((unit) => serializeUnit(unit, ctx.organizationScope.organization.currencyCode));
       }),
     /** Returns a unit by its ID. */
     byId: apiPermissionProcedure("units", "view")
@@ -5237,7 +5319,7 @@ export const appRouter = router({
         });
 
         if (!unit && ctx.transport === "rest") throw new TRPCError({ code: "NOT_FOUND", message: "Unit not found." });
-        return unit ? serializeUnit(unit) : null;
+        return unit ? serializeUnit(unit, ctx.organizationScope.organization.currencyCode) : null;
       }),
     /** Creates a unit for a property. */
     create: apiPermissionProcedure("units", "create")
@@ -5250,9 +5332,9 @@ export const appRouter = router({
             where: { id: propertyId, organizationId: ctx.organizationScope.organizationId },
           });
           await validateUnitOptionIds(tx, ctx.organizationScope.organizationId, [unitDetails]);
-          await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
+          const currencyCode = await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
 
-          return tx.unit.create({
+          const saved = await tx.unit.create({
             data: getUnitCreateData(propertyId, unitDetails),
             include: {
               amenities: {
@@ -5263,9 +5345,10 @@ export const appRouter = router({
               },
             },
           });
+          return { ...saved, currencyCode };
         });
 
-        return serializeUnit(unit);
+        return serializeUnit(unit, unit.currencyCode);
       }),
     /** Updates a unit by its ID. */
     update: apiPermissionProcedure("units", "edit")
@@ -5276,11 +5359,11 @@ export const appRouter = router({
             where: { id: input.id, property: { organizationId: ctx.organizationScope.organizationId } },
           });
           await validateUnitOptionIds(tx, ctx.organizationScope.organizationId, [input]);
-          await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
+          const currencyCode = await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
           await tx.unitUtility.deleteMany({ where: { unitId: input.id } });
           await tx.unitAmenity.deleteMany({ where: { unitId: input.id } });
 
-          return tx.unit.update({
+          const saved = await tx.unit.update({
             where: { id: input.id },
             data: getUnitUpdateData(input),
             include: {
@@ -5292,9 +5375,10 @@ export const appRouter = router({
               },
             },
           });
+          return { ...saved, currencyCode };
         });
 
-        return serializeUnit(unit);
+        return serializeUnit(unit, unit.currencyCode);
       }),
     /** Deletes a unit without lease, maintenance, or note history. */
     delete: apiPermissionProcedure("units", "delete")
@@ -5334,7 +5418,7 @@ export const appRouter = router({
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
           );
 
-          return serializeUnit(unit);
+          return serializeUnit(unit, ctx.organizationScope.organization.currencyCode);
         } catch (error) {
           if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
             throw new TRPCError({ code: "CONFLICT", message: "The unit changed. Please try again." });

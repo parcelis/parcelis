@@ -1,5 +1,6 @@
 import {
   createPropertyInputSchema,
+  organizationCurrencySettingsSchema,
   createTagInputSchema,
   createUnitInputSchema,
   leaseStatusSchema,
@@ -37,6 +38,12 @@ const propertyByIdResponseSchema = z.object({
 });
 
 export const publicRouter = router({
+  organizations: router({
+    currency: publicProcedure
+      .meta({ openapi: { protect: true, method: "GET", path: "/organization/currency", tags: ["Organization"] } })
+      .output(z.object({ data: organizationCurrencySettingsSchema }))
+      .query(async ({ ctx }) => ({ data: await appRouter.createCaller(ctx).organizations.currency() })),
+  }),
   health: publicProcedure
     .meta({ openapi: { protect: false, method: "GET", path: "/health", tags: ["System"] } })
     .output(dataObjectSchema)
