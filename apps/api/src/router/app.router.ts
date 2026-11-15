@@ -108,6 +108,7 @@ import {
 import { getCalendarDate, getStartOfCalendarDate, outboxEventTypes } from "@parcelis/jobs";
 import { createLeaseRentInvoices, getLeaseRentInvoiceSummary } from "../leases/lease-rent-invoices";
 import { lockLeaseCurrency } from "../leases/lease-currency";
+import { lockInvoiceCurrency } from "../modules/invoice-currency";
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
@@ -2843,54 +2844,58 @@ export const appRouter = router({
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
-      const lease = await ctx.prisma.lease.findFirst({
-        where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
-        select: {
-          id: true,
-          propertyId: true,
-          status: true,
-          billingResponsibility: true,
-          allowPartialPayments: true,
-          tenants: {
-            orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
-            select: { tenantId: true },
-          },
-        },
-      });
-      if (!lease || lease.propertyId === null || lease.propertyId !== input.propertyId) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property." });
-      }
-      if (lease.status === LeaseStatus.draft) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." });
-      }
-
-      const tenantId = input.tenantId ?? lease.tenants[0]?.tenantId;
-      if (tenantId === undefined || !lease.tenants.some((tenant) => tenant.tenantId === tenantId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "The selected tenant is not on this lease." });
-      }
-      const recipientTenantIds =
-        lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [tenantId];
-
-      const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
-      if (amountCents <= 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "An invoice must have a positive total." });
-      }
-      if (input.paidCents > amountCents) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid cannot exceed the invoice total." });
-      }
-      if (!lease.allowPartialPayments && input.paidCents > 0 && input.paidCents !== amountCents) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This lease requires the invoice to be paid in full.",
-        });
-      }
-      const dueOn = new Date(input.dueOn);
-      dueOn.setUTCHours(0, 0, 0, 0);
-
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
           return await ctx.prisma.$transaction(
             async (tx) => {
+              const lease = await tx.lease.findFirst({
+                where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
+                select: {
+                  id: true,
+                  currencyCode: true,
+                  propertyId: true,
+                  status: true,
+                  billingResponsibility: true,
+                  allowPartialPayments: true,
+                  tenants: {
+                    orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
+                    select: { tenantId: true },
+                  },
+                },
+              });
+              if (!lease || lease.propertyId === null || lease.propertyId !== input.propertyId) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property." });
+              }
+              if (lease.status === LeaseStatus.draft) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." });
+              }
+
+              const tenantId = input.tenantId ?? lease.tenants[0]?.tenantId;
+              if (tenantId === undefined || !lease.tenants.some((tenant) => tenant.tenantId === tenantId)) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "The selected tenant is not on this lease." });
+              }
+              const recipientTenantIds =
+                lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [tenantId];
+
+              const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
+              if (amountCents <= 0) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "An invoice must have a positive total." });
+              }
+              if (input.paidCents > amountCents) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid cannot exceed the invoice total." });
+              }
+              if (!lease.allowPartialPayments && input.paidCents > 0 && input.paidCents !== amountCents) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "This lease requires the invoice to be paid in full.",
+                });
+              }
+              const dueOn = new Date(input.dueOn);
+              dueOn.setUTCHours(0, 0, 0, 0);
+              if (lease.currencyCode === null) {
+                throw new TRPCError({ code: "CONFLICT", message: "Lease currency has not been set." });
+              }
+              const currencyCode = await lockLeaseCurrency(tx, ctx.organization.organizationId, lease.currencyCode);
               const existingInvoice = await tx.invoice.findFirst({
                 where: {
                   leaseId: lease.id,
@@ -2910,6 +2915,7 @@ export const appRouter = router({
                 data: {
                   organizationId: ctx.organization.organizationId,
                   leaseId: lease.id,
+                  currencyCode,
                   propertyId: input.propertyId,
                   tenantId,
                   recipients: {
@@ -2984,11 +2990,12 @@ export const appRouter = router({
                 propertyId: true,
                 dueOn: true,
                 balanceCents: true,
+                currencyCode: true,
                 recipients: {
                   select: { tenantId: true },
                 },
                 lease: {
-                  select: { allowPartialPayments: true },
+                  select: { allowPartialPayments: true, currencyCode: true },
                 },
               },
             });
@@ -3009,6 +3016,7 @@ export const appRouter = router({
                 message: "This lease requires the invoice to be paid in full.",
               });
             }
+            await lockInvoiceCurrency(tx, ctx.organization.organizationId, invoice);
             const balanceCents = invoice.balanceCents - input.amountCents;
             const payment = await tx.invoicePayment.create({
               data: {
@@ -3066,11 +3074,12 @@ export const appRouter = router({
               select: {
                 dueOn: true,
                 balanceCents: true,
+                currencyCode: true,
                 recipients: {
                   select: { tenantId: true },
                 },
                 lease: {
-                  select: { allowPartialPayments: true },
+                  select: { allowPartialPayments: true, currencyCode: true },
                 },
               },
             });
@@ -3092,6 +3101,7 @@ export const appRouter = router({
                 message: "This lease requires the invoice to be paid in full.",
               });
             }
+            await lockInvoiceCurrency(tx, ctx.organization.organizationId, invoice);
             const balanceCents = invoice.balanceCents - paymentTotalCents;
             const latestPayment = input.payments.reduce((latest, payment) =>
               payment.paidOn >= latest.paidOn ? payment : latest,
@@ -3162,8 +3172,14 @@ export const appRouter = router({
           async (tx) => {
             const invoice = await tx.invoice.findFirstOrThrow({
               where: { id: input.id, organizationId: ctx.organization.organizationId },
-              select: { amountCents: true, balanceCents: true },
+              select: {
+                amountCents: true,
+                balanceCents: true,
+                currencyCode: true,
+                lease: { select: { currencyCode: true } },
+              },
             });
+            await lockInvoiceCurrency(tx, ctx.organization.organizationId, invoice);
             const paidCents = invoice.amountCents - invoice.balanceCents;
             if (paidCents > amountCents) {
               throw new TRPCError({
@@ -3229,6 +3245,7 @@ export const appRouter = router({
                 id: true,
                 amountCents: true,
                 balanceCents: true,
+                currencyCode: true,
                 paidOn: true,
                 paidByTenantId: true,
                 paymentMethod: true,
@@ -3262,11 +3279,19 @@ export const appRouter = router({
               where: { id: input.id, organizationId: ctx.organization.organizationId },
               select: { invoiceId: true, amountCents: true, reversedAt: true },
             });
-            if (payment.reversedAt) return { id: input.id };
             const invoice = await tx.invoice.findFirstOrThrow({
               where: { id: payment.invoiceId, organizationId: ctx.organization.organizationId },
-              select: { amountCents: true, balanceCents: true, dueOn: true, status: true },
+              select: {
+                amountCents: true,
+                balanceCents: true,
+                dueOn: true,
+                status: true,
+                currencyCode: true,
+                lease: { select: { currencyCode: true } },
+              },
             });
+            await lockInvoiceCurrency(tx, ctx.organization.organizationId, invoice);
+            if (payment.reversedAt) return { id: input.id };
             if (invoice.status === "void" || invoice.balanceCents + payment.amountCents > invoice.amountCents) {
               throw new TRPCError({
                 code: "CONFLICT",
@@ -3298,7 +3323,7 @@ export const appRouter = router({
             await tx.note.create({
               data: {
                 invoiceId: payment.invoiceId,
-                body: `Payment of $${(payment.amountCents / 100).toFixed(2)} reversed by ${ctx.user.name}.\nReason: ${input.reason}`,
+                body: `Payment of ${new Intl.NumberFormat("en-US", { style: "currency", currency: invoice.currencyCode }).format(payment.amountCents / 100)} reversed by ${ctx.user.name}.\nReason: ${input.reason}`,
               },
             });
             await recordInvoiceActivity(
