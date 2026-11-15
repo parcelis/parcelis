@@ -42,6 +42,7 @@ test("formatting preserves fractions and does not round large integers through f
   assert.match(formatMinorUnits("123", { code: "JPY", minorUnitDigits: 0 }), /123/);
   assert.match(formatMinorUnits("12345", { code: "KWD", minorUnitDigits: 3 }), /12\.345/);
   assert.match(formatMinorUnits("7800000000", { code: "TZS", minorUnitDigits: 2 }), /78,000,000\.00/);
+  assert.match(formatMinorUnits("7800000000", { code: "TZS", minorUnitDigits: 2 }, "ar-EG"), /٧٨٬٠٠٠٬٠٠٠٫٠٠/);
   assert.throws(() => formatMinorUnits(Number.MAX_SAFE_INTEGER + 1, currencyMetadata.USD));
 });
 

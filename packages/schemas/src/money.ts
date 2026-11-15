@@ -46,14 +46,20 @@ export function formatMinorUnits(value: string | bigint | number, currency: Mone
   const whole = absolute / scale;
   const fraction = (absolute % scale).toString().padStart(currency.minorUnitDigits, "0");
   const signedWhole = amount < 0n ? (whole === 0n ? -0 : -whole) : whole;
-  return new Intl.NumberFormat(locale, {
+  const formatter = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currency.code,
     minimumFractionDigits: currency.minorUnitDigits,
     maximumFractionDigits: currency.minorUnitDigits,
-  })
+  });
+  const localizedDigits = Array.from({ length: 10 }, (_, digit) => {
+    const part = formatter.formatToParts(digit).find((entry) => entry.type === "integer");
+    return part?.value ?? String(digit);
+  });
+  const localizedFraction = fraction.replace(/\d/g, (digit) => localizedDigits[Number(digit)] ?? digit);
+  return formatter
     .formatToParts(signedWhole)
-    .map((part) => (part.type === "fraction" ? fraction : part.value))
+    .map((part) => (part.type === "fraction" ? localizedFraction : part.value))
     .join("");
 }
 
