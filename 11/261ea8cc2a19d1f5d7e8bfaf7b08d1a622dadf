@@ -1,0 +1,94 @@
+.github/workflows/postgres-integration.yml
+  s_9e1431a7735a4b::t_ea7655d7666156 26,62
+apps/api/src/router/app.router.ts
+  s_9e1431a7735a4b::t_ea7655d7666156 2241-2243,2277
+apps/web/components/sidebar.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 61
+.github/workflows/postgres-upgrade.yml
+  s_9e1431a7735a4b::t_ea7655d7666156 31
+apps/web/components/api-client.ts
+  s_9e1431a7735a4b::t_ea7655d7666156 54,59
+apps/api/src/tests/permissions/nested-permissions.router.test.ts
+  s_9e1431a7735a4b::t_ee3b723ff7a732 20
+  s_9e1431a7735a4b::t_ea7655d7666156 39,203,209-244
+apps/web/app/(authenticated)/settings/invoicing/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 3,62,72-75,202
+apps/web/components/tenant-record-drawer.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 32,38,54,76-77,91,207-210,218-222
+.github/workflows/build-and-test.yml
+  s_9e1431a7735a4b::t_ea7655d7666156 17
+.github/workflows/docker-hub-descriptions.yml
+  s_9e1431a7735a4b::t_ea7655d7666156 35
+tests/e2e/settings-routes.spec.ts
+  s_9e1431a7735a4b::t_ea7655d7666156 1-22
+apps/web/app/(authenticated)/settings/organization/api-tokens/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 3,272,282-285,427
+apps/web/components/invoice-actions.tsx
+  s_9e1431a7735a4b::t_ee3b723ff7a732 18-21,183-200,211
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 3,100,106,116-125,235
+packages/ui/src/components/settings-panel.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 1-814
+apps/web/app/(authenticated)/settings/profile/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 3,92,102,191
+apps/web/app/(authenticated)/settings/security/roles/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 1-346
+.github/workflows/lint.yml
+  s_9e1431a7735a4b::t_ea7655d7666156 23
+apps/web/components/settings-rail.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 3,5-6,8,17,23-24,30-55,57-73,75-78,80-101,103
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_9e1431a7735a4b::t_ea7655d7666156 129,147-150,152,154
+ARCHITECTURE.md
+  s_9e1431a7735a4b::t_ea7655d7666156 130
+Dockerfile.app
+  s_9e1431a7735a4b::t_ea7655d7666156 16,97
+.github/workflows/conventional-commits.yml
+  s_9e1431a7735a4b::t_ea7655d7666156 18
+apps/web/Dockerfile
+  s_9e1431a7735a4b::t_ea7655d7666156 2
+apps/web/app/(authenticated)/settings/organization/email/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 3,152,162-165,368
+packages/ui/src/index.ts
+  s_9e1431a7735a4b::t_ea7655d7666156 2
+AGENTS.md
+  s_9e1431a7735a4b::t_ee3b723ff7a732 37,58
+CONTRIBUTING.md
+  s_9e1431a7735a4b::t_ee3b723ff7a732 338
+tests/e2e/lease-tenants.spec.ts
+  s_9e1431a7735a4b::t_ea7655d7666156 1-152
+tests/e2e/organization-contact-email.spec.ts
+  s_9e1431a7735a4b::t_ea7655d7666156 4-5
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 62,180-181,954
+apps/web/app/(authenticated)/settings/organization/general/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 1-433
+package.json
+  s_9e1431a7735a4b::t_ea7655d7666156 47
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 31,181,183,411-413,416-436,502
+apps/web/app/(authenticated)/settings/security/users/page.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 1-490
+apps/web/components/lease-tenant-list.tsx
+  s_9e1431a7735a4b::t_ea7655d7666156 1-33
+apps/web/next.config.ts
+  s_9e1431a7735a4b::t_ea7655d7666156 15-47
+pnpm-lock.yaml
+  s_9e1431a7735a4b::t_53ad97b710d2b9 183,195,198,207,210,213,216,219,225,243,249,255,258,261,270,337,343,346,352,355,358,401,422,468,477,508,515,533,601,604,640-641,644-645,648-649,652-653,656-657,660-661,664-665,668-669,672-673,676-677,680-681,684-685,688-689,692-693,696-697,704-705,732-733,748-749,754-755,766-767,770-771,780-781,792-793,796-797,800-801,803,812-813,817-818,1278-1279,1331-1332,1531-1532,1711-1712,2217-2218,2285-2286,2430-2431,2437-2438,2453-2454,2456,2459-2460,2480-2481,2485-2486,2490-2491,2495-2496,2500-2501,2505-2506,2561-2563,2738-2739,2834-2835,2848-2849,2851-2852,2867-2868,2913-2914,3228-3229,3252-3253,3311-3312,3550-3551,3574-3575,3622-3623,4019-4020,4092-4093,4202,4223-4224,4403-4404,4408-4409,4427-4428,4472-4473,4549-4550,4810-4811,4818-4819,4922-4923,4974-4975,5038-5040,5236,5238,5240,5244,5246-5249,5252,5258,5263,5269,5271,5273,5277,5279,5281,5287,5289-5296,5298,5303,5305-5306,5308,5312,5314-5319,5321,5326,5328,5330,5334,5336-5338,5340,5344,5346-5347,5349,5353,5355,5358,5362,5364,5367,5373,5375-5376,5378,5383,5385,5388,5399,5401-5402,5404,5431,5433-5435,5437-5438,5448,5450-5451,5468-5469,5473,5478,5482,5488,5491,5493,5495,5499,5501,5506-5507,5512,5516,5521,5524,5526,5528,5533,5535,5538,5540,5544,5548,5550-5551,5553,5559,5561,5595,5623,5652,5845,5872,5996,6058,6060,6199,6205,6305,6307,6320,6324,6843,6847,6851,6907,6920,6976,6983,6989,6995,7001,7037,7100,7103,7107,7109,7120,7122,7125,7130,7132,7135,7138,7141,7144,7147,7196-7199,7204,7226,7394,7407,7414,7477,7576,7588,7598,7603,7617-7620,7623,7670,7932,7976,8004,8006-8007,8132,8170,8214,8438,8440,8459,8509,8870,8921,8923,8926,8930,8954,8956,8963,8975,8977,8981,8995,8999-9000,9014,9021,9025-9026,9040,9067,9257,9259,9261,9277,9308,9312,9318,9345,9391,9401,9447,9474,9481,9731,9735,9806,9862,9883,9885,9912,9914-9919,9996-9997
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "11261ea8cc2a19d1f5d7e8bfaf7b08d1a622dadf",
+  "prompts": {},
+  "sessions": {
+    "s_9e1431a7735a4b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e4c1-60d6-7461-aac5-0072d99fde10",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
