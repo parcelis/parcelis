@@ -69,6 +69,10 @@ function formatCalendarDate(year: number, month: number, day: number) {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+function prorateMonthlyRentCents(monthlyRentCents: number, occupiedDays: number, monthLength: number) {
+  return Number(roundMinorUnits(BigInt(monthlyRentCents) * BigInt(occupiedDays), BigInt(monthLength)));
+}
+
 // Calculates the monthly rent schedule for a lease based on its start and end dates, monthly rent, and rent due day.
 export function calculateMonthlyRentSchedule({
   monthlyRentCents,
@@ -119,7 +123,7 @@ export function calculateMonthlyRentSchedule({
       periodStartsOn,
       periodEndsOn,
       dueOn,
-      amountCents: Number(roundMinorUnits(BigInt(monthlyRentCents) * BigInt(occupiedDays), BigInt(monthLength))),
+      amountCents: prorateMonthlyRentCents(monthlyRentCents, occupiedDays, monthLength),
       occupiedDays,
       daysInMonth: monthLength,
     });
@@ -152,8 +156,7 @@ export function planMonthlyRentCharges(
     !Number.isSafeInteger(monthlyRentCents) ||
     monthlyRentCents <= 0 ||
     !Number.isSafeInteger(period.amountCents) ||
-    period.amountCents !==
-      Number(roundMinorUnits(BigInt(monthlyRentCents) * BigInt(period.occupiedDays), BigInt(period.daysInMonth)))
+    period.amountCents !== prorateMonthlyRentCents(monthlyRentCents, period.occupiedDays, period.daysInMonth)
   ) {
     throw new Error("Rent period amount does not match the monthly rent.");
   }

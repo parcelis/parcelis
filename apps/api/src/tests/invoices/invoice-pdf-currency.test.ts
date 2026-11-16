@@ -44,6 +44,29 @@ test("invoice PDFs render saved currency, retain fractions, and reject unsupport
     const assert = require("node:assert/strict");
     globalThis.React = require("react");
     const { writeFile } = require("node:fs/promises");
+    const rendererPath = require.resolve("@react-pdf/renderer");
+    const renderer = require(rendererPath);
+    require.cache[rendererPath].exports = {
+      ...renderer,
+      renderToBuffer(element) {
+        const document = element.type(element.props);
+        const text = [];
+        function visit(node) {
+          if (Array.isArray(node)) return node.forEach(visit);
+          if (!node || typeof node !== "object") return;
+          if (node.type === renderer.Text) {
+            text.push(globalThis.React.Children.toArray(node.props.children).join(""));
+          }
+          visit(node.props?.children);
+        }
+        visit(document);
+        assert.ok(text.includes("USD"));
+        assert.deepEqual(text.filter(value => value.startsWith("$")), [
+          "$123.45", "$123.45", "$0.50", "$1.00", "$124.44", "$124.45", "$124.44", "$0.01",
+        ]);
+        return renderer.renderToBuffer(document);
+      },
+    };
     const { renderInvoicePdf } = require(${JSON.stringify(modulePath)});
     const invoice = JSON.parse(${JSON.stringify(JSON.stringify(invoice))}, (key, value) =>
       ["dueOn", "paidOn"].includes(key) ? new Date(value) : value);
@@ -51,7 +74,7 @@ test("invoice PDFs render saved currency, retain fractions, and reject unsupport
       const buffer = await renderInvoicePdf(invoice);
       assert.equal(buffer.subarray(0, 5).toString(), "%PDF-");
       assert.ok(buffer.length > 5000);
-      await assert.rejects(renderInvoicePdf({ ...invoice, currencyCode: "JPY" }));
+      await assert.rejects(renderInvoicePdf({ ...invoice, currencyCode: "JPY" }), { name: "ZodError" });
       if (process.env.INVOICE_CURRENCY_PDF_PATH) await writeFile(process.env.INVOICE_CURRENCY_PDF_PATH, buffer);
     })().catch(error => { console.error(error); process.exitCode = 1; });
   `;

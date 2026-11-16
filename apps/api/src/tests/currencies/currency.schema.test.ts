@@ -6,6 +6,7 @@ import {
   currencyMetadata,
   currencyMetadataSchema,
   defaultCurrencyCode,
+  updateOrganizationInputSchema,
   type CurrencyCode,
   type CurrencyMetadata,
 } from "@parcelis/schemas";
@@ -33,11 +34,11 @@ test("currency codes reject unsupported, noncanonical, and missing values", () =
 });
 
 test("optional currency updates preserve omission instead of applying the creation default", () => {
-  const optionalCurrencySchema = currencyCodeSchema.optional();
+  const input = { name: "Test organization", slug: "test-organization", address: null, phone: null };
 
-  assert.equal(optionalCurrencySchema.parse(undefined), undefined);
-  assert.equal(optionalCurrencySchema.parse("USD"), "USD");
-  assert.equal(optionalCurrencySchema.safeParse("TZS").success, false);
+  assert.equal(updateOrganizationInputSchema.parse(input).currencyCode, undefined);
+  assert.equal(updateOrganizationInputSchema.parse({ ...input, currencyCode: "USD" }).currencyCode, "USD");
+  assert.equal(updateOrganizationInputSchema.safeParse({ ...input, currencyCode: "TZS" }).success, false);
 });
 
 test("currency metadata rejects unsupported codes, blank names, and invalid precision", () => {

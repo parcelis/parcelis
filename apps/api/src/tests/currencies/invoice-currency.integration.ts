@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PrismaClient, PrismaPg } from "@parcelis/db";
+import { TRPCError } from "@trpc/server";
+import { Prisma, PrismaClient, PrismaPg } from "@parcelis/db";
 import {
   createIsolatedTestSchema,
   validateOutboxTestDatabaseUrl,
@@ -205,7 +206,18 @@ test("invoice and payment writes preserve currency atomically", { skip: !databas
     const invoice = await foreign.caller.invoices.createManual(foreign.input);
     await foreign.unlock();
     await assert.rejects(own.caller.invoices.createManual(foreign.input), { code: "BAD_REQUEST" });
-    await assert.rejects(own.caller.invoices.recordPayment({ id: invoice.id, ...foreign.payment }));
+    await assert.rejects(
+      own.caller.invoices.recordPayment({ id: invoice.id, ...foreign.payment }),
+      (error: unknown) =>
+        error instanceof TRPCError &&
+        error.cause instanceof Prisma.PrismaClientKnownRequestError &&
+        error.cause.code === "P2025",
+    );
+    assert.equal(
+      (await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } })).balanceCents,
+      invoice.balanceCents,
+    );
+    assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: invoice.id } }), 0);
     assert.equal((await own.state()).currencyLockedAt, null);
     assert.equal((await foreign.state()).currencyLockedAt, null);
   });

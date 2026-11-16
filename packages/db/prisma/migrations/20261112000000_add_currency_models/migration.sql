@@ -17,7 +17,8 @@ WHERE lease."status" <> 'draft'
    OR lease."securityDepositCents" <> 0
    OR EXISTS (
      SELECT 1 FROM "LeaseTenant" AS allocation
-     WHERE allocation."leaseId" = lease."id"
+     WHERE allocation."organizationId" = lease."organizationId"
+       AND allocation."leaseId" = lease."id"
        AND (allocation."rentShareCents" IS NOT NULL OR allocation."depositShareCents" IS NOT NULL)
    )
    OR EXISTS (

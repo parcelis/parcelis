@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PrismaClient, PrismaPg } from "@parcelis/db";
+import { TRPCError } from "@trpc/server";
+import { Prisma, PrismaClient, PrismaPg } from "@parcelis/db";
 import {
   createIsolatedTestSchema,
   validateOutboxTestDatabaseUrl,
@@ -215,7 +216,13 @@ test(
           code: "BAD_REQUEST",
         });
       }
-      await assert.rejects(own.caller.applications.update({ ...own.input, id: foreignApplication.id }));
+      await assert.rejects(
+        own.caller.applications.update({ ...own.input, id: foreignApplication.id }),
+        (error: unknown) =>
+          error instanceof TRPCError &&
+          error.cause instanceof Prisma.PrismaClientKnownRequestError &&
+          error.cause.code === "P2025",
+      );
       assert.equal(await own.lockTime(), null);
       assert.equal(await foreign.lockTime(), null);
     });

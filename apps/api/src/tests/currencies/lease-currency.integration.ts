@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import { PrismaClient, PrismaPg } from "@parcelis/db";
+import { TRPCError } from "@trpc/server";
+import { Prisma, PrismaClient, PrismaPg } from "@parcelis/db";
 import {
   createIsolatedTestSchema,
   validateOutboxTestDatabaseUrl,
@@ -221,19 +222,59 @@ test("lease monetary writes bind currency atomically", { skip: !databaseUrl, tim
 
   await t.test("a concurrent currency change and first save never commit mixed currencies", async () => {
     const f = await fixture("lease-currency-race");
-    const [save, change] = await Promise.allSettled([
-      f.save({ securityDepositCents: 0 }),
-      prisma.organization.updateMany({
-        where: { id: f.organization.id, currencyLockedAt: null },
-        data: { currencyCode: "TZS" },
-      }),
-    ]);
-    assert.equal(change.status, "fulfilled");
-    if (save.status === "rejected") {
-      assert.equal(save.reason.code, "CONFLICT");
-      await f.save({ securityDepositCents: 0 });
-    }
-    assert.equal((await f.leaseState()).currencyCode, (await f.organizationState()).currencyCode);
+    let notifyDraftRead!: () => void;
+    let notifyCurrencyCommitted!: () => void;
+    const draftRead = new Promise<void>((resolve) => {
+      notifyDraftRead = resolve;
+    });
+    const currencyCommitted = new Promise<void>((resolve) => {
+      notifyCurrencyCommitted = resolve;
+    });
+    const racePrisma = prisma.$extends({
+      query: {
+        lease: {
+          async findFirst({ args, query }) {
+            const lease = await query(args);
+            if (args.where?.id === f.draft.id) {
+              notifyDraftRead();
+              await currencyCommitted;
+            }
+            return lease;
+          },
+        },
+      },
+    });
+    const caller = appRouter.createCaller({
+      prisma: racePrisma,
+      session: { user: { id: 1, role: "administrator" } },
+      organization: { organizationId: f.organization.id, organization: f.organization, role: "administrator" },
+    } as unknown as Context);
+    const { result } = await prisma
+      .$transaction(async (tx) => {
+        const change = await tx.organization.updateMany({
+          where: { id: f.organization.id, currencyLockedAt: null },
+          data: { currencyCode: "TZS" },
+        });
+        assert.equal(change.count, 1);
+        const result = Promise.allSettled([
+          caller.leases.updateDraft({
+            leaseId: f.draft.id,
+            expectedRevision: 0,
+            data: { securityDepositCents: 0 },
+          }),
+        ]);
+        // Establish the save's serializable snapshot before committing the currency change.
+        await draftRead;
+        return { result };
+      })
+      .finally(() => notifyCurrencyCommitted());
+    const [save] = await result;
+    assert.ok(save?.status === "rejected");
+    assert.equal(save.reason.code, "CONFLICT");
+    assert.equal((await f.leaseState()).currencyCode, null);
+    assert.equal((await f.organizationState()).currencyLockedAt, null);
+    assert.equal((await f.save({ securityDepositCents: 0 })).currencyCode, "TZS");
+    assert.equal((await f.organizationState()).currencyCode, "TZS");
     assert.ok((await f.organizationState()).currencyLockedAt);
   });
 
@@ -409,8 +450,15 @@ test("lease monetary writes bind currency atomically", { skip: !databaseUrl, tim
     await assert.rejects(own.save({ securityDepositCents: 0 }, 10), { code: "CONFLICT" });
     await assert.rejects(
       own.save({ securityDepositCents: 0, propertyId: foreign.property.id, unitId: foreign.unit.id }),
+      (error: unknown) =>
+        error instanceof TRPCError &&
+        error.cause instanceof Prisma.PrismaClientKnownRequestError &&
+        error.cause.code === "P2025",
     );
-    await assert.rejects(own.save({ securityDepositCents: 0, tenantIds: [foreign.tenants[0]!.id] }));
+    await assert.rejects(own.save({ securityDepositCents: 0, tenantIds: [foreign.tenants[0]!.id] }), {
+      code: "NOT_FOUND",
+      message: "One or more residents not found.",
+    });
     await assert.rejects(
       own.caller.leases.updateDraft({
         leaseId: foreign.draft.id,
