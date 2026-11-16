@@ -1,0 +1,77 @@
+CONTRIBUTING.md
+  s_093f6731aeb937::t_ea6265588cb8b6 289-291
+  s_093f6731aeb937::t_6891b7d6ac48d4 292
+apps/api/src/tests/auth/session-cookie.ts
+  s_093f6731aeb937::t_630dd5a4bf35f4 6
+apps/api/src/status/server.ts
+  s_093f6731aeb937::t_1a82e7ce7f3458 24-28,33
+scripts/upgrade-postgres.integration.mjs
+  s_093f6731aeb937::t_1a82e7ce7f3458 15
+README.md
+  s_093f6731aeb937::t_ea6265588cb8b6 141-146
+  s_093f6731aeb937::t_6b60407302d7c4 147
+apps/api/src/tests/organizations/contact-email.test.ts
+  s_093f6731aeb937::t_1a82e7ce7f3458 68-70,72,143
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_093f6731aeb937::t_1a82e7ce7f3458 735,739,756
+scripts/upgrade-postgres.test.mjs
+  s_093f6731aeb937::t_1228707fd8826a 2-12
+  s_093f6731aeb937::t_473862f4fde2a7 170-187
+  s_093f6731aeb937::t_834052a86ccc51 188
+apps/api/src/modules/service-checks.ts
+  s_093f6731aeb937::t_1228707fd8826a 399-411,413-414,422-427
+  s_093f6731aeb937::t_0988076dfffb5d 393-398,417-421,428-430
+scripts/upgrade-postgres.mjs
+  s_093f6731aeb937::t_473862f4fde2a7 24,29,31-32
+  s_093f6731aeb937::t_1a82e7ce7f3458 15,19-23,25-28,30,33-34,37
+  s_093f6731aeb937::t_1228707fd8826a 3-13,60-61
+apps/api/src/tests/health/shutdown.test.ts
+  s_093f6731aeb937::t_1a82e7ce7f3458 1,14,35
+  s_093f6731aeb937::t_1228707fd8826a 47-51,65-66
+apps/api/src/tests/runtime/deployment-smoke.ts
+  s_093f6731aeb937::t_1a82e7ce7f3458 27,35,73
+apps/api/src/tests/api-tokens/api-tokens.router.test.ts
+  s_093f6731aeb937::t_1a82e7ce7f3458 348
+apps/api/src/tests/health/grouped-checks.test.ts
+  s_093f6731aeb937::t_0988076dfffb5d 2-4,10-26,63,78,80,87,118,120
+scripts/docker-hub-description.test.mjs
+  s_093f6731aeb937::t_473862f4fde2a7 3,5-6,126-137,144-145
+  s_093f6731aeb937::t_1228707fd8826a 138-143
+  s_093f6731aeb937::t_411b36b8d263c6 146
+scripts/api-shutdown.test.mjs
+  s_093f6731aeb937::t_1a82e7ce7f3458 87,111-112,126,137-138
+apps/api/src/tests/auth/nextauth.test.ts
+  s_093f6731aeb937::t_1a82e7ce7f3458 8,18,23
+  s_093f6731aeb937::t_1228707fd8826a 127-131,210-212,223-226
+  s_093f6731aeb937::t_630dd5a4bf35f4 13,19
+  s_093f6731aeb937::t_83f416fabe31c0 135
+apps/api/src/tests/health/status.test.ts
+  s_093f6731aeb937::t_a18bf862a96ff0 133-136,162-168
+  s_093f6731aeb937::t_473862f4fde2a7 137-140,173-176,190-217
+  s_093f6731aeb937::t_1a82e7ce7f3458 1,15,132,151,155,159
+  s_093f6731aeb937::t_1228707fd8826a 169-172
+  s_093f6731aeb937::t_16b5789dfffc7f 218
+apps/api/src/tests/invoices/invoice-pdf.http.integration.test.ts
+  s_093f6731aeb937::t_1a82e7ce7f3458 80,85,244
+scripts/docker-hub-description.mjs
+  s_093f6731aeb937::t_1a82e7ce7f3458 1,6-7
+ARCHITECTURE.md
+  s_093f6731aeb937::t_ea6265588cb8b6 34-37
+  s_093f6731aeb937::t_81092546ce775b 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cc81459cd48168f97fc183458a5d6de2e34bac12",
+  "prompts": {},
+  "sessions": {
+    "s_093f6731aeb937": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e4aa-8806-7703-a626-64e5353e5ad2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
