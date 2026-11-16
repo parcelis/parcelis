@@ -1,6 +1,9 @@
 import { deferred } from "./deferred";
 import assert from "node:assert/strict";
-import { generateKeyPairSync } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { once } from "node:events";
 import { createServer as createHttpsServer, get } from "node:https";
 import { setImmediate as nextTurn } from "node:timers/promises";
@@ -8,14 +11,31 @@ import test from "node:test";
 import { drainStatusServer } from "../../status/shutdown";
 
 function createLocalHttpsServer(handler: (request: unknown, response: { writeHead: Function; write: Function; end: Function }) => void) {
-  const { privateKey, certificate } = generateKeyPairSync("rsa", {
-    modulusLength: 2_048,
-    publicKeyEncoding: { type: "spki", format: "pem" },
-    privateKeyEncoding: { type: "pkcs8", format: "pem" },
-  });
+  const tempDir = mkdtempSync(join(tmpdir(), "parcelis-local-cert-"));
+  execFileSync("openssl", [
+    "req",
+    "-x509",
+    "-nodes",
+    "-newkey",
+    "rsa:2048",
+    "-keyout",
+    join(tempDir, "key.pem"),
+    "-out",
+    join(tempDir, "cert.pem"),
+    "-days",
+    "1",
+    "-subj",
+    "/CN=localhost",
+    "-addext",
+    "subjectAltName=DNS:localhost,IP:127.0.0.1",
+  ]);
+  const key = readFileSync(join(tempDir, "key.pem"), "utf8");
+  const certificate = readFileSync(join(tempDir, "cert.pem"), "utf8");
+  const server = createHttpsServer({ key, cert: certificate }, handler as any);
   return {
-    server: createHttpsServer({ key: privateKey, cert: certificate }, handler as any),
+    server,
     certificate,
+    cleanup: () => rmSync(tempDir, { recursive: true, force: true }),
   };
 }
 
@@ -23,7 +43,7 @@ test("shutdown waits for active HTTP responses as well as polling and cleanup", 
   const poll = deferred<void>();
   const cleanup = deferred<void>();
   const started = deferred<() => void>();
-  const { server, certificate } = createLocalHttpsServer((_request, response) => {
+  const { server, cleanup: serverCleanup } = createLocalHttpsServer((_request, response) => {
     response.writeHead(200);
     response.write("in progress");
     started.resolve(() => response.end());
@@ -31,6 +51,7 @@ test("shutdown waits for active HTTP responses as well as polling and cleanup", 
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   t.after(() => {
+    serverCleanup();
     server.closeAllConnections();
     server.close();
   });
@@ -38,7 +59,7 @@ test("shutdown waits for active HTTP responses as well as polling and cleanup", 
   assert.ok(address && typeof address !== "string");
   const request = get(
     `https://127.0.0.1:${address.port}`,
-    { agent: false, ca: certificate, checkServerIdentity: () => undefined },
+    { rejectUnauthorized: process.env.CI === "true" },
     (response) => response.resume(),
   );
   request.on("error", (error) => started.reject(error));

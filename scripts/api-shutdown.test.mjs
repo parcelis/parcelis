@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { generateKeyPairSync } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { EventEmitter, once } from "node:events";
 import { createServer as createHttpsServer, request as httpsRequest } from "node:https";
 import test from "node:test";
@@ -52,16 +55,36 @@ test("resource cleanup still runs if Next shutdown fails", async () => {
 });
 
 function createLocalHttpsServer(handler) {
-  const { privateKey, certificate } = generateKeyPairSync("rsa", {
-    modulusLength: 2_048,
-    publicKeyEncoding: { type: "spki", format: "pem" },
-    privateKeyEncoding: { type: "pkcs8", format: "pem" },
-  });
-  return { server: createHttpsServer({ key: privateKey, cert: certificate }, handler), certificate };
+  const tempDir = mkdtempSync(join(tmpdir(), "parcelis-local-cert-"));
+  execFileSync("openssl", [
+    "req",
+    "-x509",
+    "-nodes",
+    "-newkey",
+    "rsa:2048",
+    "-keyout",
+    join(tempDir, "key.pem"),
+    "-out",
+    join(tempDir, "cert.pem"),
+    "-days",
+    "1",
+    "-subj",
+    "/CN=localhost",
+    "-addext",
+    "subjectAltName=DNS:localhost,IP:127.0.0.1",
+  ]);
+  const key = readFileSync(join(tempDir, "key.pem"), "utf8");
+  const certificate = readFileSync(join(tempDir, "cert.pem"), "utf8");
+  const server = createHttpsServer({ key, cert: certificate }, handler);
+  return {
+    server,
+    certificate,
+    cleanup: () => rmSync(tempDir, { recursive: true, force: true }),
+  };
 }
 
 test("shutdown closes an active upgraded socket before Next and resource cleanup", { timeout: 5000 }, async (t) => {
-  const { server, certificate } = createLocalHttpsServer();
+  const { server, cleanup } = createLocalHttpsServer();
   const events = [];
   let upgradedSocket;
   let clientSocket;
@@ -75,6 +98,7 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
     },
   );
   t.after(() => {
+    cleanup?.();
     clientSocket?.destroy();
     upgradedSocket?.destroy();
     server.close();
@@ -84,8 +108,7 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
   const client = httpsRequest({
     hostname: "127.0.0.1",
     port: server.address().port,
-    ca: certificate,
-    checkServerIdentity: () => undefined,
+    rejectUnauthorized: process.env.CI === "true",
     headers: { Connection: "Upgrade", Upgrade: "websocket" },
   });
   client.end();
@@ -99,16 +122,18 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
 });
 
 test("production rejects upgraded sockets immediately", { timeout: 5000 }, async (t) => {
-  const { server, certificate } = createLocalHttpsServer();
+  const { server, cleanup } = createLocalHttpsServer();
   const shutdown = createApiShutdown(server, { close: async () => {} }, async () => {});
-  t.after(() => server.close());
+  t.after(() => {
+    cleanup();
+    server.close();
+  });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const client = httpsRequest({
     hostname: "127.0.0.1",
     port: server.address().port,
-    ca: certificate,
-    checkServerIdentity: () => undefined,
+    rejectUnauthorized: process.env.CI === "true",
     headers: { Connection: "Upgrade", Upgrade: "websocket" },
   });
   t.after(() => client.destroy());

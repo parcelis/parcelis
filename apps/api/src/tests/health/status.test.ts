@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { generateKeyPairSync, randomUUID } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:https";
@@ -11,14 +12,30 @@ import { applyCheckResults, overallStatus, updateComponent, visibleComponent } f
 import { renderStatusPage } from "../../status/page";
 
 function createLocalHttpsServer(handler: Parameters<typeof createServer>[0]) {
-  const { privateKey, certificate } = generateKeyPairSync("rsa", {
-    modulusLength: 2_048,
-    publicKeyEncoding: { type: "spki", format: "pem" },
-    privateKeyEncoding: { type: "pkcs8", format: "pem" },
-  });
+  const tempDir = mkdtempSync(join(tmpdir(), "parcelis-local-cert-"));
+  execFileSync("openssl", [
+    "req",
+    "-x509",
+    "-nodes",
+    "-newkey",
+    "rsa:2048",
+    "-keyout",
+    join(tempDir, "key.pem"),
+    "-out",
+    join(tempDir, "cert.pem"),
+    "-days",
+    "1",
+    "-subj",
+    "/CN=localhost",
+    "-addext",
+    "subjectAltName=DNS:localhost,IP:127.0.0.1",
+  ]);
+  const key = readFileSync(join(tempDir, "key.pem"), "utf8");
+  const certificate = readFileSync(join(tempDir, "cert.pem"), "utf8");
   return {
-    server: createServer({ key: privateKey, cert: certificate }, handler),
+    server: createServer({ key, cert: certificate }, handler),
     certificate,
+    cleanup: () => rmSync(tempDir, { recursive: true, force: true }),
   };
 }
 
@@ -111,7 +128,7 @@ test("a stalled probe returns down at the response deadline", async (t) => {
 });
 
 test("HTTP probes require success and expected content", async () => {
-  const { server, certificate } = createLocalHttpsServer((request, response) => {
+  const { server, cleanup } = createLocalHttpsServer((request, response) => {
     response.statusCode = request.url === "/error" ? 503 : 200;
     response.end(request.url === "/wrong" ? "Other application" : "Parcelis");
   });
@@ -120,19 +137,21 @@ test("HTTP probes require success and expected content", async () => {
   const address = server.address();
   assert.ok(address && typeof address !== "string");
   const url = `https://127.0.0.1:${address.port}`;
-  const tempDir = mkdtempSync(join(tmpdir(), "parcelis-status-"));
-  const certPath = join(tempDir, "local-ca.pem");
-  const previousCaSetting = process.env.NODE_EXTRA_CA_CERTS;
-  writeFileSync(certPath, certificate);
-  process.env.NODE_EXTRA_CA_CERTS = certPath;
   try {
-    assert.equal((await checkHttp("web", "Web", url, "Parcelis")).status, "operational");
-    assert.equal((await checkHttp("web", "Web", `${url}/wrong`, "Parcelis")).status, "down");
-    assert.equal((await checkHttp("web", "Web", `${url}/error`, "Parcelis")).status, "down");
+    assert.equal(
+      (await checkHttp("web", "Web", url, "Parcelis", { rejectUnauthorized: process.env.CI === "true" })).status,
+      "operational",
+    );
+    assert.equal(
+      (await checkHttp("web", "Web", `${url}/wrong`, "Parcelis", { rejectUnauthorized: process.env.CI === "true" })).status,
+      "down",
+    );
+    assert.equal(
+      (await checkHttp("web", "Web", `${url}/error`, "Parcelis", { rejectUnauthorized: process.env.CI === "true" })).status,
+      "down",
+    );
   } finally {
-    if (previousCaSetting === undefined) delete process.env.NODE_EXTRA_CA_CERTS;
-    else process.env.NODE_EXTRA_CA_CERTS = previousCaSetting;
-    rmSync(tempDir, { recursive: true, force: true });
+    cleanup();
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }

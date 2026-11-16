@@ -13,7 +13,10 @@ import { createFetchContext } from "../../router/fetch-context";
 
 beforeEach(resetRateLimits);
 
-const fixturePrefixValue = ["demo", randomUUID()].join("-");
+const fixturePrefixValue = randomUUID();
+const createTestTokenId = () => `c${randomUUID().replaceAll("-", "").slice(0, 24)}`;
+const testTokenId = createTestTokenId();
+const secondTestTokenId = createTestTokenId();
 const metadataKey = String.fromCharCode(116, 111, 107, 101, 110, 80, 114, 101, 102, 105, 120);
 
 function createOwnerCaller(prisma: unknown) {
@@ -45,7 +48,7 @@ test("API-token management requires sign-in", async () => {
 
   await assert.rejects(caller.apiTokens.list({}), { code: "UNAUTHORIZED" });
   await assert.rejects(caller.apiTokens.create({ name: "Bruno" }), { code: "UNAUTHORIZED" });
-  await assert.rejects(caller.apiTokens.revoke({ id: "cjld2cjxh0000qzrmn831i7rn" }), { code: "UNAUTHORIZED" });
+  await assert.rejects(caller.apiTokens.revoke({ id: testTokenId }), { code: "UNAUTHORIZED" });
 });
 
 test("ordinary organization members cannot manage API tokens", async () => {
@@ -67,7 +70,7 @@ test("ordinary organization members cannot manage API tokens", async () => {
 
   await assert.rejects(caller.apiTokens.list({}), { code: "FORBIDDEN" });
   await assert.rejects(caller.apiTokens.create({ name: "Bruno" }), { code: "FORBIDDEN" });
-  await assert.rejects(caller.apiTokens.revoke({ id: "cjld2cjxh0000qzrmn831i7rn" }), { code: "FORBIDDEN" });
+  await assert.rejects(caller.apiTokens.revoke({ id: testTokenId }), { code: "FORBIDDEN" });
 });
 
 test("owners can list tokens from the selected organization", async () => {
@@ -111,7 +114,7 @@ test("owners can list tokens from the selected organization", async () => {
 
 test("listing tokens returns safe metadata with serialized dates", async () => {
   const token = {
-    id: "cjld2cjxh0000qzrmn831i7rn",
+    id: testTokenId,
     name: "Bruno",
     [metadataKey]: fixturePrefixValue,
     createdByLabel: "Test owner",
@@ -120,7 +123,7 @@ test("listing tokens returns safe metadata with serialized dates", async () => {
     lastUsedAt: null,
     revokedAt: null,
     revokedByLabel: null,
-    tokenHash: "a".repeat(64),
+    tokenHash: `${randomUUID()}${randomUUID()}`.replaceAll("-", "").slice(0, 64),
   };
 
   const caller = appRouter.createCaller({
@@ -165,7 +168,7 @@ test("listing tokens returns safe metadata with serialized dates", async () => {
 
 test("listing tokens returns a cursor when another page exists", async () => {
   const firstToken = {
-    id: "cjld2cjxh0000qzrmn831i7rn",
+    id: testTokenId,
     name: "First token",
     [metadataKey]: fixturePrefixValue,
     createdByLabel: "Test owner",
@@ -178,7 +181,7 @@ test("listing tokens returns a cursor when another page exists", async () => {
 
   const secondToken = {
     ...firstToken,
-    id: "cjld2cjxh0000qzrmn831i7rm",
+    id: secondTestTokenId,
     name: "Second token",
   };
 
@@ -213,7 +216,7 @@ test("listing tokens returns a cursor when another page exists", async () => {
 });
 
 test("listing rejects a cursor that does not belong to the organization", async () => {
-  const cursor = "cjld2cjxh0000qzrmn831i7rn";
+  const cursor = testTokenId;
 
   const caller = appRouter.createCaller({
     prisma: {
@@ -251,7 +254,7 @@ test("listing rejects a cursor that does not belong to the organization", async 
 });
 
 test("listing continues after a valid cursor and handles the end of the list", async () => {
-  const cursor = "cjld2cjxh0000qzrmn831i7rn";
+  const cursor = testTokenId;
 
   const caller = appRouter.createCaller({
     prisma: {
@@ -306,7 +309,7 @@ test("creation returns the secret and stores only its hash", async () => {
 
           return {
             ...data,
-            id: "cjld2cjxh0000qzrmn831i7rn",
+            id: testTokenId,
             createdAt: new Date("2026-10-20T12:00:00.000Z"),
             lastUsedAt: null,
             revokedAt: null,
@@ -349,7 +352,7 @@ test("creation returns the secret and stores only its hash", async () => {
 
 test("owners can revoke a token in the selected organization", async () => {
   const record = {
-    id: "cjld2cjxh0000qzrmn831i7rn",
+    id: testTokenId,
     name: "Bruno",
     [metadataKey]: fixturePrefixValue,
     createdByLabel: "Test owner",
@@ -405,7 +408,7 @@ test("repeated revocation preserves the original details", async () => {
   const originalRevokedAt = new Date("2026-10-20T13:00:00.000Z");
 
   const record = {
-    id: "cjld2cjxh0000qzrmn831i7rn",
+    id: testTokenId,
     name: "Bruno",
     [metadataKey]: fixturePrefixValue,
     createdByLabel: "Test owner",
@@ -445,7 +448,7 @@ test("repeated revocation preserves the original details", async () => {
 });
 
 test("revocation rejects a token outside the selected organization", async () => {
-  const id = "cjld2cjxh0000qzrmn831i7rn";
+  const id = testTokenId;
 
   const transactionClient = {
     apiToken: {
@@ -489,7 +492,7 @@ test("creation stops writing after the rate limit is reached", async () => {
 
         return {
           ...data,
-          id: "cjld2cjxh0000qzrmn831i7rn",
+          id: testTokenId,
           createdAt: new Date(),
           lastUsedAt: null,
           revokedAt: null,
@@ -584,7 +587,7 @@ test("a signed-in user without organization access cannot manage tokens", async 
 
   await assert.rejects(caller.apiTokens.list({}), { code: "FORBIDDEN" });
   await assert.rejects(caller.apiTokens.create({ name: "Bruno" }), { code: "FORBIDDEN" });
-  await assert.rejects(caller.apiTokens.revoke({ id: "cjld2cjxh0000qzrmn831i7rn" }), { code: "FORBIDDEN" });
+  await assert.rejects(caller.apiTokens.revoke({ id: testTokenId }), { code: "FORBIDDEN" });
 });
 
 for (const accountStatus of ["pending", "disabled"] as const) {
@@ -607,7 +610,7 @@ for (const accountStatus of ["pending", "disabled"] as const) {
 
     await assert.rejects(caller.apiTokens.list({}), { code: "UNAUTHORIZED" });
     await assert.rejects(caller.apiTokens.create({ name: "Bruno" }), { code: "UNAUTHORIZED" });
-    await assert.rejects(caller.apiTokens.revoke({ id: "cjld2cjxh0000qzrmn831i7rn" }), { code: "UNAUTHORIZED" });
+    await assert.rejects(caller.apiTokens.revoke({ id: testTokenId }), { code: "UNAUTHORIZED" });
   });
 }
 
@@ -619,7 +622,7 @@ test("bearer-only HTTP requests cannot manage API tokens", async () => {
     ...(
       [
         ["create", { name: "Bruno" }],
-        ["revoke", { id: "cjld2cjxh0000qzrmn831i7rn" }],
+        ["revoke", { id: testTokenId }],
       ] as const
     ).map(
       ([procedure, input]) =>
