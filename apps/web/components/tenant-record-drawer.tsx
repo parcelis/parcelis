@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "./organization-currency";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -45,13 +47,6 @@ type TenantRecordDrawerProps = {
   relatedTenants: RelatedTenant[];
 };
 
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    cents / 100,
-  );
-}
-
 function formatDate(value: Date | string | null) {
   return value
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
@@ -59,6 +54,7 @@ function formatDate(value: Date | string | null) {
 }
 
 export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantId }: TenantRecordDrawerProps) {
+  const { formatCurrency } = useMoney();
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const [tenantForm, setTenantForm] = useState<TenantFormState>(initialTenantFormState);
@@ -209,9 +205,15 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
                         value={currentLease.property?.name ?? "Property not set"}
                         detail={`Unit ${currentLease.unitLabel}`}
                       />
-                      <RecordMetric label="Monthly Rent" value={formatCurrency(currentLease.monthlyRentCents)} />
+                      <RecordMetric
+                        label="Monthly Rent"
+                        value={formatCurrency(currentLease.monthlyRentCents, currentLease.currencyCode)}
+                      />
                       <RecordMetric label="Starts" value={formatDate(currentLease.startsOn)} />
-                      <RecordMetric label="Ends" value={formatLeaseEndDate(currentLease.endsOn, currentLease.termType)} />
+                      <RecordMetric
+                        label="Ends"
+                        value={formatLeaseEndDate(currentLease.endsOn, currentLease.termType)}
+                      />
                     </div>
                   ) : (
                     <p className="mt-3 text-sm text-parcelis-gray">No active lease.</p>
@@ -257,7 +259,7 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
                                 {formatInvoiceNumber(invoice.invoiceNumber)}
                               </TableCell>
                               <TableCell>{formatDate(invoice.dueOn)}</TableCell>
-                              <TableCell>{formatCurrency(invoice.amountCents)}</TableCell>
+                              <TableCell>{formatCurrency(invoice.amountCents, invoice.currencyCode)}</TableCell>
                               <TableCell className="text-right">
                                 <button
                                   className="font-semibold text-parcelis-green hover:underline"

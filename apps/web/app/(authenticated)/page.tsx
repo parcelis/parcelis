@@ -1,5 +1,6 @@
 "use client";
 
+import { useMoney } from "../../components/organization-currency";
 import * as React from "react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ function formatStatus(status: string) {
 }
 
 export default function Page() {
+  const { formatCurrency } = useMoney();
   const queryClient = useQueryClient();
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
@@ -123,7 +125,7 @@ export default function Page() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-parcelis-charcoal">$184,220</div>
+                <div className="text-4xl font-bold text-parcelis-charcoal">{formatCurrency(18_422_000)}</div>
                 <p className="mt-2 text-sm text-parcelis-gray">
                   {occupiedUnits === null
                     ? "Occupancy unavailable"

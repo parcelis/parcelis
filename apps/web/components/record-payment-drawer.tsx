@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "./organization-currency";
+
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -37,13 +39,7 @@ const methods = [
   ["zelle", "Zelle"],
   ["other", "Other"],
 ] as const;
-function toCents(value: string) {
-  const amount = Number.parseFloat(value);
-  return Number.isFinite(amount) ? Math.max(Math.round(amount * 100), 0) : 0;
-}
-function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-}
+
 export function RecordPaymentDrawer({
   invoice,
   onOpenChange,
@@ -53,6 +49,9 @@ export function RecordPaymentDrawer({
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
+  const { formatCurrency, toCents, amountStep, validateAmountInput, maxAmount, currency } = useMoney(
+    invoice.currencyCode,
+  );
   const queryClient = useQueryClient();
   const [entries, setEntries] = React.useState<PaymentEntry[]>([]);
   const [snapshot, setSnapshot] = React.useState("");
@@ -220,11 +219,13 @@ export function RecordPaymentDrawer({
                     </Select>
                   </Label>
                   <Label className="gap-2">
-                    Amount *
+                    Amount * ({currency.code})
                     <Input
-                      min="0.01"
+                      min={amountStep}
                       required
-                      step="0.01"
+                      step={amountStep}
+                      onInput={validateAmountInput}
+                      max={maxAmount}
                       type="number"
                       value={entry.amount}
                       onChange={(event) => updateEntry(index, { amount: event.target.value })}
@@ -256,7 +257,16 @@ export function RecordPaymentDrawer({
             <Button type="button" variant="secondary" onClick={requestClose}>
               Cancel
             </Button>
-            <Button className="min-w-40" disabled={payment.isPending || paymentTotalExceedsBalance} type="submit">
+            <Button
+              className="min-w-40"
+              disabled={
+                payment.isPending ||
+                !Number.isFinite(paymentTotalCents) ||
+                paymentTotalCents <= 0 ||
+                paymentTotalExceedsBalance
+              }
+              type="submit"
+            >
               Record payment{entries.length > 1 ? "s" : ""}
             </Button>
           </DrawerFooter>

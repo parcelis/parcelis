@@ -6,7 +6,9 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./currency": "./src/currency.ts",
+    "./money": "./src/money.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
