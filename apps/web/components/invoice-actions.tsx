@@ -29,6 +29,7 @@ import { NotesDrawer } from "./notes-drawer";
 import { RecordPaymentDrawer } from "./record-payment-drawer";
 
 export type InvoiceActionInvoice = {
+  currencyCode: string;
   id: number;
   invoiceNumber: number;
   amountCents: number;

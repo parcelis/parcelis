@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "./organization-currency";
+
 import * as React from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
@@ -41,6 +43,7 @@ type IncomeProperty = {
   units: Array<{ id: number; name: string }>;
   leases: Array<{
     id: number;
+    currencyCode: string | null;
     unitLabel: string;
     startsOn: Date | string | null;
     endsOn: Date | string | null;
@@ -65,15 +68,6 @@ type InvoiceDrawerProps = {
   open: boolean;
   properties: IncomeProperty[];
 };
-
-function toCents(value: string) {
-  const amount = Number.parseFloat(value);
-  return Number.isFinite(amount) ? Math.max(Math.round(amount * 100), 0) : 0;
-}
-
-function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-}
 
 export function InvoiceDrawer({
   charges,
@@ -101,6 +95,9 @@ export function InvoiceDrawer({
   const unit = property?.units.find((item) => item.id === Number(unitId));
   const leases = property?.leases.filter((item) => item.unitLabel === unit?.name && item.status !== "draft") ?? [];
   const lease = leases.find((item) => item.id === Number(leaseId));
+  const { formatCurrency, toCents, amountStep, validateAmountInput, maxAmount, currency } = useMoney(
+    lease?.currencyCode,
+  );
   const subtotalCents = lines.reduce((total, line) => total + Number(line.quantity || 0) * toCents(line.rate), 0);
   const paidCents = toCents(paid);
   const hasInvalidLine = lines.some((line) =>
@@ -353,7 +350,7 @@ export function InvoiceDrawer({
                     <span>Item</span>
                     <span>Description</span>
                     <span>Quantity</span>
-                    <span>Rate</span>
+                    <span>Rate ({currency.code})</span>
                     <span className="text-right">Amount</span>
                     <span />
                   </div>
@@ -401,7 +398,9 @@ export function InvoiceDrawer({
                             aria-label={`Invoice item rate ${index + 1}`}
                             min="0"
                             required
-                            step="0.01"
+                            step={amountStep}
+                            onInput={validateAmountInput}
+                            max={maxAmount}
                             type="number"
                             value={line.rate}
                             onChange={(event) => updateLine(index, { rate: event.target.value })}
@@ -432,11 +431,13 @@ export function InvoiceDrawer({
                   <span>{formatCurrency(subtotalCents)}</span>
                 </div>
                 <Label className="flex items-center justify-between gap-3 text-parcelis-gray dark:text-white/65">
-                  Already paid
+                  Already paid ({currency.code})
                   <Input
                     className="w-28 text-right"
                     min="0"
-                    step="0.01"
+                    step={amountStep}
+                    onInput={validateAmountInput}
+                    max={maxAmount}
                     type="number"
                     value={paid}
                     onChange={(event) => setPaid(event.target.value)}
@@ -467,6 +468,8 @@ export function InvoiceDrawer({
                 !lease ||
                 lines.length === 0 ||
                 hasInvalidLine ||
+                !Number.isFinite(subtotalCents) ||
+                !Number.isFinite(paidCents) ||
                 subtotalCents <= 0 ||
                 paidCents > subtotalCents
               }

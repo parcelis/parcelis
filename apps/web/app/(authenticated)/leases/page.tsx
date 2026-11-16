@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../components/organization-currency";
+
 import * as React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -42,12 +44,7 @@ function formatDate(value: Date | string | null) {
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
     : "Not set";
 }
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    cents / 100,
-  );
-}
+
 function formatStatus(value: string) {
   return value
     .split("_")
@@ -303,6 +300,7 @@ type LeaseRowProps = {
 };
 
 function LeaseRow({ lease }: LeaseRowProps) {
+  const { formatCurrency } = useMoney(lease.currencyCode);
   const statusBadge = Object.hasOwn(leaseStatusBadges, lease.status)
     ? leaseStatusBadges[lease.status]
     : { label: formatStatus(lease.status), className: neutralStatusClass, dotClassName: "bg-current" };

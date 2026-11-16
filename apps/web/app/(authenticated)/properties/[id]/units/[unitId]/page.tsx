@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../../../../components/organization-currency";
+
 import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -71,14 +73,6 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
-function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
 function formatDate(date: Date | string | null) {
   if (!date) return "Not set";
   return new Intl.DateTimeFormat("en-US", {
@@ -103,6 +97,7 @@ function getInvoiceRows(startDate: Date | string, amountCents: number) {
 }
 
 export default function UnitDetailPage() {
+  const { formatCurrency } = useMoney();
   const queryClient = useQueryClient();
   const router = useRouter();
   const params = useParams<{ id: string; unitId: string }>();
@@ -219,15 +214,19 @@ export default function UnitDetailPage() {
   const collectionRows = [
     [
       "Collected",
-      canViewInvoices && canViewLeases ? formatCurrency(collectedCents) : "Unavailable",
+      canViewInvoices && canViewLeases ? formatCurrency(collectedCents, lease?.currencyCode) : "Unavailable",
       "bg-parcelis-green",
     ],
-    ["Outstanding", canViewInvoices && canViewLeases ? formatCurrency(overdueCents) : "Unavailable", "bg-red-500"],
+    [
+      "Outstanding",
+      canViewInvoices && canViewLeases ? formatCurrency(overdueCents, lease?.currencyCode) : "Unavailable",
+      "bg-red-500",
+    ],
     ["Processing", "—", "bg-orange-500"],
     ["Coming Due", "—", "bg-amber-400"],
     [
       "Monthly rent",
-      monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents),
+      monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents, lease?.currencyCode),
       "bg-parcelis-charcoal",
     ],
   ];
@@ -552,7 +551,9 @@ export default function UnitDetailPage() {
                         <div className="text-center">
                           <p className="text-xs font-semibold uppercase text-parcelis-gray">Total</p>
                           <p className="text-xl font-bold text-parcelis-charcoal">
-                            {monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents)}
+                            {monthlyRentCents === null
+                              ? "Unavailable"
+                              : formatCurrency(monthlyRentCents, lease?.currencyCode)}
                           </p>
                         </div>
                       </div>
@@ -637,7 +638,7 @@ export default function UnitDetailPage() {
                             <span className="font-semibold text-parcelis-charcoal">{invoice.id}</span>
                             <span className="text-parcelis-gray">{formatDate(invoice.dueDate)}</span>
                             <span className="text-right font-semibold text-parcelis-charcoal">
-                              {formatCurrency(invoice.amountCents)}
+                              {formatCurrency(invoice.amountCents, lease?.currencyCode)}
                             </span>
                           </div>
                         ))}

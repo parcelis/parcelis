@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../../components/organization-currency";
+
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,13 +37,6 @@ function formatDate(value: Date | string | null) {
   return value
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
     : "Not set";
-}
-
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    cents / 100,
-  );
 }
 
 function formatStatus(status: string) {
@@ -165,6 +160,7 @@ export default function LeaseDetailPage() {
     onError: (error) => toast.error(error.message),
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
+  const { formatCurrency } = useMoney(leaseRecord?.currencyCode);
   const lifecycleEvents: LeaseLifecycleEvent[] = lifecycleQuery.data ?? [];
   const canRetryActivation =
     canEditLease &&

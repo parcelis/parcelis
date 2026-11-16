@@ -125,6 +125,23 @@ Outbox rows are retained indefinitely in the initial implementation; no automati
 
 Client-side server state uses TanStack Query. Query keys are centralized next to the tRPC client, allowing mutations to invalidate the corresponding property, tenant, unit, or note data predictably.
 
+Each organization URL scope owns a separate query client and mounted form state. Changing
+`/o/:slug` replaces both, so previous requests cannot populate the next organization's
+cache. `OrganizationCurrencyProvider` loads `organizations.currency` through a client bound
+to that slug before showing organization screens. Failed currency loads expose a retry;
+the frontend never substitutes a browser preference or an unsaved setting.
+
+Money entry and display use server precision metadata and the shared money contracts from
+`@parcelis/schemas` (also exported through `/currency` and `/money`). UI inputs accept major
+units and parse exact decimal strings into the existing integer `*Cents` fields, which
+remain USD cents during the USD-only rollout. Limits and precision errors reject input
+without silently rounding or clamping. Displays retain fractional balances and identify
+currency codes. Existing obligations use saved lease/invoice currency. General settings
+consume the server's supported options and permanent-lock/permission restrictions;
+successful saves refresh currency and monetary queries, while rejected saves retain entered
+organization fields. This does not change locale, timezone, payment methods, or convert amounts.
+The complete frontend audit is in [FRONTEND_CURRENCY_INVENTORY.md](FRONTEND_CURRENCY_INVENTORY.md).
+
 Use `@parcelis/ui` for reusable controls. New cross-screen controls belong in `packages/ui/src/components`; feature-specific forms and state helpers belong under `apps/web/components`.
 
 The expanded sidebar shows the active organization and, for users with access to more than one, provides an organization switcher. Organization settings in `apps/web/app/settings/organization` manage the organization name, slug, and light and dark avatar images.

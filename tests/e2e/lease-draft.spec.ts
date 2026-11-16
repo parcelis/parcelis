@@ -329,6 +329,52 @@ test("keeps individual allocations aligned with selected residents", async ({ pa
   await expect(page.getByRole("checkbox").nth(1)).toBeChecked();
 });
 
+test("blocks stepper advancement for cleared or over-precision money allocations", async ({ page }) => {
+  await page.goto("/leases/new");
+  await page
+    .getByRole("button", { name: /Expand .* units/ })
+    .first()
+    .click();
+  await selectAvailableUnit(page);
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.getByRole("radio", { name: "All Tenants", exact: true }).click();
+  await page.getByRole("checkbox").first().click();
+  await page.getByLabel("Monthly rent").fill("1000.01");
+  await page.getByLabel("Monthly rent").blur();
+  await page.getByLabel("Security deposit").fill("0");
+  await page.getByLabel("Security deposit").blur();
+  await page.locator('[role="radio"][value="individual"]').click();
+  await page
+    .getByRole("radiogroup", { name: "Rent allocation input mode" })
+    .getByRole("radio", { name: "USD" })
+    .click();
+  const allocation = page.getByRole("spinbutton", { name: /Rent allocation for/ }).first();
+  await allocation.fill("");
+  await allocation.blur();
+  await page.getByRole("tab", { name: /Terms/ }).click();
+  await expect(page.getByRole("tab", { name: /Residents/ })).toHaveAttribute("aria-selected", "true");
+  await allocation.fill("1000.001");
+  await allocation.blur();
+  await page.getByRole("tab", { name: /Terms/ }).click();
+  await expect(page.getByRole("tab", { name: /Residents/ })).toHaveAttribute("aria-selected", "true");
+  await expect(allocation).toHaveValue("1000.001");
+  await allocation.fill("1000.01");
+  await allocation.blur();
+  await page
+    .getByRole("radiogroup", { name: "Rent allocation input mode" })
+    .getByRole("radio", { name: "%", exact: true })
+    .click();
+  await allocation.fill("");
+  await allocation.blur();
+  await page.getByRole("tab", { name: /Terms/ }).click();
+  await expect(page.getByRole("tab", { name: /Residents/ })).toHaveAttribute("aria-selected", "true");
+  await expect(allocation).toHaveValue("");
+  await allocation.fill("100");
+  await allocation.blur();
+  await page.getByRole("tab", { name: /Terms/ }).click();
+  await expect(page.getByRole("heading", { name: "Lease terms" })).toBeVisible();
+});
+
 test("autosaves lease terms and resumes on the terms step", async ({ page }) => {
   await page.goto("/leases/new");
   await page

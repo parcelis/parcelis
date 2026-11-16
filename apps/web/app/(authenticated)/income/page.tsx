@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../components/organization-currency";
+
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -28,15 +30,6 @@ import { InvoiceDrawer } from "../../../components/invoice-drawer";
 import { PageRail } from "../../../components/page-rail";
 import { getInvoiceLink } from "../../../lib/entity-links";
 
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
 function formatLeaseStatus(status: string) {
   return status
     .split("_")
@@ -50,12 +43,17 @@ function formatDate(value: Date | string) {
   );
 }
 
-function getCurrentInvoice(lease: { amountOverdueCents: number | null; monthlyRentCents: number | null }) {
+function getCurrentInvoice(lease: {
+  currencyCode: string | null;
+  amountOverdueCents: number | null;
+  monthlyRentCents: number | null;
+}) {
   const now = new Date();
   const dueOn = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const amountCents = lease.monthlyRentCents ?? 0;
 
   return {
+    currencyCode: lease.currencyCode,
     amountCents,
     balanceCents: lease.amountOverdueCents || amountCents,
     dueOn,
@@ -114,6 +112,7 @@ export default function IncomePage() {
 }
 
 function IncomePageContent() {
+  const { formatCurrency } = useMoney();
   const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<string>>(new Set());
   const [groupByUnit, setGroupByUnit] = React.useState(true);
   const [search, setSearch] = React.useState("");
@@ -173,12 +172,11 @@ function IncomePageContent() {
       return { ...property, units: property.units.filter((unit) => eligibleUnitIds.has(unit.id)) };
     })
     .filter((property) => property.units.length > 0);
-  const isDraftPropertyAvailable = draftPropertyId === "all" || properties.some(
-    (property) => property.id === parseEntityId(draftPropertyId),
-  );
-  const isDraftUnitAvailable = draftUnitId === "all" || unitFilterOptions.some((property) =>
-    property.units.some((unit) => unit.id === parseEntityId(draftUnitId)),
-  );
+  const isDraftPropertyAvailable =
+    draftPropertyId === "all" || properties.some((property) => property.id === parseEntityId(draftPropertyId));
+  const isDraftUnitAvailable =
+    draftUnitId === "all" ||
+    unitFilterOptions.some((property) => property.units.some((unit) => unit.id === parseEntityId(draftUnitId)));
   const incomeProperties = properties
     .filter((property) => selectedPropertyId === null || property.id === selectedPropertyId)
     .map((property) => {
@@ -339,11 +337,12 @@ function IncomePageContent() {
 
           {selectedTenantId !== null ? (
             <p className="mb-4 rounded-md border border-parcelis-border bg-white p-4 text-sm text-parcelis-gray dark:bg-parcelis-slate">
-              Tenant filter: {selectedTenant
+              Tenant filter:{" "}
+              {selectedTenant
                 ? `${selectedTenant.firstName} ${selectedTenant.lastName}`
-                : `Tenant #${selectedTenantId}`}.
-              {" "}Property and unit filters apply within this tenant’s income. Clearing filters keeps this
-              tenant restriction.
+                : `Tenant #${selectedTenantId}`}
+              . Property and unit filters apply within this tenant’s income. Clearing filters keeps this tenant
+              restriction.
             </p>
           ) : null}
 
@@ -422,9 +421,7 @@ function IncomePageContent() {
                       <span>Unit</span>
                       <Select onChange={(event) => setDraftUnitId(event.target.value)} value={draftUnitId}>
                         <option value="all">All units</option>
-                        {!isDraftUnitAvailable ? (
-                          <option value={draftUnitId}>Unavailable unit</option>
-                        ) : null}
+                        {!isDraftUnitAvailable ? <option value={draftUnitId}>Unavailable unit</option> : null}
                         {unitFilterOptions.map((property) => (
                           <optgroup key={property.id} label={property.name}>
                             {property.units.map((unit) => (
@@ -610,18 +607,22 @@ function IncomePageContent() {
                                       <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
                                         {formatCurrency(
                                           persistedInvoice ? persistedInvoice.amountCents : lease.monthlyRentCents,
+                                          persistedInvoice?.currencyCode ?? lease.currencyCode,
                                         )}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
                                         —
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
-                                        {formatCurrency(invoice.amountCents - invoice.balanceCents)}
+                                        {formatCurrency(
+                                          invoice.amountCents - invoice.balanceCents,
+                                          invoice.currencyCode,
+                                        )}
                                       </TableCell>
                                       <TableCell
                                         className={`px-5 py-3 text-right text-sm font-semibold ${persistedInvoice && isUpcomingInvoice(persistedInvoice) ? "text-parcelis-gray" : lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
                                       >
-                                        {formatCurrency(invoice.balanceCents)}
+                                        {formatCurrency(invoice.balanceCents, invoice.currencyCode)}
                                       </TableCell>
                                     </TableRow>
                                   );
@@ -698,16 +699,16 @@ function IncomePageContent() {
                             <span className="font-medium text-parcelis-charcoal">{lease.unitLabel}</span>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm font-semibold text-parcelis-charcoal">
-                            {formatCurrency(invoice.amountCents)}
+                            {formatCurrency(invoice.amountCents, invoice.currencyCode)}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm text-parcelis-gray">—</TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm text-parcelis-gray">
-                            {formatCurrency(invoice.amountCents - invoice.balanceCents)}
+                            {formatCurrency(invoice.amountCents - invoice.balanceCents, invoice.currencyCode)}
                           </TableCell>
                           <TableCell
                             className={`px-5 py-4 text-right text-sm font-semibold ${persistedInvoice && isUpcomingInvoice(persistedInvoice) ? "text-parcelis-gray" : invoice.balanceCents ? "text-red-700" : "text-parcelis-gray"}`}
                           >
-                            {formatCurrency(invoice.balanceCents)}
+                            {formatCurrency(invoice.balanceCents, invoice.currencyCode)}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             {persistedInvoice ? getIncomeInvoiceStatus(persistedInvoice) : formatInvoiceStatus(invoice)}

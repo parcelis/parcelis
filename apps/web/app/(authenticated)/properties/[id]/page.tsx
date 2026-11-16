@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../../components/organization-currency";
+
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -56,15 +58,6 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
 function formatDate(date: Date | string | null) {
   if (!date) return "Not set";
   return new Intl.DateTimeFormat("en-US", {
@@ -75,6 +68,7 @@ function formatDate(date: Date | string | null) {
 }
 
 export default function PropertyDetailPage() {
+  const { formatCurrency } = useMoney();
   const queryClient = useQueryClient();
   const router = useRouter();
   const params = useParams<{ id: string }>();
