@@ -15,10 +15,6 @@ import {
   Button,
   Dialog,
   DialogContent,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
 } from "@parcelis/ui";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -93,6 +89,7 @@ function InvoicePdfPreviewDialog({
 
 export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
   const router = useRouter();
+  const deleteDescriptionId = React.useId();
   const [paymentOpen, setPaymentOpen] = React.useState(false);
   const [notesOpen, setNotesOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
@@ -180,24 +177,9 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
             <StickyNote className="h-4 w-4" /> Add note
           </Button>
           {hasPaymentHistory ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    aria-disabled="true"
-                    className="opacity-50 hover:bg-white dark:hover:bg-parcelis-slate"
-                    size="sm"
-                    type="button"
-                    variant="destructive"
-                  >
-                    <Trash2 className="h-4 w-4" /> Delete
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent align="end" className="max-w-72">
-                  Invoices with associated payment history cannot be deleted.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button aria-describedby={deleteDescriptionId} disabled size="sm" type="button" variant="destructive">
+              <Trash2 className="h-4 w-4" /> Delete
+            </Button>
           ) : (
             <Button size="sm" type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
               <Trash2 className="h-4 w-4" /> Delete
@@ -208,7 +190,7 @@ export function InvoiceActions({ invoice }: { invoice: InvoiceActionInvoice }) {
           </Button>
         </div>
         {hasPaymentHistory ? (
-          <p className="text-right text-sm text-parcelis-gray">
+          <p className="max-w-md text-right text-sm text-parcelis-gray" id={deleteDescriptionId}>
             Invoices with payment history cannot be deleted, even when all payments have been reversed.
           </p>
         ) : null}
