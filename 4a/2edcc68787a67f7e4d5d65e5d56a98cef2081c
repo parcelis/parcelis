@@ -1,0 +1,38 @@
+packages/db/prisma/migrations/20261112000000_add_currency_models/migration.sql
+  s_0588712769d485::t_0ea05d73c79cea 20-21
+packages/db/package.json
+  s_0588712769d485::t_0ea05d73c79cea 15
+packages/schemas/src/lease-rent-schedule.ts
+  s_0588712769d485::t_0ea05d73c79cea 72-75,126,159
+apps/api/src/tests/invoices/invoice-pdf-currency.test.ts
+  s_0588712769d485::t_a68325f5ee201d 47-69,77
+packages/db/prisma/seed-currency.test.mjs
+  s_0588712769d485::t_0ea05d73c79cea 1-41,45-73
+  s_0588712769d485::t_cf74f2b35dfc3d 42-44
+apps/api/src/tests/currencies/lease-currency.integration.ts
+  s_0588712769d485::t_a7957d85c2874a 227-232,246,461
+  s_0588712769d485::t_9f64b3a54c46cf 272-273
+  s_0588712769d485::t_35b791300add61 4-5,225-226,233-245,247-271,274-277,453-456,458-460
+apps/api/src/tests/currencies/application-currency.integration.ts
+  s_0588712769d485::t_b6c897f99232c0 3-4,219-225
+apps/api/src/tests/currencies/currency.schema.test.ts
+  s_0588712769d485::t_c6f4012cd27fd1 9,37,39-41
+apps/api/src/tests/currencies/invoice-currency.integration.ts
+  s_0588712769d485::t_7895e238f7b391 3-4,209-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4a2edcc68787a67f7e4d5d65e5d56a98cef2081c",
+  "prompts": {},
+  "sessions": {
+    "s_0588712769d485": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e2ba-06e6-74d2-ada6-6de3bfaaa96d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
