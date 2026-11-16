@@ -1,0 +1,27 @@
+apps/api/src/tests/currencies/money.test.ts
+  s_c3131777e6e246::t_e1683dcabc7f25 4-16,22-27,29-30,64-69,71-86,92-146
+  s_c3131777e6e246::t_bbd65ea6e528b2 1-3,17-21,28,31-63,70,87-91,147
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_c3131777e6e246::t_0f751e236caea2 468
+apps/api/src/tests/invoices/invoice-pdf-currency.test.ts
+  s_c3131777e6e246::t_bfc1091a6cd122 20-35
+  s_c3131777e6e246::t_a187dceaa11ad1 2-4,6,39-44,46-69
+  s_c3131777e6e246::t_35be788ba741ab 1,5,7-19,36-38,70
+  s_c3131777e6e246::t_585619e46fcf86 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ee203e510848dd467ba61e4fa00b0d233fc1ac7",
+  "prompts": {},
+  "sessions": {
+    "s_c3131777e6e246": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d25c-2f45-73d1-9bfd-ff4b10f1435c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

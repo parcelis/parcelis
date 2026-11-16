@@ -1,0 +1,22 @@
+apps/api/src/router/app.router.ts
+  s_c3131777e6e246::t_d9cdbca49cc7c5 3473,3526
+apps/api/src/tests/currencies/application-currency.integration.ts
+  s_c3131777e6e246::t_14b7da5a795abb 1-27,34-115,120-126,131-171,180-193,198-200,205-213,217-228,232-246
+  s_c3131777e6e246::t_500e8d04d8663b 28-33,116-119,127-130,172-179,194-197,201-204,214-216,229-231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "98856d102b2ac6bfb25f7ce6bf5a5c429508c395",
+  "prompts": {},
+  "sessions": {
+    "s_c3131777e6e246": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d25c-2f45-73d1-9bfd-ff4b10f1435c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}

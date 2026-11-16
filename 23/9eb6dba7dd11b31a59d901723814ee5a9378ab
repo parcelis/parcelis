@@ -1,0 +1,32 @@
+apps/api/src/router/app.router.ts
+  s_c3131777e6e246::t_bcc7d58a60b948 493,507-517,1668-1671,1684-1703,1788-1791
+  s_c3131777e6e246::t_356295d201402e 481,1751
+  s_c3131777e6e246::t_94286901364213 7
+apps/api/src/router/public.router.ts
+  s_c3131777e6e246::t_e1683dcabc7f25 61,79,88,242,251,258,267,276
+  s_c3131777e6e246::t_99d456b3264c1b 4,30-32,36
+packages/schemas/src/money.ts
+  s_c3131777e6e246::t_585619e46fcf86 78-87
+packages/schemas/src/currency.ts
+  s_c3131777e6e246::t_c8abb463fb3267 9
+apps/web/next-env.d.ts
+  s_c3131777e6e246::t_7bec88145dbaaa 3-4
+apps/api/openapi/parcelis.openapi.json
+  s_c3131777e6e246::t_1e04a7d8d9d036 250-260,519-529,620-625,650,926-936,2656-2666,2823-2833,2923-2933,3099-3109,3205-3215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "239eb6dba7dd11b31a59d901723814ee5a9378ab",
+  "prompts": {},
+  "sessions": {
+    "s_c3131777e6e246": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d25c-2f45-73d1-9bfd-ff4b10f1435c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
