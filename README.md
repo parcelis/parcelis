@@ -138,10 +138,13 @@ Parcelis is built with open-source tools and services. See [DEPENDENCIES.md](DEP
 
 ## Service status POC
 
-For a local service-health dashboard, build `@parcelis/jobs`, then run `pnpm status`
-and open `http://localhost/status` with the dev web proxy running, or
-`http://127.0.0.1:40020` directly. See the
-[status monitor POC guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/status-monitor.md)
+For a local service-health dashboard, build `@parcelis/jobs` and configure
+`STATUS_TLS_KEY_FILE` and `STATUS_TLS_CERT_FILE` with absolute paths to a matching
+PEM private key and X.509 certificate. Run `pnpm status` and open
+`https://127.0.0.1:40020` with a client that trusts the certificate. To use
+`http://localhost/status`, set the web process’s `STATUS_INTERNAL_URL` to the HTTPS
+monitor URL and configure its certificate trust before starting the web app. See the
+[status monitor POC guide](https://docs.parcelis.dev/status-monitor)
 for configuration, checks, and limitations.
 Use `pnpm status:dev` while editing the monitor to restart it automatically on source changes.
 

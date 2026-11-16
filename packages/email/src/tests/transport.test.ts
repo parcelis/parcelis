@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { createServer, type Socket } from "node:net";
 import { once } from "node:events";
 import test, { type TestContext } from "node:test";
@@ -12,7 +13,7 @@ function configure(t: TestContext, port = "2525") {
     SMTP_PORT: port,
     SMTP_SECURE: "false",
     SMTP_USER: "status",
-    SMTP_PASSWORD: "test-password",
+    SMTP_PASSWORD: ["fixture", "mail", randomUUID()].join("-"),
   })) {
     const previous = process.env[key];
     process.env[key] = value;
