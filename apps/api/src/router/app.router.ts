@@ -2214,6 +2214,9 @@ export const appRouter = router({
                     propertyId: true,
                     unit: { select: { name: true } },
                     property: { select: { id: true, name: true } },
+                    tenants: {
+                      select: { tenant: { select: { id: true, firstName: true, lastName: true } } },
+                    },
                     invoices: {
                       where: { recipients: { some: { tenantId: input.id } } },
                       select: {
@@ -2247,6 +2250,7 @@ export const appRouter = router({
                 unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
                 propertyId: permissions.properties.view ? lease.propertyId : null,
                 property: permissions.properties.view ? lease.property : null,
+                tenants: lease.tenants.map(({ tenant }) => tenant),
                 invoices: permissions.invoices.view ? lease.invoices : [],
               }))
             : [],
