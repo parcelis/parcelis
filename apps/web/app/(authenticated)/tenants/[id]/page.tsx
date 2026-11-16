@@ -227,6 +227,7 @@ export default function TenantDetailPage() {
     new Map((tenant?.leases.flatMap((lease) => lease.invoices) ?? []).map((invoice) => [invoice.id, invoice])).values(),
   );
   const balances = today && canViewInvoices && canViewLeases ? summarizeInvoiceBalances(tenantInvoices, today) : null;
+  const isBalanceLoading = currentUserQuery.isLoading || organizationQuery.isLoading;
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
   const currentInvoice =
     today === null
@@ -758,7 +759,7 @@ export default function TenantDetailPage() {
                   value={currentLease ? formatCurrency(currentLease.monthlyRentCents) : "—"}
                   detail={
                     !balances
-                      ? organizationQuery.isLoading
+                      ? isBalanceLoading
                         ? "Loading balance..."
                         : "Balance unavailable"
                       : overdueCents !== null && overdueCents > 0
@@ -796,7 +797,7 @@ export default function TenantDetailPage() {
                             <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
                             {overdueCents === null ? (
                               <p className="mt-1 text-base font-bold text-parcelis-charcoal">
-                                {organizationQuery.isLoading ? "Loading balance..." : "Balance unavailable."}
+                                {isBalanceLoading ? "Loading balance..." : "Balance unavailable."}
                               </p>
                             ) : currentInvoiceId ? (
                               <Link
@@ -813,7 +814,7 @@ export default function TenantDetailPage() {
                             <p className="text-sm font-medium text-parcelis-gray">Past Due Invoices</p>
                             {overdueCents === null ? (
                               <p className="mt-1 text-base font-bold text-parcelis-charcoal">
-                                {organizationQuery.isLoading ? "Loading balance..." : "Balance unavailable."}
+                                {isBalanceLoading ? "Loading balance..." : "Balance unavailable."}
                               </p>
                             ) : overdueCents > 0 && pastDueInvoiceId ? (
                               <Link
@@ -831,15 +832,33 @@ export default function TenantDetailPage() {
                       <div className="space-y-6">
                         <CollectionMetric
                           label="Net payments recorded (all dates, shared obligations)"
-                          value={balances ? formatCurrency(balances.recordedPaymentCents) : "Unavailable"}
+                          value={
+                            balances
+                              ? formatCurrency(balances.recordedPaymentCents)
+                              : isBalanceLoading
+                                ? "Loading..."
+                                : "Unavailable"
+                          }
                         />
                         <CollectionMetric
                           label="Outstanding balance"
-                          value={balances ? formatCurrency(balances.outstandingCents) : "Unavailable"}
+                          value={
+                            balances
+                              ? formatCurrency(balances.outstandingCents)
+                              : isBalanceLoading
+                                ? "Loading..."
+                                : "Unavailable"
+                          }
                         />
                         <CollectionMetric
                           label="Overdue balance"
-                          value={balances ? formatCurrency(balances.overdueCents) : "Unavailable"}
+                          value={
+                            balances
+                              ? formatCurrency(balances.overdueCents)
+                              : isBalanceLoading
+                                ? "Loading..."
+                                : "Unavailable"
+                          }
                         />
                       </div>
                     </div>

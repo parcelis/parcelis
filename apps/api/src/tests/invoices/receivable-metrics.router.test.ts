@@ -97,14 +97,13 @@ test("overdue reads and synchronization change at organization midnight, not UTC
     { id: 9, dueOn: new Date("2026-10-31"), status: "overdue", amountCents: 501, balanceCents: 501 },
   ];
   property.leases = [property.leases[0]!];
-  const boundaries: Date[] = [];
+  const updates: unknown[] = [];
   const caller = appRouter.createCaller({
     prisma: {
       property: { findMany: async () => [property] },
       invoice: {
-        updateMany: async ({ where }: { where: { organizationId: number; dueOn?: { lt?: Date } } }) => {
-          assert.equal(where.organizationId, 7);
-          if (where.dueOn?.lt) boundaries.push(where.dueOn.lt);
+        updateMany: async (args: unknown) => {
+          updates.push(args);
           return { count: 0 };
         },
       },
@@ -117,7 +116,23 @@ test("overdue reads and synchronization change at organization midnight, not UTC
   t.mock.timers.setTime(new Date("2026-11-01T07:00:00Z").getTime());
   assert.equal((await caller.properties.list())[0]!.amountOverdueCents, 501);
   assert.deepEqual(
-    boundaries.map((date) => date.toISOString()),
-    ["2026-10-31T00:00:00.000Z", "2026-11-01T00:00:00.000Z"],
+    updates,
+    ["2026-10-31", "2026-11-01"].flatMap((date) => {
+      const today = new Date(`${date}T00:00:00.000Z`);
+      return [
+        {
+          where: { organizationId: 7, status: { in: ["open", "overdue"] }, balanceCents: 0 },
+          data: { status: "paid" },
+        },
+        {
+          where: { organizationId: 7, status: "open", balanceCents: { gt: 0 }, dueOn: { lt: today } },
+          data: { status: "overdue" },
+        },
+        {
+          where: { organizationId: 7, status: "overdue", balanceCents: { gt: 0 }, dueOn: { gte: today } },
+          data: { status: "open" },
+        },
+      ];
+    }),
   );
 });

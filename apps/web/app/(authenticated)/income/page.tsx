@@ -141,7 +141,7 @@ function IncomePageContent() {
   const invoicesQuery = useQuery({
     queryKey: ["invoices", "list", { tenantId: selectedTenantId }],
     queryFn: () => apiClient.invoices.list.query(selectedTenantId === null ? {} : { tenantId: selectedTenantId }),
-    enabled: canViewInvoices,
+    enabled: canViewInvoices && canViewLeases,
   });
   const invoicesByLease = new Map<number, NonNullable<typeof invoicesQuery.data>>();
   for (const invoice of invoicesQuery.data ?? []) {
