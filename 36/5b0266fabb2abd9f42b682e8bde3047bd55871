@@ -1,0 +1,39 @@
+apps/web/components/invoice-actions.tsx
+  s_9e1431a7735a4b::t_1275a869b35435 180
+  s_9e1431a7735a4b::t_9e6926aa96c339 92,181-182,192-196
+tests/e2e/property-receivables.spec.ts
+  s_9e1431a7735a4b::t_5647698a2f5c95 1-46,51-74
+  s_9e1431a7735a4b::t_031cb7314ec728 47-50
+apps/web/app/(authenticated)/income/page.tsx
+  s_9e1431a7735a4b::t_9e6926aa96c339 144
+apps/api/src/tests/invoices/receivable-metrics.router.test.ts
+  s_9e1431a7735a4b::t_b8cb9ad045c686 100,105-106,119-136
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_9e1431a7735a4b::t_1275a869b35435 835-841,845-851,855-861
+  s_9e1431a7735a4b::t_9e6926aa96c339 230,762,800,817
+CONTRIBUTING.md
+  s_9e1431a7735a4b::t_9e6926aa96c339 338,341
+  s_9e1431a7735a4b::t_ca6424bc470832 342
+tests/e2e/receivable-accessibility.spec.ts
+  s_9e1431a7735a4b::t_d65534882049f8 1-54,56-69,73-77,85-87,90-106,111-117,128-139
+  s_9e1431a7735a4b::t_6762ef77077891 55,70-72,78-84,88-89,107-110,118-127
+apps/web/app/(authenticated)/properties/page.tsx
+  s_9e1431a7735a4b::t_25f624a4a79702 187
+  s_9e1431a7735a4b::t_feca587309bece 132-133,138-145,182,974
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "365b0266fabb2abd9f42b682e8bde3047bd55871",
+  "prompts": {},
+  "sessions": {
+    "s_9e1431a7735a4b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e4c1-60d6-7461-aac5-0072d99fde10",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
