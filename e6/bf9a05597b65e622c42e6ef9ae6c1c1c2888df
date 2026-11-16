@@ -1,0 +1,27 @@
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_ddf9e2a4055fbe::t_20e7de91a5b497 4
+apps/web/app/(authenticated)/settings/organization/general/page.tsx
+  s_ddf9e2a4055fbe::t_9f944cd98b60c3 169
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_ddf9e2a4055fbe::t_c6c01588033f50 465
+apps/web/package.json
+  s_ddf9e2a4055fbe::t_5e2b4dba8de7f3 13
+tests/e2e/currency-money-workflows.spec.ts
+  s_ddf9e2a4055fbe::t_09f9a506146f39 35-46,48-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6bf9a05597b65e622c42e6ef9ae6c1c1c2888df",
+  "prompts": {},
+  "sessions": {
+    "s_ddf9e2a4055fbe": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "e5b6164b-b3be-47b1-9429-1d5d74301dab",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
