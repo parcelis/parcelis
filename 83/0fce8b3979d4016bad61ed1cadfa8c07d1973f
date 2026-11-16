@@ -1,0 +1,95 @@
+ARCHITECTURE.md
+  s_f0054b29d18b9b::t_5be49250af5bca 128-144
+apps/web/app/(authenticated)/settings/organization/general/page.tsx
+  s_f0054b29d18b9b::t_5be49250af5bca 1-483
+  s_f0054b29d18b9b::t_04411647d61960 484-486
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_f0054b29d18b9b::t_5be49250af5bca 1,4
+apps/web/components/trpc-provider.tsx
+  s_f0054b29d18b9b::t_525fc34530ae9e 5,8-19
+  s_f0054b29d18b9b::t_65b0f63cabbf6e 20-23
+apps/web/components/organization-currency.tsx
+  s_f0054b29d18b9b::t_525fc34530ae9e 1-60
+tests/e2e/organization-currency.spec.ts
+  s_f0054b29d18b9b::t_e19ed9eb85e3db 1-190
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_f0054b29d18b9b::t_525fc34530ae9e 3-4,72-73,205-211,259,580,598,616-625,643-646,649-652,684-686,690,722-723,730,884,887,890-895,900,905-910,957,972,1003-1011,1023-1030,1046-1054,1066-1073,1397-1409,1411-1413,1437,1452,1467,1730,1744-1747,2099,2453,2547,2632
+FRONTEND_CURRENCY_INVENTORY.md
+  s_f0054b29d18b9b::t_77d96d956cfe0c 1-52
+apps/web/app/(authenticated)/applications/[id]/page.tsx
+  s_f0054b29d18b9b::t_1a9ceab08fd565 3-4,81
+apps/web/app/(authenticated)/applications/page.tsx
+  s_f0054b29d18b9b::t_8944b961192294 3-4,57
+apps/web/app/(authenticated)/income/page.tsx
+  s_f0054b29d18b9b::t_40f07ca42e4a0c 3-4,46-50,56,115,175-179,340-341,343-345,424,610,617-620,625,702,706,711
+apps/web/app/(authenticated)/layout.tsx
+  s_f0054b29d18b9b::t_bc06778b5ca4c0 9,19-26
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_f0054b29d18b9b::t_5b126174e17e20 3-4,163
+apps/web/app/(authenticated)/leases/page.tsx
+  s_f0054b29d18b9b::t_600c0dcfa29847 3-4,47,303
+apps/web/app/(authenticated)/page.tsx
+  s_f0054b29d18b9b::t_d5e3af1dff7d64 3,31,128
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_f0054b29d18b9b::t_49215d9a5e9329 3-4,71
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_f0054b29d18b9b::t_9888b54e4a4141 3-4,100,217,220-224,229,554-556,641
+apps/web/app/(authenticated)/properties/page.tsx
+  s_f0054b29d18b9b::t_e3d65d1a1aa462 3-4,164,311
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_f0054b29d18b9b::t_3588f81a1f0fc4 3-4,91,178,468-469,725-730,887
+apps/web/components/application-drawer.tsx
+  s_f0054b29d18b9b::t_5d1deac36fbe74 3-4,57-60,64,94-95,102,106,144,201,206-208
+apps/web/components/edit-invoice-drawer.tsx
+  s_f0054b29d18b9b::t_b6f46e3c61e5b1 3-4,44-45,60,66,176,213,215,218-220,246,250,254,265
+apps/web/components/invoice-detail-view.tsx
+  s_f0054b29d18b9b::t_e292c44fd9c8fb 3-4,100-103,105-110,112,231,313,620-623
+apps/web/components/invoice-drawer.tsx
+  s_f0054b29d18b9b::t_dd0c0e61f1a7c0 3-4,46,98-100,353,401-403,434,438-440,471-472
+apps/web/components/lease-drawer.tsx
+  s_f0054b29d18b9b::t_0dceacf315016c 3-4,44,92,146,149,151,153-155
+apps/web/components/organization-currency-field.tsx
+  s_f0054b29d18b9b::t_7e1ec6618a9508 1-66
+apps/web/components/property-drawer-state.ts
+  s_f0054b29d18b9b::t_ecca77be4723b3 2-4,7,39,53,57,60,78-79,84,86-88,95,105
+apps/web/components/property-drawer.tsx
+  s_f0054b29d18b9b::t_d00e60fbc4c346 4,186,226-229,465,914,921-923
+apps/web/components/record-payment-drawer.tsx
+  s_f0054b29d18b9b::t_f4a5f373675e17 3-4,42,52-54,222,224,226-228,260-269
+apps/web/components/tenant-record-drawer.tsx
+  s_f0054b29d18b9b::t_fa62186abf1562 3-4,57,208-211,213-216,262
+apps/web/lib/money.test.ts
+  s_f0054b29d18b9b::t_d01a32ff6acbd0 1-42
+apps/web/lib/money.ts
+  s_f0054b29d18b9b::t_7cd05f9156ac7f 1-53
+packages/schemas/package.json
+  s_f0054b29d18b9b::t_c40f33f4aad8a0 9-11
+tests/e2e/api-tokens.spec.ts
+  s_f0054b29d18b9b::t_6c9935d59edccc 1,86,190-192,200-202,205-207
+tests/e2e/currency-money-workflows.spec.ts
+  s_f0054b29d18b9b::t_b6acf8792f57b2 1-116
+tests/e2e/fixtures/authenticated.ts
+  s_f0054b29d18b9b::t_52150de5171dd8 14-21
+tests/e2e/fixtures/currency.ts
+  s_f0054b29d18b9b::t_1e081050cf2a73 1-11
+tests/e2e/jwt-session.spec.ts
+  s_f0054b29d18b9b::t_274729f8933dc1 1,42-49
+tests/e2e/lease-draft.spec.ts
+  s_f0054b29d18b9b::t_c729751f49ec66 332-377
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "830fce8b3979d4016bad61ed1cadfa8c07d1973f",
+  "prompts": {},
+  "sessions": {
+    "s_f0054b29d18b9b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e23a-ab82-7a71-9dcc-fab38f75b30c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
