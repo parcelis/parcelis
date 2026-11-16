@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -149,7 +149,7 @@ export default function OrganizationEmailSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="email"
@@ -159,13 +159,10 @@ export default function OrganizationEmailSettingsPage() {
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Email</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                  Configure the SMTP server used to send email for this organization.
-                </p>
-              </section>
+              <SettingsPanelHeader
+                title={<>Email</>}
+                description={<>Configure the SMTP server used to send email for this organization.</>}
+              />
             }
           >
             <Card>
@@ -368,7 +365,7 @@ export default function OrganizationEmailSettingsPage() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>

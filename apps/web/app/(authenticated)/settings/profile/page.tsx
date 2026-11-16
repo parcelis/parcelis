@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -89,7 +89,7 @@ export default function ProfileSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="none"
@@ -99,11 +99,7 @@ export default function ProfileSettingsPage() {
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-2 text-3xl font-bold md:text-5xl">Profile</h1>
-                <p className="mt-3 max-w-2xl text-sm text-white/75">Manage the details shown for your account.</p>
-              </section>
+              <SettingsPanelHeader title={<>Profile</>} description={<>Manage the details shown for your account.</>} />
             }
           >
             <Card>
@@ -192,7 +188,7 @@ export default function ProfileSettingsPage() {
                 await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
               }}
             />
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>

@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.2
+          node-version: 24.22.3
       - name: Select suites from changed files
         id: select
         run: node scripts/postgres-integration-changes.mjs
@@ -59,7 +59,7 @@ jobs:
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.2
+          node-version: 24.22.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:deploy

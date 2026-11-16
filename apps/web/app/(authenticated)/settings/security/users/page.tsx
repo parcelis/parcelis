@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -40,22 +40,21 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import { apiClient, queryKeys } from "../../../components/api-client";
+import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { userRoleValues } from "@parcelis/schemas";
-import { LoadingState } from "../../../components/loading-state";
-import { CreateUserDrawer, initialCreateUserFormState } from "../../../components/create-user-drawer";
-import { EditUserDrawer, type EditUserFormState } from "../../../components/edit-user-drawer";
-import { PageRail } from "../../../components/page-rail";
-import { hasPermission } from "../../../components/property-access";
-import { SettingsRail } from "../../../components/settings-rail";
-import { formatLabel } from "../../../lib/format";
+import { LoadingState } from "../../../../../components/loading-state";
+import { CreateUserDrawer, initialCreateUserFormState } from "../../../../../components/create-user-drawer";
+import { EditUserDrawer, type EditUserFormState } from "../../../../../components/edit-user-drawer";
+import { hasPermission } from "../../../../../components/property-access";
+import { SettingsRail } from "../../../../../components/settings-rail";
+import { formatLabel } from "../../../../../lib/format";
 import {
   entityCreatedMessage,
   entityDeletedMessage,
   entityDisabledMessage,
   entityEnabledMessage,
   entityUpdatedMessage,
-} from "../../../components/toast-messages";
+} from "../../../../../components/toast-messages";
 
 type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
 
@@ -196,6 +195,18 @@ export default function SettingsPage() {
     },
   });
 
+  function openAccountStatusDialog(user: UserListItem) {
+    if (updateAccountStatusMutation.isPending) return;
+    updateAccountStatusMutation.reset();
+    setDisableUser(user);
+  }
+
+  function openDeleteDialog(user: UserListItem) {
+    if (deleteUserMutation.isPending) return;
+    deleteUserMutation.reset();
+    setDeleteUser(user);
+  }
+
   function openEdit(user: UserListItem) {
     updateUserRequest.reset();
     setEditForm({
@@ -234,7 +245,17 @@ export default function SettingsPage() {
         onSubmit={() => editUser && updateUserRequest.mutate({ ...editForm, id: editUser.id })}
         open={Boolean(editUser)}
       />
-      <AlertDialog onOpenChange={(open) => !open && setDisableUser(null)} open={Boolean(disableUser)}>
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            if (!updateAccountStatusMutation.isPending) {
+              updateAccountStatusMutation.reset();
+            }
+            setDisableUser(null);
+          }
+        }}
+        open={Boolean(disableUser)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -246,6 +267,11 @@ export default function SettingsPage() {
                 : `${disableUser?.name} will no longer be able to sign in.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {updateAccountStatusMutation.error ? (
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {updateAccountStatusMutation.error.message}
+            </p>
+          ) : null}
           <AlertDialogFooter>
             <Button onClick={() => setDisableUser(null)} type="button" variant="secondary">
               Cancel
@@ -266,7 +292,17 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog onOpenChange={(open) => !open && setDeleteUser(null)} open={Boolean(deleteUser)}>
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            if (!deleteUserMutation.isPending) {
+              deleteUserMutation.reset();
+            }
+            setDeleteUser(null);
+          }
+        }}
+        open={Boolean(deleteUser)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete user?</AlertDialogTitle>
@@ -275,6 +311,11 @@ export default function SettingsPage() {
               {"'s"} account and active sessions.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteUserMutation.error ? (
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {deleteUserMutation.error.message}
+            </p>
+          ) : null}
           <AlertDialogFooter>
             <Button onClick={() => setDeleteUser(null)} type="button" variant="secondary">
               Cancel
@@ -306,7 +347,7 @@ export default function SettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="users"
@@ -316,18 +357,18 @@ export default function SettingsPage() {
               />
             }
             header={
-              <PageRail description="Review the accounts with access to Parcelis." eyebrow="Settings" title="Users">
-                <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-2 md:min-w-[280px]">
-                  <div className="rounded-md bg-white/10 p-3">
-                    <div className="text-2xl font-bold text-white">{activeUsers ?? "—"}</div>
+              <SettingsPanelHeader description="Review the accounts with access to Parcelis." title="Users">
+                <div className="flex flex-wrap gap-2 text-sm text-parcelis-gray">
+                  <div className="rounded-md bg-parcelis-porcelain p-3">
+                    <div className="text-2xl font-bold text-parcelis-charcoal">{activeUsers ?? "—"}</div>
                     Active accounts
                   </div>
-                  <div className="rounded-md bg-white/10 p-3">
-                    <div className="text-2xl font-bold text-white">{disabledUsers ?? "—"}</div>
+                  <div className="rounded-md bg-parcelis-porcelain p-3">
+                    <div className="text-2xl font-bold text-parcelis-charcoal">{disabledUsers ?? "—"}</div>
                     Disabled accounts
                   </div>
                 </div>
-              </PageRail>
+              </SettingsPanelHeader>
             }
           >
             <Card>
@@ -427,9 +468,9 @@ export default function SettingsPage() {
                                 canDelete={canDeleteUsers}
                                 canEdit={canEditUsers}
                                 canManage={isAdministrator || user.role !== "administrator"}
-                                onDelete={() => setDeleteUser(user)}
+                                onDelete={() => openDeleteDialog(user)}
                                 onEdit={() => openEdit(user)}
-                                onToggleAccountStatus={() => setDisableUser(user)}
+                                onToggleAccountStatus={() => openAccountStatusDialog(user)}
                                 user={user}
                               />
                             </TableCell>
@@ -441,7 +482,7 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>

@@ -127,7 +127,7 @@ Client-side server state uses TanStack Query. Query keys are centralized next to
 
 Use `@parcelis/ui` for reusable controls. New cross-screen controls belong in `packages/ui/src/components`; feature-specific forms and state helpers belong under `apps/web/components`.
 
-The expanded sidebar shows the active organization and, for users with access to more than one, provides an organization switcher. Organization settings in `apps/web/app/settings/organization` manage the organization name, slug, and light and dark avatar images.
+The expanded sidebar shows the active organization and, for users with access to more than one, provides an organization switcher. Organization settings at `/settings/organization/general` manage the organization name, slug, and light and dark avatar images. Security settings use `/settings/security/users` and `/settings/security/roles`. Previous settings URLs redirect to these paths, including organization-scoped URLs under `/o/:slug`.
 
 ## API
 

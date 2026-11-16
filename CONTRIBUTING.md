@@ -335,10 +335,8 @@ After pulling schema changes, run:
 
 ```bash
 pnpm db:migrate
-pnpm db:generate
+pnpm db:seed
 ```
-
-Run `pnpm db:seed` only when setting up demo data or when a change explicitly requires updated seed data.
 
 #### Useful commands
 
