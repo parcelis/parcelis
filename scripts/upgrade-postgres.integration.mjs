@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
 
@@ -13,7 +12,7 @@ test(
   { timeout: 240_000 },
   async (t) => {
     const project = `parcelis-upgrade-test-${Date.now()}`;
-    const directory = mkdtempSync(resolve(tmpdir(), "parcelis-upgrade-"));
+    const directory = mkdtempSync(resolve(process.cwd(), ".parcelis-upgrade-"));
     t.after(() => rmSync(directory, { recursive: true, force: true }));
     const composeFile = resolve(directory, "compose.json");
     const actual = JSON.parse(run(["compose", "-f", "docker-compose-dev.yml", "config", "--format", "json"]));

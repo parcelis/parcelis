@@ -84,7 +84,7 @@ function createLocalHttpsServer(handler) {
 }
 
 test("shutdown closes an active upgraded socket before Next and resource cleanup", { timeout: 5000 }, async (t) => {
-  const { server, cleanup } = createLocalHttpsServer();
+  const { server, certificate, cleanup } = createLocalHttpsServer();
   const events = [];
   let upgradedSocket;
   let clientSocket;
@@ -108,7 +108,8 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
   const client = httpsRequest({
     hostname: "127.0.0.1",
     port: server.address().port,
-    rejectUnauthorized: process.env.CI === "true",
+    ca: certificate,
+    rejectUnauthorized: true,
     headers: { Connection: "Upgrade", Upgrade: "websocket" },
   });
   client.end();
@@ -122,7 +123,7 @@ test("shutdown closes an active upgraded socket before Next and resource cleanup
 });
 
 test("production rejects upgraded sockets immediately", { timeout: 5000 }, async (t) => {
-  const { server, cleanup } = createLocalHttpsServer();
+  const { server, certificate, cleanup } = createLocalHttpsServer();
   const shutdown = createApiShutdown(server, { close: async () => {} }, async () => {});
   t.after(() => {
     cleanup();
@@ -133,7 +134,8 @@ test("production rejects upgraded sockets immediately", { timeout: 5000 }, async
   const client = httpsRequest({
     hostname: "127.0.0.1",
     port: server.address().port,
-    rejectUnauthorized: process.env.CI === "true",
+    ca: certificate,
+    rejectUnauthorized: true,
     headers: { Connection: "Upgrade", Upgrade: "websocket" },
   });
   t.after(() => client.destroy());

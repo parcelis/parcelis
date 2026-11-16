@@ -1,3 +1,4 @@
+import type { RequestListener } from "node:http";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -11,7 +12,7 @@ import { checkHttp, runCheck, type ServiceCheck } from "../../modules/service-ch
 import { applyCheckResults, overallStatus, updateComponent, visibleComponent } from "../../status/state";
 import { renderStatusPage } from "../../status/page";
 
-function createLocalHttpsServer(handler: Parameters<typeof createServer>[0]) {
+function createLocalHttpsServer(handler: RequestListener) {
   const tempDir = mkdtempSync(join(tmpdir(), "parcelis-local-cert-"));
   execFileSync("openssl", [
     "req",
@@ -128,7 +129,15 @@ test("a stalled probe returns down at the response deadline", async (t) => {
 });
 
 test("HTTP probes require success and expected content", async () => {
-  const { server, cleanup } = createLocalHttpsServer((request, response) => {
+  const { server, certificate, cleanup } = createLocalHttpsServer((request, response) => {
+    if (request.url === "/relative") {
+      response.writeHead(302, { Location: "./" }).end();
+      return;
+    }
+    if (request.url?.startsWith("/redirect")) {
+      response.writeHead(302, { Location: request.url.slice("/redirect".length) || "/" }).end();
+      return;
+    }
     response.statusCode = request.url === "/error" ? 503 : 200;
     response.end(request.url === "/wrong" ? "Other application" : "Parcelis");
   });
@@ -139,17 +148,32 @@ test("HTTP probes require success and expected content", async () => {
   const url = `https://127.0.0.1:${address.port}`;
   try {
     assert.equal(
-      (await checkHttp("web", "Web", url, "Parcelis", { rejectUnauthorized: process.env.CI === "true" })).status,
+      (await checkHttp("web", "Web", url, "Parcelis", { ca: certificate, rejectUnauthorized: true })).status,
       "operational",
     );
     assert.equal(
-      (await checkHttp("web", "Web", `${url}/wrong`, "Parcelis", { rejectUnauthorized: process.env.CI === "true" })).status,
+      (await checkHttp("web", "Web", `${url}/wrong`, "Parcelis", { ca: certificate, rejectUnauthorized: true })).status,
       "down",
     );
     assert.equal(
-      (await checkHttp("web", "Web", `${url}/error`, "Parcelis", { rejectUnauthorized: process.env.CI === "true" })).status,
+      (await checkHttp("web", "Web", `${url}/error`, "Parcelis", { ca: certificate, rejectUnauthorized: true })).status,
       "down",
     );
+    assert.equal((await checkHttp("web", "Web", url, "Parcelis")).status, "down");
+    for (const path of [
+      "/relative",
+      "/redirect",
+      "/redirect/redirect",
+      "/redirect/redirect/redirect/redirect/redirect",
+    ]) {
+      assert.equal(
+        (await checkHttp("web", "Web", `${url}${path}`, "Parcelis", { ca: certificate })).status,
+        "operational",
+      );
+    }
+    for (const path of ["/redirect/wrong", "/redirect/error"]) {
+      assert.equal((await checkHttp("web", "Web", `${url}${path}`, "Parcelis", { ca: certificate })).status, "down");
+    }
   } finally {
     cleanup();
     server.closeAllConnections();
@@ -162,4 +186,33 @@ test("status page escapes component names", () => {
   const html = renderStatusPage("degraded", [component]);
   assert.ok(!html.includes("<script>"));
   assert.ok(html.includes("&lt;script&gt;"));
+});
+
+test("HTTP probes stop at five redirects and share one timeout across the chain", async (t) => {
+  const { createServer: createHttpServer } = await import("node:http");
+  let requests = 0;
+  const server = createHttpServer((request, response) => {
+    requests++;
+    if (request.url === "/loop") response.writeHead(302, { Location: "/loop" }).end();
+    else if (request.url === "/slow") {
+      const timer = setTimeout(() => response.writeHead(302, { Location: "/stalled" }).end(), 2_500);
+      response.on("close", () => clearTimeout(timer));
+    } else if (request.url !== "/stalled") response.writeHead(302, { Location: "./loop" }).end();
+  });
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const url = `http://127.0.0.1:${address.port}`;
+  assert.equal((await checkHttp("web", "Web", `${url}/loop`, "Parcelis")).status, "down");
+  assert.equal(requests, 6);
+  requests = 0;
+  const start = Date.now();
+  assert.equal((await checkHttp("web", "Web", `${url}/slow`, "Parcelis")).status, "down");
+  assert.equal(requests, 2);
+  assert.ok(Date.now() - start < 6_500);
 });

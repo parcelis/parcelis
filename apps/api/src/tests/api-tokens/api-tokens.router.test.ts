@@ -345,7 +345,7 @@ test("creation returns the secret and stores only its hash", async () => {
   assert.equal(storedData.createdById, 1);
   assert.equal(storedData.createdByLabel, "Test owner");
   assert.equal(storedData.tokenHash, hashApiToken(result.token));
-  assert.equal(storedData[metadataKey], result.token.slice(0, 19));
+  assert.equal(storedData.tokenPrefix, result.token.slice(0, 19));
   assert.equal(Object.values(storedData).includes(result.token), false);
   assert.equal("tokenHash" in result.metadata, false);
 });

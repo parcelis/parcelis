@@ -77,11 +77,12 @@ test(
       adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
     }));
     const organization = await prisma.organization.create({ data: { name: "PDF integration", slug: isolated.schema } });
+    const password = ["fixture", "deploy", randomUUID()].join("-");
     const user = await prisma.user.create({
       data: {
         name: "PDF tester",
         email: "pdf@example.test",
-        passwordHash: await hashPassword("Deployment-test-password-123!"),
+        passwordHash: await hashPassword(password),
         role: "administrator",
         defaultOrganizationId: organization.id,
       },
@@ -240,6 +241,7 @@ test(
         stdio: ["ignore", "pipe", "pipe"],
       });
       await runDeploymentSmoke({
+        password,
         base,
         cookie,
         prisma,

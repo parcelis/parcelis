@@ -1,4 +1,3 @@
-import { generateKeyPairSync } from "node:crypto";
 import { createServer } from "node:https";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -22,16 +21,16 @@ const brandAssets = new Map(
     "parcelis-dark-background.svg",
   ].map((name) => [`/brand/${name}`, readFileSync(resolve(process.cwd(), "../web/public/brand", name))]),
 );
-const { privateKey, certificate } = generateKeyPairSync("rsa", {
-  modulusLength: 2_048,
-  publicKeyEncoding: { type: "spki", format: "pem" },
-  privateKeyEncoding: { type: "pkcs8", format: "pem" },
-});
+const keyPath = process.env.STATUS_TLS_KEY_FILE;
+const certPath = process.env.STATUS_TLS_CERT_FILE;
+if (!keyPath || !certPath) throw new Error("STATUS_TLS_KEY_FILE and STATUS_TLS_CERT_FILE are required.");
+const privateKey = readFileSync(keyPath);
+const certificate = readFileSync(certPath);
 const components = new Map<string, Component>();
 const port = Number(process.env.STATUS_PORT ?? 40020);
 const host = process.env.STATUS_HOST ?? "127.0.0.1";
 const webUrl = process.env.STATUS_WEB_URL ?? "https://localhost:30000/login";
-const apiUrl = process.env.STATUS_API_URL ?? "https://localhost:40010/api/v1/health";
+const apiUrl = process.env.STATUS_API_URL ?? "http://localhost:40010/api/v1/health";
 let stopping = false;
 
 /** Updates component health from application and dependency probes, then delivers transition alerts. */

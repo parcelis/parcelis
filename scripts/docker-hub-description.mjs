@@ -1,10 +1,10 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 function resolveWithinProject(pathValue, description) {
-  const resolvedPath = resolve(pathValue);
-  const projectRoot = resolve(process.cwd());
+  const resolvedPath = realpathSync(resolve(pathValue));
+  const projectRoot = realpathSync(process.cwd());
   if (resolvedPath !== projectRoot && !resolvedPath.startsWith(`${projectRoot}${sep}`)) {
     throw new Error(`${description} must stay inside the project root.`);
   }

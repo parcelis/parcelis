@@ -732,10 +732,11 @@ test("authorized user creation creates a pending account and verification token"
     resetEmailTransporter();
   });
   const state = createPrisma();
+  const email = fixtureEmail("created");
 
   await createAdministratorCaller(state.prisma).users.create({
     name: "Created User",
-    email: fixtureEmail("created"),
+    email,
     phone: null,
     password: fixtureValue("created-account"),
     role: "property_manager",
@@ -752,7 +753,7 @@ test("authorized user creation creates a pending account and verification token"
     email: string;
     template: { kind: string; url: string };
   };
-  assert.equal(payload.email, "created@example.com");
+  assert.equal(payload.email, email);
   assert.match(payload.body, /mode=verify/);
   assert.equal(payload.template.kind, "account-verification");
   assert.match(payload.template.url, /mode=verify/);

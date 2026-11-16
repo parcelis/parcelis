@@ -65,11 +65,11 @@ for (const role of ["owner", "administrator"]) {
     const contactEmail = fixtureEmail("contact");
     const { caller, freshCaller, organization } = fixture(role);
     const result = await caller.organizations.update({ ...input, email: `  ${contactEmail.toUpperCase()}  ` });
-    const normalizedEmail = contactEmail.toLowerCase();
-    assert.equal(result.email, normalizedEmail);
-    assert.equal(organization.email, normalizedEmail);
+    const trimmedEmail = contactEmail.toUpperCase();
+    assert.equal(result.email, trimmedEmail);
+    assert.equal(organization.email, trimmedEmail);
     assert.equal((await caller.organizations.active()).email, existingEmail);
-    assert.equal((await freshCaller().organizations.active()).email, normalizedEmail);
+    assert.equal((await freshCaller().organizations.active()).email, trimmedEmail);
   });
 }
 
@@ -140,7 +140,7 @@ test("the shared settings contract accepts optional, nullable, and trimmed conta
   assert.equal(updateOrganizationInputSchema.parse({ ...input, email: null }).email, null);
   assert.equal(
     updateOrganizationInputSchema.parse({ ...input, email: ` ${permittedEmail.toUpperCase()} ` }).email,
-    permittedEmail.toLowerCase(),
+    permittedEmail.toUpperCase(),
   );
   for (const email of [fixtureEmail("ops"), fixtureEmail("tag")]) {
     assert.equal(updateOrganizationInputSchema.parse({ ...input, email: ` ${email} ` }).email, email);

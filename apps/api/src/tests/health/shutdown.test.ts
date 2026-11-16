@@ -1,3 +1,4 @@
+import type { RequestListener } from "node:http";
 import { deferred } from "./deferred";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -10,7 +11,7 @@ import { setImmediate as nextTurn } from "node:timers/promises";
 import test from "node:test";
 import { drainStatusServer } from "../../status/shutdown";
 
-function createLocalHttpsServer(handler: (request: unknown, response: { writeHead: Function; write: Function; end: Function }) => void) {
+function createLocalHttpsServer(handler: RequestListener) {
   const tempDir = mkdtempSync(join(tmpdir(), "parcelis-local-cert-"));
   execFileSync("openssl", [
     "req",
@@ -31,7 +32,7 @@ function createLocalHttpsServer(handler: (request: unknown, response: { writeHea
   ]);
   const key = readFileSync(join(tempDir, "key.pem"), "utf8");
   const certificate = readFileSync(join(tempDir, "cert.pem"), "utf8");
-  const server = createHttpsServer({ key, cert: certificate }, handler as any);
+  const server = createHttpsServer({ key, cert: certificate }, handler);
   return {
     server,
     certificate,
@@ -43,7 +44,11 @@ test("shutdown waits for active HTTP responses as well as polling and cleanup", 
   const poll = deferred<void>();
   const cleanup = deferred<void>();
   const started = deferred<() => void>();
-  const { server, cleanup: serverCleanup } = createLocalHttpsServer((_request, response) => {
+  const {
+    server,
+    certificate,
+    cleanup: serverCleanup,
+  } = createLocalHttpsServer((_request, response) => {
     response.writeHead(200);
     response.write("in progress");
     started.resolve(() => response.end());
@@ -57,10 +62,8 @@ test("shutdown waits for active HTTP responses as well as polling and cleanup", 
   });
   const address = server.address();
   assert.ok(address && typeof address !== "string");
-  const request = get(
-    `https://127.0.0.1:${address.port}`,
-    { rejectUnauthorized: process.env.CI === "true" },
-    (response) => response.resume(),
+  const request = get(`https://127.0.0.1:${address.port}`, { ca: certificate, rejectUnauthorized: true }, (response) =>
+    response.resume(),
   );
   request.on("error", (error) => started.reject(error));
   const finishResponse = await started.promise;

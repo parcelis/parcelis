@@ -390,25 +390,43 @@ export function checkHttp(
   expected: string,
   requestOptions: Record<string, unknown> = {},
 ) {
-  return runCheck(id, name, async () => {
-    const target = new URL(url);
-    const transport = target.protocol === "https:" ? await import("node:https") : await import("node:http");
-    const response = await new Promise<{ statusCode?: number; body: string }>((resolve, reject) => {
-      const req = transport.request(
-        target,
-        { method: "GET", ...requestOptions, signal: AbortSignal.timeout(checkTimeoutMs - 100) },
-        (res) => {
-          const chunks: Buffer[] = [];
-          res.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-          res.on("end", () => {
-            resolve({ statusCode: res.statusCode, body: Buffer.concat(chunks).toString("utf8") });
+  return runCheck(id, name, async (parentSignal) => {
+    const signal = AbortSignal.any([parentSignal, AbortSignal.timeout(checkTimeoutMs - 100)]);
+    let target = new URL(url);
+    for (let redirects = 0; ; redirects++) {
+      if (target.protocol !== "http:" && target.protocol !== "https:") throw new Error("Unsupported protocol");
+      const transport = target.protocol === "https:" ? await import("node:https") : await import("node:http");
+      const response = await new Promise<{ statusCode?: number; location?: string; body: string }>(
+        (resolve, reject) => {
+          const req = transport.request(target, { method: "GET", ...requestOptions, signal }, (res) => {
+            const chunks: Buffer[] = [];
+            res.on("error", reject);
+            res.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+            res.on("end", () => {
+              resolve({
+                statusCode: res.statusCode,
+                location: res.headers.location,
+                body: Buffer.concat(chunks).toString("utf8"),
+              });
+            });
           });
+          req.on("error", reject);
+          req.end();
         },
       );
-      req.on("error", reject);
-      req.end();
-    });
-    if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300 || !response.body.includes(expected))
-      throw new Error("Unexpected response");
+      if (response.location && [301, 302, 303, 307, 308].includes(response.statusCode ?? 0)) {
+        if (redirects >= 5) throw new Error("Too many redirects");
+        target = new URL(response.location, target);
+        continue;
+      }
+      if (
+        !response.statusCode ||
+        response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        !response.body.includes(expected)
+      )
+        throw new Error("Unexpected response");
+      return;
+    }
   });
 }
