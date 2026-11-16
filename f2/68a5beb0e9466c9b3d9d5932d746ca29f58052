@@ -1,0 +1,23 @@
+AGENTS.md
+  s_9e1431a7735a4b::t_23820473bdabff 16,38-39,60,91-105
+  s_9e1431a7735a4b::t_b41d9379a3e19a 106
+CONTRIBUTING.md
+  s_9e1431a7735a4b::t_23820473bdabff 338,341
+  s_9e1431a7735a4b::t_45574dd02849e2 342
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f268a5beb0e9466c9b3d9d5932d746ca29f58052",
+  "prompts": {},
+  "sessions": {
+    "s_9e1431a7735a4b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e4c1-60d6-7461-aac5-0072d99fde10",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
