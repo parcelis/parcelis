@@ -1,0 +1,25 @@
+packages/db/prisma/migrations/20261112000000_reconcile_legacy_invoice_payments/migration.sql
+  s_9e1431a7735a4b::t_9043e9196fbd71 1-63
+apps/web/components/invoice-actions.tsx
+  s_9e1431a7735a4b::t_9043e9196fbd71 92,180-182,193
+tests/e2e/invoice-delete-accessibility.spec.ts
+  s_9e1431a7735a4b::t_9043e9196fbd71 1-83
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_9e1431a7735a4b::t_9043e9196fbd71 129,147-192,195-196,207-217,219-260
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "899f8452d255829abee17afdea890261ca7e689a",
+  "prompts": {},
+  "sessions": {
+    "s_9e1431a7735a4b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e4c1-60d6-7461-aac5-0072d99fde10",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
