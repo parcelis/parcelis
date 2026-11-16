@@ -32,15 +32,32 @@ test("invoice editing and payment preserve saved currency and fractional balance
       request.method() === "POST" &&
       procedures.some((procedure) => ["invoices.update", "invoices.recordPayments"].includes(procedure))
     ) {
-      const input = request.postDataJSON() as Record<
-        string,
-        {
-          items?: Array<{ rateCents: number }>;
-          payments?: Array<{ amountCents: number }>;
-        }
-      >;
+      const input = request.postDataJSON() as
+        | Record<
+            string,
+            {
+              items?: Array<{ rateCents: number }>;
+              payments?: Array<{ amountCents: number }>;
+            }
+          >
+        | {
+            items?: Array<{ rateCents: number }>;
+            payments?: Array<{ amountCents: number }>;
+          };
       const results = procedures.map((procedure, index) => {
-        const args = input[String(index)]!;
+        const args =
+          batched && input !== null && typeof input === "object" && String(index) in input
+            ? (input as Record<
+                string,
+                {
+                  items?: Array<{ rateCents: number }>;
+                  payments?: Array<{ amountCents: number }>;
+                }
+              >)[String(index)]!
+            : (input as {
+                items?: Array<{ rateCents: number }>;
+                payments?: Array<{ amountCents: number }>;
+              });
         if (procedure === "invoices.update") {
           const amount = args.items![0]!.rateCents;
           writes.push({ procedure, amount });

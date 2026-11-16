@@ -462,7 +462,7 @@ export default function TenantDetailPage() {
             <Label>
               Monthly rent
               <Input
-                min="0.01"
+                min={amountStep}
                 onChange={(event) => setLeaseForm((current) => ({ ...current, monthlyRent: event.target.value }))}
                 required
                 step={amountStep}
