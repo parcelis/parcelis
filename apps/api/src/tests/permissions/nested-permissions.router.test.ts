@@ -18,7 +18,14 @@ const resources: PermissionResource[] = [
 ];
 const tenant = { id: 4, firstName: "Private", lastName: "Tenant", email: "private@example.com" };
 const tenantSummary = { id: tenant.id, firstName: tenant.firstName, lastName: tenant.lastName };
-const invoice = { id: 8, balanceCents: 12345, invoiceNumber: "INV-private" };
+const invoice = {
+  dueOn: new Date("2020-01-01"),
+  status: "overdue",
+  amountCents: 12345,
+  id: 8,
+  balanceCents: 12345,
+  invoiceNumber: "INV-private",
+};
 const lease = {
   id: 7,
   unitId: 3,
@@ -85,7 +92,7 @@ function createCaller(
     },
     req: { headers: {} },
     session: { userId: 1, user: { id: 1, role } },
-    organization: { organizationId: 1, organization: { id: 1 } },
+    organization: { organizationId: 1, organization: { id: 1, timeZone: "UTC" } },
   } as unknown as Context);
 }
 for (const denied of resources.filter((resource) => resource !== "properties")) {
@@ -133,7 +140,7 @@ for (const denied of resources.filter((resource) => resource !== "properties")) 
     }
   });
 }
-test("property reads omit tenantless leases only when tenants are visible", async () => {
+test("property reads retain tenantless lease receivables regardless of tenant visibility", async () => {
   for (const canViewTenants of [true, false]) {
     const propertyWithoutTenants = { ...property, leases: [{ ...lease, tenants: [] }] };
     const caller = createCaller(
@@ -146,8 +153,10 @@ test("property reads omit tenantless leases only when tenants are visible", asyn
       },
     );
     for (const result of [(await caller.properties.list())[0]!, (await caller.properties.byId({ id: 2 }))!]) {
-      assert.equal(result.leases.length, canViewTenants ? 0 : 1);
-      assert.equal(result.leaseHistory.length, canViewTenants ? 0 : 1);
+      assert.equal(result.leases.length, 1);
+      assert.equal(result.leaseHistory.length, 1);
+      assert.equal(result.leaseHistory[0]?.invoices[0]?.balanceCents, 12345);
+      assert.equal(result.leaseHistory[0]?.tenant, null);
     }
   }
 });

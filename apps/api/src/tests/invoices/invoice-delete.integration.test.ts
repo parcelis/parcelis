@@ -77,7 +77,7 @@ test(
         appRouter.createCaller({
           prisma: client,
           session: { user: { id: 1, name: "Test administrator", role: "administrator" } },
-          organization: { organizationId },
+          organization: { organizationId, organization: { timeZone: "UTC" } },
         } as unknown as Context);
       const caller = createCaller(prisma);
       const recordPayment = (id: number, amountCents: number) =>

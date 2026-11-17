@@ -551,7 +551,7 @@ test("archiving hides leases from property collections while preserving history 
     monthlyRentCents: 100_000,
     unit: { name: String(index + 1) },
     tenants: [{ tenant: { id: 1, firstName: "Test", lastName: "Resident" } }],
-    invoices: [{ balanceCents: 500 }],
+    invoices: [{ dueOn: new Date("2020-01-01"), status: "overdue", amountCents: 500, balanceCents: 500 }],
   }));
   const property = {
     id: 1,
@@ -590,7 +590,7 @@ test("archiving hides leases from property collections while preserving history 
   }
   const metrics = (await caller.properties.list())[0]!;
   assert.equal(metrics.monthlyRentCents, 200_000);
-  assert.equal(metrics.amountOverdueCents, 1_000);
+  assert.equal(metrics.amountOverdueCents, 1_500);
   await caller.leases.reactivate({ id: 2 });
   for (const result of [(await caller.properties.list())[0]!, (await caller.properties.byId({ id: 1 }))!]) {
     assert.deepEqual(
