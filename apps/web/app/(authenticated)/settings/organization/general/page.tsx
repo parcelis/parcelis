@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -8,13 +8,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label, TimezoneSelect } from "@parcelis/ui";
-import { OrganizationContactInformation } from "../../../../components/organization-contact-information";
-import { apiClient, queryKeys } from "../../../../components/api-client";
-import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../components/image-upload";
-import { LoadingState } from "../../../../components/loading-state";
-import { SettingsRail } from "../../../../components/settings-rail";
-import { ImageUploadPanel } from "../../../../components/image-upload-panel";
-import { settingUpdatedMessage } from "../../../../components/toast-messages";
+import { OrganizationContactInformation } from "../../../../../components/organization-contact-information";
+import { apiClient, queryKeys } from "../../../../../components/api-client";
+import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../../components/image-upload";
+import { LoadingState } from "../../../../../components/loading-state";
+import { SettingsRail } from "../../../../../components/settings-rail";
+import { ImageUploadPanel } from "../../../../../components/image-upload-panel";
+import { settingUpdatedMessage } from "../../../../../components/toast-messages";
 
 type AvatarVariant = "light" | "dark";
 type AvatarChanges = Partial<Record<AvatarVariant, File | null>>;
@@ -94,7 +94,8 @@ export default function OrganizationSettingsPage() {
     }
   }, [activeOrganizationQuery.data]);
   const canManageOrganization = ["owner", "administrator"].includes(activeOrganizationQuery.data?.role ?? "");
-  const canManageUsers = currentUserQuery.data?.user.role === "administrator";
+  const canManageUsers = currentUserQuery.data?.permissions.users.view ?? false;
+  const canManageRoles = currentUserQuery.data?.user.role === "administrator";
   const saveOrganizationDetails = useMutation({
     mutationFn: async ({
       name,
@@ -177,23 +178,20 @@ export default function OrganizationSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="organization"
                 canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
-                canManageRoles={canManageUsers}
+                canManageRoles={canManageRoles}
                 canManageUsers={canManageUsers}
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Organization</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                  Manage this business’s workspace details.
-                </p>
-              </section>
+              <SettingsPanelHeader
+                title={<>Organization</>}
+                description={<>Manage this business’s workspace details.</>}
+              />
             }
           >
             <Card>
@@ -406,7 +404,10 @@ export default function OrganizationSettingsPage() {
                     {accessibleOrganizationsQuery.data.map(({ organization, role }) => {
                       const isActive = organization.id === activeOrganizationQuery.data?.id;
                       return (
-                        <li className="flex flex-wrap items-center justify-between gap-4 px-4 py-3" key={organization.id}>
+                        <li
+                          className="flex flex-wrap items-center justify-between gap-4 px-4 py-3"
+                          key={organization.id}
+                        >
                           <div className="min-w-0 flex-1 basis-40">
                             <p className="break-words font-semibold text-parcelis-charcoal">{organization.name}</p>
                             <p className="mt-1 text-sm capitalize text-parcelis-gray">{role}</p>
@@ -424,7 +425,7 @@ export default function OrganizationSettingsPage() {
                 )}
               </CardContent>
             </Card>
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>

@@ -1,4 +1,4 @@
-import { createServer } from "node:http";
+import { createServer } from "node:https";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { checkApplicationServices } from "../modules/application-checks";
@@ -21,10 +21,15 @@ const brandAssets = new Map(
     "parcelis-dark-background.svg",
   ].map((name) => [`/brand/${name}`, readFileSync(resolve(process.cwd(), "../web/public/brand", name))]),
 );
+const keyPath = process.env.STATUS_TLS_KEY_FILE;
+const certPath = process.env.STATUS_TLS_CERT_FILE;
+if (!keyPath || !certPath) throw new Error("STATUS_TLS_KEY_FILE and STATUS_TLS_CERT_FILE are required.");
+const privateKey = readFileSync(keyPath);
+const certificate = readFileSync(certPath);
 const components = new Map<string, Component>();
 const port = Number(process.env.STATUS_PORT ?? 40020);
 const host = process.env.STATUS_HOST ?? "127.0.0.1";
-const webUrl = process.env.STATUS_WEB_URL ?? "http://localhost:30000/login";
+const webUrl = process.env.STATUS_WEB_URL ?? "https://localhost:30000/login";
 const apiUrl = process.env.STATUS_API_URL ?? "http://localhost:40010/api/v1/health";
 let stopping = false;
 
@@ -55,7 +60,7 @@ async function poll() {
   );
 }
 
-const server = createServer((request, response) => {
+const server = createServer({ key: privateKey, cert: certificate }, (request, response) => {
   response.setHeader("Cache-Control", "no-store");
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader(
@@ -89,7 +94,7 @@ const server = createServer((request, response) => {
   } else if (path === "/") {
     response.setHeader("Content-Type", "text/html; charset=utf-8");
     const { theme, cookie } = getStatusTheme(
-      new URL(request.url ?? "/", "http://status.local"),
+      new URL(request.url ?? "/", "https://status.local"),
       request.headers.cookie,
     );
     if (cookie) response.setHeader("Set-Cookie", cookie);
@@ -97,7 +102,7 @@ const server = createServer((request, response) => {
   } else response.writeHead(404).end();
 });
 
-server.listen(port, host, () => console.info(`[status] http://${host}:${port}`));
+server.listen(port, host, () => console.info(`[status] https://${host}:${port}`));
 let timer: ReturnType<typeof setTimeout>;
 let inFlight: Promise<void>;
 function schedule() {

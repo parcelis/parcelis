@@ -1,5 +1,6 @@
 import { loginWithCredentials } from "../../modules/nextauth";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test, { mock } from "node:test";
 import { TRPCError } from "@trpc/server";
 import { getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
@@ -64,6 +65,9 @@ type NotificationDelivery = {
   status: "queued";
   subject: string;
 };
+
+const fixtureValue = (label: string) => [label, "fixture", randomUUID()].join("-");
+const fixtureEmail = (label: string) => `${label}-${randomUUID()}@fixture.test`;
 
 test.beforeEach(() => {
   resetRateLimits();
@@ -307,7 +311,7 @@ function createAdministratorCaller(prisma: PrismaClient) {
   const user = {
     id: 99,
     name: "Administrator",
-    email: "administrator@example.com",
+    email: fixtureEmail("administrator"),
     phone: null,
     profileImageObjectKey: null,
     role: "administrator" as const,
@@ -340,7 +344,7 @@ function mockEmailDelivery() {
   process.env.SMTP_PORT = "1";
   process.env.SMTP_SECURE = "false";
   process.env.SMTP_USER = "test";
-  process.env.SMTP_PASSWORD = "test";
+  process.env.SMTP_PASSWORD = fixtureValue("smtp");
   mock.method(getEmailTransporter(), "sendMail", async (message: unknown) => {
     messages.push(message as { html?: string; to?: string });
     resolveSent?.();
@@ -367,8 +371,9 @@ test("registration creates a pending account and one verification token without 
   });
   const state = createPrisma();
   const caller = createCaller(state.prisma);
+  const newEmail = fixtureEmail("new");
 
-  await caller.auth.register({ email: "new@example.com", password: "password-for-new-user" });
+  await caller.auth.register({ email: newEmail, password: fixtureValue("new-account") });
 
   assert.equal(state.users[0]?.accountStatus, "pending");
   assert.deepEqual(state.invoiceCharges, [
@@ -380,7 +385,7 @@ test("registration creates a pending account and one verification token without 
     },
   ]);
   assert.equal(state.tokens.length, 1);
-  assert.notEqual(state.tokens[0]?.tokenHash, "new@example.com");
+  assert.notEqual(state.tokens[0]?.tokenHash, newEmail);
   assert.equal(emailDelivery.messages.length, 0);
   assert.equal(state.outboxEvents.length, 1);
   assert.equal(state.outboxEvents[0]?.eventType, "notification.email");
@@ -390,7 +395,7 @@ test("registration creates a pending account and one verification token without 
     email: string;
     template: { kind: string; url: string };
   };
-  assert.equal(payload.email, "new@example.com");
+  assert.equal(payload.email, newEmail);
   assert.match(payload.body, /mode=verify/);
   assert.equal(payload.template.kind, "account-verification");
   assert.match(payload.template.url, /mode=verify/);
@@ -398,11 +403,12 @@ test("registration creates a pending account and one verification token without 
 
 test("verification activates a pending account and consumes its token", async () => {
   const state = createPrisma();
-  const passwordHash = await hashPassword("password-for-new-user");
+  const pendingEmail = fixtureEmail("pending");
+  const passwordHash = await hashPassword(fixtureValue("new-account"));
   const user = await state.prisma.user.create({
     data: {
       name: "Pending User",
-      email: "pending@example.com",
+      email: pendingEmail,
       phone: null,
       passwordHash,
       role: "property_manager",
@@ -427,7 +433,7 @@ test("verification activates a pending account and consumes its token", async ()
 
 test("pending accounts cannot sign in", async () => {
   const state = createPrisma();
-  const password = "password-for-new-user";
+  const password = fixtureValue("pending-login");
   await state.prisma.user.create({
     data: {
       name: "Pending User",
@@ -448,7 +454,7 @@ test("pending accounts cannot sign in", async () => {
 
 test("active accounts can sign in", async () => {
   const state = createPrisma();
-  const password = "password-for-active-user";
+  const password = fixtureValue("active-login");
   await state.prisma.user.create({
     data: {
       name: "Active User",
@@ -471,7 +477,7 @@ test("invalid and expired verification tokens are rejected", async () => {
       name: "Pending User",
       email: "expired@example.com",
       phone: null,
-      passwordHash: await hashPassword("password-for-new-user"),
+      passwordHash: await hashPassword(fixtureValue("expired-user")),
       role: "property_manager",
       accountStatus: "pending",
       defaultOrganizationId: null,
@@ -511,7 +517,7 @@ test("resending verification preserves prior tokens for pending accounts", async
       name: "Pending User",
       email: "resend@example.com",
       phone: null,
-      passwordHash: await hashPassword("password-for-new-user"),
+      passwordHash: await hashPassword(fixtureValue("resend-user")),
       role: "property_manager",
       accountStatus: "pending",
       defaultOrganizationId: 1,
@@ -556,7 +562,7 @@ test("resending verification removes expired tokens", async (t) => {
       name: "Pending User",
       email: "expired-resend@example.com",
       phone: null,
-      passwordHash: await hashPassword("password-for-new-user"),
+      passwordHash: await hashPassword(fixtureValue("expired-resend")),
       role: "property_manager",
       accountStatus: "pending",
       defaultOrganizationId: 1,
@@ -602,7 +608,7 @@ test("requesting email verification without a default organization sends email d
       name: "Pending User",
       email: "no-org-verify@example.com",
       phone: null,
-      passwordHash: await hashPassword("password-for-new-user"),
+      passwordHash: await hashPassword(fixtureValue("no-org-verify")),
       role: "property_manager",
       accountStatus: "pending",
       defaultOrganizationId: null,
@@ -634,7 +640,7 @@ test("requesting password reset for active users creates one token and enqueues 
       name: "Active User",
       email: "reset-active@example.com",
       phone: null,
-      passwordHash: await hashPassword("password-for-active-user"),
+      passwordHash: await hashPassword(fixtureValue("reset-active")),
       role: "property_manager",
       accountStatus: "active",
       defaultOrganizationId: 1,
@@ -682,7 +688,7 @@ test("requesting password reset without a default organization sends email direc
       name: "Active User",
       email: "no-org-reset@example.com",
       phone: null,
-      passwordHash: await hashPassword("password-for-active-user"),
+      passwordHash: await hashPassword(fixtureValue("active-reset")),
       role: "property_manager",
       accountStatus: "active",
       defaultOrganizationId: null,
@@ -726,12 +732,13 @@ test("authorized user creation creates a pending account and verification token"
     resetEmailTransporter();
   });
   const state = createPrisma();
+  const email = fixtureEmail("created");
 
   await createAdministratorCaller(state.prisma).users.create({
     name: "Created User",
-    email: "created@example.com",
+    email,
     phone: null,
-    password: "password-for-new-user",
+    password: fixtureValue("created-account"),
     role: "property_manager",
   });
 
@@ -746,7 +753,7 @@ test("authorized user creation creates a pending account and verification token"
     email: string;
     template: { kind: string; url: string };
   };
-  assert.equal(payload.email, "created@example.com");
+  assert.equal(payload.email, email);
   assert.match(payload.body, /mode=verify/);
   assert.equal(payload.template.kind, "account-verification");
   assert.match(payload.template.url, /mode=verify/);
@@ -754,7 +761,7 @@ test("authorized user creation creates a pending account and verification token"
 
 test("pending users cannot have their email changed through profile updates", async () => {
   const state = createPrisma();
-  const passwordHash = await hashPassword("password-for-pending-user");
+  const passwordHash = await hashPassword(fixtureValue("pending-user"));
   const user = await state.prisma.user.create({
     data: {
       name: "Pending User",
@@ -790,7 +797,7 @@ test("profile updates require membership in the current organization", async () 
     data: {
       name: "Other Organization User",
       email: "other-organization@example.com",
-      passwordHash: await hashPassword("password-for-other-organization-user"),
+      passwordHash: await hashPassword(fixtureValue("other-organization")),
       phone: null,
       role: "property_manager",
       accountStatus: "active",
