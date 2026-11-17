@@ -1,0 +1,58 @@
+tests/e2e/property-receivables.spec.ts
+  s_daf7eb66a67eac::t_608785485a9936 76-79,82-103,109-115,117-133
+  s_daf7eb66a67eac::t_3618d2ce8c6712 140
+  s_daf7eb66a67eac::t_d61980200ca7eb 75,80-81,104-108,116,134-139,141
+packages/schemas/package.json
+  s_daf7eb66a67eac::t_3c4dbad6077d49 9-13
+tests/e2e/income-directory.spec.ts
+  s_daf7eb66a67eac::t_8d24e3144f0f9b 17,105,107,112
+  s_daf7eb66a67eac::t_608785485a9936 158-160
+  s_daf7eb66a67eac::t_0439852593514a 106
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_daf7eb66a67eac::t_fc7137ee8fd403 215
+  s_daf7eb66a67eac::t_3c4dbad6077d49 150-154,234,236-240
+apps/api/src/router/app.router.ts
+  s_daf7eb66a67eac::t_3c4dbad6077d49 1668-1674,1697,2791
+DEPENDENCIES.md
+  s_daf7eb66a67eac::t_8d24e3144f0f9b 120
+  s_daf7eb66a67eac::t_fc7137ee8fd403 121-122
+apps/web/app/(authenticated)/income/page.tsx
+  s_daf7eb66a67eac::t_3c4dbad6077d49 84-86,682,795
+  s_daf7eb66a67eac::t_23e2b14cb32928 83
+packages/jobs/src/lease-dates.ts
+  s_daf7eb66a67eac::t_3c4dbad6077d49 1
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_daf7eb66a67eac::t_3c4dbad6077d49 238-242
+  s_daf7eb66a67eac::t_a82c6860e8ad59 243
+tests/e2e/receivable-accessibility.spec.ts
+  s_daf7eb66a67eac::t_608785485a9936 72-76,93-96,100-105,128-131
+  s_daf7eb66a67eac::t_d61980200ca7eb 49-50,92,97-99,106-127,132
+  s_daf7eb66a67eac::t_512f90e5a46dec 133
+apps/api/src/tests/invoices/receivable-metrics.router.test.ts
+  s_daf7eb66a67eac::t_f9ab765a2aeecb 121,126,130
+  s_daf7eb66a67eac::t_34b47abbc6727c 5-21,76-79
+  s_daf7eb66a67eac::t_1533ba5b5e5d17 177-181
+  s_daf7eb66a67eac::t_8d24e3144f0f9b 124-125,127-129,131-133,146,149,152,171-176,182-192
+  s_daf7eb66a67eac::t_1c6b97cca89dfa 193
+packages/jobs/package.json
+  s_daf7eb66a67eac::t_fc7137ee8fd403 16,18-20
+  s_daf7eb66a67eac::t_3c4dbad6077d49 15
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_daf7eb66a67eac::t_8d24e3144f0f9b 582,587-596,606
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bbc056440328c1d8fddd14d53498d62b504dbaaf",
+  "prompts": {},
+  "sessions": {
+    "s_daf7eb66a67eac": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e7f6-0f80-7043-9957-9cc118cd6a51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
