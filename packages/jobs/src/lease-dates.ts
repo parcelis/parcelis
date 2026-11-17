@@ -1,12 +1,7 @@
+import { getBillingCalendarDate } from "@parcelis/schemas";
+
 export function getCalendarDate(instant: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(instant);
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year!.padStart(4, "0")}-${value.month}-${value.day}`;
+  return getBillingCalendarDate(timeZone, instant);
 }
 
 export function getStartOfCalendarDate(date: string, timeZone: string) {
