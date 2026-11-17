@@ -147,6 +147,11 @@ export default function TenantDetailPage() {
     queryFn: () => apiClient.tenants.byId.query({ id: tenantId }),
     enabled: Number.isInteger(tenantId) && tenantId > 0,
   });
+  const invoicesQuery = useQuery({
+    queryKey: ["invoices", "list", { tenantId }],
+    queryFn: () => apiClient.invoices.list.query({ tenantId }),
+    enabled: canViewInvoices && canViewLeases && Number.isInteger(tenantId) && tenantId > 0,
+  });
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -207,6 +212,7 @@ export default function TenantDetailPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({ queryKey: ["invoices", "list"] }),
       ]);
     },
   });
@@ -225,10 +231,13 @@ export default function TenantDetailPage() {
   });
   const today = organizationQuery.data?.timeZone ? getBillingCalendarDate(organizationQuery.data.timeZone) : null;
   const tenantInvoices = Array.from(
-    new Map((tenant?.leases.flatMap((lease) => lease.invoices) ?? []).map((invoice) => [invoice.id, invoice])).values(),
+    new Map((invoicesQuery.data ?? []).map((invoice) => [invoice.id, invoice])).values(),
   );
-  const balances = today && canViewInvoices && canViewLeases ? summarizeInvoiceBalances(tenantInvoices, today) : null;
-  const isBalanceLoading = currentUserQuery.isLoading || organizationQuery.isLoading;
+  const balances =
+    today && canViewInvoices && canViewLeases && invoicesQuery.isSuccess
+      ? summarizeInvoiceBalances(tenantInvoices, today)
+      : null;
+  const isBalanceLoading = currentUserQuery.isLoading || organizationQuery.isLoading || invoicesQuery.isLoading;
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
   const currentInvoice =
     today === null

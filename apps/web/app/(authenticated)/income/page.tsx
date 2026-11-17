@@ -80,6 +80,10 @@ function getTenantName(lease: {
   return tenants.map((tenant) => `${tenant.firstName} ${tenant.lastName}`).join(", ") || "Unavailable";
 }
 
+function getInvoiceRecipientName(invoice: { recipients: Array<{ tenant: { firstName: string; lastName: string } }> }) {
+  return invoice.recipients.map(({ tenant }) => `${tenant.firstName} ${tenant.lastName}`).join(", ") || "Unavailable";
+}
+
 function parseEntityId(value: string | null) {
   const id = Number(value);
   return Number.isInteger(id) && id > 0 ? id : null;
@@ -675,7 +679,7 @@ function IncomePageContent() {
                                         <div className="flex items-center gap-3 pl-11 font-semibold text-parcelis-charcoal">
                                           <span />
                                           <span className="flex items-center gap-2">
-                                            {tenantName}
+                                            {getInvoiceRecipientName(invoice)}
                                             {lease.status === "scheduled" ? (
                                               <span className="text-xs font-medium text-parcelis-gray">
                                                 Scheduled lease
@@ -788,7 +792,7 @@ function IncomePageContent() {
                             <div className="space-y-1">
                               <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
                               <p className="text-sm text-parcelis-gray">
-                                Unit {lease.unitLabel} · {getTenantName(lease)}
+                                Unit {lease.unitLabel} · {getInvoiceRecipientName(invoice)}
                                 {lease.status === "scheduled" ? " · Scheduled lease" : ""}
                               </p>
                             </div>

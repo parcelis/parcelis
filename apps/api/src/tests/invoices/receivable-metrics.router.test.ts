@@ -2,6 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
+import type { Prisma } from "@parcelis/db";
+
+function projectProperty(property: ReturnType<typeof fixture>, query: Prisma.PropertyFindFirstArgs) {
+  const leases = query.include?.leases;
+  const invoiceQuery = typeof leases === "object" ? (leases.include ?? leases.select)?.invoices : undefined;
+  const select = typeof invoiceQuery === "object" ? invoiceQuery.select : undefined;
+  assert.ok(select);
+  return {
+    ...property,
+    leases: property.leases.map((lease) => ({
+      ...lease,
+      invoices: lease.invoices.map((invoice) =>
+        Object.fromEntries(Object.entries(invoice).filter(([key]) => select[key as keyof typeof select])),
+      ),
+    })),
+  };
+}
 
 function fixture() {
   const invoices = [
@@ -56,7 +73,10 @@ test("property list and detail retain historical debt and count joint obligation
   const property = fixture();
   const caller = appRouter.createCaller({
     prisma: {
-      property: { findMany: async () => [property], findFirst: async () => property },
+      property: {
+        findMany: async (query: Prisma.PropertyFindManyArgs) => [projectProperty(property, query)],
+        findFirst: async (query: Prisma.PropertyFindFirstArgs) => projectProperty(property, query),
+      },
       invoice: { updateMany: async () => ({ count: 0 }) },
     },
     req: { headers: {} },
@@ -98,9 +118,19 @@ test("overdue reads and synchronization change at organization midnight, not UTC
   ];
   property.leases = [property.leases[0]!];
   const updates: unknown[] = [];
+  let propertyReads = 0;
   const caller = appRouter.createCaller({
     prisma: {
-      property: { findMany: async () => [property] },
+      property: {
+        findMany: async () => {
+          assert.equal(updates.length, ++propertyReads * 3);
+          return [property];
+        },
+        findFirst: async () => {
+          assert.equal(updates.length, ++propertyReads * 3);
+          return property;
+        },
+      },
       invoice: {
         updateMany: async (args: unknown) => {
           updates.push(args);
@@ -113,11 +143,13 @@ test("overdue reads and synchronization change at organization midnight, not UTC
     organization: { organizationId: 7, organization: { timeZone: "America/Chicago" } },
   } as unknown as Context);
   assert.equal((await caller.properties.list())[0]!.amountOverdueCents, 0);
+  assert.equal((await caller.properties.byId({ id: 1 }))!.leaseHistory[0]!.amountOverdueCents, 0);
   t.mock.timers.setTime(new Date("2026-11-01T07:00:00Z").getTime());
   assert.equal((await caller.properties.list())[0]!.amountOverdueCents, 501);
+  assert.equal((await caller.properties.byId({ id: 1 }))!.leaseHistory[0]!.amountOverdueCents, 501);
   assert.deepEqual(
     updates,
-    ["2026-10-31", "2026-11-01"].flatMap((date) => {
+    ["2026-10-31", "2026-10-31", "2026-11-01", "2026-11-01"].flatMap((date) => {
       const today = new Date(`${date}T00:00:00.000Z`);
       return [
         {
@@ -135,4 +167,27 @@ test("overdue reads and synchronization change at organization midnight, not UTC
       ];
     }),
   );
+});
+
+test("property detail does not synchronize invoices without invoice-view permission", async () => {
+  const property = fixture();
+  const caller = appRouter.createCaller({
+    prisma: {
+      rolePermission: {
+        findUnique: async () => ({ canView: true }),
+        findMany: async () => [
+          { resource: "properties", canView: true },
+          { resource: "leases", canView: true },
+        ],
+      },
+      property: { findFirst: async () => property },
+      invoice: { updateMany: async () => assert.fail("Invoice synchronization requires invoice-view permission") },
+    },
+    req: { headers: {} },
+    session: { user: { id: 1, role: "property_manager" } },
+    organization: { organizationId: 7, organization: { timeZone: "America/Chicago" } },
+  } as unknown as Context);
+  const detail = (await caller.properties.byId({ id: 1 }))!;
+  assert.deepEqual(detail.leaseHistory[0]!.invoices, []);
+  assert.equal(detail.leaseHistory[0]!.amountOverdueCents, null);
 });

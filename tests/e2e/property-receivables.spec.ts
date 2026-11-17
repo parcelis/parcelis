@@ -72,3 +72,70 @@ test("unit rows include notice occupancy and overdue balances from historical le
   await expect(vacantUnit.getByRole("cell", { name: "0%", exact: true })).toBeVisible();
   await expect(vacantUnit).toContainText("$67.89");
 });
+
+test("unit upcoming invoices show earliest due first and exclude paid, void, and past invoices", async ({
+  context,
+  page,
+}) => {
+  const response = await page.request.get("/trpc/organizations.active");
+  const organization = (await response.json()).result.data;
+  const invoice = {
+    id: 901,
+    invoiceNumber: 901,
+    amountCents: 10000,
+    balanceCents: 10000,
+    status: "open",
+    dueOn: "2099-03-01T00:00:00.000Z",
+  };
+  const lease = {
+    id: 11,
+    unitId: 3,
+    unitLabel: "101",
+    status: "ended",
+    archivedAt: null,
+    invoices: [
+      invoice,
+      { ...invoice, id: 902, invoiceNumber: 902, dueOn: "2099-01-01T00:00:00.000Z" },
+      { ...invoice, id: 903, invoiceNumber: 903, status: "void" },
+      { ...invoice, id: 904, invoiceNumber: 904, status: "paid", balanceCents: 0 },
+      { ...invoice, id: 905, invoiceNumber: 905, dueOn: "2000-01-01T00:00:00.000Z" },
+    ],
+  };
+  await context.route("**/trpc/**", async (route) => {
+    const url = new URL(route.request().url());
+    const procedures = decodeURIComponent(url.pathname.split("/trpc/")[1]!).split(",");
+    const results = procedures.map((procedure) => {
+      let data: unknown = [];
+      if (procedure === "auth.me")
+        data = {
+          user: { id: 7, role: "property_manager" },
+          permissions: Object.fromEntries(
+            ["properties", "units", "leases", "invoices"].map((resource) => [resource, { view: true }]),
+          ),
+        };
+      if (procedure === "organizations.active") data = { ...organization, timeZone: "UTC" };
+      if (procedure === "properties.byId")
+        data = {
+          id: 2,
+          name: "History House",
+          status: "active",
+          line1: "123 Test Street",
+          city: "Chicago",
+          region: "IL",
+          postalCode: "60601",
+          tags: [],
+          units: [
+            { id: 3, name: "101", unitType: "Residential", marketRateCents: 10000, amenities: [], utilities: [] },
+          ],
+          leases: [],
+          leaseHistory: [lease],
+          maintenanceTickets: [],
+        };
+      return { result: { data } };
+    });
+    await route.fulfill({ json: url.searchParams.has("batch") ? results : results[0] });
+  });
+  await page.goto("/properties/2/units/3");
+  const upcoming = page.getByRole("heading", { name: "Upcoming Invoices", exact: true }).locator("..").locator("..");
+  await expect(upcoming.getByText(/^INV-/)).toHaveText(["INV-0000902", "INV-0000901"]);
+});

@@ -235,10 +235,12 @@ export default function UnitDetailPage() {
   ];
   const invoiceRows =
     canViewInvoices && canViewLeases && today
-      ? invoices.filter(
-          (invoice) =>
-            invoice.status !== "void" && invoice.balanceCents > 0 && getInvoiceCalendarDate(invoice.dueOn) > today,
-        )
+      ? invoices
+          .filter(
+            (invoice) =>
+              invoice.status !== "void" && invoice.balanceCents > 0 && getInvoiceCalendarDate(invoice.dueOn) > today,
+          )
+          .sort((left, right) => getInvoiceCalendarDate(left.dueOn).localeCompare(getInvoiceCalendarDate(right.dueOn)))
       : [];
   const isUpcomingInvoicesLoading = currentUserQuery.isLoading || (canViewInvoices && organizationQuery.isLoading);
   const isUpcomingInvoicesUnavailable =

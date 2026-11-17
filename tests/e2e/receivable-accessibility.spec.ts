@@ -46,6 +46,8 @@ test("income does not fetch invoices without lease-view permission", async ({ co
 });
 
 test("tenant balances remain loading until permissions resolve", async ({ context, page }) => {
+  const response = await page.request.get("/trpc/organizations.active");
+  const organization = (await response.json()).result.data;
   let permissionRequests = 0;
   let releasePermissions!: () => void;
   const permissionsReady = new Promise<void>((resolve) => {
@@ -67,7 +69,11 @@ test("tenant balances remain loading until permissions resolve", async ({ contex
       return { result: { data: user } };
     }
     const data =
-      procedure === "tenants.byId" ? tenant : procedure === "organizations.active" ? { timeZone: "UTC" } : [];
+      procedure === "tenants.byId"
+        ? tenant
+        : procedure === "organizations.active"
+          ? { ...organization, timeZone: "UTC" }
+          : [];
     return { result: { data } };
   });
   try {
@@ -82,4 +88,46 @@ test("tenant balances remain loading until permissions resolve", async ({ contex
   } finally {
     releasePermissions();
   }
+});
+
+test("tenant balances and links include former recipients and deduplicate shared invoices", async ({
+  context,
+  page,
+}) => {
+  const response = await page.request.get("/trpc/organizations.active");
+  const organization = (await response.json()).result.data;
+  const invoice = {
+    id: 901,
+    invoiceNumber: 901,
+    dueOn: "2000-01-01T00:00:00.000Z",
+    status: "overdue",
+    amountCents: 15000,
+    balanceCents: 12345,
+  };
+  let requestedTenantId: number | undefined;
+  await context.route("**/trpc/**", async (route) => {
+    const url = new URL(route.request().url());
+    const procedures = decodeURIComponent(url.pathname.split("/trpc/")[1]!).split(",");
+    const inputs = JSON.parse(url.searchParams.get("input") ?? "{}");
+    const results = procedures.map((procedure, index) => {
+      let data: unknown = [];
+      if (procedure === "auth.me") data = user;
+      if (procedure === "organizations.active") data = { ...organization, timeZone: "UTC" };
+      if (procedure === "tenants.byId") data = tenant;
+      if (procedure === "invoices.list") {
+        requestedTenantId = inputs[String(index)]?.tenantId;
+        data = [invoice, invoice, { ...invoice, id: 902, status: "void" }];
+      }
+      return { result: { data } };
+    });
+    await route.fulfill({ json: url.searchParams.has("batch") ? results : results[0] });
+  });
+  await page.goto("/tenants/12");
+  await expect(page.getByText("$123.45 overdue", { exact: true })).toBeVisible();
+  await expect(page.getByText("$26.55", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toHaveAttribute(
+    "href",
+    /income\/invoices\/901/,
+  );
+  expect(requestedTenantId).toBe(12);
 });

@@ -117,4 +117,6 @@ Docker images are built from the shared `Dockerfile.app` (`app` target: modular 
 `@parcelis/jobs` depends on the workspace package `@parcelis/schemas` for the organization-local
 billing calendar helper shared with the API and web. The worker Docker target copies the schemas
 package manifest and source before installing production dependencies. The workspace dependency is
-recorded in `pnpm-lock.yaml`.
+recorded in `pnpm-lock.yaml`. Jobs consume the compiled `@parcelis/schemas/invoice-balances`
+entry point so TypeScript keeps the jobs output inside its own source boundary. Jobs build,
+watch, test, and typecheck commands build schemas first, including on a clean checkout.

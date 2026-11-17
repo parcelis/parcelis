@@ -14,6 +14,7 @@ const invoice = {
   status: "overdue",
   amountCents: 12345,
   balanceCents: 12345,
+  recipients: [{ tenant: { id: 12, firstName: "Former", lastName: "Recipient" } }],
 };
 const lease = {
   id: 11,
@@ -101,10 +102,14 @@ test("saved invoice directory retains history, cents, filters, and links", async
   await expect(group).toContainText("$191.34");
   await page.getByRole("button", { name: "Unit 101 · History House" }).click();
   await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toHaveCount(1);
+  await expect(
+    page.locator("tr").filter({ has: page.getByRole("link", { name: "INV-0000901", exact: true }) }),
+  ).toContainText("Former Recipient");
   await page.getByRole("button", { name: "Grouped By Unit" }).click();
   const rows = page.locator("tr");
   const debt = rows.filter({ has: page.getByRole("link", { name: "INV-0000901", exact: true }) });
   await expect(debt).toContainText("123.45");
+  await expect(debt).toContainText("Former Recipient");
   await expect(page.getByRole("link", { name: "INV-0000999", exact: true })).toHaveCount(0);
   await expect(page.getByText("No saved invoices for this lease.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "New Invoice" })).toHaveCount(0);
@@ -150,7 +155,9 @@ test.describe("manual invoice creation", () => {
     await page.getByRole("button", { name: "Unit 101 · History House" }).click();
     await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "New Invoice" }).click();
-    const drawer = page.getByRole("dialog", { name: "New invoice", exact: true });
+    const drawer = page
+      .getByRole("dialog")
+      .filter({ has: page.getByRole("heading", { name: "New invoice", exact: true }) });
     await drawer.getByLabel(/^Property \*/).selectOption("2");
     await drawer.getByLabel(/^Unit \*/).selectOption("3");
     const leaseSelect = drawer.getByLabel(/^Term \/ lease \*/);

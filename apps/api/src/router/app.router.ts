@@ -1665,6 +1665,13 @@ export const appRouter = router({
       .input(propertyByIdInputSchema)
       .query(async ({ ctx, input }) => {
         const permissions = await getPrincipalPermissions(ctx);
+        if (permissions.invoices.view) {
+          await synchronizeOverdueInvoices(
+            ctx.prisma,
+            ctx.organizationScope.organizationId,
+            ctx.organizationScope.organization.timeZone,
+          );
+        }
         const query = {
           where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
           include: {
@@ -1687,6 +1694,7 @@ export const appRouter = router({
                     balanceCents: true,
                     amountCents: true,
                     dueOn: true,
+                    paidOn: true,
                     status: true,
                   },
                 },
@@ -2780,6 +2788,7 @@ export const appRouter = router({
         include: {
           lease: { select: { unit: { select: { name: true } } } },
           property: { select: { id: true, name: true } },
+          recipients: { include: { tenant: { select: { id: true, firstName: true, lastName: true } } } },
         },
         orderBy: { dueOn: "desc" },
       });
