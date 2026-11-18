@@ -1,0 +1,36 @@
+CONTRIBUTING.md
+  s_daf7eb66a67eac::t_3e273d7d7f4a90 293
+  s_daf7eb66a67eac::t_311e778c902cd9 492,504
+ARCHITECTURE.md
+  s_daf7eb66a67eac::t_9a065cc77e1b1c 53
+Dockerfile.app
+  s_daf7eb66a67eac::t_588e8b29aeb2c6 89
+scripts/docker-worker-runtime.test.mjs
+  s_daf7eb66a67eac::t_588e8b29aeb2c6 1-50
+DEPENDENCIES.md
+  s_daf7eb66a67eac::t_79e0d25c29d061 119-120
+  s_daf7eb66a67eac::t_9a065cc77e1b1c 123-124
+scripts/dev-local.mjs
+  s_daf7eb66a67eac::t_9a065cc77e1b1c 151-154
+  s_daf7eb66a67eac::t_cb96294705cbde 150
+scripts/dev-local.test.mjs
+  s_daf7eb66a67eac::t_cd5dce22b4bd5e 1-22,30-36,41-44,52,59,63-65,68,72-85,89-94,101-117,123-126
+  s_daf7eb66a67eac::t_e960a4eb51e2de 23-29,37-40,45-51,53-58,60-62,66-67,69-71,86-88,95-100,119-122
+  s_daf7eb66a67eac::t_1047d04b74e08a 118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f85127b121c1c77e2411b72e2a990d6fd452cf28",
+  "prompts": {},
+  "sessions": {
+    "s_daf7eb66a67eac": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e7f6-0f80-7043-9957-9cc118cd6a51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
