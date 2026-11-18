@@ -1,7 +1,8 @@
 import { expect, test as authenticatedTest } from "./fixtures/authenticated";
 
-const test = authenticatedTest.extend<{ canCreateInvoices: boolean }>({
+const test = authenticatedTest.extend<{ canCreateInvoices: boolean; canViewTenants: boolean }>({
   canCreateInvoices: [false, { option: true }],
+  canViewTenants: [true, { option: true }],
 });
 
 const invoice = {
@@ -40,7 +41,7 @@ const currentLease = {
   invoices: [],
 };
 
-test.beforeEach(async ({ context, page, canCreateInvoices }) => {
+test.beforeEach(async ({ context, page, canCreateInvoices, canViewTenants }) => {
   const response = await page.request.get("/trpc/organizations.active");
   expect(response.ok()).toBe(true);
   const organization = (await response.json()).result.data;
@@ -56,7 +57,7 @@ test.beforeEach(async ({ context, page, canCreateInvoices }) => {
           permissions: Object.fromEntries(
             ["properties", "leases", "invoices", "units", "tenants"].map((resource) => [
               resource,
-              { view: true, create: resource === "invoices" && canCreateInvoices },
+              { view: resource !== "tenants" || canViewTenants, create: resource === "invoices" && canCreateInvoices },
             ]),
           ),
         };
@@ -86,6 +87,7 @@ test.beforeEach(async ({ context, page, canCreateInvoices }) => {
                   balanceCents: 0,
                   status: "paid",
                   paidOn: "2020-01-02T00:00:00.000Z",
+                  recipients: [{ tenant: { id: 55, firstName: "Different", lastName: "Recipient" } }],
                 },
                 { ...invoice, id: 903, invoiceNumber: 903, status: "void" },
               ];
@@ -145,6 +147,47 @@ test("recipient filter retains a former co-tenant's invoice without current leas
   await page.goto("/income?tenantId=99");
   await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toHaveCount(0);
   await expect(page.getByText("No saved invoices or leases match these filters.")).toBeVisible();
+});
+
+test("search matches saved recipients and preserves property, unit, status, and current-tenant matches", async ({
+  page,
+}) => {
+  await page.goto("/income");
+  await page.getByRole("button", { name: "Grouped By Unit" }).click();
+  const search = page.getByPlaceholder("Search property, unit, status");
+  for (const value of ["RECIPIENT", "former recipient", "History House", "101", "ended"]) {
+    await search.fill(value);
+    await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toBeVisible();
+    if (value === "RECIPIENT") await expect(page.getByRole("link", { name: "INV-0000902", exact: true })).toBeVisible();
+    if (value === "former recipient")
+      await expect(page.getByRole("link", { name: "INV-0000902", exact: true })).toHaveCount(0);
+  }
+  await search.fill("Current Tenant");
+  await expect(page.getByText("No saved invoices for this lease.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toHaveCount(0);
+});
+
+test.describe("without tenant-view permission", () => {
+  test.use({ canViewTenants: false });
+
+  test("invoice rows redact cached recipient names and do not search them", async ({ page }) => {
+    await page.goto("/income?tenantId=12");
+    await page.getByRole("button", { name: "Unit 101 · History House" }).click();
+    const row = page.locator("tr").filter({ has: page.getByRole("link", { name: "INV-0000901", exact: true }) });
+    await expect(row).toContainText("Unavailable");
+    await expect(page.getByText("Former Recipient", { exact: false })).toHaveCount(0);
+    await expect(page.getByText("Current Tenant", { exact: false })).toHaveCount(0);
+    await page.getByRole("button", { name: "Grouped By Unit" }).click();
+    await expect(row).toContainText("Unavailable");
+    await expect(row).toContainText("123.45");
+    await expect(page.getByText("Former Recipient", { exact: false })).toHaveCount(0);
+    await expect(page.getByText("Current Tenant", { exact: false })).toHaveCount(0);
+    for (const name of ["Former Recipient", "Current Tenant"]) {
+      await page.getByPlaceholder("Search property, unit, status").fill(name);
+      await expect(page.getByText("No income records match your search.")).toBeVisible();
+      await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toHaveCount(0);
+    }
+  });
 });
 
 test.describe("manual invoice creation", () => {

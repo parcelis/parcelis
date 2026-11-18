@@ -127,6 +127,7 @@ function IncomePageContent() {
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
   const canCreateInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "create");
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
+  const canViewTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "view");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -198,7 +199,7 @@ function IncomePageContent() {
     (lease.status === "active" || lease.status === "notice") &&
     (selectedTenantId === null || lease.tenants.some((tenant) => tenant.id === selectedTenantId));
   const selectedTenant =
-    selectedTenantId === null
+    selectedTenantId === null || !canViewTenants
       ? null
       : properties
           .flatMap((property) => property.leases.flatMap((lease) => lease.tenants))
@@ -244,11 +245,21 @@ function IncomePageContent() {
   const filteredIncomeProperties = incomeProperties
     .map((property) => ({
       ...property,
-      incomeLeases: property.incomeLeases.filter((lease) =>
-        [property.name, lease.unitLabel, getTenantName(lease), formatLeaseStatus(lease.status)].some((value) =>
-          value.toLowerCase().includes(normalizedSearch),
-        ),
-      ),
+      incomeLeases: property.incomeLeases.flatMap((lease) => {
+        const matchesLease = [
+          property.name,
+          lease.unitLabel,
+          canViewTenants ? getTenantName(lease) : "Unavailable",
+          formatLeaseStatus(lease.status),
+        ].some((value) => value.toLowerCase().includes(normalizedSearch));
+        if (matchesLease) return [lease];
+        const invoices = canViewTenants
+          ? lease.invoices.filter((invoice) =>
+              getInvoiceRecipientName(invoice).toLowerCase().includes(normalizedSearch),
+            )
+          : [];
+        return invoices.length ? [{ ...lease, invoices }] : [];
+      }),
     }))
     .filter((property) => property.incomeLeases.length > 0);
   const incomeLeases = filteredIncomeProperties.flatMap((property) =>
@@ -628,7 +639,7 @@ function IncomePageContent() {
                           </TableRow>
                           {isExpanded
                             ? group.incomeLeases.map((lease) => {
-                                const tenantName = getTenantName(lease);
+                                const tenantName = canViewTenants ? getTenantName(lease) : "Unavailable";
                                 const persistedInvoices = getLeaseInvoices(lease);
                                 const activeInvoices = persistedInvoices;
                                 if (activeInvoices.length === 0) {
@@ -679,7 +690,7 @@ function IncomePageContent() {
                                         <div className="flex items-center gap-3 pl-11 font-semibold text-parcelis-charcoal">
                                           <span />
                                           <span className="flex items-center gap-2">
-                                            {getInvoiceRecipientName(invoice)}
+                                            {canViewTenants ? getInvoiceRecipientName(invoice) : "Unavailable"}
                                             {lease.status === "scheduled" ? (
                                               <span className="text-xs font-medium text-parcelis-gray">
                                                 Scheduled lease
@@ -761,7 +772,7 @@ function IncomePageContent() {
                           <TableCell className="px-5 py-4">
                             <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
                             <p className="text-sm text-parcelis-gray">
-                              Unit {lease.unitLabel} · {getTenantName(lease)}
+                              Unit {lease.unitLabel} · {canViewTenants ? getTenantName(lease) : "Unavailable"}
                             </p>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray" colSpan={9}>
@@ -792,7 +803,8 @@ function IncomePageContent() {
                             <div className="space-y-1">
                               <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
                               <p className="text-sm text-parcelis-gray">
-                                Unit {lease.unitLabel} · {getInvoiceRecipientName(invoice)}
+                                Unit {lease.unitLabel} ·{" "}
+                                {canViewTenants ? getInvoiceRecipientName(invoice) : "Unavailable"}
                                 {lease.status === "scheduled" ? " · Scheduled lease" : ""}
                               </p>
                             </div>

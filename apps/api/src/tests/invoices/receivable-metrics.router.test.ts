@@ -111,7 +111,7 @@ test("property list and detail retain historical debt and count joint obligation
 });
 
 test("overdue reads and synchronization change at organization midnight, not UTC midnight", async (t) => {
-  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-01T03:00:00Z").getTime() });
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-01T04:59:59.999Z").getTime() });
   const property = fixture();
   property.leases[0]!.invoices = [
     { id: 9, dueOn: new Date("2026-10-31"), status: "overdue", amountCents: 501, balanceCents: 501 },
@@ -144,7 +144,7 @@ test("overdue reads and synchronization change at organization midnight, not UTC
   } as unknown as Context);
   assert.equal((await caller.properties.list())[0]!.amountOverdueCents, 0);
   assert.equal((await caller.properties.byId({ id: 1 }))!.leaseHistory[0]!.amountOverdueCents, 0);
-  t.mock.timers.setTime(new Date("2026-11-01T07:00:00Z").getTime());
+  t.mock.timers.setTime(new Date("2026-11-01T05:00:00.001Z").getTime());
   assert.equal((await caller.properties.list())[0]!.amountOverdueCents, 501);
   assert.equal((await caller.properties.byId({ id: 1 }))!.leaseHistory[0]!.amountOverdueCents, 501);
   assert.deepEqual(
@@ -168,6 +168,74 @@ test("overdue reads and synchronization change at organization midnight, not UTC
     }),
   );
 });
+
+for (const operation of ["list", "byId"] as const) {
+  for (const crossingDuring of ["permission lookup", "synchronization", "property read"]) {
+    test(`property ${operation} keeps its billing date when midnight passes during ${crossingDuring}`, async (t) => {
+      const before = new Date("2026-11-01T04:59:59.999Z").getTime();
+      const after = new Date("2026-11-01T05:00:00.001Z").getTime();
+      t.mock.timers.enable({ apis: ["Date"], now: before });
+      const property = fixture();
+      property.leases = [property.leases[0]!];
+      property.leases[0]!.invoices = [
+        { id: 9, dueOn: new Date("2026-10-31"), status: "open", amountCents: 501, balanceCents: 501 },
+      ];
+      const updates: Prisma.InvoiceUpdateManyArgs[] = [];
+      let completedUpdates = 0;
+      const overdueCents = crossingDuring === "permission lookup" ? 501 : 0;
+      const readProperty = async () => {
+        assert.equal(updates.length, 3);
+        assert.equal(completedUpdates, 3);
+        await Promise.resolve();
+        if (crossingDuring === "property read") {
+          t.mock.timers.setTime(after);
+          property.leases[0]!.invoices[0]!.status = "overdue";
+        }
+        return property;
+      };
+      const caller = appRouter.createCaller({
+        prisma: {
+          rolePermission: {
+            findUnique: async () => ({ canView: true }),
+            findMany: async () => {
+              await Promise.resolve();
+              if (crossingDuring === "permission lookup") t.mock.timers.setTime(after);
+              return ["properties", "leases", "invoices"].map((resource) => ({ resource, canView: true }));
+            },
+          },
+          property: { findMany: async () => [await readProperty()], findFirst: readProperty },
+          invoice: {
+            updateMany: async (args: Prisma.InvoiceUpdateManyArgs) => {
+              updates.push(args);
+              await Promise.resolve();
+              if (crossingDuring === "synchronization") t.mock.timers.setTime(after);
+              completedUpdates += 1;
+              return { count: 0 };
+            },
+          },
+        },
+        req: { headers: {} },
+        session: { user: { id: 1, role: "property_manager" } },
+        organization: { organizationId: 7, organization: { timeZone: "America/Chicago" } },
+      } as unknown as Context);
+      const result =
+        operation === "list"
+          ? await caller.properties.list().then(([property]) => {
+              assert.equal(property?.amountOverdueCents, overdueCents);
+              return property!;
+            })
+          : (await caller.properties.byId({ id: 1 }))!;
+      assert.equal(Date.now(), after);
+      assert.equal(result.leaseHistory[0]!.invoices[0]!.status, overdueCents ? "overdue" : "open");
+      assert.equal(result.leaseHistory[0]!.amountOverdueCents, overdueCents);
+      const billingDate = crossingDuring === "permission lookup" ? "2026-11-01" : "2026-10-31";
+      assert.deepEqual(
+        updates.slice(1).map(({ where }) => where?.dueOn),
+        [{ lt: new Date(`${billingDate}T00:00:00.000Z`) }, { gte: new Date(`${billingDate}T00:00:00.000Z`) }],
+      );
+    });
+  }
+}
 
 test("property detail does not synchronize invoices without invoice-view permission", async () => {
   const property = fixture();
