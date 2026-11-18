@@ -86,6 +86,7 @@ COPY --from=worker-build /repo/packages/jobs/package.json packages/jobs/package.
 COPY --from=worker-build /repo/packages/jobs/dist packages/jobs/dist
 COPY --from=worker-build /repo/packages/schemas/package.json packages/schemas/package.json
 COPY --from=worker-build /repo/packages/schemas/src packages/schemas/src
+COPY --from=worker-build /repo/packages/schemas/dist packages/schemas/dist
 COPY --from=worker-build /repo/apps/worker/package.json apps/worker/package.json
 COPY --from=worker-build /repo/apps/worker/dist apps/worker/dist
 RUN pnpm install --frozen-lockfile --prod --filter @parcelis/worker...

@@ -148,6 +148,11 @@ const processes = [
     },
   },
   {
+    name: "schemas",
+    args: ["--filter", "@parcelis/schemas", "dev"],
+    env: {},
+  },
+  {
     name: "jobs",
     args: ["--filter", "@parcelis/jobs", "dev:fixed"],
     env: {},
