@@ -2769,8 +2769,10 @@ export const appRouter = router({
         return ctx.prisma.invoiceCharge.delete({ where: { id: input.id }, select: { id: true } });
       }),
     list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
-      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      const permissions = await getPrincipalPermissions(ctx);
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
+      if (!permissions.invoices.view) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: you cannot view invoices." });
+      }
       await synchronizeOverdueInvoices(
         ctx.prisma,
         ctx.organization.organizationId,

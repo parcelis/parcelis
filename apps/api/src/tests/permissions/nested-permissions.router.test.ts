@@ -95,6 +95,42 @@ function createCaller(
     organization: { organizationId: 1, organization: { id: 1, timeZone: "UTC" } },
   } as unknown as Context);
 }
+
+for (const canViewInvoices of [true, false]) {
+  test(`invoice directory loads permissions once when invoice view is ${canViewInvoices}`, async () => {
+    let permissionReads = 0;
+    const caller = createCaller(resources, {
+      rolePermission: {
+        findUnique: async () => assert.fail("Invoice directory must reuse the loaded permission set"),
+        findMany: async () => {
+          permissionReads += 1;
+          return [
+            { resource: "invoices", canView: canViewInvoices },
+            { resource: "tenants", canView: true },
+          ];
+        },
+      },
+      invoice: {
+        updateMany: async () => {
+          assert.ok(canViewInvoices, "Denied invoice reads must not synchronize invoices");
+          return { count: 0 };
+        },
+        findMany: async () => {
+          assert.ok(canViewInvoices, "Denied invoice reads must not query invoices");
+          return [];
+        },
+      },
+    });
+    if (canViewInvoices) assert.deepEqual(await caller.invoices.list({}), []);
+    else
+      await assert.rejects(caller.invoices.list({}), {
+        code: "FORBIDDEN",
+        message: "Permission denied: you cannot view invoices.",
+      });
+    assert.equal(permissionReads, 1);
+  });
+}
+
 for (const canViewTenants of [true, false]) {
   test(`invoice directory ${canViewTenants ? "includes" : "redacts"} recipient names with tenant-view permission ${canViewTenants}`, async () => {
     const caller = createCaller(canViewTenants ? resources : resources.filter((resource) => resource !== "tenants"), {
