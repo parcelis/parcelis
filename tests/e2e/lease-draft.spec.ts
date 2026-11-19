@@ -114,7 +114,7 @@ test("starts fresh and offers the existing draft only after selecting its unit",
   await page.getByRole("button", { name: "Choose another unit" }).click();
   await expect(page.locator('input[name="lease-unit"]:checked')).toHaveCount(0);
   await page.locator(`input[name="lease-unit"][value="${unitId}"]`).click();
-  await page.getByRole("button", { name: "Resume draft", exact: true }).click();
+  await page.getByRole("button", { name: "Resume lease", exact: true }).click();
   await expect(page).toHaveURL(draftUrl);
   await page.goto("/leases");
   const resume = page.locator(`a[href$="${new URL(draftUrl).search}"]`);
@@ -173,9 +173,9 @@ test("uses a draft actions menu for an unfinished unit draft on mobile", async (
     .click();
   await page.locator(`input[name="lease-unit"][value="${unitId}"]`).click();
   await expect(page.getByRole("button", { name: "Draft actions" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Resume draft" })).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Resume lease" })).not.toBeVisible();
   await page.getByRole("button", { name: "Draft actions" }).click();
-  await expect(page.getByRole("menuitem", { name: "Resume draft" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Resume lease" })).toBeVisible();
 });
 
 test("reloads the latest draft after a save conflict", async ({ page }) => {
