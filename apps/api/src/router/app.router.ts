@@ -593,9 +593,9 @@ function leaseOverlapWhere(
 async function synchronizeOverdueInvoices(
   prisma: PrismaClient | Prisma.TransactionClient,
   organizationId: number,
-  timeZone: string,
+  billingDate: string,
 ) {
-  const today = new Date(`${getCalendarDate(new Date(), timeZone)}T00:00:00.000Z`);
+  const today = new Date(`${billingDate}T00:00:00.000Z`);
   await Promise.all([
     prisma.invoice.updateMany({
       where: { organizationId, status: { in: ["open", "overdue"] }, balanceCents: 0 },
@@ -1505,12 +1505,9 @@ export const appRouter = router({
     /** Lists properties with units, lease metrics, and maintenance metrics. */
     list: apiPermissionProcedure("properties", "view").query(async ({ ctx }) => {
       const permissions = await getPrincipalPermissions(ctx);
+      const billingDate = getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone);
       if (permissions.invoices.view) {
-        await synchronizeOverdueInvoices(
-          ctx.prisma,
-          ctx.organizationScope.organizationId,
-          ctx.organizationScope.organization.timeZone,
-        );
+        await synchronizeOverdueInvoices(ctx.prisma, ctx.organizationScope.organizationId, billingDate);
       }
       const query = {
         where: { organizationId: ctx.organizationScope.organizationId },
@@ -1596,13 +1593,16 @@ export const appRouter = router({
             .findMany({ ...query, include: { ...query.include, leases: false } })
             .then((properties) => properties.map((property) => ({ ...property, leases: [] })));
 
-      const today = getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone);
       return Promise.all(
         properties.map(async (property) => {
           const leases = property.leases.flatMap((lease) => {
-            const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
+            const { tenants: _tenants, unit: _unit, invoices: savedInvoices, ...leaseData } = lease;
+            const invoices = savedInvoices.map((invoice) => ({
+              ...invoice,
+              status: getReceivableStatus(invoice, billingDate),
+            }));
             const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
-            const amountOverdueCents = summarizeInvoiceBalances(invoices, today).overdueCents;
+            const amountOverdueCents = summarizeInvoiceBalances(invoices, billingDate).overdueCents;
             return [
               {
                 ...leaseData,
@@ -1610,9 +1610,7 @@ export const appRouter = router({
                 unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
                 tenant: firstTenant,
                 tenants: permissions.tenants.view ? lease.tenants.map(({ tenant }) => tenant) : [],
-                invoices: permissions.invoices.view
-                  ? invoices.map((invoice) => ({ ...invoice, status: getReceivableStatus(invoice, today) }))
-                  : [],
+                invoices: permissions.invoices.view ? invoices : [],
                 amountOverdueCents,
               },
             ];
@@ -1665,6 +1663,10 @@ export const appRouter = router({
       .input(propertyByIdInputSchema)
       .query(async ({ ctx, input }) => {
         const permissions = await getPrincipalPermissions(ctx);
+        const billingDate = getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone);
+        if (permissions.invoices.view) {
+          await synchronizeOverdueInvoices(ctx.prisma, ctx.organizationScope.organizationId, billingDate);
+        }
         const query = {
           where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
           include: {
@@ -1721,13 +1723,15 @@ export const appRouter = router({
         }
 
         const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
-        const today = getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone);
-
         const leases = rawLeases.flatMap((lease) => {
-          const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
+          const { tenants: _tenants, unit: _unit, invoices: savedInvoices, ...leaseData } = lease;
+          const invoices = savedInvoices.map((invoice) => ({
+            ...invoice,
+            status: getReceivableStatus(invoice, billingDate),
+          }));
           const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
           const amountOverdueCents = permissions.invoices.view
-            ? summarizeInvoiceBalances(invoices, today).overdueCents
+            ? summarizeInvoiceBalances(invoices, billingDate).overdueCents
             : null;
           return [
             {
@@ -1737,9 +1741,7 @@ export const appRouter = router({
               tenant: firstTenant,
               tenants: permissions.tenants.view ? lease.tenants.map(({ tenant }) => tenant) : [],
               amountOverdueCents,
-              invoices: permissions.invoices.view
-                ? invoices.map((invoice) => ({ ...invoice, status: getReceivableStatus(invoice, today) }))
-                : [],
+              invoices: permissions.invoices.view ? invoices : [],
             },
           ];
         });
@@ -2767,13 +2769,16 @@ export const appRouter = router({
         return ctx.prisma.invoiceCharge.delete({ where: { id: input.id }, select: { id: true } });
       }),
     list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
-      await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
+      if (!permissions.invoices.view) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: you cannot view invoices." });
+      }
       await synchronizeOverdueInvoices(
         ctx.prisma,
         ctx.organization.organizationId,
-        ctx.organization.organization.timeZone,
+        getCalendarDate(new Date(), ctx.organization.organization.timeZone),
       );
-      const invoices = await ctx.prisma.invoice.findMany({
+      const query = {
         where: {
           organizationId: ctx.organization.organizationId,
           ...(input.tenantId ? { recipients: { some: { tenantId: input.tenantId } } } : {}),
@@ -2781,9 +2786,15 @@ export const appRouter = router({
         include: {
           lease: { select: { unit: { select: { name: true } } } },
           property: { select: { id: true, name: true } },
+          recipients: { include: { tenant: { select: { id: true, firstName: true, lastName: true } } } },
         },
         orderBy: { dueOn: "desc" },
-      });
+      } satisfies Prisma.InvoiceFindManyArgs;
+      const invoices = permissions.tenants.view
+        ? await ctx.prisma.invoice.findMany(query)
+        : await ctx.prisma.invoice
+            .findMany({ ...query, include: { ...query.include, recipients: false } })
+            .then((invoices) => invoices.map((invoice) => ({ ...invoice, recipients: [] })));
 
       return invoices.map(({ lease, ...invoice }) => ({
         ...invoice,
@@ -2795,7 +2806,7 @@ export const appRouter = router({
       await synchronizeOverdueInvoices(
         ctx.prisma,
         ctx.organization.organizationId,
-        ctx.organization.organization.timeZone,
+        getCalendarDate(new Date(), ctx.organization.organization.timeZone),
       );
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
@@ -2828,7 +2839,7 @@ export const appRouter = router({
       await synchronizeOverdueInvoices(
         ctx.prisma,
         ctx.organization.organizationId,
-        ctx.organization.organization.timeZone,
+        getCalendarDate(new Date(), ctx.organization.organization.timeZone),
       );
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },

@@ -95,6 +95,65 @@ function createCaller(
     organization: { organizationId: 1, organization: { id: 1, timeZone: "UTC" } },
   } as unknown as Context);
 }
+
+for (const canViewInvoices of [true, false]) {
+  test(`invoice directory loads permissions once when invoice view is ${canViewInvoices}`, async () => {
+    let permissionReads = 0;
+    const caller = createCaller(resources, {
+      rolePermission: {
+        findUnique: async () => assert.fail("Invoice directory must reuse the loaded permission set"),
+        findMany: async () => {
+          permissionReads += 1;
+          return [
+            { resource: "invoices", canView: canViewInvoices },
+            { resource: "tenants", canView: true },
+          ];
+        },
+      },
+      invoice: {
+        updateMany: async () => {
+          assert.ok(canViewInvoices, "Denied invoice reads must not synchronize invoices");
+          return { count: 0 };
+        },
+        findMany: async () => {
+          assert.ok(canViewInvoices, "Denied invoice reads must not query invoices");
+          return [];
+        },
+      },
+    });
+    if (canViewInvoices) assert.deepEqual(await caller.invoices.list({}), []);
+    else
+      await assert.rejects(caller.invoices.list({}), {
+        code: "FORBIDDEN",
+        message: "Permission denied: you cannot view invoices.",
+      });
+    assert.equal(permissionReads, 1);
+  });
+}
+
+for (const canViewTenants of [true, false]) {
+  test(`invoice directory ${canViewTenants ? "includes" : "redacts"} recipient names with tenant-view permission ${canViewTenants}`, async () => {
+    const caller = createCaller(canViewTenants ? resources : resources.filter((resource) => resource !== "tenants"), {
+      invoice: {
+        updateMany: async () => ({ count: 0 }),
+        findMany: async ({ where, include }: { where: unknown; include: { recipients: unknown } }) => {
+          assert.deepEqual(where, { organizationId: 1, recipients: { some: { tenantId: tenant.id } } });
+          assert.deepEqual(
+            include.recipients,
+            canViewTenants ? { include: { tenant: { select: { id: true, firstName: true, lastName: true } } } } : false,
+          );
+          return [{ ...invoice, lease: { unit: { name: "Private unit" } }, recipients: [{ tenant: tenantSummary }] }];
+        },
+      },
+    });
+    const result = await caller.invoices.list({ tenantId: tenant.id });
+    assert.equal(result[0]!.id, invoice.id);
+    assert.equal(result[0]!.balanceCents, invoice.balanceCents);
+    assert.deepEqual(result[0]!.recipients, canViewTenants ? [{ tenant: tenantSummary }] : []);
+    if (!canViewTenants) assert.ok(!JSON.stringify(result).includes('"firstName"'));
+  });
+}
+
 for (const denied of resources.filter((resource) => resource !== "properties")) {
   test(`property list and detail redact denied ${denied} data`, async () => {
     const caller = createCaller(resources.filter((resource) => resource !== denied));
