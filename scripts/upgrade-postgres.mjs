@@ -1,9 +1,41 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, rmSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { basename, dirname, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
+
+function resolveSafePath(pathValue, label) {
+  const projectRoot = realpathSync(process.cwd());
+  let ancestor = resolve(pathValue);
+  const missing = [];
+  while (true) {
+    try {
+      lstatSync(ancestor);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      missing.unshift(basename(ancestor));
+      ancestor = dirname(ancestor);
+      continue;
+    }
+    ancestor = realpathSync(ancestor);
+    break;
+  }
+  if (ancestor !== projectRoot && !ancestor.startsWith(`${projectRoot}${sep}`)) {
+    throw new Error(`${label} must stay within the project root.`);
+  }
+  return resolve(ancestor, ...missing);
+}
 
 const image = "postgres:18-alpine";
 const marker = "/var/lib/postgresql/.parcelis-pg18-migrated";
@@ -25,7 +57,8 @@ export function parseOptions(args) {
   let backupDirectory;
   for (let i = 0; i < options.length; i++) {
     if (options[i] === "--execute") execute = true;
-    else if (options[i] === "--backup-dir" && options[i + 1]) backupDirectory = resolve(options[++i]);
+    else if (options[i] === "--backup-dir" && options[i + 1])
+      backupDirectory = resolveSafePath(options[++i], "Backup directory");
     else
       throw new Error("Usage: node scripts/upgrade-postgres.mjs [--execute] [--backup-dir PATH] -- [Compose options]");
   }

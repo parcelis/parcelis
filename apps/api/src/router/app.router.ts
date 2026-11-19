@@ -1723,7 +1723,6 @@ export const appRouter = router({
         }
 
         const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
-
         const leases = rawLeases.flatMap((lease) => {
           const { tenants: _tenants, unit: _unit, invoices: savedInvoices, ...leaseData } = lease;
           const invoices = savedInvoices.map((invoice) => ({

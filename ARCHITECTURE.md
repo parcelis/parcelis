@@ -31,7 +31,11 @@ PostgreSQL 18 is the database target for development and deployment. Existing Po
 
 Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
-The independent status monitor is described in the [status monitor guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/status-monitor.md).
+The independent status monitor serves HTTPS using a matching PEM key and X.509
+certificate loaded from `STATUS_TLS_KEY_FILE` and `STATUS_TLS_CERT_FILE`. Its web
+proxy upstream must use HTTPS and trust that certificate. HTTP availability probes
+use Node HTTP/HTTPS transports and follow up to five redirects within one probe
+deadline before validating the final status and content. The monitor is described in the [status monitor guide](https://docs.parcelis.dev/status-monitor).
 
 ```text
 app image: Next.js web + Next.js API + @parcelis/jobs
