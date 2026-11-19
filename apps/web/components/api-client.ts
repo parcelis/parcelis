@@ -51,10 +51,12 @@ export const queryKeys = {
     byId: (id: number) => ["properties", "byId", id] as const,
   },
   leases: {
+    all: ["leases"] as const,
     drafts: ["leases", "drafts"] as const,
     byId: (id: number) => ["leases", "byId", id] as const,
   },
   tenants: {
+    all: ["tenants"] as const,
     list: ["tenants", "list"] as const,
     byId: (id: number) => ["tenants", "byId", id] as const,
   },

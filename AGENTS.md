@@ -6,7 +6,6 @@
 - Main apps:
   - `apps/web`: Next.js App Router frontend.
   - `apps/api`: Next.js API exposing tRPC, REST, and Bull Board.
-  - `apps/docs`: Legacy documentation site; maintained documentation lives in `parcelis/parcelis-docs`.
 - Shared packages:
   - `packages/ui`: shadcn/ui-style Parcelis primitives and brand components.
   - `packages/schemas`: shared Zod schemas and inferred TypeScript types.
@@ -14,6 +13,7 @@
   - `packages/config`: shared ESLint, Prettier, and TypeScript config.
 - Use `@parcelis/*` workspace imports between apps and packages.
 - Keep API input validation in `packages/schemas` so frontend and backend contracts stay aligned.
+- Keep `ARCHITECTURE.md` focused on system structure and data flows; put task-specific implementation plans in issues or design documents. Solution explanations belong in the parcelis/parcelis-docs repo.
 
 ## Build/Test Commands
 
@@ -35,9 +35,10 @@
 
 - Copy environment defaults before first run: `cp .env.example .env`.
 - Start required local services with `docker compose up postgres minio minio-init -d`.
-- Run `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:seed` after installing or pulling schema changes.
+- During initial setup, run `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:seed`.
+- After pulling schema changes, run `pnpm db:migrate` and `pnpm db:generate`. Run seeds only when setting up demo data or when a change explicitly requires updated seed data.
 - `pnpm dev` chooses open ports when defaults are busy and prints the selected URLs.
-- Default local URLs are web `http://localhost:30000`, API `http://localhost:40010`, docs `http://localhost:40000`, and MinIO console `http://localhost:9010`.
+- Default local URLs are web `http://localhost:30000`, API `http://localhost:40010`, and MinIO console `http://localhost:9010`.
 - If `DATABASE_URL` is unset, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public` only when `NODE_ENV` is `development` or `test`. Other environments require an explicit PostgreSQL URL; empty or invalid values fail startup.
 - Stop an existing watcher with `Ctrl+C` before starting a second dev run.
 
@@ -56,7 +57,7 @@
 
 - Use Next.js App Router patterns in `apps/web/app`.
 - Components that use hooks or browser-only state need `"use client"`.
-- Prefer shared primitives from `@parcelis/ui`. Do not create local UI controls, unless you specificially ask after looking for shared primitives or pulling them from shadcn.
+- Check `@parcelis/ui` before creating UI controls. Add reusable missing primitives there, using shadcn where appropriate. Ask before introducing a page-local control.
 - Add reusable UI primitives in `packages/ui/src/components`.
 - Use Tailwind utility classes and existing Parcelis design tokens from the UI package.
 - Use Flexbox for layout. Do not use CSS Grid or Tailwind `grid` utilities.
@@ -87,6 +88,22 @@
 - Seed local demo data with `pnpm db:seed`.
 - Prefer Prisma transactions for multi-step writes that must stay consistent.
 
+## Verification
+
+- Inspect relevant `.github/workflows` and package scripts to identify required checks. When changing shared packages, include checks for affected consuming apps.
+- Before completing a change, run the relevant package type checks, lint, and focused tests for changed behavior. Add regression coverage for bug fixes when practical.
+- Verify visible UI changes in the browser, including the affected interaction and relevant loading, empty, and error states.
+- Report checks that passed, failures, and checks not run with the reason. Do not describe unverified behavior as verified.
+- Do not hand-edit generated artifacts. Update their source and use the documented generation command; document the source and command when introducing a new generated artifact.
+
+## Security and Data Safety
+
+- Enforce authorization and organization boundaries on the server. When changing protected operations, test denied access and cross-organization access as applicable.
+- Never expose secrets in logs, screenshots, fixtures, or commits.
+- Use local development resources unless another environment is explicitly authorized.
+- Never edit previously applied migrations. Add a new migration for subsequent schema changes.
+- Review generated migrations for data loss before applying them. Obtain explicit authorization before resetting a database or running destructive data operations.
+
 ## Docs
 
 - User-facing documentation lives in [parcelis/parcelis-docs](https://github.com/parcelis/parcelis-docs).
@@ -94,7 +111,7 @@
 - The published Docusaurus site uses the `docusaurus-docs-site` branch, with guides in `docusaurus-site/docs` and its source OpenAPI specification in `docusaurus-site/static/openapi/parcelis.openapi.json`. Confirm these locations against that repository's instructions before editing.
 - Assess documentation impact when planning every change. Changes to user-facing workflows, behavior, configuration, setup, permissions, or public APIs require corresponding documentation updates.
 - Before finalizing a change, check whether it requires updates to any of the following:
-  - Guides and API reference in `parcelis/parcelis-docs`. Do not use `apps/docs/content` as the destination for maintained user-facing documentation.
+  - Guides and API reference in `parcelis/parcelis-docs`.
   - `DEPENDENCIES.md` when adding, removing, or materially changing a direct dependency or service.
   - `CONTRIBUTING.md` when changing the contributor workflow, development setup, or contribution standards.
   - `README.md` when changing the project overview, architecture, local setup, or primary workflows.

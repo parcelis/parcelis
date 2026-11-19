@@ -21,8 +21,13 @@ test(
       await admin.$disconnect();
       throw error;
     });
+    const connectionUrl = new URL(databaseUrl!);
+    connectionUrl.searchParams.set(
+      "options",
+      [connectionUrl.searchParams.get("options"), `-c search_path=${isolated.schema}`].filter(Boolean).join(" "),
+    );
     const prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: databaseUrl! }, { schema: isolated.schema }),
+      adapter: new PrismaPg({ connectionString: connectionUrl.href }, { schema: isolated.schema }),
     });
     try {
       const organization = await prisma.organization.create({ data: { name: "Invoice test", slug: isolated.schema } });
@@ -72,7 +77,7 @@ test(
         appRouter.createCaller({
           prisma: client,
           session: { user: { id: 1, name: "Test administrator", role: "administrator" } },
-          organization: { organizationId },
+          organization: { organizationId, organization: { timeZone: "UTC" } },
         } as unknown as Context);
       const caller = createCaller(prisma);
       const recordPayment = (id: number, amountCents: number) =>

@@ -3,17 +3,17 @@
 # Shared Parcelis application Dockerfile with explicit targets.
 #
 # - `app`: modular image with the web app and API, routed by the proxy image.
-#   Deploy it together with the docs and proxy images, plus a worker container
-#   and Redis (Modular: app + worker + docs + proxy).
+#   Deploy it together with the proxy image, plus a worker container
+#   and Redis (Modular: app + worker + proxy).
 # - `worker`: background worker with its production dependencies.
 # - `single-image`: single application image with the web app, API, worker,
-#   documentation site, and public nginx routing. Deploy it instead of the
+#   and public nginx routing. Deploy it instead of the
 #   modular images (Simplified: single-image).
 #
 # PostgreSQL and S3-compatible object storage remain external services in both
 # topologies, and database migrations stay an explicit deployment step.
 
-FROM docker.io/library/node:24.22.2-alpine AS base
+FROM docker.io/library/node:24.22.3-alpine AS base
 ENV FORCE_COLOR=0
 WORKDIR /repo
 RUN apk add --no-cache libc6-compat openssl && corepack enable
@@ -22,7 +22,6 @@ RUN apk add --no-cache libc6-compat openssl && corepack enable
 # before any `pnpm install` because the root postinstall runs
 # scripts/prisma-with-env.mjs (prisma db:generate).
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches patches
 COPY scripts scripts
 
 # ---------------------------------------------------------------------------
@@ -77,22 +76,7 @@ COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @parcelis/web build
 
-# ---------------------------------------------------------------------------
-# Docs build
-# ---------------------------------------------------------------------------
-FROM base AS docs-build
-COPY apps/docs/package.json apps/docs/package.json
-COPY packages packages
-# @parcelis/docs has no workspace dependencies, so @parcelis/db is listed
-# explicitly: the root postinstall (`pnpm db:generate`) needs the Prisma CLI
-# on every `pnpm install`, including this filtered one.
-RUN pnpm install --frozen-lockfile --filter @parcelis/docs... --filter @parcelis/db...
-COPY apps/docs apps/docs
-WORKDIR /repo/apps/docs
-ENV DOCS_BASE_URL=/docs/
-RUN pnpm build
-
-# The worker runtime is independent of the web, API, and docs build stages.
+# The worker runtime is independent of the web and API build stages.
 FROM base AS worker
 ENV NODE_ENV=production
 COPY --from=worker-build /repo/packages/db packages/db
@@ -100,6 +84,8 @@ COPY --from=worker-build /repo/packages/email/package.json packages/email/packag
 COPY --from=worker-build /repo/packages/email/dist packages/email/dist
 COPY --from=worker-build /repo/packages/jobs/package.json packages/jobs/package.json
 COPY --from=worker-build /repo/packages/jobs/dist packages/jobs/dist
+COPY --from=worker-build /repo/packages/schemas/package.json packages/schemas/package.json
+COPY --from=worker-build /repo/packages/schemas/src packages/schemas/src
 COPY --from=worker-build /repo/apps/worker/package.json apps/worker/package.json
 COPY --from=worker-build /repo/apps/worker/dist apps/worker/dist
 RUN pnpm install --frozen-lockfile --prod --filter @parcelis/worker...
@@ -108,13 +94,12 @@ CMD ["node", "apps/worker/dist/main.js"]
 # ---------------------------------------------------------------------------
 # Shared production runtime base (web app + API)
 # ---------------------------------------------------------------------------
-FROM docker.io/library/node:24.22.2-alpine AS runtime-base
+FROM docker.io/library/node:24.22.3-alpine AS runtime-base
 WORKDIR /repo
 RUN apk add --no-cache openssl supervisor && corepack enable
 
 # Workspace manifests and lockfile
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches patches
 COPY scripts scripts
 # API: manifest, Next.js build output, and startup configuration
 COPY --from=api-build /repo/apps/api/package.json apps/api/package.json
@@ -146,7 +131,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]
 
 # ---------------------------------------------------------------------------
-# Single application image (web app + API + docs + public nginx)
+# Single application image (web app + API + public nginx)
 # ---------------------------------------------------------------------------
 FROM runtime-base AS single-image
 RUN apk add --no-cache nginx
@@ -155,8 +140,6 @@ COPY --from=worker-build /repo/apps/worker/dist apps/worker/dist
 RUN pnpm install --frozen-lockfile --prod --filter @parcelis/api... --filter @parcelis/web... --filter @parcelis/worker...
 ARG API_INTERNAL_PORT=4000
 ENV API_INTERNAL_URL=http://127.0.0.1:${API_INTERNAL_PORT}
-# Docs build output (static files served directly by nginx)
-COPY --from=docs-build /repo/apps/docs/build /usr/share/parcelis-docs
 COPY infra/docker/single-image/nginx.conf /etc/nginx/http.d/default.conf
 COPY infra/docker/single-image/supervisord.conf /etc/supervisord.conf
 RUN sed -i "s/__API_INTERNAL_PORT__/${API_INTERNAL_PORT}/g" \

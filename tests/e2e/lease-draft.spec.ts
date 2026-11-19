@@ -725,6 +725,8 @@ async function selectAvailableUnit(page: Page, isUsable?: (unitId: number) => Pr
     );
     await units.nth(index).click();
     const response = await created;
+    const procedures = new URL(response.url()).pathname.split("/trpc/")[1]?.split(",") ?? [];
+    expect(procedures.filter((procedure) => procedure === "leases.createDraft")).toHaveLength(1);
     await expect
       .poll(async () => page.url().includes("?draft=") || (await page.getByRole("alertdialog").isVisible()))
       .toBe(true);

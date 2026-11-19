@@ -6,7 +6,7 @@
 
 # Parcelis Single Image
 
-`parcelis/parcelis` packages the Parcelis web application, API, documentation,
+`parcelis/parcelis` packages the Parcelis web application, API,
 nginx routing, and worker runtime in one image for the single-image deployment.
 It provides the interface and application services for managing properties,
 leases, and tenants through one exposed application port.
@@ -22,6 +22,7 @@ It connects to PostgreSQL, Redis, and S3-compatible storage as external services
 
 Use the [single-image Compose stack](../../../docker-compose-single-image.yml)
 and its [environment template](../../../.env.production.example).
-This Compose example uses `parcelis/parcelis:latest` for the application, worker, and migration job.
+Set `PARCELIS_VERSION` to a release or local build that includes the documentation removal.
+The application, worker, and migration job use `parcelis/parcelis:${PARCELIS_VERSION}`.
 
 See the [deployment documentation](https://docs.parcelis.dev/) for setup and upgrades.

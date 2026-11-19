@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import test from "node:test";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDockerHubDescription } from "./docker-hub-description.mjs";
 
@@ -57,13 +59,13 @@ test("Compose and environment links use the same immutable revision as images", 
   );
 });
 
-test("the description workflow publishes exactly five overviews with existing commit-pinned resources", () => {
+test("the description workflow publishes exactly four overviews with existing commit-pinned resources", () => {
   const workflow = readFileSync(new URL("../.github/workflows/docker-hub-descriptions.yml", import.meta.url), "utf8");
   const entries = Array.from(
     workflow.matchAll(/- image: (\S+)\n\s+readme: (\S+)\n\s+description: ([^\n]+)/g),
     ([, image, readme, description]) => ({ image, readme, description }),
   );
-  assert.deepEqual(entries.map(({ image }) => image).sort(), ["apps", "docs", "parcelis", "proxy", "worker"]);
+  assert.deepEqual(entries.map(({ image }) => image).sort(), ["apps", "parcelis", "proxy", "worker"]);
   assert.equal(entries.find(({ image }) => image === "parcelis").readme, "infra/docker/hub/parcelis-single.md");
   assert.deepEqual(
     readdirSync(new URL("../infra/docker/hub", import.meta.url))
@@ -105,11 +107,13 @@ test("the description workflow publishes exactly five overviews with existing co
 test("single-image overview matches the linked Compose tag configuration", () => {
   const compose = readFileSync(new URL("../docker-compose-single-image.yml", import.meta.url), "utf8");
   const overview = readFileSync(new URL("../infra/docker/hub/parcelis-single.md", import.meta.url), "utf8");
-  assert.doesNotMatch(compose, /PARCELIS_VERSION/);
-  assert.doesNotMatch(overview, /PARCELIS_VERSION/);
+  assert.match(compose, /PARCELIS_VERSION:\?/);
+  assert.match(overview, /PARCELIS_VERSION/);
   const images = Array.from(compose.matchAll(/^\s+image: (parcelis\/parcelis:\S+)/gm), ([, image]) => image);
   assert.equal(images.length, 3);
-  for (const image of images) assert.ok(overview.includes(`\`${image}\``), image);
+  for (const image of images) {
+    assert.match(image, /^parcelis\/parcelis:\$\{PARCELIS_VERSION:\?/);
+  }
 });
 
 test("description updates and image pushes use the configured Docker Hub PAT", () => {
@@ -118,4 +122,25 @@ test("description updates and image pushes use the configured Docker Hub PAT", (
   assert.match(workflow, /secret: env\.DOCKERHUB_TOKEN/);
   const publish = readFileSync(new URL("../.github/workflows/publish-docker-images.yml", import.meta.url), "utf8");
   assert.match(publish, /password: \$\{\{ secrets\.DOCKERHUB_TOKEN \}\}/);
+});
+
+test("README paths reject symlinks outside the project and read canonical internal targets", (t) => {
+  const directory = mkdtempSync(resolve(process.cwd(), ".parcelis-readme-path-"));
+  const outside = mkdtempSync(resolve(tmpdir(), "parcelis-outside-readme-"));
+  t.after(() => {
+    rmSync(directory, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  });
+  writeFileSync(resolve(outside, "README.md"), "External overview");
+  writeFileSync(resolve(directory, "README.md"), "Internal overview");
+  symlinkSync(resolve(outside, "README.md"), resolve(directory, "external.md"));
+  symlinkSync(resolve(directory, "README.md"), resolve(directory, "internal.md"));
+  const run = (path) =>
+    execFileSync(process.execPath, ["scripts/docker-hub-description.mjs", path, "Apps"], {
+      env: { ...process.env, GITHUB_REPOSITORY: repository, GITHUB_SHA: revision },
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+  assert.throws(() => run(resolve(directory, "external.md")), /project root/);
+  assert.equal(JSON.parse(run(resolve(directory, "internal.md"))).full_description, "Internal overview");
 });

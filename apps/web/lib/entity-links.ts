@@ -34,6 +34,12 @@ export function getMaintenanceLink(ticketId: number) {
   return `/maintenance/${ticketId}`;
 }
 
+export function getMaintenanceListLink(propertyId: number, unitId?: number) {
+  const params = new URLSearchParams({ propertyId: String(propertyId), status: "open" });
+  if (unitId !== undefined) params.set("unitId", String(unitId));
+  return `/maintenance?${params}`;
+}
+
 export function getApplicationLink(applicationId: number) {
   return `/applications/${applicationId}`;
 }

@@ -1,0 +1,490 @@
+"use client";
+
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
+import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { toast } from "sonner";
+import {
+  EllipsisVertical,
+  Mail,
+  Pencil,
+  Phone,
+  ShieldCheck,
+  Trash2,
+  UserPlus,
+  UserRoundCheck,
+  UserRoundX,
+  Users,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Badge,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@parcelis/ui";
+import { apiClient, queryKeys } from "../../../../../components/api-client";
+import { userRoleValues } from "@parcelis/schemas";
+import { LoadingState } from "../../../../../components/loading-state";
+import { CreateUserDrawer, initialCreateUserFormState } from "../../../../../components/create-user-drawer";
+import { EditUserDrawer, type EditUserFormState } from "../../../../../components/edit-user-drawer";
+import { hasPermission } from "../../../../../components/property-access";
+import { SettingsRail } from "../../../../../components/settings-rail";
+import { formatLabel } from "../../../../../lib/format";
+import {
+  entityCreatedMessage,
+  entityDeletedMessage,
+  entityDisabledMessage,
+  entityEnabledMessage,
+  entityUpdatedMessage,
+} from "../../../../../components/toast-messages";
+
+type UserListItem = Awaited<ReturnType<typeof apiClient.users.list.query>>[number];
+
+function UserActionsMenu({
+  canArchive,
+  canDelete,
+  canEdit,
+  canManage,
+  onDelete,
+  onEdit,
+  onToggleAccountStatus,
+  user,
+}: {
+  canArchive: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
+  canManage: boolean;
+  onDelete: () => void;
+  onEdit: () => void;
+  onToggleAccountStatus: () => void;
+  user: UserListItem;
+}) {
+  const isDisabled = user.accountStatus === "disabled";
+
+  if (!canManage) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label={`Open actions for ${user.name}`}
+          className="inline-grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-parcelis-porcelain hover:text-parcelis-charcoal"
+          type="button"
+        >
+          <EllipsisVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        {canEdit ? (
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil className="h-4 w-4 text-parcelis-green" />
+            Edit
+          </DropdownMenuItem>
+        ) : null}
+        {canArchive ? (
+          <DropdownMenuItem onSelect={onToggleAccountStatus}>
+            {isDisabled ? (
+              <UserRoundCheck className="h-4 w-4 text-parcelis-green" />
+            ) : (
+              <UserRoundX className="h-4 w-4 text-parcelis-green" />
+            )}
+            {isDisabled ? "Enable" : "Disable"}
+          </DropdownMenuItem>
+        ) : null}
+        {canDelete ? (
+          <DropdownMenuItem className="font-semibold text-red-700 hover:bg-red-50 focus:bg-red-50" onSelect={onDelete}>
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export default function SettingsPage() {
+  const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const usersQuery = useQuery({
+    queryKey: queryKeys.users.list,
+    queryFn: () => apiClient.users.list.query(),
+    enabled: hasPermission(currentUserQuery.data?.permissions, "users", "view"),
+  });
+  const users = usersQuery.data ?? [];
+  const isAdministrator = currentUserQuery.data?.user.role === "administrator";
+  const canViewUsers = hasPermission(currentUserQuery.data?.permissions, "users", "view");
+  const canCreateUsers = hasPermission(currentUserQuery.data?.permissions, "users", "create");
+  const canEditUsers = hasPermission(currentUserQuery.data?.permissions, "users", "edit");
+  const canArchiveUsers = hasPermission(currentUserQuery.data?.permissions, "users", "archive");
+  const canDeleteUsers = hasPermission(currentUserQuery.data?.permissions, "users", "delete");
+  const canManageUserActions = canEditUsers || canArchiveUsers || canDeleteUsers;
+  const availableUserRoles = isAdministrator
+    ? userRoleValues
+    : userRoleValues.filter((role) => role !== "administrator");
+  const activeUsers = usersQuery.data?.filter((user) => user.accountStatus === "active").length;
+  const disabledUsers = usersQuery.data?.filter((user) => user.accountStatus === "disabled").length;
+  const [editUser, setEditUser] = React.useState<UserListItem | null>(null);
+  const [disableUser, setDisableUser] = React.useState<UserListItem | null>(null);
+  const [deleteUser, setDeleteUser] = React.useState<UserListItem | null>(null);
+  const [isCreateUserDrawerOpen, setIsCreateUserDrawerOpen] = React.useState(false);
+  const [createUserForm, setCreateUserForm] = React.useState(initialCreateUserFormState);
+  const [editForm, setEditForm] = React.useState<EditUserFormState>({
+    name: "",
+    email: "",
+    phone: "",
+    role: "property_manager",
+  });
+  const updateUserRequest = useMutation({
+    mutationFn: (input: EditUserFormState & { id: number }) =>
+      apiClient.users.update.mutate({ ...input, phone: input.phone || null }),
+    onSuccess: async (user) => {
+      closeEdit();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(entityUpdatedMessage("User", user.name));
+    },
+  });
+  const createUserMutation = useMutation({
+    mutationFn: () => apiClient.users.create.mutate({ ...createUserForm, phone: createUserForm.phone || null }),
+    onSuccess: async (user) => {
+      setIsCreateUserDrawerOpen(false);
+      setCreateUserForm(initialCreateUserFormState);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(entityCreatedMessage("User", user.name));
+    },
+  });
+  const updateAccountStatusMutation = useMutation({
+    mutationFn: ({ accountStatus, user }: { accountStatus: "active" | "disabled"; user: UserListItem }) =>
+      apiClient.users.updateAccountStatus.mutate({ id: user.id, accountStatus }),
+    onSuccess: async (result, { user }) => {
+      setDisableUser(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(
+        result.accountStatus === "disabled"
+          ? entityDisabledMessage("User", user.name)
+          : entityEnabledMessage("User", user.name),
+      );
+    },
+  });
+  const deleteUserMutation = useMutation({
+    mutationFn: (user: UserListItem) => apiClient.users.delete.mutate({ id: user.id }),
+    onSuccess: async (_result, user) => {
+      setDeleteUser(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.users.list });
+      toast.success(entityDeletedMessage("User", user.name));
+    },
+  });
+
+  function openAccountStatusDialog(user: UserListItem) {
+    if (updateAccountStatusMutation.isPending) return;
+    updateAccountStatusMutation.reset();
+    setDisableUser(user);
+  }
+
+  function openDeleteDialog(user: UserListItem) {
+    if (deleteUserMutation.isPending) return;
+    deleteUserMutation.reset();
+    setDeleteUser(user);
+  }
+
+  function openEdit(user: UserListItem) {
+    updateUserRequest.reset();
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      phone: user.phone ?? "",
+      role: user.role ?? "property_manager",
+    });
+    setEditUser(user);
+  }
+
+  function closeEdit() {
+    updateUserRequest.reset();
+    setEditUser(null);
+  }
+
+  return (
+    <main className="flex-1">
+      <CreateUserDrawer
+        canCreateAdministrators={isAdministrator === true}
+        error={createUserMutation.error}
+        form={createUserForm}
+        isPending={createUserMutation.isPending}
+        onFormChange={setCreateUserForm}
+        onOpenChange={setIsCreateUserDrawerOpen}
+        onSubmit={() => createUserMutation.mutate()}
+        open={isCreateUserDrawerOpen}
+      />
+      <EditUserDrawer
+        availableRoles={availableUserRoles}
+        error={updateUserRequest.error}
+        form={editForm}
+        isPending={updateUserRequest.isPending}
+        onFormChange={setEditForm}
+        onOpenChange={(open) => !open && closeEdit()}
+        onSubmit={() => editUser && updateUserRequest.mutate({ ...editForm, id: editUser.id })}
+        open={Boolean(editUser)}
+      />
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            if (!updateAccountStatusMutation.isPending) {
+              updateAccountStatusMutation.reset();
+            }
+            setDisableUser(null);
+          }
+        }}
+        open={Boolean(disableUser)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {disableUser?.accountStatus === "disabled" ? "Enable user?" : "Disable user?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {disableUser?.accountStatus === "disabled"
+                ? `${disableUser.name} will be able to sign in again.`
+                : `${disableUser?.name} will no longer be able to sign in.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {updateAccountStatusMutation.error ? (
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {updateAccountStatusMutation.error.message}
+            </p>
+          ) : null}
+          <AlertDialogFooter>
+            <Button onClick={() => setDisableUser(null)} type="button" variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={updateAccountStatusMutation.isPending}
+              onClick={() =>
+                disableUser &&
+                updateAccountStatusMutation.mutate({
+                  user: disableUser,
+                  accountStatus: disableUser.accountStatus === "disabled" ? "active" : "disabled",
+                })
+              }
+              type="button"
+            >
+              {disableUser?.accountStatus === "disabled" ? "Enable" : "Disable"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            if (!deleteUserMutation.isPending) {
+              deleteUserMutation.reset();
+            }
+            setDeleteUser(null);
+          }
+        }}
+        open={Boolean(deleteUser)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes {deleteUser?.name}
+              {"'s"} account and active sessions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteUserMutation.error ? (
+            <p className="mt-4 text-sm text-red-700" role="alert">
+              {deleteUserMutation.error.message}
+            </p>
+          ) : null}
+          <AlertDialogFooter>
+            <Button onClick={() => setDeleteUser(null)} type="button" variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={deleteUserMutation.isPending}
+              onClick={() => deleteUser && deleteUserMutation.mutate(deleteUser)}
+              type="button"
+              variant="destructive"
+            >
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
+        <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-parcelis-border bg-white/90 px-4 backdrop-blur md:px-8">
+          <div className="flex items-center gap-2">
+            <Button asChild className="min-w-40" variant="secondary">
+              <Link href="/">Portfolio</Link>
+            </Button>
+          </div>
+          {canCreateUsers ? (
+            <Button className="min-w-40" onClick={() => setIsCreateUserDrawerOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              New user
+            </Button>
+          ) : null}
+        </header>
+
+        <div className="parcelis-page-shell">
+          <SettingsPanel
+            navigation={
+              <SettingsRail
+                active="users"
+                canManageInvoicing={hasPermission(currentUserQuery.data?.permissions, "invoices", "view")}
+                canManageRoles={isAdministrator}
+                canManageUsers={canViewUsers}
+              />
+            }
+            header={
+              <SettingsPanelHeader description="Review the accounts with access to Parcelis." title="Users">
+                <div className="flex flex-wrap gap-2 text-sm text-parcelis-gray">
+                  <div className="rounded-md bg-parcelis-porcelain p-3">
+                    <div className="text-2xl font-bold text-parcelis-charcoal">{activeUsers ?? "—"}</div>
+                    Active accounts
+                  </div>
+                  <div className="rounded-md bg-parcelis-porcelain p-3">
+                    <div className="text-2xl font-bold text-parcelis-charcoal">{disabledUsers ?? "—"}</div>
+                    Disabled accounts
+                  </div>
+                </div>
+              </SettingsPanelHeader>
+            }
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-parcelis-charcoal">User accounts</h2>
+                    <p className="mt-1 text-sm text-parcelis-gray">
+                      {users.length} {users.length === 1 ? "account" : "accounts"} created
+                    </p>
+                  </div>
+                  <Users className="h-5 w-5 text-parcelis-green" />
+                </div>
+              </CardHeader>
+              <CardContent className="overflow-x-auto p-0">
+                {!canViewUsers ? (
+                  <div className="min-h-48 p-5 text-sm text-parcelis-gray">
+                    You do not have permission to view the user directory.
+                  </div>
+                ) : usersQuery.isLoading ? (
+                  <LoadingState label="Loading users…" />
+                ) : usersQuery.error ? (
+                  <div className="min-h-48 p-5 text-sm font-medium text-red-700">{usersQuery.error.message}</div>
+                ) : users.length === 0 ? (
+                  <div className="min-h-48 p-5 text-sm text-parcelis-gray">No user accounts yet.</div>
+                ) : (
+                  <Table className="min-w-[1080px] border-collapse text-left">
+                    <TableHeader className="bg-parcelis-porcelain text-xs uppercase text-parcelis-gray">
+                      <TableRow className="border-0">
+                        <TableHead className="px-5 py-3 font-semibold">User</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Email</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Phone</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Role</TableHead>
+                        <TableHead className="px-5 py-3 font-semibold">Account Status</TableHead>
+                        {canManageUserActions ? (
+                          <TableHead className="px-5 py-3 text-right font-semibold">Actions</TableHead>
+                        ) : null}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow
+                          className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60"
+                          key={user.id}
+                        >
+                          <TableCell className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-9 w-9 place-items-center rounded-full bg-parcelis-porcelain text-parcelis-green">
+                                <Users className="h-4 w-4" />
+                              </div>
+                              <Link
+                                className="font-semibold text-parcelis-charcoal hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green focus-visible:ring-offset-2"
+                                href={`/settings/profile/${user.id}`}
+                              >
+                                {user.name}
+                              </Link>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            <a
+                              className="flex items-center gap-2 hover:text-parcelis-charcoal"
+                              href={`mailto:${user.email}`}
+                            >
+                              <Mail className="h-4 w-4 text-parcelis-green" />
+                              {user.email}
+                            </a>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
+                            {user.phone ? (
+                              <a
+                                className="flex items-center gap-2 hover:text-parcelis-charcoal"
+                                href={`tel:${user.phone}`}
+                              >
+                                <Phone className="h-4 w-4 text-parcelis-green" />
+                                {user.phone}
+                              </a>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm font-medium text-parcelis-charcoal">
+                            {formatLabel(user.role)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4">
+                            <Badge
+                              className="w-fit"
+                              variant={user.accountStatus === "active" ? "default" : "secondary"}
+                            >
+                              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                              {formatLabel(user.accountStatus)}
+                            </Badge>
+                          </TableCell>
+                          {canManageUserActions ? (
+                            <TableCell className="px-5 py-4 text-right">
+                              <UserActionsMenu
+                                canArchive={canArchiveUsers}
+                                canDelete={canDeleteUsers}
+                                canEdit={canEditUsers}
+                                canManage={isAdministrator || user.role !== "administrator"}
+                                onDelete={() => openDeleteDialog(user)}
+                                onEdit={() => openEdit(user)}
+                                onToggleAccountStatus={() => openAccountStatusDialog(user)}
+                                user={user}
+                              />
+                            </TableCell>
+                          ) : null}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </SettingsPanel>
+        </div>
+      </section>
+    </main>
+  );
+}

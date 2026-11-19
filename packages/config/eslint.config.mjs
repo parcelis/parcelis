@@ -9,7 +9,6 @@ export const base = [
   {
     ignores: [
       "**/.next/**",
-      "**/.docusaurus/**",
       "**/build/**",
       "**/coverage/**",
       "**/dist/**",
@@ -80,7 +79,7 @@ export const reactNext = [
     }
   },
   {
-    files: ["apps/docs/**/*.{jsx,tsx}", "apps/web/**/*.{jsx,tsx}"],
+    files: ["apps/web/**/*.{jsx,tsx}"],
     plugins: {
       "@next/next": next
     },

@@ -1,5 +1,7 @@
 import { leaseOperationsRouter } from "./lease-operations.router";
 import {
+  getReceivableStatus,
+  summarizeInvoiceBalances,
   createManualInvoiceInputSchema,
   createInvoiceChargeInputSchema,
   updateInvoiceChargeInputSchema,
@@ -298,6 +300,29 @@ async function recordMaintenanceStatusEvent(
   });
 }
 
+async function recordMaintenanceNoteActivity(
+  tx: Prisma.TransactionClient,
+  ticket: { id: number; organizationId: number; propertyId: number; ticketNumber: number; title: string },
+  action: "maintenance.note_added" | "maintenance.note_updated" | "maintenance.note_deleted",
+  noteId: number,
+  actor: { id: string | number; name: string },
+) {
+  await recordActivityEvent(
+    tx,
+    {
+      organizationId: ticket.organizationId,
+      subjectType: ActivitySubjectType.maintenance_ticket,
+      subjectId: ticket.id,
+      subjectLabel: ticket.title,
+      subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
+      propertyId: ticket.propertyId,
+      action,
+      metadata: { noteId },
+    },
+    actor,
+  );
+}
+
 async function recordInvoiceActivity(
   tx: Prisma.TransactionClient,
   invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number },
@@ -473,7 +498,7 @@ function withOperatingMetrics<
   return {
     ...property,
     monthlyRentCents: activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0),
-    amountOverdueCents: activeLeases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0),
+    amountOverdueCents: property.leases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0),
     expiringLeases90Days: activeLeases.filter(
       (lease) => lease.endsOn !== null && lease.endsOn >= now && lease.endsOn <= expiresBefore,
     ).length,
@@ -494,11 +519,8 @@ function getTenantStatus(tenant: { archivedAt: Date | null; leases: Array<{ leas
     : "past";
 }
 
-function getInvoiceStatus(dueOn: Date, balanceCents: number) {
-  if (balanceCents === 0) return "paid" as const;
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  return dueOn < today ? ("overdue" as const) : ("open" as const);
+function getInvoiceStatus(dueOn: Date, balanceCents: number, timeZone: string) {
+  return getReceivableStatus({ dueOn, balanceCents, status: "open" }, getCalendarDate(new Date(), timeZone));
 }
 
 export function getMonthlyDueDate(periodStartsOn: Date, rentDueDay: number) {
@@ -569,16 +591,23 @@ function leaseOverlapWhere(
   };
 }
 
-async function synchronizeOverdueInvoices(prisma: PrismaClient | Prisma.TransactionClient, organizationId: number) {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+async function synchronizeOverdueInvoices(
+  prisma: PrismaClient | Prisma.TransactionClient,
+  organizationId: number,
+  timeZone: string,
+) {
+  const today = new Date(`${getCalendarDate(new Date(), timeZone)}T00:00:00.000Z`);
   await Promise.all([
+    prisma.invoice.updateMany({
+      where: { organizationId, status: { in: ["open", "overdue"] }, balanceCents: 0 },
+      data: { status: "paid" },
+    }),
     prisma.invoice.updateMany({
       where: { organizationId, status: "open", balanceCents: { gt: 0 }, dueOn: { lt: today } },
       data: { status: "overdue" },
     }),
     prisma.invoice.updateMany({
-      where: { organizationId, status: "overdue", OR: [{ balanceCents: 0 }, { dueOn: { gte: today } }] },
+      where: { organizationId, status: "overdue", balanceCents: { gt: 0 }, dueOn: { gte: today } },
       data: { status: "open" },
     }),
   ]);
@@ -1478,7 +1507,11 @@ export const appRouter = router({
     list: apiPermissionProcedure("properties", "view").query(async ({ ctx }) => {
       const permissions = await getPrincipalPermissions(ctx);
       if (permissions.invoices.view) {
-        await synchronizeOverdueInvoices(ctx.prisma, ctx.organizationScope.organizationId);
+        await synchronizeOverdueInvoices(
+          ctx.prisma,
+          ctx.organizationScope.organizationId,
+          ctx.organizationScope.organization.timeZone,
+        );
       }
       const query = {
         where: { organizationId: ctx.organizationScope.organizationId },
@@ -1521,6 +1554,7 @@ export const appRouter = router({
             },
           },
           maintenanceTickets: {
+            where: { archivedAt: null },
             orderBy: { openedOn: "desc" },
             select: {
               id: true,
@@ -1531,6 +1565,7 @@ export const appRouter = router({
               priority: true,
               status: true,
               unitLabel: true,
+              units: { select: { unitId: true } },
             },
           },
           units: {
@@ -1562,13 +1597,13 @@ export const appRouter = router({
             .findMany({ ...query, include: { ...query.include, leases: false } })
             .then((properties) => properties.map((property) => ({ ...property, leases: [] })));
 
+      const today = getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone);
       return Promise.all(
         properties.map(async (property) => {
           const leases = property.leases.flatMap((lease) => {
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
-            if (permissions.tenants.view && !firstTenant) return [];
-            const amountOverdueCents = invoices.reduce((sum, inv) => sum + inv.balanceCents, 0);
+            const amountOverdueCents = summarizeInvoiceBalances(invoices, today).overdueCents;
             return [
               {
                 ...leaseData,
@@ -1576,7 +1611,9 @@ export const appRouter = router({
                 unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
                 tenant: firstTenant,
                 tenants: permissions.tenants.view ? lease.tenants.map(({ tenant }) => tenant) : [],
-                invoices: permissions.invoices.view ? invoices : [],
+                invoices: permissions.invoices.view
+                  ? invoices.map((invoice) => ({ ...invoice, status: getReceivableStatus(invoice, today) }))
+                  : [],
                 amountOverdueCents,
               },
             ];
@@ -1590,6 +1627,7 @@ export const appRouter = router({
               ? property.maintenanceTickets.map((ticket) => ({
                   ...ticket,
                   unitLabel: permissions.units.view ? ticket.unitLabel : null,
+                  units: permissions.units.view ? ticket.units : [],
                 }))
               : [],
             units: (permissions.units.view ? property.units : []).map(({ _count, ...unit }) => ({
@@ -1643,7 +1681,17 @@ export const appRouter = router({
                   },
                 },
                 unit: true,
-                invoices: { select: { balanceCents: true } },
+                invoices: {
+                  select: {
+                    id: true,
+                    invoiceNumber: true,
+                    balanceCents: true,
+                    amountCents: true,
+                    dueOn: true,
+                    paidOn: true,
+                    status: true,
+                  },
+                },
               },
             },
             maintenanceTickets: {
@@ -1674,13 +1722,13 @@ export const appRouter = router({
         }
 
         const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
+        const today = getCalendarDate(new Date(), ctx.organizationScope.organization.timeZone);
 
         const leases = rawLeases.flatMap((lease) => {
-          const { tenants: _tenants, unit: _unit, invoices: _invoices, ...leaseData } = lease;
+          const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
           const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
-          if (permissions.tenants.view && !firstTenant) return [];
           const amountOverdueCents = permissions.invoices.view
-            ? lease.invoices.reduce((sum, inv) => sum + inv.balanceCents, 0)
+            ? summarizeInvoiceBalances(invoices, today).overdueCents
             : null;
           return [
             {
@@ -1690,6 +1738,9 @@ export const appRouter = router({
               tenant: firstTenant,
               tenants: permissions.tenants.view ? lease.tenants.map(({ tenant }) => tenant) : [],
               amountOverdueCents,
+              invoices: permissions.invoices.view
+                ? invoices.map((invoice) => ({ ...invoice, status: getReceivableStatus(invoice, today) }))
+                : [],
             },
           ];
         });
@@ -2189,6 +2240,9 @@ export const appRouter = router({
                     propertyId: true,
                     unit: { select: { name: true } },
                     property: { select: { id: true, name: true } },
+                    tenants: {
+                      select: { tenant: { select: { id: true, firstName: true, lastName: true } } },
+                    },
                     invoices: {
                       where: { recipients: { some: { tenantId: input.id } } },
                       select: {
@@ -2222,6 +2276,7 @@ export const appRouter = router({
                 unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
                 propertyId: permissions.properties.view ? lease.propertyId : null,
                 property: permissions.properties.view ? lease.property : null,
+                tenants: lease.tenants.map(({ tenant }) => tenant),
                 invoices: permissions.invoices.view ? lease.invoices : [],
               }))
             : [],
@@ -2714,7 +2769,11 @@ export const appRouter = router({
       }),
     list: publicProcedure.input(invoiceListInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
+      await synchronizeOverdueInvoices(
+        ctx.prisma,
+        ctx.organization.organizationId,
+        ctx.organization.organization.timeZone,
+      );
       const invoices = await ctx.prisma.invoice.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
@@ -2734,7 +2793,11 @@ export const appRouter = router({
     }),
     byId: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
+      await synchronizeOverdueInvoices(
+        ctx.prisma,
+        ctx.organization.organizationId,
+        ctx.organization.organization.timeZone,
+      );
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         include: {
@@ -2763,7 +2826,11 @@ export const appRouter = router({
     }),
     pdf: publicProcedure.input(invoiceByIdInputSchema).query(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
-      await synchronizeOverdueInvoices(ctx.prisma, ctx.organization.organizationId);
+      await synchronizeOverdueInvoices(
+        ctx.prisma,
+        ctx.organization.organizationId,
+        ctx.organization.organization.timeZone,
+      );
       const invoice = await ctx.prisma.invoice.findFirst({
         where: { id: input.id, organizationId: ctx.organization.organizationId },
         include: {
@@ -2878,7 +2945,6 @@ export const appRouter = router({
                   tenantId,
                   recipients: {
                     create: recipientTenantIds.map((tenantId) => ({
-                      organizationId: ctx.organization.organizationId,
                       tenantId,
                     })),
                   },
@@ -2887,8 +2953,14 @@ export const appRouter = router({
                   dueOn,
                   amountCents,
                   balanceCents: amountCents - input.paidCents,
-                  status: getInvoiceStatus(dueOn, amountCents - input.paidCents),
+                  status: getInvoiceStatus(
+                    dueOn,
+                    amountCents - input.paidCents,
+                    ctx.organization.organization.timeZone,
+                  ),
                   paidOn: input.paidCents === amountCents ? dueOn : null,
+                  paidByTenantId: input.paidCents === amountCents ? tenantId : null,
+                  paymentMethod: input.paidCents === amountCents ? "other" : null,
                   items: {
                     create: input.items.map((item) => ({
                       ...item,
@@ -2899,6 +2971,18 @@ export const appRouter = router({
                 },
                 include: { items: true },
               });
+              if (input.paidCents > 0) {
+                await tx.invoicePayment.create({
+                  data: {
+                    organizationId: ctx.organization.organizationId,
+                    invoiceId: invoice.id,
+                    tenantId,
+                    amountCents: input.paidCents,
+                    paidOn: dueOn,
+                    paymentMethod: "other",
+                  },
+                });
+              }
               await recordInvoiceActivity(tx, invoice, "invoice.created");
               return invoice;
             },
@@ -2978,7 +3062,7 @@ export const appRouter = router({
                 paidOn: balanceCents === 0 ? input.paidOn : null,
                 paidByTenantId: balanceCents === 0 ? input.paidByTenantId : null,
                 paymentMethod: balanceCents === 0 ? input.paymentMethod : null,
-                status: getInvoiceStatus(invoice.dueOn, balanceCents),
+                status: getInvoiceStatus(invoice.dueOn, balanceCents, ctx.organization.organization.timeZone),
               },
             });
             await recordInvoiceActivity(
@@ -3069,7 +3153,7 @@ export const appRouter = router({
                 paidOn: balanceCents === 0 ? latestPayment.paidOn : null,
                 paidByTenantId: balanceCents === 0 ? latestPayment.paidByTenantId : null,
                 paymentMethod: balanceCents === 0 ? latestPayment.paymentMethod : null,
-                status: getInvoiceStatus(invoice.dueOn, balanceCents),
+                status: getInvoiceStatus(invoice.dueOn, balanceCents, ctx.organization.organization.timeZone),
               },
             });
             for (const payment of input.payments) {
@@ -3122,13 +3206,30 @@ export const appRouter = router({
                 message: "Invoice total cannot be lower than payments received.",
               });
             }
+            const latestPayment =
+              amountCents === paidCents && invoice.balanceCents > 0
+                ? await tx.invoicePayment.findFirst({
+                    where: { invoiceId: input.id, organizationId: ctx.organization.organizationId, reversedAt: null },
+                    orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+                    select: { paidOn: true, tenantId: true, paymentMethod: true },
+                  })
+                : null;
             const updatedInvoice = await tx.invoice.update({
               where: { id: input.id },
               data: {
                 dueOn,
                 amountCents,
                 balanceCents: amountCents - paidCents,
-                status: getInvoiceStatus(dueOn, amountCents - paidCents),
+                status: getInvoiceStatus(dueOn, amountCents - paidCents, ctx.organization.organization.timeZone),
+                ...(amountCents > paidCents
+                  ? { paidOn: null, paidByTenantId: null, paymentMethod: null }
+                  : latestPayment
+                    ? {
+                        paidOn: latestPayment.paidOn,
+                        paidByTenantId: latestPayment.tenantId,
+                        paymentMethod: latestPayment.paymentMethod,
+                      }
+                    : {}),
                 items: {
                   deleteMany: {},
                   create: input.items.map((item) => ({
@@ -3223,7 +3324,7 @@ export const appRouter = router({
               where: { id: payment.invoiceId },
               data: {
                 balanceCents,
-                status: getInvoiceStatus(invoice.dueOn, balanceCents),
+                status: getInvoiceStatus(invoice.dueOn, balanceCents, ctx.organization.organization.timeZone),
                 paidOn: null,
                 paidByTenantId: null,
                 paymentMethod: null,
@@ -3542,6 +3643,20 @@ export const appRouter = router({
       }),
   }),
   maintenance: router({
+    filterOptions: permissionProcedure("maintenance", "view").query(({ ctx }) =>
+      ctx.prisma.property.findMany({
+        where: { organizationId: ctx.organization.organizationId },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          units: {
+            orderBy: { name: "asc" },
+            select: { id: true, name: true },
+          },
+        },
+      }),
+    ),
     list: permissionProcedure("maintenance", "view").query(({ ctx }) =>
       ctx.prisma.maintenanceTicket.findMany({
         where: { organizationId: ctx.organization.organizationId, archivedAt: null },
@@ -3997,20 +4112,7 @@ export const appRouter = router({
             data: input,
             select: { id: true, body: true, createdAt: true, updatedAt: true },
           });
-          await recordActivityEvent(
-            tx,
-            {
-              organizationId: ticket.organizationId,
-              subjectType: ActivitySubjectType.maintenance_ticket,
-              subjectId: ticket.id,
-              subjectLabel: ticket.title,
-              subjectReference: formatMaintenanceTicketNumber(ticket.ticketNumber),
-              propertyId: ticket.propertyId,
-              action: "maintenance.note_added",
-              metadata: { noteId: note.id },
-            },
-            ctx.user,
-          );
+          await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_added", note.id, ctx.user);
           return note;
         });
       }
@@ -4071,6 +4173,13 @@ export const appRouter = router({
           });
         }
 
+        if (existingNote.maintenanceTicketId) {
+          const ticket = await tx.maintenanceTicket.findFirstOrThrow({
+            where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
+          });
+          await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_updated", input.id, ctx.user);
+        }
+
         return note;
       });
     }),
@@ -4121,6 +4230,13 @@ export const appRouter = router({
             where: { id: note.legacyTenant.id },
             data: { legacyNotes: null },
           });
+        }
+
+        if (existingNote.maintenanceTicketId) {
+          const ticket = await tx.maintenanceTicket.findFirstOrThrow({
+            where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
+          });
+          await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_deleted", input.id, ctx.user);
         }
 
         return deletedNote;

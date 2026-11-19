@@ -1,5 +1,15 @@
 import assert from "node:assert/strict";
-import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, rmSync, statSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
@@ -156,4 +166,23 @@ test("password file is cleared and removed if temporary destination startup fail
   assert.equal(fixture.secrets.length, 1);
   assert.equal(existsSync(dirname(fixture.secrets[0].path)), false);
   assert.equal(readFileSync(fixture.secrets[0].fd, "utf8"), "");
+});
+
+test("backup paths reject traversal and symlinks outside the project before creation", (t) => {
+  const directory = mkdtempSync(resolve(process.cwd(), ".parcelis-backup-path-"));
+  const outside = mkdtempSync(resolve(tmpdir(), "parcelis-outside-backup-"));
+  t.after(() => {
+    rmSync(directory, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  });
+  mkdirSync(resolve(directory, "inside"));
+  symlinkSync(outside, resolve(directory, "outside"));
+  symlinkSync(resolve(directory, "inside"), resolve(directory, "alias"));
+  assert.throws(() => parseOptions(["--backup-dir", outside]), /project root/);
+  for (const suffix of ["outside", "outside/backup", "outside/missing/backup"]) {
+    assert.throws(() => parseOptions(["--backup-dir", resolve(directory, suffix)]), /project root/);
+  }
+  const backup = parseOptions(["--backup-dir", resolve(directory, "alias/missing/backup")]).backupDirectory;
+  assert.equal(backup, resolve(directory, "inside/missing/backup"));
+  assert.equal(existsSync(backup), false);
 });

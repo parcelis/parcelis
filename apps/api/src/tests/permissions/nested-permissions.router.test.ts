@@ -17,7 +17,15 @@ const resources: PermissionResource[] = [
   "tenant_notes",
 ];
 const tenant = { id: 4, firstName: "Private", lastName: "Tenant", email: "private@example.com" };
-const invoice = { id: 8, balanceCents: 12345, invoiceNumber: "INV-private" };
+const tenantSummary = { id: tenant.id, firstName: tenant.firstName, lastName: tenant.lastName };
+const invoice = {
+  dueOn: new Date("2020-01-01"),
+  status: "overdue",
+  amountCents: 12345,
+  id: 8,
+  balanceCents: 12345,
+  invoiceNumber: "INV-private",
+};
 const lease = {
   id: 7,
   unitId: 3,
@@ -28,7 +36,7 @@ const lease = {
   startsOn: new Date("2026-01-01"),
   endsOn: null,
   monthlyRentCents: 100_000,
-  tenants: [{ tenant }],
+  tenants: [{ tenant: tenantSummary }],
   unit: { name: "Private unit" },
   property: { id: 2, name: "Private property" },
   invoices: [invoice],
@@ -84,7 +92,7 @@ function createCaller(
     },
     req: { headers: {} },
     session: { userId: 1, user: { id: 1, role } },
-    organization: { organizationId: 1, organization: { id: 1 } },
+    organization: { organizationId: 1, organization: { id: 1, timeZone: "UTC" } },
   } as unknown as Context);
 }
 for (const denied of resources.filter((resource) => resource !== "properties")) {
@@ -132,7 +140,7 @@ for (const denied of resources.filter((resource) => resource !== "properties")) 
     }
   });
 }
-test("property reads omit tenantless leases only when tenants are visible", async () => {
+test("property reads retain tenantless lease receivables regardless of tenant visibility", async () => {
   for (const canViewTenants of [true, false]) {
     const propertyWithoutTenants = { ...property, leases: [{ ...lease, tenants: [] }] };
     const caller = createCaller(
@@ -145,8 +153,10 @@ test("property reads omit tenantless leases only when tenants are visible", asyn
       },
     );
     for (const result of [(await caller.properties.list())[0]!, (await caller.properties.byId({ id: 2 }))!]) {
-      assert.equal(result.leases.length, canViewTenants ? 0 : 1);
-      assert.equal(result.leaseHistory.length, canViewTenants ? 0 : 1);
+      assert.equal(result.leases.length, 1);
+      assert.equal(result.leaseHistory.length, 1);
+      assert.equal(result.leaseHistory[0]?.invoices[0]?.balanceCents, 12345);
+      assert.equal(result.leaseHistory[0]?.tenant, null);
     }
   }
 });
@@ -190,11 +200,48 @@ for (const role of ["property_manager", "administrator"]) {
     assert.equal(result.notes, property.legacyNotes);
     assert.equal(result.maintenanceTickets[0]?.id, 9);
     const detail = await caller.tenants.byId({ id: 4 });
+    assert.deepEqual(detail?.leases[0]?.tenants, [tenantSummary]);
     assert.equal(detail?.leases[0]?.invoices[0]?.id, 8);
     assert.equal(detail?.tenantStatus, "active");
     assert.equal(detail?.legacyNotes, tenantRecord.legacyNotes);
   });
 }
+test("tenant lease history returns the tenant set for each lease with only identifying fields selected", async () => {
+  const coTenant = { id: 5, firstName: "Second", lastName: "Tenant" };
+  const summaries = [
+    { id: tenant.id, firstName: tenant.firstName, lastName: tenant.lastName },
+    coTenant,
+    { id: 6, firstName: "Third", lastName: "Tenant" },
+  ];
+  const caller = createCaller(resources, {
+    tenant: {
+      findFirst: async ({
+        where,
+        include,
+      }: {
+        where: { id: number; organizationId: number };
+        include: { leases: { include: { lease: { select: { tenants: unknown } } } } };
+      }) => {
+        assert.deepEqual(where, { id: tenant.id, organizationId: 1 });
+        assert.deepEqual(include.leases.include.lease.select.tenants, {
+          select: { tenant: { select: { id: true, firstName: true, lastName: true } } },
+        });
+        return {
+          ...tenantRecord,
+          leases: [
+            { lease: { ...lease, tenants: summaries.map((tenant) => ({ tenant })) } },
+            { lease: { ...lease, id: 8, status: "ended", tenants: [{ tenant: summaries[0] }] } },
+          ],
+        };
+      },
+    },
+  });
+
+  const result = await caller.tenants.byId({ id: tenant.id });
+  assert.deepEqual(result?.leases[0]?.tenants, summaries);
+  assert.deepEqual(result?.leases[1]?.tenants, [summaries[0]]);
+});
+
 test("invoice reads and PDFs require invoice view even with property and tenant access", async () => {
   const caller = createCaller(["properties", "tenants", "leases"]);
   for (const operation of [

@@ -18,7 +18,7 @@ test("failed PostgreSQL startup displays container logs and migration guidance",
   );
   assert.deepEqual(calls[1], ["logs", "--no-color", "--tail", "30", "postgres-service"]);
   assert.match(messages.join("\n"), /Existing database detected/);
-  assert.match(messages.join("\n"), /https:\/\/docs.parcelis.dev\/getting-started\/upgrade-postgresql/);
+  assert.match(messages.join("\n"), /https:\/\/docs.parcelis.dev\/docs\/upgrade-postgresql/);
   assert.match(messages.join("\n"), /node scripts\/upgrade-postgres.mjs -- -f docker-compose-dev.yml/);
 });
 

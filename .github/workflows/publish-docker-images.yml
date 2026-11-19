@@ -24,16 +24,11 @@ jobs:
             target: worker
             title: Parcelis Worker
             description: Parcelis background job worker for the Parcelis Docker Compose stack.
-          - image: docs
-            file: apps/docs/Dockerfile
-            target: nginx
-            title: Parcelis Docs
-            description: Parcelis documentation site for the Parcelis Docker Compose stack.
           - image: parcelis
             file: Dockerfile.app
             target: single-image
             title: Parcelis Single Image
-            description: Parcelis web app, API, documentation site, and nginx edge routing in a single image.
+            description: Parcelis web app, API, worker, and nginx edge routing in a single image.
           - image: proxy
             file: infra/docker/proxy/Dockerfile
             target: proxy

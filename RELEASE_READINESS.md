@@ -71,7 +71,7 @@ Priority: **P0** = resolve before using real customer or financial records; **P1
 
 **Confirmed setup gap in reviewed entry points.** The seed creates the demo organization, properties, tenants and invoices together with the administrator and lookup catalogs. Re-running its lease seeding deletes existing invoices for matching demo leases. There is no separate clean-install provisioning entry point in the reviewed scripts/router.
 
-- Evidence: `packages/db/prisma/seed.mjs:218`, `:288`; `package.json` (`db:seed`, `db:demo:prepare`); `apps/docs/content/getting-started.mdx`.
+- Evidence: `packages/db/prisma/seed.mjs:218`, `:288`; `package.json` (`db:seed`, `db:demo:prepare`); [contributor getting started guide](https://docs.parcelis.dev/docs/contributor-getting-started).
 - Complete when: a fresh installation can create its first owner, organization and required catalogs without sample records; demo seeding is explicitly separated and guarded; production installation/upgrade instructions do not require it. Validate a fresh migration and an upgrade on disposable databases.
 
 ## P1: complete the requested workflows

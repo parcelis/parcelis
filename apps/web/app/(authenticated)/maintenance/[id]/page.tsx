@@ -195,7 +195,10 @@ export default function MaintenanceTicketPage() {
   const deleteNote = useMutation({
     mutationFn: (noteId: number) => apiClient.notes.delete.mutate({ id: noteId }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] }),
+      ]),
   });
   const saveNote = useMutation({
     mutationFn: ({ noteId, body }: { noteId: number; body: string }) =>
@@ -203,7 +206,10 @@ export default function MaintenanceTicketPage() {
     onSuccess: () => {
       setEditingNoteId(null);
       setNoteDraft("");
-      queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notes", "list", { maintenanceTicketId: id, limit: 5 }] }),
+        queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] }),
+      ]);
     },
   });
   const ticket = ticketQuery.data;

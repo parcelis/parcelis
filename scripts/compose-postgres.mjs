@@ -1,3 +1,4 @@
+/** Runs a Compose operation and reports PostgreSQL logs and migration guidance before rethrowing failures. */
 export function runPostgresCompose(runCompose, args) {
   try {
     runCompose(args);
@@ -8,9 +9,8 @@ export function runPostgresCompose(runCompose, args) {
       console.error("[parcelis] Could not read PostgreSQL container logs.");
     }
     console.error(
-      "[parcelis] If existing PostgreSQL 16 data blocked startup, follow https://docs.parcelis.dev/getting-started/upgrade-postgresql",
+      "[parcelis] If existing PostgreSQL 16 data blocked startup, follow https://docs.parcelis.dev/docs/upgrade-postgresql",
     );
-    console.error("[parcelis] Local guide: apps/docs/content/getting-started/upgrade-postgresql.mdx");
     console.error("[parcelis] Migration preflight: node scripts/upgrade-postgres.mjs -- -f docker-compose-dev.yml");
     throw error;
   }

@@ -9,7 +9,7 @@ function createCaller(prisma: unknown) {
   return appRouter.createCaller({
     prisma,
     session: { user: { id: 1, name: "Administrator", role: "administrator" } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
   } as unknown as Context);
 }
 
@@ -20,6 +20,102 @@ const paymentInput = {
   paidByTenantId: 12,
   paymentMethod: "check" as const,
 };
+
+test("settling an outstanding invoice restores the latest unreversed payment details", async () => {
+  const payment = { paidOn: new Date("2026-09-15"), tenantId: 99, paymentMethod: "cash" };
+  let paymentLookups = 0;
+  const tx = {
+    invoice: {
+      findFirstOrThrow: async () => ({ amountCents: 15_000, balanceCents: 5_000 }),
+      update: async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 4,
+        invoiceNumber: 4,
+        organizationId: 7,
+        propertyId: 2,
+        ...data,
+      }),
+    },
+    invoicePayment: {
+      findFirst: async (args: unknown) => {
+        paymentLookups += 1;
+        assert.deepEqual(args, {
+          where: { invoiceId: 4, organizationId: 7, reversedAt: null },
+          orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+          select: { paidOn: true, tenantId: true, paymentMethod: true },
+        });
+        return payment;
+      },
+    },
+    activityEvent: { create: async () => ({}) },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+  });
+  const updated = await caller.invoices.update({
+    id: 4,
+    dueOn: new Date("2030-01-01"),
+    items: [{ item: "Rent", quantity: 1, rateCents: 10_000 }],
+  });
+  assert.equal(paymentLookups, 1);
+  assert.equal(updated.balanceCents, 0);
+  assert.equal(updated.status, "paid");
+  assert.equal(updated.paidOn, payment.paidOn);
+  assert.equal(updated.paidByTenantId, payment.tenantId);
+  assert.equal(updated.paymentMethod, payment.paymentMethod);
+});
+
+for (const totalCents of [10_000, 15_000]) {
+  test(`editing a paid invoice to ${totalCents} cents keeps settlement metadata consistent`, async () => {
+    const invoice = {
+      id: 4,
+      invoiceNumber: 4,
+      organizationId: 7,
+      propertyId: 2,
+      amountCents: 10_000,
+      balanceCents: 0,
+      status: "paid",
+      paidOn: new Date("2026-09-14"),
+      paidByTenantId: 12,
+      paymentMethod: "check",
+    };
+    const tx = {
+      invoice: {
+        findFirstOrThrow: async ({ where }: { where: unknown }) => {
+          assert.deepEqual(where, { id: 4, organizationId: 7 });
+          return invoice;
+        },
+        update: async ({ data }: { data: Record<string, unknown> }) => ({ ...invoice, ...data }),
+      },
+      activityEvent: { create: async () => ({}) },
+      invoicePayment: {
+        findFirst: async () => ({
+          paidOn: new Date("2026-09-15"),
+          tenantId: 99,
+          paymentMethod: "cash",
+        }),
+      },
+    };
+    const caller = createCaller({
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>, options: unknown) => {
+        assert.deepEqual(options, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        return callback(tx);
+      },
+    });
+
+    const updated = await caller.invoices.update({
+      id: 4,
+      dueOn: new Date("2030-01-01"),
+      items: [{ item: "Rent", quantity: 1, rateCents: totalCents }],
+    });
+
+    const remainsPaid = totalCents === 10_000;
+    assert.equal(updated.balanceCents, totalCents - 10_000);
+    assert.equal(updated.status, remainsPaid ? "paid" : "open");
+    assert.equal(updated.paidOn, remainsPaid ? invoice.paidOn : null);
+    assert.equal(updated.paidByTenantId, remainsPaid ? invoice.paidByTenantId : null);
+    assert.equal(updated.paymentMethod, remainsPaid ? invoice.paymentMethod : null);
+  });
+}
 
 for (const [label, amountCents, status] of [
   ["an unpaid invoice", 10_000, "open"],
@@ -122,7 +218,7 @@ test("invoice deletion requires permission before reading the invoice", async ()
   const caller = appRouter.createCaller({
     prisma: { rolePermission: { findUnique: async () => null } },
     session: { user: { id: 1, role: "property_manager" } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
   } as unknown as Context);
   await assert.rejects(caller.invoices.delete({ id: 4 }), { code: "FORBIDDEN" });
 });
@@ -355,10 +451,7 @@ test("manual joint invoices create recipients for every lease tenant", async () 
   });
 
   assert.deepEqual((invoiceData as { recipients: unknown }).recipients, {
-    create: [
-      { organizationId: 7, tenantId: 11 },
-      { organizationId: 7, tenantId: 12 },
-    ],
+    create: [{ tenantId: 11 }, { tenantId: 12 }],
   });
 });
 
@@ -399,7 +492,7 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
       $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
     },
     session: { user: { id: 1, role: "property_manager" } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
   } as unknown as Context);
   const input = {
     propertyId: 2,
@@ -411,10 +504,10 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
 
   await caller.invoices.createManual(input);
   assert.equal(invoiceData?.tenantId, 12);
-  assert.deepEqual(invoiceData?.recipients, { create: [{ organizationId: 7, tenantId: 12 }] });
+  assert.deepEqual(invoiceData?.recipients, { create: [{ tenantId: 12 }] });
   await caller.invoices.createManual({ ...input, tenantId: 11 });
   assert.equal(invoiceData?.tenantId, 11);
-  assert.deepEqual(invoiceData?.recipients, { create: [{ organizationId: 7, tenantId: 11 }] });
+  assert.deepEqual(invoiceData?.recipients, { create: [{ tenantId: 11 }] });
   await assert.rejects(() => caller.invoices.createManual({ ...input, tenantId: 99 }), {
     code: "BAD_REQUEST",
     message: "The selected tenant is not on this lease.",
@@ -444,10 +537,10 @@ test("manual invoices cannot be created for draft leases", async () => {
 
 test("invoice reads scope overdue synchronization to the active organization", async () => {
   for (const operation of ["list", "byId", "pdf"] as const) {
-    const updates: Array<{ where: { organizationId: number } }> = [];
+    const updates: Array<{ where: { organizationId: number }; data: { status: string } }> = [];
     const caller = createCaller({
       invoice: {
-        updateMany: async (query: { where: { organizationId: number } }) => {
+        updateMany: async (query: { where: { organizationId: number }; data: { status: string } }) => {
           updates.push(query);
           return { count: 0 };
         },
@@ -462,11 +555,44 @@ test("invoice reads scope overdue synchronization to the active organization", a
         caller.invoices.pdf({ id: 4 }),
         (error) => error instanceof TRPCError && error.code === "NOT_FOUND",
       );
-    assert.equal(updates.length, 2, operation);
+    assert.equal(updates.length, 3, operation);
     assert.deepEqual(
-      updates.map(({ where }) => where.organizationId),
-      [7, 7],
+      updates.find(({ data }) => data.status === "paid"),
+      { where: { organizationId: 7, status: { in: ["open", "overdue"] }, balanceCents: 0 }, data: { status: "paid" } },
       operation,
     );
+    assert.deepEqual(
+      updates.map(({ where }) => where.organizationId),
+      [7, 7, 7],
+      operation,
+    );
+  }
+});
+
+test("invoice directory uses organization-scoped recipients without filtering historical leases", async () => {
+  for (const tenantId of [undefined, 12]) {
+    const rows = [
+      { id: 41, leaseId: 3, amountCents: 12345, balanceCents: 12345, status: "overdue" },
+      { id: 42, leaseId: 4, amountCents: 6789, balanceCents: 0, status: "paid" },
+      { id: 43, leaseId: 5, amountCents: 123, balanceCents: 123, status: "void" },
+    ];
+    const caller = createCaller({
+      invoice: {
+        updateMany: async () => ({ count: 0 }),
+        findMany: async ({ where }: { where: unknown }) => {
+          assert.deepEqual(where, {
+            organizationId: 7,
+            ...(tenantId ? { recipients: { some: { tenantId } } } : {}),
+          });
+          return rows.map((row) => ({ ...row, lease: { unit: { name: "101" } } }));
+        },
+      },
+    });
+    const result = await caller.invoices.list(tenantId ? { tenantId } : {});
+    assert.deepEqual(
+      result.map(({ id, amountCents, balanceCents }) => ({ id, amountCents, balanceCents })),
+      rows.map(({ id, amountCents, balanceCents }) => ({ id, amountCents, balanceCents })),
+    );
+    assert.equal(result.length, 3);
   }
 });
