@@ -1,0 +1,21 @@
+apps/api/src/tests/permissions/nested-permissions.router.test.ts
+  s_daf7eb66a67eac::t_f2368017a75ee9 98-133
+apps/api/src/router/app.router.ts
+  s_daf7eb66a67eac::t_f2368017a75ee9 2772-2775
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c01f7edfcd003b9f16475bef34a9609eb6c8cc51",
+  "prompts": {},
+  "sessions": {
+    "s_daf7eb66a67eac": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e7f6-0f80-7043-9957-9cc118cd6a51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
