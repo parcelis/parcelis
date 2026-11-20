@@ -169,7 +169,7 @@ export function NotesDrawer({
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) }),
-        ...("maintenanceTicketId" in subject
+        ...("maintenanceTicketId" in subject || "propertyId" in subject
           ? [queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] })]
           : []),
       ]);
@@ -185,7 +185,7 @@ export function NotesDrawer({
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) }),
-        ...("maintenanceTicketId" in subject
+        ...("maintenanceTicketId" in subject || "propertyId" in subject
           ? [queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] })]
           : []),
       ]);
@@ -199,7 +199,7 @@ export function NotesDrawer({
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.notes.list(subject) }),
-        ...("maintenanceTicketId" in subject
+        ...("maintenanceTicketId" in subject || "propertyId" in subject
           ? [queryClient.invalidateQueries({ queryKey: ["activityEvents", "list"] })]
           : []),
       ]);

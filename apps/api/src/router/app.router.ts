@@ -322,6 +322,28 @@ async function recordMaintenanceNoteActivity(
   );
 }
 
+async function recordPropertyNoteActivity(
+  tx: Prisma.TransactionClient,
+  property: { id: number; organizationId: number; name: string },
+  action: "property.note_added" | "property.note_updated" | "property.note_deleted",
+  noteId: number,
+  actor: { id: string | number; name: string },
+) {
+  await recordActivityEvent(
+    tx,
+    {
+      organizationId: property.organizationId,
+      subjectType: ActivitySubjectType.property,
+      subjectId: property.id,
+      subjectLabel: property.name,
+      propertyId: property.id,
+      action,
+      metadata: { noteId },
+    },
+    actor,
+  );
+}
+
 async function recordInvoiceActivity(
   tx: Prisma.TransactionClient,
   invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number },
@@ -4078,8 +4100,17 @@ export const appRouter = router({
     create: publicProcedure.input(createNoteInputSchema).mutation(async ({ ctx, input }) => {
       await requireNotePermission(ctx.prisma, ctx.user.role, input, "create");
       if ("propertyId" in input) {
-        await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.propertyId, organizationId: ctx.organization.organizationId },
+        return ctx.prisma.$transaction(async (tx) => {
+          const property = await tx.property.findFirstOrThrow({
+            where: { id: input.propertyId, organizationId: ctx.organization.organizationId },
+            select: { id: true, organizationId: true, name: true },
+          });
+          const note = await tx.note.create({
+            data: input,
+            select: { id: true, body: true, createdAt: true, updatedAt: true },
+          });
+          await recordPropertyNoteActivity(tx, property, "property.note_added", note.id, ctx.user);
+          return note;
         });
       } else if ("tenantId" in input) {
         await ctx.prisma.tenant.findFirstOrThrow({
@@ -4172,6 +4203,14 @@ export const appRouter = router({
           await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_updated", input.id, ctx.user);
         }
 
+        if (existingNote.propertyId !== null) {
+          const property = await tx.property.findFirstOrThrow({
+            where: { id: existingNote.propertyId, organizationId: ctx.organization.organizationId },
+            select: { id: true, organizationId: true, name: true },
+          });
+          await recordPropertyNoteActivity(tx, property, "property.note_updated", input.id, ctx.user);
+        }
+
         return note;
       });
     }),
@@ -4227,6 +4266,14 @@ export const appRouter = router({
             where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
           });
           await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_deleted", input.id, ctx.user);
+        }
+
+        if (existingNote.propertyId !== null) {
+          const property = await tx.property.findFirstOrThrow({
+            where: { id: existingNote.propertyId, organizationId: ctx.organization.organizationId },
+            select: { id: true, organizationId: true, name: true },
+          });
+          await recordPropertyNoteActivity(tx, property, "property.note_deleted", input.id, ctx.user);
         }
 
         return deletedNote;
