@@ -4094,8 +4094,17 @@ export const appRouter = router({
           where: { id: input.applicationId, organizationId: ctx.organization.organizationId },
         });
       } else if ("invoiceId" in input) {
-        await ctx.prisma.invoice.findFirstOrThrow({
-          where: { id: input.invoiceId, organizationId: ctx.organization.organizationId },
+        return ctx.prisma.$transaction(async (tx) => {
+          const invoice = await tx.invoice.findFirstOrThrow({
+            where: { id: input.invoiceId, organizationId: ctx.organization.organizationId },
+            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true },
+          });
+          const note = await tx.note.create({
+            data: input,
+            select: { id: true, body: true, createdAt: true, updatedAt: true },
+          });
+          await recordInvoiceActivity(tx, invoice, "invoice.note_added", { noteId: note.id }, ctx.user);
+          return note;
         });
       } else {
         return ctx.prisma.$transaction(async (tx) => {
@@ -4172,6 +4181,14 @@ export const appRouter = router({
           await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_updated", input.id, ctx.user);
         }
 
+        if (existingNote.invoiceId) {
+          const invoice = await tx.invoice.findFirstOrThrow({
+            where: { id: existingNote.invoiceId, organizationId: ctx.organization.organizationId },
+            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true },
+          });
+          await recordInvoiceActivity(tx, invoice, "invoice.note_updated", { noteId: input.id }, ctx.user);
+        }
+
         return note;
       });
     }),
@@ -4227,6 +4244,14 @@ export const appRouter = router({
             where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
           });
           await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_deleted", input.id, ctx.user);
+        }
+
+        if (existingNote.invoiceId) {
+          const invoice = await tx.invoice.findFirstOrThrow({
+            where: { id: existingNote.invoiceId, organizationId: ctx.organization.organizationId },
+            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true },
+          });
+          await recordInvoiceActivity(tx, invoice, "invoice.note_deleted", { noteId: input.id }, ctx.user);
         }
 
         return deletedNote;

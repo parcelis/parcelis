@@ -117,10 +117,10 @@ for (const operation of ["update", "delete"] as const) {
               return {
                 propertyId: null,
                 tenantId: null,
-                unitId: null,
+                unitId: isMaintenance ? null : 5,
                 maintenanceTicketId: isMaintenance ? 2 : null,
                 applicationId: null,
-                invoiceId: isMaintenance ? null : 5,
+                invoiceId: null,
               };
             },
           },
