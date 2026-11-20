@@ -332,6 +332,15 @@
                         "unitType"
                       ]
                     }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "maintenance",
+                      "leasing"
+                    ],
+                    "description": "Manually managed operational status. Defaults to active on creation; omitted updates preserve the current status. Use archive/unarchive operations for archived properties."
                   }
                 },
                 "required": [
@@ -722,6 +731,15 @@
                         "unitType"
                       ]
                     }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "maintenance",
+                      "leasing"
+                    ],
+                    "description": "Manually managed operational status. Defaults to active on creation; omitted updates preserve the current status. Use archive/unarchive operations for archived properties."
                   }
                 },
                 "required": [

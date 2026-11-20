@@ -12,6 +12,7 @@ type DrawerProperty = {
   region: string;
   postalCode: string;
   propertyType: string;
+  status: PropertyFormState["status"];
   tags?: Array<{ id: number }>;
   contactName: string | null;
   contactEmail: string | null;
@@ -73,6 +74,7 @@ export function getPropertyFormState(
     region: property.region,
     postalCode: property.postalCode,
     propertyType: getPropertyType(property.propertyType),
+    status: property.status,
     tagIds: property.tags?.map((tag) => tag.id) ?? [],
     contactName: property.contactName ?? "",
     contactEmail: property.contactEmail ?? "",
