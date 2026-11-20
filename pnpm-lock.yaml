@@ -496,7 +496,7 @@ importers:
         version: link:../db
       nodemailer:
         specifier: ^10.0.0
-        version: 10.5.0
+        version: 10.6.1
       react:
         specifier: ^19.2.8
         version: 19.3.1
@@ -4224,8 +4224,8 @@ packages:
     resolution: {integrity: sha512-zAPCKqMcnqs2nGy6nlkm7JduFseiBJy3EXHGLh+8pFR+TxGCBxxiEN21+UROU5CKwX/f4TlUcYjiM+vs/tsyxw==}
     engines: {node: '>=18'}
 
-  nodemailer@10.5.0:
-    resolution: {integrity: sha512-L/w/HH5MqpzMDuZD7fQdt/+KqymuvrpaApaIjAH2XA3ILePwlcvXCVVvP75xVrXCEt2ggK2marrrHHFB5Qu0kA==}
+  nodemailer@10.6.1:
+    resolution: {integrity: sha512-d7kfFfS/tR4Aca+SBvRaQ+MXKNv7d2JiRe5TxaRcFT/kYMh4GGPnW9aKksTIEvyEbA7d/7HYWE4YPDEHxzJj/g==}
     engines: {node: '>=20.0.0'}
 
   normalize-svg-path@1.1.0:
@@ -9066,7 +9066,7 @@ snapshots:
 
   node-releases@2.0.64: {}
 
-  nodemailer@10.5.0: {}
+  nodemailer@10.6.1: {}
 
   normalize-svg-path@1.1.0:
     dependencies:
