@@ -28,7 +28,7 @@ function draft(startsOn: Date) {
     unitId: 3,
     termType: "fixed",
     startsOn,
-    endsOn: new Date(startsOn.getTime() + 30 * 86400000),
+    endsOn: new Date(Date.UTC(startsOn.getUTCFullYear(), startsOn.getUTCMonth() + 2, 0)),
     monthlyRentCents: 10000,
     securityDepositCents: 1000,
     rentDueDay: 1,

@@ -1849,6 +1849,7 @@ export const appRouter = router({
             data: {
               organizationId: ctx.organizationScope.organizationId,
               name: input.name,
+              status: input.status ?? "active",
               line1: input.address.line1,
               line2: input.address.line2 ?? null,
               city: input.address.city,
@@ -1930,8 +1931,14 @@ export const appRouter = router({
             async (tx) => {
               const currentProperty = await tx.property.findUniqueOrThrow({
                 where: { id: input.id },
-                select: { legacyNoteId: true },
+                select: { legacyNoteId: true, status: true },
               });
+              if (input.status !== undefined && currentProperty.status === "archived") {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "Unarchive this property before changing its operational status.",
+                });
+              }
               const legacyNote =
                 input.notes === undefined
                   ? {}
@@ -1941,6 +1948,7 @@ export const appRouter = router({
                 select: propertySelect,
                 data: {
                   name: input.name,
+                  ...(input.status === undefined ? {} : { status: input.status }),
                   line1: input.address.line1,
                   line2: input.address.line2 ?? null,
                   city: input.address.city,

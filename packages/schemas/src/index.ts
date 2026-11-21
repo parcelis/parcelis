@@ -431,6 +431,7 @@ export const addressSchema = z.object({
 });
 
 export const propertyStatusSchema = z.enum(["active", "maintenance", "leasing", "archived"]);
+export const propertyOperationalStatusSchema = propertyStatusSchema.exclude(["archived"]);
 export const propertyTypeValues = [
   "Apartment",
   "Commercial",
@@ -918,11 +919,19 @@ export const reverseInvoicePaymentInputSchema = z.object({
   reason: z.string().trim().min(1, "Enter a reason for reversing the payment.").max(500),
 });
 
-export const createPropertyInputSchema = propertySchema.omit({
-  id: true,
-  occupiedUnits: true,
-  status: true,
-});
+export const createPropertyInputSchema = propertySchema
+  .omit({
+    id: true,
+    occupiedUnits: true,
+    status: true,
+  })
+  .extend({
+    status: propertyOperationalStatusSchema
+      .describe(
+        "Manually managed operational status. Defaults to active on creation; omitted updates preserve the current status. Use archive/unarchive operations for archived properties.",
+      )
+      .optional(),
+  });
 
 export const updatePropertyInputSchema = createPropertyInputSchema.extend({
   id: idSchema,
