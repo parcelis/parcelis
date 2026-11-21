@@ -98,3 +98,24 @@ test("creation defaults to Active and failed status saves keep the drawer open",
   await expect(drawer).toBeVisible();
   await page.unroute("**/trpc/properties.update*");
 });
+
+test("unrelated edits preserve a status changed while the drawer is open", async ({ page, property }) => {
+  await page.goto(`/properties/${property.id}`);
+  await page.getByRole("button", { name: "Edit Property", exact: true }).click();
+  const drawer = page
+    .getByRole("dialog")
+    .filter({ has: page.getByRole("heading", { name: "Edit Property", exact: true }) });
+  await expect(drawer.getByRole("combobox", { name: "Operational Status", exact: true })).toHaveValue("active");
+  await mutate(page.request, "properties.archive", { id: property.id });
+  await drawer.getByRole("textbox", { name: "Name", exact: true }).fill(`${property.name} updated`);
+  await drawer.getByRole("button", { name: "Next", exact: true }).click();
+  const saveRequest = page.waitForRequest(
+    (request) => request.method() === "POST" && request.url().includes("properties.update"),
+  );
+  await drawer.getByRole("button", { name: "Save", exact: true }).click();
+  expect((await saveRequest).postDataJSON()["0"]).not.toHaveProperty("status");
+  await expect(drawer).toBeHidden();
+  await page.reload();
+  await page.getByRole("button", { name: "Edit Property", exact: true }).click();
+  await expect(drawer.getByRole("combobox", { name: "Operational Status", exact: true })).toHaveValue("archived");
+});

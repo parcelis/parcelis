@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
+import { Prisma } from "@parcelis/db";
 import { createPropertyInputSchema, updatePropertyInputSchema } from "@parcelis/schemas";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
@@ -19,7 +20,12 @@ function harness(initialStatus: Status = "active", denied = false, foreign = fal
   const property = {
     findFirstOrThrow: async ({ where }: { where: unknown }) => {
       assert.deepEqual(where, { id: 2, organizationId: 7 });
-      if (foreign) throw new TRPCError({ code: "NOT_FOUND" });
+      if (foreign) {
+        throw new Prisma.PrismaClientKnownRequestError("Property not found", {
+          code: "P2025",
+          clientVersion: Prisma.prismaVersion.client,
+        });
+      }
       return { id: 2, status: state.status };
     },
     findUniqueOrThrow: async () => ({ legacyNoteId: null, status: state.status }),
@@ -91,6 +97,12 @@ test("status writes require the matching property permission", async () => {
 });
 test("status updates cannot target another organization", async () => {
   const { caller, state } = harness("active", false, true);
-  await assert.rejects(caller.properties.update({ ...input, id: 2, status: "leasing" }), { code: "NOT_FOUND" });
+  await assert.rejects(
+    caller.properties.update({ ...input, id: 2, status: "leasing" }),
+    (error: unknown) =>
+      error instanceof TRPCError &&
+      error.cause instanceof Prisma.PrismaClientKnownRequestError &&
+      error.cause.code === "P2025",
+  );
   assert.equal(state.writes, 0);
 });
