@@ -140,6 +140,7 @@ enum PermissionResource {
   application_notes
   maintenance_notes
   invoice_notes
+  lease_notes
 }
 
 enum OrganizationMemberRole {
@@ -563,12 +564,14 @@ model Note {
   tenantId            Int?
   maintenanceTicketId Int?
   applicationId       Int?
+  leaseId             Int?
   invoiceId           Int?
   property            Property?          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   unit                Unit?              @relation(fields: [unitId], references: [id], onDelete: Cascade)
   tenant              Tenant?            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   maintenanceTicket   MaintenanceTicket? @relation(fields: [maintenanceTicketId], references: [id], onDelete: Cascade)
   application         Application?       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  lease               Lease?             @relation(fields: [leaseId], references: [id], onDelete: Cascade)
   invoice             Invoice?           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   legacyProperty      Property?          @relation("PropertyLegacyNote")
   legacyTenant        Tenant?            @relation("TenantLegacyNote")
@@ -583,6 +586,7 @@ model Note {
   @@index([maintenanceTicketId, createdAt, id])
   @@index([applicationId, createdAt, id])
   @@index([invoiceId, createdAt, id])
+  @@index([leaseId, createdAt, id])
 }
 
 model EmergencyContact {
@@ -602,6 +606,9 @@ model EmergencyContact {
 model Lease {
   id                           Int                         @id @default(autoincrement())
   organizationId               Int
+  renewedFromId                Int?                        @unique
+  renewedFrom                  Lease?                      @relation("LeaseRenewal", fields: [renewedFromId], references: [id], onDelete: Restrict)
+  renewal                      Lease?                      @relation("LeaseRenewal")
   leaseDraftKey                String                      @default(uuid())
   propertyId                   Int?
   unitId                       Int?
@@ -622,6 +629,7 @@ model Lease {
   property                     Property?                   @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
   unit                         Unit?                       @relation(fields: [propertyId, unitId], references: [propertyId, id], onDelete: Restrict)
   tenants                      LeaseTenant[]
+  notes                        Note[]
   invoices                     Invoice[]                   @relation("InvoiceLease")
   rentCharge                   InvoiceCharge?               @relation(fields: [organizationId, rentChargeId], references: [organizationId, id], onDelete: NoAction)
   createdAt                    DateTime                    @default(now())

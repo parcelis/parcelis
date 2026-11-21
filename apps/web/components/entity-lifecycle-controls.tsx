@@ -21,6 +21,7 @@ import {
 
 type EntityLifecycleControlsProps = {
   presentation?: "buttons" | "dropdown";
+  dropdownTrigger?: React.ReactElement;
   children?: React.ReactNode;
   headerActions?: React.ReactNode;
   hasLeadingAction?: boolean;
@@ -43,6 +44,7 @@ type EntityLifecycleControlsProps = {
 
 export function EntityLifecycleControls({
   presentation = "buttons",
+  dropdownTrigger,
   children,
   headerActions,
   hasLeadingAction = false,
@@ -174,14 +176,16 @@ export function EntityLifecycleControls({
             {headerActions}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  className={`min-w-10 md:min-w-40 ${hasDesktopNeighbor ? "md:rounded-l-none md:border-l-0" : ""}`}
-                  disabled={!isAvailable}
-                  variant="secondary"
-                >
-                  Actions
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+                {dropdownTrigger ?? (
+                  <Button
+                    className={`min-w-10 md:min-w-40 ${hasDesktopNeighbor ? "md:rounded-l-none md:border-l-0" : ""}`}
+                    disabled={!isAvailable}
+                    variant="secondary"
+                  >
+                    Actions
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                )}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-48">
                 {promoteReactivate && canArchive && isArchived ? (
