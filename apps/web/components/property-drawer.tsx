@@ -493,7 +493,7 @@ export function PropertyDrawer({
       {
         name: form.name,
         propertyType: form.propertyType,
-        ...(form.status === "archived" ? {} : { status: form.status }),
+        ...(form.status === "archived" || form.status === initialFormState.status ? {} : { status: form.status }),
         tagIds: propertyTagIds,
         contactName: form.contactName || undefined,
         contactEmail: form.contactEmail || undefined,
