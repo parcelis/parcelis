@@ -20,7 +20,13 @@ import {
   TableHeader,
   TableRow,
 } from "@parcelis/ui";
-import { formatInvoiceNumber } from "@parcelis/schemas";
+import {
+  getBillingCalendarDate,
+  getInvoiceCalendarDate,
+  getReceivableStatus,
+  summarizeInvoiceBalances,
+  formatInvoiceNumber,
+} from "@parcelis/schemas";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { hasPermission } from "../../../components/property-access";
 import { LoadingState } from "../../../components/loading-state";
@@ -33,7 +39,8 @@ function formatCurrency(cents: number | null) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 
@@ -50,42 +57,19 @@ function formatDate(value: Date | string) {
   );
 }
 
-function getCurrentInvoice(lease: { amountOverdueCents: number | null; monthlyRentCents: number | null }) {
-  const now = new Date();
-  const dueOn = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const amountCents = lease.monthlyRentCents ?? 0;
-
-  return {
-    amountCents,
-    balanceCents: lease.amountOverdueCents || amountCents,
-    dueOn,
-    id: `INV-${dueOn.getUTCFullYear()}-${String(dueOn.getUTCMonth() + 1).padStart(2, "0")}`,
-    paidOn: null,
-    status: (lease.amountOverdueCents ?? 0) > 0 ? "Overdue" : "Current",
-  };
+function isUpcomingInvoice(invoice: { balanceCents: number; dueOn: Date | string; status: string }, today: string) {
+  return invoice.status !== "void" && invoice.balanceCents > 0 && getInvoiceCalendarDate(invoice.dueOn) > today;
 }
 
-function formatInvoiceStatus(invoice: { amountCents: number; balanceCents: number; status: string }) {
-  if (invoice.balanceCents === 0 || invoice.status === "paid") return "Fully paid";
-  if (invoice.balanceCents < invoice.amountCents) return "Partially paid";
-  return formatLeaseStatus(invoice.status);
-}
-
-function isUpcomingInvoice(invoice: { balanceCents: number; dueOn: Date | string }) {
-  const dueOn = new Date(invoice.dueOn);
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  return invoice.balanceCents > 0 && dueOn > today;
-}
-
-function getIncomeInvoiceStatus(invoice: {
-  amountCents: number;
-  balanceCents: number;
-  dueOn: Date | string;
-  status: string;
-}) {
-  if (isUpcomingInvoice(invoice)) return "Upcoming";
-  return formatInvoiceStatus(invoice);
+function getIncomeInvoiceStatus(
+  invoice: { amountCents: number; balanceCents: number; dueOn: Date | string; status: string },
+  today: string,
+) {
+  if (isUpcomingInvoice(invoice, today)) return "Upcoming";
+  const status = getReceivableStatus(invoice, today);
+  if (status === "void") return "Void";
+  if (status === "paid") return "Fully paid";
+  return `${status === "overdue" ? "Overdue" : "Due today"}${invoice.balanceCents < invoice.amountCents ? " · Partially paid" : ""}`;
 }
 
 function getTenantName(lease: {
@@ -117,6 +101,10 @@ function IncomePageContent() {
   const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<string>>(new Set());
   const [groupByUnit, setGroupByUnit] = React.useState(true);
   const [search, setSearch] = React.useState("");
+  const [leaseHistoryFilter, setLeaseHistoryFilter] = React.useState("all");
+  const [invoiceFilter, setInvoiceFilter] = React.useState("active");
+  const [draftLeaseHistoryFilter, setDraftLeaseHistoryFilter] = React.useState("all");
+  const [draftInvoiceFilter, setDraftInvoiceFilter] = React.useState("active");
   const [isInvoiceDrawerOpen, setIsInvoiceDrawerOpen] = React.useState(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [draftPropertyId, setDraftPropertyId] = React.useState("all");
@@ -133,6 +121,7 @@ function IncomePageContent() {
     queryFn: () => apiClient.auth.me.query(),
   });
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
+  const canCreateInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "create");
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
@@ -144,7 +133,38 @@ function IncomePageContent() {
     queryFn: () => apiClient.invoices.charges.query(),
     enabled: canViewInvoices,
   });
-  const properties = propertiesQuery.data ?? [];
+  const organizationQuery = useQuery({
+    queryKey: queryKeys.organizations.active,
+    queryFn: () => apiClient.organizations.active.query(),
+  });
+  const today = organizationQuery.data?.timeZone ? getBillingCalendarDate(organizationQuery.data.timeZone) : null;
+  const invoicesQuery = useQuery({
+    queryKey: ["invoices", "list", { tenantId: selectedTenantId }],
+    queryFn: () => apiClient.invoices.list.query(selectedTenantId === null ? {} : { tenantId: selectedTenantId }),
+    enabled: canViewInvoices,
+  });
+  const invoicesByLease = new Map<number, NonNullable<typeof invoicesQuery.data>>();
+  for (const invoice of invoicesQuery.data ?? []) {
+    const invoices = invoicesByLease.get(invoice.leaseId) ?? [];
+    invoices.push(invoice);
+    invoicesByLease.set(invoice.leaseId, invoices);
+  }
+  const matchesInvoiceFilter = (invoice: { status: string; balanceCents: number }, filter = invoiceFilter) => {
+    if (filter === "all") return true;
+    if (filter === "void") return invoice.status === "void";
+    if (invoice.status === "void") return false;
+    if (filter === "outstanding") return invoice.balanceCents > 0;
+    if (filter === "paid") return invoice.balanceCents === 0;
+    return true;
+  };
+  const properties = (propertiesQuery.data ?? []).map((property) => ({
+    ...property,
+    leases: property.leaseHistory.map((lease) => ({
+      ...lease,
+      hasSavedInvoices: invoicesByLease.has(lease.id),
+      invoices: (invoicesByLease.get(lease.id) ?? []).filter((invoice) => matchesInvoiceFilter(invoice)),
+    })),
+  }));
   const createInvoice = useMutation({
     mutationFn: (input: Parameters<typeof apiClient.invoices.createManual.mutate>[0]) =>
       apiClient.invoices.createManual.mutate(input),
@@ -154,10 +174,23 @@ function IncomePageContent() {
       setIsInvoiceDrawerOpen(false);
     },
   });
-  const isEligibleIncomeLease = (lease: (typeof properties)[number]["leases"][number]) =>
-    (lease.status === "active" || lease.status === "notice" || lease.status === "scheduled") &&
-    (selectedTenantId === null || lease.tenants.some((tenant) => tenant.id === selectedTenantId));
+  const isEligibleIncomeLease = (
+    lease: (typeof properties)[number]["leases"][number],
+    historyFilter = leaseHistoryFilter,
+    filter = invoiceFilter,
+  ) =>
+    lease.status !== "draft" &&
+    (selectedTenantId === null ||
+      invoicesByLease.has(lease.id) ||
+      lease.tenants.some((tenant) => tenant.id === selectedTenantId)) &&
+    (historyFilter === "all" ||
+      (historyFilter === "historical"
+        ? lease.archivedAt !== null || lease.status === "ended"
+        : lease.archivedAt === null && lease.status !== "ended")) &&
+    (filter === "active" ||
+      (invoicesByLease.get(lease.id) ?? []).some((invoice) => matchesInvoiceFilter(invoice, filter)));
   const isSummaryLease = (lease: (typeof properties)[number]["leases"][number]) =>
+    lease.archivedAt === null &&
     (lease.status === "active" || lease.status === "notice") &&
     (selectedTenantId === null || lease.tenants.some((tenant) => tenant.id === selectedTenantId));
   const selectedTenant =
@@ -169,42 +202,40 @@ function IncomePageContent() {
   const unitFilterOptions = properties
     .filter((property) => draftPropertyId === "all" || property.id === parseEntityId(draftPropertyId))
     .map((property) => {
-      const eligibleUnitIds = new Set(property.leases.filter(isEligibleIncomeLease).map((lease) => lease.unitId));
+      const eligibleUnitIds = new Set(
+        property.leases
+          .filter((lease) => isEligibleIncomeLease(lease, draftLeaseHistoryFilter, draftInvoiceFilter))
+          .map((lease) => lease.unitId),
+      );
       return { ...property, units: property.units.filter((unit) => eligibleUnitIds.has(unit.id)) };
     })
     .filter((property) => property.units.length > 0);
-  const isDraftPropertyAvailable = draftPropertyId === "all" || properties.some(
-    (property) => property.id === parseEntityId(draftPropertyId),
-  );
-  const isDraftUnitAvailable = draftUnitId === "all" || unitFilterOptions.some((property) =>
-    property.units.some((unit) => unit.id === parseEntityId(draftUnitId)),
-  );
+  const isDraftPropertyAvailable =
+    draftPropertyId === "all" || properties.some((property) => property.id === parseEntityId(draftPropertyId));
+  const isDraftUnitAvailable =
+    draftUnitId === "all" ||
+    unitFilterOptions.some((property) => property.units.some((unit) => unit.id === parseEntityId(draftUnitId)));
   const incomeProperties = properties
     .filter((property) => selectedPropertyId === null || property.id === selectedPropertyId)
     .map((property) => {
       const incomeLeases = property.leases.filter(
         (lease) => isEligibleIncomeLease(lease) && (selectedUnitId === null || lease.unitId === selectedUnitId),
       );
-      const summaryLeases = incomeLeases.filter(isSummaryLease);
       return {
         ...property,
         incomeLeases,
-        amountOverdueCents: summaryLeases.reduce(
-          (total, lease) =>
-            total +
-            lease.invoices.reduce(
-              (leaseTotal, invoice) => leaseTotal + (invoice.status === "overdue" ? invoice.balanceCents : 0),
-              0,
-            ),
-          0,
-        ),
-        monthlyRentCents: summaryLeases.reduce((total, lease) => total + (lease.monthlyRentCents ?? 0), 0),
       };
     })
     .filter((property) => property.incomeLeases.length > 0);
-  const scheduledIncomeCents = incomeProperties.reduce((total, property) => total + property.monthlyRentCents, 0);
-  const overdueCents = incomeProperties.reduce((total, property) => total + property.amountOverdueCents, 0);
-  const expectedIncomeCents = Math.max(scheduledIncomeCents - overdueCents, 0);
+  const scheduledIncomeCents = properties
+    .filter((property) => selectedPropertyId === null || property.id === selectedPropertyId)
+    .flatMap((property) => property.leases)
+    .filter((lease) => isSummaryLease(lease) && (selectedUnitId === null || lease.unitId === selectedUnitId))
+    .reduce((total, lease) => total + (lease.monthlyRentCents ?? 0), 0);
+  const balances = summarizeInvoiceBalances(
+    incomeProperties.flatMap((property) => property.incomeLeases.flatMap((lease) => lease.invoices)),
+    today ?? "",
+  );
   const normalizedSearch = search.trim().toLowerCase();
   const filteredIncomeProperties = incomeProperties
     .map((property) => ({
@@ -242,12 +273,10 @@ function IncomePageContent() {
   const filteredUnitGroups = Array.from(unitGroups.values());
   const ungroupedIncomeRows = incomeLeases.flatMap(({ property, lease }) => {
     const persistedInvoices = getLeaseInvoices(lease);
-    if (lease.status === "scheduled" && persistedInvoices.length === 0) return [];
-    return (persistedInvoices.length ? persistedInvoices : [null]).map((persistedInvoice) => ({
+    return persistedInvoices.map((invoice) => ({
       property,
       lease,
-      invoice: persistedInvoice ?? getCurrentInvoice(lease),
-      persistedInvoice,
+      invoice,
     }));
   });
 
@@ -302,6 +331,16 @@ function IncomePageContent() {
     );
   }
 
+  if (organizationQuery.isPending || propertiesQuery.isPending || invoicesQuery.isPending)
+    return <LoadingState label="Loading income..." />;
+  if (organizationQuery.isError || propertiesQuery.isError || invoicesQuery.isError || !today) {
+    return (
+      <main className="p-6 lg:pl-[var(--parcelis-sidebar-width)]">
+        <p role="alert">Unable to load income. Refresh to retry.</p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-parcelis-porcelain">
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
@@ -311,9 +350,11 @@ function IncomePageContent() {
               <Link href="/">Portfolio</Link>
             </Button>
           </div>
-          <Button className="min-w-40" onClick={() => setIsInvoiceDrawerOpen(true)} type="button">
-            <Plus className="h-4 w-4" /> New Invoice
-          </Button>
+          {canCreateInvoices ? (
+            <Button className="min-w-40" onClick={() => setIsInvoiceDrawerOpen(true)} type="button">
+              <Plus className="h-4 w-4" /> New Invoice
+            </Button>
+          ) : null}
         </header>
         <div className="parcelis-page-shell">
           <PageRail
@@ -321,29 +362,38 @@ function IncomePageContent() {
             eyebrow="Income"
             title="Income dashboard"
           >
-            <div className="grid gap-2 text-sm text-white/75 sm:grid-cols-3 md:min-w-[420px]">
+            <div className="flex flex-wrap gap-2 text-sm text-white/75 md:min-w-[420px]">
               <div className="rounded-md bg-white/10 p-3">
                 <div className="text-2xl font-bold text-white">{formatCurrency(scheduledIncomeCents)}</div>
                 Scheduled monthly rent
               </div>
               <div className="rounded-md bg-white/10 p-3">
-                <div className="text-2xl font-bold text-white">{formatCurrency(expectedIncomeCents)}</div>
-                Expected this month
+                <div className="text-2xl font-bold text-white">{formatCurrency(balances.recordedPaymentCents)}</div>
+                Net payments recorded (all dates)
               </div>
               <div className="rounded-md bg-white/10 p-3">
-                <div className="text-2xl font-bold text-white">{formatCurrency(overdueCents)}</div>
+                <div className="text-2xl font-bold text-white">{formatCurrency(balances.overdueCents)}</div>
                 Overdue balance
+              </div>
+              <div className="rounded-md bg-white/10 p-3">
+                <div className="text-2xl font-bold text-white">{formatCurrency(balances.dueTodayCents)}</div>
+                Due today
+              </div>
+              <div className="rounded-md bg-white/10 p-3">
+                <div className="text-2xl font-bold text-white">{formatCurrency(balances.futureCents)}</div>
+                Future scheduled balance
               </div>
             </div>
           </PageRail>
 
           {selectedTenantId !== null ? (
             <p className="mb-4 rounded-md border border-parcelis-border bg-white p-4 text-sm text-parcelis-gray dark:bg-parcelis-slate">
-              Tenant filter: {selectedTenant
+              Tenant filter:{" "}
+              {selectedTenant
                 ? `${selectedTenant.firstName} ${selectedTenant.lastName}`
-                : `Tenant #${selectedTenantId}`}.
-              {" "}Property and unit filters apply within this tenant’s income. Clearing filters keeps this
-              tenant restriction.
+                : `Tenant #${selectedTenantId}`}
+              . Property and unit filters apply within this tenant’s income. Clearing filters keeps this tenant
+              restriction.
             </p>
           ) : null}
 
@@ -356,8 +406,8 @@ function IncomePageContent() {
                   </h2>
                   <p className="mt-1 text-sm text-parcelis-gray">
                     {groupByUnit
-                      ? "Scheduled, active, and notice-period leases, grouped by unit."
-                      : "Scheduled, active, and notice-period leases listed by property and unit."}
+                      ? "Scheduled, active, notice-period, and historical leases, grouped by unit."
+                      : "Scheduled, active, notice-period, and historical leases listed by property and unit."}
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -374,6 +424,8 @@ function IncomePageContent() {
                     onClick={() => {
                       setDraftPropertyId(selectedPropertyId === null ? "all" : String(selectedPropertyId));
                       setDraftUnitId(selectedUnitId === null ? "all" : String(selectedUnitId));
+                      setDraftLeaseHistoryFilter(leaseHistoryFilter);
+                      setDraftInvoiceFilter(invoiceFilter);
                       setIsFilterOpen((isOpen) => !isOpen);
                     }}
                     type="button"
@@ -381,8 +433,11 @@ function IncomePageContent() {
                   >
                     <Filter className="h-4 w-4" />
                     Filters
-                    {selectedPropertyId !== null || selectedUnitId !== null
-                      ? ` (${Number(selectedPropertyId !== null) + Number(selectedUnitId !== null)})`
+                    {selectedPropertyId !== null ||
+                    selectedUnitId !== null ||
+                    leaseHistoryFilter !== "all" ||
+                    invoiceFilter !== "active"
+                      ? ` (${Number(selectedPropertyId !== null) + Number(selectedUnitId !== null) + Number(leaseHistoryFilter !== "all") + Number(invoiceFilter !== "active")})`
                       : ""}
                   </Button>
                   <Button onClick={() => setGroupByUnit((grouped) => !grouped)} type="button" variant="secondary">
@@ -391,6 +446,32 @@ function IncomePageContent() {
                 </div>
                 {isFilterOpen ? (
                   <div className="absolute right-0 top-full z-20 mt-3 w-full max-w-sm rounded-lg border border-parcelis-border bg-white p-5 shadow-lg">
+                    <Label className="mb-4 gap-2">
+                      <span>Lease history</span>
+                      <Select
+                        aria-label="Lease history"
+                        value={draftLeaseHistoryFilter}
+                        onChange={(event) => setDraftLeaseHistoryFilter(event.target.value)}
+                      >
+                        <option value="all">All lease history</option>
+                        <option value="current">Current and scheduled leases</option>
+                        <option value="historical">Ended and archived leases</option>
+                      </Select>
+                    </Label>
+                    <Label className="mb-4 gap-2">
+                      <span>Invoices</span>
+                      <Select
+                        aria-label="Invoices"
+                        value={draftInvoiceFilter}
+                        onChange={(event) => setDraftInvoiceFilter(event.target.value)}
+                      >
+                        <option value="active">Non-void invoices</option>
+                        <option value="all">All saved invoices</option>
+                        <option value="outstanding">Outstanding invoices</option>
+                        <option value="paid">Fully paid invoices</option>
+                        <option value="void">Voided invoices</option>
+                      </Select>
+                    </Label>
                     <Label className="gap-2">
                       <span>Property</span>
                       <Select
@@ -422,9 +503,7 @@ function IncomePageContent() {
                       <span>Unit</span>
                       <Select onChange={(event) => setDraftUnitId(event.target.value)} value={draftUnitId}>
                         <option value="all">All units</option>
-                        {!isDraftUnitAvailable ? (
-                          <option value={draftUnitId}>Unavailable unit</option>
-                        ) : null}
+                        {!isDraftUnitAvailable ? <option value={draftUnitId}>Unavailable unit</option> : null}
                         {unitFilterOptions.map((property) => (
                           <optgroup key={property.id} label={property.name}>
                             {property.units.map((unit) => (
@@ -439,13 +518,21 @@ function IncomePageContent() {
                     <div className="mt-5 flex items-center justify-between border-t border-parcelis-border pt-4">
                       <button
                         className="text-sm font-semibold text-red-600 hover:underline"
-                        onClick={() => setIncomeFilters(null, null)}
+                        onClick={() => {
+                          setLeaseHistoryFilter("all");
+                          setInvoiceFilter("active");
+                          setIncomeFilters(null, null);
+                        }}
                         type="button"
                       >
                         Clear Filters
                       </button>
                       <Button
-                        onClick={() => setIncomeFilters(parseEntityId(draftPropertyId), parseEntityId(draftUnitId))}
+                        onClick={() => {
+                          setLeaseHistoryFilter(draftLeaseHistoryFilter);
+                          setInvoiceFilter(draftInvoiceFilter);
+                          setIncomeFilters(parseEntityId(draftPropertyId), parseEntityId(draftUnitId));
+                        }}
                         type="button"
                       >
                         Apply Filters
@@ -456,13 +543,7 @@ function IncomePageContent() {
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
-              {propertiesQuery.isLoading ? (
-                <LoadingState label="Loading income…" />
-              ) : propertiesQuery.error ? (
-                <div className="min-h-48 p-5 text-sm font-medium text-red-700">
-                  Unable to load income. Please try again.
-                </div>
-              ) : filteredIncomeProperties.length === 0 ? (
+              {filteredIncomeProperties.length === 0 ? (
                 <div className="min-h-48 p-5 text-sm text-parcelis-gray">
                   {incomeProperties.length > 0
                     ? "No income records match your search."
@@ -471,8 +552,8 @@ function IncomePageContent() {
                       : selectedUnitId !== null
                         ? "No income leases for the selected unit."
                         : selectedPropertyId !== null
-                          ? "No scheduled, active, or notice-period income leases for the selected property."
-                          : "No income leases are available to report income yet."}
+                          ? "No scheduled, active, notice-period, or historical income leases for the selected property."
+                          : "No saved invoices or leases match these filters."}
                 </div>
               ) : groupByUnit ? (
                 <Table className="min-w-[1360px] border-collapse text-left">
@@ -493,13 +574,11 @@ function IncomePageContent() {
                   <TableBody>
                     {filteredUnitGroups.map((group) => {
                       const isExpanded = expandedUnitIds.has(group.id);
-                      const invoiceRows: Array<
-                        Pick<ReturnType<typeof getCurrentInvoice>, "amountCents" | "balanceCents">
-                      > = [];
+                      const invoiceRows: Array<{ amountCents: number; balanceCents: number }> = [];
                       for (const lease of group.incomeLeases) {
                         const persistedInvoices = getLeaseInvoices(lease);
-                        if (persistedInvoices.length > 0) invoiceRows.push(...persistedInvoices);
-                        else if (lease.status !== "scheduled") invoiceRows.push(getCurrentInvoice(lease));
+                        if (persistedInvoices.length > 0)
+                          invoiceRows.push(...persistedInvoices.filter((invoice) => invoice.status !== "void"));
                       }
                       const amountCents = invoiceRows.reduce((total, invoice) => total + invoice.amountCents, 0);
                       const paidCents = invoiceRows.reduce(
@@ -516,7 +595,7 @@ function IncomePageContent() {
                                 onClick={() => toggleUnit(group.id)}
                                 type="button"
                               >
-                                <span className="grid h-8 w-8 place-items-center rounded-md border border-parcelis-border">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-parcelis-border">
                                   <ChevronRight
                                     className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
                                   />
@@ -547,28 +626,53 @@ function IncomePageContent() {
                             ? group.incomeLeases.map((lease) => {
                                 const tenantName = getTenantName(lease);
                                 const persistedInvoices = getLeaseInvoices(lease);
-                                const invoices =
-                                  persistedInvoices.length || lease.status === "scheduled" ? persistedInvoices : [null];
-                                return invoices.map((persistedInvoice) => {
-                                  const invoice = persistedInvoice ?? getCurrentInvoice(lease);
+                                const activeInvoices = persistedInvoices;
+                                if (activeInvoices.length === 0) {
+                                  return (
+                                    <TableRow
+                                      className="border-t border-parcelis-border bg-parcelis-porcelain/45"
+                                      key={`lease-${lease.id}-no-invoices`}
+                                    >
+                                      <TableCell className="px-5 py-3">
+                                        <div className="flex items-center gap-3 pl-11 font-semibold text-parcelis-charcoal">
+                                          <span />
+                                          <span className="flex items-center gap-2">
+                                            {tenantName}
+                                            {lease.status === "scheduled" ? (
+                                              <span className="text-xs font-medium text-parcelis-gray">
+                                                Scheduled lease
+                                              </span>
+                                            ) : null}
+                                          </span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="px-5 py-3 text-sm text-parcelis-gray" colSpan={9}>
+                                        {lease.hasSavedInvoices
+                                          ? "No invoices match these filters."
+                                          : "No saved invoices for this lease."}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                }
+                                return activeInvoices.map((invoice) => {
                                   return (
                                     <TableRow
                                       className="cursor-pointer border-t border-parcelis-border bg-parcelis-porcelain/45 hover:bg-parcelis-porcelain/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
-                                      key={persistedInvoice ? persistedInvoice.id : `${lease.id}-current`}
+                                      key={invoice.id}
                                       onClick={() => {
-                                        if (persistedInvoice) router.push(getInvoiceLink(persistedInvoice.id));
+                                        router.push(getInvoiceLink(invoice.id));
                                       }}
                                       onKeyDown={(event) => {
-                                        if (persistedInvoice && (event.key === "Enter" || event.key === " ")) {
+                                        if (event.key === "Enter" || event.key === " ") {
                                           event.preventDefault();
-                                          router.push(getInvoiceLink(persistedInvoice.id));
+                                          router.push(getInvoiceLink(invoice.id));
                                         }
                                       }}
-                                      role={persistedInvoice ? "link" : undefined}
-                                      tabIndex={persistedInvoice ? 0 : undefined}
+                                      role="link"
+                                      tabIndex={0}
                                     >
                                       <TableCell className="px-5 py-3">
-                                        <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 font-semibold text-parcelis-charcoal">
+                                        <div className="flex items-center gap-3 pl-11 font-semibold text-parcelis-charcoal">
                                           <span />
                                           <span className="flex items-center gap-2">
                                             {tenantName}
@@ -590,38 +694,34 @@ function IncomePageContent() {
                                         {formatDate(invoice.dueOn)}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                        {persistedInvoice?.paidOn ? formatDate(persistedInvoice.paidOn) : "—"}
+                                        {invoice.paidOn ? formatDate(invoice.paidOn) : "—"}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm font-medium text-parcelis-charcoal">
-                                        {persistedInvoice ? (
-                                          <Link
-                                            className="text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
-                                            href={getInvoiceLink(Number.parseInt(String(persistedInvoice.id), 10))}
-                                          >
-                                            {formatInvoiceNumber(persistedInvoice.invoiceNumber)}
-                                          </Link>
-                                        ) : (
-                                          invoice.id
-                                        )}
+                                        <Link
+                                          className="text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
+                                          href={getInvoiceLink(Number.parseInt(String(invoice.id), 10))}
+                                        >
+                                          {formatInvoiceNumber(invoice.invoiceNumber)}
+                                        </Link>
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-sm text-parcelis-gray">
-                                        {persistedInvoice ? getIncomeInvoiceStatus(persistedInvoice) : invoice.status}
+                                        {getIncomeInvoiceStatus(invoice, today)}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
-                                        {formatCurrency(
-                                          persistedInvoice ? persistedInvoice.amountCents : lease.monthlyRentCents,
-                                        )}
+                                        {formatCurrency(invoice.amountCents)}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
                                         —
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
-                                        {formatCurrency(invoice.amountCents - invoice.balanceCents)}
+                                        {formatCurrency(
+                                          invoice.status === "void" ? 0 : invoice.amountCents - invoice.balanceCents,
+                                        )}
                                       </TableCell>
                                       <TableCell
-                                        className={`px-5 py-3 text-right text-sm font-semibold ${persistedInvoice && isUpcomingInvoice(persistedInvoice) ? "text-parcelis-gray" : lease.amountOverdueCents ? "text-red-700" : "text-parcelis-gray"}`}
+                                        className={`px-5 py-3 text-right text-sm font-semibold ${isUpcomingInvoice(invoice, today) ? "text-parcelis-gray" : getReceivableStatus(invoice, today) === "overdue" ? "text-red-700" : "text-parcelis-gray"}`}
                                       >
-                                        {formatCurrency(invoice.balanceCents)}
+                                        {formatCurrency(invoice.status === "void" ? 0 : invoice.balanceCents)}
                                       </TableCell>
                                     </TableRow>
                                   );
@@ -650,22 +750,39 @@ function IncomePageContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ungroupedIncomeRows.map(({ property, lease, invoice, persistedInvoice }) => {
+                    {incomeLeases
+                      .filter(({ lease }) => getLeaseInvoices(lease).length === 0)
+                      .map(({ property, lease }) => (
+                        <TableRow key={`lease-${lease.id}-no-invoices`}>
+                          <TableCell className="px-5 py-4">
+                            <p className="font-semibold text-parcelis-charcoal">{property.name}</p>
+                            <p className="text-sm text-parcelis-gray">
+                              Unit {lease.unitLabel} · {getTenantName(lease)}
+                            </p>
+                          </TableCell>
+                          <TableCell className="px-5 py-4 text-sm text-parcelis-gray" colSpan={9}>
+                            {lease.hasSavedInvoices
+                              ? "No invoices match these filters."
+                              : "No saved invoices for this lease."}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    {ungroupedIncomeRows.map(({ property, lease, invoice }) => {
                       return (
                         <TableRow
                           className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-parcelis-green"
-                          key={persistedInvoice ? persistedInvoice.id : `${lease.id}-current`}
+                          key={invoice.id}
                           onClick={() => {
-                            if (persistedInvoice) router.push(getInvoiceLink(persistedInvoice.id));
+                            router.push(getInvoiceLink(invoice.id));
                           }}
                           onKeyDown={(event) => {
-                            if (persistedInvoice && (event.key === "Enter" || event.key === " ")) {
+                            if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
-                              router.push(getInvoiceLink(persistedInvoice.id));
+                              router.push(getInvoiceLink(invoice.id));
                             }
                           }}
-                          role={persistedInvoice ? "link" : undefined}
-                          tabIndex={persistedInvoice ? 0 : undefined}
+                          role="link"
+                          tabIndex={0}
                         >
                           <TableCell className="px-5 py-4">
                             <div className="space-y-1">
@@ -683,16 +800,12 @@ function IncomePageContent() {
                             {invoice.paidOn ? formatDate(invoice.paidOn) : "—"}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {persistedInvoice ? (
-                              <Link
-                                className="font-medium text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
-                                href={getInvoiceLink(Number.parseInt(String(persistedInvoice.id), 10))}
-                              >
-                                {formatInvoiceNumber(persistedInvoice.invoiceNumber)}
-                              </Link>
-                            ) : (
-                              <span className="font-medium text-parcelis-charcoal">{invoice.id}</span>
-                            )}
+                            <Link
+                              className="font-medium text-parcelis-green hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-parcelis-green"
+                              href={getInvoiceLink(Number.parseInt(String(invoice.id), 10))}
+                            >
+                              {formatInvoiceNumber(invoice.invoiceNumber)}
+                            </Link>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             <span className="font-medium text-parcelis-charcoal">{lease.unitLabel}</span>
@@ -702,15 +815,15 @@ function IncomePageContent() {
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm text-parcelis-gray">—</TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm text-parcelis-gray">
-                            {formatCurrency(invoice.amountCents - invoice.balanceCents)}
+                            {formatCurrency(invoice.status === "void" ? 0 : invoice.amountCents - invoice.balanceCents)}
                           </TableCell>
                           <TableCell
-                            className={`px-5 py-4 text-right text-sm font-semibold ${persistedInvoice && isUpcomingInvoice(persistedInvoice) ? "text-parcelis-gray" : invoice.balanceCents ? "text-red-700" : "text-parcelis-gray"}`}
+                            className={`px-5 py-4 text-right text-sm font-semibold ${isUpcomingInvoice(invoice, today) ? "text-parcelis-gray" : getReceivableStatus(invoice, today) === "overdue" ? "text-red-700" : "text-parcelis-gray"}`}
                           >
-                            {formatCurrency(invoice.balanceCents)}
+                            {formatCurrency(invoice.status === "void" ? 0 : invoice.balanceCents)}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
-                            {persistedInvoice ? getIncomeInvoiceStatus(persistedInvoice) : formatInvoiceStatus(invoice)}
+                            {getIncomeInvoiceStatus(invoice, today)}
                           </TableCell>
                         </TableRow>
                       );
@@ -728,7 +841,7 @@ function IncomePageContent() {
           onCreate={(input) => createInvoice.mutate(input)}
           onOpenChange={setIsInvoiceDrawerOpen}
           open={isInvoiceDrawerOpen}
-          properties={properties}
+          properties={propertiesQuery.data ?? []}
         />
       </section>
     </main>

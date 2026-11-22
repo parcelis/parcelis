@@ -43,7 +43,13 @@ import {
   PopoverTrigger,
   Select,
 } from "@parcelis/ui";
-import { propertyTypeValues, type CreatePropertyInput, type PropertyType } from "@parcelis/schemas";
+import {
+  propertyTypeValues,
+  propertyStatusSchema,
+  propertyOperationalStatusSchema,
+  type CreatePropertyInput,
+  type PropertyType,
+} from "@parcelis/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
@@ -59,6 +65,7 @@ export type PropertyFormState = {
   region: string;
   postalCode: string;
   propertyType: PropertyType;
+  status: (typeof propertyStatusSchema.options)[number];
   contactName: string;
   contactEmail: string;
   contactPhone: string;
@@ -79,6 +86,7 @@ export const initialPropertyFormState: PropertyFormState = {
   region: "",
   postalCode: "",
   propertyType: "Apartment",
+  status: "active",
   contactName: "",
   contactEmail: "",
   contactPhone: "",
@@ -485,6 +493,7 @@ export function PropertyDrawer({
       {
         name: form.name,
         propertyType: form.propertyType,
+        ...(form.status === "archived" || form.status === initialFormState.status ? {} : { status: form.status }),
         tagIds: propertyTagIds,
         contactName: form.contactName || undefined,
         contactEmail: form.contactEmail || undefined,
@@ -717,6 +726,25 @@ export function PropertyDrawer({
                             {propertyTypeValues.map((propertyType) => (
                               <option key={propertyType} value={propertyType}>
                                 {propertyType}
+                              </option>
+                            ))}
+                          </Select>
+                        </Label>
+
+                        <Label>
+                          <FieldLabel>Operational Status</FieldLabel>
+                          <Select
+                            disabled={form.status === "archived"}
+                            onChange={(event) => {
+                              const status = propertyOperationalStatusSchema.parse(event.target.value);
+                              updateField("status", status);
+                            }}
+                            value={form.status}
+                          >
+                            {form.status === "archived" ? <option value="archived">Archived</option> : null}
+                            {propertyOperationalStatusSchema.options.map((status) => (
+                              <option key={status} value={status}>
+                                {status.charAt(0).toUpperCase() + status.slice(1)}
                               </option>
                             ))}
                           </Select>

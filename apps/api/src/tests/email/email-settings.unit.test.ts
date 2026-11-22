@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
 import { createEmailTransporter } from "@parcelis/email";
@@ -12,14 +13,16 @@ import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
 const encryptionKey = Buffer.alloc(32, 7).toString("base64");
+const fixtureMailPassword = () => ["fixture", "mail", randomUUID()].join("-");
 
 test("encrypts and decrypts SMTP passwords", () => {
   const previousKey = process.env.EMAIL_SETTINGS_ENCRYPTION_KEY;
   process.env.EMAIL_SETTINGS_ENCRYPTION_KEY = encryptionKey;
   try {
-    const passwordCipher = encryptEmailSettingsPassword("smtp-password");
-    assert.notEqual(passwordCipher, "smtp-password");
-    assert.equal(decryptEmailSettingsPassword(passwordCipher), "smtp-password");
+    const password = fixtureMailPassword();
+    const passwordCipher = encryptEmailSettingsPassword(password);
+    assert.notEqual(passwordCipher, password);
+    assert.equal(decryptEmailSettingsPassword(passwordCipher), password);
   } finally {
     if (previousKey === undefined) delete process.env.EMAIL_SETTINGS_ENCRYPTION_KEY;
     else process.env.EMAIL_SETTINGS_ENCRYPTION_KEY = previousKey;
@@ -30,7 +33,8 @@ test("resolves only the requested organization's SMTP configuration", async () =
   const previousKey = process.env.EMAIL_SETTINGS_ENCRYPTION_KEY;
   process.env.EMAIL_SETTINGS_ENCRYPTION_KEY = encryptionKey;
   try {
-    const passwordCipher = encryptEmailSettingsPassword("smtp-password");
+    const password = fixtureMailPassword();
+    const passwordCipher = encryptEmailSettingsPassword(password);
     let requestedOrganizationId: number | undefined;
     const prisma = {
       organizationEmailSettings: {
@@ -53,7 +57,7 @@ test("resolves only the requested organization's SMTP configuration", async () =
     assert.deepEqual(config, {
       from: "notices@example.com",
       host: "smtp.example.com",
-      password: "smtp-password",
+      password,
       port: 587,
       requireTLS: true,
       secure: false,

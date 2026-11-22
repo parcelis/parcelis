@@ -1,9 +1,28 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
+import { createServer } from "node:http";
+import { once } from "node:events";
 import { checkApplicationServices } from "../../modules/application-checks";
 import { groupChecks, verifyStorageTransfer, type ServiceCheck } from "../../modules/service-checks";
 import { renderStatusPage } from "../../status/page";
 import { updateComponent, visibleComponent } from "../../status/state";
+
+async function createProbeServers(t: TestContext) {
+  const urls = [];
+  for (const body of ["Parcelis", '{"service":"parcelis-api"}']) {
+    const server = createServer((_request, response) => response.end(body));
+    t.after(() => {
+      server.closeAllConnections();
+      server.close();
+    });
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    urls.push(`http://127.0.0.1:${address.port}`);
+  }
+  return { webUrl: `${urls[0]}/login`, apiUrl: `${urls[1]}/health` };
+}
 
 const sample = (id: string, status: ServiceCheck["status"]): ServiceCheck => ({
   id,
@@ -41,6 +60,7 @@ test("storage probe cleans up its object after success or upload/download failur
 });
 
 test("authentication checks do not report success without a monitoring account", async (t) => {
+  const { webUrl, apiUrl } = await createProbeServers(t);
   const before = { email: process.env.STATUS_AUTH_EMAIL, password: process.env.STATUS_AUTH_PASSWORD };
   delete process.env.STATUS_AUTH_EMAIL;
   delete process.env.STATUS_AUTH_PASSWORD;
@@ -55,15 +75,16 @@ test("authentication checks do not report success without a monitoring account",
     if (url.endsWith("/api/auth/csrf")) return Response.json({ csrfToken: "csrf" });
     if (url.endsWith("/trpc/auth.me"))
       return Response.json({ error: { data: { code: "UNAUTHORIZED" } } }, { status: 401 });
-    return new Response(url.includes("/health") ? '{"service":"parcelis-api"}' : "Parcelis");
+    throw new Error(`Unexpected authentication request: ${url}`);
   });
-  const [web, api] = await checkApplicationServices("http://web.test/login", "http://api.test/health");
+  const [web, api] = await checkApplicationServices(webUrl, apiUrl);
   assert.equal(web?.status, "unknown");
   assert.equal(api?.status, "unknown");
   assert.equal(api?.checks?.find((check) => check.id === "auth-boundary")?.status, "operational");
 });
 
 test("sign-in verifies the web session and a protected API request using chunked cookies", async (t) => {
+  const { webUrl, apiUrl } = await createProbeServers(t);
   const before = { email: process.env.STATUS_AUTH_EMAIL, password: process.env.STATUS_AUTH_PASSWORD };
   process.env.STATUS_AUTH_EMAIL = "monitor@example.test";
   process.env.STATUS_AUTH_PASSWORD = "private-monitor-password";
@@ -94,9 +115,9 @@ test("sign-in verifies the web session and a protected API request using chunked
       protectedRequests++;
       return Response.json({ result: { data: { user: { email: "monitor@example.test" } } } });
     }
-    return new Response(url.includes("/health") ? '{"service":"parcelis-api"}' : "Parcelis");
+    throw new Error(`Unexpected authentication request: ${url}`);
   });
-  const checks = await checkApplicationServices("http://web.test/login", "http://api.test/health");
+  const checks = await checkApplicationServices(webUrl, apiUrl);
   assert.deepEqual(
     checks.map((check) => check.id),
     ["web", "api"],

@@ -1,30 +1,33 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type { NextApiRequest, NextApiResponse } from "next";
 import NextAuth from "next-auth";
 import { decode, encode } from "next-auth/jwt";
 import type { PrismaClient } from "@parcelis/db";
-import { hashApiToken, resolveApiToken } from "../../modules/api-tokens";
+import { createApiToken, hashApiToken, resolveApiToken } from "../../modules/api-tokens";
 import { hashPassword } from "../../modules/auth";
 import { resetRateLimits } from "../../modules/login-rate-limit";
 import { createContext } from "../../router/context";
 import { createNextAuthOptions } from "../../modules/nextauth";
-import { nextAuthCookieName } from "./session-cookie";
+import { getNextAuthCookieName } from "./session-cookie";
 import { readSession } from "../../modules/session";
 
 process.env.API_TRUST_PROXY_HOPS = "1";
-process.env.NEXTAUTH_SECRET = "nextauth-test-secret-not-for-production";
+process.env.NEXTAUTH_SECRET = ["fixture", "nextauth", randomUUID()].join("-");
 process.env.NEXTAUTH_URL = "http://localhost:30000";
-const password = "Parcelis-password-123!";
-const passwordHash = hashPassword(password);
-const organizationApiToken = `pcls_api_${"A".repeat(43)}`;
+const nextAuthCookieName = getNextAuthCookieName();
+const fixtureEmail = (label: string) => `${label}-${randomUUID()}@fixture.test`;
+const credentialPassword = ["fixture", "auth", randomUUID()].join("-");
+const passwordHash = hashPassword(credentialPassword);
+const organizationApiToken = createApiToken();
 
 async function fixture(requestHeaders: Record<string, string> = {}) {
   resetRateLimits();
   const user = {
     id: 7,
     name: "Owner",
-    email: "owner@example.com",
+    email: fixtureEmail("owner"),
     passwordHash: await passwordHash,
     accountStatus: "active",
     role: "property_manager",
@@ -104,7 +107,7 @@ async function fixture(requestHeaders: Record<string, string> = {}) {
     }
     return { status, body: responseBody, headers };
   }
-  async function signIn(credentials = { email: user.email, password }) {
+  async function signIn(credentials = { email: user.email, password: credentialPassword }) {
     const csrf = await request("csrf");
     const { csrfToken } = csrf.body as { csrfToken: string };
     return request("callback/credentials", "POST", { ...credentials, csrfToken, json: "true", callbackUrl: "/" });
@@ -121,7 +124,11 @@ async function fixture(requestHeaders: Record<string, string> = {}) {
 
 test("NextAuth requires CSRF and authenticates existing Argon2 passwords using JWTs", async () => {
   const state = await fixture();
-  await state.request("callback/credentials", "POST", { email: state.user.email, password, json: "true" });
+  await state.request("callback/credentials", "POST", {
+    email: state.user.email,
+    password: credentialPassword,
+    json: "true",
+  });
   assert.equal(state.cookies[nextAuthCookieName], undefined);
   const result = await state.signIn();
   assert.equal(result.status, 200);
@@ -200,7 +207,9 @@ test("NextAuth preserves account-status errors and login throttling", async () =
   state.user.accountStatus = "active";
   for (let attempt = 0; attempt < 3; attempt++) {
     assert.match(
-      JSON.stringify((await state.signIn({ email: state.user.email, password: "wrong-password-123" })).body),
+      JSON.stringify(
+        (await state.signIn({ email: state.user.email, password: ["fixture", "wrong", randomUUID()].join("-") })).body,
+      ),
       /Invalid.*email.*password/,
     );
   }
@@ -211,10 +220,13 @@ test("NextAuth preserves account-status errors and login throttling", async () =
 test("NextAuth throttles a trusted client IP across distinct email addresses", async () => {
   const state = await fixture({ "x-forwarded-for": "198.51.100.42" });
   for (let attempt = 0; attempt < 25; attempt++) {
-    const result = await state.signIn({ email: `attempt-${attempt}@example.com`, password });
+    const result = await state.signIn({
+      email: `attempt-${attempt}-${randomUUID()}@fixture.test`,
+      password: credentialPassword,
+    });
     assert.match(JSON.stringify(result.body), /Invalid.*email.*password/);
   }
-  const result = await state.signIn({ email: "another@example.com", password });
+  const result = await state.signIn({ email: `another-${randomUUID()}@fixture.test`, password: credentialPassword });
   assert.match(JSON.stringify(result.body), /Too.*many.*attempts/);
   assert.equal(state.cookies[nextAuthCookieName], undefined);
 });

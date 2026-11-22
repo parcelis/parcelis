@@ -1,4 +1,5 @@
 export * from "./lib/utils";
+export * from "./components/settings-panel";
 export * from "./components/address-field";
 export * from "./components/alert";
 export * from "./components/alert-dialog";

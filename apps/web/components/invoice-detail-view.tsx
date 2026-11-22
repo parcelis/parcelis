@@ -83,6 +83,9 @@ function formatActivityAction(action: string) {
   const labels: Record<string, string> = {
     "invoice.created": "Invoice created",
     "invoice.updated": "Invoice updated",
+    "invoice.note_added": "Invoice note added",
+    "invoice.note_updated": "Invoice note updated",
+    "invoice.note_deleted": "Invoice note deleted",
     "invoice.payment_recorded": "Payment recorded",
     "invoice.payment_deleted": "Payment deleted",
     "invoice.payment_reversed": "Payment reversed",
@@ -99,7 +102,16 @@ type InvoiceActivityEvent = {
   createdAt: Date | string;
 };
 
-function getPaymentActivityMessage(event: InvoiceActivityEvent) {
+function getActivityMessage(event: InvoiceActivityEvent) {
+  if (
+    ["invoice.note_added", "invoice.note_updated", "invoice.note_deleted"].includes(event.action) &&
+    event.metadata &&
+    typeof event.metadata === "object" &&
+    "noteId" in event.metadata &&
+    typeof event.metadata.noteId === "number"
+  ) {
+    return `Note #${event.metadata.noteId}${event.actorLabel ? ` · ${event.actorLabel}` : ""}`;
+  }
   if (event.action !== "invoice.payment_recorded" || !event.metadata || typeof event.metadata !== "object") return null;
   const metadata = event.metadata as { amountCents?: number; paidOn?: string; paymentMethod?: string };
   if (typeof metadata.amountCents !== "number" || !metadata.paidOn || !metadata.paymentMethod) return null;
@@ -303,9 +315,7 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
               return (
                 <div className={`relative flex flex-col gap-5 ${isEmbedded ? "" : "lg:pl-65"}`}>
                   <div
-                    className={
-                      isEmbedded ? "min-w-0 flex-1 space-y-5" : "contents lg:block lg:min-w-0 lg:space-y-5"
-                    }
+                    className={isEmbedded ? "min-w-0 flex-1 space-y-5" : "contents lg:block lg:min-w-0 lg:space-y-5"}
                   >
                     <Card
                       className={`${isEmbedded ? "relative overflow-hidden" : "contents lg:block"} dark:bg-parcelis-slate dark:text-parcelis-porcelain`}
@@ -612,8 +622,8 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
                                     <p className="mt-1 text-xs font-semibold text-parcelis-green">
                                       {event.subjectReference}
                                     </p>
-                                    {getPaymentActivityMessage(event) ? (
-                                      <p className="mt-1 text-parcelis-gray">{getPaymentActivityMessage(event)}</p>
+                                    {getActivityMessage(event) ? (
+                                      <p className="mt-1 text-parcelis-gray">{getActivityMessage(event)}</p>
                                     ) : null}
                                   </div>
                                   <time className="shrink-0 text-parcelis-gray">{formatDateTime(event.createdAt)}</time>
