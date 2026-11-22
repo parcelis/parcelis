@@ -166,7 +166,6 @@ export default function OrganizationSettingsPage() {
     onSuccess: async (organization) => {
       setAvatarChanges({});
       setCurrencyCode(null);
-      queryClient.removeQueries({ queryKey: queryKeys.organizations.currency, exact: true });
       await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.currency });
       await queryClient.invalidateQueries({
         predicate: (query) => !["organizations", "auth"].includes(String(query.queryKey[0])),

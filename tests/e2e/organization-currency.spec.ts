@@ -100,6 +100,13 @@ test("shows the default server currency without requiring a selection", async ({
   await page.screenshot({ path: "/tmp/parcelis-617-default.png", fullPage: true });
 });
 
+test("redirects organization settings to General within the current organization", async ({ page }) => {
+  const state = await mockedSettings(page);
+  await page.goto(`/o/${state.organization.slug}/settings/organization`);
+  await expect(page).toHaveURL(`/o/${state.organization.slug}${settingsPath}`);
+  await expect(page.getByRole("textbox", { name: "Currency", exact: true })).toHaveValue("USD — US Dollar");
+});
+
 test("members and permanently locked organizations see read-only saved currency", async ({ page }) => {
   const state = await mockedSettings(page);
   state.role = "member";
@@ -157,6 +164,7 @@ test("a successful save refreshes currency consumers using server precision", as
   await page.getByRole("combobox", { name: "Currency", exact: true }).selectOption("JPY");
   await page.getByRole("button", { name: "Update organization", exact: true }).click();
   await expect(page.getByText("Organization has been updated.", { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Currency", exact: true })).toHaveValue("JPY");
   await page.getByRole("main").getByRole("link", { name: "Portfolio", exact: true }).click();
   await expect(page.getByText("¥18,422,000 JPY", { exact: true })).toBeVisible();
 });
