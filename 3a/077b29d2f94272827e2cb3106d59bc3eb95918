@@ -1,0 +1,23 @@
+apps/web/app/(authenticated)/settings/organization/page.tsx
+  s_88e156e39e0df2::t_20c881620bf5da 1-2,4-9
+tests/e2e/organization-currency.spec.ts
+  s_88e156e39e0df2::t_20c881620bf5da 105-112
+apps/web/proxy.ts
+  s_88e156e39e0df2::t_20c881620bf5da 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3a077b29d2f94272827e2cb3106d59bc3eb95918",
+  "prompts": {},
+  "sessions": {
+    "s_88e156e39e0df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20410-fba5-7182-ae5f-b5a07a6888e9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
