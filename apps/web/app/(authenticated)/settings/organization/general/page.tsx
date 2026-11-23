@@ -9,19 +9,66 @@ import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 import { AddressField, Badge, Button, Card, CardContent, CardHeader, Input, Label, TimezoneSelect } from "@parcelis/ui";
 import { OrganizationContactInformation } from "../../../../../components/organization-contact-information";
-import { apiClient, queryKeys } from "../../../../../components/api-client";
-import { assertImageFileSize, uploadPresignedFile, type ImageContentType } from "../../../../../components/image-upload";
+import { apiClient, createApiClient, queryKeys } from "../../../../../components/api-client";
+import {
+  assertImageFileSize,
+  uploadPresignedFile,
+  type ImageContentType,
+} from "../../../../../components/image-upload";
 import { LoadingState } from "../../../../../components/loading-state";
 import { SettingsRail } from "../../../../../components/settings-rail";
 import { ImageUploadPanel } from "../../../../../components/image-upload-panel";
 import { settingUpdatedMessage } from "../../../../../components/toast-messages";
+import { useOrganizationCurrency } from "../../../../../components/organization-currency";
+import { OrganizationCurrencyField } from "../../../../../components/organization-currency-field";
+import type { CurrencyCode } from "@parcelis/schemas";
 
 type AvatarVariant = "light" | "dark";
 type AvatarChanges = Partial<Record<AvatarVariant, File | null>>;
+type OrganizationFormValues = {
+  name: string;
+  slug: string;
+  address: { line1: string; line2: string; city: string; region: string; postalCode: string };
+  phone: string;
+  email: string;
+  timeZone: string;
+};
+type OrganizationFormField = Exclude<keyof OrganizationFormValues, "address"> | keyof OrganizationFormValues["address"];
+type FormEdits = Partial<Record<OrganizationFormField, number>>;
+
+function getOrganizationFormValues(
+  organization: Pick<
+    Awaited<ReturnType<typeof apiClient.organizations.update.mutate>>,
+    "name" | "slug" | "address" | "phone" | "email" | "timeZone"
+  >,
+): OrganizationFormValues {
+  return {
+    name: organization.name,
+    slug: organization.slug,
+    address: {
+      line1: organization.address.line1 ?? "",
+      line2: organization.address.line2 ?? "",
+      city: organization.address.city ?? "",
+      region: organization.address.region ?? "",
+      postalCode: organization.address.postalCode ?? "",
+    },
+    phone: organization.phone ?? "",
+    email: organization.email ?? "",
+    timeZone: organization.timeZone,
+  };
+}
 
 export default function OrganizationSettingsPage() {
+  const currencySettings = useOrganizationCurrency();
+  const [currencyCode, setCurrencyCode] = React.useState<CurrencyCode | null>(null);
+  const formOrganizationId = React.useRef<number | null>(null);
+  const formEdits = React.useRef<FormEdits>({});
+  const editRevision = React.useRef(0);
   const queryClient = useQueryClient();
   const router = useRouter();
+  React.useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.organizations.currency });
+  }, [queryClient]);
   const pathname = usePathname();
   const activeOrganizationQuery = useQuery({
     queryKey: [...queryKeys.organizations.active, pathname],
@@ -48,7 +95,11 @@ export default function OrganizationSettingsPage() {
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [timeZone, setTimeZone] = React.useState("UTC");
+  const markFieldEdited = React.useCallback((field: OrganizationFormField) => {
+    formEdits.current[field] = ++editRevision.current;
+  }, []);
   const updateAddressField = React.useCallback((field: keyof typeof addressForm, value: string) => {
+    formEdits.current[field] = ++editRevision.current;
     setAddressForm((current) => ({ ...current, [field]: value }));
   }, []);
   const addressLines = [
@@ -77,25 +128,48 @@ export default function OrganizationSettingsPage() {
     },
     [darkAvatarPreviewUrl],
   );
+  const synchronizeOrganizationForm = React.useCallback((next: OrganizationFormValues) => {
+    const synchronize = (field: Exclude<keyof OrganizationFormValues, "address">) => (current: string) =>
+      formEdits.current[field] === undefined ? next[field] : current;
+    setName(synchronize("name"));
+    setSlug(synchronize("slug"));
+    setPhone(synchronize("phone"));
+    setEmail(synchronize("email"));
+    setTimeZone(synchronize("timeZone"));
+    setAddressForm((current) => {
+      const address = { ...current };
+      for (const field of Object.keys(address) as Array<keyof typeof address>) {
+        if (formEdits.current[field] === undefined) address[field] = next.address[field];
+      }
+      return Object.keys(address).every(
+        (field) => address[field as keyof typeof address] === current[field as keyof typeof current],
+      )
+        ? current
+        : address;
+    });
+  }, []);
   React.useEffect(() => {
-    if (activeOrganizationQuery.data) {
-      setName(activeOrganizationQuery.data.name);
-      setSlug(activeOrganizationQuery.data.slug);
-      setAddressForm({
-        line1: activeOrganizationQuery.data.address.line1 ?? "",
-        line2: activeOrganizationQuery.data.address.line2 ?? "",
-        city: activeOrganizationQuery.data.address.city ?? "",
-        region: activeOrganizationQuery.data.address.region ?? "",
-        postalCode: activeOrganizationQuery.data.address.postalCode ?? "",
-      });
-      setPhone(activeOrganizationQuery.data.phone ?? "");
-      setEmail(activeOrganizationQuery.data.email ?? "");
-      setTimeZone(activeOrganizationQuery.data.timeZone);
+    const organization = activeOrganizationQuery.data;
+    if (!organization) return;
+    if (formOrganizationId.current !== organization.id) {
+      formOrganizationId.current = organization.id;
+      formEdits.current = {};
     }
-  }, [activeOrganizationQuery.data]);
+    const next = getOrganizationFormValues(organization);
+    synchronizeOrganizationForm(next);
+  }, [activeOrganizationQuery.data, synchronizeOrganizationForm]);
   const canManageOrganization = ["owner", "administrator"].includes(activeOrganizationQuery.data?.role ?? "");
   const canManageUsers = currentUserQuery.data?.permissions.users.view ?? false;
   const canManageRoles = currentUserQuery.data?.user.role === "administrator";
+  const refreshOrganizationCurrency = async (organizationSlug: string) => {
+    const client = createApiClient(organizationSlug);
+    await queryClient.cancelQueries({ queryKey: queryKeys.organizations.currency });
+    await queryClient.fetchQuery({
+      queryKey: queryKeys.organizations.currency,
+      queryFn: () => client.organizations.currency.query(),
+      staleTime: 0,
+    });
+  };
   const saveOrganizationDetails = useMutation({
     mutationFn: async ({
       name,
@@ -105,31 +179,31 @@ export default function OrganizationSettingsPage() {
       email,
       timeZone,
       avatarChanges,
-    }: {
-      name: string;
-      slug: string;
-      address: { line1: string; line2: string; city: string; region: string; postalCode: string };
-      phone: string;
-      email: string;
-      timeZone: string;
+      currencyCode,
+      organizationSlug,
+    }: OrganizationFormValues & {
+      organizationSlug: string;
+      editRevisions: FormEdits;
       avatarChanges: AvatarChanges;
+      currencyCode?: CurrencyCode;
     }) => {
+      const client = createApiClient(organizationSlug);
       await Promise.all(
         (Object.entries(avatarChanges) as Array<[AvatarVariant, File | null]>).map(async ([variant, file]) => {
-          if (file === null) return apiClient.organizations.deleteAvatar.mutate({ variant });
+          if (file === null) return client.organizations.deleteAvatar.mutate({ variant });
           assertImageFileSize(file);
-          const { fields, objectKey, uploadUrl } = await apiClient.organizations.createAvatarUploadUrl.mutate({
+          const { fields, objectKey, uploadUrl } = await client.organizations.createAvatarUploadUrl.mutate({
             contentType: file.type as ImageContentType,
             fileSize: file.size,
             fileName: file.name,
             variant,
           });
           await uploadPresignedFile(file, { fields, uploadUrl }, "The organization avatar could not be uploaded.");
-          await apiClient.organizations.completeAvatarUpload.mutate({ objectKey, variant });
+          await client.organizations.completeAvatarUpload.mutate({ objectKey, variant });
         }),
       );
       const hasAddress = Object.values(address).some((value) => value.trim().length > 0);
-      const organization = await apiClient.organizations.update.mutate({
+      const organization = await client.organizations.update.mutate({
         name,
         slug,
         address: hasAddress
@@ -137,18 +211,43 @@ export default function OrganizationSettingsPage() {
               line1: address.line1 || undefined,
               line2: address.line2 || undefined,
               city: address.city || undefined,
-              region: address.region || undefined,
+              region: address.region.toUpperCase() || undefined,
               postalCode: address.postalCode || undefined,
             }
           : null,
         phone: phone.trim() || null,
         email: email.trim() || null,
         timeZone,
+        currencyCode,
       });
       return organization;
     },
-    onSuccess: async (organization) => {
-      setAvatarChanges({});
+    onSuccess: async (organization, variables) => {
+      const values = getOrganizationFormValues(organization);
+      if (window.location.pathname === pathname) {
+        for (const field of Object.keys(formEdits.current) as OrganizationFormField[]) {
+          if (formEdits.current[field] === variables.editRevisions[field]) delete formEdits.current[field];
+        }
+        synchronizeOrganizationForm(values);
+        setAvatarChanges({});
+        setCurrencyCode(null);
+      }
+      let currencyRefreshed = false;
+      try {
+        await refreshOrganizationCurrency(organization.slug);
+        currencyRefreshed = true;
+      } catch {
+        // The currency provider displays the refresh error and retry button.
+      }
+      const refetchType = () =>
+        window.location.pathname.match(/^\/o\/([^/]+)/)?.[1] === variables.organizationSlug &&
+        organization.slug === variables.organizationSlug
+          ? ("active" as const)
+          : ("none" as const);
+      await queryClient.invalidateQueries({
+        predicate: (query) => !["organizations", "auth"].includes(String(query.queryKey[0])),
+        refetchType: refetchType(),
+      });
       queryClient.setQueryData(queryKeys.organizations.list, (current: typeof accessibleOrganizationsQuery.data) =>
         current?.map((membership) =>
           membership.organization.id === organization.id
@@ -156,14 +255,28 @@ export default function OrganizationSettingsPage() {
             : membership,
         ),
       );
-      const suffix = pathname.replace(/^(?:\/o\/[^/]+)+/, "");
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.organizations.active },
+        (current: typeof activeOrganizationQuery.data) =>
+          current?.id === organization.id ? { ...current, ...organization } : current,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.organizations.active,
+        refetchType: refetchType(),
+      });
+      const currentPathname = window.location.pathname;
+      if (currentPathname.match(/^\/o\/([^/]+)/)?.[1] !== variables.organizationSlug) return;
+      const suffix = currentPathname.replace(/^(?:\/o\/[^/]+)+/, "");
       const nextPathname = `/o/${organization.slug}${suffix === "/" ? "" : suffix}`;
-      if (nextPathname === pathname) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.active });
-      } else {
-        router.replace(nextPathname);
+      if (nextPathname !== currentPathname) router.replace(nextPathname);
+      if (currencyRefreshed) toast.success(settingUpdatedMessage("Organization"));
+    },
+    onError: async (_error, variables) => {
+      try {
+        await refreshOrganizationCurrency(variables.organizationSlug);
+      } catch {
+        // The currency provider displays the refresh error and retry button.
       }
-      toast.success(settingUpdatedMessage("Organization"));
     },
   });
   return (
@@ -214,17 +327,23 @@ export default function OrganizationSettingsPage() {
                     className="flex max-w-xl flex-col gap-12"
                     onSubmit={(event) => {
                       event.preventDefault();
+                      if (!activeOrganizationQuery.data) return;
                       saveOrganizationDetails.mutate({
+                        organizationSlug: activeOrganizationQuery.data.slug,
+                        editRevisions: { ...formEdits.current },
                         name,
                         slug,
-                        address: {
-                          ...addressForm,
-                          region: addressForm.region.toUpperCase(),
-                        },
+                        address: addressForm,
                         phone,
                         email,
                         timeZone,
                         avatarChanges,
+                        currencyCode:
+                          currencySettings.canChangeCurrency &&
+                          currencyCode !== null &&
+                          currencyCode !== currencySettings.currencyCode
+                            ? currencyCode
+                            : undefined,
                       });
                     }}
                   >
@@ -269,7 +388,15 @@ export default function OrganizationSettingsPage() {
                     </div>
                     <Label>
                       Organization name
-                      <Input className="mt-1" onChange={(event) => setName(event.target.value)} required value={name} />
+                      <Input
+                        className="mt-1"
+                        onChange={(event) => {
+                          markFieldEdited("name");
+                          setName(event.target.value);
+                        }}
+                        required
+                        value={name}
+                      />
                     </Label>
                     <Label>
                       Organization URL
@@ -279,7 +406,10 @@ export default function OrganizationSettingsPage() {
                         </span>
                         <Input
                           className="border-0"
-                          onChange={(event) => setSlug(event.target.value.toLowerCase())}
+                          onChange={(event) => {
+                            markFieldEdited("slug");
+                            setSlug(event.target.value.toLowerCase());
+                          }}
                           pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
                           required
                           value={slug}
@@ -303,7 +433,10 @@ export default function OrganizationSettingsPage() {
                       <Input
                         className="mt-1"
                         maxLength={50}
-                        onChange={(event) => setPhone(event.target.value)}
+                        onChange={(event) => {
+                          markFieldEdited("phone");
+                          setPhone(event.target.value);
+                        }}
                         type="tel"
                         value={phone}
                       />
@@ -315,7 +448,10 @@ export default function OrganizationSettingsPage() {
                         className="mt-1"
                         disabled={saveOrganizationDetails.isPending}
                         maxLength={320}
-                        onChange={(event) => setEmail(event.target.value)}
+                        onChange={(event) => {
+                          markFieldEdited("email");
+                          setEmail(event.target.value);
+                        }}
                         type="email"
                         value={email}
                       />
@@ -323,19 +459,42 @@ export default function OrganizationSettingsPage() {
                     <div>
                       <Label>Organization Timezone</Label>
                       <div className="mt-1">
-                        <TimezoneSelect onChange={setTimeZone} value={timeZone} />
+                        <TimezoneSelect
+                          onChange={(value) => {
+                            markFieldEdited("timeZone");
+                            setTimeZone(value);
+                          }}
+                          value={timeZone}
+                        />
                       </div>
                       <p className="mt-1 text-xs text-parcelis-gray">
                         Notes and lease lifecycle dates use this timezone.
                       </p>
                     </div>
-                    <Button className="min-w-40 self-start" disabled={saveOrganizationDetails.isPending} type="submit">
+                    <OrganizationCurrencyField
+                      settings={currencySettings}
+                      value={currencyCode ?? currencySettings.currencyCode}
+                      onChange={setCurrencyCode}
+                      isPending={saveOrganizationDetails.isPending}
+                    />
+                    <Button
+                      className="min-w-40 self-start"
+                      aria-busy={saveOrganizationDetails.isPending}
+                      disabled={saveOrganizationDetails.isPending}
+                      type="submit"
+                    >
                       Update organization
                     </Button>
+                    {saveOrganizationDetails.isPending ? (
+                      <p role="status" className="text-sm text-parcelis-gray">
+                        Saving organization…
+                      </p>
+                    ) : null}
                   </form>
                 ) : (
                   <div className="max-w-xl space-y-4 text-sm">
                     <p className="text-parcelis-gray">You have view-only access to this organization’s settings.</p>
+                    <OrganizationCurrencyField settings={currencySettings} value={currencySettings.currencyCode} />
                     <div>
                       <p className="font-medium text-parcelis-charcoal">Organization name</p>
                       <p className="mt-1 text-parcelis-gray">{activeOrganizationQuery.data?.name}</p>
@@ -379,7 +538,10 @@ export default function OrganizationSettingsPage() {
                   </div>
                 )}
                 {saveOrganizationDetails.error ? (
-                  <p className="mt-3 text-sm font-medium text-red-700">{saveOrganizationDetails.error.message}</p>
+                  <p className="mt-3 text-sm font-medium text-red-700" role="alert">
+                    <span>{saveOrganizationDetails.error.message}</span>{" "}
+                    <span>Your entered settings have been kept. Review the saved currency before retrying.</span>
+                  </p>
                 ) : null}
               </CardContent>
             </Card>

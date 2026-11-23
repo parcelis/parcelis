@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useMoney } from "./organization-currency";
 import Link from "next/link";
 import {
   Bath,
@@ -43,7 +44,13 @@ import {
   PopoverTrigger,
   Select,
 } from "@parcelis/ui";
-import { propertyTypeValues, type CreatePropertyInput, type PropertyType } from "@parcelis/schemas";
+import {
+  propertyTypeValues,
+  propertyStatusSchema,
+  propertyOperationalStatusSchema,
+  type CreatePropertyInput,
+  type PropertyType,
+} from "@parcelis/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, queryKeys } from "./api-client";
 import { LoadingState } from "./loading-state";
@@ -59,6 +66,7 @@ export type PropertyFormState = {
   region: string;
   postalCode: string;
   propertyType: PropertyType;
+  status: (typeof propertyStatusSchema.options)[number];
   contactName: string;
   contactEmail: string;
   contactPhone: string;
@@ -79,6 +87,7 @@ export const initialPropertyFormState: PropertyFormState = {
   region: "",
   postalCode: "",
   propertyType: "Apartment",
+  status: "active",
   contactName: "",
   contactEmail: "",
   contactPhone: "",
@@ -182,6 +191,7 @@ export function PropertyDrawer({
   toggleShortcut = shortcuts.togglePropertyDrawer.keys,
   unitHref,
 }: PropertyDrawerProps) {
+  const { toCents, currency, amountStep, validateAmountInput, maxAmount } = useMoney();
   const [imagePreviewUrl, setImagePreviewUrl] = React.useState(imageUrl);
   const queryClient = useQueryClient();
   const initialUnitStates = React.useMemo(() => getInitialUnitFormStates(initialUnits), [initialUnits]);
@@ -221,7 +231,10 @@ export function PropertyDrawer({
     form.name && form.line1 && form.city && form.region && form.postalCode && form.propertyType && form.unitCount,
   );
   const canSubmitUnitDetails =
-    units.length > 0 && units.every((unit) => unit.unitName && unit.marketRate && unit.unitType);
+    units.length > 0 &&
+    units.every(
+      (unit) => unit.unitName && unit.marketRate && Number.isFinite(toCents(unit.marketRate)) && unit.unitType,
+    );
   const hasFormChanges = Object.entries(form).some(([field, value]) => {
     const initialValue = initialFormState[field as keyof PropertyFormState];
     return Array.isArray(value) && Array.isArray(initialValue)
@@ -457,7 +470,7 @@ export function PropertyDrawer({
   }
 
   function parseMarketRateCents(value: string) {
-    return Math.round(Number(value) * 100);
+    return toCents(value);
   }
 
   function isPersistedUnitId(value: UnitId): value is number {
@@ -485,6 +498,7 @@ export function PropertyDrawer({
       {
         name: form.name,
         propertyType: form.propertyType,
+        ...(form.status === "archived" || form.status === initialFormState.status ? {} : { status: form.status }),
         tagIds: propertyTagIds,
         contactName: form.contactName || undefined,
         contactEmail: form.contactEmail || undefined,
@@ -723,6 +737,25 @@ export function PropertyDrawer({
                         </Label>
 
                         <Label>
+                          <FieldLabel>Operational Status</FieldLabel>
+                          <Select
+                            disabled={form.status === "archived"}
+                            onChange={(event) => {
+                              const status = propertyOperationalStatusSchema.parse(event.target.value);
+                              updateField("status", status);
+                            }}
+                            value={form.status}
+                          >
+                            {form.status === "archived" ? <option value="archived">Archived</option> : null}
+                            {propertyOperationalStatusSchema.options.map((status) => (
+                              <option key={status} value={status}>
+                                {status.charAt(0).toUpperCase() + status.slice(1)}
+                              </option>
+                            ))}
+                          </Select>
+                        </Label>
+
+                        <Label>
                           <FieldLabel>Units</FieldLabel>
                           <Input
                             min={1}
@@ -880,6 +913,10 @@ export function PropertyDrawer({
                       {units.map((unit) => {
                         const isExpanded = expandedUnitIds.has(unit.id);
                         const href = unitHref?.(unit) ?? null;
+                        const isMarketRateInvalid = Boolean(
+                          unit.marketRate.trim() && !Number.isFinite(toCents(unit.marketRate)),
+                        );
+                        const marketRateErrorId = `property-drawer-unit-${unit.id}-market-rate-error`;
 
                         return (
                           <div
@@ -905,16 +942,33 @@ export function PropertyDrawer({
                                     value={unit.unitName}
                                   />
                                 </Label>
-                                <Label>
-                                  <FieldLabel>Market Rate</FieldLabel>
-                                  <Input
-                                    min={0}
-                                    onChange={(event) => updateUnitField(unit.id, "marketRate", event.target.value)}
-                                    required
-                                    type="number"
-                                    value={unit.marketRate}
-                                  />
-                                </Label>
+                                <div className="flex flex-col gap-1">
+                                  <Label>
+                                    <FieldLabel>Market Rate ({currency.code})</FieldLabel>
+                                    <Input
+                                      aria-describedby={isMarketRateInvalid ? marketRateErrorId : undefined}
+                                      aria-invalid={isMarketRateInvalid || undefined}
+                                      min={0}
+                                      onChange={(event) => updateUnitField(unit.id, "marketRate", event.target.value)}
+                                      required
+                                      type="number"
+                                      value={unit.marketRate}
+                                      step={amountStep}
+                                      onInput={validateAmountInput}
+                                      max={maxAmount}
+                                    />
+                                  </Label>
+                                  {isMarketRateInvalid ? (
+                                    <span
+                                      className="text-xs font-medium text-red-700"
+                                      id={marketRateErrorId}
+                                      role="alert"
+                                    >
+                                      Enter a valid {currency.code} amount with at most {currency.minorUnitDigits}{" "}
+                                      decimal places, up to {maxAmount}.
+                                    </span>
+                                  ) : null}
+                                </div>
                                 <Label>
                                   <FieldLabel>Unit Type</FieldLabel>
                                   <Select

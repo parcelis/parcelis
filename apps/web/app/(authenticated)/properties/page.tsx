@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../components/organization-currency";
+
 import * as React from "react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -107,16 +109,6 @@ function formatStatus(status: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Unavailable";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
 }
 
 function getUnitRows(property: PropertyListItem) {
@@ -336,6 +328,7 @@ function UnitActionsMenu({
 }
 
 export default function PropertiesPage() {
+  const { formatCurrency } = useMoney();
   const queryClient = useQueryClient();
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.me,

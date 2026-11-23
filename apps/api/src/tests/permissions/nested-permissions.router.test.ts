@@ -19,6 +19,7 @@ const resources: PermissionResource[] = [
 const tenant = { id: 4, firstName: "Private", lastName: "Tenant", email: "private@example.com" };
 const tenantSummary = { id: tenant.id, firstName: tenant.firstName, lastName: tenant.lastName };
 const invoice = {
+  currencyCode: "USD",
   dueOn: new Date("2020-01-01"),
   status: "overdue",
   amountCents: 12345,
@@ -27,6 +28,7 @@ const invoice = {
   invoiceNumber: "INV-private",
 };
 const lease = {
+  currencyCode: "USD",
   id: 7,
   unitId: 3,
   propertyId: 2,
@@ -92,7 +94,7 @@ function createCaller(
     },
     req: { headers: {} },
     session: { userId: 1, user: { id: 1, role } },
-    organization: { organizationId: 1, organization: { id: 1, timeZone: "UTC" } },
+    organization: { organizationId: 1, organization: { id: 1, timeZone: "UTC", currencyCode: "USD" } },
   } as unknown as Context);
 }
 
@@ -218,6 +220,50 @@ test("property reads retain tenantless lease receivables regardless of tenant vi
       assert.equal(result.leaseHistory[0]?.tenant, null);
     }
   }
+});
+
+test("property currency totals preserve overdue receivables across lease states", async () => {
+  const leases = [
+    {
+      ...lease,
+      tenants: [],
+      invoices: [
+        invoice,
+        { ...invoice, id: 9, status: "overdue", dueOn: new Date("2100-01-01"), balanceCents: 90000 },
+        { ...invoice, id: 10, status: "void", balanceCents: 90000 },
+        { ...invoice, id: 11, status: "paid", balanceCents: 0 },
+      ],
+    },
+    { ...lease, id: 8, status: "ended", invoices: [{ ...invoice, status: "open", balanceCents: 2000 }] },
+    { ...lease, id: 9, archivedAt: new Date(), invoices: [{ ...invoice, balanceCents: 3000 }] },
+    { ...lease, id: 10, status: "draft", currencyCode: null, monthlyRentCents: null, invoices: [] },
+  ];
+  const record = { ...property, leases };
+  const caller = createCaller(resources, {
+    property: { findMany: async () => [record], findFirst: async () => record },
+  });
+  const list = (await caller.properties.list())[0]!;
+  assert.equal(list.currencyCode, "USD");
+  assert.equal(list.monthlyRentCents, 200000);
+  assert.equal(list.amountOverdueCents, 17345);
+  for (const result of [list, (await caller.properties.byId({ id: 2 }))!]) {
+    assert.equal(result.leases.length, 3);
+    assert.deepEqual(
+      result.leaseHistory.map(({ amountOverdueCents }) => amountOverdueCents),
+      [12345, 2000, 3000, 0],
+    );
+    assert.equal(result.leaseHistory[0]?.tenant, null);
+    assert.equal(result.leaseHistory[0]?.invoices[1]?.status, "open");
+  }
+});
+
+test("property receivables reject invoice currencies that differ from their lease", async () => {
+  const record = { ...property, leases: [{ ...lease, invoices: [{ ...invoice, currencyCode: "EUR" }] }] };
+  const caller = createCaller(resources, {
+    property: { findMany: async () => [record], findFirst: async () => record },
+  });
+  await assert.rejects(caller.properties.list(), /different currencies/);
+  await assert.rejects(caller.properties.byId({ id: 2 }), /different currencies/);
 });
 
 for (const denied of ["leases", "invoices", "properties", "units", "tenant_notes"] as PermissionResource[]) {

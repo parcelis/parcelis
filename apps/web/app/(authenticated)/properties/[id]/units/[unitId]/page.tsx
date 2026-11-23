@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../../../../components/organization-currency";
+
 import * as React from "react";
 import {
   getBillingCalendarDate,
@@ -77,15 +79,6 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
-function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
-}
-
 function formatDate(date: Date | string | null) {
   if (!date) return "Not set";
   return new Intl.DateTimeFormat("en-US", {
@@ -97,6 +90,7 @@ function formatDate(date: Date | string | null) {
 }
 
 export default function UnitDetailPage() {
+  const { formatCurrency } = useMoney();
   const queryClient = useQueryClient();
   const router = useRouter();
   const params = useParams<{ id: string; unitId: string }>();
@@ -229,7 +223,7 @@ export default function UnitDetailPage() {
     ["Future scheduled balance", balances ? formatCurrency(balances.futureCents) : "Unavailable", "bg-amber-400"],
     [
       "Monthly rent",
-      monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents),
+      monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents, lease?.currencyCode),
       "bg-parcelis-charcoal",
     ],
   ];
@@ -563,7 +557,9 @@ export default function UnitDetailPage() {
                         <div className="text-center">
                           <p className="text-xs font-semibold uppercase text-parcelis-gray">Total</p>
                           <p className="text-xl font-bold text-parcelis-charcoal">
-                            {monthlyRentCents === null ? "Unavailable" : formatCurrency(monthlyRentCents)}
+                            {monthlyRentCents === null
+                              ? "Unavailable"
+                              : formatCurrency(monthlyRentCents, lease?.currencyCode)}
                           </p>
                         </div>
                       </div>
@@ -650,7 +646,7 @@ export default function UnitDetailPage() {
                             </span>
                             <span className="text-parcelis-gray">{formatDate(invoice.dueOn)}</span>
                             <span className="text-right font-semibold text-parcelis-charcoal">
-                              {formatCurrency(invoice.balanceCents)}
+                              {formatCurrency(invoice.balanceCents, invoice.currencyCode)}
                             </span>
                           </div>
                         ))}

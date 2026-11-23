@@ -59,7 +59,13 @@ test(
         data: { organizationId: organization.id, firstName: "Test", lastName: "Tenant", email: "tenant@example.test" },
       });
       const lease = await prisma.lease.create({
-        data: { organizationId: organization.id, propertyId: property.id, unitId: unit.id, allowPartialPayments: true },
+        data: {
+          organizationId: organization.id,
+          currencyCode: "USD",
+          propertyId: property.id,
+          unitId: unit.id,
+          allowPartialPayments: true,
+        },
       });
       await prisma.leaseTenant.create({
         data: { organizationId: organization.id, leaseId: lease.id, tenantId: tenant.id },

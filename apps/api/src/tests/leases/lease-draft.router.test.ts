@@ -16,6 +16,7 @@ function draft(overrides: Record<string, unknown> = {}) {
   return {
     id: 9,
     status: "draft",
+    currencyCode: null,
     propertyId: 2,
     unitId: 3,
     termType: null,
@@ -30,7 +31,7 @@ function draft(overrides: Record<string, unknown> = {}) {
     draftStep: "property",
     revision: 0,
     archivedAt: null,
-    tenants: [{ tenantId: 11 }],
+    tenants: [{ tenantId: 11, rentShareCents: null, depositShareCents: null }],
     ...overrides,
   };
 }
@@ -345,6 +346,10 @@ test("preserves allocations when only resident IDs are patched", async () => {
     tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
   });
   const tx = {
+    organization: {
+      updateMany: async () => ({ count: 1 }),
+      findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
+    },
     lease: {
       findFirst: async () => current,
       updateMany: async () => ({ count: 1 }),
@@ -473,6 +478,10 @@ test("accepts joint billing without individual allocations", async () => {
     tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
   });
   const tx = {
+    organization: {
+      updateMany: async () => ({ count: 1 }),
+      findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
+    },
     lease: {
       findFirst: async () => current,
       updateMany: async () => ({ count: 1 }),
@@ -511,6 +520,10 @@ test("changing a draft to joint billing clears saved individual shares", async (
     tenants: [{ tenantId: 11, rentShareCents: 4000, depositShareCents: 1000 }],
   });
   const tx = {
+    organization: {
+      updateMany: async () => ({ count: 1 }),
+      findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
+    },
     lease: {
       findFirst: async () => current,
       updateMany: async () => ({ count: 1 }),
@@ -570,6 +583,10 @@ test("changing a draft to individual billing saves supplied tenant allocations",
   let createdRows: unknown;
   const current = draft({ billingResponsibility: "joint" });
   const tx = {
+    organization: {
+      updateMany: async () => ({ count: 1 }),
+      findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
+    },
     lease: {
       findFirst: async () => current,
       updateMany: async () => ({ count: 1 }),

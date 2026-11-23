@@ -1,3 +1,4 @@
+import { currencySettingsFixture } from "./fixtures/currency";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 const nextAuthCookieName = process.env.NEXTAUTH_URL?.startsWith("https://")
@@ -38,7 +39,14 @@ async function mockAuthentication(context: import("@playwright/test").BrowserCon
     const procedures = decodeURIComponent(url.pathname.split("/trpc/")[1]!).split(",");
     const results = procedures.map((procedure) => ({
       result: {
-        data: procedure === "auth.me" ? { user, permissions: {} } : procedure === "organizations.active" ? null : [],
+        data:
+          procedure === "organizations.currency"
+            ? currencySettingsFixture()
+            : procedure === "auth.me"
+              ? { user, permissions: {} }
+              : procedure === "organizations.active"
+                ? null
+                : [],
       },
     }));
     await route.fulfill({ json: url.searchParams.has("batch") ? results : results[0] });

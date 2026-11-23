@@ -10,7 +10,7 @@
     "start": "next start --hostname 0.0.0.0 --port ${PORT:-30000}",
     "lint": "eslint .",
     "test": "node --test \"lib/*.test.ts\"",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "next typegen && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@embedpdf/core": "^2.15.0",
