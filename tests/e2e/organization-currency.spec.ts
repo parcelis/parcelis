@@ -30,6 +30,7 @@ async function mockedSettings(page: Page) {
     failSave: false,
     failCurrency: false,
     saveGate: null as Promise<void> | null,
+    saveResponseGate: null as Promise<void> | null,
     currencyGate: null as { slug: string; wait: Promise<void> } | null,
     currencies: {
       [organization.slug]: currencySettingsFixture(),
@@ -63,10 +64,19 @@ async function mockedSettings(page: Page) {
         if (procedure === "organizations.list")
           data = [organization, second].map((organization) => ({ organization, role: state.role }));
         if (procedure === "organizations.currency") {
+          const settings = { ...state.currencies[slug] };
           if (state.currencyGate?.slug === slug) await state.currencyGate.wait;
           if (state.failCurrency) return error("Currency unavailable.", "INTERNAL_SERVER_ERROR");
-          data = { ...state.currencies[slug] };
+          data = settings;
         }
+        if (procedure === "organizations.createAvatarUploadUrl") {
+          data = {
+            fields: {},
+            objectKey: "currency-test/light.png",
+            uploadUrl: new URL("/currency-avatar-upload", page.url()).href,
+          };
+        }
+        if (procedure === "organizations.completeAvatarUpload") data = active;
         if (procedure === "organizations.update") {
           if (state.saveGate) await state.saveGate;
           if (state.failSave) {
@@ -78,8 +88,18 @@ async function mockedSettings(page: Page) {
             };
             return error("Currency cannot be changed after monetary data has been saved.");
           }
-          Object.assign(active, args);
+          Object.assign(active, args, {
+            address: {
+              line1: null,
+              line2: null,
+              city: null,
+              region: null,
+              postalCode: null,
+              ...(args.address ?? {}),
+            },
+          });
           if (args.currencyCode) state.currencies[slug]!.currencyCode = String(args.currencyCode);
+          if (state.saveResponseGate) await state.saveResponseGate;
           data = active;
         }
         return { result: { data } };
@@ -97,7 +117,7 @@ test("shows the default server currency without requiring a selection", async ({
   await expect(currency).toHaveValue("USD — US Dollar");
   await expect(currency).toHaveAttribute("readonly", "");
   await expect(page.getByText(/This is the only supported currency/)).toBeVisible();
-  await page.screenshot({ path: "/tmp/parcelis-617-default.png", fullPage: true });
+  await page.screenshot({ path: test.info().outputPath("organization-currency-default.png"), fullPage: true });
 });
 
 test("redirects organization settings to General within the current organization", async ({ page }) => {
@@ -132,7 +152,7 @@ test("members and permanently locked organizations see read-only saved currency"
   };
   await page.reload();
   await expect(page.getByText("Currency cannot be changed because monetary records already use it.")).toBeVisible();
-  await page.screenshot({ path: "/tmp/parcelis-617-locked.png", fullPage: true });
+  await page.screenshot({ path: test.info().outputPath("organization-currency-locked.png"), fullPage: true });
 });
 
 test("a stale eligibility rejection preserves settings and the saved currency", async ({ page }) => {
@@ -174,6 +194,172 @@ test("a successful save refreshes currency consumers using server precision", as
   await expect(page.getByRole("combobox", { name: "Currency", exact: true })).toHaveValue("JPY");
   await page.getByRole("main").getByRole("link", { name: "Portfolio", exact: true }).click();
   await expect(page.getByText("¥18,422,000 JPY", { exact: true })).toBeVisible();
+});
+
+test("a successful save applies normalized server values to the current form", async ({ page }) => {
+  await mockedSettings(page);
+  await page.goto(settingsPath);
+  await page.getByRole("button", { name: "Show organization address details", exact: true }).click();
+  await page.getByRole("textbox", { name: "State", exact: true }).fill("ca");
+  await page.getByRole("textbox", { name: "State", exact: true }).press("Escape");
+  const phone = page.getByRole("textbox", { name: "Organization phone number", exact: true });
+  await phone.fill(" 615-555-0100 ");
+  await page.getByRole("button", { name: "Update organization", exact: true }).click();
+  await expect(page.getByText("Organization has been updated.", { exact: false }).first()).toBeVisible();
+  await expect(phone).toHaveValue("615-555-0100");
+  await page.getByRole("button", { name: "Show organization address details", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "State", exact: true })).toHaveValue("CA");
+});
+
+test("a successful save replaces an in-flight currency response captured before the save", async ({ page }) => {
+  const state = await mockedSettings(page);
+  state.currencies[state.organization.slug]!.supportedCurrencies.push(yen);
+  const gate = deferred();
+  try {
+    await page.goto(settingsPath);
+    const currency = page.getByRole("combobox", { name: "Currency", exact: true });
+    await expect(currency).toHaveValue("USD");
+    const currencyCalls = () => state.calls.filter((call) => call.procedure === "organizations.currency").length;
+    const callsBeforeRefresh = currencyCalls();
+    state.currencyGate = { slug: state.organization.slug, wait: gate.wait };
+    await page.evaluate(() => window.dispatchEvent(new Event("visibilitychange")));
+    await expect.poll(currencyCalls).toBeGreaterThan(callsBeforeRefresh);
+    state.currencyGate = null;
+    await currency.selectOption("JPY");
+    await page.getByRole("button", { name: "Update organization", exact: true }).click();
+    await expect.poll(() => state.calls.filter((call) => call.procedure === "organizations.update").length).toBe(1);
+    gate.release();
+    await expect(page.getByText("Organization has been updated.", { exact: false }).first()).toBeVisible();
+    await expect(currency).toHaveValue("JPY");
+  } finally {
+    gate.release();
+  }
+});
+
+test("same-organization refreshes update clean fields and retain unsaved edits", async ({ page }) => {
+  const state = await mockedSettings(page);
+  await page.goto(settingsPath);
+  const name = page.getByRole("textbox", { name: "Organization name", exact: true });
+  const phone = page.getByRole("textbox", { name: "Organization phone number", exact: true });
+  await expect(name).toHaveValue(state.organization.name);
+  await name.fill("Keep this unsaved name");
+  state.organization.phone = "615-555-0123";
+  await page.evaluate(() => window.dispatchEvent(new Event("visibilitychange")));
+  await expect(phone).toHaveValue("615-555-0123");
+  await expect(name).toHaveValue("Keep this unsaved name");
+});
+
+test("edits made after submitting survive the saved organization refetch", async ({ page }) => {
+  const state = await mockedSettings(page);
+  const originalName = state.organization.name;
+  const gate = deferred();
+  state.saveGate = gate.wait;
+  try {
+    await page.goto(settingsPath);
+    const name = page.getByRole("textbox", { name: "Organization name", exact: true });
+    await name.fill("Submitted organization name");
+    await page.getByRole("button", { name: "Update organization", exact: true }).click();
+    await expect.poll(() => state.calls.filter((call) => call.procedure === "organizations.update").length).toBe(1);
+    await name.fill(originalName);
+    gate.release();
+    await expect(page.getByText("Organization has been updated.", { exact: false }).first()).toBeVisible();
+    await expect(name).toHaveValue(originalName);
+    expect(state.organization.name).toBe("Submitted organization name");
+  } finally {
+    gate.release();
+  }
+});
+
+test("a pending save refreshes currency after navigating within the same organization", async ({ page }) => {
+  const state = await mockedSettings(page);
+  state.currencies[state.organization.slug]!.supportedCurrencies.push(yen);
+  const gate = deferred();
+  state.saveGate = gate.wait;
+  try {
+    await page.goto(settingsPath);
+    await page.getByRole("combobox", { name: "Currency", exact: true }).selectOption("JPY");
+    await page.getByRole("button", { name: "Update organization", exact: true }).click();
+    await expect.poll(() => state.calls.filter((call) => call.procedure === "organizations.update").length).toBe(1);
+    await page.getByRole("main").getByRole("link", { name: "Portfolio", exact: true }).click();
+    gate.release();
+    await expect(page.getByText("¥18,422,000 JPY", { exact: true })).toBeVisible();
+    await expect(page).not.toHaveURL(/settings\/organization/);
+  } finally {
+    gate.release();
+  }
+});
+
+test("a refresh after the server commits cannot overwrite a later edit before the save response", async ({ page }) => {
+  const state = await mockedSettings(page);
+  const originalName = state.organization.name;
+  const gate = deferred();
+  state.saveResponseGate = gate.wait;
+  try {
+    await page.goto(settingsPath);
+    const name = page.getByRole("textbox", { name: "Organization name", exact: true });
+    await name.fill("Committed organization name");
+    await page.getByRole("button", { name: "Update organization", exact: true }).click();
+    await expect.poll(() => state.organization.name).toBe("Committed organization name");
+    await name.fill(originalName);
+    const activeCalls = () => state.calls.filter((call) => call.procedure === "organizations.active").length;
+    const callsBeforeRefresh = activeCalls();
+    await page.evaluate(() => window.dispatchEvent(new Event("visibilitychange")));
+    await expect.poll(activeCalls).toBeGreaterThan(callsBeforeRefresh);
+    await expect(name).toHaveValue(originalName);
+    gate.release();
+    await expect(page.getByText("Organization has been updated.", { exact: false }).first()).toBeVisible();
+    await expect(name).toHaveValue(originalName);
+  } finally {
+    gate.release();
+  }
+});
+
+test("an avatar save stays scoped to the submitting organization after a workspace switch", async ({ page }) => {
+  const state = await mockedSettings(page);
+  const originalSlug = state.organization.slug;
+  const secondName = state.second.name;
+  const gate = deferred();
+  let uploadStarted = false;
+  await page.route("**/currency-avatar-upload", async (route) => {
+    uploadStarted = true;
+    await gate.wait;
+    await route.fulfill({ status: 204 });
+  });
+  state.currencies[originalSlug]!.supportedCurrencies.push(yen);
+  try {
+    await page.goto(settingsPath);
+    await page.getByRole("textbox", { name: "Organization name", exact: true }).fill("Saved original workspace");
+    await page.getByRole("combobox", { name: "Currency", exact: true }).selectOption("JPY");
+    await page.locator('input[type="file"]').first().setInputFiles("apps/web/public/brand/parcelis-fullmark-light.png");
+    await page.getByRole("button", { name: "Update organization", exact: true }).click();
+    await expect.poll(() => uploadStarted).toBe(true);
+    const secondPath = `/o/${state.second.slug}${settingsPath}`;
+    await page.evaluate((path) => window.history.pushState(null, "", path), secondPath);
+    await expect(page.getByRole("textbox", { name: "Organization name", exact: true })).toHaveValue(secondName);
+    gate.release();
+    await expect.poll(() => state.calls.filter((call) => call.procedure === "organizations.update").length).toBe(1);
+    expect(
+      state.calls
+        .filter((call) =>
+          [
+            "organizations.createAvatarUploadUrl",
+            "organizations.completeAvatarUpload",
+            "organizations.update",
+          ].includes(call.procedure),
+        )
+        .map((call) => ({ procedure: call.procedure, slug: call.slug })),
+    ).toEqual([
+      { procedure: "organizations.createAvatarUploadUrl", slug: originalSlug },
+      { procedure: "organizations.completeAvatarUpload", slug: originalSlug },
+      { procedure: "organizations.update", slug: originalSlug },
+    ]);
+    await expect(page).toHaveURL(secondPath);
+    await expect(page.getByRole("textbox", { name: "Organization name", exact: true })).toHaveValue(secondName);
+    expect(state.organization.name).toBe("Saved original workspace");
+    expect(state.second.name).toBe(secondName);
+  } finally {
+    gate.release();
+  }
 });
 
 test("organization switching discards a delayed previous currency response", async ({ page }) => {
