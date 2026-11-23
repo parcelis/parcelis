@@ -67,6 +67,7 @@ test(
         const lease = await prisma!.lease.create({
           data: {
             organizationId: organization.id,
+            currencyCode: "USD",
             propertyId: property.id,
             unitId: unit.id,
             startsOn,

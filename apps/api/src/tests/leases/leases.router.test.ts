@@ -81,6 +81,10 @@ for (const route of ["tenants", "leases"] as const) {
   test(`${route} draft creation does not write invoices`, async () => {
     let invoiceWrites = 0;
     const tx = {
+      organization: {
+        updateMany: async () => ({ count: 1 }),
+        findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
+      },
       property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }) },
       unit: { findFirstOrThrow: async () => ({ id: 3 }) },
       tenant: { findFirstOrThrow: async () => ({ id: 11 }), findMany: async () => [{ id: 11 }, { id: 12 }] },
@@ -125,6 +129,10 @@ for (const route of ["tenants", "leases"] as const) {
 
   test(`${route} fails creation when a rent invoice cannot be written`, async () => {
     const tx = {
+      organization: {
+        updateMany: async () => ({ count: 1 }),
+        findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
+      },
       property: { findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }), update: async () => ({ id: 2 }) },
       unit: { findFirstOrThrow: async () => ({ id: 3 }) },
       tenant: { findFirstOrThrow: async () => ({ id: 11 }), findMany: async () => [{ id: 11 }, { id: 12 }] },
@@ -248,6 +256,10 @@ for (const route of ["tenants", "leases"] as const) {
         tenantAllocations: billingResponsibility === "joint" ? [] : individualLeaseInput.tenantAllocations,
       };
       const tx = {
+        organization: {
+          updateMany: async () => ({ count: 1 }),
+          findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
+        },
         property: {
           findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }),
           update: async () => ({ id: 2, occupiedUnits: 1 }),
@@ -336,7 +348,6 @@ for (const route of ["tenants", "leases"] as const) {
       assert.deepEqual(
         tenants,
         input.tenantIds.map((tenantId, index) => ({
-          organizationId: 7,
           tenantId,
           rentShareCents: input.tenantAllocations[index]?.rentShareCents,
           depositShareCents: input.tenantAllocations[index]?.depositShareCents,

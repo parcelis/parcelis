@@ -71,4 +71,4 @@ jobs:
       - if: matrix.suite == 'worker'
         run: pnpm --filter @parcelis/worker test:integration
       - if: matrix.suite == 'api-tokens'
-        run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts'
+        run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts' 'src/tests/currencies/*.integration.ts'

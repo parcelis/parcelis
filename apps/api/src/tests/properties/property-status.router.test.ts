@@ -52,7 +52,7 @@ function harness(initialStatus: Status = "active", denied = false, foreign = fal
   const caller = appRouter.createCaller({
     prisma: { ...prisma, $transaction: async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) },
     session: { userId: 1, user: { id: 1, name: "Manager", role: "property_manager" } },
-    organization: { organizationId: 7 },
+    organization: { organizationId: 7, organization: { currencyCode: "USD" } },
   } as unknown as Context);
   return { caller, state };
 }

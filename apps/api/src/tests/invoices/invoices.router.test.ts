@@ -25,8 +25,14 @@ test("settling an outstanding invoice restores the latest unreversed payment det
   const payment = { paidOn: new Date("2026-09-15"), tenantId: 99, paymentMethod: "cash" };
   let paymentLookups = 0;
   const tx = {
+    organization: { updateMany: async () => ({ count: 1 }), findUniqueOrThrow: async () => ({ currencyCode: "USD" }) },
     invoice: {
-      findFirstOrThrow: async () => ({ amountCents: 15_000, balanceCents: 5_000 }),
+      findFirstOrThrow: async () => ({
+        amountCents: 15_000,
+        balanceCents: 5_000,
+        currencyCode: "USD",
+        lease: { currencyCode: "USD" },
+      }),
       update: async ({ data }: { data: Record<string, unknown> }) => ({
         id: 4,
         invoiceNumber: 4,
@@ -67,6 +73,8 @@ test("settling an outstanding invoice restores the latest unreversed payment det
 for (const totalCents of [10_000, 15_000]) {
   test(`editing a paid invoice to ${totalCents} cents keeps settlement metadata consistent`, async () => {
     const invoice = {
+      currencyCode: "USD",
+      lease: { currencyCode: "USD" },
       id: 4,
       invoiceNumber: 4,
       organizationId: 7,
@@ -79,6 +87,10 @@ for (const totalCents of [10_000, 15_000]) {
       paymentMethod: "check",
     };
     const tx = {
+      organization: {
+        updateMany: async () => ({ count: 1 }),
+        findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
+      },
       invoice: {
         findFirstOrThrow: async ({ where }: { where: unknown }) => {
           assert.deepEqual(where, { id: 4, organizationId: 7 });
@@ -242,6 +254,7 @@ test("joint invoice accepts a payment from any recipient", async () => {
   let paymentData: unknown;
   let invoiceUpdateData: unknown;
   const invoice = {
+    currencyCode: "USD",
     id: 4,
     invoiceNumber: 1,
     organizationId: 7,
@@ -249,9 +262,10 @@ test("joint invoice accepts a payment from any recipient", async () => {
     dueOn: new Date("2099-09-15"),
     balanceCents: 10_000,
     recipients: [{ tenantId: 11 }, { tenantId: 12 }],
-    lease: { allowPartialPayments: true },
+    lease: { allowPartialPayments: true, currencyCode: "USD" },
   };
   const tx = {
+    organization: { updateMany: async () => ({ count: 1 }), findUniqueOrThrow: async () => ({ currencyCode: "USD" }) },
     invoice: {
       findFirstOrThrow: async () => invoice,
       update: async ({ data }: { data: unknown }) => {
@@ -293,12 +307,14 @@ test("joint invoice accepts a payment from any recipient", async () => {
 test("joint invoice records batch payments from recipient tenants", async () => {
   const paymentData: unknown[] = [];
   const invoice = {
+    currencyCode: "USD",
     dueOn: new Date("2026-09-15"),
     balanceCents: 10_000,
     recipients: [{ tenantId: 11 }, { tenantId: 12 }],
-    lease: { allowPartialPayments: true },
+    lease: { allowPartialPayments: true, currencyCode: "USD" },
   };
   const tx = {
+    organization: { updateMany: async () => ({ count: 1 }), findUniqueOrThrow: async () => ({ currencyCode: "USD" }) },
     invoice: {
       findFirstOrThrow: async () => invoice,
       update: async () => invoice,
@@ -336,7 +352,7 @@ test("invoice payments reject tenants who are not recipients", async () => {
         dueOn: new Date("2026-09-15"),
         balanceCents: 10_000,
         recipients: [{ tenantId: 11 }],
-        lease: { allowPartialPayments: true },
+        lease: { allowPartialPayments: true, currencyCode: "USD" },
       }),
     },
   };
@@ -357,7 +373,7 @@ test("batch invoice payments reject tenants who are not recipients", async () =>
         dueOn: new Date("2026-09-15"),
         balanceCents: 10_000,
         recipients: [{ tenantId: 11 }],
-        lease: { allowPartialPayments: true },
+        lease: { allowPartialPayments: true, currencyCode: "USD" },
       }),
     },
   };
@@ -416,6 +432,17 @@ test("payment batches must clear the balance when partial payments are disabled"
 test("manual joint invoices create recipients for every lease tenant", async () => {
   let invoiceData: unknown;
   const tx = {
+    lease: {
+      findFirst: async () => ({
+        id: 3,
+        currencyCode: "USD",
+        propertyId: 2,
+        status: "active",
+        billingResponsibility: "joint",
+        tenants: [{ tenantId: 11 }, { tenantId: 12 }],
+      }),
+    },
+    organization: { updateMany: async () => ({ count: 1 }), findUniqueOrThrow: async () => ({ currencyCode: "USD" }) },
     invoice: {
       findFirst: async () => null,
       create: async ({ data }: { data: unknown }) => {
@@ -426,15 +453,6 @@ test("manual joint invoices create recipients for every lease tenant", async () 
     activityEvent: { create: async () => ({ id: 1 }) },
   };
   const caller = createCaller({
-    lease: {
-      findFirst: async () => ({
-        id: 3,
-        propertyId: 2,
-        status: "active",
-        billingResponsibility: "joint",
-        tenants: [{ tenantId: 11 }, { tenantId: 12 }],
-      }),
-    },
     leaseTenant: {
       findFirst: async () => ({ id: 1 }),
     },
@@ -458,6 +476,24 @@ test("manual joint invoices create recipients for every lease tenant", async () 
 test("manual invoices derive the earliest lease tenant with invoice create permission alone", async () => {
   let invoiceData: { tenantId: number; recipients: unknown } | undefined;
   const tx = {
+    lease: {
+      findFirst: async ({ where, select }: { where: unknown; select: { tenants: unknown } }) => {
+        assert.deepEqual(where, { id: 3, organizationId: 7 });
+        assert.deepEqual(select.tenants, {
+          orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
+          select: { tenantId: true },
+        });
+        return {
+          currencyCode: "USD",
+          id: 3,
+          propertyId: 2,
+          status: "active",
+          billingResponsibility: "individual",
+          tenants: [{ tenantId: 12 }, { tenantId: 11 }],
+        };
+      },
+    },
+    organization: { updateMany: async () => ({ count: 1 }), findUniqueOrThrow: async () => ({ currencyCode: "USD" }) },
     invoice: {
       findFirst: async () => null,
       create: async ({ data }: { data: typeof invoiceData }) => {
@@ -473,22 +509,7 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
         findUnique: async ({ where }: { where: { role_resource: { resource: string } } }) =>
           where.role_resource.resource === "invoices" ? { canCreate: true } : null,
       },
-      lease: {
-        findFirst: async ({ where, select }: { where: unknown; select: { tenants: unknown } }) => {
-          assert.deepEqual(where, { id: 3, organizationId: 7 });
-          assert.deepEqual(select.tenants, {
-            orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
-            select: { tenantId: true },
-          });
-          return {
-            id: 3,
-            propertyId: 2,
-            status: "active",
-            billingResponsibility: "individual",
-            tenants: [{ tenantId: 12 }, { tenantId: 11 }],
-          };
-        },
-      },
+
       $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
     },
     session: { user: { id: 1, role: "property_manager" } },
@@ -515,10 +536,13 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
 });
 
 test("manual invoices cannot be created for draft leases", async () => {
-  const caller = createCaller({
+  const tx = {
     lease: {
       findFirst: async () => ({ id: 3, propertyId: 2, status: "draft" }),
     },
+  };
+  const caller = createCaller({
+    $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
   });
 
   await assert.rejects(

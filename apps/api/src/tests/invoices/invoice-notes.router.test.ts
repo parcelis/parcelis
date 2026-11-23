@@ -11,7 +11,7 @@ const originalNote = {
   updatedAt: new Date("2026-11-19T10:00:00Z"),
 };
 const updatedNote = { ...originalNote, body: "Payment follow-up completed" };
-const invoice = { id: 2, invoiceNumber: 42, organizationId: 7, propertyId: 3 };
+const invoice = { id: 2, invoiceNumber: 42, organizationId: 7, propertyId: 3, currencyCode: "USD" };
 type Operation = "create" | "update" | "delete";
 type Scenario = "success" | "logging failure" | "foreign invoice" | "denied note permission" | "denied invoice view";
 
@@ -140,7 +140,7 @@ for (const operation of ["create", "update", "delete"] as const) {
             subjectReference: "INV-0000042",
             propertyId: invoice.propertyId,
             action: `invoice.note_${operation === "create" ? "added" : operation === "update" ? "updated" : "deleted"}`,
-            metadata: { noteId: originalNote.id },
+            metadata: { noteId: originalNote.id, currencyCode: "USD" },
             actorId: "1",
             actorLabel: "Accounting User",
           },

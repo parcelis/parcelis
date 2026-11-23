@@ -153,6 +153,8 @@ model Organization {
   name                  String
   slug                  String                   @unique
   timeZone              String                   @default("UTC")
+  currencyCode          String                   @default("USD")
+  currencyLockedAt      DateTime?
   seedKey               String?                  @unique
   avatarObjectKey       String?
   darkAvatarObjectKey   String?
@@ -603,6 +605,7 @@ model Lease {
   id                           Int                         @id @default(autoincrement())
   organizationId               Int
   leaseDraftKey                String                      @default(uuid())
+  currencyCode                 String?
   propertyId                   Int?
   unitId                       Int?
   monthlyRentCents             Int?
@@ -671,6 +674,7 @@ model Invoice {
   id             Int                @id @default(autoincrement())
   organizationId Int
   invoiceNumber  Int                @unique @default(autoincrement())
+  currencyCode   String             @default("USD")
   leaseId        Int
   propertyId     Int
   tenantId       Int

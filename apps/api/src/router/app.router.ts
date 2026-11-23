@@ -2,6 +2,11 @@ import {
   getReceivableStatus,
   summarizeInvoiceBalances,
   createManualInvoiceInputSchema,
+  currencyMetadata,
+  organizationCurrencySettingsSchema,
+  formatMinorUnits,
+  getCurrencyMetadata,
+  sumMoneyMinorUnits,
   createInvoiceChargeInputSchema,
   updateInvoiceChargeInputSchema,
   deleteInvoiceChargeInputSchema,
@@ -105,9 +110,12 @@ import {
   type UserRole,
   replayFailedOutboxEvent,
   recordOutboxEvent,
+  lockOrganizationCurrency,
 } from "@parcelis/db";
 import { getCalendarDate, getStartOfCalendarDate, outboxEventTypes } from "@parcelis/jobs";
 import { createLeaseRentInvoices, getLeaseRentInvoiceSummary } from "../leases/lease-rent-invoices";
+import { lockLeaseCurrency } from "../leases/lease-currency";
+import { lockInvoiceCurrency } from "../modules/invoice-currency";
 import { TRPCError } from "@trpc/server";
 import {
   createPropertyImageDownloadUrl,
@@ -324,9 +332,9 @@ async function recordMaintenanceNoteActivity(
 
 async function recordInvoiceActivity(
   tx: Prisma.TransactionClient,
-  invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number },
+  invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number; currencyCode: string },
   action: string,
-  metadata?: Prisma.InputJsonValue,
+  metadata?: Prisma.InputJsonObject,
   actor?: { id: string | number; name: string },
 ) {
   await recordActivityEvent(
@@ -339,7 +347,7 @@ async function recordInvoiceActivity(
       subjectReference: formatInvoiceNumber(invoice.invoiceNumber),
       propertyId: invoice.propertyId,
       action,
-      metadata,
+      metadata: { ...metadata, currencyCode: invoice.currencyCode },
     },
     actor,
   );
@@ -425,7 +433,7 @@ function getUnitUpdateData(unitDetails: UnitDetailsInput) {
 }
 
 async function validateUnitOptionIds(
-  prisma: PrismaClient,
+  prisma: PrismaClient | Prisma.TransactionClient,
   organizationId: number,
   units: Array<Pick<UnitDetailsInput, "amenityTypeIds" | "utilityTypeIds">>,
 ) {
@@ -458,9 +466,10 @@ function serializeUnit<
     amenities: Array<{ option: { id: number } }>;
     utilities: Array<{ option: { id: number } }>;
   },
->(unit: T) {
+>(unit: T, currencyCode: string) {
   return {
     ...unit,
+    currencyCode,
     bathrooms: unit.bathrooms === null ? null : Number(unit.bathrooms),
     amenityTypeIds: unit.amenities.map((amenity) => amenity.option.id),
     utilityTypeIds: unit.utilities.map((utility) => utility.option.id),
@@ -471,6 +480,7 @@ function withOperatingMetrics<
   T extends {
     leases: Array<{
       monthlyRentCents: number | null;
+      currencyCode: string | null;
       amountOverdueCents: number;
       endsOn: Date | null;
       status: string;
@@ -482,7 +492,7 @@ function withOperatingMetrics<
       unitLabel: string | null;
     }>;
   },
->(property: T) {
+>(property: T, currencyCode: string) {
   const now = new Date();
   const expiresBefore = new Date(now);
   expiresBefore.setDate(expiresBefore.getDate() + 90);
@@ -496,8 +506,19 @@ function withOperatingMetrics<
 
   return {
     ...property,
-    monthlyRentCents: activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0),
-    amountOverdueCents: property.leases.reduce((sum, lease) => sum + lease.amountOverdueCents, 0),
+    monthlyRentCents: sumMoneyMinorUnits(
+      activeLeases.map((lease) => ({
+        currencyCode: lease.currencyCode,
+        amountMinorUnits: lease.monthlyRentCents ?? 0,
+      })),
+      currencyCode,
+    ),
+    amountOverdueCents: sumMoneyMinorUnits(
+      property.leases
+        .filter((lease) => lease.amountOverdueCents > 0)
+        .map((lease) => ({ currencyCode: lease.currencyCode, amountMinorUnits: lease.amountOverdueCents })),
+      currencyCode,
+    ),
     expiringLeases90Days: activeLeases.filter(
       (lease) => lease.endsOn !== null && lease.endsOn >= now && lease.endsOn <= expiresBefore,
     ).length,
@@ -555,6 +576,7 @@ async function writeLeaseRentSchedule(
     leaseId: number;
     propertyId: number;
     rentChargeId?: number | null;
+    currencyCode: string;
     today: string;
     charges: ReturnType<typeof planLeaseRentCharges>;
   },
@@ -865,6 +887,28 @@ export const appRouter = router({
       }),
   }),
   organizations: router({
+    currency: organizationApiProcedure.output(organizationCurrencySettingsSchema).query(async ({ ctx }) => {
+      const organization = await ctx.prisma.organization.findUniqueOrThrow({
+        where: { id: ctx.organizationScope.organizationId },
+        select: { currencyCode: true, currencyLockedAt: true },
+      });
+      const canManage =
+        ctx.principal.kind === "user" &&
+        (ctx.organization?.role === "owner" || ctx.organization?.role === "administrator");
+      const restrictionReason =
+        organization.currencyLockedAt !== null
+          ? ("monetary_data_saved" as const)
+          : canManage
+            ? null
+            : ("insufficient_permissions" as const);
+      return {
+        ...organization,
+        currencyCode: organizationCurrencySettingsSchema.shape.currencyCode.parse(organization.currencyCode),
+        canChangeCurrency: restrictionReason === null,
+        restrictionReason,
+        supportedCurrencies: Object.values(currencyMetadata),
+      };
+    }),
     list: publicProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "administrator") {
         const organizations = await ctx.prisma.organization.findMany({
@@ -887,6 +931,8 @@ export const appRouter = router({
       name: ctx.organization.organization.name,
       slug: ctx.organization.organization.slug,
       timeZone: ctx.organization.organization.timeZone,
+      currencyCode: ctx.organization.organization.currencyCode,
+      currencyLockedAt: ctx.organization.organization.currencyLockedAt,
       avatarObjectKey: ctx.organization.organization.avatarObjectKey,
       avatarUrl: await createPropertyImageDownloadUrl(ctx.organization.organization.avatarObjectKey),
       darkAvatarObjectKey: ctx.organization.organization.darkAvatarObjectKey,
@@ -922,7 +968,7 @@ export const appRouter = router({
     update: organizationProcedure.input(updateOrganizationInputSchema).mutation(async ({ ctx, input }) => {
       requireOrganizationAdministrator(ctx.organization.role);
       try {
-        const organization = await ctx.prisma.organization.update({
+        const update = {
           where: { id: ctx.organization.organizationId },
           data: {
             name: input.name,
@@ -948,8 +994,35 @@ export const appRouter = router({
             phone: true,
             email: true,
             timeZone: true,
+            currencyCode: true,
+            currencyLockedAt: true,
           },
-        });
+        } satisfies Prisma.OrganizationUpdateArgs;
+        const organization =
+          input.currencyCode === undefined
+            ? await ctx.prisma.organization.update(update)
+            : await ctx.prisma.$transaction(async (tx) => {
+                const current = await tx.organization.findUniqueOrThrow({
+                  where: update.where,
+                  select: { currencyCode: true },
+                });
+                if (current.currencyCode === input.currencyCode) return tx.organization.update(update);
+                const changed = await tx.organization.updateMany({
+                  where: {
+                    id: ctx.organization.organizationId,
+                    currencyCode: current.currencyCode,
+                    currencyLockedAt: null,
+                  },
+                  data: { ...update.data, currencyCode: input.currencyCode },
+                });
+                if (changed.count !== 1) {
+                  throw new TRPCError({
+                    code: "CONFLICT",
+                    message: "Organization currency is locked by saved monetary data.",
+                  });
+                }
+                return tx.organization.findUniqueOrThrow({ where: update.where, select: update.select });
+              });
         return {
           ...organization,
           address: {
@@ -1519,6 +1592,7 @@ export const appRouter = router({
           leases: {
             select: {
               monthlyRentCents: true,
+              currencyCode: true,
               archivedAt: true,
               id: true,
               startsOn: true,
@@ -1547,6 +1621,7 @@ export const appRouter = router({
                   paidOn: true,
                   status: true,
                   amountCents: true,
+                  currencyCode: true,
                   balanceCents: true,
                 },
               },
@@ -1602,7 +1677,13 @@ export const appRouter = router({
           const leases = property.leases.flatMap((lease) => {
             const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
             const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
-            const amountOverdueCents = summarizeInvoiceBalances(invoices, today).overdueCents;
+            const amountOverdueCents = sumMoneyMinorUnits(
+              invoices.map((invoice) => ({
+                currencyCode: invoice.currencyCode,
+                amountMinorUnits: summarizeInvoiceBalances([invoice], today).overdueCents,
+              })),
+              lease.currencyCode,
+            );
             return [
               {
                 ...leaseData,
@@ -1617,25 +1698,29 @@ export const appRouter = router({
               },
             ];
           });
-          const result = withOperatingMetrics({
-            ...withPropertyNotes({
-              ...property,
-              leases,
-            }),
-            maintenanceTickets: permissions.maintenance.view
-              ? property.maintenanceTickets.map((ticket) => ({
-                  ...ticket,
-                  unitLabel: permissions.units.view ? ticket.unitLabel : null,
-                  units: permissions.units.view ? ticket.units : [],
-                }))
-              : [],
-            units: (permissions.units.view ? property.units : []).map(({ _count, ...unit }) => ({
-              ...serializeUnit(unit),
-              isOccupied: permissions.leases.view ? _count.leases > 0 : null,
-            })),
-          });
+          const result = withOperatingMetrics(
+            {
+              ...withPropertyNotes({
+                ...property,
+                leases,
+              }),
+              maintenanceTickets: permissions.maintenance.view
+                ? property.maintenanceTickets.map((ticket) => ({
+                    ...ticket,
+                    unitLabel: permissions.units.view ? ticket.unitLabel : null,
+                    units: permissions.units.view ? ticket.units : [],
+                  }))
+                : [],
+              units: (permissions.units.view ? property.units : []).map(({ _count, ...unit }) => ({
+                ...serializeUnit(unit, ctx.organizationScope.organization.currencyCode),
+                isOccupied: permissions.leases.view ? _count.leases > 0 : null,
+              })),
+            },
+            ctx.organizationScope.organization.currencyCode,
+          );
           return {
             ...result,
+            currencyCode: ctx.organizationScope.organization.currencyCode,
             occupiedUnits: permissions.units.view && permissions.leases.view ? property.occupiedUnits : null,
             monthlyRentCents: permissions.leases.view ? result.monthlyRentCents : null,
             amountOverdueCents: permissions.leases.view && permissions.invoices.view ? result.amountOverdueCents : null,
@@ -1686,6 +1771,7 @@ export const appRouter = router({
                     invoiceNumber: true,
                     balanceCents: true,
                     amountCents: true,
+                    currencyCode: true,
                     dueOn: true,
                     paidOn: true,
                     status: true,
@@ -1727,7 +1813,13 @@ export const appRouter = router({
           const { tenants: _tenants, unit: _unit, invoices, ...leaseData } = lease;
           const firstTenant = permissions.tenants.view ? (lease.tenants[0]?.tenant ?? null) : null;
           const amountOverdueCents = permissions.invoices.view
-            ? summarizeInvoiceBalances(invoices, today).overdueCents
+            ? sumMoneyMinorUnits(
+                invoices.map((invoice) => ({
+                  currencyCode: invoice.currencyCode,
+                  amountMinorUnits: summarizeInvoiceBalances([invoice], today).overdueCents,
+                })),
+                lease.currencyCode,
+              )
             : null;
           return [
             {
@@ -1745,6 +1837,7 @@ export const appRouter = router({
         });
 
         return {
+          currencyCode: ctx.organizationScope.organization.currencyCode,
           ...withPropertyNotes({
             ...propertyData,
             leases: leases.filter((lease) => lease.archivedAt === null),
@@ -1761,7 +1854,9 @@ export const appRouter = router({
           legacyNotes: permissions.property_notes.view ? property.legacyNotes : null,
           legacyNoteId: permissions.property_notes.view ? property.legacyNoteId : null,
           notes: permissions.property_notes.view ? property.legacyNotes : null,
-          units: permissions.units.view ? rawUnits.map(serializeUnit) : [],
+          units: permissions.units.view
+            ? rawUnits.map((unit) => serializeUnit(unit, ctx.organizationScope.organization.currencyCode))
+            : [],
           unitStatuses,
           imageUrl: await createPropertyImageDownloadUrl(property.imageObjectKey),
         };
@@ -1844,6 +1939,10 @@ export const appRouter = router({
           });
         await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, input.units);
         return ctx.prisma.$transaction(async (tx) => {
+          const currencyCode =
+            input.units.length > 0
+              ? await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId)
+              : ctx.organizationScope.organization.currencyCode;
           const initialProperty = await tx.property.create({
             select: propertySelect,
             data: {
@@ -1883,7 +1982,7 @@ export const appRouter = router({
             ),
           );
 
-          return withPropertyNotes(property);
+          return withPropertyNotes({ ...property, currencyCode });
         });
       }),
     /** Updates a property and synchronizes its units. */
@@ -1930,7 +2029,7 @@ export const appRouter = router({
           .$transaction(
             async (tx) => {
               const currentProperty = await tx.property.findUniqueOrThrow({
-                where: { id: input.id },
+                where: { id: input.id, organizationId: ctx.organizationScope.organizationId },
                 select: { legacyNoteId: true, status: true },
               });
               if (input.status !== undefined && currentProperty.status === "archived") {
@@ -1939,6 +2038,10 @@ export const appRouter = router({
                   message: "Unarchive this property before changing its operational status.",
                 });
               }
+              const currencyCode =
+                input.units.length > 0
+                  ? await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId)
+                  : ctx.organizationScope.organization.currencyCode;
               const legacyNote =
                 input.notes === undefined
                   ? {}
@@ -2019,7 +2122,7 @@ export const appRouter = router({
                   });
                 }),
               );
-              return updatedProperty;
+              return { ...updatedProperty, currencyCode };
             },
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
           )
@@ -2181,6 +2284,7 @@ export const appRouter = router({
                   termType: true,
                   endsOn: true,
                   monthlyRentCents: true,
+                  currencyCode: true,
                   propertyId: true,
                   unitId: true,
                   unit: { select: { name: true } },
@@ -2243,6 +2347,7 @@ export const appRouter = router({
                     status: true,
                     termType: true,
                     monthlyRentCents: true,
+                    currencyCode: true,
                     unitId: true,
                     propertyId: true,
                     unit: { select: { name: true } },
@@ -2257,6 +2362,7 @@ export const appRouter = router({
                         status: true,
                         dueOn: true,
                         amountCents: true,
+                        currencyCode: true,
                         paidOn: true,
                         balanceCents: true,
                         invoiceNumber: true,
@@ -2552,9 +2658,11 @@ export const appRouter = router({
                 input.tenantAllocations.map((allocation) => [allocation.tenantId, allocation]),
               );
 
+              const currencyCode = await lockOrganizationCurrency(tx, ctx.organization.organizationId);
               const lease = await tx.lease.create({
                 data: {
                   organizationId: ctx.organization.organizationId,
+                  currencyCode,
                   propertyId: input.propertyId,
                   unitId: input.unitId,
                   securityDepositCents: input.securityDepositCents,
@@ -2571,7 +2679,6 @@ export const appRouter = router({
                       const allocation = allocationsByTenantId.get(tenantId);
 
                       return {
-                        organizationId: ctx.organization.organizationId,
                         tenantId,
                         rentShareCents: allocation?.rentShareCents,
                         depositShareCents: allocation?.depositShareCents,
@@ -2590,6 +2697,7 @@ export const appRouter = router({
                   organizationId: ctx.organization.organizationId,
                   leaseId: lease.id,
                   propertyId: input.propertyId,
+                  currencyCode,
                   today: getCalendarDate(new Date(), ctx.organization.organization.timeZone),
                   charges: rentCharges,
                 });
@@ -2600,7 +2708,7 @@ export const appRouter = router({
                   subjectLabel: `Lease #${lease.id}`,
                   propertyId: input.propertyId,
                   action: "lease.created",
-                  metadata: { ...invoiceSummary, billingRevision: 1 },
+                  metadata: { ...invoiceSummary, billingRevision: 1, currencyCode },
                 });
               }
 
@@ -2881,54 +2989,58 @@ export const appRouter = router({
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
-      const lease = await ctx.prisma.lease.findFirst({
-        where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
-        select: {
-          id: true,
-          propertyId: true,
-          status: true,
-          billingResponsibility: true,
-          allowPartialPayments: true,
-          tenants: {
-            orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
-            select: { tenantId: true },
-          },
-        },
-      });
-      if (!lease || lease.propertyId === null || lease.propertyId !== input.propertyId) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property." });
-      }
-      if (lease.status === LeaseStatus.draft) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." });
-      }
-
-      const tenantId = input.tenantId ?? lease.tenants[0]?.tenantId;
-      if (tenantId === undefined || !lease.tenants.some((tenant) => tenant.tenantId === tenantId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "The selected tenant is not on this lease." });
-      }
-      const recipientTenantIds =
-        lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [tenantId];
-
-      const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
-      if (amountCents <= 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "An invoice must have a positive total." });
-      }
-      if (input.paidCents > amountCents) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid cannot exceed the invoice total." });
-      }
-      if (!lease.allowPartialPayments && input.paidCents > 0 && input.paidCents !== amountCents) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This lease requires the invoice to be paid in full.",
-        });
-      }
-      const dueOn = new Date(input.dueOn);
-      dueOn.setUTCHours(0, 0, 0, 0);
-
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
           return await ctx.prisma.$transaction(
             async (tx) => {
+              const lease = await tx.lease.findFirst({
+                where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
+                select: {
+                  id: true,
+                  currencyCode: true,
+                  propertyId: true,
+                  status: true,
+                  billingResponsibility: true,
+                  allowPartialPayments: true,
+                  tenants: {
+                    orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
+                    select: { tenantId: true },
+                  },
+                },
+              });
+              if (!lease || lease.propertyId === null || lease.propertyId !== input.propertyId) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Select a lease for the chosen property." });
+              }
+              if (lease.status === LeaseStatus.draft) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Draft leases cannot receive invoices." });
+              }
+
+              const tenantId = input.tenantId ?? lease.tenants[0]?.tenantId;
+              if (tenantId === undefined || !lease.tenants.some((tenant) => tenant.tenantId === tenantId)) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "The selected tenant is not on this lease." });
+              }
+              const recipientTenantIds =
+                lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [tenantId];
+
+              const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
+              if (amountCents <= 0) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "An invoice must have a positive total." });
+              }
+              if (input.paidCents > amountCents) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid cannot exceed the invoice total." });
+              }
+              if (!lease.allowPartialPayments && input.paidCents > 0 && input.paidCents !== amountCents) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "This lease requires the invoice to be paid in full.",
+                });
+              }
+              const dueOn = new Date(input.dueOn);
+              dueOn.setUTCHours(0, 0, 0, 0);
+              if (lease.currencyCode === null) {
+                throw new TRPCError({ code: "CONFLICT", message: "Lease currency has not been set." });
+              }
+              const currencyCode = await lockLeaseCurrency(tx, ctx.organization.organizationId, lease.currencyCode);
               const existingInvoice = await tx.invoice.findFirst({
                 where: {
                   leaseId: lease.id,
@@ -2948,6 +3060,7 @@ export const appRouter = router({
                 data: {
                   organizationId: ctx.organization.organizationId,
                   leaseId: lease.id,
+                  currencyCode,
                   propertyId: input.propertyId,
                   tenantId,
                   recipients: {
@@ -3026,11 +3139,12 @@ export const appRouter = router({
                 propertyId: true,
                 dueOn: true,
                 balanceCents: true,
+                currencyCode: true,
                 recipients: {
                   select: { tenantId: true },
                 },
                 lease: {
-                  select: { allowPartialPayments: true },
+                  select: { allowPartialPayments: true, currencyCode: true },
                 },
               },
             });
@@ -3051,6 +3165,7 @@ export const appRouter = router({
                 message: "This lease requires the invoice to be paid in full.",
               });
             }
+            await lockInvoiceCurrency(tx, ctx.organization.organizationId, invoice);
             const balanceCents = invoice.balanceCents - input.amountCents;
             const payment = await tx.invoicePayment.create({
               data: {
@@ -3084,7 +3199,7 @@ export const appRouter = router({
               },
               ctx.user,
             );
-            return payment;
+            return { ...payment, currencyCode: invoice.currencyCode };
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
@@ -3108,11 +3223,12 @@ export const appRouter = router({
               select: {
                 dueOn: true,
                 balanceCents: true,
+                currencyCode: true,
                 recipients: {
                   select: { tenantId: true },
                 },
                 lease: {
-                  select: { allowPartialPayments: true },
+                  select: { allowPartialPayments: true, currencyCode: true },
                 },
               },
             });
@@ -3134,6 +3250,7 @@ export const appRouter = router({
                 message: "This lease requires the invoice to be paid in full.",
               });
             }
+            await lockInvoiceCurrency(tx, ctx.organization.organizationId, invoice);
             const balanceCents = invoice.balanceCents - paymentTotalCents;
             const latestPayment = input.payments.reduce((latest, payment) =>
               payment.paidOn >= latest.paidOn ? payment : latest,
@@ -3177,7 +3294,7 @@ export const appRouter = router({
                 ctx.user,
               );
             }
-            return payments;
+            return payments.map((payment) => ({ ...payment, currencyCode: invoice.currencyCode }));
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
@@ -3204,8 +3321,14 @@ export const appRouter = router({
           async (tx) => {
             const invoice = await tx.invoice.findFirstOrThrow({
               where: { id: input.id, organizationId: ctx.organization.organizationId },
-              select: { amountCents: true, balanceCents: true },
+              select: {
+                amountCents: true,
+                balanceCents: true,
+                currencyCode: true,
+                lease: { select: { currencyCode: true } },
+              },
             });
+            await lockInvoiceCurrency(tx, ctx.organization.organizationId, invoice);
             const paidCents = invoice.amountCents - invoice.balanceCents;
             if (paidCents > amountCents) {
               throw new TRPCError({
@@ -3271,6 +3394,7 @@ export const appRouter = router({
                 id: true,
                 amountCents: true,
                 balanceCents: true,
+                currencyCode: true,
                 paidOn: true,
                 paidByTenantId: true,
                 paymentMethod: true,
@@ -3304,11 +3428,19 @@ export const appRouter = router({
               where: { id: input.id, organizationId: ctx.organization.organizationId },
               select: { invoiceId: true, amountCents: true, reversedAt: true },
             });
-            if (payment.reversedAt) return { id: input.id };
             const invoice = await tx.invoice.findFirstOrThrow({
               where: { id: payment.invoiceId, organizationId: ctx.organization.organizationId },
-              select: { amountCents: true, balanceCents: true, dueOn: true, status: true },
+              select: {
+                amountCents: true,
+                balanceCents: true,
+                dueOn: true,
+                status: true,
+                currencyCode: true,
+                lease: { select: { currencyCode: true } },
+              },
             });
+            await lockInvoiceCurrency(tx, ctx.organization.organizationId, invoice);
+            if (payment.reversedAt) return { id: input.id };
             if (invoice.status === "void" || invoice.balanceCents + payment.amountCents > invoice.amountCents) {
               throw new TRPCError({
                 code: "CONFLICT",
@@ -3340,7 +3472,7 @@ export const appRouter = router({
             await tx.note.create({
               data: {
                 invoiceId: payment.invoiceId,
-                body: `Payment of $${(payment.amountCents / 100).toFixed(2)} reversed by ${ctx.user.name}.\nReason: ${input.reason}`,
+                body: `Payment of ${formatMinorUnits(payment.amountCents, getCurrencyMetadata(invoice.currencyCode))} reversed by ${ctx.user.name}.\nReason: ${input.reason}`,
               },
             });
             await recordInvoiceActivity(
@@ -3467,27 +3599,38 @@ export const appRouter = router({
   }),
   applications: router({
     list: permissionProcedure("applications", "view").query(({ ctx }) =>
-      ctx.prisma.application.findMany({
-        where: { organizationId: ctx.organization.organizationId, archivedAt: null },
-        orderBy: [{ submittedOn: "desc" }, { id: "desc" }],
-        include: {
-          property: { select: { id: true, name: true } },
-          applicant: true,
-          status: { select: { id: true, label: true } },
-        },
-      }),
+      ctx.prisma.application
+        .findMany({
+          where: { organizationId: ctx.organization.organizationId, archivedAt: null },
+          orderBy: [{ submittedOn: "desc" }, { id: "desc" }],
+          include: {
+            property: { select: { id: true, name: true } },
+            applicant: true,
+            status: { select: { id: true, label: true } },
+          },
+        })
+        .then((applications) =>
+          applications.map((application) => ({
+            ...application,
+            currencyCode: ctx.organization.organization.currencyCode,
+          })),
+        ),
     ),
     byId: permissionProcedure("applications", "view")
       .input(applicationByIdInputSchema)
       .query(({ ctx, input }) =>
-        ctx.prisma.application.findFirst({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
-          include: {
-            property: { select: { id: true, name: true, city: true, region: true } },
-            applicant: true,
-            status: { select: { id: true, label: true } },
-          },
-        }),
+        ctx.prisma.application
+          .findFirst({
+            where: { id: input.id, organizationId: ctx.organization.organizationId },
+            include: {
+              property: { select: { id: true, name: true, city: true, region: true } },
+              applicant: true,
+              status: { select: { id: true, label: true } },
+            },
+          })
+          .then((application) =>
+            application ? { ...application, currencyCode: ctx.organization.organization.currencyCode } : null,
+          ),
       ),
     create: permissionProcedure("applications", "create")
       .input(createApplicationInputSchema)
@@ -3516,11 +3659,12 @@ export const appRouter = router({
         }
 
         return ctx.prisma.$transaction(async (tx) => {
+          const currencyCode = await lockOrganizationCurrency(tx, ctx.organization.organizationId);
           const applicant = await tx.applicant.create({
             data: { organizationId: ctx.organization.organizationId, ...getApplicantData(input.applicant) },
           });
 
-          return tx.application.create({
+          const saved = await tx.application.create({
             data: {
               organizationId: ctx.organization.organizationId,
               propertyId: input.propertyId,
@@ -3530,6 +3674,7 @@ export const appRouter = router({
               applicantId: applicant.id,
             },
           });
+          return { ...saved, currencyCode };
         });
       }),
     update: permissionProcedure("applications", "edit")
@@ -3568,6 +3713,7 @@ export const appRouter = router({
 
         const applicantData = getApplicantData(input.applicant);
         return ctx.prisma.$transaction(async (tx) => {
+          const currencyCode = await lockOrganizationCurrency(tx, ctx.organization.organizationId);
           const applicantUsageCount = await tx.application.count({
             where: { organizationId: ctx.organization.organizationId, applicantId: application.applicantId },
           });
@@ -3577,7 +3723,7 @@ export const appRouter = router({
                   data: { organizationId: ctx.organization.organizationId, ...applicantData },
                 })
               : await tx.applicant.update({ where: { id: application.applicantId }, data: applicantData });
-          return tx.application.update({
+          const saved = await tx.application.update({
             where: { id: input.id },
             data: {
               propertyId: input.propertyId,
@@ -3587,6 +3733,7 @@ export const appRouter = router({
               applicantId: applicant.id,
             },
           });
+          return { ...saved, currencyCode };
         });
       }),
     updateStatus: permissionProcedure("applications", "edit")
@@ -4105,7 +4252,7 @@ export const appRouter = router({
         return ctx.prisma.$transaction(async (tx) => {
           const invoice = await tx.invoice.findFirstOrThrow({
             where: { id: input.invoiceId, organizationId: ctx.organization.organizationId },
-            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true },
+            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true, currencyCode: true },
           });
           const note = await tx.note.create({
             data: input,
@@ -4192,7 +4339,7 @@ export const appRouter = router({
         if (existingNote.invoiceId) {
           const invoice = await tx.invoice.findFirstOrThrow({
             where: { id: existingNote.invoiceId, organizationId: ctx.organization.organizationId },
-            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true },
+            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true, currencyCode: true },
           });
           await recordInvoiceActivity(tx, invoice, "invoice.note_updated", { noteId: input.id }, ctx.user);
         }
@@ -4257,7 +4404,7 @@ export const appRouter = router({
         if (existingNote.invoiceId) {
           const invoice = await tx.invoice.findFirstOrThrow({
             where: { id: existingNote.invoiceId, organizationId: ctx.organization.organizationId },
-            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true },
+            select: { id: true, invoiceNumber: true, organizationId: true, propertyId: true, currencyCode: true },
           });
           await recordInvoiceActivity(tx, invoice, "invoice.note_deleted", { noteId: input.id }, ctx.user);
         }
@@ -4404,6 +4551,7 @@ export const appRouter = router({
             startsOn: true,
             endsOn: true,
             monthlyRentCents: true,
+            currencyCode: true,
             rentChargeId: true,
             rentDueDay: true,
             property: { select: { id: true, name: true } },
@@ -4477,6 +4625,7 @@ export const appRouter = router({
                   startsOn: true,
                   endsOn: true,
                   monthlyRentCents: true,
+                  currencyCode: true,
                   rentChargeId: true,
                   securityDepositCents: true,
                   rentDueDay: true,
@@ -4600,7 +4749,41 @@ export const appRouter = router({
                 }
               }
 
+              const replaceTenants =
+                data.tenantIds !== undefined || data.tenantAllocations !== undefined || billingResponsibilityChanged;
+              const tenantIds = data.tenantIds ?? current.tenants.map(({ tenantId }) => tenantId);
+              const allocations =
+                parsed.data.billingResponsibility === "joint"
+                  ? []
+                  : (data.tenantAllocations ?? (billingResponsibilityChanged ? [] : current.tenants));
+              const tenantRows = tenantIds.map((tenantId) => {
+                const allocation = allocations.find((item) => item.tenantId === tenantId);
+                return {
+                  organizationId,
+                  leaseId: input.leaseId,
+                  tenantId,
+                  rentShareCents: allocation?.rentShareCents ?? null,
+                  depositShareCents: allocation?.depositShareCents ?? null,
+                };
+              });
+              const hasMonetaryData =
+                data.monthlyRentCents != null ||
+                data.securityDepositCents != null ||
+                current.monthlyRentCents !== null ||
+                current.securityDepositCents !== 0 ||
+                current.tenants.some(
+                  ({ rentShareCents, depositShareCents }) => rentShareCents != null || depositShareCents != null,
+                ) ||
+                (replaceTenants &&
+                  tenantRows.some(
+                    ({ rentShareCents, depositShareCents }) => rentShareCents !== null || depositShareCents !== null,
+                  ));
+              const currencyCode =
+                current.currencyCode !== null || hasMonetaryData
+                  ? await lockLeaseCurrency(tx, organizationId, current.currencyCode)
+                  : null;
               const updateData: Prisma.LeaseUncheckedUpdateManyInput = {
+                currencyCode,
                 propertyId: parsed.data.propertyId ?? null,
                 unitId: parsed.data.unitId ?? null,
                 termType: parsed.data.termType ?? null,
@@ -4629,36 +4812,9 @@ export const appRouter = router({
               if (updated.count !== 1)
                 throw new TRPCError({ code: "CONFLICT", message: "Lease draft has changed. Reload and try again." });
 
-              if (
-                data.tenantIds !== undefined ||
-                data.tenantAllocations !== undefined ||
-                billingResponsibilityChanged
-              ) {
+              if (replaceTenants) {
                 await tx.leaseTenant.deleteMany({ where: { organizationId, leaseId: input.leaseId } });
-                const tenantIds = data.tenantIds ?? current.tenants.map(({ tenantId }) => tenantId);
-                const savedAllocations = billingResponsibilityChanged
-                  ? []
-                  : current.tenants.map(({ tenantId, rentShareCents, depositShareCents }) => ({
-                      tenantId,
-                      rentShareCents: rentShareCents ?? 0,
-                      depositShareCents: depositShareCents ?? 0,
-                    }));
-                const allocations =
-                  parsed.data.billingResponsibility === "joint" ? [] : (data.tenantAllocations ?? savedAllocations);
-                if (tenantIds.length > 0) {
-                  await tx.leaseTenant.createMany({
-                    data: tenantIds.map((tenantId) => {
-                      const allocation = allocations.find((item) => item.tenantId === tenantId);
-                      return {
-                        organizationId,
-                        leaseId: input.leaseId,
-                        tenantId,
-                        rentShareCents: allocation?.rentShareCents ?? null,
-                        depositShareCents: allocation?.depositShareCents ?? null,
-                      };
-                    }),
-                  });
-                }
+                if (tenantRows.length > 0) await tx.leaseTenant.createMany({ data: tenantRows });
               }
               return tx.lease.findFirstOrThrow({ where: { id: input.leaseId, organizationId } });
             },
@@ -4699,6 +4855,10 @@ export const appRouter = router({
                     lease.revision === input.expectedRevision + 1 &&
                     (lease.status === LeaseStatus.active || lease.status === LeaseStatus.scheduled)
                   ) {
+                    if (lease.currencyCode === null) {
+                      throw new TRPCError({ code: "CONFLICT", message: "Lease currency has not been set." });
+                    }
+                    await lockLeaseCurrency(tx, organizationId, lease.currencyCode);
                     const invoiceSummary = await getLeaseRentInvoiceSummary(tx, organizationId, lease.id, 1);
                     return { ...lease, invoiceSummary };
                   }
@@ -4747,6 +4907,10 @@ export const appRouter = router({
                   });
                 }
                 const completeLease = validation.data;
+                if (lease.currencyCode === null) {
+                  throw new TRPCError({ code: "CONFLICT", message: "Save lease amounts before finalizing the lease." });
+                }
+                const currencyCode = await lockLeaseCurrency(tx, organizationId, lease.currencyCode);
                 const rentChargeId = lease.rentChargeId;
                 await tx.property.findFirstOrThrow({
                   where: { id: completeLease.propertyId, organizationId },
@@ -4797,6 +4961,7 @@ export const appRouter = router({
                   organizationId,
                   leaseId: lease.id,
                   propertyId: completeLease.propertyId,
+                  currencyCode,
                   rentChargeId,
                   today,
                   charges: rentCharges,
@@ -4873,7 +5038,7 @@ export const appRouter = router({
                   subjectLabel: `Lease #${lease.id}`,
                   propertyId: completeLease.propertyId,
                   action: "lease.finalized",
-                  metadata: { ...invoiceSummary, billingRevision: 1 },
+                  metadata: { ...invoiceSummary, billingRevision: 1, currencyCode },
                 });
                 if (status === LeaseStatus.active) {
                   await recordActivityEvent(tx, {
@@ -5108,9 +5273,11 @@ export const appRouter = router({
                   });
                 }
 
+                const currencyCode = await lockOrganizationCurrency(tx, ctx.organization.organizationId);
                 const createdLease = await tx.lease.create({
                   data: {
                     organizationId: ctx.organization.organizationId,
+                    currencyCode,
                     propertyId,
                     unitId,
                     ...leaseData,
@@ -5128,7 +5295,6 @@ export const appRouter = router({
                         const allocation = allocationsByTenantId.get(tenantId);
 
                         return {
-                          organizationId: ctx.organization.organizationId,
                           tenantId,
                           rentShareCents: allocation?.rentShareCents,
                           depositShareCents: allocation?.depositShareCents,
@@ -5161,6 +5327,7 @@ export const appRouter = router({
                     organizationId: ctx.organization.organizationId,
                     leaseId: createdLease.id,
                     propertyId,
+                    currencyCode,
                     rentChargeId:
                       rentChargeId ??
                       (
@@ -5178,7 +5345,7 @@ export const appRouter = router({
                     subjectLabel: `Lease #${createdLease.id}`,
                     propertyId,
                     action: "lease.created",
-                    metadata: { ...invoiceSummary, billingRevision: 1 },
+                    metadata: { ...invoiceSummary, billingRevision: 1, currencyCode },
                   });
                 }
 
@@ -5239,7 +5406,7 @@ export const appRouter = router({
           },
         });
 
-        return units.map(serializeUnit);
+        return units.map((unit) => serializeUnit(unit, ctx.organizationScope.organization.currencyCode));
       }),
     /** Returns a unit by its ID. */
     byId: apiPermissionProcedure("units", "view")
@@ -5258,7 +5425,7 @@ export const appRouter = router({
         });
 
         if (!unit && ctx.transport === "rest") throw new TRPCError({ code: "NOT_FOUND", message: "Unit not found." });
-        return unit ? serializeUnit(unit) : null;
+        return unit ? serializeUnit(unit, ctx.organizationScope.organization.currencyCode) : null;
       }),
     /** Creates a unit for a property. */
     create: apiPermissionProcedure("units", "create")
@@ -5266,13 +5433,14 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         await requirePrincipalPermission(ctx, "properties", "view");
         const { propertyId, ...unitDetails } = input;
-        await ctx.prisma.property.findFirstOrThrow({
-          where: { id: propertyId, organizationId: ctx.organizationScope.organizationId },
-        });
-        await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, [unitDetails]);
+        const unit = await ctx.prisma.$transaction(async (tx) => {
+          await tx.property.findFirstOrThrow({
+            where: { id: propertyId, organizationId: ctx.organizationScope.organizationId },
+          });
+          await validateUnitOptionIds(tx, ctx.organizationScope.organizationId, [unitDetails]);
+          const currencyCode = await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
 
-        return ctx.prisma.unit
-          .create({
+          const saved = await tx.unit.create({
             data: getUnitCreateData(propertyId, unitDetails),
             include: {
               amenities: {
@@ -5282,22 +5450,26 @@ export const appRouter = router({
                 select: { option: { select: { id: true, label: true } } },
               },
             },
-          })
-          .then(serializeUnit);
+          });
+          return { ...saved, currencyCode };
+        });
+
+        return serializeUnit(unit, unit.currencyCode);
       }),
     /** Updates a unit by its ID. */
     update: apiPermissionProcedure("units", "edit")
       .input(updateUnitInputSchema)
       .mutation(async ({ ctx, input }) => {
-        await ctx.prisma.unit.findFirstOrThrow({
-          where: { id: input.id, property: { organizationId: ctx.organizationScope.organizationId } },
-        });
-        await validateUnitOptionIds(ctx.prisma, ctx.organizationScope.organizationId, [input]);
         const unit = await ctx.prisma.$transaction(async (tx) => {
+          await tx.unit.findFirstOrThrow({
+            where: { id: input.id, property: { organizationId: ctx.organizationScope.organizationId } },
+          });
+          await validateUnitOptionIds(tx, ctx.organizationScope.organizationId, [input]);
+          const currencyCode = await lockOrganizationCurrency(tx, ctx.organizationScope.organizationId);
           await tx.unitUtility.deleteMany({ where: { unitId: input.id } });
           await tx.unitAmenity.deleteMany({ where: { unitId: input.id } });
 
-          return tx.unit.update({
+          const saved = await tx.unit.update({
             where: { id: input.id },
             data: getUnitUpdateData(input),
             include: {
@@ -5309,9 +5481,10 @@ export const appRouter = router({
               },
             },
           });
+          return { ...saved, currencyCode };
         });
 
-        return serializeUnit(unit);
+        return serializeUnit(unit, unit.currencyCode);
       }),
     /** Deletes a unit without lease, maintenance, or note history. */
     delete: apiPermissionProcedure("units", "delete")
@@ -5351,7 +5524,7 @@ export const appRouter = router({
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
           );
 
-          return serializeUnit(unit);
+          return serializeUnit(unit, ctx.organizationScope.organization.currencyCode);
         } catch (error) {
           if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
             throw new TRPCError({ code: "CONFLICT", message: "The unit changed. Please try again." });
