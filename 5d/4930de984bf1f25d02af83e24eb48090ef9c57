@@ -1,0 +1,22 @@
+ARCHITECTURE.md
+  s_69146205a97fec::t_d0ebe2249c228a 140
+  s_69146205a97fec::t_cd5e4577482dbc 135,138-139
+FRONTEND_CURRENCY_INVENTORY.md
+  s_69146205a97fec::t_945de4f8171b5e 25-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5d4930de984bf1f25d02af83e24eb48090ef9c57",
+  "prompts": {},
+  "sessions": {
+    "s_69146205a97fec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a205f1-da0f-71b2-b684-a460f6ad1f5f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
