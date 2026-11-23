@@ -1,13 +1,10 @@
-"use client";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-export default function OrganizationSettingsPage() {
-  const router = useRouter();
-  useEffect(() => {
-    const organizationPath = window.location.pathname.match(/^\/o\/[^/]+/)?.[0] ?? "";
-    router.replace(`${organizationPath}/settings/organization/general`);
-  }, [router]);
-  return null;
+export default async function OrganizationSettingsPage() {
+  const organizationSlug =
+    (await headers()).get("x-parcelis-organization-slug") ??
+    (await cookies()).get("parcelis-organization-slug")?.value;
+  const organizationPath = organizationSlug ? `/o/${encodeURIComponent(organizationSlug)}` : "";
+  redirect(`${organizationPath}/settings/organization/general`);
 }
