@@ -1,0 +1,24 @@
+tests/e2e/income-directory.spec.ts
+  s_69146205a97fec::t_f2be79526bfe5f 72
+  s_69146205a97fec::t_97f63f656cf867 2,13,22,66
+  s_69146205a97fec::t_3d45b333c2c664 158-160
+tests/e2e/organization-currency.spec.ts
+  s_69146205a97fec::t_ae432d1efbed6d 110
+  s_69146205a97fec::t_e7cadbf5f92982 106-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "71215aa2b9c1e28f6c9d724629ad2ea5f8d78837",
+  "prompts": {},
+  "sessions": {
+    "s_69146205a97fec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a205f1-da0f-71b2-b684-a460f6ad1f5f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
