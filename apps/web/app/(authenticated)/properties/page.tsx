@@ -161,7 +161,7 @@ function getUnitRows(property: PropertyListItem) {
       id: unit?.id,
       link: unitLink,
       unitLabel,
-      isOccupied: property.occupiedUnits === null ? null : activeLease?.status === "active",
+      isOccupied: property.occupiedUnits === null ? null : Boolean(activeLease),
       monthlyRentCents: property.monthlyRentCents === null ? null : (activeLease?.monthlyRentCents ?? 0),
       amountOverdueCents:
         property.amountOverdueCents === null
