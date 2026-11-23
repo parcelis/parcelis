@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { apiTokenExpirationSchema, createApiTokenInputSchema, type ApiTokenExpiration } from "@parcelis/schemas";
@@ -269,7 +269,7 @@ export default function OrganizationApiTokensPage() {
           </div>
         </header>
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="api-tokens"
@@ -279,13 +279,10 @@ export default function OrganizationApiTokensPage() {
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-5 text-3xl font-bold md:text-5xl">API tokens</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                  Manage integration credentials for {organization?.name ?? "this organization"}.
-                </p>
-              </section>
+              <SettingsPanelHeader
+                title={<>API tokens</>}
+                description={<>Manage integration credentials for {organization?.name ?? "this organization"}.</>}
+              />
             }
           >
             <Card>
@@ -427,7 +424,7 @@ export default function OrganizationApiTokensPage() {
                 ) : null}
               </CardContent>
             </Card>
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
       {organization && canManageTokens ? (

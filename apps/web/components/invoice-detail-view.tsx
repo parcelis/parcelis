@@ -81,6 +81,9 @@ function formatActivityAction(action: string) {
   const labels: Record<string, string> = {
     "invoice.created": "Invoice created",
     "invoice.updated": "Invoice updated",
+    "invoice.note_added": "Invoice note added",
+    "invoice.note_updated": "Invoice note updated",
+    "invoice.note_deleted": "Invoice note deleted",
     "invoice.payment_recorded": "Payment recorded",
     "invoice.payment_deleted": "Payment deleted",
     "invoice.payment_reversed": "Payment reversed",
@@ -97,10 +100,16 @@ type InvoiceActivityEvent = {
   createdAt: Date | string;
 };
 
-function getPaymentActivityMessage(
-  event: InvoiceActivityEvent,
-  formatCurrency: (amount: number, code?: string) => string,
-) {
+function getActivityMessage(event: InvoiceActivityEvent, formatCurrency: (amount: number, code?: string) => string) {
+  if (
+    ["invoice.note_added", "invoice.note_updated", "invoice.note_deleted"].includes(event.action) &&
+    event.metadata &&
+    typeof event.metadata === "object" &&
+    "noteId" in event.metadata &&
+    typeof event.metadata.noteId === "number"
+  ) {
+    return `Note #${event.metadata.noteId}${event.actorLabel ? ` · ${event.actorLabel}` : ""}`;
+  }
   if (event.action !== "invoice.payment_recorded" || !event.metadata || typeof event.metadata !== "object") return null;
   const metadata = event.metadata as {
     amountCents?: number;
@@ -617,9 +626,9 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
                                     <p className="mt-1 text-xs font-semibold text-parcelis-green">
                                       {event.subjectReference}
                                     </p>
-                                    {getPaymentActivityMessage(event, formatCurrency) ? (
+                                    {getActivityMessage(event, formatCurrency) ? (
                                       <p className="mt-1 text-parcelis-gray">
-                                        {getPaymentActivityMessage(event, formatCurrency)}
+                                        {getActivityMessage(event, formatCurrency)}
                                       </p>
                                     ) : null}
                                   </div>

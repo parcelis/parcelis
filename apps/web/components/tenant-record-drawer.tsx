@@ -3,7 +3,6 @@
 import { useMoney } from "./organization-currency";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -31,20 +30,14 @@ import { TenantDrawer, initialTenantFormState, type TenantFormState } from "./te
 import { InvoiceRecordDrawer } from "./invoice-record-drawer";
 import { uploadTenantImage } from "./tenant-image-upload";
 import { entityUpdatedMessage } from "./toast-messages";
-import { getTenantLink } from "../lib/entity-links";
 import { formatLeaseEndDate } from "../lib/format";
-
-type RelatedTenant = {
-  id: number;
-  firstName: string;
-  lastName: string;
-};
+import { LeaseTenantList } from "./lease-tenant-list";
 
 type TenantRecordDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tenantId: number | null;
-  relatedTenants: RelatedTenant[];
+  leaseId: number;
 };
 
 function formatDate(value: Date | string | null) {
@@ -53,7 +46,7 @@ function formatDate(value: Date | string | null) {
     : "Not set";
 }
 
-export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantId }: TenantRecordDrawerProps) {
+export function TenantRecordDrawer({ onOpenChange, open, leaseId, tenantId }: TenantRecordDrawerProps) {
   const { formatCurrency } = useMoney();
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
@@ -75,9 +68,9 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
       setIsEditDrawerOpen(false);
       setTenantImageFile(null);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(variables.input.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.leases.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all }),
       ]);
       toast.success(entityUpdatedMessage("Tenant", `${variables.input.firstName} ${variables.input.lastName}`));
     },
@@ -91,7 +84,7 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
     tenant?.leases
       .flatMap((lease) => lease.invoices)
       .reduce((sum, invoice) => sum + invoice.amountCents - invoice.balanceCents, 0) ?? 0;
-  const roommates = relatedTenants.filter((relatedTenant) => relatedTenant.id !== tenantId);
+  const selectedLease = tenant?.leases.find((lease) => lease.id === leaseId);
 
   function openEditDrawer() {
     if (!tenant) return;
@@ -221,19 +214,11 @@ export function TenantRecordDrawer({ onOpenChange, open, relatedTenants, tenantI
                 </section>
 
                 <section className="border-t border-parcelis-border pt-6">
-                  <h3 className="text-xl font-bold text-parcelis-charcoal">Roommates</h3>
-                  {roommates.length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {roommates.map((roommate) => (
-                        <Link
-                          className="rounded-md border border-parcelis-border px-3 py-2 text-sm font-semibold text-parcelis-charcoal hover:border-parcelis-green hover:text-parcelis-green"
-                          href={getTenantLink(roommate.id)}
-                          key={roommate.id}
-                        >
-                          {roommate.firstName} {roommate.lastName}
-                        </Link>
-                      ))}
-                    </div>
+                  <h3 className="text-xl font-bold text-parcelis-charcoal">
+                    {selectedLease && selectedLease.tenants.length > 1 ? "Associated Tenants" : "Roommates"}
+                  </h3>
+                  {selectedLease && selectedLease.tenants.length > 1 ? (
+                    <LeaseTenantList currentTenantId={tenant.id} tenants={selectedLease.tenants} />
                   ) : (
                     <p className="mt-3 text-sm text-parcelis-gray">No roommates on this lease.</p>
                   )}

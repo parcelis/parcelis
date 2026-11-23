@@ -24,6 +24,7 @@ export async function readSmokeMutationResult<T>(response: Response, procedure: 
 export async function runDeploymentSmoke({
   base,
   cookie,
+  password,
   prisma,
   propertyId,
   tenantId,
@@ -31,6 +32,7 @@ export async function runDeploymentSmoke({
 }: {
   base: string;
   cookie: string;
+  password: string;
   prisma: PrismaClient;
   propertyId: number;
   tenantId: number;
@@ -68,7 +70,7 @@ export async function runDeploymentSmoke({
     body: new URLSearchParams({
       csrfToken,
       email: "pdf@example.test",
-      password: "Deployment-test-password-123!",
+      password,
       json: "true",
       callbackUrl: base,
     }),

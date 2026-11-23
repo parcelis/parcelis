@@ -48,6 +48,7 @@ import { hasPermission } from "../../../../components/property-access";
 import { EntityLifecycleControls } from "../../../../components/entity-lifecycle-controls";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
+import { formatDate } from "../../../../lib/date";
 import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../../lib/format";
 
@@ -56,15 +57,6 @@ function formatStatus(status: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-function formatDate(date: Date | string | null) {
-  if (!date) return "Not set";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
 }
 
 export default function PropertyDetailPage() {
@@ -137,7 +129,10 @@ export default function PropertyDetailPage() {
   const unitCount = property?.unitCount ?? 0;
   const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits / unitCount) * 100) : 0;
   const monthlyRentCents = activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0);
-  const amountOverdueCents = activeLeases.reduce((sum, lease) => sum + (lease.amountOverdueCents ?? 0), 0);
+  const amountOverdueCents = (property?.leaseHistory ?? []).reduce(
+    (sum, lease) => sum + (lease.amountOverdueCents ?? 0),
+    0,
+  );
   const expiringLeases90Days = activeLeases.filter((lease) => {
     const now = new Date();
     const expiresBefore = new Date(now);
@@ -562,7 +557,8 @@ export default function PropertyDetailPage() {
                                 {lease.tenant?.lastName ?? ""}
                               </p>
                               <p className="mt-1 text-sm text-parcelis-gray">
-                                {formatDate(lease.startsOn)} to {formatLeaseEndDate(lease.endsOn, lease.termType)}
+                                {lease.startsOn ? formatDate(lease.startsOn) : "Not set"} to{" "}
+                                {formatLeaseEndDate(lease.endsOn, lease.termType)}
                               </p>
                             </div>
                             <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">

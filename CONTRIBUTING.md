@@ -286,6 +286,10 @@ A missing or blank `NEXTAUTH_SECRET` disables NextAuth sign-in. The login page d
 
 #### What `pnpm dev` starts
 
+Configure `STATUS_TLS_KEY_FILE` and `STATUS_TLS_CERT_FILE` with absolute paths to a
+matching PEM key and X.509 certificate before starting the status monitor. For local
+certificate generation and web proxy trust, follow the
+[status monitor guide](https://docs.parcelis.dev/status-monitor).
 Run `pnpm status:dev` separately to edit the status monitor with automatic server
 restarts. Service results update in place every 15 seconds without closing details;
 refresh the browser after layout or script changes. Restarting resets its in-memory history.
@@ -335,8 +339,10 @@ After pulling schema changes, run:
 
 ```bash
 pnpm db:migrate
-pnpm db:seed
+pnpm db:generate
 ```
+
+Run `pnpm db:seed` only when setting up demo data or when a change explicitly requires updated seed data.
 
 #### Useful commands
 

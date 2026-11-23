@@ -31,7 +31,11 @@ PostgreSQL 18 is the database target for development and deployment. Existing Po
 
 Parcelis is a property-management platform for landlords, small operators, and local property teams. It is a pnpm workspace managed with Turborepo. The system has web, API, and worker applications and shared packages for UI, API contracts, jobs, configuration, and persistence.
 
-The independent status monitor is described in the [status monitor guide](https://github.com/parcelis/parcelis-docs/blob/docusaurus-docs-site/docusaurus-site/docs/Deployment/status-monitor.md).
+The independent status monitor serves HTTPS using a matching PEM key and X.509
+certificate loaded from `STATUS_TLS_KEY_FILE` and `STATUS_TLS_CERT_FILE`. Its web
+proxy upstream must use HTTPS and trust that certificate. HTTP availability probes
+use Node HTTP/HTTPS transports and follow up to five redirects within one probe
+deadline before validating the final status and content. The monitor is described in the [status monitor guide](https://docs.parcelis.dev/status-monitor).
 
 ```text
 app image: Next.js web + Next.js API + @parcelis/jobs
@@ -144,7 +148,7 @@ The complete frontend audit is in [FRONTEND_CURRENCY_INVENTORY.md](FRONTEND_CURR
 
 Use `@parcelis/ui` for reusable controls. New cross-screen controls belong in `packages/ui/src/components`; feature-specific forms and state helpers belong under `apps/web/components`.
 
-The expanded sidebar shows the active organization and, for users with access to more than one, provides an organization switcher. Organization settings in `apps/web/app/settings/organization` manage the organization name, slug, and light and dark avatar images.
+The expanded sidebar shows the active organization and, for users with access to more than one, provides an organization switcher. Organization settings at `/settings/organization/general` manage the organization name, slug, and light and dark avatar images. Security settings use `/settings/security/users` and `/settings/security/roles`. Previous settings URLs redirect to these paths, including organization-scoped URLs under `/o/:slug`.
 
 ## API
 

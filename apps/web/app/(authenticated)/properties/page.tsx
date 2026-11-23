@@ -113,6 +113,11 @@ function formatStatus(status: string) {
 
 function getUnitRows(property: PropertyListItem) {
   if (property.units.length === 0) return [];
+  const activeOrNoticeLeaseByUnit = new Map(
+    property.leases
+      .filter((lease) => lease.status === "active" || lease.status === "notice")
+      .map((lease) => [lease.unitLabel, lease]),
+  );
   const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
   const ticketCountsByUnit = new Map<number, number>();
   const legacyTicketCountsByLabel = new Map<string, number>();
@@ -145,7 +150,9 @@ function getUnitRows(property: PropertyListItem) {
   return Array.from(unitLabels, (unitLabel) => {
     const unit = property.units.find((item) => item.name === unitLabel);
     const unitLink = unit ? getUnitLink(property.id, unit.id) : null;
-    const activeLease = leaseByUnit.get(unitLabel);
+    const activeLease = activeOrNoticeLeaseByUnit.get(unitLabel);
+    const statusLease = leaseByUnit.get(unitLabel);
+    const preferredStatusLease = activeLease ?? statusLease;
     const endsOn =
       activeLease?.endsOn !== null && activeLease?.endsOn !== undefined ? new Date(activeLease.endsOn) : null;
     const isExpiring = Boolean(endsOn && endsOn >= now && endsOn <= expiresBefore);
@@ -156,13 +163,18 @@ function getUnitRows(property: PropertyListItem) {
       unitLabel,
       isOccupied: property.occupiedUnits === null ? null : activeLease?.status === "active",
       monthlyRentCents: property.monthlyRentCents === null ? null : (activeLease?.monthlyRentCents ?? 0),
-      amountOverdueCents: property.amountOverdueCents === null ? null : (activeLease?.amountOverdueCents ?? 0),
+      amountOverdueCents:
+        property.amountOverdueCents === null
+          ? null
+          : property.leaseHistory
+              .filter((lease) => (unit ? lease.unitId === unit.id : lease.unitLabel === unitLabel))
+              .reduce((sum, lease) => sum + (lease.amountOverdueCents ?? 0), 0),
       expiringLeases90Days: property.expiringLeases90Days === null ? null : isExpiring ? 1 : 0,
       openMaintenanceTickets:
         property.openMaintenanceTickets === null
           ? null
           : (unit ? (ticketCountsByUnit.get(unit.id) ?? 0) : 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
-      status: property.occupiedUnits === null ? "unavailable" : (activeLease?.status ?? "vacant"),
+      status: property.occupiedUnits === null ? "unavailable" : (preferredStatusLease?.status ?? "vacant"),
     };
   });
 }

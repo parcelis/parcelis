@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type { PrismaClient } from "@parcelis/db";
 import { EmailConfigurationError, getOrganizationEmailConfig, renderVerificationEmail } from "@parcelis/email";
@@ -47,9 +48,12 @@ test("processNotificationEmailJob validates payload and sends plain-text body as
   assert.deepEqual(marks, ["sending:42", "sent:42:msg-123"]);
 });
 
+const fixtureUrl = (mode: "verify" | "reset") =>
+  `https://parcelis.example/login?mode=${mode}#value=${randomUUID()}`;
+
 for (const template of [
-  { kind: "account-verification", url: "https://parcelis.example/login?mode=verify#token=verify-token" },
-  { kind: "password-reset", url: "https://parcelis.example/login?mode=reset#token=reset-token" },
+  { kind: "account-verification", url: fixtureUrl("verify") },
+  { kind: "password-reset", url: fixtureUrl("reset") },
 ] as const) {
   test(`processNotificationEmailJob renders the ${template.kind} template`, async () => {
     let sent: { html: string; text: string } | undefined;
@@ -85,7 +89,7 @@ for (const template of [
 }
 
 test("React Email escapes ampersands in an action URL", async () => {
-  const url = "https://parcelis.example/login?mode=verify&campaign=example#token=verify-token";
+  const url = "https://parcelis.example/login?mode=verify&campaign=example#value=fixture-link";
   const { html } = await renderVerificationEmail(url);
 
   assert.ok(html.includes(url.replaceAll("&", "&amp;")));
@@ -330,7 +334,7 @@ for (const configured of [true, false]) {
           requireTLS: true,
           from: "Organization <mail@example.com>",
           user: "organization-user",
-          password: "organization-password",
+          password: `fixture-org-pass-${randomUUID()}`,
         }
       : undefined;
     await processNotificationEmailJob(

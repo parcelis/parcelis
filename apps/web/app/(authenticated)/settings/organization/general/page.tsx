@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryNavigationLayout } from "../../../../../components/secondary-navigation-layout";
+import { SettingsPanel, SettingsPanelHeader } from "@parcelis/ui";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -108,7 +108,8 @@ export default function OrganizationSettingsPage() {
     }
   }, [activeOrganizationQuery.data]);
   const canManageOrganization = ["owner", "administrator"].includes(activeOrganizationQuery.data?.role ?? "");
-  const canManageUsers = currentUserQuery.data?.user.role === "administrator";
+  const canManageUsers = currentUserQuery.data?.permissions.users.view ?? false;
+  const canManageRoles = currentUserQuery.data?.user.role === "administrator";
   const saveOrganizationDetails = useMutation({
     mutationFn: async ({
       name,
@@ -202,23 +203,20 @@ export default function OrganizationSettingsPage() {
         </header>
 
         <div className="parcelis-page-shell">
-          <SecondaryNavigationLayout
+          <SettingsPanel
             navigation={
               <SettingsRail
                 active="organization"
                 canManageInvoicing={currentUserQuery.data?.permissions.invoices.view ?? false}
-                canManageRoles={canManageUsers}
+                canManageRoles={canManageRoles}
                 canManageUsers={canManageUsers}
               />
             }
             header={
-              <section className="mb-6 rounded-lg bg-parcelis-charcoal p-6 text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-parcelis-green">Settings</p>
-                <h1 className="mt-5 text-3xl font-bold md:text-5xl">Organization</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-                  Manage this business’s workspace details.
-                </p>
-              </section>
+              <SettingsPanelHeader
+                title={<>Organization</>}
+                description={<>Manage this business’s workspace details.</>}
+              />
             }
           >
             <Card>
@@ -478,7 +476,7 @@ export default function OrganizationSettingsPage() {
                 )}
               </CardContent>
             </Card>
-          </SecondaryNavigationLayout>
+          </SettingsPanel>
         </div>
       </section>
     </main>
