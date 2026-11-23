@@ -568,13 +568,13 @@ export default function PropertyDetailPage() {
                           <div className="mt-3 flex flex-wrap gap-3 text-sm text-parcelis-gray">
                             <span className="inline-flex items-center gap-1">
                               <CircleDollarSign className="h-4 w-4" />
-                              {formatCurrency(lease.monthlyRentCents)}
+                              {formatCurrency(lease.monthlyRentCents, lease.currencyCode)}
                             </span>
                             {lease.amountOverdueCents === null ? (
                               <span className="inline-flex items-center gap-1">Overdue: Unavailable</span>
                             ) : lease.amountOverdueCents > 0 ? (
                               <span className="inline-flex items-center gap-1 font-semibold text-red-700">
-                                Overdue {formatCurrency(lease.amountOverdueCents)}
+                                Overdue {formatCurrency(lease.amountOverdueCents, lease.currencyCode)}
                               </span>
                             ) : null}
                             {lease.tenant?.email ? (
