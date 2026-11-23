@@ -164,13 +164,11 @@ export default function OrganizationSettingsPage() {
   const refreshOrganizationCurrency = async (organizationSlug: string) => {
     const client = createApiClient(organizationSlug);
     await queryClient.cancelQueries({ queryKey: queryKeys.organizations.currency });
-    await queryClient
-      .fetchQuery({
-        queryKey: queryKeys.organizations.currency,
-        queryFn: () => client.organizations.currency.query(),
-        staleTime: 0,
-      })
-      .catch(() => undefined);
+    await queryClient.fetchQuery({
+      queryKey: queryKeys.organizations.currency,
+      queryFn: () => client.organizations.currency.query(),
+      staleTime: 0,
+    });
   };
   const saveOrganizationDetails = useMutation({
     mutationFn: async ({
@@ -234,7 +232,13 @@ export default function OrganizationSettingsPage() {
         setAvatarChanges({});
         setCurrencyCode(null);
       }
-      await refreshOrganizationCurrency(organization.slug);
+      let currencyRefreshed = false;
+      try {
+        await refreshOrganizationCurrency(organization.slug);
+        currencyRefreshed = true;
+      } catch {
+        // The currency provider displays the refresh error and retry button.
+      }
       const refetchType = () =>
         window.location.pathname.match(/^\/o\/([^/]+)/)?.[1] === variables.organizationSlug &&
         organization.slug === variables.organizationSlug
@@ -265,10 +269,14 @@ export default function OrganizationSettingsPage() {
       const suffix = currentPathname.replace(/^(?:\/o\/[^/]+)+/, "");
       const nextPathname = `/o/${organization.slug}${suffix === "/" ? "" : suffix}`;
       if (nextPathname !== currentPathname) router.replace(nextPathname);
-      toast.success(settingUpdatedMessage("Organization"));
+      if (currencyRefreshed) toast.success(settingUpdatedMessage("Organization"));
     },
     onError: async (_error, variables) => {
-      await refreshOrganizationCurrency(variables.organizationSlug);
+      try {
+        await refreshOrganizationCurrency(variables.organizationSlug);
+      } catch {
+        // The currency provider displays the refresh error and retry button.
+      }
     },
   });
   return (

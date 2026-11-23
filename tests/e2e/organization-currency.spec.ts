@@ -29,6 +29,8 @@ async function mockedSettings(page: Page) {
     role: "owner",
     failSave: false,
     failCurrency: false,
+    failCurrencyAfterSave: false,
+    properties: [] as unknown[],
     saveGate: null as Promise<void> | null,
     saveResponseGate: null as Promise<void> | null,
     currencyGate: null as { slug: string; wait: Promise<void> } | null,
@@ -63,6 +65,7 @@ async function mockedSettings(page: Page) {
         if (procedure === "organizations.active") data = { ...active, role: state.role };
         if (procedure === "organizations.list")
           data = [organization, second].map((organization) => ({ organization, role: state.role }));
+        if (procedure === "properties.list") data = state.properties;
         if (procedure === "organizations.currency") {
           const settings = { ...state.currencies[slug] };
           if (state.currencyGate?.slug === slug) await state.currencyGate.wait;
@@ -86,6 +89,7 @@ async function mockedSettings(page: Page) {
               canChangeCurrency: false,
               restrictionReason: "monetary_data_saved",
             };
+            if (state.failCurrencyAfterSave) state.failCurrency = true;
             return error("Currency cannot be changed after monetary data has been saved.");
           }
           Object.assign(active, args, {
@@ -99,6 +103,7 @@ async function mockedSettings(page: Page) {
             },
           });
           if (args.currencyCode) state.currencies[slug]!.currencyCode = String(args.currencyCode);
+          if (state.failCurrencyAfterSave) state.failCurrency = true;
           if (state.saveResponseGate) await state.saveResponseGate;
           data = active;
         }
@@ -209,6 +214,80 @@ test("a successful save applies normalized server values to the current form", a
   await expect(phone).toHaveValue("615-555-0100");
   await page.getByRole("button", { name: "Show organization address details", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "State", exact: true })).toHaveValue("CA");
+});
+
+test("a saved currency refresh failure blocks stale data and retries without saving again", async ({ page }) => {
+  const state = await mockedSettings(page);
+  state.currencies[state.organization.slug]!.supportedCurrencies.push(yen);
+  state.failCurrencyAfterSave = true;
+  await page.goto(settingsPath);
+  await page.getByRole("textbox", { name: "Organization name", exact: true }).fill("Saved before refresh failed");
+  await page.getByRole("combobox", { name: "Currency", exact: true }).selectOption("JPY");
+  await page.getByRole("button", { name: "Update organization", exact: true }).click();
+  const alert = page.getByRole("alert").filter({ hasText: "Currency unavailable." });
+  await expect(alert).toContainText("Currency could not be refreshed. Retry before continuing.");
+  await expect(page.getByRole("combobox", { name: "Currency", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Currency", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Organization has been updated.", { exact: false })).toHaveCount(0);
+  expect(state.currencies[state.organization.slug]!.currencyCode).toBe("JPY");
+  expect(state.organization.name).toBe("Saved before refresh failed");
+
+  state.failCurrency = false;
+  await page.getByRole("button", { name: "Retry loading currency", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Currency", exact: true })).toHaveValue("JPY");
+  await expect(page.getByRole("textbox", { name: "Organization name", exact: true })).toHaveValue(
+    "Saved before refresh failed",
+  );
+  expect(state.calls.filter((call) => call.procedure === "organizations.update")).toHaveLength(1);
+});
+
+test("a failed save retains entered fields while currency refresh failure is retried", async ({ page }) => {
+  const state = await mockedSettings(page);
+  state.failSave = true;
+  state.failCurrencyAfterSave = true;
+  await page.goto(settingsPath);
+  await page.getByRole("textbox", { name: "Organization name", exact: true }).fill("Keep this draft name");
+  await page.getByRole("button", { name: "Update organization", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Currency unavailable." })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Organization name", exact: true })).toHaveCount(0);
+  state.failCurrency = false;
+  await page.getByRole("button", { name: "Retry loading currency", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Organization name", exact: true })).toHaveValue(
+    "Keep this draft name",
+  );
+  expect(state.organization.name).not.toBe("Keep this draft name");
+  expect(state.calls.filter((call) => call.procedure === "organizations.update")).toHaveLength(1);
+});
+
+test("retrying a failed currency refresh reveals refreshed data on the current page", async ({ page }) => {
+  const response = await page.request.get("/trpc/properties.list");
+  expect(response.ok()).toBe(true);
+  const property = (await response.json()).result.data[0];
+  expect(property, "A seeded property is required").toBeDefined();
+  const state = await mockedSettings(page);
+  state.properties = [{ ...property, name: "Before currency refresh" }];
+  state.currencies[state.organization.slug]!.supportedCurrencies.push(yen);
+  state.failCurrencyAfterSave = true;
+  const gate = deferred();
+  state.saveGate = gate.wait;
+  try {
+    await page.goto(settingsPath);
+    await page.getByRole("combobox", { name: "Currency", exact: true }).selectOption("JPY");
+    await page.getByRole("button", { name: "Update organization", exact: true }).click();
+    await expect.poll(() => state.calls.filter((call) => call.procedure === "organizations.update").length).toBe(1);
+    await page.getByRole("main").getByRole("link", { name: "Portfolio", exact: true }).click();
+    await expect(page.getByText("Before currency refresh", { exact: true })).toBeVisible();
+    state.properties = [{ ...property, name: "After currency refresh", currencyCode: "JPY" }];
+    gate.release();
+    await expect(page.getByRole("alert").filter({ hasText: "Currency unavailable." })).toBeVisible();
+    state.failCurrency = false;
+    await page.getByRole("button", { name: "Retry loading currency", exact: true }).click();
+    await expect(page.getByText("After currency refresh", { exact: true })).toBeVisible();
+    await expect(page.getByText("Before currency refresh", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("¥18,422,000 JPY", { exact: true })).toBeVisible();
+  } finally {
+    gate.release();
+  }
 });
 
 test("a successful save replaces an in-flight currency response captured before the save", async ({ page }) => {

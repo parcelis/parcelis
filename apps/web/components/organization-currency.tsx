@@ -27,19 +27,26 @@ export function OrganizationCurrencyProvider({ children }: { children: React.Rea
   React.useEffect(() => {
     if (query.isFetchedAfterMount && query.isSuccess) setConfirmed(true);
   }, [query.isFetchedAfterMount, query.isSuccess]);
+  const errorState = query.error ? (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4" role="alert">
+      {query.data ? <p>Currency could not be refreshed. Retry before continuing.</p> : null}
+      <p>{query.error.message}</p>
+      <Button onClick={() => void query.refetch()} variant="secondary">
+        Retry loading currency
+      </Button>
+    </div>
+  ) : null;
   if (!query.data || !confirmed) {
-    return query.error ? (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4" role="alert">
-        <p>{query.error.message}</p>
-        <Button onClick={() => void query.refetch()} variant="secondary">
-          Retry loading currency
-        </Button>
-      </div>
-    ) : (
-      <LoadingState className="min-h-screen" label="Loading organization currency…" />
-    );
+    return errorState ?? <LoadingState className="min-h-screen" label="Loading organization currency…" />;
   }
-  return <CurrencyContext.Provider value={query.data}>{children}</CurrencyContext.Provider>;
+  return (
+    <CurrencyContext.Provider value={query.data}>
+      {errorState}
+      <div className={query.error ? "hidden" : "contents"} inert={Boolean(query.error)}>
+        {children}
+      </div>
+    </CurrencyContext.Provider>
+  );
 }
 
 export function useOrganizationCurrency() {
