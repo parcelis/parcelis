@@ -121,9 +121,19 @@ function getUnitRows(property: PropertyListItem) {
   const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
   const ticketCountsByUnit = new Map<number, number>();
   const legacyTicketCountsByLabel = new Map<string, number>();
+  const overdueCentsByUnit = new Map<number, number>();
+  const overdueCentsByLabel = new Map<string, number>();
   const now = new Date();
   const expiresBefore = new Date(now);
   expiresBefore.setDate(expiresBefore.getDate() + 90);
+
+  for (const lease of property.leaseHistory) {
+    const overdueCents = lease.amountOverdueCents ?? 0;
+    if (lease.unitId !== null) {
+      overdueCentsByUnit.set(lease.unitId, (overdueCentsByUnit.get(lease.unitId) ?? 0) + overdueCents);
+    }
+    overdueCentsByLabel.set(lease.unitLabel, (overdueCentsByLabel.get(lease.unitLabel) ?? 0) + overdueCents);
+  }
 
   for (const ticket of property.maintenanceTickets) {
     if (!isActiveMaintenanceTicketStatus(ticket.status)) continue;
@@ -166,9 +176,7 @@ function getUnitRows(property: PropertyListItem) {
       amountOverdueCents:
         property.amountOverdueCents === null
           ? null
-          : property.leaseHistory
-              .filter((lease) => (unit ? lease.unitId === unit.id : lease.unitLabel === unitLabel))
-              .reduce((sum, lease) => sum + (lease.amountOverdueCents ?? 0), 0),
+          : ((unit ? overdueCentsByUnit.get(unit.id) : overdueCentsByLabel.get(unitLabel)) ?? 0),
       expiringLeases90Days: property.expiringLeases90Days === null ? null : isExpiring ? 1 : 0,
       openMaintenanceTickets:
         property.openMaintenanceTickets === null
@@ -956,7 +964,7 @@ export default function PropertiesPage() {
                   <TableBody>
                     {filteredProperties.map((property) => {
                       const isExpanded = expandedPropertyIds.has(property.id);
-                      const unitRows = getUnitRows(property);
+                      const unitRows = isExpanded ? getUnitRows(property) : [];
                       return (
                         <React.Fragment key={property.id}>
                           <TableRow className="border-t border-parcelis-border hover:bg-parcelis-porcelain/60">

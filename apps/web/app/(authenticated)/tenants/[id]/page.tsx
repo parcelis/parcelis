@@ -140,6 +140,11 @@ export default function TenantDetailPage() {
     queryFn: () => apiClient.tenants.byId.query({ id: tenantId }),
     enabled: Number.isInteger(tenantId) && tenantId > 0,
   });
+  const invoicesQuery = useQuery({
+    queryKey: ["invoices", "list", { tenantId }],
+    queryFn: () => apiClient.invoices.list.query({ tenantId }),
+    enabled: canViewInvoices && canViewLeases && Number.isInteger(tenantId) && tenantId > 0,
+  });
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
     queryFn: () => apiClient.properties.list.query(),
@@ -200,6 +205,7 @@ export default function TenantDetailPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.byId(tenantId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({ queryKey: ["invoices", "list"] }),
       ]);
     },
   });
@@ -218,9 +224,13 @@ export default function TenantDetailPage() {
   });
   const today = organizationQuery.data?.timeZone ? getBillingCalendarDate(organizationQuery.data.timeZone) : null;
   const tenantInvoices = Array.from(
-    new Map((tenant?.leases.flatMap((lease) => lease.invoices) ?? []).map((invoice) => [invoice.id, invoice])).values(),
+    new Map((invoicesQuery.data ?? []).map((invoice) => [invoice.id, invoice])).values(),
   );
-  const balances = today && canViewInvoices && canViewLeases ? summarizeInvoiceBalances(tenantInvoices, today) : null;
+  const balances =
+    today && canViewInvoices && canViewLeases && invoicesQuery.isSuccess
+      ? summarizeInvoiceBalances(tenantInvoices, today)
+      : null;
+  const isBalanceLoading = currentUserQuery.isLoading || organizationQuery.isLoading || invoicesQuery.isLoading;
   const currentLease = tenant?.leases.find((lease) => lease.status === "active" || lease.status === "notice");
   const currentInvoice =
     today === null
@@ -753,7 +763,7 @@ export default function TenantDetailPage() {
                   value={currentLease ? formatCurrency(currentLease.monthlyRentCents, currentLease.currencyCode) : "—"}
                   detail={
                     !balances
-                      ? organizationQuery.isLoading
+                      ? isBalanceLoading
                         ? "Loading balance..."
                         : "Balance unavailable"
                       : overdueCents !== null && overdueCents > 0
@@ -791,7 +801,7 @@ export default function TenantDetailPage() {
                             <p className="text-sm font-medium text-parcelis-gray">Current Invoices</p>
                             {overdueCents === null ? (
                               <p className="mt-1 text-base font-bold text-parcelis-charcoal">
-                                {organizationQuery.isLoading ? "Loading balance..." : "Balance unavailable."}
+                                {isBalanceLoading ? "Loading balance..." : "Balance unavailable."}
                               </p>
                             ) : currentInvoiceId ? (
                               <Link
@@ -808,7 +818,7 @@ export default function TenantDetailPage() {
                             <p className="text-sm font-medium text-parcelis-gray">Past Due Invoices</p>
                             {overdueCents === null ? (
                               <p className="mt-1 text-base font-bold text-parcelis-charcoal">
-                                {organizationQuery.isLoading ? "Loading balance..." : "Balance unavailable."}
+                                {isBalanceLoading ? "Loading balance..." : "Balance unavailable."}
                               </p>
                             ) : overdueCents > 0 && pastDueInvoiceId ? (
                               <Link
@@ -826,15 +836,33 @@ export default function TenantDetailPage() {
                       <div className="space-y-6">
                         <CollectionMetric
                           label="Net payments recorded (all dates, shared obligations)"
-                          value={balances ? formatCurrency(balances.recordedPaymentCents) : "Unavailable"}
+                          value={
+                            balances
+                              ? formatCurrency(balances.recordedPaymentCents)
+                              : isBalanceLoading
+                                ? "Loading..."
+                                : "Unavailable"
+                          }
                         />
                         <CollectionMetric
                           label="Outstanding balance"
-                          value={balances ? formatCurrency(balances.outstandingCents) : "Unavailable"}
+                          value={
+                            balances
+                              ? formatCurrency(balances.outstandingCents)
+                              : isBalanceLoading
+                                ? "Loading..."
+                                : "Unavailable"
+                          }
                         />
                         <CollectionMetric
                           label="Overdue balance"
-                          value={balances ? formatCurrency(balances.overdueCents) : "Unavailable"}
+                          value={
+                            balances
+                              ? formatCurrency(balances.overdueCents)
+                              : isBalanceLoading
+                                ? "Loading..."
+                                : "Unavailable"
+                          }
                         />
                       </div>
                     </div>

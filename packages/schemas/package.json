@@ -7,6 +7,10 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./invoice-balances": {
+      "types": "./dist/invoice-balances.d.ts",
+      "default": "./dist/invoice-balances.js"
+    },
     "./currency": "./src/currency.ts",
     "./money": "./src/money.ts"
   },

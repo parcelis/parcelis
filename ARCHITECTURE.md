@@ -54,6 +54,7 @@ During local development, nginx listens on `http://localhost` and routes `/` to
 the web app and `/trpc/*` and `/api/*` to the API. Next.js redirects legacy `/docs`
 links to the independent site at `https://docs.parcelis.dev/`.
 The web, API, and worker application processes continue to run on their own host runtime for hot reload.
+The local launcher watches schemas and jobs in parallel so the worker receives shared billing helper updates.
 
 ## Monorepo structure
 

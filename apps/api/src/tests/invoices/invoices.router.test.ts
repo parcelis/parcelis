@@ -603,12 +603,21 @@ test("invoice directory uses organization-scoped recipients without filtering hi
     const caller = createCaller({
       invoice: {
         updateMany: async () => ({ count: 0 }),
-        findMany: async ({ where }: { where: unknown }) => {
+        findMany: async ({ where, include }: { where: unknown; include: unknown }) => {
           assert.deepEqual(where, {
             organizationId: 7,
             ...(tenantId ? { recipients: { some: { tenantId } } } : {}),
           });
-          return rows.map((row) => ({ ...row, lease: { unit: { name: "101" } } }));
+          assert.deepEqual(include, {
+            lease: { select: { unit: { select: { name: true } } } },
+            property: { select: { id: true, name: true } },
+            recipients: { include: { tenant: { select: { id: true, firstName: true, lastName: true } } } },
+          });
+          return rows.map((row) => ({
+            ...row,
+            lease: { unit: { name: "101" } },
+            recipients: [{ tenant: { id: 12, firstName: "Former", lastName: "Recipient" } }],
+          }));
         },
       },
     });
@@ -618,5 +627,6 @@ test("invoice directory uses organization-scoped recipients without filtering hi
       rows.map(({ id, amountCents, balanceCents }) => ({ id, amountCents, balanceCents })),
     );
     assert.equal(result.length, 3);
+    assert.equal(result[0]!.recipients[0]!.tenant.firstName, "Former");
   }
 });

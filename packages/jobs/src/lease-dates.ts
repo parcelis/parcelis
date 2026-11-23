@@ -1,4 +1,4 @@
-import { getBillingCalendarDate } from "@parcelis/schemas";
+import { getBillingCalendarDate } from "@parcelis/schemas/invoice-balances";
 
 export function getCalendarDate(instant: Date, timeZone: string) {
   return getBillingCalendarDate(timeZone, instant);

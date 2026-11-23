@@ -12,12 +12,12 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev:fixed": "tsc -p tsconfig.json --watch",
+    "build": "pnpm --filter @parcelis/schemas build && tsc -p tsconfig.json",
+    "dev:fixed": "pnpm --filter @parcelis/schemas build && tsc -p tsconfig.json --watch",
     "lint": "eslint .",
-    "test": "tsx --test \"src/**/*.test.ts\"",
-    "test:notification": "tsx --test src/notification-jobs.test.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test": "pnpm --filter @parcelis/schemas build && tsx --test \"src/**/*.test.ts\"",
+    "test:notification": "pnpm --filter @parcelis/schemas build && tsx --test src/notification-jobs.test.ts",
+    "typecheck": "pnpm --filter @parcelis/schemas build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@parcelis/schemas": "workspace:*",
