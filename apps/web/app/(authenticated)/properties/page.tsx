@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../components/organization-currency";
+
 import * as React from "react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -109,16 +111,6 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Unavailable";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
-}
-
 function getUnitRows(property: PropertyListItem) {
   if (property.units.length === 0) return [];
   const activeOrNoticeLeaseByUnit = new Map(
@@ -169,7 +161,7 @@ function getUnitRows(property: PropertyListItem) {
       id: unit?.id,
       link: unitLink,
       unitLabel,
-      isOccupied: property.occupiedUnits === null ? null : activeLease?.status === "active",
+      isOccupied: property.occupiedUnits === null ? null : Boolean(activeLease),
       monthlyRentCents: property.monthlyRentCents === null ? null : (activeLease?.monthlyRentCents ?? 0),
       amountOverdueCents:
         property.amountOverdueCents === null
@@ -328,6 +320,7 @@ function UnitActionsMenu({
 }
 
 export default function PropertiesPage() {
+  const { formatCurrency } = useMoney();
   const queryClient = useQueryClient();
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.me,

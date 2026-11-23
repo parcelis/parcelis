@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "./organization-currency";
+
 import Image from "next/image";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,13 +40,6 @@ type TenantRecordDrawerProps = {
   leaseId: number;
 };
 
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    cents / 100,
-  );
-}
-
 function formatDate(value: Date | string | null) {
   return value
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
@@ -52,6 +47,7 @@ function formatDate(value: Date | string | null) {
 }
 
 export function TenantRecordDrawer({ onOpenChange, open, leaseId, tenantId }: TenantRecordDrawerProps) {
+  const { formatCurrency } = useMoney();
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const [tenantForm, setTenantForm] = useState<TenantFormState>(initialTenantFormState);
@@ -202,7 +198,10 @@ export function TenantRecordDrawer({ onOpenChange, open, leaseId, tenantId }: Te
                         value={currentLease.property?.name ?? "Property not set"}
                         detail={`Unit ${currentLease.unitLabel}`}
                       />
-                      <RecordMetric label="Monthly Rent" value={formatCurrency(currentLease.monthlyRentCents)} />
+                      <RecordMetric
+                        label="Monthly Rent"
+                        value={formatCurrency(currentLease.monthlyRentCents, currentLease.currencyCode)}
+                      />
                       <RecordMetric label="Starts" value={formatDate(currentLease.startsOn)} />
                       <RecordMetric
                         label="Ends"
@@ -245,7 +244,7 @@ export function TenantRecordDrawer({ onOpenChange, open, leaseId, tenantId }: Te
                                 {formatInvoiceNumber(invoice.invoiceNumber)}
                               </TableCell>
                               <TableCell>{formatDate(invoice.dueOn)}</TableCell>
-                              <TableCell>{formatCurrency(invoice.amountCents)}</TableCell>
+                              <TableCell>{formatCurrency(invoice.amountCents, invoice.currencyCode)}</TableCell>
                               <TableCell className="text-right">
                                 <button
                                   className="font-semibold text-parcelis-green hover:underline"

@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "../../../../components/organization-currency";
+
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -78,16 +80,6 @@ function formatDate(date: Date | string | null, options?: { timeZone?: string })
   }).format(new Date(date));
 }
 
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
-}
-
 function formatStatus(status?: string | null) {
   if (!status) return "Not set";
 
@@ -104,6 +96,7 @@ function getStatusTone(status?: string | null) {
 }
 
 export default function TenantDetailPage() {
+  const { formatCurrency, toCents, amountStep, validateAmountInput } = useMoney();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const tenantId = Number(params.id);
@@ -192,7 +185,7 @@ export default function TenantDetailPage() {
       return apiClient.tenants.createLease.mutate({
         endsOn: leaseForm.endsOn ? new Date(leaseForm.endsOn) : null,
         termType: leaseForm.endsOn ? "fixed" : "month_to_month",
-        monthlyRentCents: Math.round(Number(leaseForm.monthlyRent) * 100),
+        monthlyRentCents: toCents(leaseForm.monthlyRent),
         propertyId: Number(leaseForm.propertyId),
         startsOn: new Date(leaseForm.startsOn),
         status: leaseForm.status as "active" | "draft" | "notice" | "ended",
@@ -497,10 +490,11 @@ export default function TenantDetailPage() {
             <Label>
               Monthly rent
               <Input
-                min="0.01"
+                min={amountStep}
                 onChange={(event) => setLeaseForm((current) => ({ ...current, monthlyRent: event.target.value }))}
                 required
-                step="0.01"
+                step={amountStep}
+                onInput={validateAmountInput}
                 type="number"
                 value={leaseForm.monthlyRent}
               />
@@ -756,7 +750,7 @@ export default function TenantDetailPage() {
                 <MetricCard
                   icon={CircleDollarSign}
                   label="Monthly Rent"
-                  value={currentLease ? formatCurrency(currentLease.monthlyRentCents) : "—"}
+                  value={currentLease ? formatCurrency(currentLease.monthlyRentCents, currentLease.currencyCode) : "—"}
                   detail={
                     !balances
                       ? organizationQuery.isLoading
@@ -940,7 +934,7 @@ export default function TenantDetailPage() {
                                 {formatLeaseEndDate(lease.endsOn, lease.termType)}
                               </TableCell>
                               <TableCell className="px-5 py-4 font-semibold text-parcelis-charcoal">
-                                {formatCurrency(lease.monthlyRentCents)}
+                                {formatCurrency(lease.monthlyRentCents, lease.currencyCode)}
                               </TableCell>
                               <TableCell className="px-5 py-4">
                                 <Badge variant="marker">{formatStatus(lease.status)}</Badge>

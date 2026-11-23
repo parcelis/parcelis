@@ -1,5 +1,7 @@
 "use client";
 
+import { useMoney } from "./organization-currency";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -38,10 +40,6 @@ import { LoadingState } from "./loading-state";
 import { NavigationRail } from "./navigation-rail";
 import { formatDate } from "../lib/date";
 import { getInvoiceLink, getPropertyLink } from "../lib/entity-links";
-
-function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-}
 
 function invoiceStatusClass(status: string) {
   if (status === "paid") return "bg-parcelis-green text-parcelis-charcoal";
@@ -102,7 +100,7 @@ type InvoiceActivityEvent = {
   createdAt: Date | string;
 };
 
-function getActivityMessage(event: InvoiceActivityEvent) {
+function getActivityMessage(event: InvoiceActivityEvent, formatCurrency: (amount: number, code?: string) => string) {
   if (
     ["invoice.note_added", "invoice.note_updated", "invoice.note_deleted"].includes(event.action) &&
     event.metadata &&
@@ -113,9 +111,14 @@ function getActivityMessage(event: InvoiceActivityEvent) {
     return `Note #${event.metadata.noteId}${event.actorLabel ? ` · ${event.actorLabel}` : ""}`;
   }
   if (event.action !== "invoice.payment_recorded" || !event.metadata || typeof event.metadata !== "object") return null;
-  const metadata = event.metadata as { amountCents?: number; paidOn?: string; paymentMethod?: string };
+  const metadata = event.metadata as {
+    amountCents?: number;
+    paidOn?: string;
+    paymentMethod?: string;
+    currencyCode?: string;
+  };
   if (typeof metadata.amountCents !== "number" || !metadata.paidOn || !metadata.paymentMethod) return null;
-  return `Payment of ${formatCurrency(metadata.amountCents)} received on ${formatDate(metadata.paidOn)} through ${formatPaymentMethod(metadata.paymentMethod)}${event.actorLabel ? `. Recorded by ${event.actorLabel}` : ""}.`;
+  return `Payment of ${formatCurrency(metadata.amountCents, metadata.currencyCode)} received on ${formatDate(metadata.paidOn)} through ${formatPaymentMethod(metadata.paymentMethod)}${event.actorLabel ? `. Recorded by ${event.actorLabel}` : ""}.`;
 }
 
 function ReversePaymentButton({ invoiceId, paymentId }: { invoiceId: number; paymentId: number }) {
@@ -234,6 +237,7 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
     enabled: !isEmbedded,
   });
   const invoice = invoiceQuery.data;
+  const { formatCurrency } = useMoney(invoice?.currencyCode);
   const invoiceRows = invoicesQuery.data ?? [];
   const [collapsedPropertyIds, setCollapsedPropertyIds] = useState<Set<number>>(new Set());
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -622,8 +626,10 @@ export function InvoiceDetailView({ embedded = false, invoiceId: providedInvoice
                                     <p className="mt-1 text-xs font-semibold text-parcelis-green">
                                       {event.subjectReference}
                                     </p>
-                                    {getActivityMessage(event) ? (
-                                      <p className="mt-1 text-parcelis-gray">{getActivityMessage(event)}</p>
+                                    {getActivityMessage(event, formatCurrency) ? (
+                                      <p className="mt-1 text-parcelis-gray">
+                                        {getActivityMessage(event, formatCurrency)}
+                                      </p>
                                     ) : null}
                                   </div>
                                   <time className="shrink-0 text-parcelis-gray">{formatDateTime(event.createdAt)}</time>

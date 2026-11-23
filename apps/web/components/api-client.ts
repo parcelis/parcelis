@@ -34,6 +34,7 @@ export const queryKeys = {
     me: ["auth", "me"] as const,
   },
   organizations: {
+    currency: ["organizations", "currency"] as const,
     active: ["organizations", "active"] as const,
     list: ["organizations", "list"] as const,
     emailSettings: ["organizations", "email-settings"] as const,

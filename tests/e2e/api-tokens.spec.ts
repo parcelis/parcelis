@@ -1,3 +1,4 @@
+import { currencySettingsFixture } from "./fixtures/currency";
 import { randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures/authenticated";
@@ -82,6 +83,7 @@ async function mockedTokens(page: Page, rows: Metadata[] = []) {
             ...auth,
             user: { ...auth.user, role: state.role === "member" ? "property_manager" : auth.user.role },
           };
+        else if (procedure === "organizations.currency") data = currencySettingsFixture();
         else if (procedure === "organizations.active") data = { ...active, role: state.role };
         else if (procedure === "organizations.list")
           data = [organization, second].map((organization) => ({ organization, role: state.role }));
@@ -185,7 +187,9 @@ test("creates, copies once, and revokes a real token while a second token stays 
     expect((await request.storageState()).cookies).toEqual([]);
     for (const token of tokens)
       expect(
-        (await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${token}` } })).status(),
+        (
+          await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${token}` } })
+        ).status(),
       ).toBe(200);
     await page.getByRole("button", { name: `Revoke ${names[0]}`, exact: true }).click();
     const confirmation = page.getByRole("alertdialog", { name: "Revoke API token?" });
@@ -193,10 +197,14 @@ test("creates, copies once, and revokes a real token while a second token stays 
     await confirmation.getByRole("button", { name: "Revoke token", exact: true }).click();
     await expect(page.getByRole("row").filter({ hasText: names[0]! })).toContainText("Revoked");
     expect(
-      (await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${tokens[0]}` } })).status(),
+      (
+        await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${tokens[0]}` } })
+      ).status(),
     ).toBe(401);
     expect(
-      (await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${tokens[1]}` } })).status(),
+      (
+        await request.get(`${apiOrigin}/api/v1/properties`, { headers: { authorization: `Bearer ${tokens[1]}` } })
+      ).status(),
     ).toBe(200);
   } finally {
     for (const id of ids) {

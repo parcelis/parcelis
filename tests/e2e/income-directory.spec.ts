@@ -1,4 +1,5 @@
 import { expect, test as authenticatedTest } from "./fixtures/authenticated";
+import { currencySettingsFixture } from "./fixtures/currency";
 
 const test = authenticatedTest.extend<{ canCreateInvoices: boolean }>({
   canCreateInvoices: [false, { option: true }],
@@ -9,6 +10,7 @@ const invoice = {
   invoiceNumber: 901,
   leaseId: 11,
   propertyId: 2,
+  currencyCode: "USD",
   dueOn: "2020-01-01T00:00:00.000Z",
   paidOn: null,
   status: "overdue",
@@ -17,6 +19,7 @@ const invoice = {
 };
 const lease = {
   id: 11,
+  currencyCode: "USD",
   unitId: 3,
   unitLabel: "101",
   status: "ended",
@@ -60,11 +63,13 @@ test.beforeEach(async ({ context, page, canCreateInvoices }) => {
           ),
         };
       if (procedure === "organizations.active") data = { ...organization, timeZone: "UTC" };
+      if (procedure === "organizations.currency") data = currencySettingsFixture();
       if (procedure === "properties.list")
         data = [
           {
             id: 2,
             name: "History House",
+            status: "active",
             units: [{ id: 3, name: "101" }],
             leases: [currentLease],
             leaseHistory: [lease, currentLease],
@@ -150,7 +155,9 @@ test.describe("manual invoice creation", () => {
     await page.getByRole("button", { name: "Unit 101 · History House" }).click();
     await expect(page.getByRole("link", { name: "INV-0000901", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "New Invoice" }).click();
-    const drawer = page.getByRole("dialog", { name: "New invoice", exact: true });
+    const drawer = page
+      .getByRole("dialog")
+      .filter({ has: page.getByRole("heading", { name: "New invoice", exact: true }) });
     await drawer.getByLabel(/^Property \*/).selectOption("2");
     await drawer.getByLabel(/^Unit \*/).selectOption("3");
     const leaseSelect = drawer.getByLabel(/^Term \/ lease \*/);
