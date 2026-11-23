@@ -1,0 +1,24 @@
+apps/web/components/property-drawer.tsx
+  s_69146205a97fec::t_9b981d2ae39a1e 945-960,971
+  s_69146205a97fec::t_c27d7d1e4a74af 962-968
+  s_69146205a97fec::t_0ce326c435aa3e 916-919,961,969-970
+tests/e2e/property-currency-validation.spec.ts
+  s_69146205a97fec::t_0ce326c435aa3e 1-17,19-21,23-31
+  s_69146205a97fec::t_9b981d2ae39a1e 18,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "54051c6c79a359a0e746cecf3f4e9103f9be270a",
+  "prompts": {},
+  "sessions": {
+    "s_69146205a97fec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a205f1-da0f-71b2-b684-a460f6ad1f5f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
