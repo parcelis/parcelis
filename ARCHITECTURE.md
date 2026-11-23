@@ -132,19 +132,12 @@ Client-side server state uses TanStack Query. Query keys are centralized next to
 Each organization URL scope owns a separate query client and mounted form state. Changing
 `/o/:slug` replaces both, so previous requests cannot populate the next organization's
 cache. `OrganizationCurrencyProvider` loads `organizations.currency` through a client bound
-to that slug before showing organization screens. Failed currency loads expose a retry;
-the frontend never substitutes a browser preference or an unsaved setting.
+to that slug before rendering organization screens.
 
 Money entry and display use server precision metadata and the shared money contracts from
-`@parcelis/schemas` (also exported through `/currency` and `/money`). UI inputs accept major
-units and parse exact decimal strings into the existing integer `*Cents` fields, which
-remain USD cents during the USD-only rollout. Limits and precision errors reject input
-without silently rounding or clamping. Displays retain fractional balances and identify
-currency codes. Existing obligations use saved lease/invoice currency. General settings
-consume the server's supported options and permanent-lock/permission restrictions;
-successful saves refresh currency and monetary queries, while rejected saves retain entered
-organization fields. This does not change locale, timezone, payment methods, or convert amounts.
-The complete frontend audit is in [FRONTEND_CURRENCY_INVENTORY.md](FRONTEND_CURRENCY_INVENTORY.md).
+`@parcelis/schemas`, also exported through `/currency` and `/money`. `useMoney` connects these
+contracts to form inputs and monetary displays. Currency settings and workflow behavior are
+documented in [Organization Settings](https://github.com/parcelis/parcelis-docs/blob/main/docusaurus-site/docs/Platform%20User%20Guide/navigation-and-preferences/organization-settings.md#currency).
 
 Use `@parcelis/ui` for reusable controls. New cross-screen controls belong in `packages/ui/src/components`; feature-specific forms and state helpers belong under `apps/web/components`.
 

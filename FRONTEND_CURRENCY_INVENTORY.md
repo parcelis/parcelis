@@ -22,7 +22,8 @@ fields retain integer minor units (USD cents); the UI uses major units for entry
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | Organization General settings                            | Server options and restriction; USD preselected; member/locked/single-option read-only; pending and failure states |
 | Portfolio sample collection metric                       | Organization currency through shared formatting                                                                    |
-| Property directory, property details                     | Organization currency for rent, overdue totals, and market rates                                                   |
+| Property directory                                       | Organization currency for rent, overdue totals, and market rates                                                   |
+| Property details                                         | Organization currency for totals/market rates; saved lease currency for individual rent and overdue amounts        |
 | Unit details and collection chart                        | Organization currency for market rates; saved lease/invoice currency for obligations                               |
 | Property drawer and initial unit state                   | Organization/property metadata for exact major-unit entry and stored minor-unit values                             |
 | Application directory, details, drawer                   | Organization currency for annual income, including entry validation                                                |
