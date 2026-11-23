@@ -1,0 +1,22 @@
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_69146205a97fec::t_5d8b3bbc3c5871 571,577
+tests/e2e/property-record-currency.spec.ts
+  s_69146205a97fec::t_0edca99d0f7772 23
+  s_69146205a97fec::t_5d8b3bbc3c5871 1-22,24-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fdd472cfc7b544757bb7ae8274870787e5b6562d",
+  "prompts": {},
+  "sessions": {
+    "s_69146205a97fec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a205f1-da0f-71b2-b684-a460f6ad1f5f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
