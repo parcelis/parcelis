@@ -1,0 +1,28 @@
+tests/e2e/organization-currency.spec.ts
+  s_69146205a97fec::t_ecfa64c6be1044 238-240
+  s_69146205a97fec::t_89243bca151919 33,68,260-291
+  s_69146205a97fec::t_e2ac799a9c9080 255-257
+  s_69146205a97fec::t_ae6ef2c7b8d9c2 32,106,219-237,259
+  s_69146205a97fec::t_39517f3ae1dc15 92,241-254,258
+  s_69146205a97fec::t_3ff91f02264651 292
+apps/web/components/organization-currency.tsx
+  s_69146205a97fec::t_39517f3ae1dc15 30-38,40,42-49
+apps/web/app/(authenticated)/settings/organization/general/page.tsx
+  s_69146205a97fec::t_ae6ef2c7b8d9c2 167-171,235-241,272,275-279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "45745c680054f3cac7a3aa680a4cbdd6a2c5f683",
+  "prompts": {},
+  "sessions": {
+    "s_69146205a97fec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a205f1-da0f-71b2-b684-a460f6ad1f5f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
