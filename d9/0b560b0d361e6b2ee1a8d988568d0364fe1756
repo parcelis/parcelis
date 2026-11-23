@@ -1,0 +1,214 @@
+AGENTS.md
+  s_69146205a97fec::t_811f66d74da16d 16,38-39,60,91-105
+  s_69146205a97fec::t_b1c5a8e20aa118 106
+apps/web/components/api-client.ts
+  s_69146205a97fec::t_811f66d74da16d 55,60
+apps/web/next.config.ts
+  s_69146205a97fec::t_811f66d74da16d 15-47
+apps/api/src/tests/properties/property-status.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 1-108
+apps/api/src/router/app.router.ts
+  s_69146205a97fec::t_811f66d74da16d 2-3,517-519,542-543,615-620,622-625,631,1582-1586,1674,1681-1684,1694-1696,1768-1779,1810,1813,1817-1820,1832-1834,1951,2033,2035-2040,2054,2355-2357,2392,2887-2891,2911-2915,2944-2948,3076-3080,3187,3280,3353,3466,4252-4262,4339-4346,4404-4409
+  s_69146205a97fec::t_251b056282ce38 4410-4411
+apps/web/app/(authenticated)/settings/profile/[id]/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 3,100,106,116-125,235
+apps/api/src/tests/invoices/invoice-notes.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 1-157
+apps/api/src/tests/auth/password-session.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,8-9,12,29-30,33-34,39,90-91,94-95,100
+README.md
+  s_69146205a97fec::t_811f66d74da16d 141-147
+apps/api/openapi/parcelis.openapi.json
+  s_69146205a97fec::t_811f66d74da16d 497-505,913-921
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 12-17,64,73,79,130-131,173-174,215-221,223-241,243,737,755-761,792-796,809-813,816,827-838,929,932
+  s_69146205a97fec::t_b5c454f68ffc49 11
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 6-11,88,192-196,210-213,216-217,220-223,231-235,237-240,642-645,652-661
+  s_69146205a97fec::t_c0bfac52e4d56d 647
+packages/ui/src/components/settings-panel.tsx
+  s_69146205a97fec::t_811f66d74da16d 1-814
+apps/web/lib/format.test.ts
+  s_69146205a97fec::t_811f66d74da16d 1-26
+tests/e2e/settings-routes.spec.ts
+  s_69146205a97fec::t_811f66d74da16d 1-22
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 51,132-135,560-561
+tests/e2e/income-directory.spec.ts
+  s_69146205a97fec::t_08e347793814c7 153-155
+  s_69146205a97fec::t_811f66d74da16d 1-152,156-161
+apps/web/app/(authenticated)/properties/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 116-120,153-155,166-171,177
+apps/web/app/(authenticated)/settings/organization/api-tokens/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 3,272,282-285,427
+packages/ui/src/index.ts
+  s_69146205a97fec::t_811f66d74da16d 2
+apps/web/app/(authenticated)/settings/profile/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 3,92,102,191
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 12,233,516,564,567,582-587,590,595-620
+  s_69146205a97fec::t_7a4da6374cae4c 621-622
+apps/web/app/(authenticated)/income/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 25-31,52-53,56-64,97-100,117,129-160,170-184,186,198-202,223-231,269,272,327-336,346-350,358,364-365,368,371-378,402-403,420-421,429-433,442-467,514-518,524-528,539,548-549,570,573-574,591,622-650,654,656,659,661,664-665,668,690,693-698,701,711,716,750-767,771,773,776,778,781-782,800-805,821,826,844
+  s_69146205a97fec::t_c0bfac52e4d56d 704,823
+  s_69146205a97fec::t_26aa8feb327381 718-721,815-818
+apps/web/app/(authenticated)/settings/security/roles/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 1-346
+.github/workflows/postgres-integration.yml
+  s_69146205a97fec::t_811f66d74da16d 26,62
+apps/web/components/invoice-actions.tsx
+  s_69146205a97fec::t_811f66d74da16d 198
+apps/web/components/property-drawer-state.ts
+  s_69146205a97fec::t_811f66d74da16d 15,70
+CONTRIBUTING.md
+  s_69146205a97fec::t_811f66d74da16d 289-292,342,345
+  s_69146205a97fec::t_11142edd388367 346
+scripts/api-shutdown.test.mjs
+  s_69146205a97fec::t_811f66d74da16d 2-5,7,57-85,87,101,108,111-112,126,128-131,134,137-138
+tests/e2e/property-status.spec.ts
+  s_69146205a97fec::t_811f66d74da16d 1-121
+.github/workflows/build-and-test.yml
+  s_69146205a97fec::t_811f66d74da16d 17
+scripts/docker-hub-description.mjs
+  s_69146205a97fec::t_811f66d74da16d 1-2,5-13,47-48,51
+apps/api/src/tests/invoices/invoice-delete.integration.test.ts
+  s_69146205a97fec::t_811f66d74da16d 86
+tests/e2e/organization-contact-email.spec.ts
+  s_69146205a97fec::t_811f66d74da16d 4-5
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 33,177,179,407-409,412-432,498
+ARCHITECTURE.md
+  s_69146205a97fec::t_811f66d74da16d 34-38,151
+scripts/upgrade-postgres.mjs
+  s_69146205a97fec::t_811f66d74da16d 3-13,15,18-39,60-61
+apps/web/components/invoice-detail-view.tsx
+  s_69146205a97fec::t_c0bfac52e4d56d 629
+  s_69146205a97fec::t_26aa8feb327381 103,631
+  s_69146205a97fec::t_811f66d74da16d 84-86,104-112
+apps/api/src/modules/service-checks.ts
+  s_69146205a97fec::t_811f66d74da16d 386-430
+apps/api/src/tests/jobs/job-dashboard.fetch.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,12-14,122-128,148-149,158-161
+apps/api/src/tests/leases/leases.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 565,604
+apps/web/components/tenant-record-drawer.tsx
+  s_69146205a97fec::t_811f66d74da16d 34,40,49,72-73,87,217-221
+apps/web/components/sidebar.tsx
+  s_69146205a97fec::t_811f66d74da16d 61
+apps/api/src/tests/jobs/job-dashboard-redaction.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,6-8,10,13-19
+tests/e2e/lease-tenants.spec.ts
+  s_69146205a97fec::t_811f66d74da16d 1-152
+.github/workflows/docker-hub-descriptions.yml
+  s_69146205a97fec::t_811f66d74da16d 35
+apps/api/src/tests/organizations/contact-email.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,9-10,12,65,67-72,81,88-89,94-102,109-110,118-119,124,132,138,142-143,145
+packages/jobs/src/lease-dates.ts
+  s_69146205a97fec::t_811f66d74da16d 1-2,4
+apps/web/components/notes-drawer.tsx
+  s_69146205a97fec::t_811f66d74da16d 172,188,202
+apps/web/components/property-drawer.tsx
+  s_69146205a97fec::t_811f66d74da16d 47-53,69,90,501,739-752
+  s_69146205a97fec::t_7559146625bbfe 753-757
+apps/web/Dockerfile
+  s_69146205a97fec::t_811f66d74da16d 2
+apps/web/lib/format.ts
+  s_69146205a97fec::t_811f66d74da16d 15-20
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 32
+packages/db/prisma/migrations/20261112000000_reconcile_legacy_invoice_payments/migration.sql
+  s_69146205a97fec::t_811f66d74da16d 1-83
+apps/api/src/tests/api-tokens/api-tokens.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,16-21,51,73,117,119,126,156,171,173,184,219,257,312,355,357,411,413,451,495,590,613,625
+packages/email/src/tests/transport.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,16
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_69146205a97fec::t_811f66d74da16d 95,135,153-202,205-206,217-235,237-291,297-300
+apps/api/src/tests/invoices/receivable-metrics.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 1-152
+apps/web/app/(authenticated)/settings/organization/general/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 3,111-112,206,211,216-219,479
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,51-53,55-56,92,337
+scripts/upgrade-postgres.test.mjs
+  s_69146205a97fec::t_811f66d74da16d 2-12,170-187
+  s_69146205a97fec::t_0ef16d33637ace 188
+.github/workflows/postgres-upgrade.yml
+  s_69146205a97fec::t_811f66d74da16d 31
+.github/workflows/conventional-commits.yml
+  s_69146205a97fec::t_811f66d74da16d 18
+.github/workflows/lint.yml
+  s_69146205a97fec::t_811f66d74da16d 23
+apps/api/src/tests/health/grouped-checks.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2-4,10-26,63,78,80,87,118,120
+apps/api/src/tests/invoices/invoice-pdf.http.integration.test.ts
+  s_69146205a97fec::t_811f66d74da16d 80,85,244
+apps/api/src/tests/maintenance/maintenance-notes.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 120,123
+apps/api/src/tests/permissions/nested-permissions.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 20-29,31,41,97,145,158-161,166-209,249,255-290
+apps/api/src/tests/email/email-settings.unit.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,16,22-25,36-37,60
+package.json
+  s_69146205a97fec::t_811f66d74da16d 47
+apps/api/src/status/server.ts
+  s_69146205a97fec::t_811f66d74da16d 1,24-28,32,63,97,105
+apps/web/app/(authenticated)/settings/organization/email/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 3,152,162-165,368
+Dockerfile.app
+  s_69146205a97fec::t_811f66d74da16d 16,87-88,97
+apps/web/app/(authenticated)/settings/invoicing/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 3,62,72-75,202
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_69146205a97fec::t_811f66d74da16d 3,69-71,314,347,374,376,388,398,406-407,411,436,457,480,520,565,611,643,691,735,739,741,756,764,800
+apps/web/app/(authenticated)/settings/security/users/page.tsx
+  s_69146205a97fec::t_811f66d74da16d 1-490
+apps/api/src/tests/auth/session-cookie.ts
+  s_69146205a97fec::t_811f66d74da16d 6
+apps/api/src/tests/runtime/deployment-smoke.ts
+  s_69146205a97fec::t_811f66d74da16d 27,35,73
+scripts/upgrade-postgres.integration.mjs
+  s_69146205a97fec::t_811f66d74da16d 15
+DEPENDENCIES.md
+  s_69146205a97fec::t_811f66d74da16d 116-120
+apps/api/src/tests/health/status.test.ts
+  s_69146205a97fec::t_811f66d74da16d 1,3-8,15-42,94,97,132-140,148,150-176,178,190-217
+  s_69146205a97fec::t_417efd2ef922e0 218
+packages/jobs/package.json
+  s_69146205a97fec::t_811f66d74da16d 23
+apps/api/src/tests/health/shutdown.test.ts
+  s_69146205a97fec::t_811f66d74da16d 1,4-7,9,14-42,47-51,59,65-67
+apps/web/components/lease-tenant-list.tsx
+  s_69146205a97fec::t_811f66d74da16d 1-33
+scripts/docker-hub-description.test.mjs
+  s_69146205a97fec::t_811f66d74da16d 3,5-6,126-145
+  s_69146205a97fec::t_644c0125b7c284 146
+apps/web/components/settings-rail.tsx
+  s_69146205a97fec::t_811f66d74da16d 3,5-6,8,17,23-24,30-55,57-73,75-78,80-101,103
+apps/api/src/tests/invoices/invoice-balances.test.ts
+  s_69146205a97fec::t_811f66d74da16d 1-41
+packages/schemas/src/index.ts
+  s_69146205a97fec::t_811f66d74da16d 439,939-951,1175-1177
+apps/api/src/tests/auth/nextauth.test.ts
+  s_69146205a97fec::t_811f66d74da16d 2,8,13,17,19-23,30,110,127-131,210-212,223-226,229
+packages/schemas/src/invoice-balances.ts
+  s_69146205a97fec::t_811f66d74da16d 1-47
+pnpm-lock.yaml
+  s_69146205a97fec::t_b7e2a40a9fd45b 183,195,198,207,210,213,216,219,225,243,249,255,258,261,270,292,295,301,304,307,310,313,316,319,322,325,337,340,343,346,352,355,358,401,422,459,468,477,499,508,515,528-530,533,601,604,619,640-641,644-645,648-649,652-653,656-657,660-661,664-665,668-669,672-673,676-677,680-681,684-685,688-689,692-693,696-697,704-705,732-733,748-749,754-755,766-767,770-771,780-781,792-793,796-797,800-801,803,812-813,817-818,1278-1279,1331-1332,1531-1532,1656-1657,2162-2163,2230-2231,2375-2376,2379-2380,2382-2383,2389-2390,2398-2399,2401,2404-2405,2425-2426,2430-2431,2435-2436,2440-2441,2445-2446,2450-2451,2506-2508,2531-2532,2535,2539-2540,2546-2547,2552-2553,2556-2557,2562-2563,2569-2570,2573-2574,2577,2579-2581,2583-2584,2590-2591,2629-2630,2632-2633,2635-2636,2638-2639,2641-2642,2644-2645,2647-2648,2650-2651,2653-2654,2687-2688,2706-2707,2783-2784,2797-2798,2800-2801,2811-2812,2816-2817,2862-2863,2980-2981,3000-3001,3177-3178,3197-3198,3201-3202,3260-3261,3326-3327,3519-3520,3567-3568,3606-3607,3960-3961,4029-4030,4114,4135-4136,4139-4140,4162-4163,4311-4312,4316-4317,4335-4336,4380-4381,4457-4458,4710-4712,4718-4719,4726-4727,4813-4814,4824-4825,4830-4831,4882-4883,4917-4918,4946-4948,4959-4960,5025-5026,5144,5146,5148,5152,5154-5157,5160,5166,5171,5177,5179,5181,5185,5187,5189,5195,5197-5204,5206,5211,5213-5214,5216,5220,5222-5227,5229,5234,5236,5238,5242,5244-5246,5248,5252,5254-5255,5257,5261,5263,5266,5270,5272,5275,5281,5283-5284,5286,5291,5293,5296,5307,5309-5310,5312,5339,5341-5343,5345-5346,5356,5358-5359,5368,5376-5377,5381,5386,5390,5396,5399,5401,5403,5407,5409,5414-5415,5420,5424,5429,5432,5434,5436,5441,5443,5446,5448,5452,5456,5458-5459,5461,5467,5469,5503,5531,5560,5604,5606,5611-5612,5614,5628-5629,5649,5651,5656-5657,5659,5661,5666-5667,5669,5671,5676-5677,5679,5681,5686-5687,5689,5691,5696-5697,5699,5701,5703,5707-5708,5710,5712,5714-5716,5720-5721,5723,5725,5730-5731,5733,5735,5737-5738,5742-5743,5753,5780,5800,5904,5966,5968,6107,6113,6187,6189,6202,6206,6725,6729,6733,6789,6802,6858,6865,6871,6877,6883,6919,6923,6982,6985,6987,6989,6991,6995,6997,7002,7004,7007,7012,7014,7017,7020,7023,7026,7029,7078-7081,7086,7100,7106,7108-7113,7115,7120,7123,7125-7128,7133,7136,7138-7139,7145,7147-7148,7150,7154,7156-7158,7164,7167,7169,7171-7174,7176,7184,7187-7189,7193,7196,7198,7278,7280-7281,7284,7286,7288-7289,7291,7293-7297,7300-7301,7303,7305-7306,7308,7310,7312,7314-7315,7317,7319-7322,7324,7326-7328,7330,7363,7380,7462,7474,7484,7489,7501,7503-7507,7509,7511,7556,7640,7672,7694,7696,7818-7819,7862,7874,7890,7892-7893,7912,7951,8018,8056,8100,8150,8154,8339,8389,8434,8748,8797,8800,8804,8826,8828,8835,8847,8849,8853,8867,8871-8872,8886,8913,8915,8933,9098,9100,9102,9116,9118,9122,9149,9153,9159,9186,9232,9287,9314,9321,9500,9507,9514,9520,9552,9567,9571,9575,9646,9674,9686,9698,9702,9723,9725,9752,9754-9759,9808,9810-9813,9817,9837-9838,9851,9853,9896,9898-9902
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d90b560b0d361e6b2ee1a8d988568d0364fe1756",
+  "prompts": {},
+  "sessions": {
+    "s_69146205a97fec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a205f1-da0f-71b2-b684-a460f6ad1f5f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
