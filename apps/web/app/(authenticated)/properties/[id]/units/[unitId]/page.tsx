@@ -626,9 +626,11 @@ export default function UnitDetailPage() {
                 <Card>
                   <CardHeader className="flex items-center justify-between gap-3 sm:flex-row">
                     <h2 className="font-semibold text-parcelis-charcoal">Upcoming Invoices</h2>
-                    <Button asChild size="sm" variant="ghost">
-                      <Link href={`/income?unitId=${unitId}`}>View All</Link>
-                    </Button>
+                    {canViewInvoices && canViewLeases ? (
+                      <Button asChild size="sm" variant="ghost">
+                        <Link href={`/income?unitId=${unitId}`}>View All</Link>
+                      </Button>
+                    ) : null}
                   </CardHeader>
                   <CardContent>
                     {invoiceRows.length > 0 ? (
