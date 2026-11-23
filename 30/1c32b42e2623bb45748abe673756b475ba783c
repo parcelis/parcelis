@@ -1,0 +1,22 @@
+tests/e2e/properties-layout.spec.ts
+  s_69146205a97fec::t_1d8d6adeb00760 3-5,7-13,24-49,53-55
+  s_69146205a97fec::t_43aee97bf12224 6,14-23,50-52
+apps/web/app/(authenticated)/properties/page.tsx
+  s_69146205a97fec::t_1d8d6adeb00760 164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "301c32b42e2623bb45748abe673756b475ba783c",
+  "prompts": {},
+  "sessions": {
+    "s_69146205a97fec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a205f1-da0f-71b2-b684-a460f6ad1f5f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
