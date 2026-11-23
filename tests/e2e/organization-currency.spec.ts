@@ -103,11 +103,11 @@ test("shows the default server currency without requiring a selection", async ({
 test("redirects organization settings to General within the current organization", async ({ page }) => {
   const state = await mockedSettings(page);
   const organizationPath = `/o/${state.organization.slug}`;
-  await page.context().addCookies([
-    { name: "parcelis-organization-slug", value: "stale-organization", url: page.url() },
-  ]);
+  await page
+    .context()
+    .addCookies([{ name: "parcelis-organization-slug", value: "stale-organization", url: page.url() }]);
   const response = await page.request.get(`${organizationPath}/settings/organization`, { maxRedirects: 0 });
-  expect(response.status()).toBe(307);
+  expect(response.status()).toBe(308);
   expect(new URL(response.headers().location!, response.url()).pathname).toBe(`${organizationPath}${settingsPath}`);
   await page.goto(`${organizationPath}/settings/organization`);
   await expect(page).toHaveURL(`/o/${state.organization.slug}${settingsPath}`);
