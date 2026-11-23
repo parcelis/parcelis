@@ -330,6 +330,28 @@ async function recordMaintenanceNoteActivity(
   );
 }
 
+async function recordPropertyNoteActivity(
+  tx: Prisma.TransactionClient,
+  property: { id: number; organizationId: number; name: string },
+  action: "property.note_added" | "property.note_updated" | "property.note_deleted",
+  noteId: number,
+  actor?: { id: string | number; name: string },
+) {
+  await recordActivityEvent(
+    tx,
+    {
+      organizationId: property.organizationId,
+      subjectType: ActivitySubjectType.property,
+      subjectId: property.id,
+      subjectLabel: property.name,
+      propertyId: property.id,
+      action,
+      metadata: { noteId },
+    },
+    actor,
+  );
+}
+
 async function recordInvoiceActivity(
   tx: Prisma.TransactionClient,
   invoice: { id: number; invoiceNumber: number; organizationId: number; propertyId: number; currencyCode: string },
@@ -359,25 +381,36 @@ function withPropertyNotes<T extends { legacyNotes: string | null }>(property: T
 
 async function synchronizePropertyLegacyNote(
   tx: Prisma.TransactionClient,
-  propertyId: number,
+  property: { id: number; organizationId: number; name: string },
   legacyNoteId: number | null,
   notes: string | undefined,
+  actor?: { id: string | number; name: string },
 ) {
+  const propertyId = property.id;
   const body = notes?.trim() || null;
 
   if (!body) {
     if (legacyNoteId) {
-      await tx.note.deleteMany({ where: { id: legacyNoteId, propertyId } });
+      const deleted = await tx.note.deleteMany({ where: { id: legacyNoteId, propertyId } });
+      if (deleted.count) {
+        await recordPropertyNoteActivity(tx, property, "property.note_deleted", legacyNoteId, actor);
+      }
     }
     return { legacyNoteId: null, legacyNotes: null };
   }
 
   if (legacyNoteId) {
+    const existingNote = await tx.note.findFirst({
+      where: { id: legacyNoteId, propertyId },
+      select: { body: true },
+    });
+    if (existingNote?.body === body) return { legacyNoteId, legacyNotes: body };
     const updatedNote = await tx.note.updateMany({
       where: { id: legacyNoteId, propertyId },
       data: { body },
     });
     if (updatedNote.count) {
+      await recordPropertyNoteActivity(tx, property, "property.note_updated", legacyNoteId, actor);
       return { legacyNoteId, legacyNotes: body };
     }
   }
@@ -386,6 +419,7 @@ async function synchronizePropertyLegacyNote(
     data: { propertyId, body },
     select: { id: true },
   });
+  await recordPropertyNoteActivity(tx, property, "property.note_added", legacyNote.id, actor);
   return { legacyNoteId: legacyNote.id, legacyNotes: body };
 }
 
@@ -1967,7 +2001,17 @@ export const appRouter = router({
             },
           });
 
-          const legacyNote = await synchronizePropertyLegacyNote(tx, initialProperty.id, null, input.notes);
+          const legacyNote = await synchronizePropertyLegacyNote(
+            tx,
+            {
+              id: initialProperty.id,
+              organizationId: ctx.organizationScope.organizationId,
+              name: initialProperty.name,
+            },
+            null,
+            input.notes,
+            ctx.session?.user,
+          );
           const property = legacyNote.legacyNoteId
             ? await tx.property.update({
                 where: { id: initialProperty.id },
@@ -2047,7 +2091,13 @@ export const appRouter = router({
               const legacyNote =
                 input.notes === undefined
                   ? {}
-                  : await synchronizePropertyLegacyNote(tx, input.id, currentProperty.legacyNoteId, input.notes);
+                  : await synchronizePropertyLegacyNote(
+                      tx,
+                      { id: input.id, organizationId: ctx.organizationScope.organizationId, name: input.name },
+                      currentProperty.legacyNoteId,
+                      input.notes,
+                      ctx.session?.user,
+                    );
               const updatedProperty = await tx.property.update({
                 where: { id: input.id },
                 select: propertySelect,
@@ -2246,14 +2296,15 @@ export const appRouter = router({
         const property = await ctx.prisma.$transaction(async (tx) => {
           const currentProperty = await tx.property.findUniqueOrThrow({
             where: { id: input.id },
-            select: { legacyNoteId: true },
+            select: { legacyNoteId: true, name: true },
           });
 
           const legacyNote = await synchronizePropertyLegacyNote(
             tx,
-            input.id,
+            { id: input.id, organizationId: ctx.organizationScope.organizationId, name: currentProperty.name },
             currentProperty.legacyNoteId,
             input.notes,
+            ctx.session?.user,
           );
 
           return tx.property.update({
@@ -4150,10 +4201,16 @@ export const appRouter = router({
       if (input.subjectType === ActivitySubjectType.lease) {
         await requirePermission(ctx.prisma, ctx.user.role, "leases", "view");
       }
+      const canViewProperties = (await getRolePermissions(ctx.prisma, ctx.user.role)).properties.view;
+      if (input.subjectType === ActivitySubjectType.property && !canViewProperties) return [];
       return ctx.prisma.activityEvent.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
-          subjectType: input.subjectType ?? { not: ActivitySubjectType.lease },
+          subjectType:
+            input.subjectType ??
+            (canViewProperties
+              ? { not: ActivitySubjectType.lease }
+              : { notIn: [ActivitySubjectType.lease, ActivitySubjectType.property] }),
           subjectId: input.subjectId,
           propertyId: input.propertyId,
         },
@@ -4244,8 +4301,17 @@ export const appRouter = router({
     create: publicProcedure.input(createNoteInputSchema).mutation(async ({ ctx, input }) => {
       await requireNotePermission(ctx.prisma, ctx.user.role, input, "create");
       if ("propertyId" in input) {
-        await ctx.prisma.property.findFirstOrThrow({
-          where: { id: input.propertyId, organizationId: ctx.organization.organizationId },
+        return ctx.prisma.$transaction(async (tx) => {
+          const property = await tx.property.findFirstOrThrow({
+            where: { id: input.propertyId, organizationId: ctx.organization.organizationId },
+            select: { id: true, organizationId: true, name: true },
+          });
+          const note = await tx.note.create({
+            data: input,
+            select: { id: true, body: true, createdAt: true, updatedAt: true },
+          });
+          await recordPropertyNoteActivity(tx, property, "property.note_added", note.id, ctx.user);
+          return note;
         });
       } else if ("tenantId" in input) {
         await ctx.prisma.tenant.findFirstOrThrow({
@@ -4347,6 +4413,14 @@ export const appRouter = router({
           await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_updated", input.id, ctx.user);
         }
 
+        if (existingNote.propertyId !== null) {
+          const property = await tx.property.findFirstOrThrow({
+            where: { id: existingNote.propertyId, organizationId: ctx.organization.organizationId },
+            select: { id: true, organizationId: true, name: true },
+          });
+          await recordPropertyNoteActivity(tx, property, "property.note_updated", input.id, ctx.user);
+        }
+
         if (existingNote.invoiceId) {
           const invoice = await tx.invoice.findFirstOrThrow({
             where: { id: existingNote.invoiceId, organizationId: ctx.organization.organizationId },
@@ -4410,6 +4484,14 @@ export const appRouter = router({
             where: { id: existingNote.maintenanceTicketId, organizationId: ctx.organization.organizationId },
           });
           await recordMaintenanceNoteActivity(tx, ticket, "maintenance.note_deleted", input.id, ctx.user);
+        }
+
+        if (existingNote.propertyId !== null) {
+          const property = await tx.property.findFirstOrThrow({
+            where: { id: existingNote.propertyId, organizationId: ctx.organization.organizationId },
+            select: { id: true, organizationId: true, name: true },
+          });
+          await recordPropertyNoteActivity(tx, property, "property.note_deleted", input.id, ctx.user);
         }
 
         if (existingNote.invoiceId) {

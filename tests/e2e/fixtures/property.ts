@@ -36,7 +36,16 @@ export const test = authenticatedTest.extend<{ property: { id: number; name: str
         expect(response.ok(), "Read test notes for cleanup").toBe(true);
         const payload = (await response.json()) as { result: { data: Array<{ id: number }> } };
         for (const note of payload.result.data) await mutate(page.request, "notes.delete", { id: note.id });
-        await mutate(page.request, "properties.delete", { id: property.id });
+        const activityInput = encodeURIComponent(
+          JSON.stringify({ subjectType: "property", subjectId: property.id, limit: 1 }),
+        );
+        const activityResponse = await page.request.get(`/trpc/activityEvents.list?input=${activityInput}`);
+        expect(activityResponse.ok(), "Read test property activity for cleanup").toBe(true);
+        const activity = (await activityResponse.json()) as { result: { data: Array<{ id: number }> } };
+        // Properties with audit history must be archived to retain their immutable events.
+        await mutate(page.request, activity.result.data.length ? "properties.archive" : "properties.delete", {
+          id: property.id,
+        });
       }
     },
     { timeout: 30_000 },
