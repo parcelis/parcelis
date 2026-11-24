@@ -1,0 +1,111 @@
+packages/schemas/package.json
+  s_367acf756248e5::t_8ba9da8daacb04 13
+apps/web/app/(authenticated)/tenants/[id]/page.tsx
+  s_367acf756248e5::t_8ba9da8daacb04 81-90,200,510,513,769,971
+apps/api/src/tests/leases/lease-finalization.router.test.ts
+  s_367acf756248e5::t_6b60ea7f72c623 142,464
+packages/schemas/src/index.ts
+  s_367acf756248e5::t_6b60ea7f72c623 18,467,853-855,866,876
+apps/web/app/(authenticated)/leases/new/page.tsx
+  s_367acf756248e5::t_492bc66767e35e 133-140,178-196,228-230,649-650,653-654,686,690,722,882,887-888,893,898-899,946,961,992-997,1009,1025-1030,1042,1366-1368,1370,1697,2402
+apps/web/components/property-drawer-state.ts
+  s_367acf756248e5::t_fafccf5de4d7c7 2-5,40-41,55-57,61-63,66-68,87-89,94,96-107,114-116,126
+apps/web/package.json
+  s_367acf756248e5::t_f4df5d19654bb4 13
+apps/web/app/(authenticated)/income/page.tsx
+  s_367acf756248e5::t_01f912316b7dda 37-46,726,739,830,834,839
+apps/web/components/trpc-provider.tsx
+  s_367acf756248e5::t_4ed4ab9e9d780d 7-9
+apps/web/components/invoice-drawer.tsx
+  s_367acf756248e5::t_6e81f79d88dd03 69-77,356,404,435,439
+apps/web/app/(authenticated)/page.tsx
+  s_367acf756248e5::t_0256eb42b53e27 126
+packages/schemas/src/lease-rent-schedule.ts
+  s_367acf756248e5::t_6b60ea7f72c623 120,153,186,192,195-196
+apps/api/src/tests/invoices/invoice-reversal.integration.test.ts
+  s_367acf756248e5::t_6b60ea7f72c623 62
+apps/api/src/router/app.router.ts
+  s_367acf756248e5::t_6b60ea7f72c623 349,351,364,462,495,519,533-534,959,986,1652-1668,1800,1932,1979,2074,2627,2656,2946-2989,3095,3149,3177,3242,3269,3369,3372,3405,3532-3540,3545-3552,3585,3642,4185,4280,4353,4725-4729,4731-4754,4969,5224,5274,5335,5354,5362-5365,5367-5368,5378-5379,5385-5388,5393,5407,5447
+  s_367acf756248e5::t_8ba9da8daacb04 1639,1768
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_367acf756248e5::t_11f357d627b450 41-47
+apps/api/src/tests/leases/lease-draft.router.test.ts
+  s_367acf756248e5::t_6b60ea7f72c623 33
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_367acf756248e5::t_e4b246e19f51e6 80-88,232,566,653
+apps/web/app/(authenticated)/properties/page.tsx
+  s_367acf756248e5::t_29f60d30d74959 112-119
+  s_367acf756248e5::t_49fb23f4ee3b2f 120-121
+tests/e2e/income-directory.spec.ts
+  s_367acf756248e5::t_8ba9da8daacb04 201
+apps/web/components/property-drawer.tsx
+  s_367acf756248e5::t_a611bddc6572d9 232,468,936-945
+apps/web/app/(authenticated)/applications/page.tsx
+  s_367acf756248e5::t_439a0892ad84bf 32-39
+apps/web/components/lease-drawer.tsx
+  s_367acf756248e5::t_336ed094d230f6 89,143,146,148,150
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_367acf756248e5::t_8bf10780841152 60-69,578,584
+apps/api/openapi/parcelis.openapi.json
+  s_367acf756248e5::t_7127d21e42eb5a 98,287,366,686,765,2485,2575,2642,2732,2837,2898,2994,3106,3112,3117,3142,3145-3146,3150,3156,3161,3186,3189-3190,3194,3200,3205,3230,3233-3234,3238,3244,3249,3274,3277-3278
+apps/api/src/modules/invoice-pdf.tsx
+  s_367acf756248e5::t_6b60ea7f72c623 2,202-205
+apps/api/src/tests/invoices/invoice-notes.router.test.ts
+  s_367acf756248e5::t_6b60ea7f72c623 14,143
+.github/workflows/postgres-integration.yml
+  s_367acf756248e5::t_6b60ea7f72c623 74
+packages/db/prisma/seed.mjs
+  s_367acf756248e5::t_6b60ea7f72c623 7,123-125,127,129-135,159-161,163,165-171,220-235,238-242,252-260,263-286,289-292,905-929,932-934,936,939
+apps/web/components/edit-invoice-drawer.tsx
+  s_367acf756248e5::t_e28986a7765dfb 33-36,60,66,176,213,215,218,244,248,252,263
+tests/e2e/jwt-session.spec.ts
+  s_367acf756248e5::t_eafcd95d51ea52 41
+apps/api/src/tests/permissions/nested-permissions.router.test.ts
+  s_367acf756248e5::t_8ba9da8daacb04 95
+apps/web/app/(authenticated)/leases/page.tsx
+  s_367acf756248e5::t_9ac2e5319081dd 45-50
+apps/api/src/tests/properties/property-status.router.test.ts
+  s_367acf756248e5::t_6b60ea7f72c623 55
+apps/web/components/invoice-detail-view.tsx
+  s_367acf756248e5::t_e009461ed0a428 42-45,105,116,118,625-626
+apps/web/components/application-drawer.tsx
+  s_367acf756248e5::t_a04a332b4054a0 55,59,89,96,100,138,195,200
+apps/api/src/router/public.router.ts
+  s_367acf756248e5::t_6b60ea7f72c623 49,67,76,230,239,246,255,264
+apps/web/app/(authenticated)/settings/organization/general/page.tsx
+  s_367acf756248e5::t_07b1d7778dba89 12-13,81-93,95,108-114,119,121,128,132,140,150-151,159,161-164,166,220-223,272,282,306,318,326,332,382
+apps/api/src/tests/leases/leases.router.test.ts
+  s_367acf756248e5::t_6b60ea7f72c623 339
+apps/web/components/tenant-record-drawer.tsx
+  s_367acf756248e5::t_b34126a6ddd512 41-47,205,248
+tests/e2e/api-tokens.spec.ts
+  s_367acf756248e5::t_d58c4e27bae273 188,196,199
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_367acf756248e5::t_6b60ea7f72c623 29,252,299,339,360,429-437,476-491,518
+apps/api/src/tests/invoices/invoice-delete.integration.test.ts
+  s_367acf756248e5::t_6b60ea7f72c623 53
+apps/web/app/(authenticated)/applications/[id]/page.tsx
+  s_367acf756248e5::t_7275e5b3ef10e1 40-47
+apps/web/app/(authenticated)/layout.tsx
+  s_367acf756248e5::t_92e5fa5ce6ba15 18-23
+apps/web/components/record-payment-drawer.tsx
+  s_367acf756248e5::t_204cebf2d84c17 40-46,223,225,227,259
+packages/db/package.json
+  s_367acf756248e5::t_6b60ea7f72c623 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8aa9f3a2ee1c79bc8215f92b1588b817d5b219cd",
+  "prompts": {},
+  "sessions": {
+    "s_367acf756248e5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20e6a-b9ae-7010-bcb3-0851430a1a06",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
