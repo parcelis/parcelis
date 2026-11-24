@@ -1,7 +1,5 @@
 "use client";
 
-import { useMoney } from "../../../../components/organization-currency";
-
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -59,8 +57,17 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
+function formatCurrency(cents: number | null) {
+  if (cents === null) return "Not set";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
 export default function PropertyDetailPage() {
-  const { formatCurrency } = useMoney();
   const queryClient = useQueryClient();
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -568,13 +575,13 @@ export default function PropertyDetailPage() {
                           <div className="mt-3 flex flex-wrap gap-3 text-sm text-parcelis-gray">
                             <span className="inline-flex items-center gap-1">
                               <CircleDollarSign className="h-4 w-4" />
-                              {formatCurrency(lease.monthlyRentCents, lease.currencyCode)}
+                              {formatCurrency(lease.monthlyRentCents)}
                             </span>
                             {lease.amountOverdueCents === null ? (
                               <span className="inline-flex items-center gap-1">Overdue: Unavailable</span>
                             ) : lease.amountOverdueCents > 0 ? (
                               <span className="inline-flex items-center gap-1 font-semibold text-red-700">
-                                Overdue {formatCurrency(lease.amountOverdueCents, lease.currencyCode)}
+                                Overdue {formatCurrency(lease.amountOverdueCents)}
                               </span>
                             ) : null}
                             {lease.tenant?.email ? (

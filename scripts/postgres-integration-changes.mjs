@@ -50,7 +50,6 @@ export function selectPostgresIntegrationSuites(files, force = false) {
               "apps/api/src/app/api/",
               "apps/api/src/app/trpc/",
               "apps/api/src/tests/api-tokens/",
-              "apps/api/src/tests/currencies/",
               "packages/schemas/",
               "packages/email/",
               "packages/jobs/",

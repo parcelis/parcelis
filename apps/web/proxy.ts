@@ -56,7 +56,6 @@ export async function proxy(request: NextRequest) {
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-parcelis-internal-rewrite", "1");
-    requestHeaders.set("x-parcelis-organization-slug", slug);
     const rewriteUrl = new URL(`/${path.join("/")}`, request.url);
     rewriteUrl.search = request.nextUrl.search;
     const response = NextResponse.rewrite(rewriteUrl, {

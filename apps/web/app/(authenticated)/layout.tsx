@@ -6,7 +6,6 @@ import { ShortcutProvider } from "../../components/shortcut-provider";
 import { ToastProvider } from "../../components/toast-provider";
 import { TrpcProvider } from "../../components/trpc-provider";
 import { AuthSession } from "../../components/auth-session";
-import { OrganizationCurrencyProvider } from "../../components/organization-currency";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +15,12 @@ export default function AuthenticatedLayout({ children }: Readonly<{ children: R
       <ShortcutProvider>
         <TrpcProvider>
           <AuthSession>
-            <OrganizationCurrencyProvider>
-              <div className="flex min-h-[100svh] flex-col">
-                <Sidebar />
-                {children}
-                <AppFooter />
-              </div>
-              <ToastProvider />
-            </OrganizationCurrencyProvider>
+            <div className="flex min-h-[100svh] flex-col">
+              <Sidebar />
+              {children}
+              <AppFooter />
+            </div>
+            <ToastProvider />
           </AuthSession>
         </TrpcProvider>
       </ShortcutProvider>

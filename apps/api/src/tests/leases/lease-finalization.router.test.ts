@@ -21,7 +21,6 @@ function draft(startsOn: Date) {
   return {
     id: 9,
     organizationId: 7,
-    currencyCode: "USD",
     status: "draft",
     revision: 4,
     archivedAt: null,
@@ -140,10 +139,7 @@ function createDatabase(
       },
     },
     unit: { findFirstOrThrow: async () => ({ id: 3 }) },
-    organization: {
-      updateMany: async () => ({ count: 1 }),
-      findUniqueOrThrow: async () => ({ timeZone, currencyCode: "USD" }),
-    },
+    organization: { findUniqueOrThrow: async () => ({ timeZone }) },
     tenant: { findMany: async () => lease.tenants.map(({ tenantId }) => ({ id: tenantId })) },
     outboxEvent: {
       createMany: async ({
@@ -465,7 +461,7 @@ test("finalization creates the complete rent schedule once", async () => {
     activityRows()
       .filter(({ action }) => action === "lease.finalized")
       .map(({ metadata }) => metadata),
-    [{ invoiceCount: 12, rentTotalCents, billingRevision: 1, currencyCode: "USD" }],
+    [{ invoiceCount: 12, rentTotalCents, billingRevision: 1 }],
   );
   assert.equal(invoiceRows()[0]?.sourceKey, `rent:${start.toISOString().slice(0, 7)}:joint`);
   assert.equal(invoiceRows()[0]?.billingRevision, 1);

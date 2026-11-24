@@ -11,7 +11,6 @@ const t = initTRPC.context<Context>().meta<OpenApiMeta>().create();
 export const router = t.router;
 export const publicProcedure = t.procedure;
 export const apiTokenAllowedProcedures = new Set([
-  "organizations.currency",
   "properties.list",
   "properties.byId",
   "properties.create",

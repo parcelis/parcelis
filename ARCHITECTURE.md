@@ -130,16 +130,6 @@ Outbox rows are retained indefinitely in the initial implementation; no automati
 
 Client-side server state uses TanStack Query. Query keys are centralized next to the tRPC client, allowing mutations to invalidate the corresponding property, tenant, unit, or note data predictably.
 
-Each organization URL scope owns a separate query client and mounted form state. Changing
-`/o/:slug` replaces both, so previous requests cannot populate the next organization's
-cache. `OrganizationCurrencyProvider` loads `organizations.currency` through a client bound
-to that slug before rendering organization screens.
-
-Money entry and display use server precision metadata and the shared money contracts from
-`@parcelis/schemas`, also exported through `/currency` and `/money`. `useMoney` connects these
-contracts to form inputs and monetary displays. Currency settings and workflow behavior are
-documented in [Organization Settings](https://github.com/parcelis/parcelis-docs/blob/main/docusaurus-site/docs/Platform%20User%20Guide/navigation-and-preferences/organization-settings.md#currency).
-
 Use `@parcelis/ui` for reusable controls. New cross-screen controls belong in `packages/ui/src/components`; feature-specific forms and state helpers belong under `apps/web/components`.
 
 The expanded sidebar shows the active organization and, for users with access to more than one, provides an organization switcher. Organization settings at `/settings/organization/general` manage the organization name, slug, and light and dark avatar images. Security settings use `/settings/security/users` and `/settings/security/roles`. Previous settings URLs redirect to these paths, including organization-scoped URLs under `/o/:slug`.

@@ -11,14 +11,6 @@ export const test = base.extend({
     await page.getByRole("textbox", { name: "Password" }).fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
-    const organizationResponse = await page.request.get("/trpc/organizations.active");
-    expect(organizationResponse.ok()).toBe(true);
-    const {
-      result: { data: organization },
-    } = (await organizationResponse.json()) as { result: { data: { slug: string } } };
-    await page
-      .context()
-      .addCookies([{ name: "parcelis-organization-slug", value: organization.slug, url: page.url() }]);
     await use(page);
   },
 });

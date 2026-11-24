@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { formatInvoiceNumber, formatMinorUnits, getCurrencyMetadata } from "@parcelis/schemas";
+import { formatInvoiceNumber } from "@parcelis/schemas";
 import {
   Defs,
   Document,
@@ -36,7 +36,6 @@ Font.register({
 });
 
 export type InvoicePdfInvoice = {
-  currencyCode: string;
   amountCents: number;
   balanceCents: number;
   dueOn: Date;
@@ -200,6 +199,10 @@ const styles = StyleSheet.create({
   issuedThroughSignature: { alignSelf: "center", height: 24, marginTop: -4, objectFit: "contain", width: 94 },
 });
 
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", { currency: "USD", style: "currency" }).format(cents / 100);
+}
+
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", timeZone: "UTC", year: "numeric" }).format(
     value,
@@ -252,8 +255,6 @@ function InvoicePdfDocument({
   organization: InvoicePdfOrganizationDetails | null;
   organizationLogo: string | null;
 }) {
-  const currency = getCurrencyMetadata(invoice.currencyCode);
-  const formatCurrency = (amount: number) => formatMinorUnits(amount, currency);
   const invoiceLabel = formatInvoiceNumber(invoice.invoiceNumber);
   const paidCents = Math.max(invoice.amountCents - invoice.balanceCents, 0);
   const status = getInvoiceStatus(invoice);
@@ -297,7 +298,6 @@ function InvoicePdfDocument({
           <View>
             <Text style={styles.invoiceLabel}>INVOICE</Text>
             <Text style={styles.muted}>{invoiceLabel}</Text>
-            <Text style={styles.muted}>{invoice.currencyCode}</Text>
           </View>
         </View>
         <View style={styles.details}>
