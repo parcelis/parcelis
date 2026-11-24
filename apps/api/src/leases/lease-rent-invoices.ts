@@ -6,7 +6,6 @@ type CreateLeaseRentInvoicesInput = {
   organizationId: number;
   leaseId: number;
   propertyId: number;
-  currencyCode: string;
   item: string;
   description: string | null;
   billingRevision: number;
@@ -30,7 +29,6 @@ export async function createLeaseRentInvoices(tx: Prisma.TransactionClient, inpu
         organizationId: input.organizationId,
         leaseId: input.leaseId,
         propertyId: input.propertyId,
-        currencyCode: input.currencyCode,
         tenantId: charge.primaryTenantId,
         sourceKey: charge.sourceKey,
         billingRevision: input.billingRevision,

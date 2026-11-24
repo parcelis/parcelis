@@ -1,10 +1,10 @@
 import { propertyTypeValues, type PropertyType } from "@parcelis/schemas";
-import { createMoneyTools } from "../lib/money";
-import { getCurrencyMetadata } from "@parcelis/schemas";
-import type { PropertyFormState, UnitDetailsFormState } from "./property-drawer";
+import type {
+  PropertyFormState,
+  UnitDetailsFormState,
+} from "./property-drawer";
 
 type DrawerProperty = {
-  currencyCode: string;
   name: string;
   line1: string;
   line2: string | null;
@@ -37,7 +37,8 @@ type DrawerProperty = {
 };
 
 export function parseContactAddress(contactAddress: string | null | undefined) {
-  const [line1 = "", line2 = "", cityRegionPostal = ""] = contactAddress?.split("\n") ?? [];
+  const [line1 = "", line2 = "", cityRegionPostal = ""] =
+    contactAddress?.split("\n") ?? [];
   const [city = "", regionPostal = ""] = cityRegionPostal.split(", ");
   const [region = "", ...postalCodeParts] = regionPostal.split(" ");
 
@@ -51,14 +52,20 @@ export function parseContactAddress(contactAddress: string | null | undefined) {
 }
 
 export function getPropertyType(value: string): PropertyType {
-  return propertyTypeValues.includes(value as PropertyType) ? (value as PropertyType) : "Apartment";
+  return propertyTypeValues.includes(value as PropertyType)
+    ? (value as PropertyType)
+    : "Apartment";
 }
 
 export function getUnitType(value: string): UnitDetailsFormState["unitType"] {
-  return value === "commercial" || value === "Commercial" ? "Commercial" : "Residential";
+  return value === "commercial" || value === "Commercial"
+    ? "Commercial"
+    : "Residential";
 }
 
-export function getPropertyFormState(property: DrawerProperty): PropertyFormState {
+export function getPropertyFormState(
+  property: DrawerProperty,
+): PropertyFormState {
   return {
     name: property.name,
     line1: property.line1,
@@ -77,24 +84,36 @@ export function getPropertyFormState(property: DrawerProperty): PropertyFormStat
   };
 }
 
-export function getUnitFormStates(property: DrawerProperty): UnitDetailsFormState[] {
-  const { formatCurrencyInput } = createMoneyTools(getCurrencyMetadata(property.currencyCode));
+export function getUnitFormStates(
+  property: DrawerProperty,
+): UnitDetailsFormState[] {
   if (property.units.length > 0) {
     return property.units.map((unit) => ({
       id: unit.id,
       unitName: unit.name,
-      marketRate: formatCurrencyInput(unit.marketRateCents),
+      marketRate: String(unit.marketRateCents / 100),
       unitType: getUnitType(unit.unitType),
-      bedrooms: unit.bedrooms === null || unit.bedrooms === undefined ? "" : String(unit.bedrooms),
-      bathrooms: unit.bathrooms === null || unit.bathrooms === undefined ? "" : String(unit.bathrooms),
-      squareFeet: unit.squareFeet === null || unit.squareFeet === undefined ? "" : String(unit.squareFeet),
+      bedrooms:
+        unit.bedrooms === null || unit.bedrooms === undefined
+          ? ""
+          : String(unit.bedrooms),
+      bathrooms:
+        unit.bathrooms === null || unit.bathrooms === undefined
+          ? ""
+          : String(unit.bathrooms),
+      squareFeet:
+        unit.squareFeet === null || unit.squareFeet === undefined
+          ? ""
+          : String(unit.squareFeet),
       utilities: unit.utilityTypeIds,
       amenities: unit.amenityTypeIds,
     }));
   }
 
   const leases = property.leases ?? [];
-  const unitLabels = Array.from(new Set(leases.map((lease) => lease.unitLabel).filter(Boolean)));
+  const unitLabels = Array.from(
+    new Set(leases.map((lease) => lease.unitLabel).filter(Boolean)),
+  );
   const unitTotal = Math.max(property.unitCount, unitLabels.length, 1);
 
   return Array.from({ length: unitTotal }, (_, index) => {
@@ -104,7 +123,7 @@ export function getUnitFormStates(property: DrawerProperty): UnitDetailsFormStat
     return {
       id: `synthetic-${index + 1}`,
       unitName,
-      marketRate: lease && lease.monthlyRentCents !== null ? formatCurrencyInput(lease.monthlyRentCents) : "",
+      marketRate: lease && lease.monthlyRentCents !== null ? String(lease.monthlyRentCents / 100) : "",
       unitType: "Residential",
       bedrooms: "",
       bathrooms: "",

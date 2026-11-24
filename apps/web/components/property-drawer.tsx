@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useMoney } from "./organization-currency";
 import Link from "next/link";
 import {
   Bath,
@@ -191,7 +190,6 @@ export function PropertyDrawer({
   toggleShortcut = shortcuts.togglePropertyDrawer.keys,
   unitHref,
 }: PropertyDrawerProps) {
-  const { toCents, currency, amountStep, validateAmountInput, maxAmount } = useMoney();
   const [imagePreviewUrl, setImagePreviewUrl] = React.useState(imageUrl);
   const queryClient = useQueryClient();
   const initialUnitStates = React.useMemo(() => getInitialUnitFormStates(initialUnits), [initialUnits]);
@@ -231,10 +229,7 @@ export function PropertyDrawer({
     form.name && form.line1 && form.city && form.region && form.postalCode && form.propertyType && form.unitCount,
   );
   const canSubmitUnitDetails =
-    units.length > 0 &&
-    units.every(
-      (unit) => unit.unitName && unit.marketRate && Number.isFinite(toCents(unit.marketRate)) && unit.unitType,
-    );
+    units.length > 0 && units.every((unit) => unit.unitName && unit.marketRate && unit.unitType);
   const hasFormChanges = Object.entries(form).some(([field, value]) => {
     const initialValue = initialFormState[field as keyof PropertyFormState];
     return Array.isArray(value) && Array.isArray(initialValue)
@@ -470,7 +465,7 @@ export function PropertyDrawer({
   }
 
   function parseMarketRateCents(value: string) {
-    return toCents(value);
+    return Math.round(Number(value) * 100);
   }
 
   function isPersistedUnitId(value: UnitId): value is number {
@@ -913,10 +908,6 @@ export function PropertyDrawer({
                       {units.map((unit) => {
                         const isExpanded = expandedUnitIds.has(unit.id);
                         const href = unitHref?.(unit) ?? null;
-                        const isMarketRateInvalid = Boolean(
-                          unit.marketRate.trim() && !Number.isFinite(toCents(unit.marketRate)),
-                        );
-                        const marketRateErrorId = `property-drawer-unit-${unit.id}-market-rate-error`;
 
                         return (
                           <div
@@ -942,33 +933,16 @@ export function PropertyDrawer({
                                     value={unit.unitName}
                                   />
                                 </Label>
-                                <div className="flex flex-col gap-1">
-                                  <Label>
-                                    <FieldLabel>Market Rate ({currency.code})</FieldLabel>
-                                    <Input
-                                      aria-describedby={isMarketRateInvalid ? marketRateErrorId : undefined}
-                                      aria-invalid={isMarketRateInvalid || undefined}
-                                      min={0}
-                                      onChange={(event) => updateUnitField(unit.id, "marketRate", event.target.value)}
-                                      required
-                                      type="number"
-                                      value={unit.marketRate}
-                                      step={amountStep}
-                                      onInput={validateAmountInput}
-                                      max={maxAmount}
-                                    />
-                                  </Label>
-                                  {isMarketRateInvalid ? (
-                                    <span
-                                      className="text-xs font-medium text-red-700"
-                                      id={marketRateErrorId}
-                                      role="alert"
-                                    >
-                                      Enter a valid {currency.code} amount with at most {currency.minorUnitDigits}{" "}
-                                      decimal places, up to {maxAmount}.
-                                    </span>
-                                  ) : null}
-                                </div>
+                                <Label>
+                                  <FieldLabel>Market Rate</FieldLabel>
+                                  <Input
+                                    min={0}
+                                    onChange={(event) => updateUnitField(unit.id, "marketRate", event.target.value)}
+                                    required
+                                    type="number"
+                                    value={unit.marketRate}
+                                  />
+                                </Label>
                                 <Label>
                                   <FieldLabel>Unit Type</FieldLabel>
                                   <Select

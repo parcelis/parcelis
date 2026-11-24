@@ -11,158 +11,6 @@
     }
   ],
   "paths": {
-    "/organization/currency": {
-      "get": {
-        "operationId": "organizations-currency",
-        "tags": [
-          "Organization"
-        ],
-        "security": [
-          {
-            "Authorization": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "currencyCode": {
-                          "type": "string",
-                          "enum": [
-                            "USD"
-                          ]
-                        },
-                        "currencyLockedAt": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "canChangeCurrency": {
-                          "type": "boolean"
-                        },
-                        "restrictionReason": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "enum": [
-                                "monetary_data_saved",
-                                "insufficient_permissions"
-                              ]
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "supportedCurrencies": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "code": {
-                                "type": "string",
-                                "enum": [
-                                  "USD"
-                                ]
-                              },
-                              "name": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "minorUnitDigits": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 20
-                              }
-                            },
-                            "required": [
-                              "code",
-                              "name",
-                              "minorUnitDigits"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "currencyCode",
-                        "currencyLockedAt",
-                        "canChangeCurrency",
-                        "restrictionReason",
-                        "supportedCurrencies"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error.BAD_REQUEST"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authorization not provided",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Insufficient access",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error.FORBIDDEN"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error.NOT_FOUND"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/health": {
       "get": {
         "operationId": "health",
@@ -247,17 +95,7 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "properties": {
-                          "currencyCode": {
-                            "type": "string",
-                            "enum": [
-                              "USD"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "currencyCode"
-                        ],
+                        "properties": {},
                         "additionalProperties": {}
                       }
                     }
@@ -525,17 +363,7 @@
                   "properties": {
                     "data": {
                       "type": "object",
-                      "properties": {
-                        "currencyCode": {
-                          "type": "string",
-                          "enum": [
-                            "USD"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "currencyCode"
-                      ],
+                      "properties": {},
                       "additionalProperties": {}
                     }
                   },
@@ -626,12 +454,6 @@
                         {
                           "type": "object",
                           "properties": {
-                            "currencyCode": {
-                              "type": "string",
-                              "enum": [
-                                "USD"
-                              ]
-                            },
                             "unitStatuses": {
                               "type": "array",
                               "items": {
@@ -656,7 +478,6 @@
                             }
                           },
                           "required": [
-                            "currencyCode",
                             "unitStatuses"
                           ],
                           "additionalProperties": {}
@@ -941,17 +762,7 @@
                   "properties": {
                     "data": {
                       "type": "object",
-                      "properties": {
-                        "currencyCode": {
-                          "type": "string",
-                          "enum": [
-                            "USD"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "currencyCode"
-                      ],
+                      "properties": {},
                       "additionalProperties": {}
                     }
                   },
@@ -2671,17 +2482,7 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "properties": {
-                          "currencyCode": {
-                            "type": "string",
-                            "enum": [
-                              "USD"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "currencyCode"
-                        ],
+                        "properties": {},
                         "additionalProperties": {}
                       }
                     }
@@ -2838,17 +2639,7 @@
                   "properties": {
                     "data": {
                       "type": "object",
-                      "properties": {
-                        "currencyCode": {
-                          "type": "string",
-                          "enum": [
-                            "USD"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "currencyCode"
-                      ],
+                      "properties": {},
                       "additionalProperties": {}
                     }
                   },
@@ -2938,17 +2729,7 @@
                       "anyOf": [
                         {
                           "type": "object",
-                          "properties": {
-                            "currencyCode": {
-                              "type": "string",
-                              "enum": [
-                                "USD"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "currencyCode"
-                          ],
+                          "properties": {},
                           "additionalProperties": {}
                         },
                         {
@@ -3114,17 +2895,7 @@
                   "properties": {
                     "data": {
                       "type": "object",
-                      "properties": {
-                        "currencyCode": {
-                          "type": "string",
-                          "enum": [
-                            "USD"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "currencyCode"
-                      ],
+                      "properties": {},
                       "additionalProperties": {}
                     }
                   },
@@ -3220,17 +2991,7 @@
                   "properties": {
                     "data": {
                       "type": "object",
-                      "properties": {
-                        "currencyCode": {
-                          "type": "string",
-                          "enum": [
-                            "USD"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "currencyCode"
-                      ],
+                      "properties": {},
                       "additionalProperties": {}
                     }
                   },
@@ -3342,94 +3103,6 @@
           "issues": []
         }
       },
-      "error.UNAUTHORIZED": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "The error message",
-            "example": "Authorization not provided"
-          },
-          "code": {
-            "type": "string",
-            "description": "The error code",
-            "example": "UNAUTHORIZED"
-          },
-          "issues": {
-            "description": "An array of issues that were responsible for the error",
-            "example": [],
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "message"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "message",
-          "code"
-        ],
-        "additionalProperties": false,
-        "title": "Authorization not provided error (401)",
-        "description": "The error information",
-        "example": {
-          "code": "UNAUTHORIZED",
-          "message": "Authorization not provided",
-          "issues": []
-        }
-      },
-      "error.FORBIDDEN": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "The error message",
-            "example": "Insufficient access"
-          },
-          "code": {
-            "type": "string",
-            "description": "The error code",
-            "example": "FORBIDDEN"
-          },
-          "issues": {
-            "description": "An array of issues that were responsible for the error",
-            "example": [],
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "message"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "message",
-          "code"
-        ],
-        "additionalProperties": false,
-        "title": "Insufficient access error (403)",
-        "description": "The error information",
-        "example": {
-          "code": "FORBIDDEN",
-          "message": "Insufficient access",
-          "issues": []
-        }
-      },
       "error.NOT_FOUND": {
         "type": "object",
         "properties": {
@@ -3515,6 +3188,94 @@
         "example": {
           "code": "INTERNAL_SERVER_ERROR",
           "message": "Internal server error",
+          "issues": []
+        }
+      },
+      "error.UNAUTHORIZED": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The error message",
+            "example": "Authorization not provided"
+          },
+          "code": {
+            "type": "string",
+            "description": "The error code",
+            "example": "UNAUTHORIZED"
+          },
+          "issues": {
+            "description": "An array of issues that were responsible for the error",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "message",
+          "code"
+        ],
+        "additionalProperties": false,
+        "title": "Authorization not provided error (401)",
+        "description": "The error information",
+        "example": {
+          "code": "UNAUTHORIZED",
+          "message": "Authorization not provided",
+          "issues": []
+        }
+      },
+      "error.FORBIDDEN": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The error message",
+            "example": "Insufficient access"
+          },
+          "code": {
+            "type": "string",
+            "description": "The error code",
+            "example": "FORBIDDEN"
+          },
+          "issues": {
+            "description": "An array of issues that were responsible for the error",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "message",
+          "code"
+        ],
+        "additionalProperties": false,
+        "title": "Insufficient access error (403)",
+        "description": "The error information",
+        "example": {
+          "code": "FORBIDDEN",
+          "message": "Insufficient access",
           "issues": []
         }
       }

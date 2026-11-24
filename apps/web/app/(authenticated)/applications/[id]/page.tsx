@@ -1,7 +1,5 @@
 "use client";
 
-import { useMoney } from "../../../../components/organization-currency";
-
 import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -38,6 +36,14 @@ import {
   entityUpdatedMessage,
 } from "../../../../components/toast-messages";
 import { getPropertyLink } from "../../../../lib/entity-links";
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
 
 function formatDate(value: Date | string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
@@ -78,7 +84,6 @@ function formatApplicantAddress(applicant: {
 }
 
 export default function ApplicationDetailPage() {
-  const { formatCurrency } = useMoney();
   const { id: idParam } = useParams<{ id: string }>();
   const id = Number(idParam);
   const router = useRouter();

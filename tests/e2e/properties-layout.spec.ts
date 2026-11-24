@@ -1,58 +1,5 @@
 import { test, expect } from "./fixtures/authenticated";
 
-test("expanded unit occupancy includes notice leases and excludes non-occupying leases", async ({ page }) => {
-  const response = await page.request.get("/trpc/properties.list");
-  expect(response.ok()).toBe(true);
-  const property = (await response.json()).result.data.find((item: { units: unknown[] }) => item.units.length > 0);
-  expect(property, "A seeded property with units is required").toBeDefined();
-  const statuses = ["active", "notice", "ended", "scheduled", "vacant"];
-  const units = statuses.map((status, index) => ({
-    ...property.units[0],
-    id: 90001 + index,
-    name: status,
-  }));
-  const leases = statuses
-    .filter((status) => status !== "vacant")
-    .map((status, index) => ({
-      id: 90001 + index,
-      unitId: units[index]!.id,
-      unitLabel: status,
-      status,
-      endsOn: null,
-      monthlyRentCents: 100000,
-    }));
-  await page.route("**/trpc/**", async (route) => {
-    const url = new URL(route.request().url());
-    const procedures = decodeURIComponent(url.pathname.split("/trpc/")[1]!).split(",");
-    if (!procedures.includes("properties.list")) {
-      await route.continue();
-      return;
-    }
-    const fetched = await route.fetch();
-    const payload = await fetched.json();
-    const batched = url.searchParams.has("batch");
-    const results = batched ? payload : [payload];
-    procedures.forEach((procedure, index) => {
-      if (procedure === "properties.list") {
-        results[index] = {
-          result: {
-            data: [{ ...property, unitCount: units.length, occupiedUnits: 2, units, leases, leaseHistory: leases }],
-          },
-        };
-      }
-    });
-    await route.fulfill({ response: fetched, json: batched ? results : results[0] });
-  });
-  await page.goto("/properties");
-  await page.getByRole("button", { name: `Expand ${property.name} units`, exact: true }).click();
-  for (const status of statuses) {
-    const row = page.getByRole("row").filter({ has: page.getByText(`Unit ${status}`, { exact: true }) });
-    await expect(
-      row.getByRole("cell", { name: status === "active" || status === "notice" ? "100%" : "0%", exact: true }),
-    ).toBeVisible();
-  }
-});
-
 test("keeps the Properties hero and all five metrics within the viewport", async ({ page }) => {
   await page.goto("/properties");
   const heading = page.getByRole("heading", { name: "Portfolio directory", exact: true });

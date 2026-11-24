@@ -2,15 +2,9 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import * as argon2 from "argon2";
 import { randomBytes } from "node:crypto";
-import { withSeedCurrency } from "./seed-currency.mjs";
 import { seedApiTokens } from "./seed-api-tokens.mjs";
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg(
-    { connectionString: process.env.DATABASE_URL },
-    { schema: new URL(process.env.DATABASE_URL).searchParams.get("schema") ?? "public" },
-  ),
-});
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 const properties = [
   {
@@ -126,21 +120,19 @@ function getDemoUnitDetails(property, unitName, index, leaseRentCents) {
 async function seedRequiredUnits(property, requiredUnitNames) {
   for (const [index, unitName] of requiredUnitNames.entries()) {
     const unitDetails = getDemoUnitDetails(property, unitName, index);
-    await withSeedCurrency(prisma, property.organizationId, (tx) =>
-      tx.unit.upsert({
-        where: {
-          propertyId_name: {
-            propertyId: property.id,
-            name: unitName,
-          },
-        },
-        update: {},
-        create: {
+    await prisma.unit.upsert({
+      where: {
+        propertyId_name: {
           propertyId: property.id,
-          ...unitDetails,
+          name: unitName,
         },
-      }),
-    );
+      },
+      update: {},
+      create: {
+        propertyId: property.id,
+        ...unitDetails,
+      },
+    });
   }
 }
 
@@ -164,21 +156,19 @@ async function seedUnitsForProperty(property, requiredUnitNames = []) {
 
   for (const [index, unitName] of unitNames.entries()) {
     const unitDetails = getDemoUnitDetails(property, unitName, index, leaseRentByUnit.get(unitName));
-    const unit = await withSeedCurrency(prisma, property.organizationId, (tx) =>
-      tx.unit.upsert({
-        where: {
-          propertyId_name: {
-            propertyId: property.id,
-            name: unitName,
-          },
-        },
-        update: unitDetails,
-        create: {
+    const unit = await prisma.unit.upsert({
+      where: {
+        propertyId_name: {
           propertyId: property.id,
-          ...unitDetails,
+          name: unitName,
         },
-      }),
-    );
+      },
+      update: unitDetails,
+      create: {
+        propertyId: property.id,
+        ...unitDetails,
+      },
+    });
 
     const utilityLabels = index % 3 === 0 ? ["Water", "Sewer"] : [];
     const amenityLabels = [
@@ -227,29 +217,29 @@ async function seedUnitsForProperty(property, requiredUnitNames = []) {
 }
 
 async function upsertLease(organizationId, rentChargeId, data) {
-  return withSeedCurrency(prisma, organizationId, async (tx, currencyCode) => {
-    const { tenantIds, unitId, ...leaseData } = data;
-    const existing = await tx.lease.findFirst({ where: { organizationId, propertyId: data.propertyId, unitId } });
-    if (existing?.currencyCode != null && existing.currencyCode !== currencyCode) {
-      throw new Error("Seed lease currency does not match its organization.");
-    }
-    const lease = existing
-      ? await tx.lease.update({
-          where: { id: existing.id },
-          data: { ...leaseData, unitId, rentChargeId, currencyCode },
-        })
-      : await tx.lease.create({ data: { ...leaseData, unitId, organizationId, rentChargeId, currencyCode } });
-    if (tenantIds && tenantIds.length > 0) {
-      await tx.invoicePayment.deleteMany({ where: { invoice: { leaseId: lease.id } } });
-      await tx.invoice.deleteMany({ where: { leaseId: lease.id } });
-      await tx.leaseTenant.deleteMany({ where: { leaseId: lease.id } });
-      await tx.leaseTenant.createMany({
+  const { tenantIds, unitId, ...leaseData } = data;
+
+  const existing = await prisma.lease.findFirst({
+    where: { organizationId, propertyId: data.propertyId, unitId },
+  });
+
+  const lease = existing
+    ? await prisma.lease.update({ where: { id: existing.id }, data: { ...leaseData, unitId, rentChargeId } })
+    : await prisma.lease.create({ data: { ...leaseData, unitId, organizationId, rentChargeId } });
+
+  if (tenantIds && tenantIds.length > 0) {
+    await prisma.$transaction([
+      prisma.invoicePayment.deleteMany({ where: { invoice: { leaseId: lease.id } } }),
+      prisma.invoice.deleteMany({ where: { leaseId: lease.id } }),
+      prisma.leaseTenant.deleteMany({ where: { leaseId: lease.id } }),
+      prisma.leaseTenant.createMany({
         data: tenantIds.map((tenantId) => ({ organizationId, leaseId: lease.id, tenantId })),
         skipDuplicates: true,
-      });
-    }
-    return lease;
-  });
+      }),
+    ]);
+  }
+
+  return lease;
 }
 
 async function seedInvoice({ lease, charge, tenantId, periodStartsOn, amountCents, balanceCents, payments = [] }) {
@@ -259,51 +249,47 @@ async function seedInvoice({ lease, charge, tenantId, periodStartsOn, amountCent
     ? charge.description.replaceAll("{month}", month).replaceAll("{year}", String(periodStartsOn.getUTCFullYear()))
     : null;
 
-  await withSeedCurrency(prisma, lease.organizationId, async (tx, currencyCode) => {
-    await tx.lease.findFirstOrThrow({ where: { id: lease.id, organizationId: lease.organizationId, currencyCode } });
-    return tx.invoice.upsert({
-      where: {
-        leaseId_tenantId_periodStartsOn: { leaseId: lease.id, tenantId, periodStartsOn },
-      },
-      update: {
-        recipients: {
-          createMany: {
-            data: [{ tenantId }],
-            skipDuplicates: true,
-          },
+  await prisma.invoice.upsert({
+    where: {
+      leaseId_tenantId_periodStartsOn: { leaseId: lease.id, tenantId, periodStartsOn },
+    },
+    update: {
+      recipients: {
+        createMany: {
+          data: [{ tenantId }],
+          skipDuplicates: true,
         },
       },
-      create: {
-        currencyCode,
-        organizationId: lease.organizationId,
-        leaseId: lease.id,
-        propertyId: lease.propertyId,
-        tenantId,
-        paidByTenantId: balanceCents === 0 ? tenantId : null,
-        periodStartsOn,
-        periodEndsOn: new Date(Date.UTC(periodStartsOn.getUTCFullYear(), periodStartsOn.getUTCMonth() + 1, 0)),
-        dueOn: periodStartsOn,
-        amountCents,
-        balanceCents,
-        status: balanceCents === 0 ? "paid" : "overdue",
-        paidOn,
-        paymentMethod: balanceCents === 0 ? (payments.at(-1)?.paymentMethod ?? null) : null,
-        recipients: {
-          create: { tenantId },
-        },
-        items: {
-          create: {
-            item: charge.name,
-            description,
-            rateCents: amountCents,
-            amountCents,
-          },
-        },
-        payments: {
-          create: payments.map((payment) => ({ ...payment, organizationId: lease.organizationId, tenantId })),
+    },
+    create: {
+      organizationId: lease.organizationId,
+      leaseId: lease.id,
+      propertyId: lease.propertyId,
+      tenantId,
+      paidByTenantId: balanceCents === 0 ? tenantId : null,
+      periodStartsOn,
+      periodEndsOn: new Date(Date.UTC(periodStartsOn.getUTCFullYear(), periodStartsOn.getUTCMonth() + 1, 0)),
+      dueOn: periodStartsOn,
+      amountCents,
+      balanceCents,
+      status: balanceCents === 0 ? "paid" : "overdue",
+      paidOn,
+      paymentMethod: balanceCents === 0 ? (payments.at(-1)?.paymentMethod ?? null) : null,
+      recipients: {
+        create: { tenantId },
+      },
+      items: {
+        create: {
+          item: charge.name,
+          description,
+          rateCents: amountCents,
+          amountCents,
         },
       },
-    });
+      payments: {
+        create: payments.map((payment) => ({ ...payment, organizationId: lease.organizationId, tenantId })),
+      },
+    },
   });
 }
 
@@ -916,43 +902,41 @@ async function main() {
   ];
 
   for (const application of applications) {
-    await withSeedCurrency(prisma, organization.id, async (tx) => {
-      const existing = await tx.application.findFirst({
-        where: {
-          organizationId: organization.id,
-          propertyId: application.propertyId,
+    const existing = await prisma.application.findFirst({
+      where: {
+        organizationId: organization.id,
+        propertyId: application.propertyId,
+        submittedOn: application.submittedOn,
+      },
+    });
+    const applicant = existing
+      ? await prisma.applicant.update({ where: { id: existing.applicantId }, data: application.applicant })
+      : await prisma.applicant.create({ data: { organizationId: organization.id, ...application.applicant } });
+    const status = applicationStatusByLabel[application.statusLabel];
+
+    if (existing) {
+      await prisma.application.update({
+        where: { id: existing.id },
+        data: {
+          statusId: status.id,
+          annualIncomeCents: application.annualIncomeCents,
           submittedOn: application.submittedOn,
+          requestedMoveInDate: application.requestedMoveInDate,
         },
       });
-      const applicant = existing
-        ? await tx.applicant.update({ where: { id: existing.applicantId }, data: application.applicant })
-        : await tx.applicant.create({ data: { organizationId: organization.id, ...application.applicant } });
-      const status = applicationStatusByLabel[application.statusLabel];
-
-      if (existing) {
-        await tx.application.update({
-          where: { id: existing.id },
-          data: {
-            statusId: status.id,
-            annualIncomeCents: application.annualIncomeCents,
-            submittedOn: application.submittedOn,
-            requestedMoveInDate: application.requestedMoveInDate,
-          },
-        });
-      } else {
-        await tx.application.create({
-          data: {
-            organizationId: organization.id,
-            propertyId: application.propertyId,
-            applicantId: applicant.id,
-            statusId: status.id,
-            annualIncomeCents: application.annualIncomeCents,
-            submittedOn: application.submittedOn,
-            requestedMoveInDate: application.requestedMoveInDate,
-          },
-        });
-      }
-    });
+    } else {
+      await prisma.application.create({
+        data: {
+          organizationId: organization.id,
+          propertyId: application.propertyId,
+          applicantId: applicant.id,
+          statusId: status.id,
+          annualIncomeCents: application.annualIncomeCents,
+          submittedOn: application.submittedOn,
+          requestedMoveInDate: application.requestedMoveInDate,
+        },
+      });
+    }
   }
 }
 

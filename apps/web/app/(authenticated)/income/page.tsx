@@ -1,7 +1,5 @@
 "use client";
 
-import { useMoney } from "../../../components/organization-currency";
-
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -35,6 +33,16 @@ import { LoadingState } from "../../../components/loading-state";
 import { InvoiceDrawer } from "../../../components/invoice-drawer";
 import { PageRail } from "../../../components/page-rail";
 import { getInvoiceLink } from "../../../lib/entity-links";
+
+function formatCurrency(cents: number | null) {
+  if (cents === null) return "Not set";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
 
 function formatLeaseStatus(status: string) {
   return status
@@ -94,7 +102,6 @@ export default function IncomePage() {
 }
 
 function IncomePageContent() {
-  const { formatCurrency } = useMoney();
   const [expandedUnitIds, setExpandedUnitIds] = React.useState<Set<string>>(new Set());
   const [groupByUnit, setGroupByUnit] = React.useState(true);
   const [search, setSearch] = React.useState("");
@@ -716,7 +723,7 @@ function IncomePageContent() {
                                         {getIncomeInvoiceStatus(invoice, today)}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm font-semibold text-parcelis-charcoal">
-                                        {formatCurrency(invoice.amountCents, invoice.currencyCode)}
+                                        {formatCurrency(invoice.amountCents)}
                                       </TableCell>
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
                                         —
@@ -724,16 +731,12 @@ function IncomePageContent() {
                                       <TableCell className="px-5 py-3 text-right text-sm text-parcelis-gray">
                                         {formatCurrency(
                                           invoice.status === "void" ? 0 : invoice.amountCents - invoice.balanceCents,
-                                          invoice.currencyCode,
                                         )}
                                       </TableCell>
                                       <TableCell
                                         className={`px-5 py-3 text-right text-sm font-semibold ${isUpcomingInvoice(invoice, today) ? "text-parcelis-gray" : getReceivableStatus(invoice, today) === "overdue" ? "text-red-700" : "text-parcelis-gray"}`}
                                       >
-                                        {formatCurrency(
-                                          invoice.status === "void" ? 0 : invoice.balanceCents,
-                                          invoice.currencyCode,
-                                        )}
+                                        {formatCurrency(invoice.status === "void" ? 0 : invoice.balanceCents)}
                                       </TableCell>
                                     </TableRow>
                                   );
@@ -824,19 +827,16 @@ function IncomePageContent() {
                             <span className="font-medium text-parcelis-charcoal">{lease.unitLabel}</span>
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm font-semibold text-parcelis-charcoal">
-                            {formatCurrency(invoice.amountCents, invoice.currencyCode)}
+                            {formatCurrency(invoice.amountCents)}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm text-parcelis-gray">—</TableCell>
                           <TableCell className="px-5 py-4 text-right text-sm text-parcelis-gray">
-                            {formatCurrency(
-                              invoice.status === "void" ? 0 : invoice.amountCents - invoice.balanceCents,
-                              invoice.currencyCode,
-                            )}
+                            {formatCurrency(invoice.status === "void" ? 0 : invoice.amountCents - invoice.balanceCents)}
                           </TableCell>
                           <TableCell
                             className={`px-5 py-4 text-right text-sm font-semibold ${isUpcomingInvoice(invoice, today) ? "text-parcelis-gray" : getReceivableStatus(invoice, today) === "overdue" ? "text-red-700" : "text-parcelis-gray"}`}
                           >
-                            {formatCurrency(invoice.status === "void" ? 0 : invoice.balanceCents, invoice.currencyCode)}
+                            {formatCurrency(invoice.status === "void" ? 0 : invoice.balanceCents)}
                           </TableCell>
                           <TableCell className="px-5 py-4 text-sm text-parcelis-gray">
                             {getIncomeInvoiceStatus(invoice, today)}

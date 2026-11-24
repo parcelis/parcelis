@@ -1,6 +1,5 @@
 export * from "./outbox.ts";
 export * from "./notification-delivery.ts";
-export * from "./currency.ts";
 export {
   ActivitySubjectType,
   LeaseStatus,
