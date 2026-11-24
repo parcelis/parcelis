@@ -464,7 +464,7 @@ export const createTagInputSchema = z.object({
 export const unitDetailsInputSchema = z.object({
   id: idSchema.optional(),
   name: z.string().min(1),
-  marketRateCents: z.number().int().nonnegative(),
+  marketRateCents: z.number().int().nonnegative().max(maxDatabaseInteger),
   unitType: unitTypeSchema,
   bedrooms: z.number().int().nonnegative().optional(),
   bathrooms: z.number().nonnegative().optional(),
