@@ -1,0 +1,23 @@
+apps/api/src/tests/properties/market-rate.schema.test.ts
+  s_367acf756248e5::t_91d459ff219849 1-31
+packages/schemas/src/index.ts
+  s_367acf756248e5::t_7e473d0d4f7112 467
+apps/api/openapi/parcelis.openapi.json
+  s_367acf756248e5::t_534cce8b205c10 287,686,2575,2837
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ba798f7dca355161864c23832be042622b057726",
+  "prompts": {},
+  "sessions": {
+    "s_367acf756248e5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20e6a-b9ae-7010-bcb3-0851430a1a06",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
