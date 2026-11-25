@@ -1,0 +1,48 @@
+scripts/postgres-integration-changes.mjs
+  s_7c211e2703e91b::t_299018e95f0b4a 24,42-56
+README.md
+  s_7c211e2703e91b::t_299018e95f0b4a 174-180
+packages/db/src/tests/installation.test.ts
+  s_7c211e2703e91b::t_36da7050f5b9f6 17,21-55
+  s_7c211e2703e91b::t_f69dda4d94d1fa 1-16,18-20,56-58
+packages/db/prisma/migrations/20261124000000_add_installation_identity/migration.sql
+  s_7c211e2703e91b::t_dcb7d4add766b0 1-12
+scripts/postgres-integration-changes.test.mjs
+  s_7c211e2703e91b::t_299018e95f0b4a 10,20,27-35,115-116
+apps/api/src/tests/installation/installation.integration.ts
+  s_7c211e2703e91b::t_36da7050f5b9f6 16-48,54,60-63,65-74,76-85
+  s_7c211e2703e91b::t_299018e95f0b4a 1-15,64,75
+  s_7c211e2703e91b::t_3c9366a77ed15f 49-53,55-59
+.github/workflows/postgres-integration.yml
+  s_7c211e2703e91b::t_299018e95f0b4a 54,76-77
+ARCHITECTURE.md
+  s_7c211e2703e91b::t_299018e95f0b4a 236-249
+apps/api/src/router/auth.router.ts
+  s_7c211e2703e91b::t_c1c9a4516d0bbd 11,108
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_7c211e2703e91b::t_3b76a299d4dc11 9,77,98-104,299,385-389,415-416
+packages/db/prisma/schema.prisma
+  s_7c211e2703e91b::t_933ee0ccaf7ce1 9-14
+packages/db/prisma/seed.mjs
+  s_7c211e2703e91b::t_b34601a27017f5 6,328-333,347-351
+packages/db/src/index.ts
+  s_7c211e2703e91b::t_25b435cd4e9840 3,17
+packages/db/src/installation.ts
+  s_7c211e2703e91b::t_a49e627f378023 1-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4a497622341e68131888e69ca10b91dfaa1b9bbf",
+  "prompts": {},
+  "sessions": {
+    "s_7c211e2703e91b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20f01-2763-7da1-b32c-be2019254789",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
