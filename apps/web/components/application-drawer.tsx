@@ -1,7 +1,5 @@
 "use client";
 
-import { useMoney } from "./organization-currency";
-
 import * as React from "react";
 import { ChevronRight } from "lucide-react";
 import {
@@ -54,14 +52,11 @@ type ApplicationDrawerProps = {
   submitLabel: string;
 };
 
-function toFormState(
-  formatCurrencyInput: (value: number | null) => string,
-  initialValues?: ApplicationDrawerInitialValues,
-) {
+function toFormState(initialValues?: ApplicationDrawerInitialValues) {
   return {
     propertyId: initialValues ? String(initialValues.propertyId) : "",
     statusId: initialValues ? String(initialValues.statusId) : "",
-    annualIncomeCents: initialValues ? formatCurrencyInput(initialValues.annualIncomeCents) : "",
+    annualIncomeCents: initialValues ? String(initialValues.annualIncomeCents / 100) : "",
     requestedMoveInDate: initialValues?.requestedMoveInDate ? toUtcDateInput(initialValues.requestedMoveInDate) : "",
     firstName: initialValues?.applicant.firstName ?? "",
     lastName: initialValues?.applicant.lastName ?? "",
@@ -91,19 +86,18 @@ export function ApplicationDrawer({
   statuses,
   submitLabel,
 }: ApplicationDrawerProps) {
-  const { formatCurrencyInput, toCents, amountStep, validateAmountInput, maxAmount, currency } = useMoney();
-  const [form, setForm] = React.useState<ApplicationFormState>(() => toFormState(formatCurrencyInput, initialValues));
+  const [form, setForm] = React.useState<ApplicationFormState>(() => toFormState(initialValues));
   const [isAddressPopoverOpen, setIsAddressPopoverOpen] = React.useState(false);
   const [addressError, setAddressError] = React.useState<string | null>(null);
   const previousOpenRef = React.useRef(open);
 
   React.useEffect(() => {
     if (open && !previousOpenRef.current) {
-      setForm(toFormState(formatCurrencyInput, initialValues));
+      setForm(toFormState(initialValues));
       setAddressError(null);
     }
     previousOpenRef.current = open;
-  }, [open, initialValues, formatCurrencyInput]);
+  }, [open, initialValues]);
 
   function updateField<Key extends keyof ApplicationFormState>(field: Key, value: ApplicationFormState[Key]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -141,7 +135,7 @@ export function ApplicationDrawer({
     onSubmit({
       propertyId: Number(form.propertyId),
       statusId: Number(form.statusId),
-      annualIncomeCents: toCents(form.annualIncomeCents),
+      annualIncomeCents: Math.round(Number(form.annualIncomeCents || 0) * 100),
       requestedMoveInDate: form.requestedMoveInDate ? new Date(`${form.requestedMoveInDate}T00:00:00.000Z`) : null,
       applicant: {
         firstName: form.firstName.trim(),
@@ -198,14 +192,12 @@ export function ApplicationDrawer({
                   </Select>
                 </Label>
                 <Label className="gap-2">
-                  Annual Income * ({currency.code})
+                  Annual Income *
                   <Input
                     min="0"
                     onChange={(event) => updateField("annualIncomeCents", event.target.value)}
                     required
-                    step={amountStep}
-                    onInput={validateAmountInput}
-                    max={maxAmount}
+                    step="0.01"
                     type="number"
                     value={form.annualIncomeCents}
                   />

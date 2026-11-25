@@ -24,7 +24,6 @@ for (const [file, expected] of [
   ["apps/api/src/app/api/v1/[...path]/route.ts", ["api-tokens"]],
   ["apps/api/src/tests/auth/session-cookie.ts", ["api-tokens"]],
   ["apps/api/src/tests/api-tokens/api-tokens.integration.ts", ["api-tokens"]],
-  ["apps/api/src/tests/currencies/unit-currency.integration.ts", ["api-tokens"]],
   ["apps/api/package.json", ["api-tokens"]],
   ["packages/schemas/src/index.ts", ["api-tokens"]],
   ["packages/email/src/service.ts", ["api-tokens"]],

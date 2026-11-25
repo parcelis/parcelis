@@ -1,5 +1,3 @@
-import { roundMinorUnits, sumMinorUnits } from "./money.ts";
-
 // This module provides types and functions for calculating
 // monthly rent schedules for leases.
 export type MonthlyRentScheduleInput = {
@@ -69,10 +67,6 @@ function formatCalendarDate(year: number, month: number, day: number) {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function prorateMonthlyRentCents(monthlyRentCents: number, occupiedDays: number, monthLength: number) {
-  return Number(roundMinorUnits(BigInt(monthlyRentCents) * BigInt(occupiedDays), BigInt(monthLength)));
-}
-
 // Calculates the monthly rent schedule for a lease based on its start and end dates, monthly rent, and rent due day.
 export function calculateMonthlyRentSchedule({
   monthlyRentCents,
@@ -123,7 +117,7 @@ export function calculateMonthlyRentSchedule({
       periodStartsOn,
       periodEndsOn,
       dueOn,
-      amountCents: prorateMonthlyRentCents(monthlyRentCents, occupiedDays, monthLength),
+      amountCents: Math.round((monthlyRentCents * occupiedDays) / monthLength),
       occupiedDays,
       daysInMonth: monthLength,
     });
@@ -156,7 +150,7 @@ export function planMonthlyRentCharges(
     !Number.isSafeInteger(monthlyRentCents) ||
     monthlyRentCents <= 0 ||
     !Number.isSafeInteger(period.amountCents) ||
-    period.amountCents !== prorateMonthlyRentCents(monthlyRentCents, period.occupiedDays, period.daysInMonth)
+    period.amountCents !== Math.round((monthlyRentCents * period.occupiedDays) / period.daysInMonth)
   ) {
     throw new Error("Rent period amount does not match the monthly rent.");
   }
@@ -189,17 +183,17 @@ export function planMonthlyRentCharges(
       ({ tenantId, rentShareCents }, index) =>
         tenantId !== sortedTenantIds[index] || !Number.isSafeInteger(rentShareCents) || rentShareCents <= 0,
     ) ||
-    sumMinorUnits(sortedAllocations.map(({ rentShareCents }) => rentShareCents)) !== monthlyRentCents
+    sortedAllocations.reduce((sum, { rentShareCents }) => sum + rentShareCents, 0) !== monthlyRentCents
   ) {
     throw new Error("Individual rent allocations must match the tenants and monthly rent.");
   }
 
   const prorated = sortedAllocations.map(({ tenantId, rentShareCents }) => {
-    const numerator = BigInt(rentShareCents) * BigInt(period.occupiedDays);
+    const numerator = rentShareCents * period.occupiedDays;
     return {
       tenantId,
-      amountCents: Number(numerator / BigInt(period.daysInMonth)),
-      remainder: Number(numerator % BigInt(period.daysInMonth)),
+      amountCents: Math.floor(numerator / period.daysInMonth),
+      remainder: numerator % period.daysInMonth,
     };
   });
   let remainingCents = period.amountCents - prorated.reduce((sum, charge) => sum + charge.amountCents, 0);

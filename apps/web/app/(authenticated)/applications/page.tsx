@@ -1,7 +1,5 @@
 "use client";
 
-import { useMoney } from "../../../components/organization-currency";
-
 import { SecondaryNavigationLayout } from "../../../components/secondary-navigation-layout";
 import * as React from "react";
 import Link from "next/link";
@@ -31,6 +29,14 @@ import { SearchGroupToolbar } from "../../../components/search-group-toolbar";
 import { entityCreatedMessage } from "../../../components/toast-messages";
 import { getApplicationLink } from "../../../lib/entity-links";
 
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
 function getApplicantName(application: { applicant: { firstName: string; lastName: string } }) {
   return `${application.applicant.firstName} ${application.applicant.lastName}`;
 }
@@ -54,7 +60,6 @@ export default function ApplicationsPage() {
 }
 
 function ApplicationsPageContent() {
-  const { formatCurrency } = useMoney();
   const [expandedPropertyIds, setExpandedPropertyIds] = React.useState<Set<number>>(new Set());
   const [groupByProperty, setGroupByProperty] = React.useState(false);
   const [search, setSearch] = React.useState("");

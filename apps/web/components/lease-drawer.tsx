@@ -1,7 +1,5 @@
 "use client";
 
-import { useMoney } from "./organization-currency";
-
 import * as React from "react";
 import { ChevronRight, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -41,7 +39,6 @@ const initialForm = {
 };
 
 export function LeaseDrawer({ error, isPending, onOpenChange, onSubmit, open }: LeaseDrawerProps) {
-  const { toCents, amountStep, validateAmountInput, maxAmount, currency } = useMoney();
   const [form, setForm] = React.useState(initialForm);
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list,
@@ -89,7 +86,7 @@ export function LeaseDrawer({ error, isPending, onOpenChange, onSubmit, open }: 
               unitId: Number(form.unitId),
               tenantIds: form.tenantIds,
               termType: form.endsOn ? "fixed" : "month_to_month",
-              monthlyRentCents: toCents(form.monthlyRent),
+              monthlyRentCents: Math.round(Number(form.monthlyRent) * 100),
               startsOn: new Date(`${form.startsOn}T00:00:00.000Z`),
               endsOn: form.endsOn ? new Date(`${form.endsOn}T00:00:00.000Z`) : null,
               status: form.status,
@@ -143,16 +140,14 @@ export function LeaseDrawer({ error, isPending, onOpenChange, onSubmit, open }: 
                 </Select>
               </Label>
               <Label className="gap-2">
-                <span>Monthly rent * ({currency.code})</span>
+                <span>Monthly rent *</span>
                 <Input
                   inputMode="decimal"
-                  min={amountStep}
+                  min="0.01"
                   onChange={(event) => setForm((current) => ({ ...current, monthlyRent: event.target.value }))}
-                  placeholder="0"
+                  placeholder="0.00"
                   required
-                  step={amountStep}
-                  onInput={validateAmountInput}
-                  max={maxAmount}
+                  step="0.01"
                   type="number"
                   value={form.monthlyRent}
                 />

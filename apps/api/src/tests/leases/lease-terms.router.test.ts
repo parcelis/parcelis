@@ -68,10 +68,6 @@ test("generated invoices use the lease rent due day", async () => {
     rentDueDay: 31,
   };
   const tx = {
-    organization: {
-      updateMany: async () => ({ count: 1 }),
-      findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
-    },
     property: {
       findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }),
       update: async () => ({ id: 2, occupiedUnits: 1 }),
@@ -138,10 +134,6 @@ test("the first generated invoice is not due before a mid-month lease starts", a
     rentDueDay: 1,
   };
   const tx = {
-    organization: {
-      updateMany: async () => ({ count: 1 }),
-      findUniqueOrThrow: async () => ({ currencyCode: "USD" }),
-    },
     property: {
       findFirstOrThrow: async () => ({ id: 2, occupiedUnits: 0 }),
       update: async () => ({ id: 2, occupiedUnits: 1 }),

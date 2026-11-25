@@ -1,7 +1,5 @@
 "use client";
 
-import { useMoney } from "./organization-currency";
-
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
@@ -32,6 +30,10 @@ function createLine(): Line {
   return { id: crypto.randomUUID(), item: "", description: "", quantity: "1", rate: "" };
 }
 
+function toCents(value: string) {
+  const amount = Number.parseFloat(value);
+  return Number.isFinite(amount) ? Math.max(Math.round(amount * 100), 0) : 0;
+}
 export function EditInvoiceDrawer({
   invoice,
   onOpenChange,
@@ -41,8 +43,6 @@ export function EditInvoiceDrawer({
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
-  const { formatCurrency, formatCurrencyInput, toCents, amountStep, validateAmountInput, maxAmount, currency } =
-    useMoney(invoice.currencyCode);
   const queryClient = useQueryClient();
   const [dueOn, setDueOn] = React.useState("");
   const [lines, setLines] = React.useState<Line[]>([]);
@@ -57,13 +57,13 @@ export function EditInvoiceDrawer({
           item: item.item,
           description: item.description ?? "",
           quantity: String(item.quantity),
-          rate: formatCurrencyInput(item.rateCents),
+          rate: (item.rateCents / 100).toFixed(2),
         }))
       : [createLine()];
     setDueOn(nextDueOn);
     setLines(nextLines);
     setSnapshot(JSON.stringify({ dueOn: nextDueOn, lines: nextLines }));
-  }, [invoice, open, formatCurrencyInput]);
+  }, [invoice, open]);
   const totalPaid = invoice.amountCents - invoice.balanceCents;
   const subtotal = lines.reduce((sum, line) => sum + Number(line.quantity || 0) * toCents(line.rate), 0);
   const dirty = snapshot !== "" && snapshot !== JSON.stringify({ dueOn, lines });
@@ -173,7 +173,7 @@ export function EditInvoiceDrawer({
                 <span>Item</span>
                 <span>Description</span>
                 <span>Qty.</span>
-                <span>Rate ({currency.code})</span>
+                <span>Rate</span>
                 <span className="sr-only">Remove</span>
               </div>
               {lines.map((line, index) => (
@@ -210,14 +210,12 @@ export function EditInvoiceDrawer({
                     />
                   </Label>
                   <Label className="gap-2 md:contents">
-                    <span className="md:sr-only">Rate ({currency.code})</span>
+                    <span className="md:sr-only">Rate</span>
                     <Input
-                      aria-label={`Rate (${currency.code})`}
+                      aria-label="Rate"
                       min="0"
                       required
-                      step={amountStep}
-                      onInput={validateAmountInput}
-                      max={maxAmount}
+                      step="0.01"
                       type="number"
                       value={line.rate}
                       onChange={(event) => updateLine(index, { rate: event.target.value })}
@@ -243,15 +241,15 @@ export function EditInvoiceDrawer({
             <div className="ml-auto grid w-full max-w-xs gap-2 border-t border-parcelis-border pt-4 text-sm">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>{formatCurrency(subtotal)}</span>
+                <span>${(subtotal / 100).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Total paid</span>
-                <span>{formatCurrency(totalPaid)}</span>
+                <span>${(totalPaid / 100).toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Balance due</span>
-                <span>{formatCurrency(Math.max(subtotal - totalPaid, 0))}</span>
+                <span>${(Math.max(subtotal - totalPaid, 0) / 100).toFixed(2)}</span>
               </div>
             </div>
             {update.error ? <p className="text-sm text-red-700">{update.error.message}</p> : null}
@@ -262,7 +260,7 @@ export function EditInvoiceDrawer({
             </Button>
             <Button
               className="min-w-40"
-              disabled={update.isPending || !Number.isFinite(subtotal) || subtotal <= 0 || subtotal < totalPaid}
+              disabled={update.isPending || subtotal <= 0 || subtotal < totalPaid}
               type="submit"
             >
               Save changes
