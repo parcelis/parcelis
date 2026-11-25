@@ -19,7 +19,8 @@ import { toast } from "sonner";
 import { apiClient, queryKeys } from "../../../../../components/api-client";
 import { LoadingState } from "../../../../../components/loading-state";
 import { SettingsRail } from "../../../../../components/settings-rail";
-import { version } from "../../../../../package.json";
+import { parcelisAccountsOrigin } from "@parcelis/schemas";
+import { LicenseCards } from "./license-cards";
 
 export default function OrganizationInstallationPage() {
   const pathname = usePathname();
@@ -83,7 +84,7 @@ export default function OrganizationInstallationPage() {
             <p className="text-sm text-parcelis-gray">
               View your account in the{" "}
               <a
-                href="https://accounts.parcelis.app/"
+                href={parcelisAccountsOrigin}
                 target="_blank"
                 rel="noreferrer"
                 className="font-semibold text-parcelis-green underline underline-offset-4 hover:text-parcelis-green-hover"
@@ -93,31 +94,11 @@ export default function OrganizationInstallationPage() {
               .
             </p>
             {installationQuery.isSuccess ? (
-              <Card aria-labelledby="installation-plan-heading">
-                <CardContent className="flex flex-col gap-4 text-sm">
-                  <h2 id="installation-plan-heading" className="text-lg font-semibold text-parcelis-charcoal">
-                    Plan
-                  </h2>
-                  <p>
-                    You are currently on the <strong>Free Plan</strong>.
-                  </p>
-                  <p className="text-parcelis-gray">
-                    After changing your plan in Parcelis Accounts, use Refresh to sync those changes here.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="self-start"
-                    aria-describedby="installation-plan-refresh-help"
-                    disabled
-                  >
-                    Refresh
-                  </Button>
-                  <p id="installation-plan-refresh-help" className="text-xs text-parcelis-gray">
-                    Plan sync is not available in this version.
-                  </p>
-                </CardContent>
-              </Card>
+              <LicenseCards
+                pathname={pathname}
+                canManageLicense={currentUserQuery.data?.user.role === "administrator"}
+                installationUrl={installationQuery.data.installationUrl}
+              />
             ) : null}
             <Card aria-labelledby="installation-details-heading">
               <CardContent className="flex flex-col gap-4 text-sm">
@@ -137,7 +118,7 @@ export default function OrganizationInstallationPage() {
                   <>
                     <dl className="flex flex-col gap-1 text-sm">
                       <dt className="font-medium">App version</dt>
-                      <dd>{version}</dd>
+                      <dd>{installationQuery.data.releaseVersion ?? "—"}</dd>
                     </dl>
                     <div className="flex flex-col gap-2">
                       {installationId ? (
