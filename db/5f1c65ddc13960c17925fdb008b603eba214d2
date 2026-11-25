@@ -1,0 +1,22 @@
+docs/design/installation-licensing.md
+  s_c2cef291d643c3::t_6881dfc6011691 19,21,256,278,280,283-284,297
+  s_c2cef291d643c3::t_9cd5a113c98f22 3,53-112,134-250,276-277,279,281-282,285-296,298-314,316-370,384-417
+  s_c2cef291d643c3::t_b002ba19198337 315
+  s_c2cef291d643c3::t_291b4e0f6eaae7 1-2,4-18,20,22-52,113-133,251-255,257-275,371-383,418-427
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "db5f1c65ddc13960c17925fdb008b603eba214d2",
+  "prompts": {},
+  "sessions": {
+    "s_c2cef291d643c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21136-7b20-7870-8f20-3f4043d23d52",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
