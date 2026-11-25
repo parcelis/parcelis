@@ -21,6 +21,7 @@ const suites = [
   { suite: "database", name: "Database / outbox" },
   { suite: "worker", name: "Worker" },
   { suite: "api-tokens", name: "API tokens" },
+  { suite: "installation", name: "Installation identity" },
 ];
 
 export function selectPostgresIntegrationSuites(files, force = false) {
@@ -38,6 +39,22 @@ export function selectPostgresIntegrationSuites(files, force = false) {
     ({ suite }) =>
       shared ||
       files.some((file) => {
+        if (suite === "installation") {
+          return (
+            ["apps/api/src/tests/installation/", "packages/schemas/", "packages/email/", "packages/jobs/"].some(
+              (prefix) => file.startsWith(prefix),
+            ) ||
+            [
+              "apps/api/src/router/auth.router.ts",
+              "apps/api/src/router/trpc.ts",
+              "apps/api/src/modules/auth.ts",
+              "apps/api/src/modules/notification-outbox.ts",
+              "apps/api/src/modules/login-rate-limit.ts",
+              "apps/api/package.json",
+              "apps/api/tsconfig.json",
+            ].includes(file)
+          );
+        }
         if (suite === "worker") {
           return file.startsWith("apps/worker/") || file.startsWith("packages/jobs/");
         }

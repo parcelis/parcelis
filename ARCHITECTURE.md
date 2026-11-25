@@ -233,6 +233,20 @@ sanitized diagnostic on failure.
 
 ## Data model
 
+### Installation identity
+
+One application-selected `Installation` row stores the deployment UUID and its creation timestamp,
+independently of users, organizations, and licensing. `@parcelis/db` exports the shared
+`initializeInstallationIdentity` helper. Account registration calls it inside the transaction that
+creates the account, organization, and verification-email outbox entry; failure rolls back the entire
+transaction. The administrator seed path initializes the same row in its account transaction.
+
+The fixed lookup key is `installation`. Later setup calls return the existing UUID and timestamp;
+concurrent initial calls use a database upsert. Startup, sign-in, and email verification do not create
+an identity. The ID follows the installation database through restarts and restores, makes no
+outbound request, is not an authentication secret, and is not returned by public registration.
+
+
 Prisma models live in `packages/db/prisma/schema.prisma`. The operational model centers on:
 
 ```text

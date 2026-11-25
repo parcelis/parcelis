@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import * as argon2 from "argon2";
 import { randomBytes } from "node:crypto";
 import { seedApiTokens } from "./seed-api-tokens.mjs";
+import { initializeInstallationIdentity } from "../src/installation.ts";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
@@ -324,9 +325,12 @@ async function main() {
   const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
 
   if (administrator) {
-    await prisma.user.update({
-      where: { id: administrator.id },
-      data: { name: "Administrator", role: "administrator" },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: administrator.id },
+        data: { name: "Administrator", role: "administrator" },
+      });
+      await initializeInstallationIdentity(tx);
     });
   } else {
     const administratorPassword = process.env.SEED_ADMIN_PASSWORD;
@@ -340,8 +344,11 @@ async function main() {
       timeCost: 2,
       parallelism: 1,
     });
-    await prisma.user.create({
-      data: { name: "Administrator", email: administratorEmail, passwordHash, role: "administrator" },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.create({
+        data: { name: "Administrator", email: administratorEmail, passwordHash, role: "administrator" },
+      });
+      await initializeInstallationIdentity(tx);
     });
   }
 

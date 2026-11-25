@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
 import { hashEmailVerificationToken, hashPassword, hashPasswordResetToken } from "../../modules/auth";
 import { resetRateLimits } from "../../modules/login-rate-limit";
-import type { PrismaClient } from "@parcelis/db";
+import type { Installation, PrismaClient } from "@parcelis/db";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -74,6 +74,7 @@ test.beforeEach(() => {
 });
 
 function createPrisma() {
+  const installation = { record: null as Installation | null };
   const users: User[] = [];
   const tokens: VerificationToken[] = [];
   const passwordResetTokens: PasswordResetToken[] = [];
@@ -94,6 +95,13 @@ function createPrisma() {
   let nextNotificationDeliveryId = 1;
 
   const prisma: PrismaClient = {
+    installation: {
+      findUnique: async () => installation.record && structuredClone(installation.record),
+      upsert: async ({ create }: { create: Omit<Installation, "createdAt"> }) => {
+        installation.record ??= { ...create, createdAt: new Date() };
+        return structuredClone(installation.record);
+      },
+    },
     user: {
       create: async ({ data }: { data: Omit<User, "id"> }) => {
         const user = { ...data, id: nextUserId++ };
@@ -288,6 +296,7 @@ function createPrisma() {
   } as unknown as PrismaClient;
 
   return {
+    installation,
     invoiceCharges,
     organizationMemberships,
     outboxEvents,
@@ -373,7 +382,11 @@ test("registration creates a pending account and one verification token without 
   const caller = createCaller(state.prisma);
   const newEmail = fixtureEmail("new");
 
-  await caller.auth.register({ email: newEmail, password: fixtureValue("new-account") });
+  assert.equal(state.installation.record, null);
+  const registered = await caller.auth.register({ email: newEmail, password: fixtureValue("new-account") });
+  const identity = structuredClone(state.installation.record!);
+  assert.match(identity.installationId, /^[0-9a-f-]{36}$/);
+  assert.ok(!JSON.stringify(registered).includes(identity.installationId));
 
   assert.equal(state.users[0]?.accountStatus, "pending");
   assert.deepEqual(state.invoiceCharges, [
@@ -399,6 +412,8 @@ test("registration creates a pending account and one verification token without 
   assert.match(payload.body, /mode=verify/);
   assert.equal(payload.template.kind, "account-verification");
   assert.match(payload.template.url, /mode=verify/);
+  await caller.auth.register({ email: fixtureEmail("second"), password: fixtureValue("second-account") });
+  assert.equal(state.installation.record!.installationId, identity.installationId);
 });
 
 test("verification activates a pending account and consumes its token", async () => {

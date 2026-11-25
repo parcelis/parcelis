@@ -6,6 +6,12 @@ datasource db {
   provider = "postgresql"
 }
 
+model Installation {
+  id             String   @id @default("installation")
+  installationId String   @unique
+  createdAt      DateTime @default(now())
+}
+
 enum PropertyStatus {
   active
   maintenance

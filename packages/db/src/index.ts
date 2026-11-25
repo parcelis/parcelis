@@ -1,5 +1,6 @@
 export * from "./outbox.ts";
 export * from "./notification-delivery.ts";
+export * from "./installation.ts";
 export {
   ActivitySubjectType,
   LeaseStatus,
@@ -13,6 +14,7 @@ export {
   UnitType,
 } from "@prisma/client";
 export type {
+  Installation,
   Lease,
   Organization,
   OrganizationMembership,
