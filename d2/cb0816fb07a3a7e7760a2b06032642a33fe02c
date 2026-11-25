@@ -1,0 +1,23 @@
+scripts/postgres-integration-changes.test.mjs
+  s_fed1f16efbdc58::t_f8ae6a54207567 28
+README.md
+  s_fed1f16efbdc58::t_f8ae6a54207567 176-178
+scripts/postgres-integration-changes.mjs
+  s_fed1f16efbdc58::t_f8ae6a54207567 49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d2cb0816fb07a3a7e7760a2b06032642a33fe02c",
+  "prompts": {},
+  "sessions": {
+    "s_fed1f16efbdc58": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2112f-8532-7843-b1dd-eecd8b0e64b6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
