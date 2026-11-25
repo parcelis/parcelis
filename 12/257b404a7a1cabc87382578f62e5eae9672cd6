@@ -1,0 +1,37 @@
+apps/web/app/(authenticated)/settings/organization/installation/page.tsx
+  s_c2cef291d643c3::t_8b0f3940905a17 79,95,121
+  s_c2cef291d643c3::t_be0b06d3263aa7 89
+  s_c2cef291d643c3::t_b77d875c399d6d 113
+  s_c2cef291d643c3::t_d3a1dd036a7673 83,85-88,90,92-94,96-112,114-120
+  s_c2cef291d643c3::t_fb7149c95b47c7 78,130-135,137-141,170
+  s_c2cef291d643c3::t_ff19cdbccf3bfb 167
+  s_c2cef291d643c3::t_81bbd0861ae1cd 55
+  s_c2cef291d643c3::t_12bc1a1a75f118 122-126
+  s_c2cef291d643c3::t_b5e2c10736a36f 1-3,5-54,56-77,80-82,127-129,136,142-156,159-161,163-166,168-169,171-179
+  s_c2cef291d643c3::t_5d7f0444ad2d7f 4,157-158,162
+  s_c2cef291d643c3::t_22a2edce5ae4ee 84
+  s_c2cef291d643c3::t_f257edd803e8a7 91
+apps/web/components/settings-rail.tsx
+  s_c2cef291d643c3::t_fb7149c95b47c7 39
+  s_c2cef291d643c3::t_b5e2c10736a36f 5,17,29,36-38,40,73-74
+apps/api/src/router/app.router.ts
+  s_c2cef291d643c3::t_b5e2c10736a36f 100,903-911
+apps/api/src/tests/installation/installation.router.test.ts
+  s_c2cef291d643c3::t_81bbd0861ae1cd 1-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "12257b404a7a1cabc87382578f62e5eae9672cd6",
+  "prompts": {},
+  "sessions": {
+    "s_c2cef291d643c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21136-7b20-7870-8f20-3f4043d23d52",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
