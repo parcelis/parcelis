@@ -1,0 +1,90 @@
+scripts/docker-publish.test.mjs
+  s_c2cef291d643c3::t_2aa3ae55019035 30-33
+  s_c2cef291d643c3::t_a163edfc476b11 28
+  s_c2cef291d643c3::t_eb82c01d126229 27,29,34
+apps/api/src/tests/installation/installation-license.integration.ts
+  s_c2cef291d643c3::t_eb82c01d126229 24-29,67-68,78,80,85,100,103
+  s_c2cef291d643c3::t_efc6384664cce9 49-55,66,69,74-77,125-129,131-148
+  s_c2cef291d643c3::t_3e37785f81630d 5
+  s_c2cef291d643c3::t_3568437030fee8 101-102,111-112,118
+  s_c2cef291d643c3::t_a163edfc476b11 104,113
+  s_c2cef291d643c3::t_c5a0ee175bed40 42-46
+  s_c2cef291d643c3::t_59e78efea17b79 31-36
+  s_c2cef291d643c3::t_d989955e7b2376 1-4,6-23,30,37-41,47-48,56-65,70-73,79,81-84,86-99,105-110,114-117,119-124,130,149-150
+apps/api/src/modules/installation-metadata.ts
+  s_c2cef291d643c3::t_c39e35e031b3b7 4-14,16
+  s_c2cef291d643c3::t_602cb960c3dca3 3
+  s_c2cef291d643c3::t_a163edfc476b11 15
+  s_c2cef291d643c3::t_3e37785f81630d 1-2
+apps/api/src/tests/installation/installation.router.test.ts
+  s_c2cef291d643c3::t_a163edfc476b11 33-36
+  s_c2cef291d643c3::t_3e37785f81630d 4,38
+  s_c2cef291d643c3::t_eb82c01d126229 5,27,30-32,39-46
+scripts/postgres-integration-changes.mjs
+  s_c2cef291d643c3::t_9d209501739b79 49,53
+  s_c2cef291d643c3::t_eb82c01d126229 52
+apps/api/src/tests/installation/installation-license.test.ts
+  s_c2cef291d643c3::t_d989955e7b2376 1-3,9-23,45-62,64
+  s_c2cef291d643c3::t_bbe62155f02f21 24-36
+  s_c2cef291d643c3::t_e8c52b2ae032f7 4-8,37-44
+  s_c2cef291d643c3::t_efc6384664cce9 63
+packages/db/prisma/migrations/20261125000000_add_installation_license/migration.sql
+  s_c2cef291d643c3::t_10afbc9cc34632 1-16
+apps/api/src/tests/installation/installation-license-fixture.ts
+  s_c2cef291d643c3::t_d989955e7b2376 1-31
+packages/schemas/src/index.ts
+  s_c2cef291d643c3::t_0350fc1f388935 1161
+scripts/postgres-integration-changes.test.mjs
+  s_c2cef291d643c3::t_9d209501739b79 28-29
+  s_c2cef291d643c3::t_eb82c01d126229 30
+apps/api/src/router/installation-license.router.ts
+  s_c2cef291d643c3::t_c5a0ee175bed40 33
+  s_c2cef291d643c3::t_76eae6995784d7 12-22,72-74,89-93,126-127,157-159
+  s_c2cef291d643c3::t_fc86740d405f8e 1-6,8-11,24-32,34-47,50-52,57-67,69-71,75-88,94-96,122-125,128-156,160,162
+  s_c2cef291d643c3::t_396d5aa5e3dc7b 23
+  s_c2cef291d643c3::t_efc6384664cce9 53-56,68
+  s_c2cef291d643c3::t_eda22f75fc76d2 7,48-49,97-121,161
+Dockerfile.app
+  s_c2cef291d643c3::t_3e37785f81630d 38
+apps/api/src/modules/parcelis-accounts-license.ts
+  s_c2cef291d643c3::t_f32003fcdfb3a8 99-102,152
+  s_c2cef291d643c3::t_2968841db54de4 118-120,182-185
+  s_c2cef291d643c3::t_e8c52b2ae032f7 175-180
+  s_c2cef291d643c3::t_c39e35e031b3b7 5,106
+  s_c2cef291d643c3::t_76eae6995784d7 24-27,146-149,156-159
+  s_c2cef291d643c3::t_bbe62155f02f21 37-45,52,86-98,103-105,107,154
+  s_c2cef291d643c3::t_fc86740d405f8e 1-4,6-23,28-36,46-51,53-85,108-117,121-145,150-151,153,155,160-161
+  s_c2cef291d643c3::t_eda22f75fc76d2 162-174,181,186-187
+packages/db/prisma/migrations/20261125010000_separate_license_registration_id/migration.sql
+  s_c2cef291d643c3::t_f2086ad70e6d08 1
+apps/api/src/router/app.router.ts
+  s_c2cef291d643c3::t_debc84633eb00d 134,785
+  s_c2cef291d643c3::t_c39e35e031b3b7 132,913-918
+packages/db/prisma/schema.prisma
+  s_c2cef291d643c3::t_eda22f75fc76d2 19
+  s_c2cef291d643c3::t_0350fc1f388935 13-18,20-27
+  s_c2cef291d643c3::t_c76fe5bdca04c8 10-12
+ARCHITECTURE.md
+  s_c2cef291d643c3::t_9d209501739b79 249-254
+  s_c2cef291d643c3::t_efc6384664cce9 257-259
+  s_c2cef291d643c3::t_a163edfc476b11 255-256
+packages/schemas/src/installation-license.ts
+  s_c2cef291d643c3::t_0350fc1f388935 1-5,10-14
+  s_c2cef291d643c3::t_76eae6995784d7 6-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cf2944e2bb9c837008104810864cc8ac64bb5248",
+  "prompts": {},
+  "sessions": {
+    "s_c2cef291d643c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21136-7b20-7870-8f20-3f4043d23d52",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
