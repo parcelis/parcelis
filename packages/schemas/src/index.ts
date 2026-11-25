@@ -1158,3 +1158,4 @@ export type SetApplicationStatusInput = z.infer<typeof setApplicationStatusInput
 export * from "./bug-report.ts";
 
 export * from "./invoice-balances.ts";
+export * from "./installation-license.ts";

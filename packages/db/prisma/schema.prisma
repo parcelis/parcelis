@@ -7,9 +7,24 @@ datasource db {
 }
 
 model Installation {
-  id             String   @id @default("installation")
-  installationId String   @unique
-  createdAt      DateTime @default(now())
+  id             String               @id @default("installation")
+  installationId String               @unique
+  createdAt      DateTime             @default(now())
+  license        InstallationLicense?
+}
+
+model InstallationLicense {
+  installationId String       @id
+  installation   Installation @relation(fields: [installationId], references: [installationId], onDelete: Cascade, onUpdate: Cascade)
+  registrationId String?
+  credential     String
+  signedLicense  String?
+  tier           String?
+  validUntil     DateTime?
+  lastSyncedAt   DateTime?
+  inactive       Boolean      @default(false)
+  operationId    String?
+  operationUntil DateTime?
 }
 
 enum PropertyStatus {

@@ -246,6 +246,17 @@ concurrent initial calls use a database upsert. Startup, sign-in, and email veri
 an identity. The ID follows the installation database through restarts and restores, makes no
 outbound request, is not an authentication secret, and is not returned by public registration.
 
+An installation administrator can explicitly link the deployment to Parcelis Accounts. The API
+reuses the installation ID and persists a private credential before redeeming a one-time code.
+Activation and manual refresh verify the signed license against Accounts' public signing keys before
+saving the tier, expiry, and sync time in `InstallationLicense`. A database claim serializes license
+operations across API instances. Settings reads the verified tier until expiry or revocation, then
+uses the Free default. Accounts outages leave the last verified license in place until it expires.
+Activation and refresh send the public URL from the API's `NEXTAUTH_URL` and the version from
+`apps/web/package.json`. The API image build includes that manifest so the version can be bundled.
+Unlink deactivates the credential-matched registration in Accounts before the API resets the local
+plan to Free. The portal keeps the old registration in history. The next activation uses a new remote
+registration ID and credential, while the installation's support ID stays the same.
 
 Prisma models live in `packages/db/prisma/schema.prisma`. The operational model centers on:
 

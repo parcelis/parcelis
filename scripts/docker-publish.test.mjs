@@ -24,3 +24,11 @@ test("release publishing covers every Parcelis runtime image used by Compose", (
   }
   assert.match(workflow, /- image: apps\n\s+file: Dockerfile\.app\n\s+target: app\n/);
 });
+
+test("the API Docker build includes the web package manifest used for the app version", () => {
+  const dockerfile = readFileSync(new URL("../Dockerfile.app", import.meta.url), "utf8");
+  assert.match(
+    dockerfile,
+    /FROM base AS api-build\n[\s\S]*?COPY apps\/web\/package\.json apps\/web\/package\.json\n[\s\S]*?RUN pnpm .*@parcelis\/api build/,
+  );
+});
