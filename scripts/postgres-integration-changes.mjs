@@ -46,6 +46,7 @@ export function selectPostgresIntegrationSuites(files, force = false) {
             ) ||
             [
               "apps/api/src/router/auth.router.ts",
+              "apps/api/src/router/trpc.ts",
               "apps/api/src/modules/auth.ts",
               "apps/api/src/modules/notification-outbox.ts",
               "apps/api/src/modules/login-rate-limit.ts",

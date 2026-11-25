@@ -25,6 +25,7 @@ for (const [file, expected] of [
   ["apps/api/src/tests/auth/session-cookie.ts", ["api-tokens"]],
   ["apps/api/src/tests/api-tokens/api-tokens.integration.ts", ["api-tokens"]],
   ["apps/api/src/router/auth.router.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/router/trpc.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/auth.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/notification-outbox.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/login-rate-limit.ts", ["api-tokens", "installation"]],

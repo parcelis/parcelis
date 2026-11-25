@@ -173,8 +173,9 @@ For detailed local setup and contributor workflows, see [CONTRIBUTING.md](CONTRI
 
 ## Installation identity
 
-Parcelis creates a persistent installation ID when the first account is successfully created.
-Later account creation, restarts, and administrator seed runs preserve it. The ID identifies the
+Parcelis creates a persistent installation ID when the first account is successfully created or
+administrator seeding runs without an existing ID, including on installations that already have accounts.
+Later account creation, restarts, and administrator seed runs preserve an existing ID. The ID identifies the
 installation and does not require enrollment or connectivity to Parcelis Accounts. See the
 [installation identity guide](https://docs.parcelis.dev/installation-identity) for persistence and backup behavior.
 
