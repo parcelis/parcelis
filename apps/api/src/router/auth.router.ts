@@ -8,7 +8,7 @@ import {
   updateUserProfileInputSchema,
   verifyEmailInputSchema,
 } from "@parcelis/schemas";
-import { Prisma } from "@parcelis/db";
+import { initializeInstallationIdentity, Prisma } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@parcelis/email";
 import {
@@ -105,6 +105,7 @@ export const authRouter = router({
           },
           idempotencyKey: `auth.register:${createdUser.id}:token:${createdToken.id}`,
         });
+        await initializeInstallationIdentity(tx);
         return { ...createdUser, organizationId: organization.id };
       });
     } catch (error) {

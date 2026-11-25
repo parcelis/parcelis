@@ -171,6 +171,13 @@ Parcelis is a pnpm/Turbo monorepo. At a high level, it contains:
 
 For detailed local setup and contributor workflows, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Installation identity
+
+Parcelis creates a persistent installation ID when the first account is successfully created.
+Later account creation, restarts, and administrator seed runs preserve it. The ID identifies the
+installation and does not require enrollment or connectivity to Parcelis Accounts. See the
+[installation identity guide](https://docs.parcelis.dev/installation-identity) for persistence and backup behavior.
+
 ## Licensing
 
 Parcelis is licensed under the GNU Affero General Public License version 3. See

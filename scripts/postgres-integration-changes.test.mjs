@@ -7,7 +7,7 @@ import test from "node:test";
 import { selectPostgresIntegrationSuites } from "./postgres-integration-changes.mjs";
 
 const selected = (files, force) => selectPostgresIntegrationSuites(files, force).map(({ suite }) => suite);
-const all = ["database", "worker", "api-tokens"];
+const all = ["database", "worker", "api-tokens", "installation"];
 
 for (const [file, expected] of [
   ["apps/web/app/page.tsx", []],
@@ -17,16 +17,22 @@ for (const [file, expected] of [
   ["apps/api/src/tests/invoices/invoice.test.ts", []],
   ["apps/worker/src/outbox-dispatcher.ts", ["worker"]],
   ["apps/worker/src/tests/outbox-dispatcher.integration.ts", ["worker"]],
-  ["packages/jobs/src/contracts.ts", ["worker", "api-tokens"]],
+  ["packages/jobs/src/contracts.ts", ["worker", "api-tokens", "installation"]],
   ["apps/api/src/modules/permissions.ts", ["api-tokens"]],
   ["apps/api/src/modules/api-tokens.ts", ["api-tokens"]],
   ["apps/api/src/router/public.router.ts", ["api-tokens"]],
   ["apps/api/src/app/api/v1/[...path]/route.ts", ["api-tokens"]],
   ["apps/api/src/tests/auth/session-cookie.ts", ["api-tokens"]],
   ["apps/api/src/tests/api-tokens/api-tokens.integration.ts", ["api-tokens"]],
-  ["apps/api/package.json", ["api-tokens"]],
-  ["packages/schemas/src/index.ts", ["api-tokens"]],
-  ["packages/email/src/service.ts", ["api-tokens"]],
+  ["apps/api/src/router/auth.router.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/auth.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/notification-outbox.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/login-rate-limit.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/tests/installation/installation.integration.ts", ["installation"]],
+  ["packages/db/src/installation.ts", all],
+  ["apps/api/package.json", ["api-tokens", "installation"]],
+  ["packages/schemas/src/index.ts", ["api-tokens", "installation"]],
+  ["packages/email/src/service.ts", ["api-tokens", "installation"]],
   ["packages/db/src/outbox.ts", all],
   ["packages/db/prisma/schema.prisma", all],
   ["packages/db/prisma/migrations/example/migration.sql", all],
@@ -106,6 +112,6 @@ test("CLI compares PR merge bases, includes removed paths, and handles pushes an
   git("commit", "-qm", "move config");
   const moved = git("rev-parse", "HEAD");
   assert.equal(run("push", { before: base, after: moved })["run-tests"], "true");
-  assert.equal(JSON.parse(run("workflow_dispatch", {}).matrix).include.length, 3);
-  assert.equal(JSON.parse(run("push", { before: "0".repeat(40), after: head }).matrix).include.length, 3);
+  assert.equal(JSON.parse(run("workflow_dispatch", {}).matrix).include.length, all.length);
+  assert.equal(JSON.parse(run("push", { before: "0".repeat(40), after: head }).matrix).include.length, all.length);
 });
