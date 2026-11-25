@@ -97,6 +97,7 @@ import {
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
+  installationRecordId,
   LeaseStatus,
   MaintenanceTicketStatus,
   Prisma,
@@ -899,6 +900,15 @@ export const appRouter = router({
       }),
   }),
   organizations: router({
+    installationIdentity: organizationProcedure.query(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+
+      const installation = await ctx.prisma.installation.findUnique({
+        where: { id: installationRecordId },
+        select: { installationId: true },
+      });
+      return { installationId: installation?.installationId ?? null };
+    }),
     list: publicProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "administrator") {
         const organizations = await ctx.prisma.organization.findMany({
