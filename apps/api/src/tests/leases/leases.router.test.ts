@@ -336,7 +336,6 @@ for (const route of ["tenants", "leases"] as const) {
       assert.deepEqual(
         tenants,
         input.tenantIds.map((tenantId, index) => ({
-          organizationId: 7,
           tenantId,
           rentShareCents: input.tenantAllocations[index]?.rentShareCents,
           depositShareCents: input.tenantAllocations[index]?.depositShareCents,
@@ -549,6 +548,7 @@ test("archiving hides leases from property collections while preserving history 
     startsOn: new Date("2025-01-01"),
     endsOn: null,
     monthlyRentCents: 100_000,
+    unitId: index + 1,
     unit: { name: String(index + 1) },
     tenants: [{ tenant: { id: 1, firstName: "Test", lastName: "Resident" } }],
     invoices: [{ dueOn: new Date("2020-01-01"), status: "overdue", amountCents: 500, balanceCents: 500 }],
@@ -558,7 +558,14 @@ test("archiving hides leases from property collections while preserving history 
     legacyNotes: null,
     imageObjectKey: null,
     occupiedUnits: 2,
-    units: [],
+    units: leases.map((lease) => ({
+      id: lease.unitId,
+      name: lease.unit.name,
+      bathrooms: null,
+      amenities: [],
+      utilities: [],
+      _count: { leases: lease.status === "ended" ? 0 : 1 },
+    })),
     maintenanceTickets: [],
     leases,
   };

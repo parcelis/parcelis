@@ -41,6 +41,7 @@ import { formatMaintenanceTicketNumber, type CreateMaintenanceTicketInput } from
 import { apiClient, queryKeys } from "./api-client";
 
 type MaintenanceDrawerProps = {
+  existingUnits?: Array<{ id: number; name: string; archivedAt: string | Date | null }>;
   drawerTitle?: string;
   error?: Error | null;
   existingAttachments?: Array<{ id: number; fileName: string; imageUrl: string | null }>;
@@ -86,6 +87,7 @@ export function MaintenanceDrawer({
   drawerTitle = "New Maintenance Item",
   error,
   existingAttachments = [],
+  existingUnits = [],
   isDeletingAttachment = false,
   initialValues,
   isPending,
@@ -116,12 +118,21 @@ export function MaintenanceDrawer({
     queryFn: () => apiClient.landlords.list.query(),
   });
   const property = propertiesQuery.data?.find((item) => item.id === Number(form.propertyId));
-  const selectedUnitNames =
-    property?.units.filter((unit) => form.unitIds.includes(unit.id)).map((unit) => unit.name) ?? [];
-  const tenantRequesters = (tenantsQuery.data ?? []).filter((tenant) =>
-    tenant.leases.some(
-      (lease) => lease.propertyId === Number(form.propertyId) && selectedUnitNames.includes(lease.unitLabel),
-    ),
+  const retainedArchivedUnits =
+    form.propertyId === initialValues?.propertyId
+      ? existingUnits.filter((unit) => unit.archivedAt && !property?.units.some(({ id }) => id === unit.id))
+      : [];
+  const availableUnits = [...(property?.units ?? []), ...retainedArchivedUnits];
+  const selectedUnitNames = availableUnits.filter((unit) => form.unitIds.includes(unit.id)).map((unit) => unit.name);
+  const tenantRequesters = (tenantsQuery.data ?? []).filter(
+    (tenant) =>
+      tenant.leases.some(
+        (lease) =>
+          lease.propertyId === Number(form.propertyId) && lease.unitId !== null && form.unitIds.includes(lease.unitId),
+      ) ||
+      (form.propertyId === initialValues?.propertyId &&
+        initialValues.requestedByType === "tenant" &&
+        initialValues.requestedById === String(tenant.id)),
   );
   const requesters = form.requestedByType === "tenant" ? tenantRequesters : (landlordsQuery.data ?? []);
   const isDetailsComplete = Boolean(
@@ -298,17 +309,19 @@ export function MaintenanceDrawer({
                         </button>
                       </PopoverTrigger>
                       <PopoverContent align="end" className="w-72">
-                        <div className="grid max-h-64 gap-2 overflow-y-auto">
-                          {property?.units.map((unit) => (
+                        <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+                          {availableUnits.map((unit) => (
                             <label
                               className="flex items-center gap-2 text-sm text-parcelis-charcoal dark:text-white"
                               key={unit.id}
                             >
                               <Checkbox
                                 checked={form.unitIds.includes(unit.id)}
+                                disabled={Boolean(unit.archivedAt)}
                                 onCheckedChange={() => toggleUnit(unit.id)}
                               />
                               Unit {unit.name}
+                              {unit.archivedAt ? " (Archived)" : ""}
                             </label>
                           ))}
                         </div>

@@ -26,6 +26,7 @@ type EntityLifecycleControlsProps = {
   hasLeadingAction?: boolean;
   promoteReactivate?: boolean;
   archiveDescription: React.ReactNode;
+  restoreDescription?: React.ReactNode;
   canArchive: boolean;
   canDelete: boolean;
   cancelDeleteLabel: string;
@@ -48,6 +49,7 @@ export function EntityLifecycleControls({
   hasLeadingAction = false,
   promoteReactivate = false,
   archiveDescription,
+  restoreDescription,
   canArchive,
   canDelete,
   cancelDeleteLabel,
@@ -62,9 +64,11 @@ export function EntityLifecycleControls({
   onReactivate,
   onReactivateSuccess,
 }: EntityLifecycleControlsProps) {
+  const dialogId = React.useId();
   const [isMounted, setIsMounted] = React.useState(false);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = React.useState(false);
   React.useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -75,7 +79,21 @@ export function EntityLifecycleControls({
       await onArchiveSuccess();
     },
   });
-  const reactivateMutation = useMutation({ mutationFn: onReactivate, onSuccess: onReactivateSuccess });
+  const reactivateMutation = useMutation({
+    mutationFn: onReactivate,
+    onSuccess: async () => {
+      setIsRestoreDialogOpen(false);
+      await onReactivateSuccess();
+    },
+  });
+  const beginRestore = () => {
+    if (restoreDescription) setIsRestoreDialogOpen(true);
+    else reactivateMutation.mutate();
+  };
+  const handleRestoreDialogOpenChange = (open: boolean) => {
+    setIsRestoreDialogOpen(open);
+    if (!open) reactivateMutation.reset();
+  };
   const deleteMutation = useMutation({
     mutationFn: onDelete,
     onSuccess: async () => {
@@ -94,10 +112,13 @@ export function EntityLifecycleControls({
   const dialogs = (
     <>
       <AlertDialog onOpenChange={handleArchiveDialogOpenChange} open={isArchiveDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          aria-labelledby={`${dialogId}-archive`}
+          aria-describedby={`${dialogId}-archive-description`}
+        >
           <AlertDialogHeader>
-            <AlertDialogTitle>Archive {entityLabel}?</AlertDialogTitle>
-            <AlertDialogDescription>{archiveDescription}</AlertDialogDescription>
+            <AlertDialogTitle id={`${dialogId}-archive`}>Archive {entityLabel}?</AlertDialogTitle>
+            <AlertDialogDescription id={`${dialogId}-archive-description`}>{archiveDescription}</AlertDialogDescription>
             {archiveMutation.error ? (
               <p className="text-sm font-medium text-red-700" role="alert">
                 Unable to archive this {entityLabel}. {archiveMutation.error.message}
@@ -119,11 +140,54 @@ export function EntityLifecycleControls({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {restoreDescription ? (
+        <AlertDialog onOpenChange={handleRestoreDialogOpenChange} open={isRestoreDialogOpen}>
+          <AlertDialogContent
+            aria-labelledby={`${dialogId}-restore`}
+            aria-describedby={`${dialogId}-restore-description`}
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle id={`${dialogId}-restore`}>Restore {entityLabel}?</AlertDialogTitle>
+              <AlertDialogDescription id={`${dialogId}-restore-description`}>
+                {restoreDescription}
+              </AlertDialogDescription>
+              {reactivateMutation.error ? (
+                <p className="text-sm font-medium text-red-700" role="alert">
+                  {reactivateMutation.error.message}
+                </p>
+              ) : null}
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <Button
+                className="min-w-40"
+                onClick={() => handleRestoreDialogOpenChange(false)}
+                type="button"
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                className="min-w-40"
+                disabled={reactivateMutation.isPending}
+                onClick={() => reactivateMutation.mutate()}
+                type="button"
+              >
+                {reactivateMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArchiveRestore className="h-4 w-4" />
+                )}
+                Restore
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
       <AlertDialog onOpenChange={handleDeleteDialogOpenChange} open={isDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent aria-labelledby={`${dialogId}-delete`} aria-describedby={`${dialogId}-delete-description`}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {entityLabel}?</AlertDialogTitle>
-            <AlertDialogDescription>{deleteDescription}</AlertDialogDescription>
+            <AlertDialogTitle id={`${dialogId}-delete`}>Delete {entityLabel}?</AlertDialogTitle>
+            <AlertDialogDescription id={`${dialogId}-delete-description`}>{deleteDescription}</AlertDialogDescription>
             {deleteMutation.error ? (
               <p className="text-sm font-medium text-red-700" role="alert">
                 Unable to delete this {entityLabel}. {deleteMutation.error.message}
@@ -161,7 +225,7 @@ export function EntityLifecycleControls({
               <Button
                 className="hidden min-w-40 rounded-r-none md:inline-flex"
                 disabled={!isAvailable || reactivateMutation.isPending}
-                onClick={() => reactivateMutation.mutate()}
+                onClick={beginRestore}
               >
                 {reactivateMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -188,7 +252,7 @@ export function EntityLifecycleControls({
                   <DropdownMenuItem
                     className="md:hidden"
                     disabled={!isAvailable || reactivateMutation.isPending}
-                    onSelect={() => reactivateMutation.mutate()}
+                    onSelect={beginRestore}
                   >
                     <ArchiveRestore className="h-4 w-4" />
                     Unarchive {displayLabel}
@@ -202,12 +266,12 @@ export function EntityLifecycleControls({
                   <DropdownMenuItem
                     disabled={!isAvailable || reactivateMutation.isPending}
                     onSelect={() => {
-                      if (isArchived) reactivateMutation.mutate();
+                      if (isArchived) beginRestore();
                       else setIsArchiveDialogOpen(true);
                     }}
                   >
                     {isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                    {isArchived ? "Unarchive" : "Archive"} {displayLabel}
+                    {isArchived ? (restoreDescription ? "Restore" : "Unarchive") : "Archive"} {displayLabel}
                   </DropdownMenuItem>
                 ) : null}
                 {canDelete ? (
@@ -223,7 +287,7 @@ export function EntityLifecycleControls({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          {reactivateMutation.error ? (
+          {!restoreDescription && reactivateMutation.error ? (
             <p className="text-sm font-medium text-red-700" role="alert">
               Unable to unarchive this {entityLabel}. {reactivateMutation.error.message}
             </p>
@@ -243,7 +307,7 @@ export function EntityLifecycleControls({
               aria-label={`Unarchive ${entityLabel}`}
               className="min-w-10 sm:min-w-40"
               disabled={reactivateMutation.isPending}
-              onClick={() => reactivateMutation.mutate()}
+              onClick={beginRestore}
               variant="secondary"
             >
               {reactivateMutation.isPending ? (
@@ -278,7 +342,7 @@ export function EntityLifecycleControls({
             </Button>
           ) : null}
         </div>
-        {reactivateMutation.error ? (
+        {!restoreDescription && reactivateMutation.error ? (
           <p className="text-sm font-medium text-red-700" role="alert">
             Unable to unarchive this {entityLabel}. {reactivateMutation.error.message}
           </p>

@@ -53,12 +53,21 @@ import {
   type PropertyFormState,
   type UnitDetailsFormState,
 } from "../../../../../../components/property-drawer";
-import { getPropertyFormState, getUnitFormStates } from "../../../../../../components/property-drawer-state";
+import {
+  getPropertyFormState,
+  getSavedUnitIds,
+  getUnitFormStates,
+} from "../../../../../../components/property-drawer-state";
+import { EntityLifecycleControls } from "../../../../../../components/entity-lifecycle-controls";
 import { LoadingState } from "../../../../../../components/loading-state";
 import { MaintenanceDrawer } from "../../../../../../components/maintenance-drawer";
 import { uploadMaintenanceImage } from "../../../../../../components/maintenance-image-upload";
 import { NotesDrawer } from "../../../../../../components/notes-drawer";
-import { entityCreatedMessage, entityUpdatedMessage } from "../../../../../../components/toast-messages";
+import {
+  entityCreatedMessage,
+  entityDeletedMessage,
+  entityUpdatedMessage,
+} from "../../../../../../components/toast-messages";
 import { StickyNotePlusIcon } from "../../../../../../components/sticky-note-plus-icon";
 import {
   getLeaseDraftLink,
@@ -108,14 +117,20 @@ export default function UnitDetailPage() {
   });
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canViewInvoices = hasPermission(currentUserQuery.data?.permissions, "invoices", "view");
+  const canViewUnits = hasPermission(currentUserQuery.data?.permissions, "units", "view");
   const canEditUnit =
-    hasPermission(currentUserQuery.data?.permissions, "units", "view") &&
+    canViewUnits &&
     hasPermission(currentUserQuery.data?.permissions, "properties", "edit") &&
     hasPermission(currentUserQuery.data?.permissions, "units", "edit");
   const canCreateMaintenance = hasPermission(currentUserQuery.data?.permissions, "maintenance", "create");
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.byId(propertyId),
     queryFn: () => apiClient.properties.byId.query({ id: propertyId }),
+  });
+  const unitQuery = useQuery({
+    queryKey: queryKeys.units.byId(unitId),
+    queryFn: () => apiClient.units.byId.query({ id: unitId }),
+    enabled: canViewUnits && Boolean(propertyQuery.data),
   });
   const leaseDraftsQuery = useQuery({
     queryKey: queryKeys.leases.drafts,
@@ -133,12 +148,7 @@ export default function UnitDetailPage() {
       setIsEditDrawerOpen(false);
       setEditInitialUnits([]);
       setPropertyImageFile(null);
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.properties.byId(propertyId),
-        }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
-      ]);
+      await refreshUnitInventory();
       toast.success(entityUpdatedMessage("Unit", unitName));
     },
   });
@@ -201,15 +211,22 @@ export default function UnitDetailPage() {
   });
   const today = organizationQuery.data?.timeZone ? getBillingCalendarDate(organizationQuery.data.timeZone) : null;
   const property = propertyQuery.data;
-  const unit = property?.units.find((item) => item.id === unitId) ?? null;
+  const unit = unitQuery.data?.propertyId === propertyId ? unitQuery.data : null;
+  const isArchived = Boolean(unit?.archivedAt);
   const unitLeaseDrafts = (leaseDraftsQuery.data ?? []).filter((draft) => draft.unit?.id === unitId);
-  const lease =
-    property?.leases.find(
-      (item) => unit && item.unitLabel === unit.name && (item.status === "active" || item.status === "notice"),
-    ) ?? null;
+  const unitLeases = property?.leaseHistory.filter((item) => item.unitId === unitId && item.status !== "draft") ?? [];
+  const lease = unitLeases.find(({ status }) => status === "active" || status === "notice") ?? null;
   const tenant = lease?.tenant ?? null;
-  const unitTickets = property?.maintenanceTickets.filter((ticket) => unit && ticket.unitLabel === unit.name) ?? [];
-  const openTickets = unitTickets.filter((ticket) => isActiveMaintenanceTicketStatus(ticket.status));
+  const lastLease = lease ?? unitLeases[0];
+  const unitTickets =
+    property?.maintenanceTickets.filter(
+      (ticket) =>
+        unit &&
+        (ticket.units.length ? ticket.units.some((item) => item.unitId === unit.id) : ticket.unitLabel === unit.name),
+    ) ?? [];
+  const displayedTickets = isArchived
+    ? unitTickets
+    : unitTickets.filter((ticket) => isActiveMaintenanceTicketStatus(ticket.status));
   const utilities = unit?.utilities.map((item) => item.option.label).filter(Boolean) ?? [];
   const amenities = unit?.amenities.map((item) => item.option.label).filter(Boolean) ?? [];
   const monthlyRentCents = canViewLeases ? (lease?.monthlyRentCents ?? unit?.marketRateCents ?? 0) : null;
@@ -247,8 +264,17 @@ export default function UnitDetailPage() {
     !currentUserQuery.isLoading &&
     (!canViewInvoices || !canViewLeases || (!organizationQuery.isLoading && (organizationQuery.isError || !today)));
 
+  async function refreshUnitInventory() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.units.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.properties.byId(propertyId) }),
+      queryClient.invalidateQueries({ queryKey: ["maintenance"] }),
+    ]);
+  }
+
   function openEditUnitDrawer() {
-    if (!property || !canEditUnit) {
+    if (!property || !canEditUnit || isArchived) {
       return;
     }
 
@@ -283,10 +309,10 @@ export default function UnitDetailPage() {
           canEditUnit &&
           updateProperty.mutate({
             imageFile,
-            input: { ...input, id: propertyId },
+            input: { ...input, id: propertyId, expectedActiveUnitIds: getSavedUnitIds(editInitialUnits) },
           })
         }
-        open={isEditDrawerOpen && canEditUnit}
+        open={isEditDrawerOpen && canEditUnit && !isArchived}
         submitLabel="Save"
         unitHref={(drawerUnit) => (drawerUnit.id ? getUnitLink(propertyId, drawerUnit.id) : null)}
       />
@@ -315,7 +341,7 @@ export default function UnitDetailPage() {
         isPending={createMaintenanceTicket.isPending}
         onOpenChange={setIsMaintenanceDrawerOpen}
         onSubmit={(input, attachments) => createMaintenanceTicket.mutate({ input, attachments })}
-        open={isMaintenanceDrawerOpen}
+        open={isMaintenanceDrawerOpen && !isArchived}
       />
 
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
@@ -329,108 +355,123 @@ export default function UnitDetailPage() {
             </Button>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <div aria-label="Unit actions" className="flex items-center rounded-md shadow-sm" role="group">
-              <Button
-                className="hidden min-w-40 rounded-r-none md:inline-flex"
-                disabled={!unit || !canEditUnit}
-                onClick={openEditUnitDrawer}
-              >
-                <PenLine className="h-4 w-4" />
-                Edit Unit
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="rounded-r-none md:rounded-none md:border-l-0" variant="secondary">
-                    All Units
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="max-h-96 min-w-48 overflow-y-auto">
-                  <DropdownMenuItem asChild>
-                    <Link href={getPropertyLink(propertyId)}>All Units</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {property?.units.map((propertyUnit) => (
-                    <DropdownMenuItem asChild key={propertyUnit.id}>
-                      <Link
-                        className={
-                          propertyUnit.id === unitId ? "bg-parcelis-porcelain text-parcelis-charcoal" : undefined
-                        }
-                        href={getUnitLink(propertyId, propertyUnit.id)}
-                      >
-                        Unit {propertyUnit.name}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="rounded-l-none border-l-0 md:min-w-40" disabled={!unit} variant="secondary">
-                    Actions
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="max-h-96 min-w-48 overflow-y-auto">
-                  <DropdownMenuItem
-                    className="md:hidden"
-                    disabled={!unit || !canEditUnit}
-                    onSelect={openEditUnitDrawer}
+            <EntityLifecycleControls
+              archiveDescription="Archive this unit to hide it from active inventory and new assignments. Its history stays available."
+              restoreDescription="Restore this unit to active inventory and make it available for new assignments."
+              canArchive={hasPermission(currentUserQuery.data?.permissions, "units", "archive")}
+              canDelete={hasPermission(currentUserQuery.data?.permissions, "units", "delete")}
+              cancelDeleteLabel="Keep Unit"
+              deleteDescription="This permanently deletes the unit. Units with history can be archived."
+              entityLabel="unit"
+              isArchived={isArchived}
+              isAvailable={Boolean(unit)}
+              presentation="dropdown"
+              onArchive={() => apiClient.units.archive.mutate({ id: unitId })}
+              onArchiveSuccess={refreshUnitInventory}
+              onReactivate={() => apiClient.units.reactivate.mutate({ id: unitId })}
+              onReactivateSuccess={refreshUnitInventory}
+              onDelete={() => apiClient.units.delete.mutate({ id: unitId })}
+              onDeleteSuccess={async () => {
+                router.push(getPropertyLink(propertyId));
+                await refreshUnitInventory();
+                if (unit) toast.success(entityDeletedMessage("Unit", unit.name));
+              }}
+              headerActions={
+                <div className="mr-2 flex items-center gap-2">
+                  <Button
+                    className="hidden min-w-40 md:inline-flex"
+                    disabled={!unit || !canEditUnit || isArchived}
+                    onClick={openEditUnitDrawer}
                   >
                     <PenLine className="h-4 w-4" />
                     Edit Unit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
-                    <StickyNotePlusIcon />
-                    Add Notes
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    disabled={!unit || !canCreateMaintenance}
-                    onSelect={() => setIsMaintenanceDrawerOpen(true)}
-                  >
-                    <Wrench className="h-4 w-4" />
-                    Create Maintenance
-                  </DropdownMenuItem>
-                  {tenant ? (
-                    <DropdownMenuItem asChild>
-                      <Link href={getTenantInvoicesLink(tenant.id)}>
-                        <FileText className="h-4 w-4" />
-                        View Invoices
-                      </Link>
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem disabled>
-                      <FileText className="h-4 w-4" />
-                      View Invoices
-                    </DropdownMenuItem>
-                  )}
-                  {lease ? (
-                    <DropdownMenuItem asChild>
-                      <Link href={getLeaseLink(lease.id)}>
-                        <FileText className="h-4 w-4" />
-                        View Lease
-                      </Link>
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem disabled>
-                      <FileText className="h-4 w-4" />
-                      View Lease
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="md:min-w-40" variant="secondary">
+                        All Units
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-h-96 min-w-48 overflow-y-auto">
+                      <DropdownMenuItem asChild>
+                        <Link href={getPropertyLink(propertyId)}>All Units</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {property?.units.map((propertyUnit) => (
+                        <DropdownMenuItem asChild key={propertyUnit.id}>
+                          <Link
+                            className={
+                              propertyUnit.id === unitId ? "bg-parcelis-porcelain text-parcelis-charcoal" : undefined
+                            }
+                            href={getUnitLink(propertyId, propertyUnit.id)}
+                          >
+                            Unit {propertyUnit.name}
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              }
+            >
+              <DropdownMenuItem
+                className="md:hidden"
+                disabled={!unit || !canEditUnit || isArchived}
+                onSelect={openEditUnitDrawer}
+              >
+                <PenLine className="h-4 w-4" />
+                Edit Unit
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!unit} onSelect={() => setIsNotesDrawerOpen(true)}>
+                <StickyNotePlusIcon />
+                Add Notes
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={!unit || !canCreateMaintenance || isArchived}
+                onSelect={() => setIsMaintenanceDrawerOpen(true)}
+              >
+                <Wrench className="h-4 w-4" />
+                Create Maintenance
+              </DropdownMenuItem>
+              {lastLease?.tenant ? (
+                <DropdownMenuItem asChild>
+                  <Link href={getTenantInvoicesLink(lastLease.tenant.id)}>
+                    <FileText className="h-4 w-4" />
+                    View Invoices
+                  </Link>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem disabled>
+                  <FileText className="h-4 w-4" />
+                  View Invoices
+                </DropdownMenuItem>
+              )}
+              {lastLease ? (
+                <DropdownMenuItem asChild>
+                  <Link href={getLeaseLink(lastLease.id)}>
+                    <FileText className="h-4 w-4" />
+                    View Lease
+                  </Link>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem disabled>
+                  <FileText className="h-4 w-4" />
+                  View Lease
+                </DropdownMenuItem>
+              )}
+            </EntityLifecycleControls>
           </div>
         </header>
 
         <div className="parcelis-page-shell">
-          {propertyQuery.isLoading ? (
+          {propertyQuery.isLoading || currentUserQuery.isLoading || unitQuery.isLoading ? (
             <LoadingState className="min-h-[60vh]" label="Loading unit" />
-          ) : propertyQuery.error ? (
+          ) : propertyQuery.error || unitQuery.error ? (
             <Card>
               <CardContent>
-                <p className="text-sm font-medium text-red-700">{propertyQuery.error.message}</p>
+                <p className="text-sm font-medium text-red-700">{(propertyQuery.error ?? unitQuery.error)?.message}</p>
               </CardContent>
             </Card>
           ) : !property || !unit ? (
@@ -448,7 +489,9 @@ export default function UnitDetailPage() {
                       <span className="grid h-11 w-11 place-items-center rounded-md bg-white/10 text-parcelis-green">
                         <DoorOpen className="h-5 w-5" />
                       </span>
-                      <Badge variant="marker">{canViewLeases ? (lease ? "Occupied" : "Vacant") : "Unavailable"}</Badge>
+                      <Badge variant="marker">
+                        {isArchived ? "Archived" : canViewLeases ? (lease ? "Occupied" : "Vacant") : "Unavailable"}
+                      </Badge>
                       <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold text-white/80">
                         {formatStatus(unit.unitType)}
                       </span>
@@ -510,10 +553,12 @@ export default function UnitDetailPage() {
                 <Card>
                   <CardHeader className="flex items-center justify-between gap-3 sm:flex-row">
                     <h2 className="font-semibold text-parcelis-charcoal">Lease</h2>
-                    <Button size="sm" variant="secondary">
-                      <Plus className="h-4 w-4" />
-                      New Lease
-                    </Button>
+                    {!isArchived ? (
+                      <Button size="sm" variant="secondary">
+                        <Plus className="h-4 w-4" />
+                        New Lease
+                      </Button>
+                    ) : null}
                   </CardHeader>
                   <CardContent>
                     {lease ? (
@@ -550,6 +595,19 @@ export default function UnitDetailPage() {
                         {canViewLeases ? "No active lease is attached to this unit." : "Unavailable"}
                       </p>
                     )}
+                    {unitLeases.some((item) => item.id !== lease?.id) ? (
+                      <div className="mt-4 flex flex-col gap-2">
+                        <p className="font-semibold text-parcelis-charcoal">Lease history</p>
+                        {unitLeases
+                          .filter((item) => item.id !== lease?.id)
+                          .map((item) => (
+                            <Link className="text-sm underline" href={getLeaseLink(item.id)} key={item.id}>
+                              {formatStatus(item.status)} · {formatDate(item.startsOn)} to{" "}
+                              {formatLeaseEndDate(item.endsOn, item.termType)}
+                            </Link>
+                          ))}
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
 
@@ -719,14 +777,16 @@ export default function UnitDetailPage() {
 
                 <Card>
                   <CardHeader className="flex items-center justify-between gap-3 sm:flex-row">
-                    <h2 className="font-semibold text-parcelis-charcoal">Open Maintenance Requests</h2>
+                    <h2 className="font-semibold text-parcelis-charcoal">
+                      {isArchived ? "Maintenance History" : "Open Maintenance Requests"}
+                    </h2>
                     <span className="rounded-md bg-parcelis-porcelain px-2 py-1 text-xs font-semibold text-parcelis-charcoal">
-                      {openTickets.length}
+                      {displayedTickets.length}
                     </span>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {openTickets.length > 0 ? (
-                      openTickets.map((ticket) => (
+                    {displayedTickets.length > 0 ? (
+                      displayedTickets.map((ticket) => (
                         <Link
                           className="flex items-center gap-3 rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain"
                           href={getMaintenanceLink(ticket.id)}
@@ -745,7 +805,7 @@ export default function UnitDetailPage() {
                     ) : (
                       <div className="flex min-h-36 items-center justify-center gap-2 text-sm text-parcelis-gray">
                         <CalendarClock className="h-4 w-4" />
-                        No open maintenance requests.
+                        {isArchived ? "No maintenance history." : "No open maintenance requests."}
                       </div>
                     )}
                   </CardContent>

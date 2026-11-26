@@ -250,6 +250,7 @@ export default function MaintenanceTicketPage() {
           fileName: attachment.fileName,
           imageUrl: attachment.imageUrl,
         }))}
+        existingUnits={ticket?.units.map(({ unit }) => unit)}
         isDeletingAttachment={deleteAttachment.isPending}
         initialValues={
           ticket

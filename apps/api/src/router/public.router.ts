@@ -28,14 +28,25 @@ const dataListSchema = z.object({ data: z.array(objectSchema) });
 const unitArchiveResponseSchema = z.object({
   data: z.object({ id: z.number().int().positive(), archivedAt: z.iso.datetime().nullable() }),
 });
+const propertyInventorySchema = z
+  .object({
+    unitCount: z.number().int().nonnegative().describe("Planned unit capacity."),
+    activeUnitCount: z.number().int().nonnegative().describe("Number of unarchived units."),
+    occupiedUnits: z
+      .number()
+      .int()
+      .nonnegative()
+      .nullable()
+      .describe("Unarchived units with an active or notice lease."),
+  })
+  .passthrough();
 const propertyByIdResponseSchema = z.object({
-  data: z
-    .object({
+  data: propertyInventorySchema
+    .extend({
       unitStatuses: z
         .array(z.union([z.literal("vacant"), leaseStatusSchema]))
         .describe("Unit status values available for filtering."),
     })
-    .passthrough()
     .nullable(),
 });
 
@@ -53,7 +64,7 @@ export const publicRouter = router({
       .meta({
         openapi: { protect: true, method: "GET", path: "/properties", tags: ["Properties"] },
       })
-      .output(dataListSchema)
+      .output(z.object({ data: z.array(propertyInventorySchema) }))
       .query(async ({ ctx }) => ({
         data: await appRouter.createCaller(ctx).properties.list(),
       })),
@@ -77,7 +88,14 @@ export const publicRouter = router({
       })),
     update: publicProcedure
       .meta({
-        openapi: { protect: true, method: "PUT", path: "/properties/{id}", tags: ["Properties"] },
+        openapi: {
+          protect: true,
+          method: "PUT",
+          path: "/properties/{id}",
+          tags: ["Properties"],
+          description: "Synchronizes active units. Archived units stay attached to the property.",
+          errorResponses: [400, 401, 403, 404, 409, 500],
+        },
       })
       .input(updatePropertyInputSchema)
       .output(dataObjectSchema)
@@ -113,7 +131,14 @@ export const publicRouter = router({
       })),
     archive: publicProcedure
       .meta({
-        openapi: { protect: true, method: "PATCH", path: "/properties/{id}/archive", tags: ["Properties"] },
+        openapi: {
+          protect: true,
+          method: "PATCH",
+          path: "/properties/{id}/archive",
+          tags: ["Properties"],
+          description: "Scheduled, active, or notice leases block archiving.",
+          errorResponses: [400, 401, 403, 404, 409, 500],
+        },
       })
       .input(propertyByIdInputSchema)
       .output(dataObjectSchema)
@@ -122,7 +147,14 @@ export const publicRouter = router({
       })),
     inactivate: publicProcedure
       .meta({
-        openapi: { protect: true, method: "POST", path: "/properties/{id}/inactive", tags: ["Properties"] },
+        openapi: {
+          protect: true,
+          method: "POST",
+          path: "/properties/{id}/inactive",
+          tags: ["Properties"],
+          description: "Scheduled, active, or notice leases block archiving.",
+          errorResponses: [400, 401, 403, 404, 409, 500],
+        },
       })
       .input(propertyStatusInputSchema)
       .output(dataObjectSchema)
@@ -232,7 +264,15 @@ export const publicRouter = router({
   }),
   units: router({
     list: publicProcedure
-      .meta({ openapi: { protect: true, method: "GET", path: "/units", tags: ["Units"] } })
+      .meta({
+        openapi: {
+          protect: true,
+          method: "GET",
+          path: "/units",
+          tags: ["Units"],
+          description: "Lists active units by default. Use archiveStatus to list archived units or all units.",
+        },
+      })
       .input(listUnitsInputSchema)
       .output(dataListSchema)
       .query(async ({ ctx, input }) => ({

@@ -130,7 +130,7 @@ function createUnitDetailsFormState(index = 0): UnitDetailsFormState {
 }
 
 function getInitialUnitFormStates(initialUnits?: UnitDetailsFormState[]) {
-  return initialUnits && initialUnits.length > 0 ? initialUnits : [createUnitDetailsFormState()];
+  return initialUnits ?? [createUnitDetailsFormState()];
 }
 
 type PropertyDrawerProps = {
@@ -229,7 +229,8 @@ export function PropertyDrawer({
     form.name && form.line1 && form.city && form.region && form.postalCode && form.propertyType && form.unitCount,
   );
   const canSubmitUnitDetails =
-    units.length > 0 && units.every((unit) => unit.unitName && unit.marketRate && unit.unitType);
+    (initialUnits !== undefined || units.length > 0) &&
+    units.every((unit) => unit.unitName && unit.marketRate && unit.unitType);
   const hasFormChanges = Object.entries(form).some(([field, value]) => {
     const initialValue = initialFormState[field as keyof PropertyFormState];
     return Array.isArray(value) && Array.isArray(initialValue)
@@ -427,7 +428,9 @@ export function PropertyDrawer({
   }
 
   function removeUnit(unitId: UnitId) {
-    setUnits((current) => (current.length > 1 ? current.filter((unit) => unit.id !== unitId) : current));
+    setUnits((current) =>
+      initialUnits !== undefined || current.length > 1 ? current.filter((unit) => unit.id !== unitId) : current,
+    );
     setExpandedUnitIds((current) => {
       const next = new Set(current);
       next.delete(unitId);
@@ -635,7 +638,7 @@ export function PropertyDrawer({
                   </div>
                 </div>
                 <div className="border-white/15 md:border-l md:pl-8">
-                  <p className="text-xs font-semibold uppercase text-white/55">Units</p>
+                  <p className="text-xs font-semibold uppercase text-white/55">Planned units</p>
                   <p className="mt-1 text-base font-semibold text-white">{form.unitCount || "-"}</p>
                 </div>
               </div>
@@ -751,9 +754,9 @@ export function PropertyDrawer({
                         </Label>
 
                         <Label>
-                          <FieldLabel>Units</FieldLabel>
+                          <FieldLabel>Planned units</FieldLabel>
                           <Input
-                            min={1}
+                            min={initialUnits === undefined ? 1 : 0}
                             onChange={(event) => updateField("unitCount", event.target.value)}
                             required
                             type="number"
@@ -972,7 +975,7 @@ export function PropertyDrawer({
                                   <button
                                     aria-label={`Remove ${unit.unitName || "unit"}`}
                                     className="inline-grid h-9 w-9 place-items-center rounded-md border border-parcelis-border text-parcelis-gray transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-                                    disabled={units.length === 1}
+                                    disabled={initialUnits === undefined && units.length === 1}
                                     onClick={() => setUnitPendingRemovalId(unit.id)}
                                     type="button"
                                   >

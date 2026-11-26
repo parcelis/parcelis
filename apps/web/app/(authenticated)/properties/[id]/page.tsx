@@ -37,7 +37,7 @@ import {
   type PropertyFormState,
   type UnitDetailsFormState,
 } from "../../../../components/property-drawer";
-import { getPropertyFormState, getUnitFormStates } from "../../../../components/property-drawer-state";
+import { getPropertyFormState, getSavedUnitIds, getUnitFormStates } from "../../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { deletePropertyImage, uploadPropertyImage } from "../../../../components/property-image-upload";
 import { LoadingState } from "../../../../components/loading-state";
@@ -47,7 +47,7 @@ import { EntityLifecycleControls } from "../../../../components/entity-lifecycle
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { entityUpdatedMessage } from "../../../../components/toast-messages";
 import { formatDate } from "../../../../lib/date";
-import { getMaintenanceLink, getPropertyLink, getUnitLink } from "../../../../lib/entity-links";
+import { getMaintenanceLink, getUnitLink } from "../../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../../lib/format";
 
 function formatStatus(status: string) {
@@ -117,6 +117,7 @@ export default function PropertyDetailPage() {
   const [editForm, setEditForm] = React.useState<PropertyFormState>(initialPropertyFormState);
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = React.useState(false);
+  const [showArchivedUnits, setShowArchivedUnits] = React.useState(false);
   const [unitStatusFilter, setUnitStatusFilter] = React.useState("all");
 
   const property = propertyQuery.data;
@@ -133,7 +134,7 @@ export default function PropertyDetailPage() {
   const maintenanceTickets = property?.maintenanceTickets ?? [];
   const activeLeases = leases.filter((lease) => lease.status === "active" || lease.status === "notice");
   const occupiedUnits = property?.occupiedUnits ?? 0;
-  const unitCount = property?.unitCount ?? 0;
+  const unitCount = property?.activeUnitCount ?? 0;
   const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits / unitCount) * 100) : 0;
   const monthlyRentCents = activeLeases.reduce((sum, lease) => sum + (lease.monthlyRentCents ?? 0), 0);
   const amountOverdueCents = (property?.leaseHistory ?? []).reduce(
@@ -158,33 +159,25 @@ export default function PropertyDetailPage() {
         ["Contact Address", property.contactAddress],
       ].filter(([, value]) => Boolean(value))
     : [];
-  const unitCards =
-    property && canViewUnits
-      ? (property.units.length > 0
-          ? property.units
-          : Array.from({ length: unitCount }, (_, index) => ({
-              id: String(index + 1),
-              name: String(index + 1),
-              bedrooms: null,
-              bathrooms: null,
-              squareFeet: null,
-              marketRateCents: 0,
-            }))
-        ).map((unit, index) => {
-          const lease = leases.find((item) => item.unitLabel === unit.name) ?? leases[index];
-
-          return {
-            unit,
-            lease,
-            status: canViewLeases ? (lease?.status ?? "vacant") : "unavailable",
-            href: property.units.some((savedUnit) => savedUnit.id === unit.id)
-              ? getUnitLink(property.id, unit.id)
-              : null,
-          };
-        })
-      : [];
+  const archivedUnitsQuery = useQuery({
+    queryKey: queryKeys.units.archived(propertyId),
+    queryFn: () => apiClient.units.list.query({ propertyId, archiveStatus: "archived" }),
+    enabled: canViewUnits && showArchivedUnits && Boolean(property),
+  });
+  const visibleUnits = showArchivedUnits ? (archivedUnitsQuery.data ?? []) : (property?.units ?? []);
+  const unitCards = canViewUnits
+    ? visibleUnits.map((unit) => {
+        const unitLeases = leases.filter((item) => item.unitId === unit.id && item.status !== "ended");
+        const lease = unitLeases.find(({ status }) => status === "active" || status === "notice") ?? unitLeases[0];
+        return {
+          unit,
+          lease,
+          status: showArchivedUnits ? "archived" : canViewLeases ? (lease?.status ?? "vacant") : "unavailable",
+        };
+      })
+    : [];
   const filteredUnitCards = unitCards.filter(
-    ({ status }) => !canViewLeases || unitStatusFilter === "all" || status === unitStatusFilter,
+    ({ status }) => showArchivedUnits || !canViewLeases || unitStatusFilter === "all" || status === unitStatusFilter,
   );
 
   function openEditDrawer() {
@@ -221,7 +214,7 @@ export default function PropertyDetailPage() {
           canEditProperty &&
           updateProperty.mutate({
             imageFile,
-            input: { ...input, id: propertyId },
+            input: { ...input, id: propertyId, expectedActiveUnitIds: getSavedUnitIds(editInitialUnits) },
           })
         }
         open={isEditDrawerOpen && canEditProperty}
@@ -240,7 +233,7 @@ export default function PropertyDetailPage() {
                   ...(property.line2 ? [property.line2] : []),
                   `${property.city}, ${property.region} ${property.postalCode}`,
                 ],
-                unitCount: property.unitCount,
+                unitCount: property.activeUnitCount,
               }
             : undefined
         }
@@ -478,35 +471,43 @@ export default function PropertyDetailPage() {
 
               <section className="mt-5 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
                 <Card>
-                  <CardHeader className="flex items-center justify-between gap-3">
+                  <CardHeader className="flex flex-wrap items-center justify-between gap-3 sm:flex-row">
                     <h2 className="font-semibold text-parcelis-charcoal">Units</h2>
-                    <Select
-                      aria-label="Filter units by status"
-                      className="w-36"
-                      disabled={!canViewLeases || !canViewUnits}
-                      onChange={(event) => setUnitStatusFilter(event.target.value)}
-                      value={canViewLeases && canViewUnits ? unitStatusFilter : "unavailable"}
-                    >
-                      {canViewLeases && canViewUnits ? (
-                        <>
-                          <option value="all">All statuses</option>
-                          {property.unitStatuses.map((status) => (
-                            <option key={status} value={status}>
-                              {formatStatus(status)}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option value="unavailable">Unavailable</option>
-                      )}
-                    </Select>
+                    {canViewUnits ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Select
+                          aria-label="Unit inventory"
+                          className="w-40"
+                          onChange={(event) => setShowArchivedUnits(event.target.value === "archived")}
+                          value={showArchivedUnits ? "archived" : "active"}
+                        >
+                          <option value="active">Active Units</option>
+                          <option value="archived">Archived Units</option>
+                        </Select>
+                        {!showArchivedUnits && canViewLeases ? (
+                          <Select
+                            aria-label="Filter units by status"
+                            className="w-36"
+                            onChange={(event) => setUnitStatusFilter(event.target.value)}
+                            value={unitStatusFilter}
+                          >
+                            <option value="all">All statuses</option>
+                            {property.unitStatuses.map((status) => (
+                              <option key={status} value={status}>
+                                {formatStatus(status)}
+                              </option>
+                            ))}
+                          </Select>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </CardHeader>
-                  <CardContent className="grid max-h-[34rem] gap-3 overflow-y-auto pr-3 sm:grid-cols-2">
-                    {filteredUnitCards.map(({ href, lease, status, unit }) => {
+                  <CardContent className="flex max-h-[34rem] flex-wrap gap-3 overflow-y-auto pr-3">
+                    {filteredUnitCards.map(({ lease, status, unit }) => {
                       return (
                         <Link
-                          className="block rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain/55"
-                          href={href ?? getPropertyLink(property.id)}
+                          className="min-w-0 basis-full rounded-md border border-parcelis-border p-3 transition hover:border-parcelis-green hover:bg-parcelis-porcelain/55 sm:basis-[calc(50%-0.375rem)]"
+                          href={getUnitLink(property.id, unit.id)}
                           key={unit.id}
                         >
                           <div className="flex items-center justify-between">
@@ -537,9 +538,28 @@ export default function PropertyDetailPage() {
                         </Link>
                       );
                     })}
-                    {filteredUnitCards.length === 0 ? (
-                      <p className="text-sm text-parcelis-gray sm:col-span-2">
-                        {canViewUnits ? "No units match this status." : "Unavailable"}
+                    {showArchivedUnits && archivedUnitsQuery.isLoading ? (
+                      <p role="status" className="text-sm text-parcelis-gray">
+                        Loading archived units…
+                      </p>
+                    ) : showArchivedUnits && archivedUnitsQuery.isError ? (
+                      <div className="flex items-center gap-2">
+                        <p role="alert" className="text-sm text-red-700">
+                          Unable to load archived units.
+                        </p>
+                        <Button onClick={() => void archivedUnitsQuery.refetch()} size="sm" variant="secondary">
+                          Retry
+                        </Button>
+                      </div>
+                    ) : filteredUnitCards.length === 0 ? (
+                      <p className="text-sm text-parcelis-gray">
+                        {!canViewUnits
+                          ? "Unavailable"
+                          : showArchivedUnits
+                            ? "No archived units."
+                            : visibleUnits.length === 0
+                              ? "No active units."
+                              : "No units match this status."}
                       </p>
                     ) : null}
                   </CardContent>

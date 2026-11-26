@@ -95,7 +95,38 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "properties": {},
+                        "properties": {
+                          "unitCount": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "Planned unit capacity."
+                          },
+                          "activeUnitCount": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "Number of unarchived units."
+                          },
+                          "occupiedUnits": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Unarchived units with an active or notice lease."
+                          }
+                        },
+                        "required": [
+                          "unitCount",
+                          "activeUnitCount",
+                          "occupiedUnits"
+                        ],
                         "additionalProperties": {}
                       }
                     }
@@ -454,6 +485,31 @@
                         {
                           "type": "object",
                           "properties": {
+                            "unitCount": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Planned unit capacity."
+                            },
+                            "activeUnitCount": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Number of unarchived units."
+                            },
+                            "occupiedUnits": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "Unarchived units with an active or notice lease."
+                            },
                             "unitStatuses": {
                               "type": "array",
                               "items": {
@@ -478,6 +534,9 @@
                             }
                           },
                           "required": [
+                            "unitCount",
+                            "activeUnitCount",
+                            "occupiedUnits",
                             "unitStatuses"
                           ],
                           "additionalProperties": {}
@@ -550,6 +609,7 @@
       },
       "put": {
         "operationId": "properties-update",
+        "description": "Synchronizes active units. Archived units stay attached to the property.",
         "tags": [
           "Properties"
         ],
@@ -740,6 +800,15 @@
                       "leasing"
                     ],
                     "description": "Manually managed operational status. Defaults to active on creation; omitted updates preserve the current status. Use archive/unarchive operations for archived properties."
+                  },
+                  "expectedActiveUnitIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "description": "Active unit IDs loaded before editing. A changed set causes a conflict."
                   }
                 },
                 "required": [
@@ -810,6 +879,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.CONFLICT"
                 }
               }
             }
@@ -1253,6 +1332,7 @@
     "/properties/{id}/archive": {
       "patch": {
         "operationId": "properties-archive",
+        "description": "Scheduled, active, or notice leases block archiving.",
         "tags": [
           "Properties"
         ],
@@ -1335,6 +1415,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.CONFLICT"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -1351,6 +1441,7 @@
     "/properties/{id}/inactive": {
       "post": {
         "operationId": "properties-inactivate",
+        "description": "Scheduled, active, or notice leases block archiving.",
         "tags": [
           "Properties"
         ],
@@ -1419,6 +1510,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.CONFLICT"
                 }
               }
             }
@@ -2451,6 +2562,7 @@
     "/units": {
       "get": {
         "operationId": "units-list",
+        "description": "Lists active units by default. Use archiveStatus to list archived units or all units.",
         "tags": [
           "Units"
         ],
@@ -2467,6 +2579,19 @@
               "type": "integer",
               "exclusiveMinimum": 0,
               "maximum": 9007199254740991
+            }
+          },
+          {
+            "in": "query",
+            "name": "archiveStatus",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "archived",
+                "all"
+              ],
+              "description": "Defaults to active units."
             }
           }
         ],

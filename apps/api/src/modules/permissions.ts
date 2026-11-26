@@ -82,7 +82,7 @@ export function requireSupportedPermission(resource: PermissionResource, action:
 }
 
 export async function requirePermission(
-  prisma: PrismaClient,
+  prisma: Pick<PrismaClient, "rolePermission">,
   role: string,
   resource: PermissionResource,
   action: PermissionAction,
@@ -143,7 +143,7 @@ export async function requireNotePermission(
 }
 
 export async function requirePrincipalPermission(
-  ctx: Pick<Context, "prisma" | "principal" | "session">,
+  ctx: Pick<Context, "principal" | "session"> & { prisma: Pick<PrismaClient, "rolePermission"> },
   resource: PermissionResource,
   action: PermissionAction,
 ) {

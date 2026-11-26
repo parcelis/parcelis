@@ -487,6 +487,7 @@ export const unitByIdInputSchema = z.object({
 
 export const listUnitsInputSchema = z.object({
   propertyId: idSchema.optional(),
+  archiveStatus: z.enum(["active", "archived", "all"]).describe("Defaults to active units.").optional(),
 });
 
 const propertyNoteSubjectSchema = z.object({ propertyId: idSchema }).strict();
@@ -935,6 +936,10 @@ export const createPropertyInputSchema = propertySchema
 
 export const updatePropertyInputSchema = createPropertyInputSchema.extend({
   id: idSchema,
+  expectedActiveUnitIds: z
+    .array(idSchema)
+    .describe("Active unit IDs loaded before editing. A changed set causes a conflict.")
+    .optional(),
 });
 
 export const propertyByIdInputSchema = z.object({

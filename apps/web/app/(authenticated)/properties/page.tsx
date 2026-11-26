@@ -57,12 +57,7 @@ import {
   type PropertyFormState,
   type UnitDetailsFormState,
 } from "../../../components/property-drawer";
-import {
-  getPropertyFormState,
-  getPropertyType,
-  getUnitType,
-  getUnitFormStates,
-} from "../../../components/property-drawer-state";
+import { getPropertyFormState, getUnitFormStates, getSavedUnitIds } from "../../../components/property-drawer-state";
 import { apiClient, queryKeys } from "../../../components/api-client";
 import { hasPermission } from "../../../components/property-access";
 import { LoadingState } from "../../../components/loading-state";
@@ -124,13 +119,12 @@ function getUnitRows(property: PropertyListItem) {
   const activeOrNoticeLeaseByUnit = new Map(
     property.leases
       .filter((lease) => lease.status === "active" || lease.status === "notice")
-      .map((lease) => [lease.unitLabel, lease]),
+      .map((lease) => [lease.unitId, lease]),
   );
-  const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitLabel, lease]));
+  const leaseByUnit = new Map(property.leases.map((lease) => [lease.unitId, lease]));
   const ticketCountsByUnit = new Map<number, number>();
   const legacyTicketCountsByLabel = new Map<string, number>();
   const overdueCentsByUnit = new Map<number, number>();
-  const overdueCentsByLabel = new Map<string, number>();
   const now = new Date();
   const expiresBefore = new Date(now);
   expiresBefore.setDate(expiresBefore.getDate() + 90);
@@ -140,7 +134,6 @@ function getUnitRows(property: PropertyListItem) {
     if (lease.unitId !== null) {
       overdueCentsByUnit.set(lease.unitId, (overdueCentsByUnit.get(lease.unitId) ?? 0) + overdueCents);
     }
-    overdueCentsByLabel.set(lease.unitLabel, (overdueCentsByLabel.get(lease.unitLabel) ?? 0) + overdueCents);
   }
 
   for (const ticket of property.maintenanceTickets) {
@@ -154,42 +147,28 @@ function getUnitRows(property: PropertyListItem) {
     }
   }
 
-  const unitLabels = new Set([
-    ...property.units.map((unit) => unit.name),
-    ...property.leases.map((lease) => lease.unitLabel),
-    ...property.maintenanceTickets.flatMap((ticket) =>
-      ticket.units.length === 0 && ticket.unitLabel ? [ticket.unitLabel] : [],
-    ),
-  ]);
-  for (let index = 1; unitLabels.size < property.unitCount; index += 1) {
-    unitLabels.add(String(index));
-  }
-
-  return Array.from(unitLabels, (unitLabel) => {
-    const unit = property.units.find((item) => item.name === unitLabel);
-    const unitLink = unit ? getUnitLink(property.id, unit.id) : null;
-    const activeLease = activeOrNoticeLeaseByUnit.get(unitLabel);
-    const statusLease = leaseByUnit.get(unitLabel);
+  return property.units.map((unit) => {
+    const unitLabel = unit.name;
+    const unitLink = getUnitLink(property.id, unit.id);
+    const activeLease = activeOrNoticeLeaseByUnit.get(unit.id);
+    const statusLease = leaseByUnit.get(unit.id);
     const preferredStatusLease = activeLease ?? statusLease;
     const endsOn =
       activeLease?.endsOn !== null && activeLease?.endsOn !== undefined ? new Date(activeLease.endsOn) : null;
     const isExpiring = Boolean(endsOn && endsOn >= now && endsOn <= expiresBefore);
 
     return {
-      id: unit?.id,
+      id: unit.id,
       link: unitLink,
       unitLabel,
-      isOccupied: property.occupiedUnits === null ? null : Boolean(activeLease),
+      isOccupied: property.occupiedUnits === null ? null : unit.isOccupied,
       monthlyRentCents: property.monthlyRentCents === null ? null : (activeLease?.monthlyRentCents ?? 0),
-      amountOverdueCents:
-        property.amountOverdueCents === null
-          ? null
-          : ((unit ? overdueCentsByUnit.get(unit.id) : overdueCentsByLabel.get(unitLabel)) ?? 0),
+      amountOverdueCents: property.amountOverdueCents === null ? null : (overdueCentsByUnit.get(unit.id) ?? 0),
       expiringLeases90Days: property.expiringLeases90Days === null ? null : isExpiring ? 1 : 0,
       openMaintenanceTickets:
         property.openMaintenanceTickets === null
           ? null
-          : (unit ? (ticketCountsByUnit.get(unit.id) ?? 0) : 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
+          : (ticketCountsByUnit.get(unit.id) ?? 0) + (legacyTicketCountsByLabel.get(unitLabel) ?? 0),
       status: property.occupiedUnits === null ? "unavailable" : (preferredStatusLease?.status ?? "vacant"),
     };
   });
@@ -439,14 +418,15 @@ export default function PropertiesPage() {
     },
   });
   const deleteUnit = useMutation({
-    mutationFn: (input: UpdatePropertyInput) => apiClient.properties.update.mutate(input),
+    mutationFn: ({ id }: { id: number; propertyId: number }) => apiClient.units.delete.mutate({ id }),
     onSuccess: async (_property, input) => {
       setDeleteUnitTarget(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.properties.list }),
         queryClient.invalidateQueries({
-          queryKey: queryKeys.properties.byId(input.id),
+          queryKey: queryKeys.properties.byId(input.propertyId),
         }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.units.all }),
       ]);
     },
   });
@@ -491,7 +471,8 @@ export default function PropertiesPage() {
     const matchesRegion = !appliedFilters.region || property.region === appliedFilters.region;
     const matchesPostalCode = !appliedFilters.postalCode || property.postalCode.includes(appliedFilters.postalCode);
     const matchesStatus = appliedFilters.status === "all" || property.status === appliedFilters.status;
-    const matchesUnits = !appliedFilters.minimumUnits || property.unitCount >= Number(appliedFilters.minimumUnits);
+    const matchesUnits =
+      !appliedFilters.minimumUnits || property.activeUnitCount >= Number(appliedFilters.minimumUnits);
     const matchesMaintenance =
       !appliedFilters.hasOpenMaintenance ||
       property.openMaintenanceTickets === null ||
@@ -520,7 +501,7 @@ export default function PropertiesPage() {
     }
     return Boolean(value);
   }).length;
-  const totalUnits = properties.reduce((sum, property) => sum + property.unitCount, 0);
+  const totalUnits = properties.reduce((sum, property) => sum + property.activeUnitCount, 0);
   const occupiedUnits = properties.some((property) => property.occupiedUnits === null)
     ? null
     : properties.reduce((sum, property) => sum + (property.occupiedUnits ?? 0), 0);
@@ -610,7 +591,7 @@ export default function PropertiesPage() {
             if (!canEditProperty) return;
             updateProperty.mutate({
               imageFile: propertyImageFile,
-              input: { ...input, id: editingProperty.id },
+              input: { ...input, id: editingProperty.id, expectedActiveUnitIds: getSavedUnitIds(editInitialUnits) },
             });
           } else {
             createProperty.mutate({ imageFile: propertyImageFile, input });
@@ -639,38 +620,7 @@ export default function PropertiesPage() {
                   return;
                 }
 
-                deleteUnit.mutate({
-                  id: deleteUnitProperty.id,
-                  name: deleteUnitProperty.name,
-                  propertyType: getPropertyType(deleteUnitProperty.propertyType),
-                  tagIds: deleteUnitProperty.tags.map((tag) => tag.id),
-                  address: {
-                    line1: deleteUnitProperty.line1,
-                    line2: deleteUnitProperty.line2 ?? undefined,
-                    city: deleteUnitProperty.city,
-                    region: deleteUnitProperty.region,
-                    postalCode: deleteUnitProperty.postalCode,
-                  },
-                  contactName: deleteUnitProperty.contactName ?? undefined,
-                  contactEmail: deleteUnitProperty.contactEmail ?? undefined,
-                  contactPhone: deleteUnitProperty.contactPhone ?? undefined,
-                  contactAddress: deleteUnitProperty.contactAddress ?? undefined,
-                  notes: deleteUnitProperty.legacyNotes ?? undefined,
-                  unitCount: deleteUnitProperty.unitCount - 1,
-                  units: deleteUnitProperty.units
-                    .filter((unit) => unit.id !== deleteUnitTarget.unitId)
-                    .map((unit) => ({
-                      id: unit.id,
-                      name: unit.name,
-                      marketRateCents: unit.marketRateCents,
-                      unitType: getUnitType(unit.unitType),
-                      bedrooms: unit.bedrooms ?? undefined,
-                      bathrooms: unit.bathrooms === null ? undefined : Number(unit.bathrooms),
-                      squareFeet: unit.squareFeet ?? undefined,
-                      utilityTypeIds: unit.utilityTypeIds,
-                      amenityTypeIds: unit.amenityTypeIds,
-                    })),
-                });
+                deleteUnit.mutate({ id: deleteUnitTarget.unitId, propertyId: deleteUnitProperty.id });
               }}
               type="button"
             >
@@ -982,11 +932,9 @@ export default function PropertiesPage() {
                                     isExpanded ? `Collapse ${property.name} units` : `Expand ${property.name} units`
                                   }
                                   className={`grid h-8 w-8 place-items-center rounded-md border border-parcelis-border text-parcelis-gray ${
-                                    property.unitCount > 1 && property.units.length > 0
-                                      ? "hover:bg-white"
-                                      : "cursor-not-allowed opacity-40"
+                                    property.units.length > 0 ? "hover:bg-white" : "cursor-not-allowed opacity-40"
                                   }`}
-                                  disabled={property.unitCount <= 1 || property.units.length === 0}
+                                  disabled={property.units.length === 0}
                                   onClick={() => togglePropertyUnits(property.id)}
                                   type="button"
                                 >
@@ -1018,14 +966,14 @@ export default function PropertiesPage() {
                             <TableCell className="px-5 py-4">
                               <span className="inline-flex items-center gap-1">
                                 <DoorOpen className="h-4 w-4 text-parcelis-green" />
-                                {property.unitCount}
+                                {property.activeUnitCount}
                               </span>
                             </TableCell>
                             <TableCell className="px-5 py-4">
                               {property.occupiedUnits === null
                                 ? "Unavailable"
-                                : property.unitCount > 0
-                                  ? `${Math.round((property.occupiedUnits / property.unitCount) * 100)}%`
+                                : property.activeUnitCount > 0
+                                  ? `${Math.round((property.occupiedUnits / property.activeUnitCount) * 100)}%`
                                   : "0%"}
                             </TableCell>
                             <TableCell className="px-5 py-4">

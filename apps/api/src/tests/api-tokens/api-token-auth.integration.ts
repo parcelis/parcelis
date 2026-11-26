@@ -282,7 +282,7 @@ test("REST bearer tokens preserve PostgreSQL organization boundaries", { skip: !
   });
 
   await t.test("unit lifecycle is idempotent and preserves records", async () => {
-    const { organization, credential, property, unit } = fixtures[0]!;
+    const { organization, credential, property, tenant, unit } = fixtures[0]!;
     const secret = credential.token;
     const archivePath = `/units/${unit.id}/archive`;
     const restorePath = `/units/${unit.id}/reactivate`;
@@ -298,10 +298,77 @@ test("REST bearer tokens preserve PostgreSQL organization boundaries", { skip: !
     assert.equal((await prisma.unit.findUniqueOrThrow({ where: { id: unit.id } })).archivedAt, null);
 
     await prisma.lease.update({ where: { id: lease.id }, data: { status: "ended" } });
+    await prisma.leaseTenant.create({
+      data: { organizationId: organization.id, leaseId: lease.id, tenantId: tenant.id },
+    });
+    const invoice = await prisma.invoice.create({
+      data: {
+        organizationId: organization.id,
+        propertyId: property.id,
+        tenantId: tenant.id,
+        leaseId: lease.id,
+        periodStartsOn: new Date("2026-01-01"),
+        periodEndsOn: new Date("2026-01-31"),
+        dueOn: new Date("2026-01-01"),
+        amountCents: 10_000,
+        balanceCents: 10_000,
+      },
+    });
+    const ticket = await prisma.maintenanceTicket.create({
+      data: {
+        organizationId: organization.id,
+        propertyId: property.id,
+        title: "Unit history ticket",
+        units: { create: [{ unitId: unit.id }] },
+      },
+    });
     const archived = (await call(secret, "PATCH", archivePath, {})).data;
     assert.equal(archived.id, unit.id);
     assert.ok(archived.archivedAt);
     assert.deepEqual((await call(secret, "PATCH", archivePath, {})).data, archived);
+    assert.deepEqual((await call(secret, "GET", `/units?propertyId=${property.id}`)).data, []);
+    for (const archiveStatus of ["archived", "all"]) {
+      const result = await call(secret, "GET", `/units?propertyId=${property.id}&archiveStatus=${archiveStatus}`);
+      assert.deepEqual(
+        result.data.map((row: { id: number }) => row.id),
+        [unit.id],
+      );
+    }
+    const detail = (await call(secret, "GET", `/properties/${property.id}`)).data;
+    assert.equal(detail.unitCount, 1);
+    assert.equal(detail.activeUnitCount, 0);
+    assert.equal(detail.occupiedUnits, 0);
+    assert.deepEqual(detail.units, []);
+    assert.equal(detail.leaseHistory[0]?.unitId, unit.id);
+    assert.equal(detail.leaseHistory[0]?.invoices[0]?.id, invoice.id);
+    assert.equal(detail.leaseHistory[0]?.invoices[0]?.balanceCents, invoice.balanceCents);
+    assert.deepEqual(detail.maintenanceTickets.find((row: { id: number }) => row.id === ticket.id)?.units, [
+      { unitId: unit.id },
+    ]);
+
+    const propertySave = { ...propertyInput, name: "Updated archived inventory", unitCount: 1 };
+    await call(
+      secret,
+      "PUT",
+      `/properties/${property.id}`,
+      {
+        ...propertySave,
+        expectedActiveUnitIds: [unit.id],
+      },
+      409,
+    );
+    await call(
+      secret,
+      "PUT",
+      `/properties/${property.id}`,
+      {
+        ...propertySave,
+        units: [{ ...unitInput, id: unit.id }],
+      },
+      409,
+    );
+    await call(secret, "PUT", `/properties/${property.id}`, { ...propertySave, expectedActiveUnitIds: [] });
+    await call(secret, "DELETE", `/units/${unit.id}`, undefined, 409);
 
     await call(secret, "PATCH", `/properties/${property.id}/archive`, {});
     await call(secret, "POST", restorePath, {}, 409);
@@ -310,6 +377,16 @@ test("REST bearer tokens preserve PostgreSQL organization boundaries", { skip: !
     const restored = { id: unit.id, archivedAt: null };
     assert.deepEqual((await call(secret, "POST", restorePath, {})).data, restored);
     assert.deepEqual((await call(secret, "POST", restorePath, {})).data, restored);
+    const staleSave = await call(
+      secret,
+      "PUT",
+      `/properties/${property.id}`,
+      { ...propertySave, expectedActiveUnitIds: [] },
+      409,
+    );
+    assert.match(staleSave.message, /active units changed/);
+    await call(secret, "PUT", `/properties/${property.id}`, { ...propertySave, expectedActiveUnitIds: [unit.id] }, 409);
+    assert.equal((await call(secret, "GET", `/properties/${property.id}`)).data.activeUnitCount, 1);
     assert.equal((await prisma.lease.findUniqueOrThrow({ where: { id: lease.id } })).unitId, unit.id);
     assert.equal((await prisma.note.findUniqueOrThrow({ where: { id: note.id } })).unitId, unit.id);
   });

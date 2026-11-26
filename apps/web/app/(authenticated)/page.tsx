@@ -53,7 +53,7 @@ export default function Page() {
   const [propertyImageFile, setPropertyImageFile] = React.useState<File | null>(null);
 
   const properties = propertiesQuery.data ?? [];
-  const totalUnits = properties.reduce((sum, property) => sum + property.unitCount, 0);
+  const totalUnits = properties.reduce((sum, property) => sum + property.activeUnitCount, 0);
   const occupiedUnits = properties.some((property) => property.occupiedUnits === null)
     ? null
     : properties.reduce((sum, property) => sum + (property.occupiedUnits ?? 0), 0);
@@ -205,12 +205,12 @@ export default function Page() {
                               </div>
                             </Link>
                           </td>
-                          <td className="px-5 py-4">{property.unitCount}</td>
+                          <td className="px-5 py-4">{property.activeUnitCount}</td>
                           <td className="px-5 py-4">
                             {property.occupiedUnits === null
                               ? "Unavailable"
-                              : property.unitCount > 0
-                                ? `${Math.round((property.occupiedUnits / property.unitCount) * 100)}%`
+                              : property.activeUnitCount > 0
+                                ? `${Math.round((property.occupiedUnits / property.activeUnitCount) * 100)}%`
                                 : "0%"}
                           </td>
                           <td className="px-5 py-4">
