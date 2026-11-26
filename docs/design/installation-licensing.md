@@ -150,7 +150,7 @@ return result.meta.changes
 
 **2. Validate before the browser sends the mutation.** `safeParse` stops a bad form submission early. The backend validates the same input again through the router’s `.input(activateInstallationLicenseSchema)`. UI validation gives immediate feedback, while server validation and `manageProcedure` enforce the request requirements.
 
-[license-cards.tsx](../../apps/web/app/%28authenticated%29/settings/organization/installation/license-cards.tsx#L69-L81)
+[license-cards.tsx](../../apps/web/app/%28authenticated%29/settings/organization/installation/license-cards.tsx#L69-L82)
 
 ```ts
 const fields = new FormData(form);
@@ -164,13 +164,14 @@ setActivationError(null);
 try {
   const result = await activate.mutateAsync(input.data);
   form.reset();
+  await queryClient.cancelQueries({ queryKey, exact: true });
   queryClient.setQueryData(queryKey, result);
   void queryClient.invalidateQueries({ queryKey: ["organizations", "installation-identity"] });
 ```
 
-**3. Save the private credential before the remote request.** The create branch generates it only when the license row is new. The update branch preserves any existing credential. Next, the router takes a 30-second database claim using `operationId` and `operationUntil`. It checks that claim again on save so a delayed response cannot overwrite a newer operation.
+**3. Save the private credential before the remote request.** The create branch generates it only when the license row is new. The update branch preserves any existing credential. Next, the router takes a 30-second database claim using `operationId` and `operationUntil`. After claiming the row, it reads the registration ID and credential again. It checks the claim on save so a delayed response cannot overwrite a newer operation.
 
-[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L58-L66)
+[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L58-L67)
 
 ```ts
 const { installationId } = identity;
@@ -180,11 +181,12 @@ const current = activation
       where,
       create: { installationId, credential: randomBytes(32).toString("base64url") },
       update: { installationId },
+      select: { lastSyncedAt: true },
     })
-  : await prisma.installationLicense.findUnique({ where });
+  : await prisma.installationLicense.findUnique({ where, select: { lastSyncedAt: true } });
 ```
 
-[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L79-L93)
+[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L80-L94)
 
 ```ts
 const operationId = randomUUID();
@@ -261,7 +263,7 @@ return json({ installationId: id, ...snapshot });
 
    *Files:* Parcelis Portal  •  app/api/installations/[id]/refresh/route.ts → lib/activation-sql.ts → lib/tokens.ts
 
-4. **Verify and save the response.** The API loads the public signing keys for the response, verifies the snapshot, then saves the new tier and local sync timestamp. The UI replaces the cached Plan status. An updated tenant tier therefore appears after a successful refresh.
+4. **Verify and save the response.** The API loads the public signing keys for the response, verifies the snapshot, then saves the new tier and local sync timestamp. The UI cancels an in-flight status query before replacing cached Plan status. An updated tenant tier therefore appears after a successful refresh.
 
 ### What a failed refresh changes
 
@@ -345,10 +347,10 @@ return { signedLicense: snapshot.license, tier: claims.tier, validUntil: new Dat
 
 **4. Write the verified response under the same claim.** After successful verification, the router writes the snapshot, tier, expiry, and a new local sync time. A confirmed inactive response clears the cached license. The conditional write prevents a stale operation from changing either result.
 
-[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L110-L127)
+[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L120-L137)
 
 ```ts
-  const response = await syncAccountsLicense(registrationId, current.credential, activation);
+  const response = await syncAccountsLicense(registrationId, registration.credential, activation);
   changes =
     response.kind === "inactive"
       ? { ...clearedLicense, inactive: true }
@@ -397,14 +399,14 @@ RETURNING "id"
 
 **2. Wait for HTTP 204 before changing local state.** `unlinkAccountsInstallation` throws on other responses. The `await` therefore keeps the local license intact when the portal route is missing or the request fails. On success, the router clears the snapshot and creates a fresh Portal registration ID and credential. The support ID remains the key used to find the local row.
 
-[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L97-L108)
+[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L107-L118)
 
 ```ts
-const registrationId = current.registrationId ?? installationId;
+const registrationId = registration.registrationId ?? installationId;
 const clearedLicense = { signedLicense: null, tier: null, validUntil: null };
 let changes;
 if (action === "unlink") {
-  await unlinkAccountsInstallation(registrationId, current.credential);
+  await unlinkAccountsInstallation(registrationId, registration.credential);
   changes = {
     ...clearedLicense,
     inactive: false,
@@ -414,7 +416,7 @@ if (action === "unlink") {
   };
 ```
 
-**3. Switch the browser back to the activation form.** The browser replaces its cached status only after the mutation resolves. The resulting `unlinked` state shows the Free plan and lets the admin enter a new Portal code. The server never sends the signed license or private credential to the browser.
+**3. Switch the browser back to the activation form.** After the mutation resolves, the browser cancels an in-flight status query before replacing the cached status. The resulting `unlinked` state shows the Free plan and lets the admin enter a new Portal code. The server never sends the signed license or private credential to the browser.
 
 ### Where to start when something fails
 

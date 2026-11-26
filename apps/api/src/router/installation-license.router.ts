@@ -62,8 +62,9 @@ async function changeLicense(prisma: PrismaClient, action?: ActivateInstallation
         where,
         create: { installationId, credential: randomBytes(32).toString("base64url") },
         update: { installationId },
+        select: { lastSyncedAt: true },
       })
-    : await prisma.installationLicense.findUnique({ where });
+    : await prisma.installationLicense.findUnique({ where, select: { lastSyncedAt: true } });
 
   if (action === "unlink" && !current?.lastSyncedAt) return planStatus(null);
   if (activation ? current?.lastSyncedAt : !current?.lastSyncedAt) {
@@ -94,11 +95,20 @@ async function changeLicense(prisma: PrismaClient, action?: ActivateInstallation
 
   const claimed = { ...where, operationId };
   try {
-    const registrationId = current.registrationId ?? installationId;
+    const registration = await prisma.installationLicense.findUnique({
+      where: claimed,
+      select: { registrationId: true, credential: true },
+    });
+    if (!registration) {
+      if (action === "unlink") return planStatus(null);
+      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Activate the installation first." });
+    }
+
+    const registrationId = registration.registrationId ?? installationId;
     const clearedLicense = { signedLicense: null, tier: null, validUntil: null };
     let changes;
     if (action === "unlink") {
-      await unlinkAccountsInstallation(registrationId, current.credential);
+      await unlinkAccountsInstallation(registrationId, registration.credential);
       changes = {
         ...clearedLicense,
         inactive: false,
@@ -107,7 +117,7 @@ async function changeLicense(prisma: PrismaClient, action?: ActivateInstallation
         credential: randomBytes(32).toString("base64url"),
       };
     } else {
-      const response = await syncAccountsLicense(registrationId, current.credential, activation);
+      const response = await syncAccountsLicense(registrationId, registration.credential, activation);
       changes =
         response.kind === "inactive"
           ? { ...clearedLicense, inactive: true }

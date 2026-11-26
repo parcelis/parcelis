@@ -77,6 +77,7 @@ export function LicenseCards({
     try {
       const result = await activate.mutateAsync(input.data);
       form.reset();
+      await queryClient.cancelQueries({ queryKey, exact: true });
       queryClient.setQueryData(queryKey, result);
       void queryClient.invalidateQueries({ queryKey: ["organizations", "installation-identity"] });
       toast.success("License activated.");
@@ -91,6 +92,7 @@ export function LicenseCards({
     setRefreshError(null);
     try {
       const result = await refresh.mutateAsync();
+      await queryClient.cancelQueries({ queryKey, exact: true });
       queryClient.setQueryData(queryKey, result);
       if (result.state === "active") toast.success("Plan refreshed.");
     } catch (error) {
@@ -102,6 +104,7 @@ export function LicenseCards({
     setUnlinkError(null);
     try {
       const result = await unlink.mutateAsync();
+      await queryClient.cancelQueries({ queryKey, exact: true });
       queryClient.setQueryData(queryKey, result);
       setRefreshError(null);
       setUnlinkOpen(false);

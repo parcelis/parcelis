@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import { PrismaClient, PrismaPg } from "@parcelis/db";
 import { parcelisAccountsOrigin } from "@parcelis/schemas";
@@ -46,9 +47,9 @@ test(
       }
     });
 
-    const adminCaller = (userId: number) =>
+    const adminCaller = (userId: number, prisma: unknown = db) =>
       installationLicenseRouter.createCaller({
-        prisma: db,
+        prisma,
         session: { userId, user: { id: userId, role: "administrator" } },
         organization: { organizationId: 1, role: "administrator" },
       } as unknown as Context);
@@ -84,7 +85,7 @@ test(
 
       refreshRequests.push({ path: pathname, authorization: new Headers(init?.headers).get("authorization"), body });
       if (stage === "revoked") return Response.json({ error: "license_inactive" }, { status: 403 });
-      const snapshot = signer.issue(activationRequests[0]!.id, "enterprise");
+      const snapshot = signer.issue(pathname.split("/")[3]!, "enterprise");
       return Response.json(stage === "tampered" ? { ...snapshot, tier: "free" } : snapshot);
     });
 
@@ -146,5 +147,28 @@ test(
     const newRegistration = activationRequests.at(-1)!;
     assert.notEqual(newRegistration.id, id);
     assert.ok(newRegistration.credential !== credential, "A new registration uses a different credential");
+
+    const latestRegistrationId = randomUUID();
+    const latestCredential = randomBytes(32).toString("base64url");
+    const racingDb = db.$extends({
+      query: {
+        installationLicense: {
+          async updateMany({ args, query }) {
+            if (args.data.operationId && args.data.operationUntil) {
+              await db.installationLicense.update({
+                where: { installationId: id },
+                data: { registrationId: latestRegistrationId, credential: latestCredential },
+              });
+            }
+            return query(args);
+          },
+        },
+      },
+    });
+    stage = "upgrade";
+    assert.equal((await adminCaller(4, racingDb).refresh()).tier, "enterprise");
+    const latestRefresh = refreshRequests.at(-1);
+    assert.equal(latestRefresh?.path, `/api/installations/${latestRegistrationId}/refresh`);
+    assert.ok(latestRefresh?.authorization === `Bearer ${latestCredential}`);
   },
 );
