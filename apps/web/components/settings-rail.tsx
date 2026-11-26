@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import Link from "next/link";
-import { Building2, KeyRound, Mail, ReceiptText, ShieldCheck, Users } from "lucide-react";
+import { Building2, KeyRound, Mail, ReceiptText, Server, ShieldCheck, Users } from "lucide-react";
 import { Select, SettingsPanelGroup } from "@parcelis/ui";
 import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,7 +14,7 @@ export function SettingsRail({
   canManageRoles = false,
   canManageInvoicing = false,
 }: {
-  active: "none" | "organization" | "email" | "api-tokens" | "invoicing" | "roles" | "users";
+  active: "none" | "organization" | "email" | "api-tokens" | "installation" | "invoicing" | "roles" | "users";
   canManageRoles?: boolean;
   canManageInvoicing?: boolean;
   canManageUsers?: boolean;
@@ -26,15 +26,18 @@ export function SettingsRail({
     queryKey: [...queryKeys.organizations.active, pathname],
     queryFn: () => apiClient.organizations.active.query(),
   });
-  const canManageTokens = ["owner", "administrator"].includes(organizationQuery.data?.role ?? "");
+  const canManageOrganization = ["owner", "administrator"].includes(organizationQuery.data?.role ?? "");
   const groups = [
     {
       label: "Organization",
       items: [
         { key: "organization", href: "/settings/organization/general", label: "General", icon: Building2 },
         { key: "email", href: "/settings/organization/email", label: "Email", icon: Mail },
-        ...(canManageTokens
-          ? [{ key: "api-tokens", href: "/settings/organization/api-tokens", label: "API tokens", icon: KeyRound }]
+        ...(canManageOrganization
+          ? [
+              { key: "api-tokens", href: "/settings/organization/api-tokens", label: "API tokens", icon: KeyRound },
+              { key: "installation", href: "/settings/organization/installation", label: "Installation", icon: Server },
+            ]
           : []),
       ],
     },
@@ -67,8 +70,8 @@ export function SettingsRail({
             if (item) router.push(item.href);
           }}
         >
-          {active === "none" ? (
-            <option value="none" disabled>
+          {active === "none" || !groups.some((group) => group.items.some((item) => item.key === active)) ? (
+            <option value={active} disabled>
               Choose a settings section
             </option>
           ) : null}

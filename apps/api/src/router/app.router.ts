@@ -97,6 +97,7 @@ import {
 } from "@parcelis/schemas";
 import {
   ActivitySubjectType,
+  installationRecordId,
   LeaseStatus,
   MaintenanceTicketStatus,
   Prisma,
@@ -128,7 +129,9 @@ import {
   getObjectBuffer,
   getPublicObjectStorageConfig,
 } from "../modules/object-storage.config";
+import { getInstallationMetadata } from "../modules/installation-metadata";
 import { authRouter } from "./auth.router";
+import { installationLicenseRouter } from "./installation-license.router";
 import { bugReportsRouter } from "./bug-reports.router";
 import { getActivityActor } from "../modules/activity-actor";
 import { requireAdministrator, requireOrganizationAdministrator } from "../modules/authorization";
@@ -779,6 +782,7 @@ async function assertNonAdministratorUser(prisma: PrismaClient | Prisma.Transact
 export const appRouter = router({
   bugReports: bugReportsRouter,
   auth: authRouter,
+  installationLicense: installationLicenseRouter,
   apiTokens: router({
     list: apiTokenManagementProcedure
       .input(listApiTokensInputSchema)
@@ -899,6 +903,20 @@ export const appRouter = router({
       }),
   }),
   organizations: router({
+    installationIdentity: organizationProcedure.query(async ({ ctx }) => {
+      requireOrganizationAdministrator(ctx.organization.role);
+
+      const installation = await ctx.prisma.installation.findUnique({
+        where: { id: installationRecordId },
+        select: { installationId: true },
+      });
+      const { url, version } = getInstallationMetadata();
+      return {
+        installationId: installation?.installationId ?? null,
+        installationUrl: url ?? null,
+        releaseVersion: version ?? null,
+      };
+    }),
     list: publicProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "administrator") {
         const organizations = await ctx.prisma.organization.findMany({

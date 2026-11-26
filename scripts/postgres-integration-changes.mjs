@@ -46,12 +46,21 @@ export function selectPostgresIntegrationSuites(files, force = false) {
             ) ||
             [
               "apps/api/src/router/auth.router.ts",
+              "apps/api/src/router/installation-license.router.ts",
               "apps/api/src/router/trpc.ts",
+              "apps/api/src/modules/activity-actor.ts",
+              "apps/api/src/modules/api-tokens.ts",
               "apps/api/src/modules/auth.ts",
+              "apps/api/src/modules/authorization.ts",
+              "apps/api/src/modules/installation-metadata.ts",
+              "apps/api/src/modules/object-storage.config.ts",
+              "apps/api/src/modules/parcelis-accounts-license.ts",
+              "apps/api/src/modules/permissions.ts",
               "apps/api/src/modules/notification-outbox.ts",
               "apps/api/src/modules/login-rate-limit.ts",
               "apps/api/package.json",
               "apps/api/tsconfig.json",
+              "apps/web/package.json",
             ].includes(file)
           );
         }

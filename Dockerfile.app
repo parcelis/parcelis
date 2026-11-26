@@ -35,6 +35,7 @@ COPY packages packages
 COPY apps/api/package.json apps/api/package.json
 RUN pnpm install --frozen-lockfile --filter @parcelis/api...
 COPY apps/api apps/api
+COPY apps/web/package.json apps/web/package.json
 # Build the api and every workspace it depends on so the runtime can resolve
 # the declared `dist/index.js` entries (notably @parcelis/email and
 # @parcelis/jobs, which the api imports).

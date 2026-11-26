@@ -235,17 +235,32 @@ sanitized diagnostic on failure.
 
 ### Installation identity
 
-One application-selected `Installation` row stores the deployment UUID and its creation timestamp,
+One `Installation` row stores the deployment UUID and its creation timestamp,
 independently of users, organizations, and licensing. `@parcelis/db` exports the shared
 `initializeInstallationIdentity` helper. Account registration calls it inside the transaction that
 creates the account, organization, and verification-email outbox entry; failure rolls back the entire
 transaction. The administrator seed path initializes the same row in its account transaction.
+The upgrade migration backfills the row for databases with existing users. License activation
+also initializes the row if it is missing.
 
-The fixed lookup key is `installation`. Later setup calls return the existing UUID and timestamp;
-concurrent initial calls use a database upsert. Startup, sign-in, and email verification do not create
-an identity. The ID follows the installation database through restarts and restores, makes no
-outbound request, is not an authentication secret, and is not returned by public registration.
+The database constrains the lookup key to `installation`. Later setup calls return the existing UUID
+and timestamp, and concurrent initial calls use a database upsert. API startup, sign-in, and email
+verification do not create an identity. Creating the identity makes no outbound request. The support
+ID follows the installation database through restarts and restores and is omitted from public
+registration responses.
 
+An installation administrator can explicitly link the deployment to Parcelis Accounts. The API
+reuses the installation ID and persists a private credential before redeeming a one-time code.
+Activation and manual refresh verify the signed license against Accounts' public signing keys before
+saving the tier, expiry, and sync time in `InstallationLicense`. A database claim serializes license
+operations across API instances. Settings reads the verified tier until expiry or revocation, then
+uses the Free default. Accounts outages leave the last verified license in place until it expires.
+Activation and refresh send the public URL from the API's `NEXTAUTH_URL` and the version from
+`apps/web/package.json`. The API image build includes that manifest so the version can be bundled.
+Unlink deactivates the credential-matched registration in Accounts before the API resets the local
+plan to Free. If the API cannot confirm the unlink, it leaves the local link and license unchanged.
+The portal keeps the old registration in history. The next activation uses a new remote
+registration ID and credential, while the installation's support ID stays the same.
 
 Prisma models live in `packages/db/prisma/schema.prisma`. The operational model centers on:
 
