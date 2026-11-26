@@ -1,0 +1,47 @@
+scripts/postgres-integration-changes.mjs
+  s_c2cef291d643c3::t_23e17c2d09b1bd 51-52,54,56,58,63
+packages/db/package.json
+  s_c2cef291d643c3::t_8de9f33b9573e5 16
+ARCHITECTURE.md
+  s_c2cef291d643c3::t_5398e9540f4c11 246,248-250
+  s_c2cef291d643c3::t_d4564953bdc58a 238,243-244,261-262
+  s_c2cef291d643c3::t_94c3d7b65a2ec5 247
+packages/db/src/tests/installation-identity-migration.integration.ts
+  s_c2cef291d643c3::t_8de9f33b9573e5 1-12,14,25,43,46,61,68
+  s_c2cef291d643c3::t_8ee3cafe6af8fe 13,15-24,26-42,44-45,47-60,62-67,69-72
+apps/web/app/(authenticated)/settings/organization/installation/page.tsx
+  s_c2cef291d643c3::t_818a6045ec441b 37-39,114-131
+apps/web/app/(authenticated)/settings/organization/installation/license-cards.tsx
+  s_c2cef291d643c3::t_818a6045ec441b 86,101,116
+packages/db/prisma/migrations/20261125020000_backfill_and_enforce_installation_identity/migration.sql
+  s_c2cef291d643c3::t_f593eb9cd94fd4 1-12
+scripts/postgres-integration-changes.test.mjs
+  s_c2cef291d643c3::t_23e17c2d09b1bd 21-25,41
+  s_c2cef291d643c3::t_36cc3411ac16cf 69
+docs/design/installation-licensing.md
+  s_c2cef291d643c3::t_08c563e828bf48 3,15,17,43,209,211,230,232-236,276,351,359,441
+apps/api/src/tests/installation/installation-license.integration.ts
+  s_c2cef291d643c3::t_d4564953bdc58a 123-127,131
+apps/api/src/router/installation-license.router.ts
+  s_c2cef291d643c3::t_d4564953bdc58a 125
+apps/api/src/tests/installation/installation-license.test.ts
+  s_c2cef291d643c3::t_3724d5f02fc13c 39-61
+apps/api/src/modules/parcelis-accounts-license.ts
+  s_c2cef291d643c3::t_23e17c2d09b1bd 89,120,126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0d89d83043c84e7ec2088a0a58b2b8e21a909e6a",
+  "prompts": {},
+  "sessions": {
+    "s_c2cef291d643c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21136-7b20-7870-8f20-3f4043d23d52",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
