@@ -347,7 +347,7 @@ return { signedLicense: snapshot.license, tier: claims.tier, validUntil: new Dat
 
 **4. Write the verified response under the same claim.** After successful verification, the router writes the snapshot, tier, expiry, and a new local sync time. A confirmed inactive response clears the cached license. The conditional write prevents a stale operation from changing either result.
 
-[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L123-L140)
+[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L122-L139)
 
 ```ts
   const response = await syncAccountsLicense(registrationId, registration.credential, activation);
@@ -397,20 +397,19 @@ WHERE "id" = ?1 AND "credentialDigest" = ?2
 RETURNING "id"
 ```
 
-**2. Verify the lease and wait for HTTP 204.** A missing row is already unlinked. An existing row with a replaced lease returns a conflict. `unlinkAccountsInstallation` throws on responses other than 204. The `await` therefore keeps the local license intact when the portal route is missing or the request fails. On success, the router clears the snapshot and creates a fresh Portal registration ID and credential. The support ID remains the key used to find the local row.
+**2. Verify the lease and wait for HTTP 204.** Unlink succeeds immediately when there is no synced license before the claim. If the registration disappears or its lease changes after the claim, unlink returns a conflict. `unlinkAccountsInstallation` throws on responses other than 204. The `await` therefore keeps the local license intact when the portal route is missing or the request fails. On success, the router clears the snapshot and creates a fresh Portal registration ID and credential. The support ID remains the key used to find the local row.
 
-[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L98-L121)
+[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L98-L120)
 
 ```ts
 const registration = await prisma.installationLicense.findUnique({
   where,
   select: { registrationId: true, credential: true, operationId: true },
 });
-if (!registration) {
-  if (action === "unlink") return planStatus(null);
+if (!registration && action !== "unlink") {
   throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Activate the installation first." });
 }
-if (registration.operationId !== operationId) {
+if (registration?.operationId !== operationId) {
   throw new TRPCError({ code: "CONFLICT", message: "A newer license request is in progress. Try again." });
 }
 

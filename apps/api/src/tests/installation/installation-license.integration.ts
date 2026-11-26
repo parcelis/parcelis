@@ -196,5 +196,25 @@ test(
       select: { operationId: true },
     });
     assert.equal(lease.operationId, newerOperationId);
+
+    await db.installationLicense.update({
+      where: { installationId: id },
+      data: { operationUntil: new Date(0) },
+    });
+    const missingAfterClaimDb = db.$extends({
+      query: {
+        installationLicense: {
+          async findUnique({ args, query }) {
+            if (args.select?.credential) {
+              await db.installationLicense.delete({ where: { installationId: id } });
+            }
+            return query(args);
+          },
+        },
+      },
+    });
+    await assert.rejects(adminCaller(5, missingAfterClaimDb).unlink(), { code: "CONFLICT" });
+    assert.deepEqual(await adminCaller(5).unlink(), unlinked);
+    assert.equal(unlinkRequests.length, 2);
   },
 );
