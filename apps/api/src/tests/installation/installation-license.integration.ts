@@ -170,5 +170,31 @@ test(
     const latestRefresh = refreshRequests.at(-1);
     assert.equal(latestRefresh?.path, `/api/installations/${latestRegistrationId}/refresh`);
     assert.ok(latestRefresh?.authorization === `Bearer ${latestCredential}`);
+
+    const linkedStatus = await readAgain();
+    const newerOperationId = randomUUID();
+    const replacedLeaseDb = db.$extends({
+      query: {
+        installationLicense: {
+          async findUnique({ args, query }) {
+            if (args.select?.credential) {
+              await db.installationLicense.update({
+                where: { installationId: id },
+                data: { operationId: newerOperationId },
+              });
+            }
+            return query(args);
+          },
+        },
+      },
+    });
+    await assert.rejects(adminCaller(4, replacedLeaseDb).unlink(), { code: "CONFLICT" });
+    assert.equal(unlinkRequests.length, 2);
+    assert.deepEqual(await readAgain(), linkedStatus);
+    const lease = await db.installationLicense.findUniqueOrThrow({
+      where: { installationId: id },
+      select: { operationId: true },
+    });
+    assert.equal(lease.operationId, newerOperationId);
   },
 );

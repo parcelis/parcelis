@@ -96,12 +96,15 @@ async function changeLicense(prisma: PrismaClient, action?: ActivateInstallation
   const claimed = { ...where, operationId };
   try {
     const registration = await prisma.installationLicense.findUnique({
-      where: claimed,
-      select: { registrationId: true, credential: true },
+      where,
+      select: { registrationId: true, credential: true, operationId: true },
     });
     if (!registration) {
       if (action === "unlink") return planStatus(null);
       throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Activate the installation first." });
+    }
+    if (registration.operationId !== operationId) {
+      throw new TRPCError({ code: "CONFLICT", message: "A newer license request is in progress. Try again." });
     }
 
     const registrationId = registration.registrationId ?? installationId;

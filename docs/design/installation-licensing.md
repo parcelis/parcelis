@@ -169,7 +169,7 @@ try {
   void queryClient.invalidateQueries({ queryKey: ["organizations", "installation-identity"] });
 ```
 
-**3. Save the private credential before the remote request.** The create branch generates it only when the license row is new. The update branch preserves any existing credential. Next, the router takes a 30-second database claim using `operationId` and `operationUntil`. After claiming the row, it reads the registration ID and credential again. It checks the claim on save so a delayed response cannot overwrite a newer operation.
+**3. Save the private credential before the remote request.** The create branch generates it only when the license row is new. The update branch preserves any existing credential. Next, the router takes a 30-second database claim using `operationId` and `operationUntil`. After claiming the row, it reads the registration ID, credential, and the current operation ID. A different operation ID returns a conflict before the Portal call. The router checks the claim again on save so a delayed response cannot overwrite a newer operation.
 
 [installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L58-L67)
 
@@ -347,7 +347,7 @@ return { signedLicense: snapshot.license, tier: claims.tier, validUntil: new Dat
 
 **4. Write the verified response under the same claim.** After successful verification, the router writes the snapshot, tier, expiry, and a new local sync time. A confirmed inactive response clears the cached license. The conditional write prevents a stale operation from changing either result.
 
-[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L120-L137)
+[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L123-L140)
 
 ```ts
   const response = await syncAccountsLicense(registrationId, registration.credential, activation);
@@ -397,11 +397,23 @@ WHERE "id" = ?1 AND "credentialDigest" = ?2
 RETURNING "id"
 ```
 
-**2. Wait for HTTP 204 before changing local state.** `unlinkAccountsInstallation` throws on other responses. The `await` therefore keeps the local license intact when the portal route is missing or the request fails. On success, the router clears the snapshot and creates a fresh Portal registration ID and credential. The support ID remains the key used to find the local row.
+**2. Verify the lease and wait for HTTP 204.** A missing row is already unlinked. An existing row with a replaced lease returns a conflict. `unlinkAccountsInstallation` throws on responses other than 204. The `await` therefore keeps the local license intact when the portal route is missing or the request fails. On success, the router clears the snapshot and creates a fresh Portal registration ID and credential. The support ID remains the key used to find the local row.
 
-[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L107-L118)
+[installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L98-L121)
 
 ```ts
+const registration = await prisma.installationLicense.findUnique({
+  where,
+  select: { registrationId: true, credential: true, operationId: true },
+});
+if (!registration) {
+  if (action === "unlink") return planStatus(null);
+  throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Activate the installation first." });
+}
+if (registration.operationId !== operationId) {
+  throw new TRPCError({ code: "CONFLICT", message: "A newer license request is in progress. Try again." });
+}
+
 const registrationId = registration.registrationId ?? installationId;
 const clearedLicense = { signedLicense: null, tier: null, validUntil: null };
 let changes;
