@@ -35,6 +35,8 @@ export const apiTokenAllowedProcedures = new Set([
   "units.byId",
   "units.create",
   "units.update",
+  "units.archive",
+  "units.reactivate",
   "units.delete",
 ]);
 export const authenticatedProcedure = t.procedure.use(({ ctx, next, path }) => {

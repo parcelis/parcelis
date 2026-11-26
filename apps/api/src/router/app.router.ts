@@ -766,6 +766,51 @@ function apiPermissionProcedure(resource: PermissionResource, action: Permission
   });
 }
 
+async function setUnitArchived(prisma: PrismaClient, organizationId: number, id: number, archived: boolean) {
+  const where = { id, property: { organizationId } };
+  const select = { id: true, archivedAt: true } as const;
+
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const unit = await tx.unit.findFirst({
+          where,
+          select: { ...select, property: { select: { status: true } } },
+        });
+        if (!unit) throw new TRPCError({ code: "NOT_FOUND", message: "Unit not found." });
+        if (archived === (unit.archivedAt !== null)) return { id: unit.id, archivedAt: unit.archivedAt };
+
+        if (archived) {
+          const lease = await tx.lease.findFirst({
+            where: {
+              organizationId,
+              unitId: id,
+              status: { in: [LeaseStatus.scheduled, LeaseStatus.active, LeaseStatus.notice] },
+            },
+            select: { id: true },
+          });
+          if (lease) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "Resolve scheduled, active, or notice leases before archiving this unit.",
+            });
+          }
+        } else if (unit.property.status === "archived") {
+          throw new TRPCError({ code: "CONFLICT", message: "Restore the property before restoring this unit." });
+        }
+
+        return tx.unit.update({ where, data: { archivedAt: archived ? new Date() : null }, select });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      throw new TRPCError({ code: "CONFLICT", message: "The unit changed. Please try again." });
+    }
+    throw error;
+  }
+}
+
 const apiTokenManagementProcedure = organizationProcedure.use(({ ctx, next }) => {
   requireOrganizationAdministrator(ctx.organization.role);
 
@@ -5424,6 +5469,14 @@ export const appRouter = router({
 
         return serializeUnit(unit);
       }),
+    /** Archives a unit without scheduled, active, or notice leases. */
+    archive: apiPermissionProcedure("units", "archive")
+      .input(unitByIdInputSchema)
+      .mutation(({ ctx, input }) => setUnitArchived(ctx.prisma, ctx.organizationScope.organizationId, input.id, true)),
+    /** Restores an archived unit if its property is operational. */
+    reactivate: apiPermissionProcedure("units", "archive")
+      .input(unitByIdInputSchema)
+      .mutation(({ ctx, input }) => setUnitArchived(ctx.prisma, ctx.organizationScope.organizationId, input.id, false)),
     /** Deletes a unit without lease, maintenance, or note history. */
     delete: apiPermissionProcedure("units", "delete")
       .input(unitByIdInputSchema)

@@ -258,6 +258,8 @@ test("API denies archive operations when archive permission is missing", async (
     expectForbidden(() => caller.properties.archive({ id: 1 })),
     expectForbidden(() => caller.properties.inactivate({ id: 1 })),
     expectForbidden(() => caller.properties.reactivate({ id: 1 })),
+    expectForbidden(() => caller.units.archive({ id: 1 })),
+    expectForbidden(() => caller.units.reactivate({ id: 1 })),
     expectForbidden(() => caller.tenants.archive({ id: 1 })),
     expectForbidden(() => caller.tenants.reactivate({ id: 1 })),
     expectForbidden(() => caller.applications.archive({ id: 1 })),

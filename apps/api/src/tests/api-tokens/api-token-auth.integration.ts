@@ -182,6 +182,8 @@ test("REST bearer tokens preserve PostgreSQL organization boundaries", { skip: !
         ["PUT", `/amenities/${foreign.amenity.id}`, { label: "forbidden", sortOrder: 0 }],
         ["POST", "/units", { ...unitInput, propertyId: foreign.property.id }],
         ["PATCH", `/units/${foreign.unit.id}`, unitInput],
+        ["PATCH", `/units/${foreign.unit.id}/archive`, {}],
+        ["POST", `/units/${foreign.unit.id}/reactivate`, {}],
         ["DELETE", `/units/${foreign.unit.id}`, undefined],
       ] as const)
         await call(secret, method, path, body, 404);
@@ -277,6 +279,39 @@ test("REST bearer tokens preserve PostgreSQL organization boundaries", { skip: !
   await t.test("domain history still prevents deletion", async () => {
     const own = fixtures[0]!;
     await call(own.credential.token, "DELETE", `/properties/${own.property.id}`, undefined, 409);
+  });
+
+  await t.test("unit lifecycle is idempotent and preserves records", async () => {
+    const { organization, credential, property, unit } = fixtures[0]!;
+    const secret = credential.token;
+    const archivePath = `/units/${unit.id}/archive`;
+    const restorePath = `/units/${unit.id}/reactivate`;
+    const note = await prisma.note.create({ data: { unitId: unit.id, body: "Unit history" } });
+    const lease = await prisma.lease.create({
+      data: { organizationId: organization.id, propertyId: property.id, unitId: unit.id, archivedAt: new Date() },
+    });
+
+    for (const status of ["scheduled", "active", "notice"] as const) {
+      await prisma.lease.update({ where: { id: lease.id }, data: { status } });
+      await call(secret, "PATCH", archivePath, {}, 409);
+    }
+    assert.equal((await prisma.unit.findUniqueOrThrow({ where: { id: unit.id } })).archivedAt, null);
+
+    await prisma.lease.update({ where: { id: lease.id }, data: { status: "ended" } });
+    const archived = (await call(secret, "PATCH", archivePath, {})).data;
+    assert.equal(archived.id, unit.id);
+    assert.ok(archived.archivedAt);
+    assert.deepEqual((await call(secret, "PATCH", archivePath, {})).data, archived);
+
+    await call(secret, "PATCH", `/properties/${property.id}/archive`, {});
+    await call(secret, "POST", restorePath, {}, 409);
+    assert.deepEqual((await call(secret, "GET", `/units/${unit.id}`)).data.archivedAt, archived.archivedAt);
+    await call(secret, "POST", `/properties/${property.id}/reactivate`, {});
+    const restored = { id: unit.id, archivedAt: null };
+    assert.deepEqual((await call(secret, "POST", restorePath, {})).data, restored);
+    assert.deepEqual((await call(secret, "POST", restorePath, {})).data, restored);
+    assert.equal((await prisma.lease.findUniqueOrThrow({ where: { id: lease.id } })).unitId, unit.id);
+    assert.equal((await prisma.note.findUniqueOrThrow({ where: { id: note.id } })).unitId, unit.id);
   });
 
   await t.test("last-used updates are atomic, throttled, and do not update revoked tokens", async () => {

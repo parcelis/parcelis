@@ -25,6 +25,9 @@ import { publicProcedure, router } from "./trpc";
 const objectSchema = z.object({}).passthrough();
 const dataObjectSchema = z.object({ data: objectSchema });
 const dataListSchema = z.object({ data: z.array(objectSchema) });
+const unitArchiveResponseSchema = z.object({
+  data: z.object({ id: z.number().int().positive(), archivedAt: z.iso.datetime().nullable() }),
+});
 const propertyByIdResponseSchema = z.object({
   data: z
     .object({
@@ -35,6 +38,10 @@ const propertyByIdResponseSchema = z.object({
     .passthrough()
     .nullable(),
 });
+
+function unitArchiveResponse(unit: { id: number; archivedAt: Date | null }) {
+  return { data: { id: unit.id, archivedAt: unit.archivedAt?.toISOString() ?? null } };
+}
 
 export const publicRouter = router({
   health: publicProcedure
@@ -256,6 +263,39 @@ export const publicRouter = router({
       .mutation(async ({ ctx, input }) => ({
         data: await appRouter.createCaller(ctx).units.update(input),
       })),
+    archive: publicProcedure
+      .meta({
+        openapi: {
+          protect: true,
+          method: "PATCH",
+          path: "/units/{id}/archive",
+          tags: ["Units"],
+          summary: "Archive a unit",
+          description:
+            "Archives a unit while preserving its records. Scheduled, active, or notice leases block archiving.",
+          errorResponses: [400, 401, 403, 404, 409, 500],
+        },
+      })
+      .input(unitByIdInputSchema)
+      .output(unitArchiveResponseSchema)
+      .mutation(async ({ ctx, input }) => unitArchiveResponse(await appRouter.createCaller(ctx).units.archive(input))),
+    reactivate: publicProcedure
+      .meta({
+        openapi: {
+          protect: true,
+          method: "POST",
+          path: "/units/{id}/reactivate",
+          tags: ["Units"],
+          summary: "Restore an archived unit",
+          description: "Clears a unit's archive timestamp. Restore its property first if the property is archived.",
+          errorResponses: [400, 401, 403, 404, 409, 500],
+        },
+      })
+      .input(unitByIdInputSchema)
+      .output(unitArchiveResponseSchema)
+      .mutation(async ({ ctx, input }) =>
+        unitArchiveResponse(await appRouter.createCaller(ctx).units.reactivate(input)),
+      ),
     delete: publicProcedure
       .meta({
         openapi: { protect: true, method: "DELETE", path: "/units/{id}", tags: ["Units"] },
