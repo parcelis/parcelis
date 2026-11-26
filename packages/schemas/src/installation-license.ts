@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const parcelisAccountsOrigin = "https://accounts.parcelis.app";
+export const parcelisAccountsOrigin = "https://account.parcelis.app";
 
 export const activateInstallationLicenseSchema = z.object({
   code: z
