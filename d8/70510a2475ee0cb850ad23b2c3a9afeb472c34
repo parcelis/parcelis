@@ -1,0 +1,23 @@
+apps/api/src/router/installation-license.router.ts
+  s_c2cef291d643c3::t_bf8a2a86ec0205 102,105
+docs/design/installation-licensing.md
+  s_c2cef291d643c3::t_5bf2dc60439cd4 350,400,402,409,412
+apps/api/src/tests/installation/installation-license.integration.ts
+  s_c2cef291d643c3::t_bf8a2a86ec0205 199-218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d870510a2475ee0cb850ad23b2c3a9afeb472c34",
+  "prompts": {},
+  "sessions": {
+    "s_c2cef291d643c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21136-7b20-7870-8f20-3f4043d23d52",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
