@@ -1,0 +1,14 @@
+packages/schemas/src/installation-license.ts
+  h_a5ff85794783c2 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca2ec5f77166b721afd060ece5ca8a428a44a07b",
+  "prompts": {},
+  "humans": {
+    "h_a5ff85794783c2": {
+      "author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
