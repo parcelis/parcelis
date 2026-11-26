@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { NoteSubjectInput as NoteSubject } from "@parcelis/schemas";
 import { usePathname } from "next/navigation";
 import {
   Building2,
@@ -44,13 +45,6 @@ import { NoteTimeZoneStatus } from "./note-time-zone-status";
 import { hasPermission } from "./property-access";
 import { formatDateTimeInTimeZone } from "../lib/date";
 
-type NoteSubject =
-  | { propertyId: number }
-  | { unitId: number }
-  | { tenantId: number }
-  | { maintenanceTicketId: number }
-  | { applicationId: number }
-  | { invoiceId: number };
 type NotesTab = "notes" | "files";
 
 const tabs: { value: NotesTab; label: string }[] = [
@@ -124,9 +118,11 @@ export function NotesDrawer({
           ? "tenant_notes"
           : "applicationId" in subject
             ? "application_notes"
-            : "invoiceId" in subject
-              ? "invoice_notes"
-              : "maintenance_notes";
+            : "leaseId" in subject
+              ? "lease_notes"
+              : "invoiceId" in subject
+                ? "invoice_notes"
+                : "maintenance_notes";
   const parentPermissionResource =
     "propertyId" in subject
       ? "properties"
@@ -136,9 +132,11 @@ export function NotesDrawer({
           ? "tenants"
           : "applicationId" in subject
             ? "applications"
-            : "invoiceId" in subject
-              ? "invoices"
-              : "maintenance";
+            : "leaseId" in subject
+              ? "leases"
+              : "invoiceId" in subject
+                ? "invoices"
+                : "maintenance";
   const canViewParent = hasPermission(currentUserQuery.data?.permissions, parentPermissionResource, "view");
   const canViewNotes =
     canViewParent && hasPermission(currentUserQuery.data?.permissions, notePermissionResource, "view");

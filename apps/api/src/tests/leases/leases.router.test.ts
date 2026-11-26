@@ -60,7 +60,11 @@ for (const route of ["tenants", "leases"] as const) {
         }) => {
           assert.equal(where.organizationId, 7);
           assert.deepEqual(where.status.in, ["active", "notice", "scheduled"]);
-          assert.deepEqual(where.OR, [{ endsOn: null }, { endsOn: { gte: individualLeaseInput.startsOn } }]);
+          assert.deepEqual(where.OR, [
+            { endsOn: null },
+            { continueMonthToMonthAfterEnd: true },
+            { endsOn: { gte: individualLeaseInput.startsOn } },
+          ]);
           return { id: 30 };
         },
       },

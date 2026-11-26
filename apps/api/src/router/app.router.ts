@@ -1,3 +1,4 @@
+import { leaseOperationsRouter } from "./lease-operations.router";
 import {
   getReceivableStatus,
   summarizeInvoiceBalances,
@@ -623,7 +624,7 @@ function leaseOverlapWhere(
     ...(exceptId ? { id: { not: exceptId } } : {}),
     status: { in: [LeaseStatus.active, LeaseStatus.notice, LeaseStatus.scheduled] },
     ...(endsOn ? { startsOn: { lte: endsOn } } : {}),
-    OR: [{ endsOn: null }, { endsOn: { gte: startsOn } }],
+    OR: [{ endsOn: null }, { continueMonthToMonthAfterEnd: true }, { endsOn: { gte: startsOn } }],
   };
 }
 
@@ -4161,6 +4162,7 @@ export const appRouter = router({
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
             { application: { organizationId: ctx.organization.organizationId } },
             { invoice: { organizationId: ctx.organization.organizationId } },
+            { lease: { organizationId: ctx.organization.organizationId } },
           ],
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -4195,6 +4197,10 @@ export const appRouter = router({
       } else if ("applicationId" in input) {
         await ctx.prisma.application.findFirstOrThrow({
           where: { id: input.applicationId, organizationId: ctx.organization.organizationId },
+        });
+      } else if ("leaseId" in input) {
+        await ctx.prisma.lease.findFirstOrThrow({
+          where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
         });
       } else if ("invoiceId" in input) {
         return ctx.prisma.$transaction(async (tx) => {
@@ -4239,6 +4245,7 @@ export const appRouter = router({
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
             { application: { organizationId: ctx.organization.organizationId } },
             { invoice: { organizationId: ctx.organization.organizationId } },
+            { lease: { organizationId: ctx.organization.organizationId } },
           ],
         },
         select: {
@@ -4248,6 +4255,7 @@ export const appRouter = router({
           maintenanceTicketId: true,
           applicationId: true,
           invoiceId: true,
+          leaseId: true,
         },
       });
       await requireNotePermission(ctx.prisma, ctx.user.role, existingNote, "edit");
@@ -4315,6 +4323,7 @@ export const appRouter = router({
             { maintenanceTicket: { organizationId: ctx.organization.organizationId } },
             { application: { organizationId: ctx.organization.organizationId } },
             { invoice: { organizationId: ctx.organization.organizationId } },
+            { lease: { organizationId: ctx.organization.organizationId } },
           ],
         },
         select: {
@@ -4324,6 +4333,7 @@ export const appRouter = router({
           maintenanceTicketId: true,
           applicationId: true,
           invoiceId: true,
+          leaseId: true,
         },
       });
       await requireNotePermission(ctx.prisma, ctx.user.role, existingNote, "delete");
@@ -4377,6 +4387,7 @@ export const appRouter = router({
       });
     }),
   }),
+  leaseOperations: leaseOperationsRouter,
   leases: router({
     drafts: permissionProcedure("leases", "view").query(({ ctx }) =>
       ctx.prisma.lease.findMany({
