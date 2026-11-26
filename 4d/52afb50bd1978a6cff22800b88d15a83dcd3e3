@@ -1,0 +1,26 @@
+docs/design/installation-licensing.md
+  s_c2cef291d643c3::t_b4660a1e4a7a7e 153,167,172,174,184,186,189,266,350,353,402,405,409,419
+apps/api/src/router/installation-license.router.ts
+  s_c2cef291d643c3::t_3d63be036a3f2e 65,67,98-107,111,120
+apps/api/src/tests/installation/installation-license.integration.ts
+  s_c2cef291d643c3::t_3d63be036a3f2e 2,50,52,88,150-171
+  s_c2cef291d643c3::t_d79032ac202388 172
+apps/web/app/(authenticated)/settings/organization/installation/license-cards.tsx
+  s_c2cef291d643c3::t_3d63be036a3f2e 80,95,107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4d52afb50bd1978a6cff22800b88d15a83dcd3e3",
+  "prompts": {},
+  "sessions": {
+    "s_c2cef291d643c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21136-7b20-7870-8f20-3f4043d23d52",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
