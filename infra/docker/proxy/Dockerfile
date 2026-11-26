@@ -1,4 +1,4 @@
-FROM nginx:1.31.8-alpine AS proxy
+FROM nginx:1.31.10-alpine AS proxy
 
 ARG API_INTERNAL_PORT=4000
 COPY infra/docker/proxy/nginx.conf /etc/nginx/conf.d/default.conf
