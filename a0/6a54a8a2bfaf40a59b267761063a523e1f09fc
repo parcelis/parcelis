@@ -1,0 +1,98 @@
+apps/web/components/property-drawer-state.ts
+  s_b3343eac7a8c4c::t_cbe44483d11102 87
+  s_b3343eac7a8c4c::t_c98db36da12fab 2,33,47,51,54,73,75-84,88
+  s_b3343eac7a8c4c::t_968b75d8ee3035 74
+  s_b3343eac7a8c4c::t_b9dfa267abbae5 85
+apps/web/components/api-client.ts
+  s_b3343eac7a8c4c::t_cbe44483d11102 69-73
+apps/api/src/modules/permissions.ts
+  s_b3343eac7a8c4c::t_49898e7dc6b5bc 85,146
+apps/web/app/(authenticated)/properties/page.tsx
+  s_b3343eac7a8c4c::t_c98db36da12fab 60,166,474-475,935
+  s_b3343eac7a8c4c::t_968b75d8ee3035 122,124,150-154,161,164,171,421,427,429,504,594,623,937,969,975-976
+tests/e2e/unit-archive.spec.ts
+  s_b3343eac7a8c4c::t_96fc5418ff3e77 82-85
+  s_b3343eac7a8c4c::t_a717add6dd35c2 3,10-32,36-41,53-60,62-63,69-71,73,77,117
+  s_b3343eac7a8c4c::t_c98db36da12fab 6-9,42-52
+  s_b3343eac7a8c4c::t_e054d24d8f9eda 2,61,64-68,72,75-76
+  s_b3343eac7a8c4c::t_8e9dec6f91875d 4-5
+  s_b3343eac7a8c4c::t_763f39f874dda4 74
+  s_b3343eac7a8c4c::t_780d7f067b7ca0 33-35
+  s_b3343eac7a8c4c::t_36784a528ce9a8 1,78-81,86-116
+apps/api/src/router/public.router.ts
+  s_b3343eac7a8c4c::t_1d403d0227dd11 44-45,67,91-98,267-275
+  s_b3343eac7a8c4c::t_6b21a4c7f75e6d 134-141,150-157
+  s_b3343eac7a8c4c::t_c98db36da12fab 31-42
+apps/web/components/entity-lifecycle-controls.tsx
+  s_b3343eac7a8c4c::t_c750f94370b61d 67,120-121,150,187,189-190
+  s_b3343eac7a8c4c::t_442a9e1f466cc9 115-118,145-148,151-153
+  s_b3343eac7a8c4c::t_c98db36da12fab 161-166,169-179
+  s_b3343eac7a8c4c::t_10c84f790bf771 29,52,71,82-96,143-144,149,154-160,167-168,180-185,228,255,269,274,290,310,345
+apps/web/app/(authenticated)/properties/[id]/units/[unitId]/page.tsx
+  s_b3343eac7a8c4c::t_36784a528ce9a8 272
+  s_b3343eac7a8c4c::t_af4da77d1f91f1 61,120,122,130-134,214-215,217-218,220,267-271,273-275,277,312,315,344,358-380,415-417,464,469,471,474,556-561,598-600,609-610,784,788-789,808
+  s_b3343eac7a8c4c::t_763f39f874dda4 151
+  s_b3343eac7a8c4c::t_c98db36da12fab 56-60,66-70,221-229,381-384,388-414,418-463,492-494,601-608,780-782
+apps/web/app/(authenticated)/page.tsx
+  s_b3343eac7a8c4c::t_968b75d8ee3035 56,208,212-213
+apps/api/src/tests/leases/lease-archive.integration.test.ts
+  s_b3343eac7a8c4c::t_0df65bbf2521e2 15-16,30-31,38,136,174
+  s_b3343eac7a8c4c::t_8960101e020b38 133,157,207
+  s_b3343eac7a8c4c::t_fc3ac1cde61622 17-22,41-45,185-188,297-307
+  s_b3343eac7a8c4c::t_8f07744214bec3 163-170,192-201,289-296,308-311
+  s_b3343eac7a8c4c::t_114314093c234b 1-14,23-29,32-37,39-40,46-58,63-66,76-132,134-135,137-156,158-162,171-173,175-184,189-191,202-206,208-251,255-260,265-269,272-274,277-288,312-314
+  s_b3343eac7a8c4c::t_f708bfb7c195d7 59-62,67-75
+  s_b3343eac7a8c4c::t_b277ef9d508a18 252-254,261-264,270-271,275-276
+apps/web/app/(authenticated)/properties/[id]/page.tsx
+  s_b3343eac7a8c4c::t_c69cc075aa1e72 40,120,137,162-166,168-178,180,217,236,474,476-486,502-503,505-506,509-510,541,545-546,553-555
+  s_b3343eac7a8c4c::t_c98db36da12fab 167,487-501,542-544,547-552,556-562
+  s_b3343eac7a8c4c::t_af4da77d1f91f1 50
+apps/web/components/maintenance-drawer.tsx
+  s_b3343eac7a8c4c::t_241056ac2c88f1 44,90,121-126,312-313,320
+  s_b3343eac7a8c4c::t_c98db36da12fab 127-135,324
+apps/api/src/tests/api-tokens/api-token-auth.integration.ts
+  s_b3343eac7a8c4c::t_c98db36da12fab 332-335,350-369
+  s_b3343eac7a8c4c::t_524893029c9427 285,301-324,343-347,380-387
+  s_b3343eac7a8c4c::t_95fef86d2d0d02 329-331,336-342,349,370-371,388-389
+  s_b3343eac7a8c4c::t_edc00cdbc72f8d 348
+apps/web/components/property-drawer.tsx
+  s_b3343eac7a8c4c::t_763f39f874dda4 641
+  s_b3343eac7a8c4c::t_968b75d8ee3035 133,757,759,978
+  s_b3343eac7a8c4c::t_c98db36da12fab 232-233,431-433
+packages/schemas/src/index.ts
+  s_b3343eac7a8c4c::t_49898e7dc6b5bc 490
+  s_b3343eac7a8c4c::t_c98db36da12fab 939-942
+apps/web/app/(authenticated)/maintenance/[id]/page.tsx
+  s_b3343eac7a8c4c::t_241056ac2c88f1 253
+apps/api/src/router/app.router.ts
+  s_b3343eac7a8c4c::t_e7248a12c24ef5 614,4755,4766
+  s_b3343eac7a8c4c::t_eb2128d32e96da 615-651,663,808-834,851-858,862-867,871-873,889-891
+  s_b3343eac7a8c4c::t_d6f032be520867 2398-2401
+  s_b3343eac7a8c4c::t_41f19263ad4e25 35,898-900,913-917,922-923,928,930-957,960-963,967,974-979,984-985,987-1011,4270-4284
+  s_b3343eac7a8c4c::t_763f39f874dda4 2387-2388,2403-2413
+  s_b3343eac7a8c4c::t_c98db36da12fab 1936-1939,2069-2072,2245-2254,2256,2260-2263,2270-2271
+  s_b3343eac7a8c4c::t_8fce9d25bb166a 859-861,874-888,893-897,901-912,918-920,924-927,969-970,980-983,4120,4145,4756-4761
+  s_b3343eac7a8c4c::t_9630812d1e50ac 836-850,1865,1935,2002,2005,2008,2065,2068,2076,2235,2238-2244,2255,2257-2259,2264-2269,2272-2275,2313-2316,2321,3957,3971,3983,5411-5413,5528
+  s_b3343eac7a8c4c::t_6da881595dad26 2354,2358,2656-2668,2808-2811,4505-4506,4754,4767,4770,4772,4950-4952,5239-5241,5247
+  s_b3343eac7a8c4c::t_29d0d48b28fd0d 835,892
+apps/api/src/tests/leases/leases.router.test.ts
+  s_b3343eac7a8c4c::t_4d0dd848af0c60 551,561-568
+apps/api/openapi/parcelis.openapi.json
+  s_b3343eac7a8c4c::t_00c676452737ca 98-129,488-512,537-539,612,803-811,886-895,1335,1418-1427,1444,1517-1536,2565,2583-2595
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a06a54a8a2bfaf40a59b267761063a523e1f09fc",
+  "prompts": {},
+  "sessions": {
+    "s_b3343eac7a8c4c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2189d-d266-7803-8f30-eae7c9885a42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
