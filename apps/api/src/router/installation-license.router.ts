@@ -122,7 +122,7 @@ async function changeLicense(prisma: PrismaClient, action?: ActivateInstallation
       const response = await syncAccountsLicense(registrationId, registration.credential, activation);
       changes =
         response.kind === "inactive"
-          ? { ...clearedLicense, inactive: true }
+          ? { ...clearedLicense, inactive: true, lastSyncedAt: new Date() }
           : {
               inactive: false,
               signedLicense: response.signedLicense,

@@ -82,12 +82,11 @@ export async function syncAccountsLicense(
   activation?: ActivateInstallationLicense,
   request = fetch,
 ) {
-  const timeout = AbortSignal.timeout(10_000);
   const loadSigningKeys = async () => {
     try {
       const response = await request(`${parcelisAccountsOrigin}/.well-known/parcelis-license-keys.json`, {
         redirect: "error",
-        signal: timeout,
+        signal: AbortSignal.timeout(10_000),
       });
       if (!response.ok) throw new Error("Signing keys unavailable");
       const keys = keysSchema.parse(await response.json());
@@ -106,7 +105,6 @@ export async function syncAccountsLicense(
   const { url, version } = getInstallationMetadata();
 
   let response: Response;
-  let body: unknown;
   try {
     const path = activation ? "activate" : `${encodeURIComponent(installationId)}/refresh`;
     response = await request(`${parcelisAccountsOrigin}/api/installations/${path}`, {
@@ -119,13 +117,13 @@ export async function syncAccountsLicense(
         activation ? { ...activation, id: installationId, credential, url, version } : { url, version },
       ),
       redirect: "error",
-      signal: timeout,
+      signal: AbortSignal.timeout(10_000),
     });
-    body = await response.json();
   } catch {
     throw new TRPCError({ code: "BAD_GATEWAY", message: "Couldn’t reach Parcelis Portal. Try again." });
   }
 
+  const body: unknown = await response.json().catch(() => undefined);
   const code = z.object({ error: z.string() }).safeParse(body);
   if (!activation && response.status === 403 && code.data?.error === "license_inactive") {
     return { kind: "inactive" } as const;

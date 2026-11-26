@@ -18,8 +18,11 @@ for (const [file, expected] of [
   ["apps/worker/src/outbox-dispatcher.ts", ["worker"]],
   ["apps/worker/src/tests/outbox-dispatcher.integration.ts", ["worker"]],
   ["packages/jobs/src/contracts.ts", ["worker", "api-tokens", "installation"]],
-  ["apps/api/src/modules/permissions.ts", ["api-tokens"]],
-  ["apps/api/src/modules/api-tokens.ts", ["api-tokens"]],
+  ["apps/api/src/modules/activity-actor.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/permissions.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/api-tokens.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/authorization.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/object-storage.config.ts", ["api-tokens", "installation"]],
   ["apps/api/src/router/public.router.ts", ["api-tokens"]],
   ["apps/api/src/app/api/v1/[...path]/route.ts", ["api-tokens"]],
   ["apps/api/src/tests/auth/session-cookie.ts", ["api-tokens"]],
@@ -35,6 +38,7 @@ for (const [file, expected] of [
   ["apps/api/src/tests/installation/installation.integration.ts", ["installation"]],
   ["packages/db/src/installation.ts", all],
   ["apps/api/package.json", ["api-tokens", "installation"]],
+  ["apps/web/package.json", ["installation"]],
   ["packages/schemas/src/index.ts", ["api-tokens", "installation"]],
   ["packages/email/src/service.ts", ["api-tokens", "installation"]],
   ["packages/db/src/outbox.ts", all],
@@ -62,7 +66,7 @@ test("combines changes without duplicate suites and supports manual runs", () =>
       "apps/api/src/modules/api-tokens.ts",
       "apps/api/src/router/context.ts",
     ]),
-    ["worker", "api-tokens"],
+    ["worker", "api-tokens", "installation"],
   );
 });
 

@@ -83,6 +83,7 @@ export function LicenseCards({
       toast.success("License activated.");
     } catch (error) {
       setActivationError(error instanceof TRPCClientError ? error.message : "Couldn’t activate the license.");
+      void statusQuery.refetch();
     } finally {
       activate.reset();
     }
@@ -97,6 +98,7 @@ export function LicenseCards({
       if (result.state === "active") toast.success("Plan refreshed.");
     } catch (error) {
       setRefreshError(error instanceof TRPCClientError ? error.message : "Couldn’t refresh the plan.");
+      void statusQuery.refetch();
     }
   }
 
@@ -111,6 +113,7 @@ export function LicenseCards({
       toast.success("Installation unlinked.");
     } catch (error) {
       setUnlinkError(error instanceof TRPCClientError ? error.message : "Couldn’t unlink the installation.");
+      void statusQuery.refetch();
     }
   }
 

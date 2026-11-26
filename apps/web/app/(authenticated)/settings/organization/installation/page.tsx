@@ -34,6 +34,9 @@ export default function OrganizationInstallationPage() {
     retry: false,
   });
   const installationId = installationQuery.data?.installationId;
+  const installationAccessDenied =
+    installationQuery.error instanceof TRPCClientError &&
+    installationQuery.error.data?.code === "FORBIDDEN";
 
   async function copyInstallationId() {
     if (!installationId) return;
@@ -108,12 +111,24 @@ export default function OrganizationInstallationPage() {
                 {installationQuery.isPending ? (
                   <LoadingState label="Loading installation details…" />
                 ) : installationQuery.isError ? (
-                  <p className="text-sm text-red-700" role="alert">
-                    {installationQuery.error instanceof TRPCClientError &&
-                    installationQuery.error.data?.code === "FORBIDDEN"
-                      ? "Organization owner or administrator access is required."
-                      : "Installation details couldn’t be loaded."}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-red-700" role="alert">
+                      {installationAccessDenied
+                        ? "Organization owner or administrator access is required."
+                        : "Installation details couldn’t be loaded."}
+                    </p>
+                    {!installationAccessDenied ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={installationQuery.isFetching}
+                        onClick={() => void installationQuery.refetch()}
+                      >
+                        Try again
+                      </Button>
+                    ) : null}
+                  </div>
                 ) : (
                   <>
                     <dl className="flex flex-col gap-1 text-sm">

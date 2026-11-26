@@ -36,6 +36,29 @@ test("activation does not redeem a code when signing keys are unavailable", asyn
   assert.deepEqual(methods, ["GET"]);
 });
 
+test("refresh gives signing key discovery its own timeout", async () => {
+  const signer = accountsLicenseSigner();
+  const installationId = randomUUID();
+  const signals: (AbortSignal | null | undefined)[] = [];
+  const accounts = async (_request: RequestInfo | URL, init?: RequestInit) => {
+    signals.push(init?.signal);
+    return Response.json(init?.method === "POST" ? signer.issue(installationId, "enterprise") : signer.keys);
+  };
+
+  assert.equal((await syncAccountsLicense(installationId, "fixture", undefined, accounts)).kind, "verified");
+  assert.equal(signals.length, 2);
+  assert.ok(signals.every((signal) => signal instanceof AbortSignal));
+  assert.notEqual(signals[0], signals[1]);
+});
+
+test("refresh reports a non-JSON Portal error as a failed request", async () => {
+  const accounts = async () => new Response("<html>Service unavailable</html>", { status: 503 });
+  await assert.rejects(syncAccountsLicense(randomUUID(), "fixture", undefined, accounts), {
+    code: "BAD_GATEWAY",
+    message: "Parcelis Portal couldn’t complete this request. Try again.",
+  });
+});
+
 test("unlink reports that the deployed portal lacks the endpoint", async (t) => {
   t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 404 }));
   await assert.rejects(unlinkAccountsInstallation(randomUUID(), "fixture"), {

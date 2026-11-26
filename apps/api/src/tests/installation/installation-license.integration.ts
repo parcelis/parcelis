@@ -120,9 +120,15 @@ test(
     assert.deepEqual(await readAgain(), upgraded);
 
     stage = "revoked";
+    const previousSync = new Date("2026-01-01T00:00:00Z");
+    await db.installationLicense.update({
+      where: { installationId: id },
+      data: { lastSyncedAt: previousSync },
+    });
     const revoked = await caller.refresh();
     assert.equal(revoked.state, "inactive");
     assert.equal(revoked.tier, "free");
+    assert.ok(Date.parse(revoked.lastSyncedAt ?? "") > previousSync.getTime());
     assert.deepEqual(await readAgain(), revoked);
 
     const otherAdmin = adminCaller(3);

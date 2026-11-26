@@ -1,6 +1,6 @@
 # Parcelis Installation Licensing Design
 
-Read this from the top to understand what must exist first, where a click goes, and why the app waits before it changes the displayed plan. The design has three parts. Settings handles the user interaction. The self-hosted API owns the installation identity and the verified local license. Parcelis Portal owns the tenant plan and remote registration. The Portal files live in parcelis-accounts. The self-hosted API and UI live in parcelis. Each **Code walkthrough** section links to the source and explains the order of the selected lines.
+Read this from the top to understand what must exist first, where a click goes, and why the app waits before it changes the displayed plan. The design has three parts. Settings handles the user interaction. The self-hosted API owns the installation identity and the verified local license. Parcelis Portal owns the tenant plan and remote registration. The Portal files live in `parcelis/parcelis-portal`. The self-hosted API and UI live in this repository. Each **Code walkthrough** section links to the source and explains the order of the selected lines.
 
 | Component | Responsibility |
 | --- | --- |
@@ -12,9 +12,9 @@ Read this from the top to understand what must exist first, where a click goes, 
 
 1. **Prepare the Portal.** Apply the Portal licensing migrations, including 0002_licensing.sql and 0003_one_installation_per_tenant.sql. Configure its ES256 signer and deploy the key discovery, activate, refresh, and unlink routes. Key discovery must be available before the app can redeem a code.
 
-2. **Apply the self-hosted schema.** Run the Prisma migrations in filename order. The identity migration creates Installation, the license migration adds the related InstallationLicense table, and the final migration adds registrationId for re-linking without changing the local support ID.
+2. **Apply the self-hosted schema.** Run the Prisma migrations in filename order. The identity migration creates Installation. The license migration adds InstallationLicense, and the next migration adds registrationId for re-linking while preserving the local support ID. The final migration constrains Installation to one row and backfills it for databases with existing users.
 
-   *Files:* packages/db/prisma/migrations/20261124000000_add_installation_identity, 20261125000000_add_installation_license, and 20261125010000_separate_license_registration_id
+   *Files:* packages/db/prisma/migrations/20261124000000_add_installation_identity, 20261125000000_add_installation_license, 20261125010000_separate_license_registration_id, and 20261125020000_backfill_and_enforce_installation_identity
 
 3. **Set the metadata and prepare the build.** Set the API’s NEXTAUTH_URL to the address users open. Generate Prisma Client from schema.prisma, or use the matching release image. The API build reads the app version from `apps/web/package.json`. Dockerfile.app copies that manifest into the API build stage.
 
@@ -40,7 +40,7 @@ Read this from the top to understand what must exist first, where a click goes, 
 
 ### What creates the support ID
 
-packages/db/src/installation.ts defines initializeInstallationIdentity. It looks up the fixed row key installation and creates a UUID only when that row is missing. Registration calls it inside the same transaction as account setup. The administrator seed path also calls it. Activation can initialize it for an older installation that has no row. The settings query only reads it.
+The upgrade migration backfills a support ID for a database that already has users. For first-time setup, packages/db/src/installation.ts defines initializeInstallationIdentity. It looks up the fixed row key installation and creates a UUID only when that row is missing. Account registration and administrator seeding call it in their account transactions. Activation also initializes a missing row. The settings query only reads it.
 
 ### Three values with different jobs
 
@@ -206,16 +206,15 @@ if (!claim.count)
   });
 ```
 
-**4. Check the signing keys before sending a one-time code.** Activation stops early if public key discovery fails. The URL and version come from server configuration, so the form sends only its editable fields. The same client uses a bearer credential for refresh and sends just the metadata in the request body.
+**4. Check the signing keys before sending a one-time code.** Activation stops early if public key discovery fails. Key discovery and the license request each get 10 seconds. The server supplies the configured URL and build version. The same client uses a bearer credential for refresh and sends just the metadata in the request body.
 
-[parcelis-accounts-license.ts](../../apps/api/src/modules/parcelis-accounts-license.ts#L105-L124)
+[parcelis-accounts-license.ts](../../apps/api/src/modules/parcelis-accounts-license.ts#L104-L126)
 
 ```ts
 const activationKeys = activation ? await loadSigningKeys() : undefined;
 const { url, version } = getInstallationMetadata();
 
 let response: Response;
-let body: unknown;
 try {
   const path = activation ? "activate" : `${encodeURIComponent(installationId)}/refresh`;
   response = await request(`${parcelisAccountsOrigin}/api/installations/${path}`, {
@@ -228,9 +227,13 @@ try {
       activation ? { ...activation, id: installationId, credential, url, version } : { url, version },
     ),
     redirect: "error",
-    signal: timeout,
+    signal: AbortSignal.timeout(10_000),
   });
-  body = await response.json();
+} catch {
+  throw new TRPCError({ code: "BAD_GATEWAY", message: "Couldn’t reach Parcelis Portal. Try again." });
+}
+
+const body: unknown = await response.json().catch(() => undefined);
 ```
 
 **5. Confirm the Portal registration before returning the snapshot.** The Portal prepares the signed snapshot, attempts to claim the registration, and checks the saved row before returning it. `recoverActivation` matches the registration ID, credential digest, and code digest. That check makes a retry safe if the first response was lost.
@@ -270,7 +273,7 @@ return json({ installationId: id, ...snapshot });
 | Result | Local behavior |
 | --- | --- |
 | Network or verification failure | Shows an error and retains the previous verified snapshot and sync time until its expiry. |
-| Confirmed inactive response | An Accounts 403 with license_inactive clears the cached license and moves the app to Free. |
+| Confirmed inactive response | A Portal 403 with license_inactive clears the cached license, moves the app to Free, and updates the last sync time. |
 | Saved license expires | Status returns Free and shows an expired license. An administrator can retry Refresh. |
 
 The Portal’s last seen time records its successful database update. The app’s Last synced time records a response the app verified and saved. Those timestamps can differ when the Portal updates metadata but the app cannot verify the response.
@@ -345,7 +348,7 @@ if (
 return { signedLicense: snapshot.license, tier: claims.tier, validUntil: new Date(claims.exp * 1000) };
 ```
 
-**4. Write the verified response under the same claim.** After successful verification, the router writes the snapshot, tier, expiry, and a new local sync time. A confirmed inactive response clears the cached license. The conditional write prevents a stale operation from changing either result.
+**4. Write the verified response under the same claim.** After successful verification, the router writes the snapshot, tier, expiry, and a new local sync time. A confirmed inactive response clears the cached license and records the completed sync. The conditional write prevents a stale operation from changing either result.
 
 [installation-license.router.ts](../../apps/api/src/router/installation-license.router.ts#L122-L139)
 
@@ -353,7 +356,7 @@ return { signedLicense: snapshot.license, tier: claims.tier, validUntil: new Dat
   const response = await syncAccountsLicense(registrationId, registration.credential, activation);
   changes =
     response.kind === "inactive"
-      ? { ...clearedLicense, inactive: true }
+      ? { ...clearedLicense, inactive: true, lastSyncedAt: new Date() }
       : {
           inactive: false,
           signedLicense: response.signedLicense,
@@ -435,6 +438,6 @@ if (action === "unlink") {
 
 **URL or version stays stale in the Portal.** Check the running API’s NEXTAUTH_URL and version source, then check that the deployed Portal refresh route accepts and saves both fields.
 
-**Unlink returns 404.** Check deployment of the Portal unlink route. The self-hosted app keeps its local link unless the Portal confirms the unlink.
+**Unlink returns 404 or 405.** Check deployment of the Portal unlink route. The self-hosted app keeps its local link unless the Portal confirms the unlink.
 
 *Files:* Regression coverage  •  apps/api/src/tests/installation/installation-license.integration.ts  •  Parcelis Portal tests/unlink-installation.test.mjs
