@@ -1,0 +1,41 @@
+apps/api/src/router/public.router.ts
+  s_b3343eac7a8c4c::t_0f7df54c69c049 28-30,266-273,277-290,292-298
+  s_b3343eac7a8c4c::t_15ff14ad1d7e11 42-44
+  s_b3343eac7a8c4c::t_184b7f5d8180a3 276,291
+  s_b3343eac7a8c4c::t_276b16a58eacc5 274-275
+  s_b3343eac7a8c4c::t_156c3034c178bd 45
+apps/api/src/router/app.router.ts
+  s_b3343eac7a8c4c::t_0f7df54c69c049 769-813,5472-5479
+apps/api/src/tests/api-tokens/api-token-auth.integration.ts
+  s_b3343eac7a8c4c::t_4a82017df43bd8 185-186,284-314
+  s_b3343eac7a8c4c::t_e1be4b96d5c8a1 315-316
+apps/api/src/router/trpc.ts
+  s_b3343eac7a8c4c::t_0f7df54c69c049 38-39
+docs/design/unit-archive-lifecycle.md
+  s_b3343eac7a8c4c::t_b506f0f01f8336 19,33
+  s_b3343eac7a8c4c::t_17dbdbdca11168 1-6,14-18,20-22,24-26,28-32,34-37
+  s_b3343eac7a8c4c::t_7f3de1fb6a3441 7-13
+  s_b3343eac7a8c4c::t_3286263d2d4e29 23,27
+apps/api/openapi/parcelis.openapi.json
+  s_b3343eac7a8c4c::t_6f0c74c869a87b 3066,3070-3071,3082-3083,3124,3126-3127,3158-3159,3163-3164,3166-3168,3173,3290-3300,3305,3316,3318-3319,3545-3551,3553-3581,3583-3585
+  s_b3343eac7a8c4c::t_9d8319170cfc26 3087-3089,3125,3128-3157,3160-3162,3165,3169-3172,3174-3289,3301-3304,3306-3315,3317,3552,3582,3586
+  s_b3343eac7a8c4c::t_781b6d176b8b00 3058-3065,3067-3069,3072-3081,3084-3086,3090-3123,3320-3321,3587-3588
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_b3343eac7a8c4c::t_0f7df54c69c049 261-262
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "66864debf45c7b2ce81a19bc68fa7bef57a58a0f",
+  "prompts": {},
+  "sessions": {
+    "s_b3343eac7a8c4c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2189d-d266-7803-8f30-eae7c9885a42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
