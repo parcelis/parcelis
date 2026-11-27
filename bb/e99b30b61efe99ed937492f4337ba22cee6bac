@@ -1,0 +1,49 @@
+packages/db/src/organization-demo.ts
+  s_48d44a0809bcc5::t_9565760d5026d5 17,68,78,118,130,156-162,173-174,178-179,189-190,192-193
+  s_48d44a0809bcc5::t_bc91298b95db0a 3
+demo/render/README.md
+  s_48d44a0809bcc5::t_ea471135f29f4f 20,30-33
+demo/render/prepare.mjs
+  s_48d44a0809bcc5::t_ea471135f29f4f 4,7,24-27
+  s_48d44a0809bcc5::t_446b9f42582889 23
+CONTRIBUTING.md
+  s_48d44a0809bcc5::t_613e1d1935ecb6 280,283-288,339,341,360-361,365,525
+  s_48d44a0809bcc5::t_27801d1cddbdc6 363-364
+  s_48d44a0809bcc5::t_f76a4b17a29c0c 282,289-291
+  s_48d44a0809bcc5::t_229d7070656586 342,362
+  s_48d44a0809bcc5::t_ec421f6b043808 281
+ARCHITECTURE.md
+  s_48d44a0809bcc5::t_613e1d1935ecb6 345,353-354
+  s_48d44a0809bcc5::t_e15fa72e1e8623 355
+apps/api/scripts/server.mjs
+  s_48d44a0809bcc5::t_551009c422e808 47-48
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_48d44a0809bcc5::t_bc91298b95db0a 162-164,240
+  s_48d44a0809bcc5::t_a8b0f873327018 9,83,91-94,96-97,154-157,165,170,184-185,206-207,235,274,280-281,442,538,562-564,568,578-579,585-674
+apps/web/app/login/page.tsx
+  s_48d44a0809bcc5::t_da6b75b4a96534 10,13,217,219,221,238-239,244,397-404
+packages/db/prisma/seed.mjs
+  s_48d44a0809bcc5::t_ea471135f29f4f 285
+apps/api/src/tests/runtime/database-config.test.ts
+  s_48d44a0809bcc5::t_551009c422e808 24-36
+apps/web/app/(authenticated)/setup/demo-ready/page.tsx
+  s_48d44a0809bcc5::t_da6b75b4a96534 5-7,9-11,15-20,22-29,64
+apps/web/lib/demo-ready.ts
+  s_48d44a0809bcc5::t_da6b75b4a96534 1-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bbe99b30b61efe99ed937492f4337ba22cee6bac",
+  "prompts": {},
+  "sessions": {
+    "s_48d44a0809bcc5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21de9-e97b-7303-97ab-b853903ccd49",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
