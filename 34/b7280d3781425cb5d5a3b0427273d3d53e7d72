@@ -1,0 +1,48 @@
+packages/db/prisma/schema.prisma
+  s_5cab1003647491::t_5597b4772235b5 691,698-707
+  s_5cab1003647491::t_9775acb0fd3c0d 708-709
+apps/api/src/leases/lease-rent-invoices.ts
+  s_5cab1003647491::t_5597b4772235b5 9,33
+apps/api/src/tests/leases/lease-finalization.integration.test.ts
+  s_5cab1003647491::t_e76102fc79f940 7-12,358,366,377-378,385-391
+  s_5cab1003647491::t_bfe9f54d00f575 42-47,294,339-342,344
+  s_5cab1003647491::t_7892da4930adf8 28,200,268-273,295-334,336,338,343,345-357,359-365,379-384
+  s_5cab1003647491::t_948c4e48e7546a 335,337
+  s_5cab1003647491::t_d2a26c30d80802 367-376
+  s_5cab1003647491::t_419de54b24f512 442-443,486-489
+apps/api/src/leases/lease-amendments.ts
+  s_5cab1003647491::t_82ee9c38815d16 46,53,145,244,251-258,321,341-342,346-348,381-386,390-391,393-395,438
+  s_5cab1003647491::t_df3b100077ff01 47-52,343-345,387-389
+apps/web/components/lease-amendment-drawer.tsx
+  s_5cab1003647491::t_5597b4772235b5 50,100
+ARCHITECTURE.md
+  s_5cab1003647491::t_72a8efcb9db8e8 148
+apps/api/src/tests/leases/lease-rent-invoices.test.ts
+  s_5cab1003647491::t_3f22b4f6685e29 35,48,118
+apps/api/src/router/app.router.ts
+  s_5cab1003647491::t_924bfd69a3bfa4 1627,1707,1712,1723,1865,1870,1873,1887-1892,4722,4725-4729
+  s_5cab1003647491::t_195ce398ef442d 4238-4239,4241,4270-4272,4742,4748-4752,4806,4831,4837,4844-4850
+  s_5cab1003647491::t_519983f94097db 614,2774,5209,5228,5593
+  s_5cab1003647491::t_423b0b45c748bd 775-816
+  s_5cab1003647491::t_96f97d62d83d14 2889-2890,2896-2899
+  s_5cab1003647491::t_df3b100077ff01 1708-1711,1716-1722,1735-1738,1866-1869,2829-2833,2835-2840,2842-2870,2873-2881,2883,2885-2888,2891-2895,2900-2915,4719-4720,4832-4836
+packages/db/prisma/migrations/20261127000000_add_lease_tenant_periods/migration.sql
+  s_5cab1003647491::t_5597b4772235b5 1-13,15-16
+  s_5cab1003647491::t_88cc419b52c3f4 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "34b7280d3781425cb5d5a3b0427273d3d53e7d72",
+  "prompts": {},
+  "sessions": {
+    "s_5cab1003647491": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21b7b-12dc-7803-a8fb-c474b905a7c0",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
