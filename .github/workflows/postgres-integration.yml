@@ -75,3 +75,7 @@ jobs:
         run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts'
       - if: matrix.suite == 'installation'
         run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/installation/*.integration.ts'
+      - if: matrix.suite == 'tenant-deletion'
+        env:
+          TENANT_DELETE_INTEGRATION_TEST: "1"
+        run: pnpm --filter @parcelis/api exec tsx --test src/tests/tenants/tenant-delete.integration.test.ts

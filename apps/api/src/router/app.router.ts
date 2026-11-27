@@ -2702,94 +2702,83 @@ export const appRouter = router({
           throw error;
         }
       }),
-    /** Permanently deletes a tenant and their lease history. */
+    /** Permanently deletes a tenant without finalized leases or financial history. */
     delete: permissionProcedure("tenants", "delete")
       .input(tenantByIdInputSchema)
       .mutation(async ({ ctx, input }) => {
-        await ctx.prisma.tenant.findFirstOrThrow({
-          where: { id: input.id, organizationId: ctx.organization.organizationId },
-        });
-        const [lease, invoice] = await Promise.all([
-          ctx.prisma.leaseTenant.findFirst({ where: { tenantId: input.id }, select: { leaseId: true } }),
-          ctx.prisma.invoice.findFirst({ where: { tenantId: input.id }, select: { id: true } }),
-        ]);
-        if (lease) await requirePermission(ctx.prisma, ctx.user.role, "leases", "delete");
-        if (invoice) await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
-        await ctx.prisma.$transaction(async (tx) => {
-          const payment = await tx.invoicePayment.findFirst({
-            where: { OR: [{ tenantId: input.id }, { invoice: { tenantId: input.id } }] },
-            select: { id: true },
-          });
-          if (payment) {
+        const where = { id: input.id, organizationId: ctx.organization.organizationId };
+        try {
+          await ctx.prisma.$transaction(
+            async (tx) => {
+              const tenant = await tx.tenant.findFirstOrThrow({
+                where,
+                select: {
+                  leases: {
+                    where: {
+                      lease: {
+                        OR: [{ status: { not: LeaseStatus.draft } }, { invoices: { some: {} } }],
+                      },
+                    },
+                    select: { leaseId: true },
+                    take: 1,
+                  },
+                  _count: {
+                    select: {
+                      leases: true,
+                      invoices: true,
+                      invoiceRecipients: true,
+                      paymentsMade: true,
+                      invoicePayments: true,
+                    },
+                  },
+                },
+              });
+              const { leases, invoices, invoiceRecipients, paymentsMade, invoicePayments } = tenant._count;
+              if (leases) await requirePermission(tx, ctx.user.role, "leases", "delete");
+              if (tenant.leases.length || invoices || invoiceRecipients || paymentsMade || invoicePayments) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "This tenant has a finalized lease or billing history. Archive the tenant instead.",
+                  cause: { reason: "protected_history" },
+                });
+              }
+
+              const draftLeaseIds = leases
+                ? (
+                    await tx.leaseTenant.findMany({
+                      where: {
+                        organizationId: where.organizationId,
+                        tenantId: where.id,
+                        lease: { status: LeaseStatus.draft },
+                      },
+                      select: { leaseId: true },
+                    })
+                  ).map(({ leaseId }) => leaseId)
+                : [];
+              if (draftLeaseIds.length) {
+                await tx.lease.updateMany({
+                  where: { organizationId: where.organizationId, id: { in: draftLeaseIds }, status: LeaseStatus.draft },
+                  data: { revision: { increment: 1 } },
+                });
+              }
+              await tx.maintenanceTicket.updateMany({
+                where: { organizationId: where.organizationId, requestedByTenantId: where.id },
+                data: { requestedByType: null, requestedByTenantId: null },
+              });
+              await tx.tenant.delete({ where });
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
             throw new TRPCError({
               code: "CONFLICT",
-              message: "A tenant with payment history cannot be deleted.",
+              message: "This tenant changed while deleting. Please try again.",
+              cause: { reason: "retry" },
             });
           }
-
-          // Find all active leases this tenant is on
-          const tenantLeases = await tx.leaseTenant.findMany({
-            where: { tenantId: input.id },
-            include: { lease: { select: { id: true, propertyId: true, status: true } } },
-          });
-
-          const leaseIdsToDelete = new Set<number>();
-
-          for (const tl of tenantLeases) {
-            leaseIdsToDelete.add(tl.leaseId);
-          }
-
-          const jointInvoices = await tx.invoice.findMany({
-            where: { tenantId: input.id, lease: { billingResponsibility: "joint" } },
-            select: { id: true, recipients: { select: { tenantId: true } } },
-          });
-          await Promise.all(
-            jointInvoices.map((invoice) => {
-              const replacementTenantId = invoice.recipients.find(({ tenantId }) => tenantId !== input.id)?.tenantId;
-              if (!replacementTenantId) return Promise.resolve();
-              return tx.invoice.update({ where: { id: invoice.id }, data: { tenantId: replacementTenantId } });
-            }),
-          );
-
-          await tx.invoice.deleteMany({ where: { tenantId: input.id } });
-          await tx.leaseTenant.deleteMany({ where: { tenantId: input.id } });
-
-          const remainingLeaseTenants = await tx.leaseTenant.findMany({
-            where: { leaseId: { in: Array.from(leaseIdsToDelete) } },
-            select: { leaseId: true },
-            distinct: ["leaseId"],
-          });
-          const remainingLeaseIds = new Set(remainingLeaseTenants.map(({ leaseId }) => leaseId));
-          const orphanedLeases = tenantLeases.filter(({ leaseId }) => !remainingLeaseIds.has(leaseId));
-          const orphanedLeaseIds = orphanedLeases.map(({ leaseId }) => leaseId);
-
-          await tx.lease.deleteMany({ where: { id: { in: orphanedLeaseIds } } });
-
-          const activeLeasesByProperty = new Map<number, number>();
-          for (const { lease } of orphanedLeases) {
-            if (
-              (lease.status === LeaseStatus.active || lease.status === LeaseStatus.notice) &&
-              lease.propertyId !== null
-            ) {
-              activeLeasesByProperty.set(lease.propertyId, (activeLeasesByProperty.get(lease.propertyId) ?? 0) + 1);
-            }
-          }
-
-          await Promise.all(
-            Array.from(activeLeasesByProperty.entries()).map(([propertyId, count]) =>
-              tx.property.update({
-                where: { id: propertyId },
-                data: { occupiedUnits: { decrement: count } },
-              }),
-            ),
-          );
-
-          await tx.maintenanceTicket.updateMany({
-            where: { requestedByTenantId: input.id },
-            data: { requestedByType: null, requestedByTenantId: null },
-          });
-          await tx.tenant.delete({ where: { id: input.id } });
-        });
+          throw error;
+        }
       }),
   }),
   invoices: router({

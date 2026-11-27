@@ -22,6 +22,7 @@ const suites = [
   { suite: "worker", name: "Worker" },
   { suite: "api-tokens", name: "API tokens" },
   { suite: "installation", name: "Installation identity" },
+  { suite: "tenant-deletion", name: "Tenant deletion" },
 ];
 
 export function selectPostgresIntegrationSuites(files, force = false) {
@@ -39,6 +40,16 @@ export function selectPostgresIntegrationSuites(files, force = false) {
     ({ suite }) =>
       shared ||
       files.some((file) => {
+        if (suite === "tenant-deletion") {
+          return (
+            file.startsWith("apps/api/src/tests/tenants/") ||
+            [
+              "apps/api/src/router/app.router.ts",
+              "apps/api/src/router/trpc.ts",
+              "apps/api/src/modules/permissions.ts",
+            ].includes(file)
+          );
+        }
         if (suite === "installation") {
           return (
             ["apps/api/src/tests/installation/", "packages/schemas/", "packages/email/", "packages/jobs/"].some(
