@@ -2843,40 +2843,54 @@ export const appRouter = router({
             const today = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
             const tenantLeases = await tx.leaseTenant.findMany({
               where: { organizationId, tenantId: input.id },
-              include: { lease: { select: { status: true } } },
+              include: { lease: { select: { status: true, amendmentEffectiveOn: true } } },
             });
-            const currentLeaseIds = tenantLeases
-              .filter(
-                (assignment) =>
-                  assignment.lease.status !== LeaseStatus.draft && isOnLeaseRoster(assignment, new Date(today)),
-              )
-              .map(({ leaseId }) => leaseId);
-            if (currentLeaseIds.length) {
-              const remainingCurrent = await tx.leaseTenant.findMany({
+            const leasesByRosterDate = new Map<string, number[]>();
+            for (const assignment of tenantLeases) {
+              if (assignment.lease.status === LeaseStatus.draft) continue;
+              const effectiveOn = assignment.lease.amendmentEffectiveOn?.toISOString().slice(0, 10);
+              const dates = effectiveOn && effectiveOn > today ? [today, effectiveOn] : [today];
+              for (const date of dates) {
+                if (!isOnLeaseRoster(assignment, new Date(date))) continue;
+                const ids = leasesByRosterDate.get(date) ?? [];
+                ids.push(assignment.leaseId);
+                leasesByRosterDate.set(date, ids);
+              }
+            }
+            for (const [date, leaseIds] of leasesByRosterDate) {
+              const remaining = await tx.leaseTenant.findMany({
                 where: {
                   organizationId,
-                  leaseId: { in: currentLeaseIds },
+                  leaseId: { in: leaseIds },
                   tenantId: { not: input.id },
-                  ...leaseRosterWhere(today),
+                  ...leaseRosterWhere(date),
                 },
                 select: { leaseId: true },
                 distinct: ["leaseId"],
               });
-              if (remainingCurrent.length !== currentLeaseIds.length) {
+              if (remaining.length !== leaseIds.length) {
                 throw new TRPCError({
                   code: "CONFLICT",
-                  message: "Amend the lease before deleting its last current resident.",
+                  message: "The last current or scheduled resident of a finalized lease cannot be deleted.",
                 });
               }
             }
 
             const jointInvoices = await tx.invoice.findMany({
-              where: { tenantId: input.id, lease: { billingResponsibility: "joint" } },
-              select: { id: true, recipients: { select: { tenantId: true } } },
+              where: { organizationId, tenantId: input.id, recipients: { some: { tenantId: { not: input.id } } } },
+              select: {
+                id: true,
+                recipients: {
+                  where: { tenantId: { not: input.id } },
+                  orderBy: { tenantId: "asc" },
+                  take: 1,
+                  select: { tenantId: true },
+                },
+              },
             });
             await Promise.all(
               jointInvoices.map((invoice) => {
-                const replacementTenantId = invoice.recipients.find(({ tenantId }) => tenantId !== input.id)?.tenantId;
+                const replacementTenantId = invoice.recipients[0]?.tenantId;
                 if (!replacementTenantId) return Promise.resolve();
                 return tx.invoice.update({ where: { id: invoice.id }, data: { tenantId: replacementTenantId } });
               }),

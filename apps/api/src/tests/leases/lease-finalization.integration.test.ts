@@ -208,6 +208,7 @@ test(
         (await caller.leases.byId({ id: lease.id }))?.tenants.map(({ id }) => id),
         [tenant.id],
       );
+      await assert.rejects(caller.tenants.delete({ id: nextResident.id }), /last current or scheduled resident/);
       const memberships = await prisma.leaseTenant.findMany({ where: { leaseId: lease.id } });
       const effectiveRoster = await prisma.leaseTenant.findMany({
         where: { leaseId: lease.id, ...leaseRosterWhere(effectiveOn) },
@@ -317,7 +318,7 @@ test(
 
       t.mock.timers.enable({ apis: ["Date"], now: new Date(`${effectiveOn}T12:00:00Z`).getTime() });
       try {
-        await assert.rejects(caller.tenants.delete({ id: nextResident.id }), /last current resident/);
+        await assert.rejects(caller.tenants.delete({ id: nextResident.id }), /last current or scheduled resident/);
         const returning = {
           ...amendment,
           expectedRevision: 6,
@@ -345,6 +346,49 @@ test(
       } finally {
         t.mock.timers.reset();
       }
+
+      const sharedLease = await createDraft("Historical joint billing");
+      const formerPrimary = await prisma.tenant.create({
+        data: {
+          organizationId: organization.id,
+          firstName: "Former",
+          lastName: "Primary",
+          email: `former-primary-${testId}@example.test`,
+        },
+      });
+      const remainingResident = await prisma.tenant.create({
+        data: {
+          organizationId: organization.id,
+          firstName: "Remaining",
+          lastName: "Resident",
+          email: `remaining-resident-${testId}@example.test`,
+        },
+      });
+      await prisma.leaseTenant.deleteMany({ where: { leaseId: sharedLease.id } });
+      await prisma.leaseTenant.createMany({
+        data: [formerPrimary.id, remainingResident.id].map((tenantId) => ({
+          organizationId: organization.id,
+          leaseId: sharedLease.id,
+          tenantId,
+        })),
+      });
+      await caller.leases.finalizeDraft({ leaseId: sharedLease.id, expectedRevision: 4 });
+      const jointInvoice = await prisma.invoice.findFirstOrThrow({
+        where: { leaseId: sharedLease.id, periodStartsOn: futureStart },
+      });
+      assert.equal(jointInvoice.tenantId, formerPrimary.id);
+      const individualAmendment = {
+        ...amendment,
+        leaseId: sharedLease.id,
+        tenantIds: [remainingResident.id],
+        tenantAllocations: [{ tenantId: remainingResident.id, rentShareCents: 140_000, depositShareCents: 0 }],
+      };
+      const individualPreview = await caller.leases.previewAmendment(individualAmendment);
+      await caller.leases.applyAmendment({ ...individualAmendment, previewToken: individualPreview.previewToken });
+      await caller.tenants.delete({ id: formerPrimary.id });
+      const preservedJoint = await prisma.invoice.findUniqueOrThrow({ where: { id: jointInvoice.id } });
+      assert.equal(preservedJoint.tenantId, remainingResident.id);
+      assert.equal(preservedJoint.amountCents, jointInvoice.amountCents);
 
       const rollingLease = await createDraft("Rolling lease", new Date(Date.UTC(futureYear - 2, 0, 1)));
       await prisma.lease.update({
