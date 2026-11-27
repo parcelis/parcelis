@@ -1,0 +1,61 @@
+apps/api/src/tests/leases/leases.router.test.ts
+  s_5cab1003647491::t_00e0254634159f 553-554,560
+  s_5cab1003647491::t_b955777af9d0e3 555-559,608-615
+scripts/postgres-integration-changes.mjs
+  s_5cab1003647491::t_764f0514c14e0d 46
+scripts/postgres-integration-changes.test.mjs
+  s_5cab1003647491::t_764f0514c14e0d 22
+apps/web/lib/format.ts
+  s_5cab1003647491::t_4b773de5bc2d41 11
+  s_5cab1003647491::t_43a3175a21bc76 10,12-13
+apps/web/components/lease-amendment-drawer.tsx
+  s_5cab1003647491::t_754549d99ced22 21,88,104-121,178,246,278-294
+  s_5cab1003647491::t_1708ac731a3c21 214
+apps/api/src/tests/leases/lease-finalization.integration.test.ts
+  s_5cab1003647491::t_aec674bf3af888 232-235
+  s_5cab1003647491::t_9f5c67ff5dedd0 239-240,245
+  s_5cab1003647491::t_b6f957bd6b7969 227-231,236-238,241-244,246-277
+  s_5cab1003647491::t_c3fc7a74c9e4b5 372-413
+ARCHITECTURE.md
+  s_5cab1003647491::t_8e2b1aa6145a14 148
+packages/db/prisma/migrations/20261126010000_protect_existing_rent_invoices/migration.sql
+  s_5cab1003647491::t_6d5d2f43e30585 1-4
+apps/api/src/leases/lease-amendments.ts
+  s_5cab1003647491::t_283bd8abdbbf36 235
+  s_5cab1003647491::t_03dd79199903f7 13,133,216-222,225-234
+  s_5cab1003647491::t_e8e1c062504e63 53-59
+  s_5cab1003647491::t_6d5d2f43e30585 256,259
+  s_5cab1003647491::t_23ccce66035091 389
+apps/api/src/router/app.router.ts
+  s_5cab1003647491::t_115e56b6149eaf 115,1573,1594-1595,1665,1672-1684,1690,1692,1727,1742,1755-1756,1804,1813-1825,1831,1837-1838
+  s_5cab1003647491::t_b955777af9d0e3 1685-1688,1826-1829
+  s_5cab1003647491::t_86b27be4430549 765-773,4582-4583,4585,4588,4617,4619,4626-4654
+  s_5cab1003647491::t_1e4428092987f8 570-572
+  s_5cab1003647491::t_11eabc20995928 4710,4750
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_5cab1003647491::t_764f0514c14e0d 5,461-463,485-486,503
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_5cab1003647491::t_43a3175a21bc76 34,81-85,112-114,201-204,430,472,539-541,560-561
+  s_5cab1003647491::t_1209782b021d9a 426,542-547,552-559
+  s_5cab1003647491::t_4b773de5bc2d41 548-551
+apps/api/src/tests/permissions/permissions.router.test.ts
+  s_5cab1003647491::t_89f479698e0816 389-390
+  s_5cab1003647491::t_b955777af9d0e3 359-361
+  s_5cab1003647491::t_643cb9b497a662 53,354,388
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "af672e2f8039a42e75d6966730c1e6f3fbb459cf",
+  "prompts": {},
+  "sessions": {
+    "s_5cab1003647491": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21b7b-12dc-7803-a8fb-c474b905a7c0",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
