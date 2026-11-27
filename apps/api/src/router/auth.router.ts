@@ -212,8 +212,8 @@ export const authRouter = router({
                 verificationUrl: getEmailVerificationUrl(token),
               });
             }
-          } catch (error) {
-            console.error("Unable to create email verification token or enqueue notification email.", error);
+          } catch {
+            console.error("Unable to create email verification token or enqueue notification email.");
           }
         })();
       }
@@ -269,8 +269,8 @@ export const authRouter = router({
               resetUrl: getLoginTokenUrl("reset", token),
             });
           }
-        } catch (error) {
-          console.error("Unable to create password reset token or enqueue reset email notification.", error);
+        } catch {
+          console.error("Unable to create password reset token or enqueue reset email notification.");
         }
       })();
     }

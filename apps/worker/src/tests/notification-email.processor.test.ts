@@ -48,8 +48,7 @@ test("processNotificationEmailJob validates payload and sends plain-text body as
   assert.deepEqual(marks, ["sending:42", "sent:42:msg-123"]);
 });
 
-const fixtureUrl = (mode: "verify" | "reset") =>
-  `https://parcelis.example/login?mode=${mode}#value=${randomUUID()}`;
+const fixtureUrl = (mode: "verify" | "reset") => `https://parcelis.example/login?mode=${mode}#value=${randomUUID()}`;
 
 for (const template of [
   { kind: "account-verification", url: fixtureUrl("verify") },
@@ -128,10 +127,12 @@ test("processNotificationEmailJob keeps a temporary failure queued for BullMQ re
       },
     ),
     (error: unknown) =>
-      error instanceof Error && !(error instanceof UnrecoverableError) && /SMTP unavailable/.test(error.message),
+      error instanceof Error &&
+      !(error instanceof UnrecoverableError) &&
+      /Temporary email delivery failure/.test(error.message),
   );
 
-  assert.deepEqual(marks, ["sending:42", "retrying:42:SMTP unavailable"]);
+  assert.deepEqual(marks, ["sending:42", "retrying:42:Temporary email delivery failure."]);
 });
 
 test("permanent SMTP errors fail immediately without consuming remaining attempts", async () => {
@@ -162,10 +163,10 @@ test("permanent SMTP errors fail immediately without consuming remaining attempt
       },
       { attemptsMade: 0, attempts: 3 },
     ),
-    (error: unknown) => error instanceof UnrecoverableError && /Authentication failed/.test(error.message),
+    (error: unknown) => error instanceof UnrecoverableError && /Permanent email delivery failure/.test(error.message),
   );
 
-  assert.deepEqual(marks, ["failed:42:Authentication failed"]);
+  assert.deepEqual(marks, ["failed:42:Permanent email delivery failure."]);
 });
 
 test("SMTP authentication errors without a response code stop retries", async () => {
@@ -195,7 +196,7 @@ test("SMTP authentication errors without a response code stop retries", async ()
         },
       },
     ),
-    (error: unknown) => error instanceof UnrecoverableError && error.message === "Authentication failed",
+    (error: unknown) => error instanceof UnrecoverableError && error.message === "Permanent email delivery failure.",
   );
   assert.deepEqual(marks, ["failed"]);
 });
@@ -230,7 +231,7 @@ test("SMTP 421 errors remain retryable", async () => {
     (error: unknown) =>
       error instanceof Error &&
       !(error instanceof UnrecoverableError) &&
-      error.message === "SMTP temporarily unavailable",
+      error.message === "Temporary email delivery failure.",
   );
   assert.deepEqual(marks, ["retrying"]);
 });
@@ -262,7 +263,7 @@ test("invalid saved email settings stop retries", async () => {
         },
       },
     ),
-    (error: unknown) => error instanceof UnrecoverableError && error.message === "Invalid saved email settings",
+    (error: unknown) => error instanceof UnrecoverableError && error.message === "Permanent email delivery failure.",
   );
   assert.deepEqual(marks, ["failed"]);
 });
@@ -295,10 +296,12 @@ test("temporary SMTP errors become failed after the final configured attempt", a
       { attemptsMade: 2, attempts: 3 },
     ),
     (error: unknown) =>
-      error instanceof Error && !(error instanceof UnrecoverableError) && /SMTP unavailable/.test(error.message),
+      error instanceof Error &&
+      !(error instanceof UnrecoverableError) &&
+      /Temporary email delivery failure/.test(error.message),
   );
 
-  assert.deepEqual(marks, ["failed:42:SMTP unavailable"]);
+  assert.deepEqual(marks, ["failed:42:Temporary email delivery failure."]);
 });
 
 test("processNotificationEmailJob rejects malformed payloads", async () => {
@@ -390,10 +393,10 @@ test("database configuration lookup errors are retryable without sending through
         },
       },
     ),
-    /Database temporarily unavailable/,
+    /Temporary email delivery failure/,
   );
   assert.equal(sent, false);
-  assert.deepEqual(retrying, [{ outboxEventId: 42, error: "Database temporarily unavailable" }]);
+  assert.deepEqual(retrying, [{ outboxEventId: 42, error: "Temporary email delivery failure." }]);
 });
 
 test("a stale job skips SMTP when the delivery is already sent", async () => {
@@ -438,8 +441,8 @@ test("a failed post-send database write recovers without sending twice", async (
       sends++;
       return { messageId: "smtp-accepted-123" };
     },
-    rememberAccepted: async (data: typeof original & { acceptedMessageId: string }) => {
-      jobData = data;
+    rememberAccepted: async (acceptedMessageId: string) => {
+      jobData = { ...original, acceptedMessageId };
     },
     markDeliverySent: async ({ messageId }: { messageId: string; outboxEventId: number }) => {
       assert.equal(messageId, "smtp-accepted-123");
@@ -569,7 +572,7 @@ test("SMTP 421 remains retryable even with a permanent error code", async () => 
       },
       markDeliveryFailed: async () => assert.fail("SMTP 421 must be retried"),
     }),
-    (actual: unknown) => actual === error,
+    (actual: unknown) => actual instanceof Error && !(actual instanceof UnrecoverableError),
   );
   assert.equal(retrying, true);
 });

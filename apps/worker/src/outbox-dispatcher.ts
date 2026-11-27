@@ -10,8 +10,11 @@ import {
 } from "@parcelis/db";
 import { createHash } from "node:crypto";
 import {
+  getNotificationEmailJobReference,
   getOutboxEventContract,
   getOutboxEventJobId,
+  notificationEmailDeliveryJobSchema,
+  notificationEmailJobName,
   outboxEventTypes,
   parseOutboxEventPayload,
   workerHeartbeatIntervalMs,
@@ -37,7 +40,11 @@ function getOutboxJob(event: OutboxEvent) {
   }
   return {
     contract,
-    jobData: contract.jobSchema.parse({ ...payload, outboxEventId: event.id }),
+    jobData: contract.jobSchema.parse(
+      event.eventType === outboxEventTypes.notificationEmail
+        ? getNotificationEmailJobReference(event)
+        : { ...payload, outboxEventId: event.id },
+    ),
     delay:
       event.eventType === outboxEventTypes.leaseActivation &&
       "activateAt" in payload &&
@@ -177,6 +184,17 @@ export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, 
 
           const state = await existingJob.getState();
           if (state === "active") continue;
+          const legacyJob = notificationEmailDeliveryJobSchema.safeParse(existingJob.data);
+          if (
+            existingJob.name === notificationEmailJobName &&
+            legacyJob.success &&
+            getOutboxJobFingerprint(existingJob.name, legacyJob.data) ===
+              getOutboxJobFingerprint(contract.jobName, { ...(event.payload as object), outboxEventId: event.id })
+          ) {
+            const acceptedMessageId = delivery.providerMessageId ?? legacyJob.data.acceptedMessageId;
+            await existingJob.updateData(acceptedMessageId ? { ...jobData, acceptedMessageId } : jobData);
+            continue;
+          }
           // A database reset can reuse an ID retained by an older Redis job.
           await existingJob.remove();
         }

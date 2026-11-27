@@ -1,12 +1,28 @@
 import {
+  markNotificationDeliveryAccepted,
+  markNotificationDeliveryFailed,
+  markNotificationDeliveryRetrying,
+  markNotificationDeliverySending,
+  markNotificationDeliverySent,
+  type PrismaClient,
+} from "@parcelis/db";
+import {
   EmailConfigurationError,
+  getOrganizationEmailConfig,
   renderPasswordResetEmail,
   renderVerificationEmail,
-  type getOrganizationEmailConfig,
-  type sendEmail,
+  sendEmail,
 } from "@parcelis/email";
-import { notificationEmailDeliveryJobSchema, type NotificationEmailOutboxJob } from "@parcelis/jobs";
-import { UnrecoverableError } from "bullmq";
+import {
+  getNotificationEmailJobReference,
+  notificationEmailDeliveryJobSchema,
+  notificationEmailOutboxPayloadSchema,
+  notificationEmailReferenceDeliveryJobSchema,
+  outboxEventTypes,
+  type NotificationEmailOutboxJob,
+} from "@parcelis/jobs";
+import { UnrecoverableError, type Job } from "bullmq";
+import { isDeepStrictEqual } from "node:util";
 
 const permanentEmailErrorCodes = new Set([
   "EAUTH",
@@ -43,13 +59,9 @@ export type ProcessNotificationEmailJobDependencies = {
     outboxEventId: number;
   }) => Promise<{ status: string; providerMessageId?: string | null } | void>;
   markDeliverySent?: (input: { messageId: string; outboxEventId: number }) => Promise<void>;
-  rememberAccepted: (input: NotificationEmailOutboxJob & { acceptedMessageId: string }) => Promise<void>;
+  rememberAccepted: (messageId: string) => Promise<void>;
   rememberAcceptedDelivery?: (input: { messageId: string; outboxEventId: number }) => Promise<void>;
 };
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
-}
 
 function getErrorCode(error: unknown) {
   if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
@@ -109,20 +121,21 @@ export async function processNotificationEmailJob(
       ...content,
     });
   } catch (error) {
-    const message = getErrorMessage(error);
+    const permanent = isPermanentEmailError(error);
+    const message = permanent ? "Permanent email delivery failure." : "Temporary email delivery failure.";
     const finalAttempt = retry.attemptsMade + 1 >= retry.attempts;
-    if (isPermanentEmailError(error) || finalAttempt) {
+    if (permanent || finalAttempt) {
       await dependencies.markDeliveryFailed?.({ outboxEventId: payload.outboxEventId, error: message });
-      if (isPermanentEmailError(error)) throw new UnrecoverableError(message);
+      if (permanent) throw new UnrecoverableError(message);
     } else {
       await dependencies.markDeliveryRetrying?.({ outboxEventId: payload.outboxEventId, error: message });
     }
-    throw error;
+    throw new Error(message);
   }
 
   const checkpointErrors: unknown[] = [];
   try {
-    await dependencies.rememberAccepted({ ...payload, acceptedMessageId: result.messageId });
+    await dependencies.rememberAccepted(result.messageId);
   } catch (error) {
     checkpointErrors.push(error);
   }
@@ -148,4 +161,62 @@ export async function processNotificationEmailJob(
     messageId: result.messageId,
     outboxEventId: payload.outboxEventId,
   } satisfies { messageId: string; outboxEventId: NotificationEmailOutboxJob["outboxEventId"] };
+}
+
+export async function processQueuedNotificationEmail(prisma: PrismaClient, job: Job) {
+  const reference = notificationEmailReferenceDeliveryJobSchema.safeParse(job.data);
+  const legacy = reference.success ? undefined : notificationEmailDeliveryJobSchema.safeParse(job.data);
+  const queued = reference.data ?? legacy?.data;
+  if (!queued) throw new UnrecoverableError("Invalid notification email job.");
+
+  try {
+    const event = await prisma.outboxEvent.findFirst({
+      where: {
+        id: queued.outboxEventId,
+        organizationId: queued.organizationId,
+        eventType: outboxEventTypes.notificationEmail,
+        schemaVersion: 1,
+      },
+      select: { id: true, organizationId: true, createdAt: true, payload: true },
+    });
+    const email = notificationEmailOutboxPayloadSchema.safeParse(event?.payload);
+    if (!event || !email.success || email.data.organizationId !== event.organizationId) {
+      throw new UnrecoverableError("Notification email outbox event is missing or invalid.");
+    }
+
+    const jobReference = getNotificationEmailJobReference(event);
+    const { acceptedMessageId } = queued;
+    const checkpoint = acceptedMessageId ? { acceptedMessageId } : {};
+    const payload = { ...email.data, outboxEventId: event.id, ...checkpoint };
+    const matchesEvent = reference.success
+      ? Date.parse(reference.data.outboxEventCreatedAt) === Date.parse(jobReference.outboxEventCreatedAt)
+      : isDeepStrictEqual(legacy?.data, payload);
+    if (!matchesEvent) throw new UnrecoverableError("Notification email job refers to a different outbox event.");
+    if (!reference.success) await job.updateData({ ...jobReference, ...checkpoint });
+
+    return await processNotificationEmailJob(
+      payload,
+      {
+        send: sendEmail,
+        getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
+        rememberAccepted: (acceptedMessageId) => job.updateData({ ...jobReference, acceptedMessageId }),
+        rememberAcceptedDelivery: ({ outboxEventId, messageId }) =>
+          markNotificationDeliveryAccepted(prisma, { outboxEventId, providerMessageId: messageId }),
+        markDeliverySending: ({ outboxEventId }) => markNotificationDeliverySending(prisma, { outboxEventId }),
+        markDeliverySent: async ({ outboxEventId, messageId }) => {
+          await markNotificationDeliverySent(prisma, { outboxEventId, providerMessageId: messageId });
+        },
+        markDeliveryFailed: async (input) => {
+          await markNotificationDeliveryFailed(prisma, input);
+        },
+        markDeliveryRetrying: async (input) => {
+          await markNotificationDeliveryRetrying(prisma, input);
+        },
+      },
+      { attemptsMade: job.attemptsMade, attempts: job.opts.attempts ?? 1 },
+    );
+  } catch (error) {
+    if (error instanceof UnrecoverableError) throw error;
+    throw new Error("Notification email delivery could not be completed.");
+  }
 }

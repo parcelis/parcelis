@@ -259,12 +259,8 @@ test("notification email events dispatch to account-notifications", async () => 
       assert.equal(name, "notification.email.v1");
       assert.deepEqual(data, {
         organizationId: 7,
-        recipientId: 9,
-        recipientType: "tenant",
-        email: "tenant@example.com",
-        subject: "Reminder",
-        body: "Your rent is due",
         outboxEventId: 21,
+        outboxEventCreatedAt: event.createdAt.toISOString(),
       });
       assert.equal(options.jobId, "outbox-event-21");
       assert.equal(options.attempts, 3);
@@ -339,12 +335,8 @@ test("reconciles dispatched email deliveries when their BullMQ job is missing", 
       name: "notification.email.v1",
       data: {
         organizationId: 7,
-        recipientId: 9,
-        recipientType: "tenant",
-        email: "tenant@example.com",
-        subject: "Reminder",
-        body: "Your rent is due",
         outboxEventId: delivery.outboxEvent.id,
+        outboxEventCreatedAt: event.createdAt.toISOString(),
       },
       options: {
         jobId: `outbox-event-${delivery.outboxEvent.id}`,
@@ -381,7 +373,11 @@ test("does not redispatch a notification when its BullMQ job still exists", asyn
     getJob: async () => ({
       id: "outbox-event-21",
       name: "notification.email.v1",
-      data: { ...(event.payload as object), outboxEventId: event.id },
+      data: {
+        organizationId: event.organizationId,
+        outboxEventId: event.id,
+        outboxEventCreatedAt: event.createdAt.toISOString(),
+      },
     }),
     add: async () => {
       readded = true;
@@ -425,7 +421,11 @@ test("notification recovery processes a second page after a full batch", async (
       return {
         id: jobId,
         name: "notification.email.v1",
-        data: { ...payload, outboxEventId: Number(jobId.replace("outbox-event-", "")) },
+        data: {
+          organizationId: 7,
+          outboxEventId: Number(jobId.replace("outbox-event-", "")),
+          outboxEventCreatedAt: "2026-09-26T00:00:00.000Z",
+        },
       };
     },
     add: async () => assert.fail("Existing jobs must not be restored"),
@@ -468,12 +468,8 @@ test("recovery carries the accepted SMTP message ID into a replacement job", asy
 
   assert.deepEqual(recoveredData, {
     organizationId: 7,
-    recipientId: 9,
-    recipientType: "tenant",
-    email: "tenant@example.com",
-    subject: "Reminder",
-    body: "Your rent is due",
     outboxEventId: event.id,
+    outboxEventCreatedAt: event.createdAt.toISOString(),
     acceptedMessageId: "smtp-accepted-123",
   });
 });
@@ -576,7 +572,11 @@ for (const state of ["completed", "failed", "active", "waiting", "delayed"] as c
       }),
       add: async (_name: string, data: unknown) => {
         assert.ok(removed);
-        assert.deepEqual(data, { ...(event.payload as object), outboxEventId: event.id });
+        assert.deepEqual(data, {
+          organizationId: event.organizationId,
+          outboxEventId: event.id,
+          outboxEventCreatedAt: event.createdAt.toISOString(),
+        });
         added = true;
       },
     } as unknown as Queue;

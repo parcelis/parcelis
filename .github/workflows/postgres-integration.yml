@@ -70,7 +70,12 @@ jobs:
       - if: matrix.suite == 'database'
         run: pnpm --filter @parcelis/db test:integration
       - if: matrix.suite == 'worker'
+        name: Start Redis for worker integration tests
+        run: docker run --detach --publish 127.0.0.1:6379:6379 redis:8-alpine redis-server --requirepass parcelis-test
+      - if: matrix.suite == 'worker'
         run: pnpm --filter @parcelis/worker test:integration
+        env:
+          OUTBOX_TEST_REDIS_URL: redis://:parcelis-test@localhost:6379
       - if: matrix.suite == 'api-tokens'
         run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts'
       - if: matrix.suite == 'installation'

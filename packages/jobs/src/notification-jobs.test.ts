@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createNotificationJobs,
   notificationEmailJobName,
-  notificationEmailOutboxJobSchema,
+  notificationEmailReferenceJobSchema,
   getOutboxEventContract,
   outboxEventTypes,
   parseOutboxEventPayload,
@@ -23,11 +23,7 @@ test("sendEmail enqueues a validated email job with delay when provided", async 
 
   const input = {
     organizationId: 7,
-    recipientId: 21,
-    recipientType: "tenant",
-    email: "tenant@example.com",
-    subject: "Rent reminder",
-    body: "Rent is due tomorrow",
+    outboxEventCreatedAt: "2026-09-26T00:00:00.000Z",
     outboxEventId: 88,
     delayMs: 3_000,
   };
@@ -38,8 +34,32 @@ test("sendEmail enqueues a validated email job with delay when provided", async 
   assert.deepEqual(result, { id: "job-1" });
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.name, notificationEmailJobName);
-  assert.deepEqual(calls[0]?.data, notificationEmailOutboxJobSchema.parse(expectedJobData));
+  assert.deepEqual(calls[0]?.data, notificationEmailReferenceJobSchema.parse(expectedJobData));
   assert.deepEqual(calls[0]?.opts, { delay: 3_000 });
+});
+
+test("notification email reference timestamps are normalized to UTC", () => {
+  assert.deepEqual(
+    notificationEmailReferenceJobSchema.parse({
+      organizationId: 7,
+      outboxEventId: 88,
+      outboxEventCreatedAt: "2026-09-26T02:30:00.000+02:30",
+    }),
+    {
+      organizationId: 7,
+      outboxEventId: 88,
+      outboxEventCreatedAt: "2026-09-26T00:00:00.000Z",
+    },
+  );
+
+  assert.notDeepEqual(
+    notificationEmailReferenceJobSchema.parse({
+      organizationId: 7,
+      outboxEventId: 88,
+      outboxEventCreatedAt: "2026-09-26T00:00:00.001Z",
+    }).outboxEventCreatedAt,
+    "2026-09-26T00:00:00.000Z",
+  );
 });
 
 test("sendEmail enqueues without delay options when no delay is provided", async () => {
@@ -55,11 +75,7 @@ test("sendEmail enqueues without delay options when no delay is provided", async
 
   await jobs.sendEmail({
     organizationId: 7,
-    recipientId: 22,
-    recipientType: "tenant",
-    email: "tenant2@example.com",
-    subject: "Lease notice",
-    body: "Your lease has been updated",
+    outboxEventCreatedAt: "2026-09-26T00:00:00.000Z",
     outboxEventId: 89,
   });
 
@@ -75,26 +91,18 @@ test("sendEmail validates delay and payload", async () => {
     },
   });
 
-  await assert.rejects(
-    jobs.sendEmail({
-      organizationId: 7,
-      recipientId: 23,
-      recipientType: "tenant",
-      email: "not-an-email",
-      subject: "Hello",
-      body: "Body",
-      outboxEventId: 90,
-    }),
-  );
+  const withPrivateContent = {
+    organizationId: 7,
+    outboxEventCreatedAt: "2026-09-26T00:00:00.000Z",
+    outboxEventId: 90,
+    template: { kind: "password-reset", url: "https://example.com/reset#token=secret" },
+  };
+  await assert.rejects(jobs.sendEmail(withPrivateContent));
 
   await assert.rejects(
     jobs.sendEmail({
       organizationId: 7,
-      recipientId: 23,
-      recipientType: "tenant",
-      email: "tenant3@example.com",
-      subject: "Hello",
-      body: "Body",
+      outboxEventCreatedAt: "2026-09-26T00:00:00.000Z",
       outboxEventId: 91,
       delayMs: -1,
     }),

@@ -157,3 +157,28 @@ test("validates notification outbox payload and idempotency key", async () => {
     }),
   );
 });
+
+test("outbox write errors do not expose account email links", async () => {
+  const url = "https://parcelis.example/login?mode=reset#token=private";
+  const tx = {
+    outboxEvent: {
+      createMany: async () => {
+        throw new Error(`Could not save payload containing ${url}`);
+      },
+    },
+  } as unknown as Prisma.TransactionClient;
+
+  await assert.rejects(
+    queueNotificationEmailOutboxEvent(tx, {
+      organizationId: 7,
+      recipientId: 5,
+      recipientType: "user",
+      email: "person@example.com",
+      subject: "Reset your password",
+      body: url,
+      template: { kind: "password-reset", url },
+      idempotencyKey: "password-reset:5:123",
+    }),
+    { message: "Could not record notification email." },
+  );
+});
