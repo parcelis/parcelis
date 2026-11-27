@@ -1,0 +1,64 @@
+apps/worker/src/main.ts
+  s_ed050031c0b409::t_390c932570941b 1,32,62
+apps/worker/src/processors/notification-email.processor.ts
+  s_ed050031c0b409::t_b261f6c6ae82f0 62,138,202
+  s_ed050031c0b409::t_94f5ff21c85090 20,167
+  s_8b997e6e3e62db::t_02bf50c8054fda 192
+  s_ed050031c0b409::t_be60634835497b 1-8,11,14,16-19,21-25,124-125,127,129,133,165-166,168-191,193-201,203-221
+  s_ed050031c0b409::t_77e1c50c576df0 222
+apps/api/src/router/auth.router.ts
+  s_ed050031c0b409::t_390c932570941b 215-216,272-273
+packages/jobs/src/notification-jobs.test.ts
+  s_ed050031c0b409::t_7b98d61f40b2dd 6,26,37,78,94-100,105
+  s_8b997e6e3e62db::t_bdf0c88931e91c 41-64
+packages/jobs/src/notification-jobs.ts
+  s_ed050031c0b409::t_e5617dcbe25d04 44,49-59,72,92
+  s_8b997e6e3e62db::t_02bf50c8054fda 38-43
+  s_ed050031c0b409::t_94f5ff21c85090 36-37,45-48
+apps/worker/src/outbox-dispatcher.ts
+  s_ed050031c0b409::t_e5617dcbe25d04 13,16-17,43-47,187-197
+packages/jobs/src/contracts.ts
+  s_ed050031c0b409::t_e5617dcbe25d04 5,61
+apps/api/src/modules/notification-outbox.ts
+  s_ed050031c0b409::t_b261f6c6ae82f0 31-39,41-50,52-55
+apps/worker/src/tests/notification-recovery.integration.ts
+  s_ed050031c0b409::t_8780141aa12969 28,59-63,72-74,77
+  s_ed050031c0b409::t_c06837ca4314a1 3-5,7-13,15-18,21-23,103-108,113-116,123-247,252-265
+  s_ed050031c0b409::t_26718d7ecb6619 109-112,117-122
+  s_ed050031c0b409::t_97dcf737b80858 248-251
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  s_ed050031c0b409::t_7b98d61f40b2dd 263,339,376-380,424-428,472,575-579
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_ed050031c0b409::t_8780141aa12969 51,130-132,199,234,266,299-301,575
+  s_ed050031c0b409::t_7b98d61f40b2dd 135,166,169,304,396,399
+  s_ed050031c0b409::t_b261f6c6ae82f0 444-445
+apps/api/src/tests/notifications/notification-outbox.test.ts
+  s_ed050031c0b409::t_576b1a4c41aa7b 160-184
+.github/workflows/postgres-integration.yml
+  s_ed050031c0b409::t_72640d53b46be9 73-74,77-78
+  s_ed050031c0b409::t_c79a0fa2ef978e 72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "60041d16b04cc9895d6c952de488628e591caec0",
+  "prompts": {},
+  "sessions": {
+    "s_8b997e6e3e62db": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f34f6f17-73cd-492a-8d6a-2e92f3d7893d",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_ed050031c0b409": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21975-2cf9-70d2-8b36-def0b154a996",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
