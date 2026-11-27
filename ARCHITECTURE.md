@@ -344,12 +344,16 @@ see [the contribution workflow](CONTRIBUTING.md#documentation-across-repositorie
 ```bash
 pnpm install
 cp .env.example .env
+# Set SEED_ADMIN_EMAIL, SEED_ORGANIZATION_NAME, and a unique SEED_ADMIN_PASSWORD (12+ chars).
 docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
 ```
+
+For starter records, use `pnpm db:seed:demo` in place of `pnpm db:seed` on a local or dedicated demo
+database. Demo seed reruns can overwrite or delete existing records.
 
 The usual verification commands are:
 

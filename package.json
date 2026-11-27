@@ -28,7 +28,8 @@
     "db:migrate": "pnpm --filter @parcelis/db db:migrate",
     "db:deploy": "pnpm --filter @parcelis/db exec node ../../scripts/prisma-with-env.mjs migrate deploy",
     "db:seed": "pnpm --filter @parcelis/db db:seed",
-    "db:demo:prepare": "pnpm db:deploy && pnpm db:seed",
+    "db:seed:demo": "pnpm --filter @parcelis/db db:seed:demo",
+    "db:demo:prepare": "pnpm db:deploy && pnpm db:seed && pnpm db:seed:demo",
     "email:verify": "pnpm --filter @parcelis/email build && node --env-file=.env packages/email/dist/verify.js"
   },
   "devDependencies": {

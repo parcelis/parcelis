@@ -45,6 +45,7 @@ export async function startNextApi() {
   const hostname = process.env.API_HOSTNAME ?? "0.0.0.0";
   const dev = process.argv.includes("--dev");
   process.env.NODE_ENV ??= dev ? "development" : "production";
+  process.env.ENVIRONMENT ??= process.env.NODE_ENV;
   getDatabaseConfig();
   getTrustedProxyHops();
   const apiRoot = resolve(import.meta.dirname, "..");

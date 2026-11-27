@@ -3,22 +3,42 @@ import test from "node:test";
 import { getDatabaseConfig } from "../../modules/database-config";
 
 test("only development and test environments allow the local database fallback", () => {
-  for (const NODE_ENV of ["development", "test"]) {
-    assert.deepEqual(getDatabaseConfig({ NODE_ENV, POSTGRES_PORT: "54321" }), {
+  for (const ENVIRONMENT of ["development", "test"]) {
+    assert.deepEqual(getDatabaseConfig({ ENVIRONMENT, POSTGRES_PORT: "54321" }), {
       connectionString: "postgresql://parcelis:parcelis@localhost:54321/parcelis?schema=public",
       schema: "public",
     });
   }
-  for (const NODE_ENV of ["production", "staging", undefined]) {
-    assert.throws(() => getDatabaseConfig({ NODE_ENV }), /^Error: DATABASE_URL is required\.$/);
+  for (const ENVIRONMENT of ["production", "staging", undefined]) {
+    assert.throws(() => getDatabaseConfig({ ENVIRONMENT }), /^Error: DATABASE_URL is required\.$/);
   }
 });
 
+test("ENVIRONMENT takes precedence over NODE_ENV when both are set", () => {
+  assert.throws(
+    () => getDatabaseConfig({ ENVIRONMENT: "production", NODE_ENV: "development" }),
+    /^Error: DATABASE_URL is required\.$/,
+  );
+});
+
+test("NODE_ENV alone allows the local database fallback in development and test", () => {
+  for (const NODE_ENV of ["development", "test"]) {
+    assert.deepEqual(getDatabaseConfig({ NODE_ENV }), {
+      connectionString: "postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public",
+      schema: "public",
+    });
+  }
+  assert.throws(
+    () => getDatabaseConfig({ NODE_ENV: "production" }),
+    /^Error: DATABASE_URL is required\.$/,
+  );
+});
+
 test("invalid database URLs fail without exposing their contents", () => {
-  for (const DATABASE_URL of ["", "   ", "private-database-secret", "https://user:secret@db.example/app"]) {
-    for (const NODE_ENV of ["development", "test", "production"]) {
+  for (const DATABASE_URL of ["", "   ", "private-database-secret", "mysql://db.example/app"]) {
+    for (const ENVIRONMENT of ["development", "test", "production"]) {
       assert.throws(
-        () => getDatabaseConfig({ NODE_ENV, DATABASE_URL }),
+        () => getDatabaseConfig({ ENVIRONMENT, DATABASE_URL }),
         /^Error: DATABASE_URL must be a valid PostgreSQL URL\.$/,
       );
     }
@@ -28,7 +48,7 @@ test("invalid database URLs fail without exposing their contents", () => {
 test("explicit PostgreSQL URLs preserve connection settings and select the schema", () => {
   for (const protocol of ["postgres", "postgresql"]) {
     const DATABASE_URL = `${protocol}://user:secret@db.example/app?schema=tenant&sslmode=require`;
-    assert.deepEqual(getDatabaseConfig({ NODE_ENV: "production", DATABASE_URL }), {
+    assert.deepEqual(getDatabaseConfig({ ENVIRONMENT: "production", DATABASE_URL }), {
       connectionString: DATABASE_URL,
       schema: "tenant",
     });

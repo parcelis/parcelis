@@ -28,18 +28,19 @@
 - Format: `pnpm format`
 - Generate Prisma client: `pnpm db:generate`
 - Run Prisma migrations: `pnpm db:migrate`
-- Seed database: `pnpm db:seed`
+- Seed bootstrap data: `pnpm db:seed`
+- Seed demo sample data: `pnpm db:seed:demo`
 - Run a package command directly with filters, for example `pnpm --filter @parcelis/web typecheck`.
 
 ## Local Development
 
 - Copy environment defaults before first run: `cp .env.example .env`.
 - Start required local services with `docker compose up postgres minio minio-init -d`.
-- During initial setup, run `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:seed`.
-- After pulling schema changes, run `pnpm db:migrate` and `pnpm db:generate`. Run seeds only when setting up demo data or when a change explicitly requires updated seed data.
+- During initial setup, run `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:seed`; run `pnpm db:seed:demo` only when you need sample/demo records.
+- After pulling schema changes, run `pnpm db:migrate` and `pnpm db:generate`. Rerun `pnpm db:seed` for bootstrap changes and `pnpm db:seed:demo` only for demo data changes.
 - `pnpm dev` chooses open ports when defaults are busy and prints the selected URLs.
 - Default local URLs are web `http://localhost:30000`, API `http://localhost:40010`, and MinIO console `http://localhost:9010`.
-- If `DATABASE_URL` is unset, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public` only when `NODE_ENV` is `development` or `test`. Other environments require an explicit PostgreSQL URL; empty or invalid values fail startup.
+- If `DATABASE_URL` is unset, the API falls back to `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public` only when `ENVIRONMENT` is `development` or `test` (falling back to `NODE_ENV` when `ENVIRONMENT` is unset). Other environments require an explicit PostgreSQL URL; empty or invalid values fail startup.
 - Stop an existing watcher with `Ctrl+C` before starting a second dev run.
 
 ## Code Style
@@ -85,7 +86,7 @@
 - Keep Prisma models and migrations in `packages/db/prisma`.
 - When editing `schema.prisma`, prefer Prisma portable types over provider-specific native types so the schema remains compatible with the repo's current PostgreSQL setup and supports future cross-database portability goals. If a provider-specific feature is unavoidable, document the constraint and its supported providers.
 - After editing `schema.prisma`, run `pnpm db:migrate` and `pnpm db:generate`.
-- Seed local demo data with `pnpm db:seed`.
+- Seed local bootstrap data with `pnpm db:seed` and demo sample data with `pnpm db:seed:demo`.
 - Prefer Prisma transactions for multi-step writes that must stay consistent.
 
 ## Verification

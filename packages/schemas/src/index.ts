@@ -40,8 +40,13 @@ export const authCredentialsInputSchema = z.object({
   password: z.string().min(12).max(1024),
 });
 
+export const setupModeSchema = z.enum(["fresh", "demo"]);
+export type SetupMode = z.infer<typeof setupModeSchema>;
+
 export const authLoginInputSchema = authCredentialsInputSchema;
-export const authRegisterInputSchema = authCredentialsInputSchema;
+export const authRegisterInputSchema = authCredentialsInputSchema.extend({
+  setupMode: setupModeSchema.default("fresh"),
+});
 export const requestPasswordResetInputSchema = z.object({
   email: z
     .string()

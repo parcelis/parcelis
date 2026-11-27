@@ -1,6 +1,8 @@
 export * from "./outbox.ts";
 export * from "./notification-delivery.ts";
 export * from "./installation.ts";
+export * from "./organization-bootstrap.ts";
+export * from "./organization-demo.ts";
 export {
   ActivitySubjectType,
   LeaseStatus,

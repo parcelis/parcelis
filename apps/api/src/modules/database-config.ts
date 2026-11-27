@@ -1,7 +1,8 @@
 export function getDatabaseConfig(env: Record<string, string | undefined> = process.env) {
+  const environment = env.ENVIRONMENT?.trim() || env.NODE_ENV;
   let connectionString = env.DATABASE_URL;
   if (connectionString === undefined) {
-    if (env.NODE_ENV !== "development" && env.NODE_ENV !== "test") {
+    if (environment !== "development" && environment !== "test") {
       throw new Error("DATABASE_URL is required.");
     }
     connectionString = `postgresql://parcelis:parcelis@localhost:${env.POSTGRES_PORT ?? 54320}/parcelis?schema=public`;
