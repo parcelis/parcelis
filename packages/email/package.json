@@ -29,7 +29,7 @@
     "@parcelis/config": "workspace:*",
     "@react-email/ui": "^6.9.3",
     "@types/node": "24.19.2",
-    "@types/react": "19.3.0",
+    "@types/react": "19.3.3",
     "typescript": "6.0.3"
   }
 }
