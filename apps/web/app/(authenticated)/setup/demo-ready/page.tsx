@@ -1,10 +1,10 @@
- "use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, LayoutDashboard, Users } from "lucide-react";
+import { Building2, LayoutDashboard } from "lucide-react";
 import { Button } from "@parcelis/ui";
 import { apiClient, queryKeys } from "../../../../components/api-client";
 import { LoadingState } from "../../../../components/loading-state";
@@ -40,6 +40,25 @@ export default function DemoReadyPage() {
         <p className="max-w-2xl text-sm text-parcelis-gray dark:text-white/75">
           Your workspace is ready with starter demo records so you can explore the full workflow right away.
         </p>
+        <p className="max-w-2xl text-sm text-parcelis-gray dark:text-white/75">
+          Manage demo records from the{" "}
+          <Link className="font-semibold underline" href="/properties">
+            Properties
+          </Link>
+          ,{" "}
+          <Link className="font-semibold underline" href="/tenants">
+            Tenants
+          </Link>
+          ,{" "}
+          <Link className="font-semibold underline" href="/leases">
+            Leases
+          </Link>
+          , and{" "}
+          <Link className="font-semibold underline" href="/income">
+            Income
+          </Link>{" "}
+          pages. Open a record to see its edit, archive, or delete options. Invoices are listed under Income.
+        </p>
       </header>
 
       <section className="flex flex-wrap gap-3">
@@ -52,13 +71,7 @@ export default function DemoReadyPage() {
         <Button asChild className="min-w-40" variant="secondary">
           <Link href="/properties">
             <Building2 className="mr-2 h-4 w-4" />
-            View properties
-          </Link>
-        </Button>
-        <Button asChild className="min-w-40" variant="secondary">
-          <Link href="/tenants">
-            <Users className="mr-2 h-4 w-4" />
-            View tenants
+            Continue setup
           </Link>
         </Button>
         <Button className="min-w-40" onClick={handleDismiss} variant="secondary">
