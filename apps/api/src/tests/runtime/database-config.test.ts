@@ -21,6 +21,19 @@ test("ENVIRONMENT takes precedence over NODE_ENV when both are set", () => {
   );
 });
 
+test("NODE_ENV alone allows the local database fallback in development and test", () => {
+  for (const NODE_ENV of ["development", "test"]) {
+    assert.deepEqual(getDatabaseConfig({ NODE_ENV }), {
+      connectionString: "postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public",
+      schema: "public",
+    });
+  }
+  assert.throws(
+    () => getDatabaseConfig({ NODE_ENV: "production" }),
+    /^Error: DATABASE_URL is required\.$/,
+  );
+});
+
 test("invalid database URLs fail without exposing their contents", () => {
   for (const DATABASE_URL of ["", "   ", "private-database-secret", "mysql://db.example/app"]) {
     for (const ENVIRONMENT of ["development", "test", "production"]) {

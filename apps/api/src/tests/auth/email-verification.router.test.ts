@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { getEmailTransporter, resetEmailTransporter } from "@parcelis/email";
 import { hashEmailVerificationToken, hashPassword, hashPasswordResetToken } from "../../modules/auth";
 import { resetRateLimits } from "../../modules/login-rate-limit";
-import type { Installation, PrismaClient } from "@parcelis/db";
+import type { Installation, Prisma, PrismaClient } from "@parcelis/db";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -80,6 +80,7 @@ function createPrisma() {
   const passwordResetTokens: PasswordResetToken[] = [];
   const organizationMemberships: OrganizationMembership[] = [];
   const invoiceCharges: Array<{
+    id: number;
     organizationId: number;
     name: string;
     description: string | null;
@@ -87,12 +88,13 @@ function createPrisma() {
   }> = [];
   const outboxEvents: OutboxEvent[] = [];
   const notificationDeliveries: NotificationDelivery[] = [];
-  const properties: Array<{ id: number; organizationId: number; name: string }> = [];
-  const units: Array<{ id: number; propertyId: number; name: string }> = [];
-  const tenants: Array<{ id: number; organizationId: number; email: string }> = [];
-  const leases: Array<{ id: number; organizationId: number; propertyId: number | null; unitId: number | null }> = [];
+  const properties: Array<Prisma.PropertyUncheckedCreateInput & { id: number }> = [];
+  const units: Array<Prisma.UnitUncheckedCreateInput & { id: number }> = [];
+  const tenants: Array<Prisma.TenantUncheckedCreateInput & { id: number }> = [];
+  const leases: Array<Prisma.LeaseUncheckedCreateInput & { id: number }> = [];
   const leaseTenants: Array<{ organizationId: number; leaseId: number; tenantId: number }> = [];
-  const invoices: Array<{ leaseId: number; tenantId: number; periodStartsOn: Date }> = [];
+  const invoices: Prisma.InvoiceUncheckedCreateInput[] = [];
+  const demoRecords = { properties, units, tenants, leases, leaseTenants, invoices };
   const transactions: Promise<unknown>[] = [];
   let nextUserId = 1;
   let nextTokenId = 1;
@@ -149,21 +151,23 @@ function createPrisma() {
       create: async () => ({ id: nextOrganizationId++ }),
     },
     invoiceCharge: {
-      create: async ({ data }: { data: (typeof invoiceCharges)[number] }) => {
-        invoiceCharges.push(data);
-        return { ...data, id: invoiceCharges.length };
+      create: async ({ data }: { data: Omit<(typeof invoiceCharges)[number], "id"> }) => {
+        const charge = { ...data, id: invoiceCharges.length + 1 };
+        invoiceCharges.push(charge);
+        return charge;
       },
     },
     property: {
       findFirst: async ({ where }: { where: { organizationId: number; name: string } }) =>
-        properties.find((property) => property.organizationId === where.organizationId && property.name === where.name) ??
-        null,
-      create: async ({ data }: { data: { organizationId: number; name: string } }) => {
+        properties.find(
+          (property) => property.organizationId === where.organizationId && property.name === where.name,
+        ) ?? null,
+      create: async ({ data }: { data: Prisma.PropertyUncheckedCreateInput }) => {
         const property = { ...data, id: nextPropertyId++ };
         properties.push(property);
         return property;
       },
-      update: async ({ where, data }: { where: { id: number }; data: { organizationId?: number; name?: string } }) => {
+      update: async ({ where, data }: { where: { id: number }; data: Prisma.PropertyUncheckedUpdateInput }) => {
         const property = properties.find((candidate) => candidate.id === where.id);
         if (!property) throw new Error("Property not found.");
         Object.assign(property, data);
@@ -177,8 +181,8 @@ function createPrisma() {
         create,
       }: {
         where: { propertyId_name: { propertyId: number; name: string } };
-        update: { propertyId?: number; name?: string };
-        create: { propertyId: number; name: string };
+        update: Prisma.UnitUncheckedUpdateInput;
+        create: Prisma.UnitUncheckedCreateInput;
       }) => {
         const existing = units.find(
           (unit) => unit.propertyId === where.propertyId_name.propertyId && unit.name === where.propertyId_name.name,
@@ -199,8 +203,8 @@ function createPrisma() {
         create,
       }: {
         where: { organizationId_email: { organizationId: number; email: string } };
-        update: { organizationId?: number; email?: string };
-        create: { organizationId: number; email: string };
+        update: Prisma.TenantUncheckedUpdateInput;
+        create: Prisma.TenantUncheckedCreateInput;
       }) => {
         const existing = tenants.find(
           (tenant) =>
@@ -228,18 +232,12 @@ function createPrisma() {
             lease.propertyId === where.propertyId &&
             lease.unitId === where.unitId,
         ) ?? null,
-      create: async ({ data }: { data: { organizationId: number; propertyId: number | null; unitId: number | null } }) => {
+      create: async ({ data }: { data: Prisma.LeaseUncheckedCreateInput }) => {
         const lease = { ...data, id: nextLeaseId++ };
         leases.push(lease);
         return lease;
       },
-      update: async ({
-        where,
-        data,
-      }: {
-        where: { id: number };
-        data: { organizationId?: number; propertyId?: number | null; unitId?: number | null };
-      }) => {
+      update: async ({ where, data }: { where: { id: number }; data: Prisma.LeaseUncheckedUpdateInput }) => {
         const lease = leases.find((candidate) => candidate.id === where.id);
         if (!lease) throw new Error("Lease not found.");
         Object.assign(lease, data);
@@ -273,13 +271,14 @@ function createPrisma() {
         create,
       }: {
         where: { leaseId_tenantId_periodStartsOn: { leaseId: number; tenantId: number; periodStartsOn: Date } };
-        create: { leaseId: number; tenantId: number; periodStartsOn: Date };
+        create: Prisma.InvoiceUncheckedCreateInput;
       }) => {
         const existing = invoices.find(
           (invoice) =>
             invoice.leaseId === where.leaseId_tenantId_periodStartsOn.leaseId &&
             invoice.tenantId === where.leaseId_tenantId_periodStartsOn.tenantId &&
-            invoice.periodStartsOn.getTime() === where.leaseId_tenantId_periodStartsOn.periodStartsOn.getTime(),
+            new Date(invoice.periodStartsOn).getTime() ===
+              where.leaseId_tenantId_periodStartsOn.periodStartsOn.getTime(),
         );
         if (existing) {
           return existing;
@@ -440,16 +439,11 @@ function createPrisma() {
   } as unknown as PrismaClient;
 
   return {
+    demoRecords,
     installation,
     invoiceCharges,
     organizationMemberships,
     outboxEvents,
-    properties,
-    units,
-    tenants,
-    leases,
-    leaseTenants,
-    invoices,
     passwordResetTokens,
     prisma,
     tokens,
@@ -541,6 +535,7 @@ test("registration creates a pending account and one verification token without 
   assert.equal(state.users[0]?.accountStatus, "pending");
   assert.deepEqual(state.invoiceCharges, [
     {
+      id: 1,
       organizationId: 1,
       name: "Rent",
       description: "Monthly rent for {month} {year}",
@@ -564,9 +559,13 @@ test("registration creates a pending account and one verification token without 
   assert.match(payload.template.url, /mode=verify/);
   await caller.auth.register({ email: fixtureEmail("second"), password: fixtureValue("second-account") });
   assert.equal(state.installation.record!.installationId, identity.installationId);
+  for (const [model, records] of Object.entries(state.demoRecords)) {
+    assert.equal(records.length, 0, `Normal registration must leave ${model} empty.`);
+  }
 });
 
 test("demo registration seeds starter demo records for the new organization", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-02-15T12:00:00Z") });
   const emailDelivery = mockEmailDelivery();
   t.after(() => {
     mock.restoreAll();
@@ -576,18 +575,103 @@ test("demo registration seeds starter demo records for the new organization", as
   const state = createPrisma();
   const caller = createCaller(state.prisma);
 
-  await caller.auth.register({
+  await caller.auth.register({ email: fixtureEmail("fresh"), password: fixtureValue("fresh-account") });
+  const { user } = await caller.auth.register({
     email: fixtureEmail("demo"),
     password: fixtureValue("demo-account"),
     setupMode: "demo",
   });
 
-  assert.equal(state.properties.length, 1);
-  assert.equal(state.units.length, 1);
-  assert.equal(state.tenants.length, 1);
-  assert.equal(state.leases.length, 1);
-  assert.equal(state.leaseTenants.length, 1);
-  assert.equal(state.invoices.length, 1);
+  const { organizationId } = user;
+  assert.notEqual(organizationId, state.users[0]?.defaultOrganizationId);
+  assert.equal(state.users[1]?.defaultOrganizationId, organizationId);
+  const charge = state.invoiceCharges.find((charge) => charge.organizationId === organizationId && charge.isDefault);
+  assert.ok(charge);
+
+  const { properties, units, tenants, leases, leaseTenants, invoices } = state.demoRecords;
+  const [property] = properties;
+  const [unit] = units;
+  const [tenant] = tenants;
+  const [lease] = leases;
+  assert.ok(property && unit && tenant && lease);
+  const startsOn = new Date("2026-02-01T00:00:00Z");
+  const monthlyRentCents = 165000;
+
+  assert.deepEqual(properties, [
+    {
+      id: property.id,
+      organizationId,
+      name: "Starter Demo Property",
+      line1: "100 Demo Lane",
+      city: "Nashville",
+      region: "TN",
+      postalCode: "37201",
+      propertyType: "Apartment",
+      contactName: "Demo Operations",
+      contactEmail: "ops@parcelis.dev",
+      contactPhone: "615-555-0100",
+      contactAddress: "100 Demo Lane, Nashville, TN 37201",
+      unitCount: 1,
+      occupiedUnits: 1,
+      status: "active",
+    },
+  ]);
+  assert.deepEqual(units, [
+    {
+      id: unit.id,
+      propertyId: property.id,
+      name: "1A",
+      marketRateCents: monthlyRentCents,
+      unitType: "residential",
+      bedrooms: 1,
+      bathrooms: "1.0",
+      squareFeet: 650,
+    },
+  ]);
+  assert.deepEqual(tenants, [
+    {
+      id: tenant.id,
+      organizationId,
+      firstName: "Demo",
+      lastName: "Tenant",
+      email: `demo-tenant+${organizationId}@parcelis.dev`,
+      phone: "615-555-0101",
+      accountStatus: "invitation_pending",
+      insuranceStatus: "not_on_file",
+    },
+  ]);
+  assert.deepEqual(leases, [
+    {
+      id: lease.id,
+      organizationId,
+      propertyId: property.id,
+      unitId: unit.id,
+      monthlyRentCents,
+      rentChargeId: charge.id,
+      startsOn,
+      endsOn: new Date("2027-01-31T00:00:00Z"),
+      status: "active",
+    },
+  ]);
+  assert.deepEqual(leaseTenants, [{ organizationId, leaseId: lease.id, tenantId: tenant.id }]);
+  assert.deepEqual(invoices, [
+    {
+      organizationId,
+      leaseId: lease.id,
+      propertyId: property.id,
+      tenantId: tenant.id,
+      periodStartsOn: startsOn,
+      periodEndsOn: new Date("2026-02-28T00:00:00Z"),
+      dueOn: startsOn,
+      amountCents: monthlyRentCents,
+      balanceCents: monthlyRentCents,
+      status: "open",
+      recipients: { create: { tenantId: tenant.id } },
+      items: {
+        create: { item: "Rent", quantity: 1, rateCents: monthlyRentCents, amountCents: monthlyRentCents },
+      },
+    },
+  ]);
 });
 
 test("verification activates a pending account and consumes its token", async () => {

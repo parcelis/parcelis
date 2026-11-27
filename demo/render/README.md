@@ -17,6 +17,7 @@ DATABASE_URL=<Render PostgreSQL internal connection string>
 WEB_ORIGIN=https://<your-service>.onrender.com
 SEED_ADMIN_PASSWORD=<a unique password of at least 12 characters>
 SEED_ADMIN_EMAIL=<demo administrator email>
+SEED_ORGANIZATION_NAME=Parcelis Property Management
 NEXTAUTH_URL=https://<your-service>.onrender.com
 NEXTAUTH_SECRET=<a private random secret shared by web and API>
 ```
@@ -26,8 +27,7 @@ Leave `NEXT_PUBLIC_API_URL` and `API_INTERNAL_URL` unset in Render. The scripts 
 The API starts its separate Next.js runtime on the internal API port. The build
 command produces the Next.js API; the web app remains a separate process.
 
-The API starts its separate Next.js runtime on the internal API port. The build
-command produces the Next.js API; the web app remains a separate process.
-
-The pre-deploy command applies migrations and seeds demo data. Sign in using the configured
-`SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
+The pre-deploy command applies migrations and explicitly seeds demo data. If `SEED_ORGANIZATION_NAME`
+is unset, it uses `Parcelis Property Management`. Use this command with a dedicated demo database.
+Each deployment reruns demo seeding and may overwrite or delete existing sample records.
+Sign in using the configured `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.

@@ -7,9 +7,10 @@ import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, UsersRound } from "l
 import * as React from "react";
 import { flushSync } from "react-dom";
 import { Button, Input, RadioGroup, RadioGroupItem } from "@parcelis/ui";
-import { authenticationUnavailableMessage } from "@parcelis/schemas";
+import { authenticationUnavailableMessage, setupModeSchema, type SetupMode } from "@parcelis/schemas";
 import { apiClient } from "../../components/api-client";
 import { ThemeSelector } from "../../components/theme-selector";
+import { hasPendingDemoReady, markDemoReadyPending, showPendingDemoReady } from "../../lib/demo-ready";
 
 const benefits = [
   { icon: LockOpen, title: "Open Source", description: "Built transparently. Owned by the community." },
@@ -26,8 +27,6 @@ const benefits = [
 ];
 
 const verificationDestinationKey = "parcelis-verification-destination";
-const setupModeRedirectKey = "parcelis-setup-mode-redirect";
-const demoReadyDismissedKey = "parcelis-demo-ready-dismissed";
 
 function getVerificationDestination() {
   try {
@@ -53,45 +52,7 @@ function clearVerificationDestination() {
   }
 }
 
-function getSetupModeRedirect() {
-  try {
-    const stored = window.localStorage.getItem(setupModeRedirectKey);
-    return stored === "demo" ? "demo" : null;
-  } catch {
-    return null;
-  }
-}
-
-function setSetupModeRedirect(mode: SetupMode) {
-  try {
-    if (mode === "demo") {
-      window.localStorage.setItem(setupModeRedirectKey, mode);
-      return;
-    }
-    window.localStorage.removeItem(setupModeRedirectKey);
-  } catch {
-    return;
-  }
-}
-
-function clearSetupModeRedirect() {
-  try {
-    window.localStorage.removeItem(setupModeRedirectKey);
-  } catch {
-    return;
-  }
-}
-
-function isDemoReadyDismissed() {
-  try {
-    return window.localStorage.getItem(demoReadyDismissedKey) === "true";
-  } catch {
-    return false;
-  }
-}
-
 type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password" | "verify-email";
-type SetupMode = "fresh" | "demo";
 type RegisterStep = "welcome" | "account";
 
 export default function LoginPage() {
@@ -253,15 +214,11 @@ export default function LoginPage() {
         return;
       }
 
-      const input = {
-        email,
-        password: String(formData.get("password") ?? ""),
-        setupMode,
-      };
+      const input = { email, password: String(formData.get("password") ?? "") };
       if (isRegistering) {
-        await apiClient.auth.register.mutate(input);
+        const { user } = await apiClient.auth.register.mutate({ ...input, setupMode });
         setVerificationDestination(destination);
-        setSetupModeRedirect(setupMode);
+        if (setupMode === "demo") markDemoReadyPending(user.id);
         selectLoginMode("sign-in");
         setNotice(
           setupMode === "demo"
@@ -278,13 +235,13 @@ export default function LoginPage() {
       if (!result || result.error || !result.ok) {
         throw new Error(result?.error ?? "Unable to sign in. Please try again.");
       }
-      const setupModeRedirect = getSetupModeRedirect();
-      clearSetupModeRedirect();
+      const account = hasPendingDemoReady() ? await apiClient.auth.me.query().catch(() => null) : null;
+      const showDemoReady = account && showPendingDemoReady(account.user.id);
       clearVerificationDestination();
       flushSync(() => setIsLoadingApp(true));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => window.setTimeout(resolve, 5000));
-      router.replace(setupModeRedirect === "demo" && !isDemoReadyDismissed() ? "/setup/demo-ready" : destination);
+      router.replace(showDemoReady ? "/setup/demo-ready" : destination);
       router.refresh();
     } catch (cause) {
       setIsLoadingApp(false);
@@ -437,7 +394,14 @@ export default function LoginPage() {
                   <legend className="px-1 text-sm font-semibold text-parcelis-charcoal dark:text-parcelis-porcelain">
                     Setup type
                   </legend>
-                  <RadioGroup className="gap-2" onValueChange={(value) => setSetupMode(value as SetupMode)} value={setupMode}>
+                  <RadioGroup
+                    className="gap-2"
+                    onValueChange={(value) => {
+                      const mode = setupModeSchema.safeParse(value);
+                      if (mode.success) setSetupMode(mode.data);
+                    }}
+                    value={setupMode}
+                  >
                     <label
                       className="flex cursor-pointer items-start gap-3 rounded-md border border-transparent p-2 transition hover:border-parcelis-border/80 hover:bg-white/70 dark:hover:border-parcelis-border dark:hover:bg-parcelis-charcoal/40"
                       htmlFor="setup-fresh"

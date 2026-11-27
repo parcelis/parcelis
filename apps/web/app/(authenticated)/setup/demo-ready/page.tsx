@@ -2,18 +2,31 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Building2, LayoutDashboard, Users } from "lucide-react";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Building2, LayoutDashboard, Users } from "lucide-react";
 import { Button } from "@parcelis/ui";
+import { apiClient, queryKeys } from "../../../../components/api-client";
+import { LoadingState } from "../../../../components/loading-state";
+import { canViewDemoReady, dismissDemoReady } from "../../../../lib/demo-ready";
 
 export default function DemoReadyPage() {
   const router = useRouter();
+  const { data, isPending } = useQuery({
+    queryKey: queryKeys.auth.me,
+    queryFn: () => apiClient.auth.me.query(),
+  });
+  const accountId = data?.user.id;
+  const canView = accountId !== undefined && canViewDemoReady(accountId);
 
-  function dismissDemoReady() {
-    try {
-      window.localStorage.setItem("parcelis-demo-ready-dismissed", "true");
-    } catch {
-      // no-op
-    }
+  useEffect(() => {
+    if (!isPending && !canView) router.replace("/");
+  }, [canView, isPending, router]);
+
+  if (accountId === undefined || !canView) return <LoadingState label="Opening your workspace…" />;
+
+  function handleDismiss() {
+    if (accountId !== undefined) dismissDemoReady(accountId);
     router.replace("/");
     router.refresh();
   }
@@ -48,18 +61,9 @@ export default function DemoReadyPage() {
             View tenants
           </Link>
         </Button>
-        <Button className="min-w-40" onClick={dismissDemoReady} variant="secondary">
+        <Button className="min-w-40" onClick={handleDismiss} variant="secondary">
           Don’t show again
         </Button>
-      </section>
-
-      <section className="flex items-center rounded-lg border border-parcelis-border/70 bg-white/70 px-4 py-3 text-sm text-parcelis-gray dark:bg-parcelis-charcoal/35 dark:text-white/75">
-        When you are ready to use your own data, replace demo records from settings and continue setup in your
-        preferred order.
-        <Link className="ml-2 inline-flex items-center font-semibold text-parcelis-green-hover" href="/settings/profile">
-          Continue setup
-          <ArrowRight className="ml-1 h-4 w-4" />
-        </Link>
       </section>
     </main>
   );

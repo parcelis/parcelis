@@ -1,9 +1,6 @@
 import type { Prisma } from "@prisma/client";
 
-type DemoClient = Pick<
-  Prisma.TransactionClient,
-  "property" | "unit" | "tenant" | "lease" | "leaseTenant" | "invoice"
->;
+type DemoClient = Pick<Prisma.TransactionClient, "property" | "unit" | "tenant" | "lease" | "leaseTenant" | "invoice">;
 
 type SeedOrganizationDemoDataInput = {
   organizationId: number;
@@ -17,6 +14,7 @@ export async function seedOrganizationDemoData(
   const propertyName = "Starter Demo Property";
   const unitName = "1A";
   const tenantEmail = `demo-tenant+${organizationId}@parcelis.dev`;
+  const monthlyRentCents = 165000;
 
   const propertyExisting = await prisma.property.findFirst({
     where: { organizationId, name: propertyName },
@@ -67,7 +65,7 @@ export async function seedOrganizationDemoData(
       },
     },
     update: {
-      marketRateCents: 165000,
+      marketRateCents: monthlyRentCents,
       unitType: "residential",
       bedrooms: 1,
       bathrooms: "1.0",
@@ -77,7 +75,7 @@ export async function seedOrganizationDemoData(
     create: {
       propertyId: property.id,
       name: unitName,
-      marketRateCents: 165000,
+      marketRateCents: monthlyRentCents,
       unitType: "residential",
       bedrooms: 1,
       bathrooms: "1.0",
@@ -117,7 +115,7 @@ export async function seedOrganizationDemoData(
     ? await prisma.lease.update({
         where: { id: leaseExisting.id },
         data: {
-          monthlyRentCents: 165000,
+          monthlyRentCents,
           rentChargeId: defaultInvoiceChargeId,
           startsOn,
           endsOn,
@@ -129,7 +127,7 @@ export async function seedOrganizationDemoData(
           organizationId,
           propertyId: property.id,
           unitId: unit.id,
-          monthlyRentCents: 165000,
+          monthlyRentCents,
           rentChargeId: defaultInvoiceChargeId,
           startsOn,
           endsOn,
@@ -155,6 +153,13 @@ export async function seedOrganizationDemoData(
 
   const periodStartsOn = startsOn;
   const periodEndsOn = new Date(Date.UTC(startsOn.getUTCFullYear(), startsOn.getUTCMonth() + 1, 0));
+  const recipient = { tenantId: tenant.id };
+  const rentItem = {
+    item: "Rent",
+    quantity: 1,
+    rateCents: monthlyRentCents,
+    amountCents: monthlyRentCents,
+  };
   await prisma.invoice.upsert({
     where: {
       leaseId_tenantId_periodStartsOn: {
@@ -165,11 +170,13 @@ export async function seedOrganizationDemoData(
     },
     update: {
       propertyId: property.id,
-      amountCents: 165000,
-      balanceCents: 165000,
+      amountCents: monthlyRentCents,
+      balanceCents: monthlyRentCents,
       status: "open",
       dueOn: periodStartsOn,
       periodEndsOn,
+      recipients: { createMany: { data: [recipient], skipDuplicates: true } },
+      items: { deleteMany: {}, create: rentItem },
     },
     create: {
       organizationId,
@@ -179,9 +186,11 @@ export async function seedOrganizationDemoData(
       periodStartsOn,
       periodEndsOn,
       dueOn: periodStartsOn,
-      amountCents: 165000,
-      balanceCents: 165000,
+      amountCents: monthlyRentCents,
+      balanceCents: monthlyRentCents,
       status: "open",
+      recipients: { create: recipient },
+      items: { create: rentItem },
     },
   });
 }

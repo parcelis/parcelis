@@ -282,7 +282,7 @@ async function main() {
     throw new Error("SEED_ORGANIZATION_NAME must be set to the bootstrap organization name.");
   }
 
-  const organizationSeedKey = "parcelis-bootstrap";
+  const organizationSeedKey = "parcelis-demo";
   const existingOrganization = await prisma.organization.findUnique({
     where: { seedKey: organizationSeedKey },
   });
