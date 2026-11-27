@@ -18,6 +18,7 @@ import {
   Select,
   Textarea,
 } from "@parcelis/ui";
+import { formatCurrency } from "../lib/format";
 import { apiClient, queryKeys } from "./api-client";
 
 type Lease = NonNullable<Awaited<ReturnType<typeof apiClient.leases.byId.query>>>;
@@ -31,8 +32,6 @@ function dollars(value: number | null) {
   return value === null ? "" : (value / 100).toFixed(2);
 }
 
-const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-const money = (value: number | null) => (value === null ? "—" : currency.format(value / 100));
 const dateValue = (value: Date | string | null) => (value ? new Date(value).toISOString().slice(0, 10) : "");
 
 export function LeaseAmendmentDrawer({
@@ -86,6 +85,7 @@ export function LeaseAmendmentDrawer({
     onError: (failure) => setError(failure.message),
   });
   const pending = preview.isPending || apply.isPending;
+  const money = (value: number | null) => (value === null ? "—" : formatCurrency(value, lease.currencyCode));
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,16 +101,24 @@ export function LeaseAmendmentDrawer({
       endsOn: endsOn || null,
       monthlyRentCents: cents(monthlyRent),
       rentDueDay: Number(rentDueDay),
-      billingResponsibility: responsibility,
-      tenantIds,
-      tenantAllocations:
-        responsibility === "joint"
-          ? []
-          : tenantIds.map((tenantId) => ({
-              tenantId,
-              rentShareCents: cents(shares[tenantId]?.rent ?? ""),
-              depositShareCents: cents(shares[tenantId]?.deposit || "0"),
-            })),
+      ...(canViewTenants
+        ? {
+            billingResponsibility: responsibility,
+            tenantIds,
+            tenantAllocations:
+              responsibility === "joint"
+                ? []
+                : tenantIds.map((tenantId) => ({
+                    tenantId,
+                    rentShareCents: cents(shares[tenantId]?.rent ?? ""),
+                    depositShareCents: cents(shares[tenantId]?.deposit || "0"),
+                  })),
+          }
+        : {
+            billingResponsibility: lease.billingResponsibility ?? "joint",
+            tenantIds: lease.tenants.map(({ id }) => id),
+            tenantAllocations: lease.tenantAllocations,
+          }),
       reason,
     });
     if (!result.success) {
@@ -167,7 +175,7 @@ export function LeaseAmendmentDrawer({
                             {change.dueOn}
                           </span>
                         ) : null}
-                        {change.recipientTenantIds.length ? (
+                        {canViewTenants && change.recipientTenantIds.length ? (
                           <span className="w-full text-parcelis-gray">
                             {change.recipientTenantIds
                               .map((id) => {
@@ -203,6 +211,7 @@ export function LeaseAmendmentDrawer({
                       <Label htmlFor="amendment-rent">Monthly rent</Label>
                       <Input
                         id="amendment-rent"
+                        disabled={!canViewTenants && responsibility === "individual"}
                         inputMode="decimal"
                         required
                         value={monthlyRent}
@@ -234,7 +243,7 @@ export function LeaseAmendmentDrawer({
                       </div>
                     ) : null}
                   </div>
-                ) : (
+                ) : canViewTenants ? (
                   <fieldset className="flex flex-col gap-2">
                     <legend className="mb-2 text-sm font-medium">Residents</legend>
                     {residents.isLoading ? (
@@ -266,21 +275,23 @@ export function LeaseAmendmentDrawer({
                       ))}
                     </div>
                   </fieldset>
-                )}
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="amendment-responsibility">Billing responsibility</Label>
-                  <Select
-                    id="amendment-responsibility"
-                    value={responsibility}
-                    onChange={(event) =>
-                      setResponsibility(event.target.value === "individual" ? "individual" : "joint")
-                    }
-                  >
-                    <option value="joint">Joint</option>
-                    <option value="individual">Individual</option>
-                  </Select>
-                </div>
-                {responsibility === "individual"
+                ) : null}
+                {canViewTenants ? (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="amendment-responsibility">Billing responsibility</Label>
+                    <Select
+                      id="amendment-responsibility"
+                      value={responsibility}
+                      onChange={(event) =>
+                        setResponsibility(event.target.value === "individual" ? "individual" : "joint")
+                      }
+                    >
+                      <option value="joint">Joint</option>
+                      <option value="individual">Individual</option>
+                    </Select>
+                  </div>
+                ) : null}
+                {canViewTenants && responsibility === "individual"
                   ? tenantIds.map((id) => {
                       const tenant = choices.get(id);
                       return (

@@ -7,6 +7,10 @@ export function formatLabel(value: string | null | undefined) {
     .join(" ");
 }
 
+export function formatCurrency(cents: number, currency: string) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(cents / 100);
+}
+
 export function formatLeaseEndDate(
   value: Date | string | null | undefined,
   termType: "fixed" | "month_to_month" | null | undefined,

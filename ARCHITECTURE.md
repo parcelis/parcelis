@@ -145,7 +145,7 @@ requests to Next.js App Router handlers:
 
 The API build produces a Next.js application with the routes listed above.
 
-Finalized lease amendments use a read-only tRPC preview and a serializable apply transaction. The preview uses the shared rent planner and existing invoice source keys. Apply checks the lease revision and recomputes the preview before writing the amended terms, effective roster dates, eligible future rent invoices, and the activity event in one transaction. Historical invoices retain their assigned recipients and payment records.
+Finalized lease amendments use a read-only tRPC preview and a serializable apply transaction. The preview uses the shared rent planner and existing invoice source keys. Apply checks the lease revision and recomputes the preview before writing the amended terms, effective roster dates, eligible future rent invoices, and the activity event in one transaction. Until the effective date, lease detail reads the current terms and tenant shares from the activity event's pre-amendment snapshot. Historical invoices retain their assigned recipients and payment records.
 
 Object storage is configured in `apps/api/src/modules/object-storage.config.ts`. The API generates signed download and upload URLs for private property and tenant images; the browser uploads directly to object storage after receiving a signed URL.
 

@@ -43,6 +43,7 @@ export function selectPostgresIntegrationSuites(files, force = false) {
         if (suite === "lease-billing") {
           return (
             file === "apps/api/src/router/app.router.ts" ||
+            file === "apps/api/src/modules/permissions.ts" ||
             file.startsWith("apps/api/src/leases/") ||
             file.startsWith("apps/api/src/tests/leases/") ||
             file.startsWith("packages/schemas/")

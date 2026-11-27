@@ -224,6 +224,57 @@ test(
       assert.ok(event?.metadata && typeof event.metadata === "object" && "reason" in event.metadata);
       assert.equal(event.metadata.reason, amendment.reason);
 
+      const termsLease = await createDraft("Pending terms");
+      await prisma.lease.update({
+        where: { id: termsLease.id },
+        data: { billingResponsibility: "individual", currencyCode: "CAD" },
+      });
+      await prisma.leaseTenant.updateMany({
+        where: { leaseId: termsLease.id },
+        data: { rentShareCents: 120_000, depositShareCents: 0 },
+      });
+      await caller.leases.finalizeDraft({ leaseId: termsLease.id, expectedRevision: 4 });
+      await prisma.rolePermission.createMany({
+        data: [
+          { role: "property_manager", resource: "leases", canView: true, canEdit: true },
+          { role: "property_manager", resource: "invoices", canView: true, canEdit: true },
+        ],
+      });
+      const termsOnly = appRouter.createCaller({
+        prisma,
+        session: { user: { id: 1, role: "property_manager" } },
+        organization: { organizationId: organization.id, organization },
+      } as unknown as Context);
+      const allocation = { tenantId: tenant.id, rentShareCents: 120_000, depositShareCents: 0 };
+      const termsEdit = {
+        ...amendment,
+        leaseId: termsLease.id,
+        tenantIds: [tenant.id],
+        monthlyRentCents: 120_000,
+        tenantAllocations: [allocation],
+      };
+      await termsOnly.leases.previewAmendment(termsEdit);
+      const changedResponsibility = { ...termsEdit, billingResponsibility: "joint" as const, tenantAllocations: [] };
+      await assert.rejects(termsOnly.leases.previewAmendment(changedResponsibility), { code: "FORBIDDEN" });
+      const revised = {
+        ...termsEdit,
+        endsOn: `${futureYear}-11-30`,
+        monthlyRentCents: 140_000,
+        tenantAllocations: [{ ...allocation, rentShareCents: 140_000 }],
+      };
+      await assert.rejects(termsOnly.leases.previewAmendment(revised), { code: "FORBIDDEN" });
+      const revisedPreview = await caller.leases.previewAmendment(revised);
+      const applyRevised = { ...revised, previewToken: revisedPreview.previewToken };
+      await assert.rejects(termsOnly.leases.applyAmendment(applyRevised), { code: "FORBIDDEN" });
+      await caller.leases.applyAmendment(applyRevised);
+      const currentTerms = await caller.leases.byId({ id: termsLease.id });
+      assert.equal(currentTerms?.hasPendingAmendment, true);
+      assert.equal(currentTerms?.currencyCode, "CAD");
+      assert.equal(currentTerms?.monthlyRentCents, 120_000);
+      assert.equal(currentTerms?.rentDueDay, 1);
+      assert.deepEqual(currentTerms?.endsOn, futureEnd);
+      assert.deepEqual(currentTerms?.tenantAllocations, [allocation]);
+
       const raceLease = await createDraft("Payment race");
       await caller.leases.finalizeDraft({ leaseId: raceLease.id, expectedRevision: 4 });
       const raceInput = { ...amendment, leaseId: raceLease.id };
@@ -317,6 +368,48 @@ test(
       );
       assert.equal((await prisma.property.findUniqueOrThrow({ where: { id: property.id } })).occupiedUnits, 1);
       assert.equal((await prisma.lease.findUniqueOrThrow({ where: { id: rollbackLease.id } })).status, "draft");
+
+      const proratedStart = new Date(Date.UTC(futureYear, 0, 31));
+      const proratedLease = await createDraft("Prorated rent", proratedStart);
+      await prisma.lease.update({ where: { id: proratedLease.id }, data: { billingResponsibility: "individual" } });
+      await prisma.leaseTenant.updateMany({
+        where: { leaseId: proratedLease.id, tenantId: tenant.id },
+        data: { rentShareCents: 1, depositShareCents: 0 },
+      });
+      await prisma.leaseTenant.create({
+        data: {
+          organizationId: organization.id,
+          leaseId: proratedLease.id,
+          tenantId: nextResident.id,
+          rentShareCents: 119_999,
+          depositShareCents: 0,
+        },
+      });
+      await caller.leases.finalizeDraft({ leaseId: proratedLease.id, expectedRevision: 4 });
+      const zeroInvoice = await prisma.invoice.findFirstOrThrow({
+        where: { leaseId: proratedLease.id, tenantId: tenant.id, periodStartsOn: proratedStart },
+      });
+      assert.equal(zeroInvoice.status, "paid");
+      assert.equal(zeroInvoice.amountCents, 0);
+      const revisedAllocation = {
+        ...amendment,
+        leaseId: proratedLease.id,
+        effectiveOn: `${futureYear}-01-31`,
+        monthlyRentCents: 120_000,
+        rentDueDay: 1,
+        tenantIds: [tenant.id, nextResident.id],
+        tenantAllocations: [
+          { tenantId: tenant.id, rentShareCents: 31, depositShareCents: 0 },
+          { tenantId: nextResident.id, rentShareCents: 119_969, depositShareCents: 0 },
+        ],
+        reason: "Revise the prorated rent allocation",
+      };
+      const zeroPreview = await caller.leases.previewAmendment(revisedAllocation);
+      await caller.leases.applyAmendment({ ...revisedAllocation, previewToken: zeroPreview.previewToken });
+      const revisedInvoice = await prisma.invoice.findUniqueOrThrow({ where: { id: zeroInvoice.id } });
+      assert.equal(revisedInvoice.status, "open");
+      assert.equal(revisedInvoice.amountCents, 1);
+      assert.equal(revisedInvoice.balanceCents, 1);
 
       await prisma.rolePermission.createMany({
         data: [

@@ -31,19 +31,12 @@ import { TenantRecordDrawer } from "../../../../components/tenant-record-drawer"
 import { LeaseAmendmentDrawer } from "../../../../components/lease-amendment-drawer";
 import { LeaseTenantList } from "../../../../components/lease-tenant-list";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
-import { formatLeaseEndDate } from "../../../../lib/format";
+import { formatCurrency, formatLeaseEndDate } from "../../../../lib/format";
 
 function formatDate(value: Date | string | null) {
   return value
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
     : "Not set";
-}
-
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(
-    cents / 100,
-  );
 }
 
 function formatStatus(status: string) {
@@ -85,7 +78,11 @@ function lifecycleLabel(action: string) {
   return "Lease activity";
 }
 
-function lifecycleMessage(event: LeaseLifecycleEvent, startsOn: Date | string | null | undefined) {
+function lifecycleMessage(
+  event: LeaseLifecycleEvent,
+  startsOn: Date | string | null | undefined,
+  currencyCode: string,
+) {
   const metadata = event.metadata;
   const messages: string[] = [];
   if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
@@ -112,7 +109,9 @@ function lifecycleMessage(event: LeaseLifecycleEvent, startsOn: Date | string | 
           typeof after.monthlyRentCents === "number" &&
           before.monthlyRentCents !== after.monthlyRentCents
         ) {
-          messages.push(`Rent ${formatCurrency(before.monthlyRentCents)} → ${formatCurrency(after.monthlyRentCents)}`);
+          messages.push(
+            `Rent ${formatCurrency(before.monthlyRentCents, currencyCode)} → ${formatCurrency(after.monthlyRentCents, currencyCode)}`,
+          );
         }
         if ("rentDueDay" in before && "rentDueDay" in after && before.rentDueDay !== after.rentDueDay) {
           messages.push(`Due day ${before.rentDueDay} → ${after.rentDueDay}`);
@@ -199,6 +198,10 @@ export default function LeaseDetailPage() {
     onError: (error) => toast.error(error.message),
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
+  const monthlyRent =
+    leaseRecord?.monthlyRentCents == null
+      ? "Not set"
+      : formatCurrency(leaseRecord.monthlyRentCents, leaseRecord.currencyCode);
   const canAmend =
     canEditLease &&
     hasPermission(currentUserQuery.data?.permissions, "invoices", "view") &&
@@ -420,15 +423,11 @@ export default function LeaseDetailPage() {
               </section>
               {leaseRecord.hasPendingAmendment && leaseRecord.amendmentEffectiveOn ? (
                 <p className="mt-4 text-sm text-parcelis-gray">
-                  Revised terms take effect {new Date(leaseRecord.amendmentEffectiveOn).toISOString().slice(0, 10)}.
+                  Lease amendment takes effect {new Date(leaseRecord.amendmentEffectiveOn).toISOString().slice(0, 10)}.
                 </p>
               ) : null}
               <section className="mt-5 flex flex-col gap-5 md:flex-row">
-                <Metric
-                  icon={CircleDollarSign}
-                  label="Monthly Rent"
-                  value={formatCurrency(leaseRecord.monthlyRentCents)}
-                />
+                <Metric icon={CircleDollarSign} label="Monthly Rent" value={monthlyRent} />
                 <Metric icon={CalendarDays} label="Rent Due" value={dueDay(leaseRecord.rentDueDay)} />
               </section>
               <section className="mt-5 flex flex-col gap-5 lg:flex-row">
@@ -470,7 +469,7 @@ export default function LeaseDetailPage() {
                       {formatLeaseEndDate(leaseRecord.endsOn, leaseRecord.termType)}
                     </Detail>
                     <Detail icon={CircleDollarSign} label="Monthly Rent">
-                      {formatCurrency(leaseRecord.monthlyRentCents)}
+                      {monthlyRent}
                     </Detail>
                     <Detail icon={CalendarDays} label="Rent Due Day">
                       {dueDay(leaseRecord.rentDueDay)}
@@ -537,27 +536,29 @@ export default function LeaseDetailPage() {
                       <p className="text-sm text-red-700">{lifecycleQuery.error.message}</p>
                     ) : lifecycleEvents.length ? (
                       <ul className="divide-y divide-parcelis-border">
-                        {lifecycleEvents.map((event) => (
-                          <li className="py-3" key={event.id}>
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                              <span className="font-semibold text-parcelis-charcoal">
-                                {lifecycleLabel(event.action)}
-                              </span>
-                              {event.createdAt ? (
-                                <time className="text-parcelis-gray" dateTime={new Date(event.createdAt).toISOString()}>
-                                  {new Date(event.createdAt).toLocaleString()}
-                                </time>
-                              ) : (
-                                <span className="text-parcelis-gray">Log timestamp unavailable</span>
-                              )}
-                            </div>
-                            {lifecycleMessage(event, leaseRecord.startsOn) ? (
-                              <p className="mt-1 text-sm text-parcelis-gray">
-                                {lifecycleMessage(event, leaseRecord.startsOn)}
-                              </p>
-                            ) : null}
-                          </li>
-                        ))}
+                        {lifecycleEvents.map((event) => {
+                          const message = lifecycleMessage(event, leaseRecord.startsOn, leaseRecord.currencyCode);
+                          return (
+                            <li className="py-3" key={event.id}>
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                                <span className="font-semibold text-parcelis-charcoal">
+                                  {lifecycleLabel(event.action)}
+                                </span>
+                                {event.createdAt ? (
+                                  <time
+                                    className="text-parcelis-gray"
+                                    dateTime={new Date(event.createdAt).toISOString()}
+                                  >
+                                    {new Date(event.createdAt).toLocaleString()}
+                                  </time>
+                                ) : (
+                                  <span className="text-parcelis-gray">Log timestamp unavailable</span>
+                                )}
+                              </div>
+                              {message ? <p className="mt-1 text-sm text-parcelis-gray">{message}</p> : null}
+                            </li>
+                          );
+                        })}
                       </ul>
                     ) : (
                       <p className="text-sm text-parcelis-gray">No lifecycle activity yet.</p>

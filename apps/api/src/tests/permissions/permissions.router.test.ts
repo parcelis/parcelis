@@ -50,6 +50,7 @@ function createDeniedCaller(
         id: 1,
         name: "Test Organization",
         slug: "test-organization",
+        currencyCode: "EUR",
         seedKey: null,
         avatarObjectKey: null,
         darkAvatarObjectKey: null,
@@ -350,11 +351,14 @@ test("API denies lease deletion when delete permission is missing", async () => 
 test("lease details allow lease-only viewing and scope reads to the active organization", async () => {
   const lease = {
     id: 7,
+    currencyCode: null,
     archivedAt: new Date(),
     rentDueDay: 1,
     property: { id: 2, name: "Example" },
     unit: { id: 3, name: "1A" },
-    tenants: [{ tenant: { id: 4, firstName: "Sam", lastName: "Tenant" } }],
+    tenants: [
+      { rentShareCents: null, depositShareCents: null, tenant: { id: 4, firstName: "Sam", lastName: "Tenant" } },
+    ],
     invoices: [],
   };
   const caller = createDeniedCaller({
@@ -381,6 +385,9 @@ test("lease details allow lease-only viewing and scope reads to the active organ
   await expectForbidden(() => caller.properties.list());
   assert.deepEqual(await caller.leases.byId({ id: lease.id }), {
     ...lease,
+    currencyCode: "EUR",
+    hasPendingAmendment: false,
+    tenantAllocations: [],
     tenants: lease.tenants.map(({ tenant }) => tenant),
   });
   assert.equal(await caller.leases.byId({ id: 99 }), null);

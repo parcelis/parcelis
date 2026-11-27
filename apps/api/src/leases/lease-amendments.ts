@@ -10,6 +10,7 @@ import {
   type MonthlyRentChargePlan,
 } from "@parcelis/schemas";
 import { TRPCError } from "@trpc/server";
+import { requirePermission } from "../modules/permissions";
 import { createLeaseRentInvoices } from "./lease-rent-invoices";
 
 const amendableLeaseStatuses: LeaseStatus[] = [LeaseStatus.active, LeaseStatus.notice, LeaseStatus.scheduled];
@@ -47,6 +48,13 @@ export function leaseRosterWhere(date: string): Prisma.LeaseTenantWhereInput {
       { OR: [{ removedOn: null }, { removedOn: { gt: on } }] },
     ],
   };
+}
+
+export function isOnLeaseRoster(
+  { assignedOn, removedOn }: { assignedOn: Date | null; removedOn: Date | null },
+  date: Date,
+) {
+  return (!assignedOn || assignedOn <= date) && (!removedOn || removedOn > date);
 }
 
 export function leaseAmendmentHash(value: unknown) {
@@ -122,6 +130,7 @@ function sameCharge(invoice: RentInvoice, charge: MonthlyRentChargePlan) {
 export async function planLeaseAmendment(
   tx: Prisma.TransactionClient,
   organizationId: number,
+  role: string,
   today: string,
   input: LeaseAmendmentInput,
 ) {
@@ -186,17 +195,6 @@ export async function planLeaseAmendment(
     throw new TRPCError({ code: "CONFLICT", message: "The amended lease overlaps another lease for this unit." });
   }
 
-  const billing = leaseTenantBillingStepSchema.safeParse({
-    ...input,
-    securityDepositCents: lease.securityDepositCents,
-    allowPartialPayments: lease.allowPartialPayments,
-  });
-  if (!billing.success) badRequest(billing.error.issues[0]?.message ?? "Check the resident allocations.");
-  const eligible = await tx.tenant.count({
-    where: { organizationId, archivedAt: null, id: { in: input.tenantIds } },
-  });
-  if (eligible !== input.tenantIds.length) badRequest("Select eligible, unarchived residents in this organization.");
-
   const before = {
     endsOn: oldEnd,
     monthlyRentCents: lease.monthlyRentCents,
@@ -215,7 +213,25 @@ export async function planLeaseAmendment(
     tenantIds: [...input.tenantIds].sort((a, b) => a - b),
     tenantAllocations: [...input.tenantAllocations].sort((a, b) => a.tenantId - b.tenantId),
   };
+  if (
+    before.billingResponsibility !== after.billingResponsibility ||
+    !isDeepStrictEqual(before.tenantIds, after.tenantIds) ||
+    !isDeepStrictEqual(before.tenantAllocations, after.tenantAllocations)
+  ) {
+    await requirePermission(tx, role, "tenants", "view");
+  }
   if (isDeepStrictEqual(before, after)) badRequest("Change at least one lease term or resident.");
+
+  const billing = leaseTenantBillingStepSchema.safeParse({
+    ...input,
+    securityDepositCents: lease.securityDepositCents,
+    allowPartialPayments: lease.allowPartialPayments,
+  });
+  if (!billing.success) badRequest(billing.error.issues[0]?.message ?? "Check the resident allocations.");
+  const eligible = await tx.tenant.count({
+    where: { organizationId, archivedAt: null, id: { in: input.tenantIds } },
+  });
+  if (eligible !== input.tenantIds.length) badRequest("Select eligible, unarchived residents in this organization.");
 
   let schedule: MonthlyRentChargePlan[];
   try {
@@ -237,9 +253,10 @@ export async function planLeaseAmendment(
     const charge = desired.get(invoice.sourceKey) ?? null;
     desired.delete(invoice.sourceKey);
     if (charge && sameCharge(invoice, charge)) continue;
+    const zeroCharge = invoice.status === "paid" && invoice.amountCents === 0 && invoice.balanceCents === 0;
     if (
       invoice.issuedAt ||
-      invoice.status !== "open" ||
+      (invoice.status !== "open" && !zeroCharge) ||
       hasInvoicePaymentHistory(invoice, invoice._count.payments) ||
       invoice._count.notes ||
       dateOnly(invoice.periodStartsOn) < input.effectiveOn ||
@@ -369,7 +386,7 @@ export async function applyLeaseAmendment(
         billingRevision: revision,
         recipients: {
           deleteMany: {},
-          createMany: { data: charge.recipientTenantIds.map((tenantId) => ({ organizationId, tenantId })) },
+          createMany: { data: charge.recipientTenantIds.map((tenantId) => ({ tenantId })) },
         },
         items: {
           deleteMany: {},

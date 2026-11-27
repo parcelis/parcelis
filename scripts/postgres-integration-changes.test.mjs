@@ -19,7 +19,7 @@ for (const [file, expected] of [
   ["apps/worker/src/tests/outbox-dispatcher.integration.ts", ["worker"]],
   ["packages/jobs/src/contracts.ts", ["worker", "api-tokens", "installation"]],
   ["apps/api/src/modules/activity-actor.ts", ["api-tokens", "installation"]],
-  ["apps/api/src/modules/permissions.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/permissions.ts", ["api-tokens", "installation", "lease-billing"]],
   ["apps/api/src/modules/api-tokens.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/authorization.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/object-storage.config.ts", ["api-tokens", "installation"]],
