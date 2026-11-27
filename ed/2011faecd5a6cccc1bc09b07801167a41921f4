@@ -1,0 +1,21 @@
+apps/web/app/(authenticated)/setup/demo-ready/page.tsx
+  s_48d44a0809bcc5::t_a28e81423fa7e9 1,45-59
+  s_48d44a0809bcc5::t_07549919ffe7bd 7,43-44,61,74
+  s_48d44a0809bcc5::t_7a01a9904cb53e 60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed2011faecd5a6cccc1bc09b07801167a41921f4",
+  "prompts": {},
+  "sessions": {
+    "s_48d44a0809bcc5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21de9-e97b-7303-97ab-b853903ccd49",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
