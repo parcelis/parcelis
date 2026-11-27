@@ -87,10 +87,20 @@ function createPrisma() {
   }> = [];
   const outboxEvents: OutboxEvent[] = [];
   const notificationDeliveries: NotificationDelivery[] = [];
+  const properties: Array<{ id: number; organizationId: number; name: string }> = [];
+  const units: Array<{ id: number; propertyId: number; name: string }> = [];
+  const tenants: Array<{ id: number; organizationId: number; email: string }> = [];
+  const leases: Array<{ id: number; organizationId: number; propertyId: number | null; unitId: number | null }> = [];
+  const leaseTenants: Array<{ organizationId: number; leaseId: number; tenantId: number }> = [];
+  const invoices: Array<{ leaseId: number; tenantId: number; periodStartsOn: Date }> = [];
   const transactions: Promise<unknown>[] = [];
   let nextUserId = 1;
   let nextTokenId = 1;
   let nextOrganizationId = 1;
+  let nextPropertyId = 1;
+  let nextUnitId = 1;
+  let nextTenantId = 1;
+  let nextLeaseId = 1;
   let nextOutboxEventId = 1;
   let nextNotificationDeliveryId = 1;
 
@@ -142,6 +152,140 @@ function createPrisma() {
       create: async ({ data }: { data: (typeof invoiceCharges)[number] }) => {
         invoiceCharges.push(data);
         return { ...data, id: invoiceCharges.length };
+      },
+    },
+    property: {
+      findFirst: async ({ where }: { where: { organizationId: number; name: string } }) =>
+        properties.find((property) => property.organizationId === where.organizationId && property.name === where.name) ??
+        null,
+      create: async ({ data }: { data: { organizationId: number; name: string } }) => {
+        const property = { ...data, id: nextPropertyId++ };
+        properties.push(property);
+        return property;
+      },
+      update: async ({ where, data }: { where: { id: number }; data: { organizationId?: number; name?: string } }) => {
+        const property = properties.find((candidate) => candidate.id === where.id);
+        if (!property) throw new Error("Property not found.");
+        Object.assign(property, data);
+        return property;
+      },
+    },
+    unit: {
+      upsert: async ({
+        where,
+        update,
+        create,
+      }: {
+        where: { propertyId_name: { propertyId: number; name: string } };
+        update: { propertyId?: number; name?: string };
+        create: { propertyId: number; name: string };
+      }) => {
+        const existing = units.find(
+          (unit) => unit.propertyId === where.propertyId_name.propertyId && unit.name === where.propertyId_name.name,
+        );
+        if (existing) {
+          Object.assign(existing, update);
+          return existing;
+        }
+        const unit = { ...create, id: nextUnitId++ };
+        units.push(unit);
+        return unit;
+      },
+    },
+    tenant: {
+      upsert: async ({
+        where,
+        update,
+        create,
+      }: {
+        where: { organizationId_email: { organizationId: number; email: string } };
+        update: { organizationId?: number; email?: string };
+        create: { organizationId: number; email: string };
+      }) => {
+        const existing = tenants.find(
+          (tenant) =>
+            tenant.organizationId === where.organizationId_email.organizationId &&
+            tenant.email === where.organizationId_email.email,
+        );
+        if (existing) {
+          Object.assign(existing, update);
+          return existing;
+        }
+        const tenant = { ...create, id: nextTenantId++ };
+        tenants.push(tenant);
+        return tenant;
+      },
+    },
+    lease: {
+      findFirst: async ({
+        where,
+      }: {
+        where: { organizationId: number; propertyId: number | null; unitId: number | null };
+      }) =>
+        leases.find(
+          (lease) =>
+            lease.organizationId === where.organizationId &&
+            lease.propertyId === where.propertyId &&
+            lease.unitId === where.unitId,
+        ) ?? null,
+      create: async ({ data }: { data: { organizationId: number; propertyId: number | null; unitId: number | null } }) => {
+        const lease = { ...data, id: nextLeaseId++ };
+        leases.push(lease);
+        return lease;
+      },
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: number };
+        data: { organizationId?: number; propertyId?: number | null; unitId?: number | null };
+      }) => {
+        const lease = leases.find((candidate) => candidate.id === where.id);
+        if (!lease) throw new Error("Lease not found.");
+        Object.assign(lease, data);
+        return lease;
+      },
+    },
+    leaseTenant: {
+      upsert: async ({
+        where,
+        create,
+      }: {
+        where: { organizationId_leaseId_tenantId: { organizationId: number; leaseId: number; tenantId: number } };
+        create: { organizationId: number; leaseId: number; tenantId: number };
+      }) => {
+        const existing = leaseTenants.find(
+          (leaseTenant) =>
+            leaseTenant.organizationId === where.organizationId_leaseId_tenantId.organizationId &&
+            leaseTenant.leaseId === where.organizationId_leaseId_tenantId.leaseId &&
+            leaseTenant.tenantId === where.organizationId_leaseId_tenantId.tenantId,
+        );
+        if (existing) {
+          return existing;
+        }
+        leaseTenants.push(create);
+        return create;
+      },
+    },
+    invoice: {
+      upsert: async ({
+        where,
+        create,
+      }: {
+        where: { leaseId_tenantId_periodStartsOn: { leaseId: number; tenantId: number; periodStartsOn: Date } };
+        create: { leaseId: number; tenantId: number; periodStartsOn: Date };
+      }) => {
+        const existing = invoices.find(
+          (invoice) =>
+            invoice.leaseId === where.leaseId_tenantId_periodStartsOn.leaseId &&
+            invoice.tenantId === where.leaseId_tenantId_periodStartsOn.tenantId &&
+            invoice.periodStartsOn.getTime() === where.leaseId_tenantId_periodStartsOn.periodStartsOn.getTime(),
+        );
+        if (existing) {
+          return existing;
+        }
+        invoices.push(create);
+        return create;
       },
     },
     organizationMembership: {
@@ -300,6 +444,12 @@ function createPrisma() {
     invoiceCharges,
     organizationMemberships,
     outboxEvents,
+    properties,
+    units,
+    tenants,
+    leases,
+    leaseTenants,
+    invoices,
     passwordResetTokens,
     prisma,
     tokens,
@@ -414,6 +564,30 @@ test("registration creates a pending account and one verification token without 
   assert.match(payload.template.url, /mode=verify/);
   await caller.auth.register({ email: fixtureEmail("second"), password: fixtureValue("second-account") });
   assert.equal(state.installation.record!.installationId, identity.installationId);
+});
+
+test("demo registration seeds starter demo records for the new organization", async (t) => {
+  const emailDelivery = mockEmailDelivery();
+  t.after(() => {
+    mock.restoreAll();
+    emailDelivery.restore();
+    resetEmailTransporter();
+  });
+  const state = createPrisma();
+  const caller = createCaller(state.prisma);
+
+  await caller.auth.register({
+    email: fixtureEmail("demo"),
+    password: fixtureValue("demo-account"),
+    setupMode: "demo",
+  });
+
+  assert.equal(state.properties.length, 1);
+  assert.equal(state.units.length, 1);
+  assert.equal(state.tenants.length, 1);
+  assert.equal(state.leases.length, 1);
+  assert.equal(state.leaseTenants.length, 1);
+  assert.equal(state.invoices.length, 1);
 });
 
 test("verification activates a pending account and consumes its token", async () => {

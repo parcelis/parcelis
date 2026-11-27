@@ -271,14 +271,20 @@ Install dependencies and run the apps on your machine with hot reload:
 ```bash
 pnpm install
 cp .env.example .env
-# Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
+# Set SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD (12+ chars), and SEED_ORGANIZATION_NAME in .env
 # Generate NEXTAUTH_SECRET with: openssl rand -base64 32
 docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
+pnpm db:seed:demo
 pnpm dev
 ```
+
+When creating the first account in the login UI, Parcelis now guides setup in two steps: choose
+**Fresh install** (bootstrap-only) or **Demo install** (includes starter demo records), then continue
+to account creation. Demo selections redirect to `/setup/demo-ready` after the first successful sign-in
+for that account.
 
 Set `NEXTAUTH_URL` in `.env` to the public browser origin (normally `http://localhost` through nginx). When using the web app's port directly, include that port. The web app forwards `/api/auth/*` to the API. NextAuth uses host-only cookies and enables Secure when `NEXTAUTH_URL` is HTTPS; the old `AUTH_COOKIE_DOMAIN`, `AUTH_COOKIE_SECURE`, and `AUTH_DISABLED` overrides are removed. Use the same private, stable `NEXTAUTH_SECRET` in the web and API processes; changing it invalidates NextAuth cookies. NextAuth JWT sessions have a seven-day rolling expiry: checking the session renews it for another seven days. There is no separate server-enforced idle timeout or database session record. Cookies from the previous session implementation require signing in again using existing credentials.
 
@@ -322,11 +328,15 @@ The host processes and local services are also available directly:
 
 #### Local database
 
-Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `DATABASE_URL` is unset, the API uses `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public` only when `NODE_ENV` is `development` or `test`. Other environments require an explicit PostgreSQL URL; empty or invalid values fail startup.
+Prisma commands run through `pnpm db:*` automatically load the root `.env`. If `DATABASE_URL` is unset, the API uses `postgresql://parcelis:parcelis@localhost:54320/parcelis?schema=public` only when `ENVIRONMENT` is `development` or `test` (falling back to `NODE_ENV` when `ENVIRONMENT` is unset). Other environments require an explicit PostgreSQL URL; empty or invalid values fail startup.
 
 pgAdmin is available at `http://localhost:8000` with `admin@parcelis.dev` / `parcelis`. The Parcelis database is preconfigured; use `parcelis` as its password when connecting for the first time.
 
-Set `SEED_ADMIN_PASSWORD` to a unique password of at least 12 characters before the first `pnpm db:seed`. Set `SEED_ADMIN_EMAIL` to use an address other than the default `admin@parcelis.dev`. The seed creates the local administrator account without replacing an existing password.
+Set `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, and `SEED_ORGANIZATION_NAME` before the first `pnpm db:seed`. To use `admin@parcelis.dev` on your local database, set `ENVIRONMENT=development` and `SEED_ADMIN_EMAIL=admin@parcelis.dev` in `.env`. The seed falls back to `NODE_ENV` when `ENVIRONMENT` is unset. The password must be at least 12 characters when creating the bootstrap administrator.
+
+`pnpm db:seed` now runs only the non-destructive bootstrap path: administrator ownership, bootstrap organization membership, and required lookup catalogs. It does not create demo properties, leases, tenants, invoices, or sample API tokens.
+
+Run `pnpm db:seed:demo` only in local/demo environments where you explicitly want sample records. This command runs the same seed with the `--demo` flag and can apply destructive demo updates.
 
 The demo organization also includes **Demo active token** and **Demo revoked token**
 for the API-token settings table, with creator, usage, expiration, and revocation
@@ -342,7 +352,7 @@ pnpm db:migrate
 pnpm db:generate
 ```
 
-Run `pnpm db:seed` only when setting up demo data or when a change explicitly requires updated seed data.
+Run `pnpm db:seed` to bootstrap real environments. Run `pnpm db:seed:demo` only for demo/sample data setup.
 
 #### Useful commands
 
@@ -502,7 +512,7 @@ Parcelis uses two Compose workflows:
 
 ```bash
 cp .env.example .env
-# Set a unique, 12+ character SEED_ADMIN_PASSWORD in .env
+# Set SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD (12+ chars), and SEED_ORGANIZATION_NAME in .env
 # Generate NEXTAUTH_SECRET with: openssl rand -base64 32
 docker compose -f docker-compose-dev.yml up -d
 ```

@@ -8,7 +8,7 @@ import {
   updateUserProfileInputSchema,
   verifyEmailInputSchema,
 } from "@parcelis/schemas";
-import { initializeInstallationIdentity, Prisma } from "@parcelis/db";
+import { initializeInstallationIdentity, Prisma, seedOrganizationBootstrapData, seedOrganizationDemoData } from "@parcelis/db";
 import { TRPCError } from "@trpc/server";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@parcelis/email";
 import {
@@ -73,14 +73,13 @@ export const authRouter = router({
           data: { name: "My organization", slug: `organization-${createdUser.id}` },
           select: { id: true },
         });
-        await tx.invoiceCharge.create({
-          data: {
+        const { defaultInvoiceCharge } = await seedOrganizationBootstrapData(tx, organization.id);
+        if (input.setupMode === "demo") {
+          await seedOrganizationDemoData(tx, {
             organizationId: organization.id,
-            name: "Rent",
-            description: "Monthly rent for {month} {year}",
-            isDefault: true,
-          },
-        });
+            defaultInvoiceChargeId: defaultInvoiceCharge.id,
+          });
+        }
         await tx.organizationMembership.create({
           data: { userId: createdUser.id, organizationId: organization.id, role: "owner" },
         });

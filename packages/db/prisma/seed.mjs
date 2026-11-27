@@ -4,6 +4,7 @@ import * as argon2 from "argon2";
 import { randomBytes } from "node:crypto";
 import { seedApiTokens } from "./seed-api-tokens.mjs";
 import { initializeInstallationIdentity } from "../src/installation.ts";
+import { seedOrganizationBootstrapData } from "../src/organization-bootstrap.ts";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
@@ -53,35 +54,6 @@ const properties = [
     occupiedUnits: 33,
     status: "maintenance",
   },
-];
-
-const utilityTypes = ["Electricity", "Water", "Sewer", "Gas", "Internet"];
-const amenityTypes = [
-  "A/C",
-  "Off-Street Parking",
-  "On-Street Parking",
-  "Pool",
-  "Furnished",
-  "Balcony/Deck",
-  "Hardwood Floor",
-  "Tile Floor",
-  "Carpet",
-  "Pets Allowed",
-  "Wheelchair Access",
-];
-const propertyTags = [
-  "Commercial",
-  "HOA",
-  "Industrial",
-  "Manufactured Home",
-  "Office",
-  "Other",
-  "Parking",
-  "Residential",
-  "Retail",
-  "Senior Living",
-  "Storage",
-  "Student Housing",
 ];
 
 function getDemoUnitNames(property, leaseLabels) {
@@ -295,9 +267,22 @@ async function seedInvoice({ lease, charge, tenantId, periodStartsOn, amountCent
 }
 
 async function main() {
-  const administratorEmail = process.env.SEED_ADMIN_EMAIL?.trim() || "admin@parcelis.dev";
-  const organizationName = "Parcelis Property Management";
-  const organizationSeedKey = "parcelis-demo";
+  const seedDemoData = process.argv.includes("--demo") || process.env.SEED_DEMO_DATA === "true";
+  const administratorEmail = process.env.SEED_ADMIN_EMAIL?.trim();
+  if (!administratorEmail) {
+    throw new Error("SEED_ADMIN_EMAIL must be set to the bootstrap administrator email.");
+  }
+  const environment = process.env.ENVIRONMENT?.trim() || process.env.NODE_ENV;
+  if (administratorEmail.toLowerCase() === "admin@parcelis.dev" && environment !== "development") {
+    throw new Error("SEED_ADMIN_EMAIL may use admin@parcelis.dev only in the development environment.");
+  }
+
+  const organizationName = process.env.SEED_ORGANIZATION_NAME?.trim();
+  if (!organizationName) {
+    throw new Error("SEED_ORGANIZATION_NAME must be set to the bootstrap organization name.");
+  }
+
+  const organizationSeedKey = "parcelis-bootstrap";
   const existingOrganization = await prisma.organization.findUnique({
     where: { seedKey: organizationSeedKey },
   });
@@ -312,16 +297,6 @@ async function main() {
     : await prisma.organization.create({
         data: { name: organizationName, slug: randomBytes(10).toString("hex"), seedKey: organizationSeedKey },
       });
-  const defaultInvoiceCharge =
-    (await prisma.invoiceCharge.findFirst({ where: { organizationId: organization.id, isDefault: true } })) ??
-    (await prisma.invoiceCharge.create({
-      data: {
-        organizationId: organization.id,
-        name: "Rent",
-        description: "Monthly rent for {month} {year}",
-        isDefault: true,
-      },
-    }));
   const administrator = await prisma.user.findUnique({ where: { email: administratorEmail } });
 
   if (administrator) {
@@ -360,31 +335,16 @@ async function main() {
   });
   await prisma.user.update({ where: { id: seededAdministrator.id }, data: { defaultOrganizationId: organization.id } });
 
+  const { defaultInvoiceCharge, applicationStatusByLabel } = await seedOrganizationBootstrapData(
+    prisma,
+    organization.id,
+  );
+
+  if (!seedDemoData) {
+    return;
+  }
+
   await seedApiTokens(prisma, organization, seededAdministrator);
-
-  for (const [index, label] of utilityTypes.entries()) {
-    await prisma.utilityType.upsert({
-      where: { organizationId_label: { organizationId: organization.id, label } },
-      update: { sortOrder: (index + 1) * 10 },
-      create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
-    });
-  }
-
-  for (const [index, label] of amenityTypes.entries()) {
-    await prisma.amenityType.upsert({
-      where: { organizationId_label: { organizationId: organization.id, label } },
-      update: { sortOrder: (index + 1) * 10 },
-      create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
-    });
-  }
-
-  for (const [index, label] of propertyTags.entries()) {
-    await prisma.tag.upsert({
-      where: { organizationId_label: { organizationId: organization.id, label } },
-      update: { sortOrder: (index + 1) * 10 },
-      create: { organizationId: organization.id, label, sortOrder: (index + 1) * 10 },
-    });
-  }
 
   for (const property of properties) {
     const existing = await prisma.property.findFirst({
@@ -676,47 +636,6 @@ async function main() {
     }),
   ]);
 
-  const maintenanceCategories = [
-    "A/C",
-    "Appliance",
-    "Plumbing",
-    "Electrical",
-    "Heat",
-    "Kitchen",
-    "Other",
-    "Pest Control",
-    "Bathroom",
-    "Exterior",
-  ];
-  await Promise.all(
-    maintenanceCategories.map((label, sortOrder) =>
-      prisma.maintenanceCategory.upsert({
-        where: { organizationId_label: { organizationId: organization.id, label } },
-        update: { sortOrder },
-        create: { organizationId: organization.id, label, sortOrder },
-      }),
-    ),
-  );
-
-  const applicationStatusLabels = [
-    "For Review",
-    "Pending",
-    "Approved",
-    "Lease Created",
-    "Rejected",
-    "Declined",
-    "Expired",
-  ];
-  const applicationStatuses = await Promise.all(
-    applicationStatusLabels.map((label, sortOrder) =>
-      prisma.applicationStatus.upsert({
-        where: { organizationId_label: { organizationId: organization.id, label } },
-        update: { sortOrder },
-        create: { organizationId: organization.id, label, sortOrder },
-      }),
-    ),
-  );
-  const applicationStatusByLabel = Object.fromEntries(applicationStatuses.map((status) => [status.label, status]));
   await Promise.all([
     prisma.landlord.upsert({
       where: {
@@ -949,7 +868,12 @@ async function main() {
 
 main()
   .then(async () => {
-    console.log("Seeded Parcelis demo data.");
+    const seedDemoData = process.argv.includes("--demo") || process.env.SEED_DEMO_DATA === "true";
+    if (seedDemoData) {
+      console.log("Seeded Parcelis bootstrap and demo data.");
+    } else {
+      console.log("Seeded Parcelis bootstrap data.");
+    }
     await prisma.$disconnect();
   })
   .catch(async (error) => {

@@ -342,10 +342,12 @@ see [the contribution workflow](CONTRIBUTING.md#documentation-across-repositorie
 ```bash
 pnpm install
 cp .env.example .env
+# Set SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD (12+ chars), and SEED_ORGANIZATION_NAME
 docker compose -f docker-compose-dev.yml up -d
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
+pnpm db:seed:demo # optional demo/sample records only
 pnpm dev
 ```
 

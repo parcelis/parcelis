@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Layers3, LockKeyhole, LockOpen, Mail, UsersRound } from "lucide-react";
 import * as React from "react";
 import { flushSync } from "react-dom";
-import { Button, Input } from "@parcelis/ui";
+import { Button, Input, RadioGroup, RadioGroupItem } from "@parcelis/ui";
 import { authenticationUnavailableMessage } from "@parcelis/schemas";
 import { apiClient } from "../../components/api-client";
 import { ThemeSelector } from "../../components/theme-selector";
@@ -26,6 +26,8 @@ const benefits = [
 ];
 
 const verificationDestinationKey = "parcelis-verification-destination";
+const setupModeRedirectKey = "parcelis-setup-mode-redirect";
+const demoReadyDismissedKey = "parcelis-demo-ready-dismissed";
 
 function getVerificationDestination() {
   try {
@@ -51,7 +53,46 @@ function clearVerificationDestination() {
   }
 }
 
+function getSetupModeRedirect() {
+  try {
+    const stored = window.localStorage.getItem(setupModeRedirectKey);
+    return stored === "demo" ? "demo" : null;
+  } catch {
+    return null;
+  }
+}
+
+function setSetupModeRedirect(mode: SetupMode) {
+  try {
+    if (mode === "demo") {
+      window.localStorage.setItem(setupModeRedirectKey, mode);
+      return;
+    }
+    window.localStorage.removeItem(setupModeRedirectKey);
+  } catch {
+    return;
+  }
+}
+
+function clearSetupModeRedirect() {
+  try {
+    window.localStorage.removeItem(setupModeRedirectKey);
+  } catch {
+    return;
+  }
+}
+
+function isDemoReadyDismissed() {
+  try {
+    return window.localStorage.getItem(demoReadyDismissedKey) === "true";
+  } catch {
+    return false;
+  }
+}
+
 type LoginMode = "sign-in" | "register" | "forgot-password" | "reset-password" | "verify-email";
+type SetupMode = "fresh" | "demo";
+type RegisterStep = "welcome" | "account";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
@@ -66,6 +107,8 @@ export default function LoginPage() {
   const [isEmailVerified, setIsEmailVerified] = React.useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = React.useState<string | null>(null);
   const [destination, setDestination] = React.useState("/");
+  const [setupMode, setSetupMode] = React.useState<SetupMode>("fresh");
+  const [registerStep, setRegisterStep] = React.useState<RegisterStep>("welcome");
   const router = useRouter();
   const passwordConfirmationErrorId = React.useId();
   const verificationAttempted = React.useRef(false);
@@ -140,6 +183,7 @@ export default function LoginPage() {
 
   function selectLoginMode(mode: LoginMode) {
     setLoginMode(mode);
+    setRegisterStep(mode === "register" ? "welcome" : "account");
     setError(null);
     setPasswordConfirmationError(null);
     setNotice(null);
@@ -212,12 +256,18 @@ export default function LoginPage() {
       const input = {
         email,
         password: String(formData.get("password") ?? ""),
+        setupMode,
       };
       if (isRegistering) {
         await apiClient.auth.register.mutate(input);
         setVerificationDestination(destination);
+        setSetupModeRedirect(setupMode);
         selectLoginMode("sign-in");
-        setNotice("Check your email for a link to verify your account.");
+        setNotice(
+          setupMode === "demo"
+            ? "Demo setup is ready. Check your email for a link to verify your account."
+            : "Fresh setup is ready. Check your email for a link to verify your account.",
+        );
         return;
       }
       const providers = await fetch("/api/auth/providers", { cache: "no-store" }).catch(() => {
@@ -228,11 +278,13 @@ export default function LoginPage() {
       if (!result || result.error || !result.ok) {
         throw new Error(result?.error ?? "Unable to sign in. Please try again.");
       }
+      const setupModeRedirect = getSetupModeRedirect();
+      clearSetupModeRedirect();
       clearVerificationDestination();
       flushSync(() => setIsLoadingApp(true));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => window.setTimeout(resolve, 5000));
-      router.replace(destination);
+      router.replace(setupModeRedirect === "demo" && !isDemoReadyDismissed() ? "/setup/demo-ready" : destination);
       router.refresh();
     } catch (cause) {
       setIsLoadingApp(false);
@@ -330,6 +382,10 @@ export default function LoginPage() {
                       ? isEmailVerified
                         ? "Email verified"
                         : "Verifying your email"
+                      : isRegistering && registerStep === "welcome"
+                        ? "Welcome to Parcelis"
+                        : isRegistering
+                          ? "Create your account"
                       : "Welcome back"}
               </h2>
               <p className="mb-9 mt-2 text-sm text-parcelis-gray">
@@ -341,8 +397,10 @@ export default function LoginPage() {
                       ? isEmailVerified
                         ? "Your account is active. You can now sign in."
                         : "Please wait while we verify your email address."
+                      : isRegistering && registerStep === "welcome"
+                        ? "Choose how you want to start, then continue to account creation."
                       : isRegistering
-                        ? "Create an account to get started"
+                        ? "Create an account to finish setup."
                         : "Sign in to access your account"}
               </p>
             </div>
@@ -373,10 +431,72 @@ export default function LoginPage() {
                   If an account matches that email address, a password reset link will arrive shortly.
                 </p>
               </div>
+            ) : isRegistering && registerStep === "welcome" ? (
+              <div>
+                <fieldset className="rounded-lg border border-parcelis-border/70 bg-white/55 p-3 dark:bg-parcelis-charcoal/35">
+                  <legend className="px-1 text-sm font-semibold text-parcelis-charcoal dark:text-parcelis-porcelain">
+                    Setup type
+                  </legend>
+                  <RadioGroup className="gap-2" onValueChange={(value) => setSetupMode(value as SetupMode)} value={setupMode}>
+                    <label
+                      className="flex cursor-pointer items-start gap-3 rounded-md border border-transparent p-2 transition hover:border-parcelis-border/80 hover:bg-white/70 dark:hover:border-parcelis-border dark:hover:bg-parcelis-charcoal/40"
+                      htmlFor="setup-fresh"
+                    >
+                      <RadioGroupItem id="setup-fresh" value="fresh" />
+                      <span className="flex flex-col">
+                        <span className="text-sm font-medium text-parcelis-charcoal dark:text-parcelis-porcelain">
+                          Fresh install
+                        </span>
+                        <span className="text-xs text-parcelis-gray">
+                          Start with only required setup data (recommended).
+                        </span>
+                      </span>
+                    </label>
+                    <label
+                      className="flex cursor-pointer items-start gap-3 rounded-md border border-transparent p-2 transition hover:border-parcelis-border/80 hover:bg-white/70 dark:hover:border-parcelis-border dark:hover:bg-parcelis-charcoal/40"
+                      htmlFor="setup-demo"
+                    >
+                      <RadioGroupItem id="setup-demo" value="demo" />
+                      <span className="flex flex-col">
+                        <span className="text-sm font-medium text-parcelis-charcoal dark:text-parcelis-porcelain">
+                          Demo install
+                        </span>
+                        <span className="text-xs text-parcelis-gray">
+                          Create your account for evaluation with guided demo data setup next.
+                        </span>
+                      </span>
+                    </label>
+                  </RadioGroup>
+                </fieldset>
+                <Button className="mt-6 w-full text-white" onClick={() => setRegisterStep("account")} size="lg" type="button">
+                  Continue to account
+                </Button>
+              </div>
             ) : (
               <form onSubmit={handleSubmit}>
                 {!isResetPassword ? (
                   <>
+                    {isRegistering ? (
+                      <div className="mb-5 flex items-center justify-between rounded-lg border border-parcelis-border/70 bg-white/55 px-3 py-2 text-xs dark:bg-parcelis-charcoal/35">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-parcelis-charcoal dark:text-parcelis-porcelain">
+                            {setupMode === "fresh" ? "Fresh install" : "Demo install"}
+                          </span>
+                          <span className="text-parcelis-gray">
+                            {setupMode === "fresh"
+                              ? "Required setup data only."
+                              : "Guided demo data setup after account creation."}
+                          </span>
+                        </div>
+                        <button
+                          className="text-xs font-semibold text-parcelis-green-hover"
+                          type="button"
+                          onClick={() => setRegisterStep("welcome")}
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : null}
                     <label className="mb-2 block text-sm font-semibold" htmlFor="email">
                       Email address
                     </label>

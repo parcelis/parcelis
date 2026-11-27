@@ -44,7 +44,8 @@ export async function startNextApi() {
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid API_PORT.");
   const hostname = process.env.API_HOSTNAME ?? "0.0.0.0";
   const dev = process.argv.includes("--dev");
-  process.env.NODE_ENV ??= dev ? "development" : "production";
+  process.env.ENVIRONMENT ??= process.env.NODE_ENV ?? (dev ? "development" : "production");
+  process.env.NODE_ENV ??= process.env.ENVIRONMENT;
   getDatabaseConfig();
   getTrustedProxyHops();
   const apiRoot = resolve(import.meta.dirname, "..");
