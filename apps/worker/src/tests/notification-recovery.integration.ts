@@ -69,12 +69,13 @@ test("restores a dispatched email job lost from Redis without adding a duplicate
   }) as typeof queue.add;
 
   try {
-    await queue.add(notificationEmailJobName, { ...event.payload, outboxEventId: event.id }, { jobId });
+    const legacyData = { ...event.payload, outboxEventId: event.id };
+    await queue.add(notificationEmailJobName, legacyData, { jobId });
     await reconcileDispatchedNotificationJobs(prisma, queues);
     assert.equal(addCalls, 1);
     const original = await queue.getJob(jobId);
     assert.ok(original);
-    assert.deepEqual(original.data, jobData);
+    assert.deepEqual(original.data, legacyData);
     await original.remove();
     assert.equal(await queue.getJob(jobId), undefined);
 

@@ -572,7 +572,10 @@ test("SMTP 421 remains retryable even with a permanent error code", async () => 
       },
       markDeliveryFailed: async () => assert.fail("SMTP 421 must be retried"),
     }),
-    (actual: unknown) => actual instanceof Error && !(actual instanceof UnrecoverableError),
+    (actual: unknown) =>
+      actual instanceof Error &&
+      !(actual instanceof UnrecoverableError) &&
+      actual.message === "Temporary email delivery failure.",
   );
   assert.equal(retrying, true);
 });
