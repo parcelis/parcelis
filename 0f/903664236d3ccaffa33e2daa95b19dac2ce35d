@@ -1,0 +1,50 @@
+scripts/postgres-integration-changes.mjs
+  s_82b74e5a3d0d7e::t_3a14d9944bdf31 25,43-52
+apps/web/app/(authenticated)/tenants/page.tsx
+  s_dcdfe662826e6e::t_0c211ae0bff90b 261,270-273,278-279
+  s_82b74e5a3d0d7e::t_79f6af95bb2453 5,179,262-265,269,274-277,365,387-388,391-395,400-419,695-698
+scripts/postgres-integration-changes.test.mjs
+  s_82b74e5a3d0d7e::t_3a14d9944bdf31 10,22,34-36
+.github/workflows/postgres-integration.yml
+  s_82b74e5a3d0d7e::t_3a14d9944bdf31 78-81
+apps/api/src/router/trpc.ts
+  s_dcdfe662826e6e::t_8e1f7eb6680153 9
+  s_dcdfe662826e6e::t_281cbbce91f88d 10-29
+apps/api/src/modules/permissions.ts
+  s_82b74e5a3d0d7e::t_d26599f2431f8e 85
+apps/api/src/tests/tenants/tenant-delete.integration.test.ts
+  s_dcdfe662826e6e::t_60f27f9740ba9e 10-12,28,31,34,47-49,51,54-70,95-100,125,140,145-149
+  s_82b74e5a3d0d7e::t_985b031af23602 1-9,13-27,29-30,32-33,35-46,52-53,71-94,101-124,126-130,134-139,141-144,150-161,164-168,170-194,196-198,208-212,215-219,222-223,225-226,230-231,233-238,240-246,249-258
+  s_82b74e5a3d0d7e::t_3a23915e2e87c9 162-163,169,200-207,213-214,224,239
+  s_82b74e5a3d0d7e::t_366a5d44e4d609 195,199,220-221,227-229,232,247-248
+  s_dcdfe662826e6e::t_7fd5bf315b9d93 131-133
+  s_dcdfe662826e6e::t_e0103f249180cb 50
+apps/api/src/router/app.router.ts
+  s_dcdfe662826e6e::t_d574ce48944b1f 2737,2742,2746-2748,2754-2763,2776-2777
+  s_dcdfe662826e6e::t_7fd5bf315b9d93 2749-2753
+  s_82b74e5a3d0d7e::t_d26599f2431f8e 2705,2709-2736,2738-2741,2743-2745,2764-2773,2780-2781
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f903664236d3ccaffa33e2daa95b19dac2ce35d",
+  "prompts": {},
+  "sessions": {
+    "s_82b74e5a3d0d7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21ab5-d86f-72d1-8423-735dea19b985",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_dcdfe662826e6e": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "1bb76968-ee5d-4be9-a106-3b378e604a20",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
