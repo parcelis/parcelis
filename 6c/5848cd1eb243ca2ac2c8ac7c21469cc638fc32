@@ -1,0 +1,30 @@
+apps/worker/src/tests/notification-email.processor.test.ts
+  s_da76bbd0b3489c::t_adcccca060b830 575-578
+.github/workflows/postgres-integration.yml
+  s_da76bbd0b3489c::t_adcccca060b830 74-83
+apps/worker/src/tests/notification-recovery.integration.ts
+  s_da76bbd0b3489c::t_adcccca060b830 72-73,78
+apps/worker/src/outbox-dispatcher.ts
+  s_da76bbd0b3489c::t_adcccca060b830 180-182,187-190,193-204
+  s_da76bbd0b3489c::t_7dfbed71e33919 183-185,191
+apps/worker/src/tests/outbox-dispatcher.test.ts
+  s_da76bbd0b3489c::t_ea90d651de56df 381,392-398,434-435,475
+  s_da76bbd0b3489c::t_7dfbed71e33919 399-423,425,427-433
+  s_da76bbd0b3489c::t_872cc5efbd9cd3 424,426,436
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6c5848cd1eb243ca2ac2c8ac7c21469cc638fc32",
+  "prompts": {},
+  "sessions": {
+    "s_da76bbd0b3489c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21b65-1292-7323-8ddd-1ec4732d6a06",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
