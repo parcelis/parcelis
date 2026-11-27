@@ -1,0 +1,67 @@
+scripts/postgres-integration-changes.test.mjs
+  s_ed050031c0b409::t_2309849949909d 10,27-29,45
+apps/web/components/lease-amendment-drawer.tsx
+  s_ed050031c0b409::t_5e84efc31fcb68 1-160,170-367
+  s_ed050031c0b409::t_7cab5672a8ee87 161-162,167-169
+  s_ed050031c0b409::t_36854e0339e073 163-166
+apps/api/src/tests/invoices/invoices.router.test.ts
+  s_ed050031c0b409::t_36854e0339e073 419,435,463,482-488,496
+apps/api/src/leases/lease-amendments.ts
+  s_ed050031c0b409::t_7cab5672a8ee87 405
+  s_ed050031c0b409::t_a915da4a54acec 1-2,4-5,7-14,16-59,86-97,100-151,153-242,244-401,403-404,406,408-411
+  s_ed050031c0b409::t_63a38f109ab8f4 3,152
+  s_ed050031c0b409::t_058f34fa0e65c3 15
+  s_ed050031c0b409::t_5e84efc31fcb68 402,407
+  s_ed050031c0b409::t_2a4f32e77ca0ef 6,98-99,243
+  s_ed050031c0b409::t_70ceff613c75f0 60-85
+packages/db/prisma/migrations/20261126000000_add_lease_amendment_fields/migration.sql
+  s_ed050031c0b409::t_a915da4a54acec 1-4
+apps/api/src/router/app.router.ts
+  s_ed050031c0b409::t_63a38f109ab8f4 2972-2973,2980-2981,2985,3002-3026,3028,3050-3060,3064,4576,4588,4698-4699
+  s_ed050031c0b409::t_a0550b8e2844bd 4654-4656,4697
+  s_ed050031c0b409::t_7357ceca6b3744 2244,2298,2307-2308,2330,2371
+  s_ed050031c0b409::t_70ceff613c75f0 118,2967
+  s_ed050031c0b409::t_f03e1eed367be2 11-12,113-117,119-121,557-563,569-572,1583,1734,2966,2968,4555,4570-4572,4577-4582,4586-4587,4589-4598,4644-4653,4657-4696,4700-4745
+apps/api/src/modules/permissions.ts
+  s_ed050031c0b409::t_a0550b8e2844bd 85
+apps/api/src/tests/invoices/invoice-pdf.http.integration.test.ts
+  s_ed050031c0b409::t_70ceff613c75f0 133-134,265
+packages/schemas/src/index.ts
+  s_ed050031c0b409::t_302442aff8cc10 773-779,781-787
+  s_ed050031c0b409::t_a915da4a54acec 761-767
+  s_ed050031c0b409::t_337b53587383a2 760,769-772
+  s_ed050031c0b409::t_7f1bf38c16c847 768
+scripts/postgres-integration-changes.mjs
+  s_ed050031c0b409::t_2309849949909d 25,43-50
+packages/db/prisma/schema.prisma
+  s_ed050031c0b409::t_00a48e996ed0a1 645,686-687,707
+apps/web/app/(authenticated)/leases/[id]/page.tsx
+  s_ed050031c0b409::t_7cab5672a8ee87 44,105-108,113-119,125-127
+  s_ed050031c0b409::t_5e84efc31fcb68 31,78,100-104,128,157,172,202-212,237-253,267-272,306-310,324,421-425
+  s_ed050031c0b409::t_36854e0339e073 109-112,120-124
+apps/api/src/tests/leases/lease-finalization.integration.test.ts
+  s_ed050031c0b409::t_eef0eb9ec06122 163
+  s_ed050031c0b409::t_eb2f81a06ad3c9 142-154,201-207
+  s_ed050031c0b409::t_70ceff613c75f0 7,162
+  s_ed050031c0b409::t_553cf3e4415706 21,104-141,155-161,164-200,208-266,337
+ARCHITECTURE.md
+  s_ed050031c0b409::t_779bfc477e413e 148-149
+.github/workflows/postgres-integration.yml
+  s_ed050031c0b409::t_2309849949909d 78-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bc7467bbdfa91c091200c9d2e501baadb9994c91",
+  "prompts": {},
+  "sessions": {
+    "s_ed050031c0b409": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21975-2cf9-70d2-8b36-def0b154a996",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
