@@ -1,0 +1,25 @@
+apps/api/src/tests/leases/lease-finalization.integration.test.ts
+  s_5cab1003647491::t_70adf4006b2057 352-357,360-365
+  s_5cab1003647491::t_12898ca3506cbb 211,321,350-351,358-359,366-391
+  s_5cab1003647491::t_a10a7a9c9f37ad 392
+apps/api/src/router/app.router.ts
+  s_5cab1003647491::t_228350e011d998 2846,2848-2861,2864,2866,2871,2880-2882,2889,2893
+  s_5cab1003647491::t_1b616830ff447a 2874
+  s_5cab1003647491::t_b773140ec87e9a 2883-2888
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "08d6b2aa47d81b873973334baa5d8cf7ce224a11",
+  "prompts": {},
+  "sessions": {
+    "s_5cab1003647491": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21b7b-12dc-7803-a8fb-c474b905a7c0",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
