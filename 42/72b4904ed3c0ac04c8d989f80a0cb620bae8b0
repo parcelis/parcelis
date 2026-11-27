@@ -1,0 +1,86 @@
+package.json
+  s_3815f3a12c60fa::t_d60c204167b42e 31-32
+packages/db/src/organization-demo.ts
+  s_3815f3a12c60fa::t_ae1318509031a4 1-187
+apps/api/src/tests/runtime/database-config.test.ts
+  s_3815f3a12c60fa::t_598cbdef29f65c 6-7,12-13,17-23,26,28,38
+  s_3815f3a12c60fa::t_7a9c8aa648f251 25
+packages/db/prisma/seed.mjs
+  s_82b74e5a3d0d7e::t_f65a5a1514f131 275-277
+  s_3815f3a12c60fa::t_e1c9db2510c9eb 270-274,278-285,341,343-344,347,871-876
+  s_3815f3a12c60fa::t_0ccdbac47da246 7,338-340
+AGENTS.md
+  s_3815f3a12c60fa::t_1624a094c1b8bd 43
+  s_3815f3a12c60fa::t_4eed23250b9260 31-32,39-40,89
+ARCHITECTURE.md
+  s_3815f3a12c60fa::t_c0050e511a1027 345,350
+apps/web/app/(authenticated)/setup/demo-ready/page.tsx
+  s_3815f3a12c60fa::t_2731a619babd23 1-2,4,9-20,50-52
+  s_3815f3a12c60fa::t_8fac8e7175280c 3,5-8,21-49,53-66
+packages/db/package.json
+  s_3815f3a12c60fa::t_d0db1a90cc2821 12
+apps/api/src/router/auth.router.ts
+  s_3815f3a12c60fa::t_1259112e543ffc 11,76-78,80-82
+packages/db/src/index.ts
+  s_3815f3a12c60fa::t_a6e3868943e02a 5
+  s_3815f3a12c60fa::t_32015208b25749 4
+CONTRIBUTING.md
+  s_3815f3a12c60fa::t_db2522e7b390ac 274,280,337-339,355
+  s_3815f3a12c60fa::t_4e4b5fd81d2b3a 284-285,288
+  s_3815f3a12c60fa::t_1624a094c1b8bd 331
+  s_82b74e5a3d0d7e::t_f65a5a1514f131 335
+  s_3815f3a12c60fa::t_a8d51332c50d7e 515
+  s_3815f3a12c60fa::t_f04f21eb4f9aac 286-287
+  s_82b74e5a3d0d7e::t_ff4e32e6fcd76b 336
+.env.production.example
+  s_3815f3a12c60fa::t_3e06b7c8eafd29 46-48
+  s_3815f3a12c60fa::t_1cc313245d4e5a 2
+apps/api/src/modules/database-config.ts
+  s_3815f3a12c60fa::t_9a468ff1f1377d 2,5
+.env.example
+  s_82b74e5a3d0d7e::t_f65a5a1514f131 51
+  s_3815f3a12c60fa::t_792c7691d17989 2
+  s_3815f3a12c60fa::t_e0854f4257d3e0 52,54
+packages/db/src/organization-bootstrap.ts
+  s_3815f3a12c60fa::t_1424611aa80087 1-52,61-63,67-76,78-84,86-92,94-99,111,123-126
+  s_3815f3a12c60fa::t_ca9a0dfecdf1c8 53-60,64-66,77,85,93,100-110,112-122
+apps/api/src/tests/auth/email-verification.router.test.ts
+  s_3815f3a12c60fa::t_0e7a11f00ffd8f 90-95,100-103,157-290,447-452
+  s_3815f3a12c60fa::t_0924211812cf43 569-592
+apps/web/app/login/page.tsx
+  s_3815f3a12c60fa::t_4581026a649431 95,111,186,385-388,400-401,403,434-474
+  s_3815f3a12c60fa::t_31dc69a3d2df4f 259
+  s_3815f3a12c60fa::t_88196736fe091d 30,85-92,287
+  s_3815f3a12c60fa::t_20179550262cac 9,94,110
+  s_3815f3a12c60fa::t_2da1ed81629940 266-270
+  s_3815f3a12c60fa::t_c37e5df723d214 29,56-84,264,281-282
+  s_3815f3a12c60fa::t_1f2a72e293643e 479-499
+apps/api/scripts/server.mjs
+  s_3815f3a12c60fa::t_5f6882e522c012 47-48
+packages/schemas/src/index.ts
+  s_3815f3a12c60fa::t_53e34e5fc8d066 43-45,47-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4272b4904ed3c0ac04c8d989f80a0cb620bae8b0",
+  "prompts": {},
+  "sessions": {
+    "s_3815f3a12c60fa": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "62ab8818-b584-4e3b-8310-867ee9b79528",
+        "model": "unknown"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    },
+    "s_82b74e5a3d0d7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21ab5-d86f-72d1-8423-735dea19b985",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "scoobs-mystery-bytes <15992407+scoobs-mystery-bytes@users.noreply.github.com>"
+    }
+  }
+}
