@@ -43,9 +43,14 @@ function calendarDate(date: string) {
 export function leaseRosterWhere(date: string): Prisma.LeaseTenantWhereInput {
   const on = calendarDate(date);
   return {
-    AND: [
-      { OR: [{ assignedOn: null }, { assignedOn: { lte: on } }] },
-      { OR: [{ removedOn: null }, { removedOn: { gt: on } }] },
+    OR: [
+      {
+        AND: [
+          { OR: [{ assignedOn: null }, { assignedOn: { lte: on } }] },
+          { OR: [{ removedOn: null }, { removedOn: { gt: on } }] },
+        ],
+      },
+      { priorPeriods: { some: { OR: [{ assignedOn: null }, { assignedOn: { lte: on } }], removedOn: { gt: on } } } },
     ],
   };
 }
@@ -137,6 +142,7 @@ export async function planLeaseAmendment(
   const lease = await tx.lease.findFirst({
     where: { id: input.leaseId, organizationId },
     include: {
+      organization: { select: { currencyCode: true } },
       property: { select: { status: true } },
       unit: { select: { archivedAt: true } },
       tenants: { where: leaseRosterWhere(today), orderBy: { tenantId: "asc" } },
@@ -235,14 +241,21 @@ export async function planLeaseAmendment(
 
   let schedule: MonthlyRentChargePlan[];
   try {
-    schedule = planLeaseRentCharges({ ...after, startsOn });
+    schedule = planLeaseRentCharges({ ...after, startsOn: endsOn ? startsOn : input.effectiveOn });
   } catch (error) {
     badRequest(error instanceof Error ? error.message : "Invalid rent schedule.");
   }
   const charges = schedule.filter(({ periodStartsOn }) => periodStartsOn >= input.effectiveOn);
   if (!charges.length) badRequest("Choose an effective date within the generated rent schedule.");
   const invoices = await tx.invoice.findMany({
-    where: { organizationId, leaseId: lease.id, periodEndsOn: { gte: calendarDate(input.effectiveOn) } },
+    where: {
+      organizationId,
+      leaseId: lease.id,
+      periodStartsOn: {
+        gte: calendarDate(input.effectiveOn),
+        ...(endsOn ? {} : { lte: calendarDate(charges[charges.length - 1]!.periodEndsOn) }),
+      },
+    },
     select: invoiceSelect,
     orderBy: { id: "asc" },
   });
@@ -259,7 +272,6 @@ export async function planLeaseAmendment(
       (invoice.status !== "open" && !zeroCharge) ||
       hasInvoicePaymentHistory(invoice, invoice._count.payments) ||
       invoice._count.notes ||
-      dateOnly(invoice.periodStartsOn) < input.effectiveOn ||
       dateOnly(invoice.dueOn) <= today
     ) {
       badRequest(
@@ -306,6 +318,7 @@ export async function planLeaseAmendment(
   return {
     leaseId: lease.id,
     propertyId: lease.propertyId,
+    currencyCode: lease.currencyCode ?? lease.organization.currencyCode ?? "USD",
     before,
     after,
     endsOn,
@@ -325,6 +338,14 @@ export async function applyLeaseAmendment(
   plan: AmendmentPlan,
 ) {
   const { leaseId, propertyId, before, after, effectiveOn, revision, changes, rentCharge } = plan;
+  if (
+    dateOnly(effectiveOn) < today ||
+    changes.some(
+      ({ invoice, charge }) => (invoice && dateOnly(invoice.dueOn) <= today) || (charge && charge.dueOn <= today),
+    )
+  ) {
+    throw new TRPCError({ code: "CONFLICT", message: "The billing date changed. Preview the amendment again." });
+  }
   const updated = await tx.lease.updateMany({
     where: {
       id: leaseId,
@@ -357,13 +378,21 @@ export async function applyLeaseAmendment(
       rentShareCents: allocation?.rentShareCents ?? null,
       depositShareCents: allocation?.depositShareCents ?? null,
     };
-    const assignment = before.tenantIds.includes(tenantId)
-      ? shares
-      : { ...shares, assignedOn: effectiveOn, removedOn: null };
+    const identity = { organizationId, leaseId, tenantId };
+    const where = { organizationId_leaseId_tenantId: identity };
+    const joining = !before.tenantIds.includes(tenantId);
+    if (joining) {
+      const previous = await tx.leaseTenant.findUnique({ where, select: { assignedOn: true, removedOn: true } });
+      if (previous?.removedOn) {
+        await tx.leaseTenantPeriod.create({
+          data: { ...identity, assignedOn: previous.assignedOn, removedOn: previous.removedOn },
+        });
+      }
+    }
     await tx.leaseTenant.upsert({
-      where: { organizationId_leaseId_tenantId: { organizationId, leaseId, tenantId } },
-      create: { organizationId, leaseId, tenantId, assignedOn: effectiveOn, ...shares },
-      update: assignment,
+      where,
+      create: { ...identity, assignedOn: effectiveOn, ...shares },
+      update: joining ? { ...shares, assignedOn: effectiveOn, removedOn: null } : shares,
     });
   }
 
@@ -406,6 +435,7 @@ export async function applyLeaseAmendment(
     organizationId,
     leaseId,
     propertyId,
+    currencyCode: plan.currencyCode,
     billingRevision: revision,
     today,
     charges: added,

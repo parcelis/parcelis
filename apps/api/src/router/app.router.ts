@@ -611,6 +611,7 @@ async function writeLeaseRentSchedule(
     organizationId: number;
     leaseId: number;
     propertyId: number;
+    currencyCode: string;
     rentChargeId?: number | null;
     today: string;
     charges: ReturnType<typeof planLeaseRentCharges>;
@@ -770,6 +771,48 @@ const leaseAmendmentTermsSchema = leaseAmendmentInputSchema.pick({
   tenantIds: true,
   tenantAllocations: true,
 });
+
+async function loadPendingLeaseTerms(
+  prisma: Pick<PrismaClient, "activityEvent">,
+  organizationId: number,
+  date: Date,
+  leases: ReadonlyArray<{ id: number; amendmentEffectiveOn: Date | null }>,
+) {
+  const pending = leases.filter(({ amendmentEffectiveOn }) => amendmentEffectiveOn && amendmentEffectiveOn > date);
+  const snapshots = new Map<number, NonNullable<ReturnType<typeof leaseAmendmentTermsSchema.parse>>>();
+  if (!pending.length) return snapshots;
+  const events = await prisma.activityEvent.findMany({
+    where: {
+      organizationId,
+      subjectType: ActivitySubjectType.lease,
+      action: "lease.amended",
+      OR: pending.map(({ id, amendmentEffectiveOn }) => ({
+        subjectId: id,
+        metadata: { path: ["effectiveOn"], equals: amendmentEffectiveOn!.toISOString().slice(0, 10) },
+      })),
+    },
+    select: { subjectId: true, metadata: true },
+  });
+  for (const { subjectId, metadata } of events) {
+    const before = leaseAmendmentTermsSchema.safeParse(
+      metadata && typeof metadata === "object" && "before" in metadata ? metadata.before : undefined,
+    );
+    if (before.success) snapshots.set(subjectId, before.data);
+  }
+  if (pending.some(({ id }) => !snapshots.has(id))) {
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not load the current lease terms." });
+  }
+  return snapshots;
+}
+
+function redactAmendmentInvoices<T extends { action: string; metadata: Prisma.JsonValue }>(event: T): T {
+  const metadata = event.metadata;
+  if (event.action !== "lease.amended" || !metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return event;
+  }
+  const { invoices: _invoices, ...visibleMetadata } = metadata;
+  return { ...event, metadata: visibleMetadata };
+}
 
 function apiPermissionProcedure(resource: PermissionResource, action: PermissionAction) {
   return organizationApiProcedure.use(async ({ ctx, next }) => {
@@ -1581,6 +1624,7 @@ export const appRouter = router({
           leases: {
             select: {
               monthlyRentCents: true,
+              amendmentEffectiveOn: true,
               archivedAt: true,
               id: true,
               startsOn: true,
@@ -1660,10 +1704,23 @@ export const appRouter = router({
             .findMany({ ...query, include: { ...query.include, leases: false } })
             .then((properties) => properties.map((property) => ({ ...property, leases: [] })));
 
+      const pendingTerms = await loadPendingLeaseTerms(
+        ctx.prisma,
+        ctx.organizationScope.organizationId,
+        rosterDate,
+        properties.flatMap(({ leases }) => leases),
+      );
       return Promise.all(
         properties.map(async (property) => {
           const leaseProjections = property.leases.map((lease) => {
-            const { tenants: _tenants, unit: _unit, invoices: savedInvoices, ...leaseData } = lease;
+            const {
+              tenants: _tenants,
+              unit: _unit,
+              invoices: savedInvoices,
+              amendmentEffectiveOn: _effectiveOn,
+              ...leaseData
+            } = lease;
+            const before = pendingTerms.get(lease.id);
             const invoices = savedInvoices.map((invoice) => ({
               ...invoice,
               status: getReceivableStatus(invoice, billingDate),
@@ -1675,6 +1732,10 @@ export const appRouter = router({
               .map(({ tenant }) => tenant);
             const common = {
               ...leaseData,
+              ...(before && {
+                monthlyRentCents: before.monthlyRentCents,
+                endsOn: before.endsOn ? new Date(before.endsOn) : null,
+              }),
               unitId: permissions.units.view ? lease.unitId : null,
               unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
               invoices: permissions.invoices.view ? invoices : [],
@@ -1801,8 +1862,15 @@ export const appRouter = router({
         }
 
         const { units: rawUnits, leases: rawLeases, ...propertyData } = property;
+        const pendingTerms = await loadPendingLeaseTerms(
+          ctx.prisma,
+          ctx.organizationScope.organizationId,
+          rosterDate,
+          rawLeases,
+        );
         const leaseProjections = rawLeases.map((lease) => {
           const { tenants: _tenants, unit: _unit, invoices: savedInvoices, ...leaseData } = lease;
+          const before = pendingTerms.get(lease.id);
           const invoices = savedInvoices.map((invoice) => ({
             ...invoice,
             status: getReceivableStatus(invoice, billingDate),
@@ -1816,6 +1884,12 @@ export const appRouter = router({
             .map(({ tenant }) => tenant);
           const common = {
             ...leaseData,
+            ...(before && {
+              monthlyRentCents: before.monthlyRentCents,
+              endsOn: before.endsOn ? new Date(before.endsOn) : null,
+              rentDueDay: before.rentDueDay,
+              billingResponsibility: before.billingResponsibility,
+            }),
             unitId: permissions.units.view ? lease.unitId : null,
             unitLabel: permissions.units.view ? (lease.unit?.name ?? "Not set") : "Unavailable",
             amountOverdueCents,
@@ -2697,6 +2771,7 @@ export const appRouter = router({
                   organizationId: ctx.organization.organizationId,
                   leaseId: lease.id,
                   propertyId: input.propertyId,
+                  currencyCode: lease.currencyCode ?? ctx.organization.organization.currencyCode ?? "USD",
                   today: getCalendarDate(new Date(), ctx.organization.organization.timeZone),
                   charges: rentCharges,
                 });
@@ -2751,81 +2826,93 @@ export const appRouter = router({
         ]);
         if (lease) await requirePermission(ctx.prisma, ctx.user.role, "leases", "delete");
         if (invoice) await requirePermission(ctx.prisma, ctx.user.role, "invoices", "delete");
-        await ctx.prisma.$transaction(async (tx) => {
-          const payment = await tx.invoicePayment.findFirst({
-            where: { OR: [{ tenantId: input.id }, { invoice: { tenantId: input.id } }] },
-            select: { id: true },
-          });
-          if (payment) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "A tenant with payment history cannot be deleted.",
+        await ctx.prisma.$transaction(
+          async (tx) => {
+            const payment = await tx.invoicePayment.findFirst({
+              where: { OR: [{ tenantId: input.id }, { invoice: { tenantId: input.id } }] },
+              select: { id: true },
             });
-          }
-
-          // Find all active leases this tenant is on
-          const tenantLeases = await tx.leaseTenant.findMany({
-            where: { tenantId: input.id },
-            include: { lease: { select: { id: true, propertyId: true, status: true } } },
-          });
-
-          const leaseIdsToDelete = new Set<number>();
-
-          for (const tl of tenantLeases) {
-            leaseIdsToDelete.add(tl.leaseId);
-          }
-
-          const jointInvoices = await tx.invoice.findMany({
-            where: { tenantId: input.id, lease: { billingResponsibility: "joint" } },
-            select: { id: true, recipients: { select: { tenantId: true } } },
-          });
-          await Promise.all(
-            jointInvoices.map((invoice) => {
-              const replacementTenantId = invoice.recipients.find(({ tenantId }) => tenantId !== input.id)?.tenantId;
-              if (!replacementTenantId) return Promise.resolve();
-              return tx.invoice.update({ where: { id: invoice.id }, data: { tenantId: replacementTenantId } });
-            }),
-          );
-
-          await tx.invoice.deleteMany({ where: { tenantId: input.id } });
-          await tx.leaseTenant.deleteMany({ where: { tenantId: input.id } });
-
-          const remainingLeaseTenants = await tx.leaseTenant.findMany({
-            where: { leaseId: { in: Array.from(leaseIdsToDelete) } },
-            select: { leaseId: true },
-            distinct: ["leaseId"],
-          });
-          const remainingLeaseIds = new Set(remainingLeaseTenants.map(({ leaseId }) => leaseId));
-          const orphanedLeases = tenantLeases.filter(({ leaseId }) => !remainingLeaseIds.has(leaseId));
-          const orphanedLeaseIds = orphanedLeases.map(({ leaseId }) => leaseId);
-
-          await tx.lease.deleteMany({ where: { id: { in: orphanedLeaseIds } } });
-
-          const activeLeasesByProperty = new Map<number, number>();
-          for (const { lease } of orphanedLeases) {
-            if (
-              (lease.status === LeaseStatus.active || lease.status === LeaseStatus.notice) &&
-              lease.propertyId !== null
-            ) {
-              activeLeasesByProperty.set(lease.propertyId, (activeLeasesByProperty.get(lease.propertyId) ?? 0) + 1);
+            if (payment) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "A tenant with payment history cannot be deleted.",
+              });
             }
-          }
 
-          await Promise.all(
-            Array.from(activeLeasesByProperty.entries()).map(([propertyId, count]) =>
-              tx.property.update({
-                where: { id: propertyId },
-                data: { occupiedUnits: { decrement: count } },
+            const organizationId = ctx.organization.organizationId;
+            const today = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
+            const tenantLeases = await tx.leaseTenant.findMany({
+              where: { organizationId, tenantId: input.id },
+              include: { lease: { select: { status: true } } },
+            });
+            const currentLeaseIds = tenantLeases
+              .filter(
+                (assignment) =>
+                  assignment.lease.status !== LeaseStatus.draft && isOnLeaseRoster(assignment, new Date(today)),
+              )
+              .map(({ leaseId }) => leaseId);
+            if (currentLeaseIds.length) {
+              const remainingCurrent = await tx.leaseTenant.findMany({
+                where: {
+                  organizationId,
+                  leaseId: { in: currentLeaseIds },
+                  tenantId: { not: input.id },
+                  ...leaseRosterWhere(today),
+                },
+                select: { leaseId: true },
+                distinct: ["leaseId"],
+              });
+              if (remainingCurrent.length !== currentLeaseIds.length) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "Amend the lease before deleting its last current resident.",
+                });
+              }
+            }
+
+            const jointInvoices = await tx.invoice.findMany({
+              where: { tenantId: input.id, lease: { billingResponsibility: "joint" } },
+              select: { id: true, recipients: { select: { tenantId: true } } },
+            });
+            await Promise.all(
+              jointInvoices.map((invoice) => {
+                const replacementTenantId = invoice.recipients.find(({ tenantId }) => tenantId !== input.id)?.tenantId;
+                if (!replacementTenantId) return Promise.resolve();
+                return tx.invoice.update({ where: { id: invoice.id }, data: { tenantId: replacementTenantId } });
               }),
-            ),
-          );
+            );
 
-          await tx.maintenanceTicket.updateMany({
-            where: { requestedByTenantId: input.id },
-            data: { requestedByType: null, requestedByTenantId: null },
-          });
-          await tx.tenant.delete({ where: { id: input.id } });
-        });
+            await tx.invoice.deleteMany({ where: { tenantId: input.id } });
+            await tx.leaseTenant.deleteMany({ where: { tenantId: input.id } });
+
+            const remainingLeaseTenants = await tx.leaseTenant.findMany({
+              where: {
+                organizationId,
+                leaseId: {
+                  in: tenantLeases
+                    .filter(({ lease }) => lease.status === LeaseStatus.draft)
+                    .map(({ leaseId }) => leaseId),
+                },
+              },
+              select: { leaseId: true },
+              distinct: ["leaseId"],
+            });
+            const remainingLeaseIds = new Set(remainingLeaseTenants.map(({ leaseId }) => leaseId));
+            const orphanedDraftIds = tenantLeases
+              .filter(({ leaseId, lease }) => lease.status === LeaseStatus.draft && !remainingLeaseIds.has(leaseId))
+              .map(({ leaseId }) => leaseId);
+            await tx.lease.deleteMany({
+              where: { organizationId, status: LeaseStatus.draft, id: { in: orphanedDraftIds } },
+            });
+
+            await tx.maintenanceTicket.updateMany({
+              where: { requestedByTenantId: input.id },
+              data: { requestedByType: null, requestedByTenantId: null },
+            });
+            await tx.tenant.delete({ where: { id: input.id } });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
       }),
   }),
   invoices: router({
@@ -4148,9 +4235,10 @@ export const appRouter = router({
       if (input.subjectType === ActivitySubjectType.lease) {
         await requirePermission(ctx.prisma, ctx.user.role, "leases", "view");
       }
-      const canViewProperties = (await getRolePermissions(ctx.prisma, ctx.user.role)).properties.view;
+      const permissions = await getRolePermissions(ctx.prisma, ctx.user.role);
+      const canViewProperties = permissions.properties.view;
       if (input.subjectType === ActivitySubjectType.property && !canViewProperties) return [];
-      return ctx.prisma.activityEvent.findMany({
+      const events = await ctx.prisma.activityEvent.findMany({
         where: {
           organizationId: ctx.organization.organizationId,
           subjectType:
@@ -4179,6 +4267,9 @@ export const appRouter = router({
           property: { select: { name: true } },
         },
       });
+      return input.subjectType === ActivitySubjectType.lease && !permissions.invoices.view
+        ? events.map(redactAmendmentInvoices)
+        : events;
     }),
   }),
   unitOptions: router({
@@ -4625,32 +4716,17 @@ export const appRouter = router({
           ),
           hasPendingAmendment: false,
         };
-        if (!lease.amendmentEffectiveOn || lease.amendmentEffectiveOn <= new Date(billingDate)) return current;
-
-        const amendment = await ctx.prisma.activityEvent.findFirst({
-          where: {
-            organizationId,
-            subjectType: ActivitySubjectType.lease,
-            subjectId: lease.id,
-            action: "lease.amended",
-            metadata: { path: ["effectiveOn"], equals: lease.amendmentEffectiveOn.toISOString().slice(0, 10) },
-          },
-          select: { metadata: true },
-        });
-        const metadata = amendment?.metadata;
-        const before = leaseAmendmentTermsSchema.safeParse(
-          metadata && typeof metadata === "object" && "before" in metadata ? metadata.before : undefined,
+        const before = (await loadPendingLeaseTerms(ctx.prisma, organizationId, new Date(billingDate), [lease])).get(
+          lease.id,
         );
-        if (!before.success) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not load the current lease terms." });
-        }
+        if (!before) return current;
         return {
           ...current,
-          endsOn: before.data.endsOn ? new Date(before.data.endsOn) : null,
-          monthlyRentCents: before.data.monthlyRentCents,
-          rentDueDay: before.data.rentDueDay,
-          billingResponsibility: before.data.billingResponsibility,
-          tenantAllocations: before.data.tenantAllocations,
+          endsOn: before.endsOn ? new Date(before.endsOn) : null,
+          monthlyRentCents: before.monthlyRentCents,
+          rentDueDay: before.rentDueDay,
+          billingResponsibility: before.billingResponsibility,
+          tenantAllocations: before.tenantAllocations,
           hasPendingAmendment: true,
         };
       }),
@@ -4663,12 +4739,17 @@ export const appRouter = router({
           select: { id: true, status: true, startsOn: true },
         });
         if (!lease) throw new TRPCError({ code: "NOT_FOUND", message: "Lease not found." });
-        const events = await ctx.prisma.activityEvent.findMany({
+        const storedEvents = await ctx.prisma.activityEvent.findMany({
           where: { organizationId, subjectType: ActivitySubjectType.lease, subjectId: input.id },
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: 20,
           select: { id: true, action: true, metadata: true, createdAt: true, actorLabel: true },
         });
+        const events =
+          storedEvents.some(({ action }) => action === "lease.amended") &&
+          !(await getRolePermissions(ctx.prisma, ctx.user.role)).invoices.view
+            ? storedEvents.map(redactAmendmentInvoices)
+            : storedEvents;
         if (
           (lease.status === LeaseStatus.active || lease.status === LeaseStatus.notice) &&
           lease.startsOn &&
@@ -4722,7 +4803,7 @@ export const appRouter = router({
           requirePermission(ctx.prisma, ctx.user.role, "invoices", "edit"),
         ]);
         const organizationId = ctx.organization.organizationId;
-        const today = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
+        const { timeZone } = ctx.organization.organization;
         const requestHash = leaseAmendmentHash(input);
         try {
           return await ctx.prisma.$transaction(
@@ -4747,14 +4828,26 @@ export const appRouter = router({
               ) {
                 return { revision: prior.metadata.revision };
               }
-              const plan = await planLeaseAmendment(tx, organizationId, ctx.user.role, today, input);
+              const plan = await planLeaseAmendment(
+                tx,
+                organizationId,
+                ctx.user.role,
+                getCalendarDate(new Date(), timeZone),
+                input,
+              );
               if (leaseAmendmentHash([input, plan]) !== previewToken) {
                 throw new TRPCError({
                   code: "CONFLICT",
                   message: "The invoice preview changed. Review it again before applying.",
                 });
               }
-              await applyLeaseAmendment(tx, organizationId, today, plan);
+              if (plan.changes.some(({ invoice }) => !invoice)) {
+                await requirePermission(tx, ctx.user.role, "invoices", "create");
+              }
+              if (plan.changes.some(({ charge }) => !charge)) {
+                await requirePermission(tx, ctx.user.role, "invoices", "delete");
+              }
+              await applyLeaseAmendment(tx, organizationId, getCalendarDate(new Date(), timeZone), plan);
               await recordActivityEvent(
                 tx,
                 {
@@ -5113,7 +5206,7 @@ export const appRouter = router({
 
                 const organization = await tx.organization.findUniqueOrThrow({
                   where: { id: organizationId },
-                  select: { timeZone: true },
+                  select: { timeZone: true, currencyCode: true },
                 });
                 const today = getCalendarDate(new Date(), organization.timeZone);
                 const rentCharges = planCompleteLeaseRentCharges({
@@ -5132,6 +5225,7 @@ export const appRouter = router({
                   organizationId,
                   leaseId: lease.id,
                   propertyId: completeLease.propertyId,
+                  currencyCode: lease.currencyCode ?? organization.currencyCode ?? "USD",
                   rentChargeId,
                   today,
                   charges: rentCharges,
@@ -5496,6 +5590,7 @@ export const appRouter = router({
                     organizationId: ctx.organization.organizationId,
                     leaseId: createdLease.id,
                     propertyId,
+                    currencyCode: createdLease.currencyCode ?? ctx.organization.organization.currencyCode ?? "USD",
                     rentChargeId:
                       rentChargeId ??
                       (

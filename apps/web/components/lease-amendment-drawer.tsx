@@ -47,6 +47,7 @@ export function LeaseAmendmentDrawer({
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
+  const [expectedRevision] = useState(lease.revision);
   const [effectiveOn, setEffectiveOn] = useState("");
   const [endsOn, setEndsOn] = useState(dateValue(lease.endsOn));
   const [monthlyRent, setMonthlyRent] = useState(dollars(lease.monthlyRentCents));
@@ -96,7 +97,7 @@ export function LeaseAmendmentDrawer({
     }
     const result = leaseAmendmentInputSchema.safeParse({
       leaseId: lease.id,
-      expectedRevision: lease.revision,
+      expectedRevision,
       effectiveOn,
       endsOn: endsOn || null,
       monthlyRentCents: cents(monthlyRent),
