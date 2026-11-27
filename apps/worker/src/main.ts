@@ -1,13 +1,4 @@
-import {
-  markNotificationDeliveryAccepted,
-  markNotificationDeliveryFailed,
-  markNotificationDeliveryRetrying,
-  markNotificationDeliverySending,
-  markNotificationDeliverySent,
-  PrismaClient,
-  PrismaPg,
-} from "@parcelis/db";
-import { getOrganizationEmailConfig, sendEmail } from "@parcelis/email";
+import { PrismaClient, PrismaPg } from "@parcelis/db";
 import {
   createQueueRegistry,
   getRedisConnectionOptions,
@@ -38,7 +29,7 @@ import {
   startLeaseReconciler,
 } from "./lease-activation.js";
 import { startOutboxDispatcher } from "./outbox-dispatcher.js";
-import { processNotificationEmailJob } from "./processors/notification-email.processor.js";
+import { processQueuedNotificationEmail } from "./processors/notification-email.processor.js";
 import { processEmailHealthJob } from "./processors/email-health.processor.js";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -68,29 +59,7 @@ const notificationEmailWorker = new Worker(
       throw new Error(`Unsupported account notification job: ${job.name}.`);
     }
 
-    return processNotificationEmailJob(
-      job.data,
-      {
-        send: sendEmail,
-        rememberAccepted: (data) => job.updateData(data),
-        rememberAcceptedDelivery: ({ outboxEventId, messageId }) =>
-          markNotificationDeliveryAccepted(prisma, { outboxEventId, providerMessageId: messageId }),
-        getEmailConfig: (organizationId) => getOrganizationEmailConfig(prisma, organizationId),
-        markDeliverySending: async ({ outboxEventId }) => {
-          return markNotificationDeliverySending(prisma, { outboxEventId });
-        },
-        markDeliverySent: async ({ outboxEventId, messageId }) => {
-          await markNotificationDeliverySent(prisma, { outboxEventId, providerMessageId: messageId });
-        },
-        markDeliveryFailed: async ({ outboxEventId, error }) => {
-          await markNotificationDeliveryFailed(prisma, { outboxEventId, error });
-        },
-        markDeliveryRetrying: async ({ outboxEventId, error }) => {
-          await markNotificationDeliveryRetrying(prisma, { outboxEventId, error });
-        },
-      },
-      { attemptsMade: job.attemptsMade, attempts: job.opts.attempts ?? 1 },
-    );
+    return processQueuedNotificationEmail(prisma, job);
   },
   { connection: redisConnection },
 );

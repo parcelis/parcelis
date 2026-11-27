@@ -10,8 +10,11 @@ import {
 } from "@parcelis/db";
 import { createHash } from "node:crypto";
 import {
+  getNotificationEmailJobReference,
   getOutboxEventContract,
   getOutboxEventJobId,
+  notificationEmailDeliveryJobSchema,
+  notificationEmailJobName,
   outboxEventTypes,
   parseOutboxEventPayload,
   workerHeartbeatIntervalMs,
@@ -37,7 +40,11 @@ function getOutboxJob(event: OutboxEvent) {
   }
   return {
     contract,
-    jobData: contract.jobSchema.parse({ ...payload, outboxEventId: event.id }),
+    jobData: contract.jobSchema.parse(
+      event.eventType === outboxEventTypes.notificationEmail
+        ? getNotificationEmailJobReference(event)
+        : { ...payload, outboxEventId: event.id },
+    ),
     delay:
       event.eventType === outboxEventTypes.leaseActivation &&
       "activateAt" in payload &&
@@ -168,15 +175,35 @@ export async function reconcileDispatchedNotificationJobs(prisma: PrismaClient, 
         const jobId = getOutboxEventJobId(event.id);
         const existingJob = await queue.getJob(jobId);
         if (existingJob) {
-          if (
-            getOutboxJobFingerprint(existingJob.name, existingJob.data) ===
-            getOutboxJobFingerprint(contract.jobName, jobData)
-          ) {
-            continue;
-          }
-
           const state = await existingJob.getState();
           if (state === "active") continue;
+          const matchesReference =
+            getOutboxJobFingerprint(existingJob.name, existingJob.data) ===
+            getOutboxJobFingerprint(contract.jobName, jobData);
+          const legacyJob = matchesReference
+            ? undefined
+            : notificationEmailDeliveryJobSchema.safeParse(existingJob.data);
+          if (
+            matchesReference ||
+            (existingJob.name === notificationEmailJobName &&
+              legacyJob?.success &&
+              getOutboxJobFingerprint(existingJob.name, legacyJob.data) ===
+                getOutboxJobFingerprint(contract.jobName, { ...(event.payload as object), outboxEventId: event.id }))
+          ) {
+            if (state === "failed" || state === "completed") {
+              const currentDelivery = await prisma.notificationDelivery.findUnique({
+                where: { id: delivery.id },
+                select: { status: true },
+              });
+              if (
+                currentDelivery?.status === NotificationDeliveryStatus.queued ||
+                currentDelivery?.status === NotificationDeliveryStatus.sending
+              ) {
+                await existingJob.retry(state, { resetAttemptsMade: true, resetAttemptsStarted: true });
+              }
+            }
+            continue;
+          }
           // A database reset can reuse an ID retained by an older Redis job.
           await existingJob.remove();
         }

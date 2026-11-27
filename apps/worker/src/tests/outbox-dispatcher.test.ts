@@ -259,12 +259,8 @@ test("notification email events dispatch to account-notifications", async () => 
       assert.equal(name, "notification.email.v1");
       assert.deepEqual(data, {
         organizationId: 7,
-        recipientId: 9,
-        recipientType: "tenant",
-        email: "tenant@example.com",
-        subject: "Reminder",
-        body: "Your rent is due",
         outboxEventId: 21,
+        outboxEventCreatedAt: event.createdAt.toISOString(),
       });
       assert.equal(options.jobId, "outbox-event-21");
       assert.equal(options.attempts, 3);
@@ -339,12 +335,8 @@ test("reconciles dispatched email deliveries when their BullMQ job is missing", 
       name: "notification.email.v1",
       data: {
         organizationId: 7,
-        recipientId: 9,
-        recipientType: "tenant",
-        email: "tenant@example.com",
-        subject: "Reminder",
-        body: "Your rent is due",
         outboxEventId: delivery.outboxEvent.id,
+        outboxEventCreatedAt: event.createdAt.toISOString(),
       },
       options: {
         jobId: `outbox-event-${delivery.outboxEvent.id}`,
@@ -381,7 +373,12 @@ test("does not redispatch a notification when its BullMQ job still exists", asyn
     getJob: async () => ({
       id: "outbox-event-21",
       name: "notification.email.v1",
-      data: { ...(event.payload as object), outboxEventId: event.id },
+      data: {
+        organizationId: event.organizationId,
+        outboxEventId: event.id,
+        outboxEventCreatedAt: event.createdAt.toISOString(),
+      },
+      getState: async () => "waiting",
     }),
     add: async () => {
       readded = true;
@@ -391,6 +388,51 @@ test("does not redispatch a notification when its BullMQ job still exists", asyn
   await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
   assert.equal(readded, false);
 });
+
+for (const [state, currentStatus, shouldRetry] of [
+  ["waiting", "sending", false],
+  ["failed", "sending", true],
+  ["completed", "sending", true],
+  ["failed", "failed", false],
+] as const) {
+  test(`recovers a matching ${state} legacy job when the delivery is ${currentStatus}`, async (t) => {
+    const payload = {
+      organizationId: 7,
+      recipientId: 9,
+      recipientType: "tenant",
+      email: "tenant@example.com",
+      subject: "Reminder",
+      body: "Your rent is due",
+    };
+    const event = createEvent({ eventType: "notification.email", status: "dispatched", payload });
+    const prisma = {
+      notificationDelivery: {
+        findMany: async () => [{ id: 14, status: "sending", providerMessageId: "smtp-accepted", outboxEvent: event }],
+        findUnique: async () => ({ status: currentStatus }),
+      },
+    } as unknown as PrismaClient;
+    const existingJob = {
+      name: "notification.email.v1",
+      data: { ...payload, outboxEventId: event.id, acceptedMessageId: "legacy-accepted" },
+      getState: async () => state,
+      updateData: t.mock.fn(),
+      remove: t.mock.fn(),
+      retry: t.mock.fn(),
+    };
+    const add = t.mock.fn();
+    const queue = { getJob: async () => existingJob, add } as unknown as Queue;
+
+    await reconcileDispatchedNotificationJobs(prisma, new Map([["account-notifications", queue]]));
+
+    assert.equal(existingJob.updateData.mock.callCount(), 0);
+    assert.equal(existingJob.remove.mock.callCount(), 0);
+    assert.equal(add.mock.callCount(), 0);
+    assert.deepEqual(
+      existingJob.retry.mock.calls.map((call) => call.arguments),
+      shouldRetry ? [[state, { resetAttemptsMade: true, resetAttemptsStarted: true }]] : [],
+    );
+  });
+}
 
 test("notification recovery processes a second page after a full batch", async () => {
   const payload = {
@@ -425,7 +467,12 @@ test("notification recovery processes a second page after a full batch", async (
       return {
         id: jobId,
         name: "notification.email.v1",
-        data: { ...payload, outboxEventId: Number(jobId.replace("outbox-event-", "")) },
+        data: {
+          organizationId: 7,
+          outboxEventId: Number(jobId.replace("outbox-event-", "")),
+          outboxEventCreatedAt: "2026-09-26T00:00:00.000Z",
+        },
+        getState: async () => "waiting",
       };
     },
     add: async () => assert.fail("Existing jobs must not be restored"),
@@ -468,12 +515,8 @@ test("recovery carries the accepted SMTP message ID into a replacement job", asy
 
   assert.deepEqual(recoveredData, {
     organizationId: 7,
-    recipientId: 9,
-    recipientType: "tenant",
-    email: "tenant@example.com",
-    subject: "Reminder",
-    body: "Your rent is due",
     outboxEventId: event.id,
+    outboxEventCreatedAt: event.createdAt.toISOString(),
     acceptedMessageId: "smtp-accepted-123",
   });
 });
@@ -576,7 +619,11 @@ for (const state of ["completed", "failed", "active", "waiting", "delayed"] as c
       }),
       add: async (_name: string, data: unknown) => {
         assert.ok(removed);
-        assert.deepEqual(data, { ...(event.payload as object), outboxEventId: event.id });
+        assert.deepEqual(data, {
+          organizationId: event.organizationId,
+          outboxEventId: event.id,
+          outboxEventCreatedAt: event.createdAt.toISOString(),
+        });
         added = true;
       },
     } as unknown as Queue;

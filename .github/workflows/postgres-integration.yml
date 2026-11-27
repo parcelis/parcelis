@@ -70,7 +70,21 @@ jobs:
       - if: matrix.suite == 'database'
         run: pnpm --filter @parcelis/db test:integration
       - if: matrix.suite == 'worker'
+        name: Start Redis for worker integration tests
+        run: |
+          redis_container=$(docker run --detach --publish 127.0.0.1:6379:6379 redis:8-alpine redis-server --requirepass parcelis-test)
+          for attempt in {1..30}; do
+            if [[ "$(docker exec -e REDISCLI_AUTH=parcelis-test "$redis_container" redis-cli ping 2>/dev/null)" == PONG ]]; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo 'Redis did not become ready within 30 seconds' >&2
+          exit 1
+      - if: matrix.suite == 'worker'
         run: pnpm --filter @parcelis/worker test:integration
+        env:
+          OUTBOX_TEST_REDIS_URL: redis://:parcelis-test@localhost:6379
       - if: matrix.suite == 'api-tokens'
         run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts'
       - if: matrix.suite == 'installation'

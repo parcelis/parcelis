@@ -33,6 +33,30 @@ export const notificationEmailDeliveryJobSchema = notificationEmailOutboxJobSche
   .extend({ acceptedMessageId: z.string().min(1).optional() })
   .strict();
 
+export const notificationEmailReferenceJobSchema = notificationEmailOutboxJobSchema
+  .pick({ organizationId: true, outboxEventId: true })
+  .extend({
+    outboxEventCreatedAt: z
+      .iso
+      .datetime({ offset: true })
+      .transform((timestamp) => new Date(timestamp).toISOString()),
+  })
+  .strict();
+
+export const notificationEmailReferenceDeliveryJobSchema = notificationEmailReferenceJobSchema.extend({
+  acceptedMessageId: notificationEmailDeliveryJobSchema.shape.acceptedMessageId,
+});
+
+export type NotificationEmailReferenceJob = z.infer<typeof notificationEmailReferenceJobSchema>;
+
+export function getNotificationEmailJobReference(event: { id: number; organizationId: number; createdAt: Date }) {
+  return {
+    organizationId: event.organizationId,
+    outboxEventId: event.id,
+    outboxEventCreatedAt: event.createdAt.toISOString(),
+  };
+}
+
 // Type for the notification email job.
 export type NotificationEmailJob = z.infer<typeof notificationEmailJobSchema>;
 
@@ -45,7 +69,7 @@ export type NotificationEmailJobInput = NotificationEmailJob & {
 };
 
 // Type for the input to the notification email job dispatched from the outbox.
-export type NotificationEmailOutboxJobInput = NotificationEmailOutboxJob & {
+export type NotificationEmailOutboxJobInput = NotificationEmailReferenceJob & {
   delayMs?: number;
 };
 
@@ -65,7 +89,7 @@ export function createNotificationJobs(queues: NotificationQueues) {
   return {
     async sendEmail(input: NotificationEmailOutboxJobInput) {
       const { delayMs, ...jobData } = input;
-      const parsed = notificationEmailOutboxJobSchema.parse(jobData);
+      const parsed = notificationEmailReferenceJobSchema.parse(jobData);
       const normalizedDelayMs = notificationDelayMsSchema.parse(delayMs);
       const opts = typeof normalizedDelayMs === "number" ? { delay: normalizedDelayMs } : undefined;
 

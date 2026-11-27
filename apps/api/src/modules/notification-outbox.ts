@@ -28,25 +28,29 @@ export async function queueNotificationEmailOutboxEvent(
   const { idempotencyKey, delayMs, ...payload } = parsed;
   const contract = getOutboxEventContract(outboxEventTypes.notificationEmail, 1);
 
-  const outboxEvent = await recordOutboxEvent(tx, {
-    organizationId: payload.organizationId,
-    eventType: outboxEventTypes.notificationEmail,
-    schemaVersion: contract.schemaVersion,
-    payload,
-    idempotencyKey,
-    ...(typeof delayMs === "number" ? { availableAt: new Date(Date.now() + delayMs) } : {}),
-  });
+  try {
+    const outboxEvent = await recordOutboxEvent(tx, {
+      organizationId: payload.organizationId,
+      eventType: outboxEventTypes.notificationEmail,
+      schemaVersion: contract.schemaVersion,
+      payload,
+      idempotencyKey,
+      ...(typeof delayMs === "number" ? { availableAt: new Date(Date.now() + delayMs) } : {}),
+    });
 
-  await recordNotificationDeliveryQueued(tx, {
-    organizationId: payload.organizationId,
-    outboxEventId: outboxEvent.id,
-    channel: NotificationDeliveryChannel.email,
-    recipientId: payload.recipientId,
-    recipientType: payload.recipientType,
-    destination: payload.email,
-    subject: payload.subject,
-    idempotencyKey,
-  });
+    await recordNotificationDeliveryQueued(tx, {
+      organizationId: payload.organizationId,
+      outboxEventId: outboxEvent.id,
+      channel: NotificationDeliveryChannel.email,
+      recipientId: payload.recipientId,
+      recipientType: payload.recipientType,
+      destination: payload.email,
+      subject: payload.subject,
+      idempotencyKey,
+    });
 
-  return outboxEvent;
+    return outboxEvent;
+  } catch {
+    throw new Error("Could not record notification email.");
+  }
 }

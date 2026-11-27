@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   notificationEmailJobName,
   notificationEmailJobSchema,
-  notificationEmailOutboxJobSchema,
+  notificationEmailReferenceJobSchema,
 } from "./notification-jobs.js";
 import { queueNames } from "./queue-names.js";
 
@@ -58,7 +58,7 @@ const outboxEventContracts = {
     queueName: queueNames.accountNotifications,
     jobName: notificationEmailJobName,
     payloadSchema: notificationEmailOutboxPayloadSchema,
-    jobSchema: notificationEmailOutboxJobSchema,
+    jobSchema: notificationEmailReferenceJobSchema,
   },
 } as const;
 
