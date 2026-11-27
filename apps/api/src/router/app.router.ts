@@ -115,7 +115,9 @@ import {
   isOnLeaseRoster,
   leaseAmendmentHash,
   leaseOverlapWhere,
+  leaseRosterPeriodSelect,
   leaseRosterWhere,
+  type LeaseRosterAssignment,
   markRentInvoiceIssued,
   planLeaseAmendment,
   summarizeLeaseAmendment,
@@ -558,7 +560,7 @@ function withOperatingMetrics<
 function getTenantStatus(
   tenant: {
     archivedAt: Date | null;
-    leases: Array<{ assignedOn: Date | null; removedOn: Date | null; lease: { status: LeaseStatus } }>;
+    leases: Array<LeaseRosterAssignment & { lease: { status: LeaseStatus } }>;
   },
   date: Date,
 ) {
@@ -1635,8 +1637,7 @@ export const appRouter = router({
               unit: { select: { name: true } },
               tenants: {
                 select: {
-                  assignedOn: true,
-                  removedOn: true,
+                  ...leaseRosterPeriodSelect,
                   tenant: {
                     select: {
                       firstName: true,
@@ -1813,8 +1814,7 @@ export const appRouter = router({
               include: {
                 tenants: {
                   select: {
-                    assignedOn: true,
-                    removedOn: true,
+                    ...leaseRosterPeriodSelect,
                     tenant: {
                       select: { id: true, firstName: true, lastName: true, email: true, phone: true },
                     },
@@ -2352,6 +2352,7 @@ export const appRouter = router({
           },
           leases: {
             include: {
+              priorPeriods: leaseRosterPeriodSelect.priorPeriods,
               lease: {
                 select: {
                   id: true,
@@ -2416,6 +2417,7 @@ export const appRouter = router({
             },
             leases: {
               include: {
+                priorPeriods: leaseRosterPeriodSelect.priorPeriods,
                 lease: {
                   select: {
                     id: true,
@@ -2843,7 +2845,10 @@ export const appRouter = router({
             const today = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
             const tenantLeases = await tx.leaseTenant.findMany({
               where: { organizationId, tenantId: input.id },
-              include: { lease: { select: { status: true, amendmentEffectiveOn: true } } },
+              include: {
+                priorPeriods: leaseRosterPeriodSelect.priorPeriods,
+                lease: { select: { status: true, amendmentEffectiveOn: true } },
+              },
             });
             const leasesByRosterDate = new Map<string, number[]>();
             for (const assignment of tenantLeases) {

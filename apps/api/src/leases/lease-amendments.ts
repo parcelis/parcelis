@@ -55,11 +55,18 @@ export function leaseRosterWhere(date: string): Prisma.LeaseTenantWhereInput {
   };
 }
 
-export function isOnLeaseRoster(
-  { assignedOn, removedOn }: { assignedOn: Date | null; removedOn: Date | null },
-  date: Date,
-) {
-  return (!assignedOn || assignedOn <= date) && (!removedOn || removedOn > date);
+const occupancyDates = { assignedOn: true, removedOn: true } as const;
+export const leaseRosterPeriodSelect = {
+  ...occupancyDates,
+  priorPeriods: { select: occupancyDates },
+} satisfies Prisma.LeaseTenantSelect;
+
+export type LeaseRosterAssignment = Prisma.LeaseTenantGetPayload<{ select: typeof leaseRosterPeriodSelect }>;
+
+export function isOnLeaseRoster({ assignedOn, removedOn, priorPeriods = [] }: LeaseRosterAssignment, date: Date) {
+  const containsDate = (period: Pick<LeaseRosterAssignment, "assignedOn" | "removedOn">) =>
+    (!period.assignedOn || period.assignedOn <= date) && (!period.removedOn || period.removedOn > date);
+  return containsDate({ assignedOn, removedOn }) || priorPeriods.some(containsDate);
 }
 
 export function leaseAmendmentHash(value: unknown) {

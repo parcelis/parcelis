@@ -328,11 +328,13 @@ test(
         };
         const returningPreview = await caller.leases.previewAmendment(returning);
         await caller.leases.applyAmendment({ ...returning, previewToken: returningPreview.previewToken });
+        await prisma.lease.update({ where: { id: lease.id }, data: { status: "active" } });
         for (const [date, tenantId] of [
           [`${futureYear}-01-15`, tenant.id],
           [effectiveOn, nextResident.id],
           [returning.effectiveOn, tenant.id],
         ] as const) {
+          t.mock.timers.setTime(new Date(`${date}T12:00:00Z`).getTime());
           const rows: { tenantId: number }[] = await prisma.leaseTenant.findMany({
             where: { leaseId: lease.id, ...leaseRosterWhere(date) },
             select: { tenantId: true },
@@ -341,7 +343,25 @@ test(
             rows.map((row) => row.tenantId),
             [tenantId],
           );
+          const properties = await caller.properties.list();
+          for (const projection of [
+            properties.find(({ id }) => id === property.id),
+            await caller.properties.byId({ id: property.id }),
+          ]) {
+            const current = projection?.leases.find(({ id }) => id === lease.id);
+            assert.deepEqual(
+              current?.tenants.map(({ id }) => id),
+              [tenantId],
+            );
+          }
+          const directory = await caller.tenants.list();
+          for (const { id } of [tenant, nextResident]) {
+            const status = id === tenantId ? "active" : "past";
+            assert.equal(directory.find((resident) => resident.id === id)?.tenantStatus, status);
+            assert.equal((await caller.tenants.byId({ id }))?.tenantStatus, status);
+          }
         }
+        await prisma.lease.update({ where: { id: lease.id }, data: { status: "scheduled" } });
         assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: historical.id } })).tenantId, tenant.id);
       } finally {
         t.mock.timers.reset();
