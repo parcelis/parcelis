@@ -28,6 +28,7 @@ import { hasPermission } from "../../../../components/property-access";
 import { LoadingState } from "../../../../components/loading-state";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { TenantRecordDrawer } from "../../../../components/tenant-record-drawer";
+import { LeaseAmendmentDrawer } from "../../../../components/lease-amendment-drawer";
 import { LeaseTenantList } from "../../../../components/lease-tenant-list";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
 import { formatLeaseEndDate } from "../../../../lib/format";
@@ -40,7 +41,7 @@ function formatDate(value: Date | string | null) {
 
 function formatCurrency(cents: number | null) {
   if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(
     cents / 100,
   );
 }
@@ -74,6 +75,7 @@ function dueDay(day: number | undefined) {
 }
 
 function lifecycleLabel(action: string) {
+  if (action === "lease.amended") return "Lease amended";
   if (action === "lease.created") return "Lease created";
   if (action === "lease.finalized") return "Lease finalized";
   if (action === "lease.activated") return "Lease started";
@@ -94,6 +96,35 @@ function lifecycleMessage(event: LeaseLifecycleEvent, startsOn: Date | string | 
       typeof metadata.nextStatus === "string"
     ) {
       messages.push(`${formatStatus(metadata.previousStatus)} → ${formatStatus(metadata.nextStatus)}`);
+    }
+    if (event.action === "lease.amended") {
+      if ("effectiveOn" in metadata && typeof metadata.effectiveOn === "string")
+        messages.push(`Effective ${metadata.effectiveOn}`);
+      if (event.actorLabel) messages.push(event.actorLabel);
+      if ("reason" in metadata && typeof metadata.reason === "string") messages.push(metadata.reason);
+      const before = "before" in metadata ? metadata.before : null;
+      const after = "after" in metadata ? metadata.after : null;
+      if (before && after && typeof before === "object" && typeof after === "object") {
+        if (
+          "monthlyRentCents" in before &&
+          "monthlyRentCents" in after &&
+          typeof before.monthlyRentCents === "number" &&
+          typeof after.monthlyRentCents === "number" &&
+          before.monthlyRentCents !== after.monthlyRentCents
+        ) {
+          messages.push(`Rent ${formatCurrency(before.monthlyRentCents)} → ${formatCurrency(after.monthlyRentCents)}`);
+        }
+        if ("rentDueDay" in before && "rentDueDay" in after && before.rentDueDay !== after.rentDueDay) {
+          messages.push(`Due day ${before.rentDueDay} → ${after.rentDueDay}`);
+        }
+        if (
+          "tenantIds" in before &&
+          "tenantIds" in after &&
+          JSON.stringify(before.tenantIds) !== JSON.stringify(after.tenantIds)
+        ) {
+          messages.push("Residents changed");
+        }
+      }
     }
     if ("message" in metadata && typeof metadata.message === "string") messages.push(metadata.message);
   }
@@ -123,6 +154,7 @@ type LeaseLifecycleEvent = {
   id: number;
   action: string;
   metadata: unknown;
+  actorLabel?: string | null;
   createdAt: Date | string | null;
 };
 
@@ -137,6 +169,7 @@ export default function LeaseDetailPage() {
   const leaseId = Number(params.id);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [amendmentMode, setAmendmentMode] = useState<"terms" | "tenants" | null>(null);
   const canViewLease = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canEditLease = canViewLease && hasPermission(currentUserQuery.data?.permissions, "leases", "edit");
   const leaseQuery = useQuery({
@@ -166,6 +199,17 @@ export default function LeaseDetailPage() {
     onError: (error) => toast.error(error.message),
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
+  const canAmend =
+    canEditLease &&
+    hasPermission(currentUserQuery.data?.permissions, "invoices", "view") &&
+    hasPermission(currentUserQuery.data?.permissions, "invoices", "edit") &&
+    Boolean(
+      leaseRecord &&
+      ["scheduled", "active", "notice"].includes(leaseRecord.status) &&
+      !leaseRecord.archivedAt &&
+      !leaseRecord.hasPendingAmendment,
+    );
+  const canViewTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "view");
   const lifecycleEvents: LeaseLifecycleEvent[] = lifecycleQuery.data ?? [];
   const canRetryActivation =
     canEditLease &&
@@ -190,6 +234,23 @@ export default function LeaseDetailPage() {
 
   return (
     <main className="flex-1">
+      {amendmentMode && leaseRecord ? (
+        <LeaseAmendmentDrawer
+          mode={amendmentMode}
+          lease={leaseRecord}
+          canViewTenants={canViewTenants}
+          onClose={() => setAmendmentMode(null)}
+          onSaved={async () => {
+            setAmendmentMode(null);
+            toast.success("Lease amendment applied.");
+            await Promise.all([
+              refreshLeaseData(),
+              queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+              queryClient.invalidateQueries({ queryKey: ["leases", "lifecycleEvents", leaseId] }),
+            ]);
+          }}
+        />
+      ) : null}
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-parcelis-border bg-white/90 px-4 py-3 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
@@ -203,7 +264,12 @@ export default function LeaseDetailPage() {
           <div className="flex flex-wrap justify-end gap-2">
             <div aria-label="Lease actions" className="flex items-center rounded-md shadow-sm" role="group">
               {canEditLease ? (
-                <Button disabled={!leaseRecord} className="hidden rounded-r-none md:inline-flex" variant="primary">
+                <Button
+                  disabled={!canAmend}
+                  onClick={() => setAmendmentMode("terms")}
+                  className="hidden rounded-r-none md:inline-flex"
+                  variant="primary"
+                >
                   <PenLine className="h-4 w-4" />
                   Edit Lease
                 </Button>
@@ -237,7 +303,11 @@ export default function LeaseDetailPage() {
                 onReactivateSuccess={refreshLeaseData}
               >
                 {canEditLease ? (
-                  <DropdownMenuItem className="md:hidden" disabled={!leaseRecord}>
+                  <DropdownMenuItem
+                    className="md:hidden"
+                    disabled={!canAmend}
+                    onSelect={() => setAmendmentMode("terms")}
+                  >
                     <PenLine className="h-4 w-4" />
                     Edit Lease
                   </DropdownMenuItem>
@@ -251,7 +321,7 @@ export default function LeaseDetailPage() {
                 <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
                   Tenant Management
                 </p>
-                <DropdownMenuItem disabled={!canEditLease}>
+                <DropdownMenuItem disabled={!canAmend || !canViewTenants} onSelect={() => setAmendmentMode("tenants")}>
                   <UserRoundCog className="h-4 w-4 text-parcelis-green" />
                   Edit Tenants
                 </DropdownMenuItem>
@@ -348,6 +418,11 @@ export default function LeaseDetailPage() {
                   </div>
                 </div>
               </section>
+              {leaseRecord.hasPendingAmendment && leaseRecord.amendmentEffectiveOn ? (
+                <p className="mt-4 text-sm text-parcelis-gray">
+                  Revised terms take effect {new Date(leaseRecord.amendmentEffectiveOn).toISOString().slice(0, 10)}.
+                </p>
+              ) : null}
               <section className="mt-5 flex flex-col gap-5 md:flex-row">
                 <Metric
                   icon={CircleDollarSign}

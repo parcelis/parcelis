@@ -1,0 +1,4 @@
+ALTER TABLE "Lease" ADD COLUMN "amendmentEffectiveOn" TIMESTAMP(3);
+ALTER TABLE "LeaseTenant" ADD COLUMN "assignedOn" TIMESTAMP(3),
+ADD COLUMN "removedOn" TIMESTAMP(3);
+ALTER TABLE "Invoice" ADD COLUMN "issuedAt" TIMESTAMP(3);

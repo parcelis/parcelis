@@ -8,6 +8,8 @@ import {
   createPropertyInputSchema,
   createLeaseInputSchema,
   leaseByIdInputSchema,
+  leaseAmendmentInputSchema,
+  applyLeaseAmendmentInputSchema,
   outboxEventByIdInputSchema,
   outboxEventListInputSchema,
   leaseDraftUpdateInputSchema,
@@ -108,6 +110,15 @@ import {
   recordOutboxEvent,
 } from "@parcelis/db";
 import { getCalendarDate, getStartOfCalendarDate, outboxEventTypes } from "@parcelis/jobs";
+import {
+  applyLeaseAmendment,
+  leaseAmendmentHash,
+  leaseOverlapWhere,
+  leaseRosterWhere,
+  markRentInvoiceIssued,
+  planLeaseAmendment,
+  summarizeLeaseAmendment,
+} from "../leases/lease-amendments";
 import { createLeaseRentInvoices, getLeaseRentInvoiceSummary } from "../leases/lease-rent-invoices";
 import { TRPCError } from "@trpc/server";
 import {
@@ -543,13 +554,22 @@ function withOperatingMetrics<
   };
 }
 
-function getTenantStatus(tenant: { archivedAt: Date | null; leases: Array<{ lease: { status: LeaseStatus } }> }) {
+function getTenantStatus(
+  tenant: {
+    archivedAt: Date | null;
+    leases: Array<{ assignedOn: Date | null; removedOn: Date | null; lease: { status: LeaseStatus } }>;
+  },
+  date: Date,
+) {
   if (tenant.archivedAt) {
     return "archived";
   }
 
   return tenant.leases.some(
-    (leaseTenant) => leaseTenant.lease.status === "active" || leaseTenant.lease.status === "notice",
+    ({ assignedOn, removedOn, lease }) =>
+      (!assignedOn || assignedOn <= date) &&
+      (!removedOn || removedOn > date) &&
+      (lease.status === "active" || lease.status === "notice"),
   )
     ? "active"
     : "past";
@@ -608,23 +628,6 @@ async function writeLeaseRentSchedule(
   });
   for (const invoice of invoices) await recordInvoiceActivity(tx, invoice, "invoice.created");
   return getLeaseRentInvoiceSummary(tx, input.organizationId, input.leaseId, 1);
-}
-
-function leaseOverlapWhere(
-  organizationId: number,
-  unitId: number,
-  startsOn: Date,
-  endsOn: Date | null,
-  exceptId?: number,
-): Prisma.LeaseWhereInput {
-  return {
-    organizationId,
-    unitId,
-    ...(exceptId ? { id: { not: exceptId } } : {}),
-    status: { in: [LeaseStatus.active, LeaseStatus.notice, LeaseStatus.scheduled] },
-    ...(endsOn ? { startsOn: { lte: endsOn } } : {}),
-    OR: [{ endsOn: null }, { endsOn: { gte: startsOn } }],
-  };
 }
 
 async function synchronizeOverdueInvoices(
@@ -1577,6 +1580,7 @@ export const appRouter = router({
               unitId: true,
               unit: { select: { name: true } },
               tenants: {
+                where: leaseRosterWhere(billingDate),
                 select: {
                   tenant: {
                     select: {
@@ -1727,6 +1731,7 @@ export const appRouter = router({
               orderBy: { startsOn: "desc" },
               include: {
                 tenants: {
+                  where: leaseRosterWhere(billingDate),
                   select: {
                     tenant: {
                       select: { id: true, firstName: true, lastName: true, email: true, phone: true },
@@ -2236,6 +2241,7 @@ export const appRouter = router({
     /** Lists tenants with their most recent lease first. */
     list: permissionProcedure("tenants", "view").query(async ({ ctx }) => {
       const permissions = await getPrincipalPermissions(ctx);
+      const date = new Date(`${getCalendarDate(new Date(), ctx.organization.organization.timeZone)}T00:00:00.000Z`);
       const tenants = await ctx.prisma.tenant.findMany({
         where: { organizationId: ctx.organization.organizationId },
         include: {
@@ -2289,7 +2295,7 @@ export const appRouter = router({
                 })
             : [],
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
-          tenantStatus: tenant.archivedAt ? "archived" : permissions.leases.view ? getTenantStatus(tenant) : null,
+          tenantStatus: tenant.archivedAt ? "archived" : permissions.leases.view ? getTenantStatus(tenant, date) : null,
         })),
       );
     }),
@@ -2298,6 +2304,8 @@ export const appRouter = router({
       .input(tenantByIdInputSchema)
       .query(async ({ ctx, input }) => {
         const permissions = await getPrincipalPermissions(ctx);
+        const billingDate = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
+        const date = new Date(`${billingDate}T00:00:00.000Z`);
         const tenant = await ctx.prisma.tenant.findFirst({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           include: {
@@ -2319,6 +2327,7 @@ export const appRouter = router({
                     unit: { select: { name: true } },
                     property: { select: { id: true, name: true } },
                     tenants: {
+                      where: leaseRosterWhere(billingDate),
                       select: { tenant: { select: { id: true, firstName: true, lastName: true } } },
                     },
                     invoices: {
@@ -2359,7 +2368,7 @@ export const appRouter = router({
               }))
             : [],
           imageUrl: await createTenantImageDownloadUrl(tenant.imageObjectKey),
-          tenantStatus: tenant.archivedAt ? "archived" : permissions.leases.view ? getTenantStatus(tenant) : null,
+          tenantStatus: tenant.archivedAt ? "archived" : permissions.leases.view ? getTenantStatus(tenant, date) : null,
         };
       }),
     /** Creates a short-lived URL for uploading a tenant image to MinIO. */
@@ -2954,22 +2963,26 @@ export const appRouter = router({
         lease: { unitLabel: invoice.lease.unit?.name ?? "Not set" },
       };
       const { renderInvoicePdf } = await import("../modules/invoice-pdf");
-      return {
-        contentBase64: (await renderInvoicePdf(pdfInvoice, organizationLogo, organization)).toString("base64"),
-        fileName,
-      };
+      const content = await renderInvoicePdf(pdfInvoice, organizationLogo, organization);
+      await markRentInvoiceIssued(ctx.prisma, invoice);
+      return { contentBase64: content.toString("base64"), fileName };
     }),
     createManual: publicProcedure.input(createManualInvoiceInputSchema).mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.prisma, ctx.user.role, "invoices", "create");
+      const organizationId = ctx.organization.organizationId;
+      const rosterDate = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
       const lease = await ctx.prisma.lease.findFirst({
         where: { id: input.leaseId, organizationId: ctx.organization.organizationId },
         select: {
           id: true,
           propertyId: true,
           status: true,
+          revision: true,
+          amendmentEffectiveOn: true,
           billingResponsibility: true,
           allowPartialPayments: true,
           tenants: {
+            where: leaseRosterWhere(rosterDate),
             orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
             select: { tenantId: true },
           },
@@ -2986,8 +2999,33 @@ export const appRouter = router({
       if (tenantId === undefined || !lease.tenants.some((tenant) => tenant.tenantId === tenantId)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "The selected tenant is not on this lease." });
       }
+      let billingResponsibility = lease.billingResponsibility;
+      if (lease.amendmentEffectiveOn && lease.amendmentEffectiveOn.toISOString().slice(0, 10) > rosterDate) {
+        const amendment = await ctx.prisma.activityEvent.findFirst({
+          where: {
+            organizationId,
+            subjectId: lease.id,
+            subjectType: ActivitySubjectType.lease,
+            action: "lease.amended",
+          },
+          orderBy: { id: "desc" },
+          select: { metadata: true },
+        });
+        const metadata = amendment?.metadata;
+        if (
+          metadata &&
+          typeof metadata === "object" &&
+          "before" in metadata &&
+          metadata.before &&
+          typeof metadata.before === "object" &&
+          "billingResponsibility" in metadata.before &&
+          (metadata.before.billingResponsibility === "joint" || metadata.before.billingResponsibility === "individual")
+        ) {
+          billingResponsibility = metadata.before.billingResponsibility;
+        }
+      }
       const recipientTenantIds =
-        lease.billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [tenantId];
+        billingResponsibility === "joint" ? lease.tenants.map(({ tenantId }) => tenantId) : [tenantId];
 
       const amountCents = input.items.reduce((total, item) => total + item.quantity * item.rateCents, 0);
       if (amountCents <= 0) {
@@ -3009,10 +3047,21 @@ export const appRouter = router({
         try {
           return await ctx.prisma.$transaction(
             async (tx) => {
+              if (
+                !(await tx.lease.findFirst({
+                  where: { id: lease.id, organizationId, revision: lease.revision },
+                  select: { id: true },
+                }))
+              ) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "The lease changed while creating the invoice. Reload it and try again.",
+                });
+              }
               const existingInvoice = await tx.invoice.findFirst({
                 where: {
                   leaseId: lease.id,
-                  ...(lease.billingResponsibility === "joint" ? {} : { tenantId }),
+                  ...(billingResponsibility === "joint" ? {} : { tenantId }),
                   periodStartsOn: dueOn,
                 },
                 select: { invoiceNumber: true },
@@ -4503,6 +4552,7 @@ export const appRouter = router({
     byId: permissionProcedure("leases", "view")
       .input(leaseByIdInputSchema)
       .query(async ({ ctx, input }) => {
+        const billingDate = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
         const lease = await ctx.prisma.lease.findFirst({
           where: { id: input.id, organizationId: ctx.organization.organizationId },
           select: {
@@ -4517,14 +4567,35 @@ export const appRouter = router({
             monthlyRentCents: true,
             rentChargeId: true,
             rentDueDay: true,
+            billingResponsibility: true,
+            securityDepositCents: true,
+            amendmentEffectiveOn: true,
             property: { select: { id: true, name: true } },
             unit: { select: { id: true, name: true } },
             tenants: {
-              select: { tenant: { select: { id: true, firstName: true, lastName: true } } },
+              where: leaseRosterWhere(billingDate),
+              orderBy: { tenantId: "asc" },
+              select: {
+                rentShareCents: true,
+                depositShareCents: true,
+                tenant: { select: { id: true, firstName: true, lastName: true } },
+              },
             },
           },
         });
-        return lease ? { ...lease, tenants: lease.tenants.map(({ tenant }) => tenant) } : null;
+        if (!lease) return null;
+        const date = new Date(`${billingDate}T00:00:00.000Z`);
+        const roster = lease.tenants;
+        return {
+          ...lease,
+          tenants: roster.map(({ tenant }) => tenant),
+          tenantAllocations: roster.flatMap(({ tenant, rentShareCents, depositShareCents }) =>
+            rentShareCents === null
+              ? []
+              : [{ tenantId: tenant.id, rentShareCents, depositShareCents: depositShareCents ?? 0 }],
+          ),
+          hasPendingAmendment: Boolean(lease.amendmentEffectiveOn && lease.amendmentEffectiveOn > date),
+        };
       }),
     lifecycleEvents: permissionProcedure("leases", "view")
       .input(leaseByIdInputSchema)
@@ -4569,6 +4640,108 @@ export const appRouter = router({
           }
         }
         return events;
+      }),
+    previewAmendment: permissionProcedure("leases", "edit")
+      .input(leaseAmendmentInputSchema)
+      .query(async ({ ctx, input }) => {
+        await requirePermission(ctx.prisma, ctx.user.role, "leases", "view");
+        await requirePermission(ctx.prisma, ctx.user.role, "invoices", "view");
+        const organizationId = ctx.organization.organizationId;
+        const today = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
+        return ctx.prisma.$transaction(
+          async (tx) => {
+            const plan = await planLeaseAmendment(tx, organizationId, today, input);
+            if (plan.before.tenantIds.join(",") !== plan.after.tenantIds.join(",")) {
+              await requirePermission(tx, ctx.user.role, "tenants", "view");
+            }
+            return { previewToken: leaseAmendmentHash([input, plan]), changes: summarizeLeaseAmendment(plan) };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+        );
+      }),
+    applyAmendment: permissionProcedure("leases", "edit")
+      .input(applyLeaseAmendmentInputSchema)
+      .mutation(async ({ ctx, input: { previewToken, ...input } }) => {
+        await Promise.all([
+          requirePermission(ctx.prisma, ctx.user.role, "leases", "view"),
+          requirePermission(ctx.prisma, ctx.user.role, "invoices", "view"),
+          requirePermission(ctx.prisma, ctx.user.role, "invoices", "edit"),
+        ]);
+        const organizationId = ctx.organization.organizationId;
+        const today = getCalendarDate(new Date(), ctx.organization.organization.timeZone);
+        const requestHash = leaseAmendmentHash(input);
+        try {
+          return await ctx.prisma.$transaction(
+            async (tx) => {
+              const prior = await tx.activityEvent.findFirst({
+                where: {
+                  organizationId,
+                  subjectType: ActivitySubjectType.lease,
+                  subjectId: input.leaseId,
+                  action: "lease.amended",
+                  metadata: { path: ["requestHash"], equals: requestHash },
+                },
+                select: { metadata: true },
+              });
+              if (
+                prior?.metadata &&
+                typeof prior.metadata === "object" &&
+                "previewToken" in prior.metadata &&
+                prior.metadata.previewToken === previewToken &&
+                "revision" in prior.metadata &&
+                typeof prior.metadata.revision === "number"
+              ) {
+                return { revision: prior.metadata.revision };
+              }
+              const plan = await planLeaseAmendment(tx, organizationId, today, input);
+              if (plan.before.tenantIds.join(",") !== plan.after.tenantIds.join(",")) {
+                await requirePermission(tx, ctx.user.role, "tenants", "view");
+              }
+              if (leaseAmendmentHash([input, plan]) !== previewToken) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "The invoice preview changed. Review it again before applying.",
+                });
+              }
+              await applyLeaseAmendment(tx, organizationId, today, plan);
+              await recordActivityEvent(
+                tx,
+                {
+                  organizationId,
+                  subjectType: ActivitySubjectType.lease,
+                  subjectId: plan.leaseId,
+                  subjectLabel: `Lease #${plan.leaseId}`,
+                  propertyId: plan.propertyId,
+                  action: "lease.amended",
+                  metadata: {
+                    requestHash,
+                    previewToken,
+                    revision: plan.revision,
+                    effectiveOn: input.effectiveOn,
+                    reason: input.reason,
+                    before: plan.before,
+                    after: plan.after,
+                    invoices: summarizeLeaseAmendment(plan),
+                  },
+                },
+                ctx.user,
+              );
+              return { revision: plan.revision };
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 },
+          );
+        } catch (error) {
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            ["P2002", "P2003", "P2025", "P2034"].includes(error.code)
+          ) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "The lease or its invoices changed. Preview the amendment again.",
+            });
+          }
+          throw error;
+        }
       }),
     /** Saves fields on an editable lease draft using optimistic concurrency. */
     updateDraft: permissionProcedure("leases", "edit")

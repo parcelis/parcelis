@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { PrismaClient, PrismaPg } from "@parcelis/db";
 import { planLeaseRentCharges } from "@parcelis/schemas";
+import { leaseRosterWhere, markRentInvoiceIssued } from "../../leases/lease-amendments";
 import { appRouter } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -17,7 +18,7 @@ if (databaseUrl) {
 }
 
 test(
-  "PostgreSQL finalization is atomic and concurrent requests create one schedule",
+  "PostgreSQL finalization and amendments are atomic across concurrent billing operations",
   { skip: !databaseUrl },
   async () => {
     const admin = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl! }) });
@@ -100,6 +101,169 @@ test(
       assert.deepEqual(second.invoiceSummary, first.invoiceSummary);
       assert.equal(await prisma.invoice.count({ where: { leaseId: lease.id } }), 12);
       assert.equal(await prisma.activityEvent.count({ where: { subjectType: "lease", subjectId: lease.id } }), 1);
+      const nextResident = await prisma.tenant.create({
+        data: {
+          organizationId: organization.id,
+          firstName: "New",
+          lastName: "Resident",
+          email: `new-${testId}@example.test`,
+        },
+      });
+      const effectiveOn = `${futureYear}-02-01`;
+      const amendment = {
+        leaseId: lease.id,
+        expectedRevision: 5,
+        effectiveOn,
+        endsOn: `${futureYear}-12-31`,
+        monthlyRentCents: 140_000,
+        rentDueDay: 5,
+        billingResponsibility: "individual" as const,
+        tenantIds: [nextResident.id],
+        tenantAllocations: [{ tenantId: nextResident.id, rentShareCents: 140_000, depositShareCents: 0 }],
+        reason: "Change rent and resident from February",
+      };
+      await assert.rejects(caller.leases.previewAmendment({ ...amendment, expectedRevision: 4 }), { code: "CONFLICT" });
+      await assert.rejects(caller.leases.previewAmendment({ ...amendment, effectiveOn: `${futureYear}-02-15` }), {
+        code: "BAD_REQUEST",
+      });
+      await assert.rejects(caller.leases.previewAmendment({ ...amendment, tenantAllocations: [] }), {
+        code: "BAD_REQUEST",
+      });
+      const foreign = appRouter.createCaller({
+        prisma,
+        session: { user: { id: 1, role: "administrator" } },
+        organization: { organizationId: organization.id + 1, organization },
+      } as unknown as Context);
+      await assert.rejects(foreign.leases.previewAmendment(amendment), { code: "NOT_FOUND" });
+      await prisma.tenant.update({ where: { id: nextResident.id }, data: { archivedAt: new Date() } });
+      await assert.rejects(caller.leases.previewAmendment(amendment), /unarchived residents/);
+      await prisma.tenant.update({ where: { id: nextResident.id }, data: { archivedAt: null } });
+
+      await prisma.lease.create({
+        data: {
+          organizationId: organization.id,
+          propertyId: property.id,
+          unitId: lease.unitId,
+          startsOn: new Date(Date.UTC(futureYear + 1, 0, 1)),
+          status: "scheduled",
+        },
+      });
+      await assert.rejects(
+        caller.leases.previewAmendment({ ...amendment, endsOn: `${futureYear + 1}-01-31` }),
+        /overlaps another lease/,
+      );
+      const historical = await prisma.invoice.findFirstOrThrow({
+        where: { leaseId: lease.id, periodStartsOn: futureStart },
+        include: { recipients: true },
+      });
+      const february = await prisma.invoice.findFirstOrThrow({
+        where: { leaseId: lease.id, periodStartsOn: new Date(effectiveOn) },
+      });
+      await markRentInvoiceIssued(prisma, february);
+      assert.ok((await prisma.invoice.findUniqueOrThrow({ where: { id: february.id } })).issuedAt);
+      await assert.rejects(caller.leases.previewAmendment(amendment), /invoice #.* is protected/i);
+      await prisma.invoice.update({ where: { id: february.id }, data: { issuedAt: null } });
+      const preview = await caller.leases.previewAmendment(amendment);
+      assert.equal(preview.changes.length, 22);
+      assert.equal(await prisma.invoice.count({ where: { leaseId: lease.id } }), 12);
+      await assert.rejects(caller.leases.applyAmendment({ ...amendment, previewToken: "a".repeat(64) }), {
+        code: "CONFLICT",
+      });
+      const committed = { ...amendment, previewToken: preview.previewToken };
+      assert.deepEqual(await caller.leases.applyAmendment(committed), { revision: 6 });
+      assert.deepEqual(await caller.leases.applyAmendment(committed), { revision: 6 });
+      assert.equal(
+        await prisma.activityEvent.count({
+          where: { subjectType: "lease", subjectId: lease.id, action: "lease.amended" },
+        }),
+        1,
+      );
+      assert.deepEqual(
+        await prisma.invoice.findUniqueOrThrow({ where: { id: historical.id }, include: { recipients: true } }),
+        historical,
+      );
+      const amended = await prisma.invoice.findFirstOrThrow({
+        where: { leaseId: lease.id, periodStartsOn: new Date(effectiveOn) },
+        include: { recipients: true },
+      });
+      assert.equal(amended.amountCents, 140_000);
+      assert.equal(amended.billingRevision, 6);
+      assert.equal(amended.dueOn.toISOString().slice(0, 10), `${futureYear}-02-05`);
+      assert.deepEqual(
+        amended.recipients.map(({ tenantId }) => tenantId),
+        [nextResident.id],
+      );
+      assert.deepEqual(
+        (await caller.leases.byId({ id: lease.id }))?.tenants.map(({ id }) => id),
+        [tenant.id],
+      );
+      const memberships = await prisma.leaseTenant.findMany({ where: { leaseId: lease.id } });
+      const effectiveRoster = await prisma.leaseTenant.findMany({
+        where: { leaseId: lease.id, ...leaseRosterWhere(effectiveOn) },
+      });
+      assert.deepEqual(
+        effectiveRoster.map(({ tenantId }) => tenantId),
+        [nextResident.id],
+      );
+      assert.equal(
+        memberships
+          .find(({ tenantId }) => tenantId === tenant.id)
+          ?.removedOn?.toISOString()
+          .slice(0, 10),
+        effectiveOn,
+      );
+      assert.equal(
+        memberships
+          .find(({ tenantId }) => tenantId === nextResident.id)
+          ?.assignedOn?.toISOString()
+          .slice(0, 10),
+        effectiveOn,
+      );
+      const events = await caller.leases.lifecycleEvents({ id: lease.id });
+      const event = events.find(({ action }) => action === "lease.amended");
+      assert.ok(event?.metadata && typeof event.metadata === "object" && "reason" in event.metadata);
+      assert.equal(event.metadata.reason, amendment.reason);
+
+      const raceLease = await createDraft("Payment race");
+      await caller.leases.finalizeDraft({ leaseId: raceLease.id, expectedRevision: 4 });
+      const raceInput = { ...amendment, leaseId: raceLease.id };
+      const racePreview = await caller.leases.previewAmendment(raceInput);
+      const raceInvoice = await prisma.invoice.findFirstOrThrow({
+        where: { leaseId: raceLease.id, periodStartsOn: new Date(effectiveOn) },
+      });
+      const [applied, payment] = await Promise.allSettled([
+        caller.leases.applyAmendment({ ...raceInput, previewToken: racePreview.previewToken }),
+        caller.invoices.recordPayment({
+          id: raceInvoice.id,
+          amountCents: 10_000,
+          paidOn: futureStart,
+          paidByTenantId: tenant.id,
+          paymentMethod: "check",
+        }),
+      ]);
+      assert.notEqual(applied.status, payment.status);
+      if (payment.status === "fulfilled") {
+        const paid = await prisma.invoice.findUniqueOrThrow({
+          where: { id: raceInvoice.id },
+          include: { payments: true, recipients: true },
+        });
+        assert.equal(paid.balanceCents, 110_000);
+        assert.equal(paid.payments[0]?.amountCents, 10_000);
+        assert.deepEqual(
+          paid.recipients.map(({ tenantId }) => tenantId),
+          [tenant.id],
+        );
+        await assert.rejects(caller.leases.previewAmendment(raceInput), /invoice #.* is protected/i);
+      } else {
+        assert.equal(await prisma.invoicePayment.count({ where: { invoiceId: raceInvoice.id } }), 0);
+        assert.equal(
+          await prisma.invoice.count({
+            where: { leaseId: raceLease.id, periodStartsOn: new Date(effectiveOn), tenantId: nextResident.id },
+          }),
+          1,
+        );
+      }
+
       const today = new Date();
       const currentStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
       const currentEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 0));
@@ -170,6 +334,7 @@ test(
       await assert.rejects(restrictedCaller.leases.finalizeDraft({ leaseId: rollbackLease.id, expectedRevision: 4 }), {
         code: "FORBIDDEN",
       });
+      await assert.rejects(restrictedCaller.leases.previewAmendment(amendment), { code: "FORBIDDEN" });
       assert.equal(await prisma.invoice.count({ where: { leaseId: rollbackLease.id } }), 1);
     } finally {
       try {

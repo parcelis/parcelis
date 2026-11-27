@@ -416,6 +416,7 @@ test("payment batches must clear the balance when partial payments are disabled"
 test("manual joint invoices create recipients for every lease tenant", async () => {
   let invoiceData: unknown;
   const tx = {
+    lease: { findFirst: async () => ({ id: 3 }) },
     invoice: {
       findFirst: async () => null,
       create: async ({ data }: { data: unknown }) => {
@@ -431,6 +432,7 @@ test("manual joint invoices create recipients for every lease tenant", async () 
         id: 3,
         propertyId: 2,
         status: "active",
+        revision: 1,
         billingResponsibility: "joint",
         tenants: [{ tenantId: 11 }, { tenantId: 12 }],
       }),
@@ -458,6 +460,7 @@ test("manual joint invoices create recipients for every lease tenant", async () 
 test("manual invoices derive the earliest lease tenant with invoice create permission alone", async () => {
   let invoiceData: { tenantId: number; recipients: unknown } | undefined;
   const tx = {
+    lease: { findFirst: async () => ({ id: 3 }) },
     invoice: {
       findFirst: async () => null,
       create: async ({ data }: { data: typeof invoiceData }) => {
@@ -476,7 +479,13 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
       lease: {
         findFirst: async ({ where, select }: { where: unknown; select: { tenants: unknown } }) => {
           assert.deepEqual(where, { id: 3, organizationId: 7 });
-          assert.deepEqual(select.tenants, {
+          const { where: roster, ...fields } = select.tenants as {
+            where: { AND: unknown[] };
+            orderBy: unknown;
+            select: unknown;
+          };
+          assert.equal(roster.AND.length, 2);
+          assert.deepEqual(fields, {
             orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
             select: { tenantId: true },
           });
@@ -484,6 +493,7 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
             id: 3,
             propertyId: 2,
             status: "active",
+            revision: 1,
             billingResponsibility: "individual",
             tenants: [{ tenantId: 12 }, { tenantId: 11 }],
           };

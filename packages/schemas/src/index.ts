@@ -757,16 +757,34 @@ function validateLeaseTenantAllocations(lease: LeaseTenantBillingValues, ctx: z.
   }
 }
 
-export const leaseTenantBillingStepSchema = z
-  .object({
-    tenantIds: leaseTenantIdsSchema,
-    billingResponsibility: leaseBillingResponsibilitySchema,
-    allowPartialPayments: z.boolean(),
-    monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
-    securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger),
-    tenantAllocations: z.array(leaseTenantAllocationSchema).max(50),
+const leaseTenantBillingFieldsSchema = z.object({
+  tenantIds: leaseTenantIdsSchema,
+  billingResponsibility: leaseBillingResponsibilitySchema,
+  allowPartialPayments: z.boolean(),
+  monthlyRentCents: z.number().int().positive().max(maxDatabaseInteger),
+  securityDepositCents: z.number().int().nonnegative().max(maxDatabaseInteger),
+  tenantAllocations: z.array(leaseTenantAllocationSchema).max(50),
+});
+
+export const leaseTenantBillingStepSchema = leaseTenantBillingFieldsSchema.superRefine(validateLeaseTenantAllocations);
+
+export const leaseAmendmentInputSchema = leaseTenantBillingFieldsSchema
+  .omit({ securityDepositCents: true, allowPartialPayments: true })
+  .extend({
+    leaseId: idSchema,
+    expectedRevision: z.number().int().nonnegative(),
+    effectiveOn: z.iso.date(),
+    endsOn: z.iso.date().nullable(),
+    rentDueDay: z.number().int().min(1).max(31),
+    reason: z.string().trim().min(1, "Enter a reason for the change.").max(1000),
   })
-  .superRefine(validateLeaseTenantAllocations);
+  .strict();
+
+export const applyLeaseAmendmentInputSchema = leaseAmendmentInputSchema
+  .extend({ previewToken: z.string().regex(/^[a-f0-9]{64}$/) })
+  .strict();
+
+export type LeaseAmendmentInput = z.infer<typeof leaseAmendmentInputSchema>;
 
 export const leaseSchema = z.object({
   id: idSchema,
