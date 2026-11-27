@@ -6,7 +6,27 @@ import { TRPCError } from "@trpc/server";
 import type { OpenApiMeta } from "trpc-to-openapi";
 import type { Context } from "./context";
 
-const t = initTRPC.context<Context>().meta<OpenApiMeta>().create();
+function getErrorReason(error: { cause?: unknown }) {
+  if (typeof error.cause !== "object" || !error.cause || !("reason" in error.cause)) return undefined;
+  const reason = (error.cause as { reason?: unknown }).reason;
+  return typeof reason === "string" ? reason : undefined;
+}
+
+const t = initTRPC
+  .context<Context>()
+  .meta<OpenApiMeta>()
+  .create({
+    errorFormatter({ error, shape }) {
+      const reason = getErrorReason(error);
+      return {
+        ...shape,
+        data: {
+          ...shape.data,
+          reason,
+        },
+      };
+    },
+  });
 
 export const router = t.router;
 export const publicProcedure = t.procedure;

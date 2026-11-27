@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { TRPCClientError } from "@trpc/client";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -175,6 +176,7 @@ export default function TenantsPage() {
     queryFn: () => apiClient.auth.me.query(),
   });
   const canViewLeases = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
+  const canArchiveTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "archive");
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants.list,
     queryFn: () => apiClient.tenants.list.query(),
@@ -256,11 +258,25 @@ export default function TenantsPage() {
   const deleteTenantMutation = useMutation({
     mutationFn: (tenant: TenantListItem) => apiClient.tenants.delete.mutate({ id: tenant.id }),
     onSuccess: async (_tenant, tenant) => {
-      setDeleteTenant(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list });
+      setDeleteTenant((current) => (current?.id === tenant.id ? null : current));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.list }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.leases.all }),
+      ]);
       toast.success(entityDeletedMessage("Tenant", `${tenant.firstName} ${tenant.lastName}`));
     },
   });
+  const deleteError = deleteTenantMutation.error;
+  const deleteErrorReason =
+    deleteError instanceof TRPCClientError
+      ? ((deleteError.data as { reason?: string } | undefined)?.reason ?? null)
+      : null;
+  const canArchiveInstead =
+    canArchiveTenants &&
+    deleteTenant?.tenantStatus !== "archived" &&
+    deleteError instanceof TRPCClientError &&
+    deleteError.data?.code === "CONFLICT" &&
+    deleteErrorReason === "protected_history";
   const tenants = tenantsQuery.data ?? [];
   const activeTenants = tenants.filter((tenant) => tenant.tenantStatus === "active");
   const pastTenants = tenants.filter((tenant) => tenant.tenantStatus === "past");
@@ -346,7 +362,7 @@ export default function TenantsPage() {
             <AlertDialogTitle>Archive tenant?</AlertDialogTitle>
             <AlertDialogDescription>
               This will mark {archiveTenant?.firstName} {archiveTenant?.lastName} as archived while preserving their
-              lease history.
+              leases, invoices, and payments.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -368,22 +384,39 @@ export default function TenantsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete tenant?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes {deleteTenant?.firstName} {deleteTenant?.lastName} and their lease history. This
-              cannot be undone.
+              This permanently deletes {deleteTenant?.firstName} {deleteTenant?.lastName} and removes them from any
+              draft lease assignments. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError ? (
+            <p className="text-sm text-red-700" role="alert">
+              {deleteError.message}
+            </p>
+          ) : null}
           <AlertDialogFooter>
             <Button onClick={() => setDeleteTenant(null)} type="button" variant="secondary">
               Cancel
             </Button>
-            <Button
-              className="bg-red-700 hover:bg-red-800"
-              disabled={deleteTenantMutation.isPending}
-              onClick={() => deleteTenant && deleteTenantMutation.mutate(deleteTenant)}
-              type="button"
-            >
-              Delete
-            </Button>
+            {canArchiveInstead ? (
+              <Button
+                onClick={() => {
+                  setArchiveTenant(deleteTenant);
+                  setDeleteTenant(null);
+                }}
+                type="button"
+              >
+                Archive instead
+              </Button>
+            ) : (
+              <Button
+                disabled={deleteTenantMutation.isPending}
+                onClick={() => deleteTenant && deleteTenantMutation.mutate(deleteTenant)}
+                type="button"
+                variant="destructive"
+              >
+                Delete
+              </Button>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -659,7 +692,10 @@ export default function TenantsPage() {
                           <TableCell className="px-5 py-4 text-right">
                             <TenantActionsMenu
                               onArchive={() => setArchiveTenant(tenant)}
-                              onDelete={() => setDeleteTenant(tenant)}
+                              onDelete={() => {
+                                deleteTenantMutation.reset();
+                                setDeleteTenant(tenant);
+                              }}
                               onEdit={() => openEdit(tenant)}
                               onNotes={() => openNotes(tenant)}
                               onReactivate={() => reactivateMutation.mutate(tenant.id)}

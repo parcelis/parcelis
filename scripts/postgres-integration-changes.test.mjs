@@ -7,7 +7,7 @@ import test from "node:test";
 import { selectPostgresIntegrationSuites } from "./postgres-integration-changes.mjs";
 
 const selected = (files, force) => selectPostgresIntegrationSuites(files, force).map(({ suite }) => suite);
-const all = ["database", "worker", "api-tokens", "installation"];
+const all = ["database", "worker", "api-tokens", "installation", "tenant-deletion"];
 
 for (const [file, expected] of [
   ["apps/web/app/page.tsx", []],
@@ -19,7 +19,7 @@ for (const [file, expected] of [
   ["apps/worker/src/tests/outbox-dispatcher.integration.ts", ["worker"]],
   ["packages/jobs/src/contracts.ts", ["worker", "api-tokens", "installation"]],
   ["apps/api/src/modules/activity-actor.ts", ["api-tokens", "installation"]],
-  ["apps/api/src/modules/permissions.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/permissions.ts", ["api-tokens", "installation", "tenant-deletion"]],
   ["apps/api/src/modules/api-tokens.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/authorization.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/object-storage.config.ts", ["api-tokens", "installation"]],
@@ -31,7 +31,9 @@ for (const [file, expected] of [
   ["apps/api/src/router/installation-license.router.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/parcelis-accounts-license.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/installation-metadata.ts", ["api-tokens", "installation"]],
-  ["apps/api/src/router/trpc.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/router/app.router.ts", ["api-tokens", "tenant-deletion"]],
+  ["apps/api/src/router/trpc.ts", ["api-tokens", "installation", "tenant-deletion"]],
+  ["apps/api/src/tests/tenants/tenant-delete.integration.test.ts", ["tenant-deletion"]],
   ["apps/api/src/modules/auth.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/notification-outbox.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/login-rate-limit.ts", ["api-tokens", "installation"]],
