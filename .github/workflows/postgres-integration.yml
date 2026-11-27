@@ -89,3 +89,8 @@ jobs:
         run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/api-tokens/*.integration.ts'
       - if: matrix.suite == 'installation'
         run: pnpm --filter @parcelis/api exec tsx --test 'src/tests/installation/*.integration.ts'
+      - if: matrix.suite == 'lease-billing'
+        env:
+          DATABASE_URL: postgresql://parcelis:parcelis@localhost:5432/parcelis_integration_test?schema=public
+          LEASE_BILLING_INTEGRATION_TEST: "1"
+        run: pnpm --filter @parcelis/api exec tsx --test src/tests/leases/lease-finalization.integration.test.ts

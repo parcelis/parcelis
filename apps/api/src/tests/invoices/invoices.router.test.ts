@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@parcelis/db";
+import { leaseRosterWhere } from "../../leases/lease-amendments";
 import { appRouter, getMonthlyDueDate } from "../../router/app.router";
 import type { Context } from "../../router/context";
 
@@ -416,6 +417,7 @@ test("payment batches must clear the balance when partial payments are disabled"
 test("manual joint invoices create recipients for every lease tenant", async () => {
   let invoiceData: unknown;
   const tx = {
+    lease: { findFirst: async () => ({ id: 3 }) },
     invoice: {
       findFirst: async () => null,
       create: async ({ data }: { data: unknown }) => {
@@ -431,6 +433,7 @@ test("manual joint invoices create recipients for every lease tenant", async () 
         id: 3,
         propertyId: 2,
         status: "active",
+        revision: 1,
         billingResponsibility: "joint",
         tenants: [{ tenantId: 11 }, { tenantId: 12 }],
       }),
@@ -455,9 +458,12 @@ test("manual joint invoices create recipients for every lease tenant", async () 
   });
 });
 
-test("manual invoices derive the earliest lease tenant with invoice create permission alone", async () => {
+test("manual invoices derive the earliest lease tenant with invoice create permission alone", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-09-16T02:00:00.000Z").getTime() });
+  const rosterDate = "2026-09-15";
   let invoiceData: { tenantId: number; recipients: unknown } | undefined;
   const tx = {
+    lease: { findFirst: async () => ({ id: 3 }) },
     invoice: {
       findFirst: async () => null,
       create: async ({ data }: { data: typeof invoiceData }) => {
@@ -477,6 +483,7 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
         findFirst: async ({ where, select }: { where: unknown; select: { tenants: unknown } }) => {
           assert.deepEqual(where, { id: 3, organizationId: 7 });
           assert.deepEqual(select.tenants, {
+            where: leaseRosterWhere(rosterDate),
             orderBy: [{ createdAt: "asc" }, { tenantId: "asc" }],
             select: { tenantId: true },
           });
@@ -484,6 +491,7 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
             id: 3,
             propertyId: 2,
             status: "active",
+            revision: 1,
             billingResponsibility: "individual",
             tenants: [{ tenantId: 12 }, { tenantId: 11 }],
           };
@@ -492,7 +500,7 @@ test("manual invoices derive the earliest lease tenant with invoice create permi
       $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
     },
     session: { user: { id: 1, role: "property_manager" } },
-    organization: { organizationId: 7, organization: { timeZone: "UTC" } },
+    organization: { organizationId: 7, organization: { timeZone: "America/Chicago" } },
   } as unknown as Context);
   const input = {
     propertyId: 2,

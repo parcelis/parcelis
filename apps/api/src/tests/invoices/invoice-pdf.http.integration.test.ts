@@ -130,6 +130,8 @@ test(
         propertyId: property.id,
         leaseId: lease.id,
         tenantId: tenant.id,
+        sourceKey: `rent:${dueOn.toISOString().slice(0, 7)}:joint`,
+        billingRevision: 1,
         periodStartsOn: dueOn,
         periodEndsOn: dueOn,
         dueOn,
@@ -260,6 +262,7 @@ test(
     const pdf = Buffer.from(payload.result.data.contentBase64, "base64");
     assert.equal(payload.result.data.fileName, `invoice-${String(invoice.invoiceNumber).padStart(7, "0")}.pdf`);
     assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
+    assert.ok((await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } })).issuedAt);
     assert.ok(pdf.length > 5000);
     assert.match(pdf.toString("latin1"), /\/FontFile2\b/);
     assert.match(pdf.toString("latin1"), /Inter/);

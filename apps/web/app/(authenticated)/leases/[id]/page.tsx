@@ -28,21 +28,15 @@ import { hasPermission } from "../../../../components/property-access";
 import { LoadingState } from "../../../../components/loading-state";
 import { StickyNotePlusIcon } from "../../../../components/sticky-note-plus-icon";
 import { TenantRecordDrawer } from "../../../../components/tenant-record-drawer";
+import { LeaseAmendmentDrawer } from "../../../../components/lease-amendment-drawer";
 import { LeaseTenantList } from "../../../../components/lease-tenant-list";
 import { getPropertyLink, getTenantLink, getUnitLink } from "../../../../lib/entity-links";
-import { formatLeaseEndDate } from "../../../../lib/format";
+import { formatCurrency, formatLeaseEndDate } from "../../../../lib/format";
 
 function formatDate(value: Date | string | null) {
   return value
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value))
     : "Not set";
-}
-
-function formatCurrency(cents: number | null) {
-  if (cents === null) return "Not set";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    cents / 100,
-  );
 }
 
 function formatStatus(status: string) {
@@ -74,6 +68,7 @@ function dueDay(day: number | undefined) {
 }
 
 function lifecycleLabel(action: string) {
+  if (action === "lease.amended") return "Lease amended";
   if (action === "lease.created") return "Lease created";
   if (action === "lease.finalized") return "Lease finalized";
   if (action === "lease.activated") return "Lease started";
@@ -83,7 +78,11 @@ function lifecycleLabel(action: string) {
   return "Lease activity";
 }
 
-function lifecycleMessage(event: LeaseLifecycleEvent, startsOn: Date | string | null | undefined) {
+function lifecycleMessage(
+  event: LeaseLifecycleEvent,
+  startsOn: Date | string | null | undefined,
+  currencyCode: string,
+) {
   const metadata = event.metadata;
   const messages: string[] = [];
   if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
@@ -94,6 +93,37 @@ function lifecycleMessage(event: LeaseLifecycleEvent, startsOn: Date | string | 
       typeof metadata.nextStatus === "string"
     ) {
       messages.push(`${formatStatus(metadata.previousStatus)} → ${formatStatus(metadata.nextStatus)}`);
+    }
+    if (event.action === "lease.amended") {
+      if ("effectiveOn" in metadata && typeof metadata.effectiveOn === "string")
+        messages.push(`Effective ${metadata.effectiveOn}`);
+      if (event.actorLabel) messages.push(event.actorLabel);
+      if ("reason" in metadata && typeof metadata.reason === "string") messages.push(metadata.reason);
+      const before = "before" in metadata ? metadata.before : null;
+      const after = "after" in metadata ? metadata.after : null;
+      if (before && after && typeof before === "object" && typeof after === "object") {
+        if (
+          "monthlyRentCents" in before &&
+          "monthlyRentCents" in after &&
+          typeof before.monthlyRentCents === "number" &&
+          typeof after.monthlyRentCents === "number" &&
+          before.monthlyRentCents !== after.monthlyRentCents
+        ) {
+          messages.push(
+            `Rent ${formatCurrency(before.monthlyRentCents, currencyCode)} → ${formatCurrency(after.monthlyRentCents, currencyCode)}`,
+          );
+        }
+        if ("rentDueDay" in before && "rentDueDay" in after && before.rentDueDay !== after.rentDueDay) {
+          messages.push(`Due day ${before.rentDueDay} → ${after.rentDueDay}`);
+        }
+        if (
+          "tenantIds" in before &&
+          "tenantIds" in after &&
+          JSON.stringify(before.tenantIds) !== JSON.stringify(after.tenantIds)
+        ) {
+          messages.push("Residents changed");
+        }
+      }
     }
     if ("message" in metadata && typeof metadata.message === "string") messages.push(metadata.message);
   }
@@ -123,6 +153,7 @@ type LeaseLifecycleEvent = {
   id: number;
   action: string;
   metadata: unknown;
+  actorLabel?: string | null;
   createdAt: Date | string | null;
 };
 
@@ -137,6 +168,7 @@ export default function LeaseDetailPage() {
   const leaseId = Number(params.id);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [amendmentMode, setAmendmentMode] = useState<"terms" | "tenants" | null>(null);
   const canViewLease = hasPermission(currentUserQuery.data?.permissions, "leases", "view");
   const canEditLease = canViewLease && hasPermission(currentUserQuery.data?.permissions, "leases", "edit");
   const leaseQuery = useQuery({
@@ -166,6 +198,21 @@ export default function LeaseDetailPage() {
     onError: (error) => toast.error(error.message),
   });
   const leaseRecord = canViewLease ? leaseQuery.data : null;
+  const monthlyRent =
+    leaseRecord?.monthlyRentCents == null
+      ? "Not set"
+      : formatCurrency(leaseRecord.monthlyRentCents, leaseRecord.currencyCode);
+  const canAmend =
+    canEditLease &&
+    hasPermission(currentUserQuery.data?.permissions, "invoices", "view") &&
+    hasPermission(currentUserQuery.data?.permissions, "invoices", "edit") &&
+    Boolean(
+      leaseRecord &&
+      ["scheduled", "active", "notice"].includes(leaseRecord.status) &&
+      !leaseRecord.archivedAt &&
+      !leaseRecord.hasPendingAmendment,
+    );
+  const canViewTenants = hasPermission(currentUserQuery.data?.permissions, "tenants", "view");
   const lifecycleEvents: LeaseLifecycleEvent[] = lifecycleQuery.data ?? [];
   const canRetryActivation =
     canEditLease &&
@@ -190,6 +237,23 @@ export default function LeaseDetailPage() {
 
   return (
     <main className="flex-1">
+      {amendmentMode && leaseRecord ? (
+        <LeaseAmendmentDrawer
+          mode={amendmentMode}
+          lease={leaseRecord}
+          canViewTenants={canViewTenants}
+          onClose={() => setAmendmentMode(null)}
+          onSaved={async () => {
+            setAmendmentMode(null);
+            toast.success("Lease amendment applied.");
+            await Promise.all([
+              refreshLeaseData(),
+              queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+              queryClient.invalidateQueries({ queryKey: ["leases", "lifecycleEvents", leaseId] }),
+            ]);
+          }}
+        />
+      ) : null}
       <section className="transition-[padding] duration-200 lg:pl-[var(--parcelis-sidebar-width)]">
         <header className="parcelis-mobile-nav-header sticky top-0 z-10 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-parcelis-border bg-white/90 px-4 py-3 backdrop-blur md:px-8">
           <div className="flex items-center gap-2">
@@ -203,7 +267,12 @@ export default function LeaseDetailPage() {
           <div className="flex flex-wrap justify-end gap-2">
             <div aria-label="Lease actions" className="flex items-center rounded-md shadow-sm" role="group">
               {canEditLease ? (
-                <Button disabled={!leaseRecord} className="hidden rounded-r-none md:inline-flex" variant="primary">
+                <Button
+                  disabled={!canAmend}
+                  onClick={() => setAmendmentMode("terms")}
+                  className="hidden rounded-r-none md:inline-flex"
+                  variant="primary"
+                >
                   <PenLine className="h-4 w-4" />
                   Edit Lease
                 </Button>
@@ -237,7 +306,11 @@ export default function LeaseDetailPage() {
                 onReactivateSuccess={refreshLeaseData}
               >
                 {canEditLease ? (
-                  <DropdownMenuItem className="md:hidden" disabled={!leaseRecord}>
+                  <DropdownMenuItem
+                    className="md:hidden"
+                    disabled={!canAmend}
+                    onSelect={() => setAmendmentMode("terms")}
+                  >
                     <PenLine className="h-4 w-4" />
                     Edit Lease
                   </DropdownMenuItem>
@@ -251,7 +324,7 @@ export default function LeaseDetailPage() {
                 <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-parcelis-gray">
                   Tenant Management
                 </p>
-                <DropdownMenuItem disabled={!canEditLease}>
+                <DropdownMenuItem disabled={!canAmend || !canViewTenants} onSelect={() => setAmendmentMode("tenants")}>
                   <UserRoundCog className="h-4 w-4 text-parcelis-green" />
                   Edit Tenants
                 </DropdownMenuItem>
@@ -348,12 +421,13 @@ export default function LeaseDetailPage() {
                   </div>
                 </div>
               </section>
+              {leaseRecord.hasPendingAmendment && leaseRecord.amendmentEffectiveOn ? (
+                <p className="mt-4 text-sm text-parcelis-gray">
+                  Lease amendment takes effect {new Date(leaseRecord.amendmentEffectiveOn).toISOString().slice(0, 10)}.
+                </p>
+              ) : null}
               <section className="mt-5 flex flex-col gap-5 md:flex-row">
-                <Metric
-                  icon={CircleDollarSign}
-                  label="Monthly Rent"
-                  value={formatCurrency(leaseRecord.monthlyRentCents)}
-                />
+                <Metric icon={CircleDollarSign} label="Monthly Rent" value={monthlyRent} />
                 <Metric icon={CalendarDays} label="Rent Due" value={dueDay(leaseRecord.rentDueDay)} />
               </section>
               <section className="mt-5 flex flex-col gap-5 lg:flex-row">
@@ -395,7 +469,7 @@ export default function LeaseDetailPage() {
                       {formatLeaseEndDate(leaseRecord.endsOn, leaseRecord.termType)}
                     </Detail>
                     <Detail icon={CircleDollarSign} label="Monthly Rent">
-                      {formatCurrency(leaseRecord.monthlyRentCents)}
+                      {monthlyRent}
                     </Detail>
                     <Detail icon={CalendarDays} label="Rent Due Day">
                       {dueDay(leaseRecord.rentDueDay)}
@@ -462,27 +536,29 @@ export default function LeaseDetailPage() {
                       <p className="text-sm text-red-700">{lifecycleQuery.error.message}</p>
                     ) : lifecycleEvents.length ? (
                       <ul className="divide-y divide-parcelis-border">
-                        {lifecycleEvents.map((event) => (
-                          <li className="py-3" key={event.id}>
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                              <span className="font-semibold text-parcelis-charcoal">
-                                {lifecycleLabel(event.action)}
-                              </span>
-                              {event.createdAt ? (
-                                <time className="text-parcelis-gray" dateTime={new Date(event.createdAt).toISOString()}>
-                                  {new Date(event.createdAt).toLocaleString()}
-                                </time>
-                              ) : (
-                                <span className="text-parcelis-gray">Log timestamp unavailable</span>
-                              )}
-                            </div>
-                            {lifecycleMessage(event, leaseRecord.startsOn) ? (
-                              <p className="mt-1 text-sm text-parcelis-gray">
-                                {lifecycleMessage(event, leaseRecord.startsOn)}
-                              </p>
-                            ) : null}
-                          </li>
-                        ))}
+                        {lifecycleEvents.map((event) => {
+                          const message = lifecycleMessage(event, leaseRecord.startsOn, leaseRecord.currencyCode);
+                          return (
+                            <li className="py-3" key={event.id}>
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                                <span className="font-semibold text-parcelis-charcoal">
+                                  {lifecycleLabel(event.action)}
+                                </span>
+                                {event.createdAt ? (
+                                  <time
+                                    className="text-parcelis-gray"
+                                    dateTime={new Date(event.createdAt).toISOString()}
+                                  >
+                                    {new Date(event.createdAt).toLocaleString()}
+                                  </time>
+                                ) : (
+                                  <span className="text-parcelis-gray">Log timestamp unavailable</span>
+                                )}
+                              </div>
+                              {message ? <p className="mt-1 text-sm text-parcelis-gray">{message}</p> : null}
+                            </li>
+                          );
+                        })}
                       </ul>
                     ) : (
                       <p className="text-sm text-parcelis-gray">No lifecycle activity yet.</p>

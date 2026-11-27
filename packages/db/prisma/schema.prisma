@@ -642,6 +642,7 @@ model Lease {
   status                       LeaseStatus                 @default(draft)
   draftStep                    LeaseDraftStep              @default(property)
   revision                     Int                          @default(0)
+  amendmentEffectiveOn         DateTime?
   archivedAt                   DateTime?
   property                     Property?                   @relation("LeaseProperty", fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
   unit                         Unit?                       @relation(fields: [propertyId, unitId], references: [propertyId, id], onDelete: Restrict)
@@ -682,13 +683,28 @@ model LeaseTenant {
   tenantId          Int
   rentShareCents    Int?
   depositShareCents Int?
+  assignedOn        DateTime?
+  removedOn         DateTime?
   lease             Lease     @relation(fields: [organizationId, leaseId], references: [organizationId, id], onDelete: Cascade)
   tenant            Tenant    @relation("LeaseTenant", fields: [organizationId, tenantId], references: [organizationId, id], onDelete: Cascade)
   invoices          Invoice[] @relation("InvoiceLeaseTenant")
+  priorPeriods      LeaseTenantPeriod[]
   createdAt         DateTime  @default(now())
 
   @@id([organizationId, leaseId, tenantId])
   @@index([tenantId])
+}
+
+model LeaseTenantPeriod {
+  id             Int         @id @default(autoincrement())
+  organizationId Int
+  leaseId        Int
+  tenantId       Int
+  assignedOn     DateTime?
+  removedOn      DateTime
+  assignment     LeaseTenant @relation(fields: [organizationId, leaseId, tenantId], references: [organizationId, leaseId, tenantId], onDelete: Cascade)
+
+  @@index([organizationId, leaseId, tenantId])
 }
 
 model Invoice {
@@ -701,6 +717,7 @@ model Invoice {
   tenantId       Int
   sourceKey      String?
   billingRevision Int?
+  issuedAt       DateTime?
   paidByTenantId Int?
   periodStartsOn DateTime
   periodEndsOn   DateTime

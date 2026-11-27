@@ -7,7 +7,7 @@ import test from "node:test";
 import { selectPostgresIntegrationSuites } from "./postgres-integration-changes.mjs";
 
 const selected = (files, force) => selectPostgresIntegrationSuites(files, force).map(({ suite }) => suite);
-const all = ["database", "worker", "api-tokens", "installation"];
+const all = ["database", "worker", "api-tokens", "installation", "lease-billing"];
 
 for (const [file, expected] of [
   ["apps/web/app/page.tsx", []],
@@ -19,11 +19,14 @@ for (const [file, expected] of [
   ["apps/worker/src/tests/outbox-dispatcher.integration.ts", ["worker"]],
   ["packages/jobs/src/contracts.ts", ["worker", "api-tokens", "installation"]],
   ["apps/api/src/modules/activity-actor.ts", ["api-tokens", "installation"]],
-  ["apps/api/src/modules/permissions.ts", ["api-tokens", "installation"]],
+  ["apps/api/src/modules/permissions.ts", ["api-tokens", "installation", "lease-billing"]],
   ["apps/api/src/modules/api-tokens.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/authorization.ts", ["api-tokens", "installation"]],
   ["apps/api/src/modules/object-storage.config.ts", ["api-tokens", "installation"]],
   ["apps/api/src/router/public.router.ts", ["api-tokens"]],
+  ["apps/api/src/router/app.router.ts", ["api-tokens", "lease-billing"]],
+  ["apps/api/src/leases/lease-amendments.ts", ["api-tokens", "lease-billing"]],
+  ["apps/api/src/tests/leases/lease-finalization.integration.test.ts", ["lease-billing"]],
   ["apps/api/src/app/api/v1/[...path]/route.ts", ["api-tokens"]],
   ["apps/api/src/tests/auth/session-cookie.ts", ["api-tokens"]],
   ["apps/api/src/tests/api-tokens/api-tokens.integration.ts", ["api-tokens"]],
@@ -39,7 +42,7 @@ for (const [file, expected] of [
   ["packages/db/src/installation.ts", all],
   ["apps/api/package.json", ["api-tokens", "installation"]],
   ["apps/web/package.json", ["installation"]],
-  ["packages/schemas/src/index.ts", ["api-tokens", "installation"]],
+  ["packages/schemas/src/index.ts", ["api-tokens", "installation", "lease-billing"]],
   ["packages/email/src/service.ts", ["api-tokens", "installation"]],
   ["packages/db/src/outbox.ts", all],
   ["packages/db/prisma/schema.prisma", all],
