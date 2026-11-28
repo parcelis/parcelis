@@ -24,12 +24,15 @@ Parcelis (PAR-suhl-iss) is an open-source property management platform for landl
 <span>&nbsp; &nbsp; &nbsp;</span>
 <a href="https://parcelis.dev/"><img width="50" height="50" alt="image" src="https://github.com/user-attachments/assets/9f838f54-df0d-4f52-bfa8-8d21e8c99735" /></a>
 <span>&nbsp; &nbsp; &nbsp;</span>
-<a href="https://snyk.io/?utm_source=open-source&utm_medium=pg-ptr&utm_campaign=ref-2501-osp&utm_content=pg-cta"><img src="https://github.com/snyk-labs/secure-developer-sample-repo/blob/main/badge_round.svg" width="60px" /></a>
+<a href="https://snyk.io/?utm_source=open-source&utm_medium=pg-ptr&utm_campaign=ref-2501-osp&utm_content=pg-cta"><img src="assets/readme/snyk-io-logo.png" alt="Dog logo" width="50" /></a>
 </p>
+
+
 
 <br />
 
-![GitHub Tag](https://img.shields.io/github/v/tag/parcelis/parcelis) ![Docker Automated build](https://img.shields.io/docker/automated/ndcallahan/parcelis) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/parcelis/parcelis/publish-images.yml) [![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml) [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/parcelis/parcelis) ![GitHub Issues](https://img.shields.io/github/issues/parcelis/parcelis) ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/parcelis/parcelis) ![GitHub Discussions (all)](https://img.shields.io/github/discussions/all/parcelis/parcelis) ![GitHub License](https://img.shields.io/github/license/parcelis/parcelis) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-3.0-4baaaa.svg)](CODE_OF_CONDUCT.md)
+![GitHub Tag](https://img.shields.io/github/v/tag/parcelis/parcelis) ![Docker Automated build](https://img.shields.io/docker/automated/ndcallahan/parcelis) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/parcelis/parcelis/publish-images.yml) [![CI](https://github.com/parcelis/parcelis/actions/workflows/ci.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/ci.yml) [![Linter](https://github.com/parcelis/parcelis/actions/workflows/lint.yml/badge.svg)](https://github.com/parcelis/parcelis/actions/workflows/lint.yml) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/parcelis/parcelis) ![GitHub Issues](https://img.shields.io/github/issues/parcelis/parcelis) [![Known Vulnerabilities](https://snyk.io/test/github/parcelis/parcelis/badge.svg)](https://snyk.io/test/github/parcelis/parcelis) ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/parcelis/parcelis) ![GitHub Discussions (all)](https://img.shields.io/github/discussions/all/parcelis/parcelis) ![GitHub License](https://img.shields.io/github/license/parcelis/parcelis) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-3.0-4baaaa.svg)](CODE_OF_CONDUCT.md) [![first-timers-only](https://img.shields.io/badge/first--timers--only-friendly-blue.svg?style=flat-square)](https://www.firsttimersonly.com/)
+
 
 <br/>
 
