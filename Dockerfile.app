@@ -75,6 +75,7 @@ COPY apps/api/tsconfig.json apps/api/tsconfig.json
 COPY apps/api/src apps/api/src
 COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @parcelis/schemas build
 RUN pnpm --filter @parcelis/web build
 
 # The worker runtime is independent of the web and API build stages.
